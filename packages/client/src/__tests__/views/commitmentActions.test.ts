@@ -6,12 +6,12 @@
  * the wrong person. Both shipped before, and neither typechecked its way out.
  */
 
-import { describe, expect, it } from "vitest";
-
 import { canLinkWork } from "@green-goods/shared/commitment-pooling";
+import { describe, expect, it } from "vitest";
 import {
   canJoinTeam,
   selectCommitmentAct,
+  takeUpMode,
 } from "../../views/Home/Garden/Commitment/commitmentActions";
 import { selectStatusBand } from "../../views/Home/Garden/Commitment/statusBand";
 
@@ -111,6 +111,7 @@ describe("selectCommitmentAct", () => {
         commitment: { ...base, derivedState: "OFFERED", claimMode: "APPROVAL_GATED" },
         seat: "bystander",
         isMember: true,
+        clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
       })?.kind
     ).toBe("askToTakeUp");
     expect(
@@ -118,6 +119,7 @@ describe("selectCommitmentAct", () => {
         commitment: { ...base, derivedState: "OFFERED" },
         seat: "bystander",
         isMember: true,
+        clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
       })?.kind
     ).toBe("takeUp");
   });
@@ -167,6 +169,47 @@ describe("selectCommitmentAct", () => {
   it("withholds the act while one is already waiting to send", () => {
     expect(
       selectCommitmentAct({ commitment: base, seat: "provider", hasPendingJob: true })
+    ).toBeNull();
+  });
+
+  it("keeps creator request recreation separate from a member's reviewed take-up", () => {
+    const recreate = selectCommitmentAct({
+      commitment: { ...base, derivedState: "EXPIRED", direction: "REQUEST" },
+      seat: "confirmer",
+      isCreator: true,
+    });
+    expect(recreate?.kind).toBe("askAgain");
+    expect(takeUpMode(recreate)).toBeNull();
+    const memberRequest = selectCommitmentAct({
+      commitment: {
+        ...base,
+        derivedState: "REQUESTED",
+        direction: "REQUEST",
+        claimMode: "APPROVAL_GATED",
+      },
+      seat: "bystander",
+      isMember: true,
+      clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
+    });
+    expect(memberRequest?.kind).toBe("askToTakeUp");
+    expect(takeUpMode(memberRequest)).toBe("reviewed");
+  });
+});
+
+describe("reward agreement for an existing queued claim", () => {
+  it("offers only agreement-blocked claims a recovery mode", () => {
+    for (const queued of [
+      { kind: "workLink", waitingReason: "reward-agreement-required" },
+      { kind: "claim", waitingReason: "awaiting-confirmation" },
+      { kind: "claim", waitingReason: "reward-paused" },
+    ])
+      expect(takeUpMode(null, queued, "OPEN")).toBeNull();
+    expect(
+      takeUpMode(
+        { kind: "askAgain", labelId: "" },
+        { kind: "claim", waitingReason: "reward-agreement-required" },
+        "OPEN"
+      )
     ).toBeNull();
   });
 });
@@ -341,5 +384,47 @@ describe("selectStatusBand", () => {
   it("says nothing to an unauthenticated reader that claims a relationship", () => {
     const band = selectStatusBand({ commitment: { derivedState: "ACTIVE" }, seat: null });
     expect(band).toBeNull();
+  });
+
+  it("never says nobody offered while a take-up request waits on a steward", () => {
+    const ask = { derivedState: "REQUESTED" } as const;
+    expect(selectStatusBand({ commitment: ask, seat: "bystander" })?.bodyId).toBe(
+      "app.commitment.band.bystander.requested.b"
+    );
+    // While the requests are unread, or their read failed, it says only that nobody took it on.
+    expect(
+      selectStatusBand({ commitment: ask, seat: "bystander", takeUpPending: null })?.bodyId
+    ).toBe("app.commitment.band.bystander.offered.b");
+    expect(
+      selectStatusBand({ commitment: ask, seat: "bystander", takeUpPending: false })?.bodyId
+    ).toBe("app.commitment.band.bystander.requested.b");
+    // A pending request is a fact every seat reads the same way.
+    for (const seat of ["bystander", "confirmer", null] as const) {
+      expect(selectStatusBand({ commitment: ask, seat, takeUpPending: true })).toEqual({
+        bodyId: "app.commitment.band.any.takeUpPending.b",
+        tone: "waiting",
+      });
+    }
+  });
+
+  it("says an untaken promise is past due, and still names a waiting request", () => {
+    for (const derivedState of ["OFFERED", "REQUESTED"] as const) {
+      expect(
+        selectStatusBand({ commitment: { derivedState }, seat: "provider", pastDue: true })?.bodyId
+      ).toBe("app.commitment.band.any.pastDue.b");
+      expect(
+        selectStatusBand({
+          commitment: { derivedState },
+          seat: "bystander",
+          pastDue: true,
+          takeUpPending: true,
+        })?.bodyId
+      ).toBe("app.commitment.band.any.pastDuePending.b");
+    }
+    // Once someone took it up, its due date is the team's business, not a past-due notice.
+    expect(
+      selectStatusBand({ commitment: { derivedState: "ACTIVE" }, seat: "provider", pastDue: true })
+        ?.bodyId
+    ).toBe("app.commitment.band.provider.active.b");
   });
 });

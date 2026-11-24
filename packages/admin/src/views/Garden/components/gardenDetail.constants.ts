@@ -2,11 +2,6 @@ import type { GardenRange, TabBadgeSeverity } from "@green-goods/shared/types/ga
 
 export const RANGE_OPTIONS: GardenRange[] = ["7d", "30d", "90d"];
 
-export const BADGE_TONE_CLASSES: Record<Exclude<TabBadgeSeverity, "none">, string> = {
-  warn: "bg-warning-lighter text-warning-dark",
-  critical: "bg-error-lighter text-error-dark",
-};
-
 export const ALERT_LABEL_CLASSES: Record<Exclude<TabBadgeSeverity, "none">, string> = {
   warn: "text-warning-dark",
   critical: "text-error-dark",

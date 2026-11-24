@@ -7,7 +7,11 @@ type StoredQuery = Pick<DehydratedState["queries"][number], "queryKey" | "queryH
 export function isDurableWorkRead(key: readonly unknown[]): boolean {
   return !(
     key[1] === "works" &&
-    (key[2] === "offline" || key[2] === "window" || (key[2] === "mine" && key[5] === true))
+    (key[2] === "offline" ||
+      key[2] === "window" ||
+      // One record per month or day viewed: kept for the visit, not on the device.
+      key[2] === "range" ||
+      (key[2] === "mine" && key[5] === true))
   );
 }
 
@@ -19,7 +23,7 @@ const READ_MODEL_GROUPS = new Set([
   "profile-avatars",
   "ens",
 ]);
-const READ_MODEL_WORK_SOURCES = new Set(["online", "metadata", "merged", "mine"]);
+const READ_MODEL_WORK_SOURCES = new Set(["online", "metadata", "merged", "mine", "visibility"]);
 
 /**
  * The offline read model: the reads screens need to open without a connection.

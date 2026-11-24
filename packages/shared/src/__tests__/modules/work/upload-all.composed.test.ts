@@ -19,6 +19,10 @@ vi.mock("../../../modules/data/eas-sent-attestations", () => ({
   getWorkSubmissionsSince: vi.fn(async () => []),
   getWorkDecisionsSince: vi.fn(async () => []),
 }));
+// Each decision is read on chain right before it goes; these works are still undecided.
+vi.mock("../../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: async () => false }),
+}));
 vi.mock("../../../modules/work/simulate", () => ({
   simulateWorkSubmission: vi.fn(async () => undefined),
   simulateApprovalSubmission: vi.fn(async () => undefined),
@@ -63,6 +67,7 @@ import { queuedUploadStatus } from "../../../modules/work/upload-state";
 import type { Address } from "../../../types/domain";
 import type { ApprovalJobPayload, WorkJobPayload } from "../../../types/job-queue";
 import { createMockTransactionSender } from "../../test-utils/transaction-fakes";
+import { uploadConsent } from "../../test-utils/upload-policy";
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -75,6 +80,7 @@ const queueWork = (feedback: string) =>
     "work",
     {
       title: "Weeding",
+      uploadConsent: uploadConsent(USER),
       actionUID: 1,
       gardenAddress: GARDEN,
       feedback,
@@ -167,6 +173,8 @@ function mountPreparation(overrides: Partial<UploadPreparationPorts> = {}) {
     },
     recover: async () => undefined,
     now: () => Date.now(),
+    // The hook sends these to telemetry, which this test leaves out.
+    record: () => undefined,
     ...overrides,
   });
   setActiveUploadPreparation(preparation);
@@ -188,6 +196,7 @@ const submission = (authMode: "passkey" | "wallet"): SubmitWorkCommand => ({
   userAddress: USER,
   chainId: CHAIN,
   draft: {
+    uploadConsent: uploadConsent(USER),
     actionUID: 1,
     title: "Weeding",
     feedback: "north beds",

@@ -1,6 +1,7 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import contentElements from './plugins/content-elements.mjs';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -16,9 +17,14 @@ const prismDark = {
   plain: {...prismThemes.dracula.plain, backgroundColor: '#292929'},
 };
 
+// The brand voice descriptor (docs/docs/reference/brand-voice.mdx, section 1). The
+// tagline and the footer carry the same sentence.
+const descriptor =
+  'Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support.';
+
 const config: Config = {
   title: 'Green Goods Documentation',
-  tagline: 'Bringing community and environmental actions on-chain',
+  tagline: descriptor,
   favicon: 'img/favicon.ico', // Canonical Brand kit favicon at the established public URL
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -41,6 +47,7 @@ const config: Config = {
 
   clientModules: [
     './src/clientModules/mermaidExpand.ts',
+    './src/clientModules/searchResultFocus.ts',
   ],
 
   // Even if you don't use internationalization, you can use this field to set
@@ -59,6 +66,7 @@ const config: Config = {
           path: 'docs',
           routeBasePath: '/', // Docs at root URL
           sidebarPath: './sidebars.ts',
+          beforeDefaultRemarkPlugins: [contentElements],
           editUrl:
             'https://github.com/greenpill-dev-guild/green-goods/edit/main/docs/',
         },
@@ -77,6 +85,10 @@ const config: Config = {
       '@docusaurus/plugin-client-redirects',
       {
         redirects: [
+          {from: ['/community/gardener-guide/commitments'], to: '/community/gardener-guide#promises'},
+          {from: ['/community/steward-guide/commitment-pooling'], to: '/community/steward-guide#promises'},
+          {from: ['/community/green-goods-claims'], to: '/community/how-it-works'},
+          {from: ['/reference/product-history'], to: 'https://github.com/greenpill-dev-guild/green-goods/releases'},
           // The old sidebar generated these category landings; each section now has a real page.
           {from: ['/category/user-journeys'], to: '/builders/architecture/anatomy'},
           {from: ['/category/packages-and-apis'], to: '/builders/packages'},
@@ -145,7 +157,7 @@ const config: Config = {
             from: ['/welcome/quickstart-operator', '/operators/managing-gardens'],
             to: '/community/steward-guide/creating-a-garden',
           },
-          {from: ['/operators/managing-actions'], to: '/community/steward-guide/creating-a-garden'},
+          {from: ['/operators/managing-actions'], to: '/community/steward-guide/managing-actions'},
           {from: ['/operators/reviewing-work'], to: '/community/steward-guide/reviewing-work'},
           {from: ['/operators/reporting-impact'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/welcome/quickstart-evaluator'], to: '/community/evaluator-guide'},
@@ -199,14 +211,14 @@ const config: Config = {
           },
           {
             from: [
-              '/developer/testing',
-              '/developer/docs-contributing',
               '/developer/docs-deployment',
               '/developer/monitoring',
               '/developer/contracts-handbook',
             ],
             to: '/builders/reference/deployments',
           },
+          {from: ['/developer/testing'], to: '/builders/testing'},
+          {from: ['/developer/docs-contributing'], to: '/builders/how-to-contribute'},
           {from: ['/developer/api-reference'], to: '/builders/packages/api-index'},
           {
             from: ['/developer/claude-mcp-workflows', '/developer/agent'],
@@ -241,7 +253,7 @@ const config: Config = {
           },
           {
             from: ['/community/green-goods-claims.generated'],
-            to: '/community/green-goods-claims',
+            to: '/community/how-it-works',
           },
           {
             from: ['/reference/ontology.generated'],
@@ -351,32 +363,26 @@ const config: Config = {
             to: '/builders/packages/indexer',
           },
 
-          // Historical specifications now resolve to concise milestone notes. The
-          // original text remains available through Git history.
-          {from: ['/builders/specs/v0-1'], to: '/reference/product-history#v01'},
-          {from: ['/builders/specs/v0-4'], to: '/reference/product-history#v04'},
-          {from: ['/builders/specs/v1-0'], to: '/reference/product-history#v10'},
+          // Retired research links open the exact archived source instead of a public history summary.
+          {from: ['/builders/specs/v0-1'], to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/v0-1.mdx'},
+          {from: ['/builders/specs/v0-4'], to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/v0-4.mdx'},
+          {from: ['/builders/specs/v1-0'], to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/v1-0.mdx'},
           {
             from: ['/builders/specs/did-ethr-modernization-proposal-2026-03'],
-            to: '/reference/product-history#did-ethr-modernization',
+            to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/did-ethr-modernization-proposal-2026-03.md',
           },
-          {
-            from: [
-              '/builders/specs/greenwill-badging-impact-framework-2026-03',
-              '/builders/specs/greenwill-gif-analysis-2026-03',
-              '/builders/specs/greenwill-gif-evaluation-plan-2026-03',
-              '/builders/specs/greenwill-gif-implementation-spec-2026-03',
-              '/builders/specs/greenwill-gif-one-pager-2026-03',
-            ],
-            to: '/reference/product-history#greenwill-research',
-          },
+          {from: ['/builders/specs/greenwill-badging-impact-framework-2026-03'], to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/greenwill-badging-impact-framework-2026-03.md'},
+          {from: ['/builders/specs/greenwill-gif-analysis-2026-03'], to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/greenwill-gif-analysis-2026-03.md'},
+          {from: ['/builders/specs/greenwill-gif-evaluation-plan-2026-03'], to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/greenwill-gif-evaluation-plan-2026-03.md'},
+          {from: ['/builders/specs/greenwill-gif-implementation-spec-2026-03'], to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/greenwill-gif-implementation-spec-2026-03.md'},
+          {from: ['/builders/specs/greenwill-gif-one-pager-2026-03'], to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/greenwill-gif-one-pager-2026-03.md'},
           {
             from: ['/builders/specs/opencred-vc-login-for-geographic-garden-access-2026-03'],
-            to: '/reference/product-history#opencred-vc-login',
+            to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/opencred-vc-login-for-geographic-garden-access-2026-03.md',
           },
           {
             from: ['/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03'],
-            to: '/reference/product-history#passkey-recovery-hardening',
+            to: 'https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03.md',
           },
 
           // concepts/ → community pillar pages
@@ -433,7 +439,7 @@ const config: Config = {
             from: ['/community/steward-guide/making-an-assessment'],
             to: '/community/evaluator-guide/making-an-assessment',
           },
-          {from: ['/reference/changelog'], to: '/reference/product-history'},
+          {from: ['/reference/changelog'], to: 'https://github.com/greenpill-dev-guild/green-goods/releases'},
           {
             from: ['/reference/regenerative-design-framework'],
             to: '/builders/architecture/design#sources',
@@ -547,7 +553,7 @@ const config: Config = {
 
   themeConfig: {
     // Social card for link previews (Twitter, Telegram, etc.)
-    image: 'img/green-goods-social-card.webp',
+    image: 'img/social/green-goods-docs.webp',
     colorMode: {
       respectPrefersColorScheme: true,
     },
@@ -588,7 +594,7 @@ const config: Config = {
         },
         {
           href: 'https://admin.greengoods.app',
-          label: 'Admin',
+          label: 'Hub',
           position: 'right',
         },
       ],
@@ -619,10 +625,9 @@ const config: Config = {
         {
           title: 'Connect',
           items: [
-            { label: 'Telegram', href: 'https://t.me/+N3o3_43iRec1Y2Jh' },
             { label: 'X (Twitter)', href: 'https://x.com/greengoodsapp' },
+            { label: 'LinkedIn', href: 'https://www.linkedin.com/company/greengoodsapp/' },
             { label: 'GitHub', href: 'https://github.com/greenpill-dev-guild/green-goods' },
-            { label: 'Blog', href: 'https://paragraph.com/@greenpilldevguild' },
           ],
         },
         {
@@ -630,12 +635,12 @@ const config: Config = {
           items: [
             { label: 'FAQ', to: '/faq' },
             { label: 'Glossary', to: '/glossary' },
-            { label: 'Brand kit', to: '/brand' },
+            { label: 'Brand Kit', to: '/brand-kit' },
             { label: 'Credits', to: '/reference/credits' },
           ],
         },
       ],
-      copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Greenpill Dev Guild.`,
+      copyright: `${descriptor}<br/>Copyright © ${new Date().getFullYear()} Green Goods.`,
     },
     prism: {
       theme: prismLight,

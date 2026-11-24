@@ -9,11 +9,12 @@ import { CommitmentPoolingExtensions } from "./CommitmentPooling/Extensions.sol"
 ///      `src/lib/CommitmentPooling/` (DELEGATECALLed, so events, reverts, and `msg.sender`
 ///      surface from the proxy unchanged and each library carries its own 24,576-byte budget).
 ///      The `./CommitmentPooling/*` abstract contracts are thin shells in a single linear chain:
-///      Storage -> Base -> Admin -> Lifecycle -> Operations -> Extensions -> this contract.
-///      Extensions stays last before this contract; a new surface points at the current tail and
-///      Extensions re-points at it. Only CommitmentPoolingStorage declares state — libraries
-///      hold none and receive explicit storage references — so the frozen 38-entry + `__gap[12]`
-///      layout is independent of both the chain and the libraries.
+///      Storage -> Base -> Admin -> Lifecycle -> Operations -> ServiceOffers -> VoucherAcceptance -> Extensions -> this
+/// contract. Extensions stays last before this contract; a new surface points at the current tail and
+///      Extensions re-points at it. CommitmentPoolingStorage owns the frozen 38-entry + `__gap[12]`
+///      linear layout; deployed libraries receive its explicit storage references. Opt-in service
+///      consent and voucher acceptance use separate ERC-7201 namespaces, without moving that
+///      layout or adding state to a shell.
 ///      `bun run check:sizes` gates every deployable against the EIP-170 limit.
 ///      Keep this file and the contract name stable: tests resolve the implementation through
 ///      `deployCode("CommitmentPooling.sol:CommitmentPoolingModule")` (Foundry links the library

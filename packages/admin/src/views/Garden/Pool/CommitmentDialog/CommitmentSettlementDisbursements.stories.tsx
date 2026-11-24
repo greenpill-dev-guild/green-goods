@@ -50,6 +50,26 @@ export const Queued: Story = {
   },
 };
 
+/** A dispatched payout Celo would refuse to take again: no resend, and the row says why. */
+export const ResendHeld: Story = {
+  args: {
+    settlement: storyCommitmentSettlement({
+      chain: {
+        payoutPlanId: 7n,
+        plan: preparedPlan,
+        disbursements: [
+          storySettlementDisbursement({
+            state: "DISPATCHED",
+            attempt: 1,
+            dispatchedAt: 1_756_000_000,
+          }),
+        ],
+      },
+      transferBlock: () => "executor_paused",
+    }),
+  },
+};
+
 export const Failed: Story = {
   args: {
     settlement: storyCommitmentSettlement({

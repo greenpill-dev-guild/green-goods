@@ -9,6 +9,24 @@ import { loadReview, reviewState } from "./reviews";
 import type { ReportingCore } from "./runtime";
 import type { BrowserSession } from "./sessions";
 
+// The labels and values the signing and review pages show; the agent's copy test reads them here.
+const VIEW_COPY = {
+  activity: "Activity",
+  timeSpent: "Time spent",
+  description: "Description",
+  work: "Work",
+  gardener: "Gardener",
+  decision: "Decision",
+  approve: "Approve",
+  reject: "Reject",
+  confidence: "Confidence",
+  confidenceLevels: ["", "Low", "Medium", "High"],
+  noConfidence: "None",
+  feedback: "Feedback",
+  method: "Method",
+  humanReview: "Human review",
+} as const;
+
 /**
  * Read models for the browser ceremony, built from validated state rather than model wording.
  * A draft view names exactly what the confirmation covered; private provenance and raw source
@@ -46,12 +64,12 @@ export function draftView(core: ReportingCore, draftId: string): ResourceView | 
   if (!draft) return null;
   const { content, snapshot } = draft;
   const lines = [
-    { label: "Activity", value: snapshot?.definition.title ?? "" },
+    { label: VIEW_COPY.activity, value: snapshot?.definition.title ?? "" },
     {
-      label: "Time spent",
+      label: VIEW_COPY.timeSpent,
       value: content.timeSpentMinutes === null ? "" : formatMinutes(content.timeSpentMinutes),
     },
-    { label: "Description", value: content.feedback ?? "" },
+    { label: VIEW_COPY.description, value: content.feedback ?? "" },
     ...(snapshot?.definition.inputs ?? [])
       .filter((input) => content.details[input.key] !== undefined)
       .map((input) => {
@@ -96,8 +114,8 @@ export function reviewView(core: ReportingCore, reviewId: string): ResourceView 
   const { content } = review;
   const confidence =
     content.decision === "approve" && content.confidence
-      ? ["", "Low", "Medium", "High"][content.confidence]
-      : "None";
+      ? VIEW_COPY.confidenceLevels[content.confidence]
+      : VIEW_COPY.noConfidence;
   const confirmation = currentConfirmation(core, { reviewIntentId: review.id });
   const operation = operationForSubject(core, { reviewIntentId: review.id });
   return {
@@ -109,12 +127,15 @@ export function reviewView(core: ReportingCore, reviewId: string): ResourceView 
     gardenLabel: gardenLabel(core.gardens, content.gardenAddress),
     title: review.workTitle,
     lines: [
-      { label: "Work", value: content.workUID },
-      { label: "Gardener", value: content.gardenerAddress },
-      { label: "Decision", value: content.decision === "reject" ? "Reject" : "Approve" },
-      { label: "Confidence", value: confidence ?? "" },
-      { label: "Feedback", value: content.feedback ?? "" },
-      { label: "Method", value: "Human review" },
+      { label: VIEW_COPY.work, value: content.workUID },
+      { label: VIEW_COPY.gardener, value: content.gardenerAddress },
+      {
+        label: VIEW_COPY.decision,
+        value: content.decision === "reject" ? VIEW_COPY.reject : VIEW_COPY.approve,
+      },
+      { label: VIEW_COPY.confidence, value: confidence ?? "" },
+      { label: VIEW_COPY.feedback, value: content.feedback ?? "" },
+      { label: VIEW_COPY.method, value: VIEW_COPY.humanReview },
     ],
     evidence: [],
     summaryDigest: (confirmation?.summaryDigest as `0x${string}` | undefined) ?? null,

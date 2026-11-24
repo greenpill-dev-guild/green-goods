@@ -1,9 +1,9 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import type { HarvestDistributionResult } from "@green-goods/shared/hooks/yield/useHarvestDistribution";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 
 type HarvestIncompleteFailure = Extract<
   HarvestDistributionResult,
@@ -48,15 +48,16 @@ export function HarvestOutcomeAlerts({
   if (!result) return null;
 
   const reconcileAction = (
-    <AdminButton
-      variant="outlined"
-      size="sm"
+    <Button
+      type="button"
+      emphasis="secondary"
+      size="compact"
       onClick={onReconcile}
       disabled={isRetryPending}
       loading={isRetryPending}
     >
       {formatMessage({ id: "app.yield.harvestDistribution.action.checkStatus" })}
-    </AdminButton>
+    </Button>
   );
 
   return (
@@ -85,15 +86,16 @@ export function HarvestOutcomeAlerts({
             // case — so only proven report/revert failures offer a direct
             // retry; unverifiable routes through reconciliation.
             result.failure === "report_failed" || result.failure === "reverted" ? (
-              <AdminButton
-                variant="outlined"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="secondary"
+                size="compact"
                 onClick={() => onRetry("harvest_first")}
                 disabled={isRetryPending}
                 loading={isRetryPending}
               >
                 {formatMessage({ id: "app.yield.harvestDistribution.action.retryHarvest" })}
-              </AdminButton>
+              </Button>
             ) : result.failure === "unverifiable" ? (
               reconcileAction
             ) : undefined
@@ -121,15 +123,16 @@ export function HarvestOutcomeAlerts({
           className="p-3"
           onDismiss={onDismiss}
           action={
-            <AdminButton
-              variant="outlined"
-              size="sm"
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
               onClick={() => onRetry("split_only")}
               disabled={isRetryPending}
               loading={isRetryPending}
             >
               {formatMessage({ id: "app.yield.harvestDistribution.action.retry" })}
-            </AdminButton>
+            </Button>
           }
         >
           {formatMessage({ id: "app.yield.harvestDistribution.pendingDetails" })}

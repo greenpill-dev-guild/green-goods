@@ -13,9 +13,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toastService } from "../../../components/Toast/toast.service";
 import { useLoginScreenController } from "../../../hooks/client-ui/auth/useLoginScreenController";
 import enMessages from "../../../i18n/en.json";
+import { setStoredUsername } from "../../../modules/auth/session";
+import { PasskeyNotFoundError } from "../../../workflows/auth-passkey-errors";
 
 const auth = vi.hoisted(() => ({
   current: {} as Record<string, unknown>,
+  serverEnabled: true,
+  locale: "en",
 }));
 
 vi.mock("../../../hooks/auth/useAuth", () => ({ useAuth: () => auth.current }));
@@ -32,7 +36,7 @@ vi.mock("../../../providers/App", () => ({
 vi.mock("../../../config/passkeyServer", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../config/passkeyServer")>()),
   classifyPasskeyCeremonyContext: () => ({ supported: true }),
-  isPasskeyServerEnabled: () => true,
+  isPasskeyServerEnabled: () => auth.serverEnabled,
 }));
 
 const routes = { login: "/login", home: "/home" };
@@ -40,7 +44,7 @@ const routes = { login: "/login", home: "/home" };
 function renderController(entry: string | { pathname: string; state?: unknown } = "/login") {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <MemoryRouter initialEntries={[entry]}>
-      <IntlProvider locale="en" messages={enMessages}>
+      <IntlProvider locale={auth.locale} messages={enMessages}>
         {children}
       </IntlProvider>
     </MemoryRouter>
@@ -49,6 +53,9 @@ function renderController(entry: string | { pathname: string; state?: unknown } 
 }
 
 beforeEach(() => {
+  localStorage.clear();
+  auth.locale = "en";
+  auth.serverEnabled = true;
   auth.current = {
     isAuthenticated: false,
     isAuthenticating: false,
@@ -61,41 +68,71 @@ beforeEach(() => {
   };
 });
 
+it("explains stalled-wallet reload recovery while keeping passkey entry available", async () => {
+  auth.current.walletReleaseStalled = true;
+  const { result } = renderController();
+  expect(result.current.loginError).toContain("Reload to retry, or sign in with a passkey");
+  act(() => result.current.walletLogin());
+  expect(auth.current.loginWithWallet).toHaveBeenCalledOnce();
+  await act(async () => result.current.loginWithPasskey());
+  expect(auth.current.loginWithPasskey).toHaveBeenCalledOnce();
+});
+
+it.each([
+  {
+    failure: "timeout",
+    message: "Your wallet app didn't open. Try again, or sign in with a passkey.",
+  },
+  {
+    failure: "connect_error",
+    message: "We couldn't connect your wallet. Try again, or sign in with a passkey.",
+  },
+])("offers passkey sign-in when a wallet sign-in ends in $failure", ({ failure, message }) => {
+  // The machine can still hold the passkey error from before the wallet attempt.
+  auth.current.error = new Error("No passkey found for that username.");
+  auth.current.walletConnectFailure = failure;
+  const { result } = renderController();
+  expect(result.current.loginError).toBe(message);
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("useLoginScreenController", () => {
   it.each([
-    {
-      flow: "recover",
-      setName: "setRecoveryUsername",
-      run: "recoverWithPasskey",
-      ceremony: "loginWithPasskey",
-    },
-    { flow: "create", setName: "setUsername", run: "createAccount", ceremony: "createAccount" },
-  ] as const)("refuses a two-letter display name before any $flow ceremony", async ({
-    setName,
-    run,
-    ceremony,
-  }) => {
+    "kernel-0.3.3",
+    "kernel-0.3.3-pilot",
+  ])("keeps %s accounts out of the legacy pilot enrollment flow", (profile) => {
+    auth.current = {
+      ...auth.current,
+      isAuthenticated: true,
+      authMode: "passkey",
+      passkeyAccountProfile: profile,
+      preparePilotAccount: vi.fn(),
+    };
+    const { result } = renderController("/login?pilot=1");
+    expect(result.current.showPilotEnrollment).toBe(false);
+  });
+
+  it("rejects a two-letter username before sign-in or registration", async () => {
     const { result } = renderController();
-
-    act(() => result.current[setName]("  ab  "));
-    await act(async () => result.current[run]());
-
+    act(() => result.current.setUsername(" ab "));
+    await act(async () => result.current.continueWithUsername());
     expect(result.current.loginError).toBe("Display name must be at least 3 characters.");
-    expect(auth.current[ceremony]).not.toHaveBeenCalled();
+    expect(auth.current.loginWithPasskey).not.toHaveBeenCalled();
+    expect(auth.current.createAccount).not.toHaveBeenCalled();
   });
 
   it("says no account was created when the prompt closes on a new account, and only then", async () => {
     const closed = Object.assign(new Error("The operation was not allowed."), {
       name: "NotAllowedError",
     });
+    auth.serverEnabled = false;
     const { result, rerender } = renderController();
 
     act(() => result.current.setUsername("ada"));
-    await act(async () => result.current.createAccount());
+    await act(async () => result.current.continueWithUsername());
     auth.current = { ...auth.current, error: closed };
     rerender();
     expect(result.current.loginError).toBe("No account was created. Try again.");
@@ -104,16 +141,16 @@ describe("useLoginScreenController", () => {
     await act(async () => result.current.loginWithPasskey());
     auth.current = { ...auth.current, error: Object.assign(new Error(closed.message), closed) };
     rerender();
-    expect(result.current.loginError).toBe("Sign in was cancelled.");
+    expect(result.current.loginError).toBe("Sign in was canceled.");
   });
 
   it("tells the user when recovery signed in to a different account than the one they named", async () => {
     const show = vi.spyOn(toastService, "show").mockReturnValue("fallback");
     const { result, rerender } = renderController();
 
-    act(() => result.current.setRecoveryUsername("alice"));
-    await act(async () => result.current.recoverWithPasskey());
-    expect(auth.current.loginWithPasskey).toHaveBeenCalledWith("alice");
+    act(() => result.current.setUsername("alice"));
+    await act(async () => result.current.continueWithUsername());
+    expect(auth.current.loginWithPasskey).toHaveBeenCalledWith("alice", { createIfMissing: true });
     auth.current = { ...auth.current, isAuthenticated: true, userName: "bob" };
     rerender();
 
@@ -128,12 +165,116 @@ describe("useLoginScreenController", () => {
     const show = vi.spyOn(toastService, "show").mockReturnValue("fallback");
     const { result, rerender } = renderController();
 
-    act(() => result.current.setRecoveryUsername("@Alice "));
-    await act(async () => result.current.recoverWithPasskey());
+    act(() => result.current.setUsername("@Alice "));
+    await act(async () => result.current.continueWithUsername());
     auth.current = { ...auth.current, isAuthenticated: true, userName: "alice" };
     rerender();
 
     expect(show).not.toHaveBeenCalled();
+  });
+
+  describe("on a phone that already has an account saved", () => {
+    beforeEach(() => {
+      setStoredUsername("maria");
+      auth.current = { ...auth.current, hasStoredCredential: true };
+    });
+
+    /** Types a name the phone does not hold, and the directory answers that nobody holds it. */
+    async function askAbout(name: string) {
+      const view = renderController();
+      act(() => view.result.current.setUsername(name));
+      await act(async () => view.result.current.continueWithUsername());
+      auth.current = { ...auth.current, error: new PasskeyNotFoundError("name") };
+      view.rerender();
+      return view;
+    }
+
+    it("asks before a name nobody holds becomes a second account, and goes back with the name kept", async () => {
+      const { result, rerender } = await askAbout("marja");
+
+      // A sign-in only: nothing is created while the name might be a typo.
+      expect(auth.current.loginWithPasskey).toHaveBeenCalledExactlyOnceWith("marja");
+      expect(auth.current.createAccount).not.toHaveBeenCalled();
+      expect(result.current.screen).toBe("confirmNewAccount");
+      expect(result.current.loginError).toBeNull();
+      expect(result.current.savedAccountName).toBe("maria");
+
+      // The machine still holds the error; a language change must not turn the question into it.
+      auth.locale = "es";
+      rerender();
+      expect(result.current.screen).toBe("confirmNewAccount");
+      expect(result.current.loginError).toBeNull();
+
+      act(() => result.current.goTo("username"));
+      expect(result.current.screen).toBe("username");
+      expect(result.current.username).toBe("marja");
+    });
+
+    it("creates the named account only on a yes, and returns to the form if the prompt closes", async () => {
+      const { result, rerender } = await askAbout("marja");
+
+      await act(async () => result.current.createNamedAccount());
+      expect(auth.current.loginWithPasskey).toHaveBeenLastCalledWith("marja", {
+        createIfMissing: true,
+      });
+      auth.current = {
+        ...auth.current,
+        error: Object.assign(new Error("The operation was not allowed."), {
+          name: "NotAllowedError",
+        }),
+      };
+      rerender();
+      expect(result.current.loginError).toBe("No account was created. Try again.");
+      // Back on the form with the name, so trying again asks again.
+      expect(result.current.screen).toBe("username");
+      expect(result.current.username).toBe("marja");
+    });
+
+    it("signs the saved name in without asking, however it was typed", async () => {
+      const { result } = renderController();
+
+      act(() => result.current.setUsername("@Maria "));
+      await act(async () => result.current.continueWithUsername());
+
+      expect(auth.current.loginWithPasskey).toHaveBeenCalledExactlyOnceWith("@Maria", {
+        createIfMissing: true,
+      });
+      expect(result.current.screen).not.toBe("confirmNewAccount");
+    });
+
+    it.each([
+      { failure: "the directory not answering", error: new Error("The directory did not answer.") },
+      {
+        failure: "a closed passkey prompt",
+        error: Object.assign(new Error("not allowed"), { name: "NotAllowedError" }),
+      },
+      { failure: "no passkey on the device", error: new PasskeyNotFoundError("device") },
+    ])("shows $failure as an error instead of offering a new account", async ({ error }) => {
+      const { result, rerender } = renderController();
+
+      act(() => result.current.setUsername("marja"));
+      await act(async () => result.current.continueWithUsername());
+      auth.current = { ...auth.current, error };
+      rerender();
+
+      expect(result.current.screen).not.toBe("confirmNewAccount");
+      expect(result.current.loginError).toBeTruthy();
+    });
+
+    it("asks before the ceremony when there is no directory, never naming a generated account", async () => {
+      auth.serverEnabled = false;
+      setStoredUsername("user_1712345678");
+      const { result } = renderController();
+
+      act(() => result.current.setUsername("marja"));
+      await act(async () => result.current.continueWithUsername());
+      expect(result.current.screen).toBe("confirmNewAccount");
+      expect(result.current.savedAccountName).toBeUndefined();
+      expect(auth.current.createAccount).not.toHaveBeenCalled();
+
+      await act(async () => result.current.createNamedAccount());
+      expect(auth.current.createAccount).toHaveBeenCalledExactlyOnceWith("marja");
+    });
   });
 
   it.each([

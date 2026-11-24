@@ -26,8 +26,8 @@ export const Default: Story = {
     <EmptyStateShell {...args}>
       <div className="flex max-w-md flex-col items-center text-center">
         <RiSeedlingLine className="h-10 w-10 text-primary-base" aria-hidden="true" />
-        <h3 className="mt-4 text-title-md text-text-strong">No work selected</h3>
-        <p className="mt-2 text-body-md text-text-sub">
+        <h3 className="mt-4 type-title-md text-text-strong">No work selected</h3>
+        <p className="mt-2 type-body text-text-sub">
           Choose a submission from the queue to review evidence and approvals.
         </p>
       </div>
@@ -40,8 +40,8 @@ export const WithAction: Story = {
     <EmptyStateShell {...args}>
       <div className="flex max-w-md flex-col items-center text-center">
         <RiSeedlingLine className="h-10 w-10 text-primary-base" aria-hidden="true" />
-        <h3 className="mt-4 text-title-md text-text-strong">Start a garden workspace</h3>
-        <p className="mt-2 text-body-md text-text-sub">
+        <h3 className="mt-4 type-title-md text-text-strong">Start a garden workspace</h3>
+        <p className="mt-2 type-body text-text-sub">
           Create a garden before opening work, impact, and community tools.
         </p>
         <button
@@ -62,7 +62,7 @@ export const Compact: Story = {
   },
   render: (args) => (
     <EmptyStateShell {...args}>
-      <p className="text-body-md font-semibold text-text-sub">All caught up for this view.</p>
+      <p className="type-body font-semibold text-text-sub">All caught up for this view.</p>
     </EmptyStateShell>
   ),
 };

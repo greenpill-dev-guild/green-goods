@@ -1,8 +1,5 @@
 // Mock crypto for testing
 
-// Store original crypto if it exists
-const originalCrypto = global.crypto;
-
 // Mock crypto implementation
 Object.defineProperty(global, "crypto", {
   value: {
@@ -25,11 +22,4 @@ Object.defineProperty(global, "crypto", {
   writable: true,
 });
 
-export const resetCryptoMocks = () => {
-  if (originalCrypto) {
-    Object.defineProperty(global, "crypto", {
-      value: originalCrypto,
-      writable: true,
-    });
-  }
-};
+export {};

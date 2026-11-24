@@ -4,9 +4,9 @@ The Docusaurus site serves two audiences from one source tree:
 
 - **Community** explains current Green Goods flows for gardeners, stewards, evaluators, and funders.
 - **Builders** explains architecture, package boundaries, integrations, testing, and agent workflows.
-- **Reference** holds the shared glossary, formal ontology, product history, design rationale, FAQ, brand kit, and credits.
+- **Reference** holds the shared glossary, formal ontology, design rationale, FAQ, brand kit, and credits.
 
-A page's sidebar can differ from its folder. The FAQ (served at `/faq`), the glossary, product history, the brand kit, and credits live in `docs/reference/` and are listed in the Community sidebar. The formal ontology lives there too and is listed under Builders. `sidebars.ts` owns placement.
+A page's sidebar can differ from its folder. The FAQ (served at `/faq`) and glossary live in `docs/reference/` and are listed in the Community sidebar. The same sidebar groups Voice and Kit under Brand. Brand Kit and Credits are also linked from the footer. The formal ontology lives in the reference folder and is listed under Builders. `sidebars.ts` owns placement.
 
 Implementation facts come from code and configuration. Authored pages explain flows and stable rationale; generated pages project routes, exports, deployment artifacts, ontology, workflows, and QA scenarios from their owning sources.
 
@@ -30,6 +30,61 @@ bun run --cwd docs check:search-index
 
 The static build is written to `docs/build`. `bun run --cwd docs build` also fails unless the generated
 search index contains every live documentation source route.
+
+## Browser editing with TinaCMS
+
+TinaCMS edits all authored Community pages, including the Welcome, How It Works and Why We
+Build pages, every role guide and nested task page, plus FAQ, Brand Voice and Brand Kit.
+Generated pages, including the glossary, are excluded. Existing pages can be edited; creating
+or deleting pages stays in the repository workflow so navigation and source ownership remain reviewed.
+
+Page bodies use Tina's rich-text editor for prose, headings, lists, links, tables and images.
+Image captions, callouts, next-step links and FAQ answers have content forms under each block's
+**Edit** menu. The form exposes only the title, description and page content. Navigation, layout,
+ownership, status and verification metadata stay hidden and are retained on save.
+
+Community components are registered globally in `src/theme/MDXComponents`, so pages do not need
+imports. `GuideImage`, `Callout`, `InlineLabel` and `ContentLink` retain the site's presentation
+while exposing content. `AnchoredHeading` keeps existing fragment links; the content-elements
+remark plugin restores real headings before Docusaurus generates its table of contents. The
+same plugin supplies FAQ disclosure controls. Keep `last_verified` as a quoted date string so
+saves preserve `YYYY-MM-DD` rather than converting it to a timestamp.
+The collection save hook assigns fragment IDs to new FAQ and heading blocks; existing IDs stay unchanged.
+The media root covers all of `static/img`, including Community photos, screenshots and Builder
+images, so saving a page preserves every existing image path.
+
+For local editing, stop the ordinary docs server first, then run from the repository root:
+
+```bash
+bun run --cwd docs cms:dev
+```
+
+Open `http://localhost:3003/admin/index.html`. Local mode saves directly to this checkout.
+The Tina API uses port 4001; its local data layer uses port 9000. Check port ownership before
+starting another server. The public documentation continues to use Docusaurus's file content.
+
+Production editing uses `https://docs.greengoods.app/admin/index.html` after deployment.
+TinaCloud's project must use **Path to Tina = docs**, allow the local and production URL origins,
+and grant each editor access as a project collaborator. The client ID is public configuration.
+Configure the read-only `TINA_TOKEN` in the `green-goods-docs` Vercel project's production and
+preview environment settings; never commit it. For local cloud builds, supply it through the
+process environment. Do not create package-level environment files.
+
+`TINA_BRANCH` explicitly selects the content branch when set; otherwise the Vercel deployment's
+Git branch is used, with `develop` as the local fallback. Saves commit to that branch. Publishing
+follows its existing Git/Vercel deployment workflow. The free plan does not include Tina's built-in
+editorial approval workflow. An editor's save is not a substitute for repository review.
+
+The production editor uses `TINA_BRANCH=feature/community-content` in Vercel. Editor saves go to
+that review branch; publish them through a pull request to `develop`. Keep the content branch
+available after merging. If GitHub deletes it, recreate it from the merged `develop` commit
+before editing again.
+
+The Vercel entrypoint runs the existing docs checks, then `cms:build`, then the Docusaurus build.
+Cloud schema checks stay enabled. Commit `tina/tina-lock.json` after schema changes so TinaCloud
+can index the branch; generated clients and editor bundles remain ignored. Verify editor changes
+with `bun run --cwd docs test tina/collections.test.ts`, `bun run --cwd docs typecheck`, and the
+selected docs build/audit checks. Official setup: <https://tina.io/docs/guides/docusaurus>.
 
 ## Content map
 
@@ -71,7 +126,13 @@ Each page must make sense when opened directly from a message or a search result
 
 Check every label against the owning view or `packages/shared/src/i18n/en.json`, and every statement about review, rewards, privacy, or money against the code that enforces it, before it goes on a page.
 
-Screenshots support the text and never carry a step alone. Each one needs alt text that says what is shown and a caption that names its source, capture date, viewport/crop where relevant, and build revision when available. If the deployed fixture exposes no revision, say so. Take them from a Storybook fixture, a demo, or a public page, never from a live garden's members or photos. The docs audit fails on an image nothing uses, but it does not check that an `<img>` path exists, so confirm each new path yourself.
+Every community guide opens with its title, a short purpose and a contextual visual before prerequisites. Editorial illustrations fill the article width. Center standalone screenshots at a readable width; keep a side-by-side layout only when the adjacent text explains the image. Preserve detailed captures beside their steps. Use distinct opening artwork for each guide, with page-specific scenes or meaningful variants. Generated artwork must not show human faces, including background figures, portraits or reflections. Use tools, places, completed work or carefully framed hands to ground the task; inspect the full image and its opening crop.
+
+Screenshots support the text and never carry a step alone. Capture the real interface from a Storybook fixture, demo or public page, never a live garden's private member records or photos. Keep useful alt text.
+
+Contextual opening photos do not need captions unless identifying a real example adds meaning. Screenshot captions are optional: use a short sentence to explain one choice, state or result that is worth noticing. Keep instructions and consequential warnings in the guide text before the relevant action; a caption may reinforce them.
+
+Capture date, fixture, viewport and revision belong in the [asset ledger](assets/capture-ledger.json), not repeated in page captions. New generated artwork and its prompts are recorded in the [illustration ledger](assets/illustrations.json). Preserve third-party attribution and licenses. Verify every new image path, intrinsic dimensions and opening crop on phone and desktop.
 
 ### Glossary and ontology ownership
 
@@ -109,7 +170,9 @@ Community and Builders pages share one voice:
 
 ### Brand downloads
 
-`docs/reference/brand.mdx` owns the public `/brand` page. Original exports remain in
+The Brand kit page lives at `/brand-kit`. `static/brand/index.html` forwards the old `/brand` URL so the page does not collide with its download directory. Keep the `/brand/v2/` and `/brand/v3/` asset URLs stable.
+
+`docs/reference/brand.mdx` owns the public `/brand-kit` page. Original exports remain in
 `static/brand/v2/`; canonical dark-green icons, palette, fonts, graphics and templates live in
 `static/brand/v3/`, with complete and focused ZIPs in `static/brand/`. `src/data/brand-kit-v3.json` owns the current
 file inventory, dimensions, source node IDs, colors, and public URLs.
@@ -119,10 +182,10 @@ vectors, preview sheets, and the export README are bundled in the ZIP rather tha
 
 The docs-owned `src/components/docs/BrandAssets.tsx` is the closest existing implementation.
 Its original size selectors and disclosures hid available variants and downloads. Its current
-catalogue focuses on dark green, white and black: paired standard/enlarged logo previews, one
+catalog focuses on dark green, white and black: paired standard/enlarged logo previews, one
 symbol framing, and direct SVG/512/1024/2048 PNG links. `AssetPreview` shares the existing preview
 behavior between `LogoCard`'s framing comparison and the single-asset `AssetCard`; download rules
-stay local to this docs catalogue. Favicons and home-screen files share one Website files section.
+stay local to this docs catalog. Favicons and home-screen files share one Website files section.
 Other colors, landscape/original framing and uncommon sizes remain in the unchanged complete kit
 and family ZIPs. Keep these bundles beside their relevant sections and avoid selectors or
 disclosures. Fonts come from the existing vendored social-card fonts;
@@ -132,7 +195,7 @@ the recorded Figma vector shapes and identify themselves as kit compositions.
 Keep the `/brand` route and existing versioned download paths stable when adding a new export.
 Dark green (`#367D44`) is the canonical brand color, confirmed by the owner on 4 October 2026.
 Brand artwork and the downloadable CSS do not override application or docs UI tokens. Keep
-original Figma green and optional recolors labelled as reference colors. Preserve v2 downloads,
+original Figma green and optional recolors labeled as reference colors. Preserve v2 downloads,
 including `static/brand/green-goods-brand-kit-v2.zip` and `static/brand/v2/website-ready/` files.
 
 ## Generated pages

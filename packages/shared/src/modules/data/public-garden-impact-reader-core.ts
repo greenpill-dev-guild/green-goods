@@ -79,11 +79,14 @@ export async function queryPublicGardenImpactRows<T>(input: {
   operationName: string;
   field: string;
   source: PublicGardenImpactSource;
+  signal?: AbortSignal;
 }): Promise<T[]> {
+  input.signal?.throwIfAborted();
   const result = await input.reader.query<Record<string, unknown>>(
     input.document,
     input.variables,
-    input.operationName
+    input.operationName,
+    input.signal
   );
   if (result.error) {
     throw new PublicGardenImpactSourceError(input.source, "provider_failed", result.error);

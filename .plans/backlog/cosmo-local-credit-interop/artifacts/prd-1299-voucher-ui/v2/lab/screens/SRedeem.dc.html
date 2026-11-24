@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voucher booking</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="pp-nav" inert="{{baseHidden}}"><a class="close" href="SServices.dc.html" aria-label="{{backLabel}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a></div>
+  <div class="scr" style="padding-bottom: {{padBottom}}" inert="{{baseHidden}}">
+    <div class="pp-body">
+      <h1 class="pp-title">{{title}}</h1>
+      <p class="pp-place"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg><span>{{cycle}}</span><span aria-hidden="true">·</span><span>{{garden}}</span></p>
+      <section class="pp-band" data-tone="{{bandTone}}" aria-label="{{bandLabel}}">
+        <div class="pp-badges"><span class="gg-badge" data-tone="{{pillTone}}">{{pill}}</span><sc-if value="{{needsYou}}" hint-placeholder-val="{{false}}"><span class="gg-needs">{{needsYouLabel}}</span></sc-if></div>
+        <p>{{bandText}}</p>
+        <sc-if value="{{legsBand}}" hint-placeholder-val="{{false}}">
+          <div class="pp-legs"><sc-for list="{{legs}}" as="g" hint-placeholder-count="2"><span><span>{{g.label}}</span><span class="gg-badge" data-tone="{{g.tone}}">{{g.state}}</span></span></sc-for></div>
+        </sc-if>
+      </section>
+      <sc-if value="{{chainLine}}" hint-placeholder-val="{{false}}">
+        <p class="pp-chain"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg><span>{{chainText}}</span></p>
+      </sc-if>
+      <section class="pp-sec" aria-labelledby="rd-promised">
+        <h2 id="rd-promised">{{promisedTitle}}</h2>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{promised}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="{{f.icon}}"/></svg></span>{{f.k}}</span></dt><dd class="gg-fact-value"><span class="{{f.cls}}">{{f.v}}</span></dd></div></sc-for>
+        </dl>
+        <p class="pp-note">{{note}}</p>
+      </section>
+      <section class="pp-sec" aria-labelledby="rd-service">
+        <div class="pp-head"><h2 id="rd-service">{{serviceTitle}}</h2></div>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="{{f.icon}}"/></svg></span>{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+          <div class="gg-fact-row" data-kind="fact" data-has-action="true"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="#ri-file-list-line"/></svg></span>{{termsLabel}}</span></dt><dd class="gg-fact-value">{{termsVersion}}</dd><dd class="gg-fact-action"><a class="tlink" href="#">{{readTerms}}</a></dd></div>
+        </dl>
+        <h3 class="pp-sub">{{stepsTitle}}</h3>
+        <sc-if value="{{progPhases}}" hint-placeholder-val="{{true}}">
+          <ol class="ladder ph pp-ladder">
+            <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+              <li class="ls {{p.cls}}">
+                <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+                <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                  <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+                </span>
+              </li>
+            </sc-for>
+          </ol>
+        </sc-if>
+        <sc-if value="{{progFlat}}" hint-placeholder-val="{{false}}">
+          <ol class="ladder ph flat pp-ladder">
+            <sc-for list="{{flat}}" as="s" hint-placeholder-count="8">
+              <li class="ls {{s.cls}}"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg></span><span class="lt"><b>{{s.text}}</b><span class="ph">{{s.ph}} · {{s.state}}</span></span></li>
+            </sc-for>
+          </ol>
+        </sc-if>
+        <sc-if value="{{progSummary}}" hint-placeholder-val="{{false}}">
+          <div class="psum pp-psum"><b>{{sumText}}</b><div class="pbar" role="img" aria-label="{{sumText}}"><span style="width: {{sumPct}}%"></span></div></div>
+          <details class="plist pp-plist">
+            <summary>{{showSteps}}</summary>
+            <ol class="ladder ph pp-ladder">
+              <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+                <li class="ls {{p.cls}}">
+                  <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+                  <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                    <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+                  </span>
+                </li>
+              </sc-for>
+            </ol>
+          </details>
+        </sc-if>
+        <sc-if value="{{legsRows}}" hint-placeholder-val="{{false}}">
+          <h3 class="pp-sub">{{legsTitle}}</h3>
+          <dl class="gg-fact-list" data-frame="inset">
+            <sc-for list="{{legs}}" as="g" hint-placeholder-count="2"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{g.label}}</span><span class="gg-fact-description">{{g.sub}}</span></dt><dd class="gg-fact-value"><span class="gg-badge" data-tone="{{g.tone}}">{{g.state}}</span></dd></div></sc-for>
+          </dl>
+        </sc-if>
+        <sc-if value="{{legsBar}}" hint-placeholder-val="{{false}}">
+          <h3 class="pp-sub">{{legsTitle}}</h3>
+          <div class="legbar pp-legbar">
+            <div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: {{relFlex}}">{{relText}}</span><sc-if value="{{hasBack}}" hint-placeholder-val="{{true}}"><span class="b" style="flex: {{backFlex}}">{{backText}}</span></sc-if></div>
+            <div class="legrow"><sc-for list="{{legsBarList}}" as="g" hint-placeholder-count="2"><span><b>{{g.label}}</b><span class="gg-badge" data-tone="{{g.tone}}">{{g.state}}</span></span></sc-for></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{chainDetails}}" hint-placeholder-val="{{true}}">
+          <details class="tech pp-tech">
+            <summary>{{techLabel}}</summary>
+            <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
+          </details>
+        </sc-if>
+      </section>
+      <section class="pp-sec" aria-labelledby="rd-progress">
+        <h2 id="rd-progress">{{progressTitle}}</h2>
+        <sc-if value="{{hasProgress}}" hint-placeholder-val="{{true}}">
+          <ul class="pp-prog"><li><div class="pr"><span>{{progLabel}}</span><b>{{progCount}}</b></div><div class="bar" role="progressbar" aria-label="{{progLabel}}" aria-valuenow="{{progDone}}" aria-valuemin="0" aria-valuemax="{{progOf}}"><span style="width: {{progPct}}%"></span></div></li></ul>
+        </sc-if>
+        <sc-if value="{{noProgress}}" hint-placeholder-val="{{false}}"><p>{{progNone}}</p></sc-if>
+      </section>
+      <section class="pp-sec" aria-labelledby="rd-history">
+        <h2 id="rd-history">{{historyTitle}}</h2>
+        <ol class="pp-hist">
+          <sc-for list="{{history}}" as="h" hint-placeholder-count="4"><li><span class="dot {{h.cls}}" aria-hidden="true"></span><div><p>{{h.text}}</p><small>{{h.when}}</small></div></li></sc-for>
+        </ol>
+      </section>
+    </div>
+  </div>
+  <sc-if value="{{hasActs}}" hint-placeholder-val="{{false}}">
+    <div class="pp-bar" inert="{{baseHidden}}"><div class="pp-acts">
+      <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{false}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+      <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="{{secondaryHref}}">{{secondary}}</a></sc-if>
+    </div></div>
+  </sc-if>
+
+  <sc-if value="{{isSplit}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="split-title">
+      <div class="grip"></div>
+      <div class="shead">
+        <div><h2 class="stitle" id="split-title">{{shTitle}}</h2><p class="sdesc">{{shSub}}</p></div>
+        <a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      </div>
+      <sc-if value="{{stepsStrip}}" hint-placeholder-val="{{true}}">
+        <ol class="jstrip" aria-label="{{shStepsLabel}}">
+          <sc-for list="{{shSteps}}" as="j" hint-placeholder-count="2"><li class="jstep {{j.cls}}" aria-current="{{j.cur}}"><span class="bar"></span><span>{{j.label}}</span></li></sc-for>
+        </ol>
+      </sc-if>
+      <sc-if value="{{stepsList}}" hint-placeholder-val="{{false}}">
+        <ol class="jlist" aria-label="{{shStepsLabel}}">
+          <sc-for list="{{shSteps}}" as="j" hint-placeholder-count="2"><li class="{{j.cls}}" aria-current="{{j.cur}}"><span class="n">{{j.n}}</span><span>{{j.label}} <span class="jw">· {{j.who}}</span></span></li></sc-for>
+        </ol>
+      </sc-if>
+      <sc-if value="{{stepsCount}}" hint-placeholder-val="{{false}}">
+        <p class="jcount"><b>{{countLine}}</b> · {{countNext}}</p>
+      </sc-if>
+      <div class="sbody">
+        <sc-if value="{{splitRecv}}" hint-placeholder-val="{{false}}">
+          <div class="recv">
+            <dl class="gg-fact-list gg-card" data-frame="card"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{recvK}}</span></dt><dd class="gg-fact-value">{{recvV}}<small>{{recvS}}</small></dd></div></dl>
+            <button type="button" class="chk {{chkOn}}" role="checkbox" aria-checked="{{chkAria}}" onClick="{{toggle}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{chkText}}</span></button>
+          </div>
+        </sc-if>
+        <sc-if value="{{splitMain}}" hint-placeholder-val="{{true}}">
+          <sc-if value="{{splitBar}}" hint-placeholder-val="{{true}}">
+            <div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: {{relFlex}}">{{relText}}</span><sc-if value="{{hasBack}}" hint-placeholder-val="{{true}}"><span class="b" style="flex: {{backFlex}}">{{backText}}</span></sc-if></div>
+          </sc-if>
+          <dl class="gg-fact-list gg-card" data-frame="card">
+            <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<small>{{f.s}}</small></dd></div></sc-for>
+          </dl>
+          <sc-if value="{{splitChk}}" hint-placeholder-val="{{true}}">
+            <button type="button" class="chk {{chkOn}}" role="checkbox" aria-checked="{{chkAria}}" onClick="{{toggle}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{chkText}}</span></button>
+          </sc-if>
+          <div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{finalT}}</span><p>{{finalB}}</p></div>
+        </sc-if>
+      </div>
+      <div class="sacts">
+        <sc-if value="{{shCanGo}}" hint-placeholder-val="{{true}}"><a class="btn" href="#">{{shPrimary}}</a></sc-if>
+        <sc-if value="{{shBlocked}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{shPrimary}}</button></sc-if>
+        <a class="btn sec" href="#">{{shSecondary}}</a>
+        <p class="foot">{{shFoot}}</p>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{isConfirm}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="kept-title">
+      <div class="grip"></div>
+      <div class="shead">
+        <div><h2 class="stitle" id="kept-title">{{cfTitle}}</h2><p class="sdesc">{{cfAsk}}</p></div>
+        <a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      </div>
+      <div class="sbody">
+        <p class="cf-who">{{cfWho}}</p>
+        <div class="cf-proof gg-card"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-image-line"/></svg><span><b>{{cfProof}}</b><small>{{cfProofN}}</small></span></div>
+        <div><h3 class="pp-sub" style="margin-top: 0">{{cfSubmitted}}</h3><p class="cf-line">{{cfSubmittedB}}</p></div>
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{cfFacts}}" as="f" hint-placeholder-count="2"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<small>{{f.s}}</small></dd></div></sc-for>
+        </dl>
+        <div class="cf-info"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-shield-check-line"/></svg><span>{{confirmNote}}</span></div>
+      </div>
+      <div class="sacts">
+        <a class="btn" href="#">{{cfPrimary}}</a>
+        <a class="btn sec" href="#">{{cfSecondary}}</a>
+        <p class="foot">{{cfFoot}}</p>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["Hub day","Claude access","Lesson"],"default":"Hub day","section":"State"},"state":{"editor":"enum","options":["Waiting for approval","Ready to deposit","Confirming deposit","Waiting for acceptance","Starting","In progress","Ready to close","Return proposed","Approve split","Confirm kept","Transfers pending","Return failed","Closed","Canceling","Canceled","Accepted first","Terms changed","Problem reported"],"default":"Waiting for approval","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t0 = GGT(this.props.lang);
+    var kind = this.props.kind ?? 'Hub day';
+    var course = kind === 'Claude access', lesson = kind === 'Lesson', session = kind === 'Hub day';
+    var st = this.props.state ?? 'Waiting for approval';
+    var dark = this.props.dark ?? false;
+    var self = this;
+    var checked = !!(this.state && this.state.checked);
+    // A lesson is a member's service: Teo approves and keeps the reserve; the garden's stewards accept the booking
+    // A hub day is Tech and Sun's, whose Safe starts with one signer and moves to two; Claude access is Green Goods', whose Safe signs 2 of 5
+    var ISS = lesson ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
+      : course ? { issuer: t0('who.ggShort'), issuerFull: t0('who.gg'), unit: t0('u.ggMany'), garden: t0('who.rc'), sigs: t0('c.sigs25') }
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc'), sigs: t0('c.sigs1') };
+    var unitOne = lesson ? t0('u.teo') : course ? t0('u.ggOne') : t0('u.sunOne');
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
+    var fv = t.v;
+    if (!session && st === 'Confirm kept') st = 'Approve split';
+    var N = course ? 10 : 1, rel = course ? 4 : lesson ? 0.5 : 1, back = course ? 6 : lesson ? 0.5 : 0;
+    // A single session that didn't happen: the issuer's remedy is to propose returning all of it
+    var missed = session && st === 'Return proposed';
+    if (missed) { rel = 0; back = N; }
+    // A single session has one transfer, to the issuer's reserve; that is the one that can fail
+    var relFailed = session && st === 'Return failed';
+    var IC = { done: '#ri-check-line', now: '#ri-time-line', warn: '#ri-alert-line', fail: '#ri-close-line', todo: '#ri-checkbox-blank-circle-line' };
+    var ORDER = ['Waiting for approval', 'Ready to deposit', 'Confirming deposit', 'Waiting for acceptance', 'Starting', 'In progress', 'Ready to close', 'Approve split', 'Confirm kept', 'Transfers pending', 'Closed'];
+    var pos = ORDER.indexOf(st);
+    if (st === 'Return proposed') pos = 6; if (st === 'Return failed') pos = 9; if (st === 'Problem reported') pos = 5;
+    if (st === 'Terms changed') pos = 3; if (st === 'Accepted first') pos = 5;
+    var pre = { 'Canceling': 1, 'Canceled': 1 }[st];
+    if (pre) pos = 3;
+    function sub(text, state, label, date) { return { text: text, cls: state === 'todo' ? '' : state, icon: IC[state], state: label || t('pu.s.' + state), date: date || '' }; }
+    function phase(title, who, subs) {
+      var c = subs.some(function (s) { return s.cls === 'fail'; }) ? 'fail' : subs.some(function (s) { return s.cls === 'warn'; }) ? 'warn'
+        : subs.every(function (s) { return s.cls === 'done'; }) ? 'done' : subs.some(function (s) { return s.cls === 'now' || s.cls === 'done'; }) ? 'now' : 'todo';
+      return { title: title, who: who, subs: subs, cls: c, icon: IC[c] };
+    }
+    var at = function (i) { return pos > i ? 'done' : pos === i ? 'now' : 'todo'; };
+    var daysDone = course ? (st === 'Ready to close' ? 30 : pos >= 5 ? 12 : 0) : 0;
+    var minutesDone = lesson ? (st === 'Ready to close' ? 60 : (pos > 5 || st === 'Return proposed' || st === 'Problem reported') ? 30 : 0) : 0;
+    var d2 = lesson ? '2026-11-04' : course ? '2026-10-29' : '2026-10-30', dRep = course ? '2026-11-09' : d2;
+    var dSplit = course ? '2026-11-10' : lesson ? '2026-11-05' : '2026-11-02', dEarly = course ? '2026-11-11' : '2026-11-06';
+    var deliveredText = course ? t('rd.sub.lessons', { done: t.n(daysDone) }) : lesson ? (minutesDone ? t('rd.sub.minutes', { done: t.n(minutesDone) }) : t('rd.sub.lessonAt', { date: t.d(d2) })) : t('rd.sub.session', { date: t.d(d2) });
+    var phases = [
+      phase(t('rd.p.booked'), t('rd.who.booked'), [sub(t('rd.sub.agreed', { date: t.d('2026-10-26') }), 'done', '', '2026-10-26'), sub(t('rd.sub.approved'), at(0), '', '2026-10-27'),
+        sub(lesson || session ? t('rd.sub.depositedM') : t('rd.sub.deposited', { n: t.n(N) }), pos > 1 ? 'done' : pos === 1 ? 'now' : 'todo', '', '2026-10-27'), sub(t('rd.sub.confirmed'), pre ? 'done' : at(2), '', '2026-10-27')])
+    ];
+    if (pre) {
+      phases.push(phase(t('rd.p.canceled'), t('rd.who.you'), [sub(t('rd.sub.cancelAsked'), 'done', '', '2026-10-28'), sub(lesson || session ? t('rd.sub.returnedM') : t('rd.sub.returned', { n: t.n(N) }), st === 'Canceled' ? 'done' : 'now', '', '2026-10-28')]));
+    } else {
+      phases.push(phase(t('rd.p.accepted'), lesson ? t('who.stewards') : t('rd.who.sun'), [sub(lesson ? t('rd.sub.acceptedM') : t('rd.sub.accepted'), st === 'Terms changed' ? 'warn' : at(3), '', '2026-10-28'), sub(t('rd.sub.started'), at(4), '', '2026-10-28')]));
+      phases.push(phase(course ? t('rd.p.lessons') : lesson ? t('rd.p.lesson') : t('rd.p.session'), t('rd.who.sunReports'), [sub(deliveredText,
+        st === 'Problem reported' ? 'warn' : (st === 'Return proposed' ? 'warn' : pos > 5 ? 'done' : pos === 5 ? 'now' : 'todo'),
+        st === 'Problem reported' ? t('pu.s.disputed') : st === 'Return proposed' ? t('pu.s.review') : '', dRep)]));
+      var legsState = st === 'Closed' ? 'done' : st === 'Return failed' ? 'fail' : pos >= 9 ? 'now' : 'todo';
+      var closeSubs = [sub(t('rd.sub.split'), pos > 7 ? 'done' : pos === 7 || st === 'Return proposed' ? 'now' : 'todo', '', dSplit), sub(t('rd.sub.transfers'), legsState, '', dSplit)];
+      // A fully delivered service closes with the member's confirmation; one that ends early is closed by the garden's stewards
+      if (session || st === 'Ready to close') closeSubs.push(sub(t('rd.sub.kept'), pos > 8 ? 'done' : pos === 8 ? 'now' : 'todo', '', dSplit));
+      else closeSubs.push(sub(t('rd.sub.closedEarly'), st === 'Closed' ? 'done' : 'todo', '', dEarly));
+      phases.push(phase(t('rd.p.close'), t('rd.who.youThen'), closeSubs));
+    }
+    var legs = [];
+    if (pos >= 9 || st === 'Closed') {
+      var ok = { tone: 'success', state: t('rd.leg.done') }, pend = { tone: 'info', state: t('rd.leg.pending') }, failL = { tone: 'error', state: t('rd.leg.failed') };
+      if (back) { var bl = st === 'Closed' ? ok : st === 'Return failed' ? failL : pend; legs.push({ label: t('rd.leg.back', { n: fv(back) }), tone: bl.tone, state: bl.state, sub: st === 'Return failed' ? t('rd.leg.backFail', { n: fv(back) }) : t('rd.leg.backSub') }); }
+      var relLeg = st === 'Closed' || (!session && st !== 'Transfers pending') ? ok : relFailed ? failL : pend;
+      legs.push({ label: t('rd.leg.rel', { n: fv(rel) }), tone: relLeg.tone, state: relLeg.state, sub: relFailed ? t('rd.leg.relFail', { n: fv(rel) }) : t('rd.leg.relSub') });
+    }
+    // Where the reader's vouchers are now, as one fact in Service Access
+    // One whole voucher reads in the singular
+    var bt = function (k, amt) { return t(k, amt === 1 ? { unit: unitOne } : undefined); };
+    var B = {
+      'Waiting for approval': [N, bt('rd.b.yours', N)], 'Ready to deposit': [N, bt('rd.b.yours', N)],
+      'Confirming deposit': [N, bt('rd.b.held', N)], 'Canceling': [N, bt('rd.b.held', N)], 'Canceled': [N, bt('rd.b.back', N)],
+      'Transfers pending': [back || rel, back ? t('rd.b.coming') : bt(rel === 1 ? 'rd.b.toSun1' : 'rd.b.toSun', rel)],
+      'Return failed': [relFailed ? rel : back, relFailed ? bt('rd.b.retryS', rel) : t('rd.b.retry')],
+      'Closed': [back || rel, back ? t('rd.b.backDone') : bt(rel === 1 ? 'rd.b.sunDone1' : 'rd.b.sunDone', rel)]
+    }[st] || [N, bt('rd.b.held', N)];
+    var NX = {
+      'Waiting for approval': ['approval', null, 'cancel'],
+      'Ready to deposit': ['deposit', 'deposit', 'cancel'],
+      'Confirming deposit': ['confirming', null, 'cancel'],
+      'Waiting for acceptance': ['acceptance', null, 'cancel'],
+      'Starting': ['starting'],
+      'In progress': [course ? 'courseOn' : 'sessionOn', null, 'report'],
+      'Ready to close': ['close', 'close', 'report'],
+      'Return proposed': [missed ? 'proposedS' : 'proposed', 'review', 'report'],
+      'Approve split': [session ? 'close' : 'proposed'],
+      'Confirm kept': ['close'],
+      'Transfers pending': [back ? 'legsBack' : 'legsSun'],
+      'Return failed': [relFailed ? 'legFailedS' : 'legFailed', 'retry'],
+      'Closed': [session ? 'kept' : 'closedEarly'],
+      'Canceling': ['canceling'],
+      'Canceled': ['canceled'],
+      'Accepted first': ['race', null, 'report'],
+      'Terms changed': ['changed', 'cancelChanged'],
+      'Problem reported': ['problem', null, 'addDetails']
+    }[st];
+    // The member's service names the stewards who accept, the one voucher, and the minutes delivered
+    var bKey = 'rd.n.' + NX[0] + '.b';
+    if (NX[0] === 'approval' && !lesson) bKey = 'rd.band.approval';
+    if (lesson) {
+      var M = { approval: 'rd.n.approvalM.b', deposit: 'rd.n.depositM.b', confirming: 'rd.n.confirmingM.b', acceptance: 'rd.n.acceptanceM.b',
+        starting: 'rd.n.startingM.b', sessionOn: 'rd.n.lessonOn.b', proposed: 'rd.n.proposedL.b', closedEarly: 'rd.n.closedEarlyL.b',
+        race: 'rd.n.raceM.b', canceled: 'rd.n.canceledM.b' }[NX[0]];
+      if (M) bKey = M;
+    }
+    // A hub day is one voucher, so its sentences say "your voucher"
+    if (session) { var S1 = { deposit: 'rd.n.deposit1.b', acceptance: 'rd.n.acceptance1.b', canceled: 'rd.n.canceledM.b', changed: 'rd.n.changed1.b' }[NX[0]]; if (S1) bKey = S1; }
+    var vars = { n: fv(N), rel: fv(rel), back: fv(back), d1: t.d('2026-11-02'), d2: t.d(d2), d3: t.d(course ? '2026-11-09' : lesson ? '2026-11-04' : '2026-10-31'), d4: t.d('2026-11-27'), done: t.n(daysDone), quote: t(lesson ? 'rd.quoteL' : 'rd.quote') };
+    // The status band says the promise's own state in the app's words, and marks it when it needs the reader.
+    var S = {
+      offered: ['sh.st.offered', 'info'], progress: ['sh.st.inProgress', 'info'], awaiting: ['sh.st.awaiting', 'warning'],
+      kept: ['sh.st.kept', 'success'], early: ['pp.st.endedEarly', 'neutral'], disputed: ['sh.st.disputed', 'warning']
+    };
+    var keptCore = session && (st === 'Transfers pending' || st === 'Return failed' || st === 'Closed');
+    var sKey = pos < 4 || pre ? 'offered' : st === 'Problem reported' ? 'disputed' : keptCore ? 'kept' : (st === 'Closed' && !session) ? 'early'
+      : (session && (st === 'Ready to close' || st === 'Approve split' || st === 'Confirm kept')) || (course && st === 'Ready to close') ? 'awaiting' : 'progress';
+    var needsYou = { 'Ready to deposit': 1, 'Ready to close': 1, 'Return proposed': 1, 'Approve split': 1, 'Confirm kept': 1, 'Terms changed': 1, 'Return failed': 1 }[st] === 1;
+    var bandTone = needsYou ? 'attention' : sKey === 'kept' && st === 'Closed' ? 'kept' : pos < 4 || st === 'Transfers pending' || st === 'Canceling' ? 'waiting' : 'neutral';
+    var isSplit = st === 'Approve split', isConfirm = st === 'Confirm kept';
+    var sheet = isSplit || isConfirm;
+    var hasPrimary = !!NX[1], hasSecondary = !!NX[2];
+    // The lab's dials: which pattern each part of the page uses. The defaults are the pilot's picks.
+    var stepsKind = this.props.steps ?? 'strip', progKind = this.props.progress ?? 'phases', splitKind = this.props.split ?? 'bar';
+    var legsKind = this.props.transfers ?? 'rows', chainKind = this.props.chain ?? 'details';
+    var recvFirst = splitKind === 'steps' && isSplit && !checked;
+    var shSteps = !session ? [{ label: t('rd.sh.split'), cls: 'now', cur: 'step' }] : [{ label: t('rd.sh.split'), cls: isSplit ? 'now' : 'done', cur: isSplit ? 'step' : 'false' }, { label: t('rd.sh.kept'), cls: isSplit ? '' : 'now', cur: isSplit ? 'false' : 'step' }];
+    if (splitKind === 'steps' && isSplit) {
+      shSteps[0].cls = checked ? 'now' : ''; shSteps[0].cur = checked ? 'step' : 'false';
+      shSteps.unshift({ label: t('rd.sh.received'), cls: checked ? 'done' : 'now', cur: checked ? 'false' : 'step' });
+    }
+    shSteps.forEach(function (j, i) { j.n = String(i + 1); j.who = t('rd.who.you'); });
+    var shAt = shSteps.map(function (j) { return j.cur; }).indexOf('step'), shNext = shSteps[shAt + 1];
+    var flat = [];
+    phases.forEach(function (p) { p.subs.forEach(function (s) { flat.push({ text: s.text, cls: s.cls || 'todo', icon: s.icon, state: s.state, ph: p.title, date: s.date }); }); });
+    var doneCount = flat.filter(function (s) { return s.cls === 'done'; }).length;
+    var legsBarList = back && legs.length === 2 ? [legs[1], legs[0]] : legs;
+    var deliveredV = course ? t('rd.sh.deliveredC') : lesson ? t('rd.sh.deliveredL') : t('rd.sh.deliveredS');
+    var title = course ? t('of.c.title') : lesson ? t('of.m.title') : t('of.s.title');
+    var tech = [t('rd.x.escrow'), t('rd.x.record'), t('rd.x.receipts')];
+    if (lesson) tech.push(t('rd.x.exchange'));
+    // What was promised: the offer's own facts, and once accepted, that the reader confirms it
+    var promised = [{ icon: '#ri-seedling-line', k: t('sh.offered'), v: t(course ? 'pp.u.c' : lesson ? 'pp.u.m' : 'pp.u.s'), cls: '' },
+      { icon: '#ri-time-line', k: t('sh.due'), v: course ? t('pp.due.c') : lesson ? t('pp.due.m') : t('pp.due.s', { date: t.d('2026-11-30') }), cls: '' },
+      { icon: '#ri-user-line', k: t('sh.doing'), v: lesson ? t('who.teoFull') : course ? t('who.gg') : t('who.sun'), cls: '' }];
+    if (!pre && pos >= 4) promised.push({ icon: '#ri-shield-check-line', k: t('sh.confirms'), v: t('sh.you'), cls: 'you' });
+    // Progress and proof: what was delivered, counted the way the shipped page counts a requirement
+    var pDone = course ? daysDone : lesson ? minutesDone : (pos > 5 && st !== 'Return proposed' && !missed ? 1 : 0), pOf = course ? 30 : lesson ? 60 : 1;
+    var started = !pre && pos >= 5;
+    // History: newest first; an act still on its way keeps a dashed node
+    var history = flat.filter(function (s) { return s.cls === 'done' || s.cls === 'now' || s.cls === 'fail' || s.cls === 'warn'; }).reverse().map(function (s, i) {
+      return { text: s.text, when: s.cls === 'done' ? t.d(s.date) : s.state, cls: s.cls === 'done' ? (i === 0 ? 'on' : '') : s.cls === 'fail' ? 'fail' : 'wait' };
+    });
+    var dPad = hasPrimary && hasSecondary ? '104px' : (hasPrimary || hasSecondary) ? '104px' : '24px';
+    return Object.assign(GGTW(this.props), {
+      stepsStrip: stepsKind === 'strip', stepsList: stepsKind === 'list', stepsCount: stepsKind === 'count',
+      countLine: t('pay.j.count', { n: t.n(shAt + 1), total: t.n(shSteps.length), label: shAt >= 0 ? shSteps[shAt].label : '' }),
+      countNext: shNext ? t('pay.j.next', { label: shNext.label, who: shNext.who }) : t('pay.j.last'),
+      progPhases: progKind === 'phases', progFlat: progKind === 'flat', progSummary: progKind === 'summary', flat: flat,
+      sumText: t('pu.sum', { done: t.n(doneCount), total: t.n(flat.length) }), sumPct: String(Math.round(100 * doneCount / Math.max(1, flat.length))), showSteps: t('pu.showSteps'),
+      legsRows: legs.length > 0 && legsKind === 'rows', legsBar: legs.length > 0 && legsKind === 'bar', legsBand: legs.length > 0 && legsKind === 'band', legsBarList: legsBarList,
+      chainLine: chainKind === 'line', chainText: t('rd.x.escrow'), chainDetails: chainKind === 'details',
+      splitRecv: recvFirst, splitMain: isSplit && !recvFirst, splitBar: splitKind !== 'numbers', splitChk: splitKind !== 'steps',
+      recvK: t('rd.sh.delivered'), recvV: deliveredV, recvS: t('rd.sh.deliveredSub'),
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
+      baseHidden: sheet ? 'true' : 'false',
+      title: title, cycle: t(course ? 'pp.cycle.gg' : 'pp.cycle.sun'), garden: course ? t('who.gg') : t('who.sun'),
+      bandLabel: t('sh.where'), bandTone: bandTone, pill: t(S[sKey][0]), pillTone: S[sKey][1], needsYou: needsYou, needsYouLabel: t('sh.needsYou'),
+      bandText: t(bKey, vars),
+      promisedTitle: t('sh.promised'), promised: promised, note: course ? t('of.c.desc') : lesson ? t('of.m.desc') : t('of.s.desc'),
+      serviceTitle: t('sh.service'),
+      facts: [{ icon: '#ri-coupon-3-line', k: t('rd.f.vouchers'), v: fv(B[0]) + ' ' + B[1], s: '' },
+        { icon: '#ri-time-line', k: t('rd.f.deadline'), v: t.d('2026-11-02'), s: t('rd.f.deadlineS') },
+        { icon: '#ri-arrow-go-back-line', k: t('rd.f.back'), v: course ? t('rd.f.backC') : lesson ? t('rd.f.backL') : t('rd.f.backS'), s: t('rd.f.backSub') }],
+      termsLabel: t('c.terms'), termsVersion: t('pp.version', { v: t.n(2) }), readTerms: t('c.readTerms'),
+      stepsTitle: t('rd.steps'), legsTitle: t('rd.legs'), legs: legs, phases: phases, techLabel: t('c.tech'), tech: tech,
+      progressTitle: t('sh.progress'), hasProgress: started, noProgress: !started, progNone: t('rd.prog.none'),
+      progLabel: t(course ? 'rd.prog.lessons' : lesson ? 'rd.prog.minutes' : 'rd.prog.session'), progCount: t('sh.prog.count', { done: t.n(pDone), of: t.n(pOf) }),
+      progDone: String(pDone), progOf: String(pOf), progPct: String(Math.round(100 * pDone / pOf)),
+      historyTitle: t('sh.history'), history: history,
+      hasActs: !sheet && (hasPrimary || hasSecondary), hasPrimary: hasPrimary, hasSecondary: hasSecondary,
+      primary: hasPrimary ? (NX[1] === 'deposit' && N === 1 ? t('pay.m.deposit') : t('rd.a.' + NX[1], vars)) : '', primaryHref: NX[1] === 'deposit' ? 'SPay.dc.html' : '#',
+      secondary: hasSecondary ? t('rd.a.' + NX[2]) : '', secondaryHref: '#',
+      padBottom: dPad,
+      isSplit: isSplit, isConfirm: isConfirm,
+      shTitle: t('rd.sh.splitTitle'), shSub: title,
+      shStepsLabel: t('pay.journey'), shSteps: shSteps,
+      barLabel: t('rd.sh.bar', { rel: fv(rel), back: fv(back) }), relFlex: String(rel * 2), backFlex: String((back || 0.5) * 2), hasBack: back > 0,
+      relText: t('rd.sh.relShort', { rel: fv(rel) }), backText: t('rd.sh.backShort', { back: fv(back) }),
+      shFacts: [{ k: t('rd.sh.delivered'), v: deliveredV, s: t('rd.sh.deliveredSub') },
+        { k: t('rd.sh.toSun'), v: t('rd.sh.toSunV', { rel: fv(rel), unit: rel === 1 ? unitOne : ISS.unit }), s: course ? t('rd.sh.toSunC') : lesson ? t('rd.sh.toSunL') : t('rd.sh.toSunS') },
+        { k: t('rd.sh.toYou'), v: t('rd.sh.toYouV', { back: fv(back), unit: back === 1 ? unitOne : ISS.unit }), s: back ? t('rd.sh.toYouSub') : t('rd.sh.toYouNone') }],
+      chkOn: checked ? 'on' : '', chkAria: checked ? 'true' : 'false', chkText: course ? t('rd.sh.chkC') : lesson ? t('rd.sh.chkL') : t('rd.sh.chkS'),
+      toggle: function () { self.setState({ checked: !checked }); },
+      finalT: t('rd.sh.finalT'), finalB: t('rd.sh.finalB'),
+      shCanGo: isSplit ? checked : true, shBlocked: isSplit && !checked,
+      shPrimary: recvFirst ? t('rd.sh.nextSplit') : t('rd.sh.approve'), shSecondary: t('rd.a.report'), shFoot: t('rd.sh.footSplit'),
+      // The shipped confirm sheet: who provided it, the proof, the split already approved, then Confirm It Was Kept or Not Yet
+      cfTitle: t('sh.cf.title'), cfAsk: t('sh.cf.ask'), cfWho: t('rd.cf.who'), cfProof: t('sh.cf.proof'), cfProofN: t('rd.cf.proofN'),
+      cfSubmitted: t('sh.cf.submitted'), cfSubmittedB: t('rd.cf.submitted', { date: t.d(dRep) }),
+      cfFacts: [{ k: t('rd.sh.splitDone'), v: t('rd.sh.splitDoneV', { rel: fv(rel) }), s: t('rd.sh.splitDoneS') }],
+      confirmNote: t('rd.sh.confirmNote'), cfPrimary: t('sh.act.confirm'), cfSecondary: t('sh.cf.notYet'), cfFoot: t('c.passkey')
+    });
+  }
+}
+</script>
+</body>
+</html>

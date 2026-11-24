@@ -47,7 +47,6 @@ import { useEffectiveToolbarPermissions } from "../../../hooks/roles/useEffectiv
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const ADDR_USER = "0x1111111111111111111111111111111111111111";
-const ADDR_OTHER = "0x2222222222222222222222222222222222222222";
 
 function makeGarden(id: string, overrides: Record<string, unknown> = {}) {
   return {
@@ -71,7 +70,8 @@ function setupDefaults(
     eligibleGardensLoaded?: boolean;
     eligibleGardensError?: boolean;
     hasStaleBaseList?: boolean;
-    isDeployer?: boolean;
+    isProtocolTeam?: boolean;
+    isProductLead?: boolean;
     isSteward?: boolean;
     gardens?: ReturnType<typeof makeGarden>[];
   } = {}
@@ -83,7 +83,8 @@ function setupDefaults(
     eligibleGardensLoaded = true,
     eligibleGardensError = false,
     hasStaleBaseList = false,
-    isDeployer = false,
+    isProtocolTeam = false,
+    isProductLead = false,
     isSteward = false,
     gardens = [],
   } = overrides;
@@ -94,7 +95,8 @@ function setupDefaults(
       selector({ selectedGarden })
   );
   mockUseRole.mockReturnValue({
-    isDeployer,
+    isProtocolTeam,
+    isProductLead,
     isSteward,
     loading: roleLoading,
   });
@@ -131,7 +133,7 @@ describe("useEffectiveToolbarPermissions", () => {
     });
   });
 
-  it("evaluator, gardener, and community member sees Hub and Garden, not Community", () => {
+  it("evaluator, gardener, and community member sees Review and Garden, not Community", () => {
     const gardenA = makeGarden("garden-a", {
       evaluators: [ADDR_USER],
       gardeners: [ADDR_USER],
@@ -171,7 +173,7 @@ describe("useEffectiveToolbarPermissions", () => {
       stewards: [ADDR_USER],
     });
 
-    setupDefaults({ gardens: [gardenA], isDeployer: true });
+    setupDefaults({ gardens: [gardenA], isProtocolTeam: true });
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 
@@ -219,7 +221,7 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("single-garden scope: steward in A, evaluator in B, scope=B -> Hub and Garden only", () => {
+  it("single-garden scope: steward in A, evaluator in B, scope=B -> Review and Garden only", () => {
     const gardenA = makeGarden("garden-a", {
       stewards: [ADDR_USER],
     });

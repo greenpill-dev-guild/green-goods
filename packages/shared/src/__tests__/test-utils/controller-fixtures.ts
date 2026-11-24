@@ -1,11 +1,13 @@
 import type {
   CommitmentDialogActs,
   CommitmentDialogController,
-  HubConfirmQueueActs,
-  HubConfirmQueueController,
+  ReviewConfirmQueueActs,
+  ReviewConfirmQueueController,
   PoolConsoleActs,
   PoolConsoleController,
+  VoucherConsoleView,
 } from "../../hooks/admin-ui/pool";
+import { VOUCHER_START_IDLE } from "../../hooks/admin-ui/pool/useVoucherStart";
 import type {
   GardenCommitmentActs,
   GardenCommitmentController,
@@ -27,7 +29,16 @@ import {
   selectCommitmentSeat,
   selectConfirmationEligibility,
 } from "../../modules/commitment-pooling/selectors";
-import type { CommitmentPoolRecord, HexString } from "../../modules/commitment-pooling/types";
+import type {
+  CommitmentPoolRecord,
+  HexString,
+  CommitmentReadModel,
+} from "../../modules/commitment-pooling/types";
+import {
+  UNAVAILABLE_VOUCHER_CONSOLE,
+  type VoucherConsoleSnapshot,
+} from "../../modules/commitment-pooling/voucher-console";
+import { claimActKey } from "../../modules/transactions/act-phase";
 import {
   availableCapability,
   commitmentDetailFixture,
@@ -82,6 +93,7 @@ export function gardenCommitmentControllerFixture(
     metadata: { version: 1, title: "Repair tool handles" },
     pool,
     works: [],
+    workVisibility: { isReady: true, isLoading: false, isVisible: () => true },
     actions: [],
     roles: {
       isSteward: false,
@@ -111,6 +123,9 @@ export function gardenCommitmentControllerFixture(
     },
     ownRequest: null,
     pendingClaimRequests: [],
+    takeUpOpen: false,
+    pastDue: false,
+    takeUpPending: false,
     canAskAgain: false,
     claimNeedsContext: false,
     membership: { isMember: null, garden: null, unavailable: false, retry: () => undefined },
@@ -180,6 +195,7 @@ export function proofComposerControllerFixture(
     contents: {
       photos: media.filter((file) => !file.type.startsWith("video/")).length,
       videos: media.filter((file) => file.type.startsWith("video/")).length,
+      documents: 0,
       voiceNotes: audioNotes.length,
       links: links.length,
       words: note.trim().length > 0,
@@ -200,6 +216,7 @@ export function proofComposerControllerFixture(
     retryDraftSave: () => undefined,
     canSendToo: false,
     sendToo: false,
+    sendsProofWithItsSend: false,
     setSendToo: () => undefined,
     linkInvalid: false,
     imageUrls: [],
@@ -236,6 +253,8 @@ const poolActs: PoolConsoleActs = {
   compostCycle: successfulTransaction,
   expire: successfulTransaction,
   acceptClaim: successfulTransaction,
+  acceptServiceClaim: successfulTransaction,
+  acceptAndStartBooking: async () => "started",
   declineClaim: successfulTransaction,
   retryQueued: async () => undefined,
   discardQueued: async () => undefined,
@@ -272,6 +291,7 @@ export function poolConsoleControllerFixture(
         pendingClaimCount: claims.length,
         now: BigInt(NOW),
       }),
+    now: BigInt(NOW),
     cycles,
     cycleNames: new Map(),
     commitments,
@@ -299,6 +319,7 @@ export function poolConsoleControllerFixture(
     claimPhase: () => ({ status: "idle" }),
     claimDecisions: {},
     claimInFlight: false,
+    voucherStartFor: () => VOUCHER_START_IDLE,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,
@@ -309,21 +330,53 @@ export function poolConsoleControllerFixture(
   };
 }
 
-const confirmQueueActs: HubConfirmQueueActs = {
+/**
+ * The voucher console as `useVoucherConsole` hands it to the Promises tab:
+ * unavailable by default, as it is until the pilot deployment is adopted, or
+ * over a snapshot. Its issuer acts resolve without sending anything.
+ */
+export function voucherConsoleViewFixture(
+  overrides: Partial<Omit<VoucherConsoleView, "snapshot">> & {
+    snapshot?: Partial<VoucherConsoleSnapshot>;
+  } = {}
+): VoucherConsoleView {
+  const { snapshot: snapshotOverrides, ...viewOverrides } = overrides;
+  const snapshot = { ...UNAVAILABLE_VOUCHER_CONSOLE, ...snapshotOverrides };
+  return {
+    snapshot,
+    now: snapshot.observedAt || NOW,
+    askFor: (commitmentId, buyer) =>
+      snapshot.asks.find(
+        (ask) => claimActKey(ask.commitmentId, ask.buyer) === claimActKey(commitmentId, buyer)
+      ),
+    bookingFor: (commitmentId) =>
+      snapshot.bookings.find((booking) => booking.commitmentId === commitmentId),
+    acts: {
+      approveBooking: async () => undefined,
+      reportVisit: async () => undefined,
+      proposeReturn: async () => undefined,
+      retryTransfer: async () => undefined,
+      raiseAllowance: async () => undefined,
+    },
+    ...viewOverrides,
+  };
+}
+
+const confirmQueueActs: ReviewConfirmQueueActs = {
   confirm: successfulJob,
   notYet: successfulTransaction,
 };
 
-type HubConfirmQueueFixtureOverrides = Partial<HubConfirmQueueController> & {
+type ReviewConfirmQueueFixtureOverrides = Partial<ReviewConfirmQueueController> & {
   toConfirm?: CommitmentsToConfirm;
 };
 
-export function hubConfirmQueueControllerFixture(
-  overrides: HubConfirmQueueFixtureOverrides = {}
-): HubConfirmQueueController {
+export function reviewConfirmQueueControllerFixture(
+  overrides: ReviewConfirmQueueFixtureOverrides = {}
+): ReviewConfirmQueueController {
   const { toConfirm = toConfirmFixture(), ...controllerOverrides } = overrides;
-  type Row = HubConfirmQueueController["rows"][number];
-  const rows: HubConfirmQueueController["rows"] = [
+  type Row = ReviewConfirmQueueController["rows"][number];
+  const rows: ReviewConfirmQueueController["rows"] = [
     ...toConfirm.groups.flatMap((group) =>
       group.rows.map(
         (row): Row => ({
@@ -489,8 +542,9 @@ export function commitmentDialogControllerFixture(
     claimInFlight: false,
     claimantStanding: () => null,
     metadata: null,
-    metadataKnown: true,
+    editsTermsFromGroup: false,
     sendPhase: { status: "idle" },
+    confirmPhase: { status: "idle" },
     isActing: false,
     isLoading: false,
     isError: false,
@@ -508,12 +562,12 @@ import type {
   SettlementOperationsController,
 } from "../../hooks/admin-ui/pool/controller.types";
 import type { CommitmentSettlementChainState } from "../../modules/commitment-pooling/data-settlement-chain";
-import type { CommitmentReadModel } from "../../modules/commitment-pooling/types";
 import {
   selectSettlementEligibility,
   selectSettlementWorkflow,
   type SettlementChainDisbursement,
   type SettlementChainPlan,
+  type SettlementWorkflowInput,
 } from "../../modules/commitment-pooling/settlement-workflow";
 import type { Address } from "../../types/domain";
 
@@ -638,6 +692,8 @@ const settlementActs: CommitmentSettlementController["acts"] = {
 export function commitmentSettlementControllerFixture(
   overrides: Partial<CommitmentSettlementController> & {
     commitment?: CommitmentReadModel;
+    /** Why the paying Safe can't send a transfer; by default nothing holds one. */
+    transferBlock?: SettlementWorkflowInput["transferBlock"];
   } = {}
 ): CommitmentSettlementController {
   const commitment = overrides.commitment ?? settlementCommitmentFixture();
@@ -681,6 +737,8 @@ export function commitmentSettlementControllerFixture(
       isOnline,
       chainRead,
       isActing,
+      proposalPending: false,
+      transferBlock: overrides.transferBlock ?? (() => null),
       now: NOW,
     });
   return {
@@ -732,7 +790,7 @@ export function settlementOperationsControllerFixture(
   const isSettlementOwner =
     overrides.isSettlementOwner ??
     Boolean(viewer && owner && owner.toLowerCase() === viewer.toLowerCase());
-  const isDeployer = overrides.isDeployer ?? false;
+  const isProtocolTeam = overrides.isProtocolTeam ?? false;
   return {
     chainId: DEMO_CHAIN_ID,
     viewer: viewer ?? undefined,
@@ -741,9 +799,9 @@ export function settlementOperationsControllerFixture(
     sourcePaused: false,
     owner,
     isSettlementOwner,
-    isDeployer,
+    isProtocolTeam,
     canConfigureDelivery: isSettlementOwner,
-    showControl: isSettlementOwner || isDeployer,
+    showControl: isSettlementOwner || isProtocolTeam,
     isLoading: false,
     isError: false,
     isPending: false,

@@ -6,10 +6,14 @@
 // step so a value can be corrected without walking the flow again. One status
 // row above the sections says where the send stands and keeps its height while
 // it works, so the sections under it never move (DL-072, DL-080).
-import type { Action } from "@green-goods/shared/types/domain";
+
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { getWorkMediaId, isWorkPhoto } from "@green-goods/shared/modules/work/media-processing";
+import type { Action, WorkInput } from "@green-goods/shared/types/domain";
+import { RiFilmLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
@@ -23,17 +27,6 @@ export interface SubmitWorkReviewProps {
   status: FlowSendStatus;
   /** Jump back to a step to edit it (1=Action, 2=Media, 3=Details). */
   onEditStep?: (step: number) => void;
-}
-
-function ReviewRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-      <span className="label-xs text-text-sub">{label}</span>
-      <span className="min-w-0 break-words body-sm text-text-strong sm:max-w-[60%] sm:text-right">
-        {value}
-      </span>
-    </div>
-  );
 }
 
 function ReviewCard({
@@ -53,23 +46,52 @@ function ReviewCard({
   return (
     <AdminCard variant="outlined">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="label-xs text-text-sub">{title}</h3>
+        <h3 className="type-label-sm text-text-sub">{title}</h3>
         {onEdit && editText ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             onClick={onEdit}
             disabled={!editable}
             aria-label={`${editText} ${title}`}
           >
             {editText}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
       {children}
     </AdminCard>
   );
+}
+
+function detailValue(input: WorkInput, raw: unknown, emptyValue: string): ReactNode {
+  if (raw === undefined || raw === null || raw === "") return emptyValue;
+  if (input.type === "repeater" && Array.isArray(raw)) {
+    if (raw.length === 0) return emptyValue;
+    return (
+      <ol className="list-decimal space-y-2 pl-4">
+        {raw.map((row, index) => (
+          <li key={index}>
+            <FactList frame="inset">
+              {(input.repeaterFields ?? []).map((field) => (
+                <FactRow
+                  key={field.key}
+                  label={field.title}
+                  value={detailValue(
+                    field,
+                    row && typeof row === "object" ? Reflect.get(row, field.key) : undefined,
+                    emptyValue
+                  )}
+                />
+              ))}
+            </FactList>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+  return Array.isArray(raw) ? raw.join(", ") : String(raw);
 }
 
 export function SubmitWorkReview({
@@ -86,19 +108,22 @@ export function SubmitWorkReview({
   const edit = formatMessage({ id: "app.common.edit", defaultMessage: "Edit" });
 
   const previews = useMemo(
-    () => images.map((file) => ({ name: file.name, url: URL.createObjectURL(file) })),
+    () =>
+      images.map((file) => ({ file, url: isWorkPhoto(file) ? URL.createObjectURL(file) : null })),
     [images]
   );
   useEffect(
     () => () => {
-      for (const preview of previews) URL.revokeObjectURL(preview.url);
+      for (const preview of previews) {
+        if (preview.url) URL.revokeObjectURL(preview.url);
+      }
     },
     [previews]
   );
 
   const emptyValue = formatMessage({
     id: "app.admin.work.submit.review.empty",
-    defaultMessage: "—",
+    defaultMessage: "Not provided",
   });
   const rawTime = values.timeSpentMinutes;
   const timeValue =
@@ -124,8 +149,8 @@ export function SubmitWorkReview({
         editText={edit}
         editable={editable}
       >
-        <p className="body-sm font-semibold text-text-strong">{action.title}</p>
-        <p className="mt-0.5 body-xs text-text-sub">{photoRequirementText}</p>
+        <p className="type-body font-semibold text-text-strong">{action.title}</p>
+        <p className="mt-0.5 type-meta text-text-sub">{photoRequirementText}</p>
       </ReviewCard>
 
       {action.inputs.length > 0 ? (
@@ -138,14 +163,13 @@ export function SubmitWorkReview({
           editText={edit}
           editable={editable}
         >
-          <div className="divide-y divide-stroke-soft">
+          <FactList frame="inset">
             {action.inputs.map((input) => {
               const raw = values[input.key];
-              const value =
-                raw === undefined || raw === null || raw === "" ? emptyValue : String(raw);
-              return <ReviewRow key={input.key} label={input.title} value={value} />;
+              const value = detailValue(input, raw, emptyValue);
+              return <FactRow key={input.key} label={input.title} value={value} />;
             })}
-          </div>
+          </FactList>
         </ReviewCard>
       ) : null}
 
@@ -158,28 +182,28 @@ export function SubmitWorkReview({
         editText={edit}
         editable={editable}
       >
-        <div className="divide-y divide-stroke-soft">
-          <ReviewRow
+        <FactList frame="inset">
+          <FactRow
             label={formatMessage({
               id: "app.admin.work.submit.timeSpent",
               defaultMessage: "Time Spent (hours)",
             })}
             value={timeValue}
           />
-          <ReviewRow
+          <FactRow
             label={formatMessage({
               id: "app.admin.work.submit.feedback",
               defaultMessage: "Feedback",
             })}
             value={feedback || emptyValue}
           />
-        </div>
+        </FactList>
       </ReviewCard>
 
       <ReviewCard
         title={formatMessage({
           id: "app.admin.work.submit.section.photos",
-          defaultMessage: "Photos",
+          defaultMessage: "Media",
         })}
         onEdit={onEditStep ? () => onEditStep(2) : undefined}
         editText={edit}
@@ -187,24 +211,38 @@ export function SubmitWorkReview({
       >
         {previews.length > 0 ? (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {previews.map((preview) => (
-              <img
-                key={preview.url}
-                src={preview.url}
-                alt={preview.name}
-                className="aspect-square w-full rounded-lg border border-stroke-soft object-cover"
-              />
-            ))}
+            {previews.map((preview) =>
+              preview.url ? (
+                <img
+                  key={getWorkMediaId(preview.file)}
+                  src={preview.url}
+                  alt={preview.file.name}
+                  className="aspect-square w-full rounded-lg border border-stroke-soft object-cover"
+                />
+              ) : (
+                <div key={getWorkMediaId(preview.file)} className="min-w-0 space-y-1.5">
+                  <div className="flex aspect-square items-center justify-center rounded-lg border border-stroke-soft bg-bg-weak text-text-soft">
+                    <RiFilmLine className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <p className="type-meta break-words text-text-sub">{preview.file.name}</p>
+                </div>
+              )
+            )}
           </div>
         ) : (
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "app.admin.work.submit.review.noPhotos",
-              defaultMessage: "No photos added.",
+              defaultMessage: "No media added.",
             })}
           </p>
         )}
       </ReviewCard>
+      {editable ? (
+        <p className="type-meta text-text-sub">
+          {formatMessage({ id: "app.work.uploadConsent.reminder" })}
+        </p>
+      ) : null}
     </div>
   );
 }

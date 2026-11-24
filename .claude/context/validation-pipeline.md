@@ -12,8 +12,9 @@ exactly one place.
 3. Run the Repo Quick Gate after a coherent cross-package batch or shared public-interface change.
 4. Before an ordinary push, run the targeted ready-for-CI gate. Let GitHub CI own broad regression
    coverage and merge readiness.
-5. Run the full local Ship Gate only for an explicit offline/full-readiness request or when a
-   critical/release override requires it.
+5. Run the full local Ship Gate only for an explicit offline/full-readiness request or a release.
+   A critical surface runs the selector's mandatory override instead (see the Ready-for-CI Push
+   Gate below).
 
 Coverage stays an outer-loop regression floor. It does not replace direct behavior, consumer
 wiring, production composition, or a fresh readiness gate.
@@ -54,7 +55,12 @@ Push plans also report `budget.estimatedWallSeconds`, `budget.hardLimitSeconds`,
 `budget.enforced`. Checks run one at a time, so the estimate is the sum of their budgets, which are
 cold measurements on a quiet machine; package suites get the whole machine through the test lease.
 Routine pushes have a 90-second hard limit; sensitive pushes have 180 seconds. Critical checks are
-uncapped and cannot be suppressed by a budget or compatibility flag. The manual `browser-proof`
+uncapped and cannot be suppressed by a budget or compatibility flag. The hard limit assumes a host
+with room to run the plan: when the 1-minute load average exceeds one and a half times the host's
+CPU count, sampled when the plan starts and again when the limit fires, the runner suspends the
+limit and says so in its Budget line or a closing note. A suspended limit stops no check and skips
+none; failures and cancellation end the run as they always do. Where the host CPU count is unknown
+the limit stays in force. The manual `browser-proof`
 check is advisory: it is reported separately, never blocks a local plan, and is not part of the
 automated deadline.
 
@@ -67,9 +73,9 @@ kept beside tests (Markdown) select no test run. A plan whose
 selected suites are all focused runs even when its static estimate exceeds the limit; the hard
 deadline then decides. Supply a focused test with
 `--test-path <surface>:<path>`, narrow the change, or select an existing explicit acceptance check.
-If execution reaches the deadline, the runner terminates the active noncritical process group,
-returns `budget-exceeded`, preserves receipts for checks that already passed, and starts no further
-checks.
+If execution reaches the deadline on a host with room, the runner terminates the active
+noncritical process group, returns `budget-exceeded`, preserves receipts for checks that already
+passed, and starts no further checks.
 
 Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
 `node scripts/dev/ci-local.js` to skip checks whose exact fingerprint already passed. The store
@@ -80,7 +86,8 @@ git's exec path, nvm's variables and `MANPATH`, the re-exec markers and shell bo
 out, because the hook and Husky's `~/.config/husky/init.sh` change them without changing a check,
 and the toolchain versions already cover what `PATH` resolves. A host tool shim's per-process loop
 guard (`DEV_MACHINE_SHIM_TRIED`) is left out for the same reason; the variables that say where such
-a shim runs a command are not.
+a shim runs a command are not. So are the hook's focus variables, `GREEN_GOODS_PUSH_TEST_PATHS` and
+`GG_PUSH_GATE_ARGS`: the hook turns them into the `--test-path` and `--check` flags the plan records.
 Turbo hashes an explicit `VITEST_MAX_WORKERS` too. A tampered store is rejected
 rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
 passing manual run finishes in seconds. Readiness, ship, merge, and release run every check fresh
@@ -131,6 +138,12 @@ Conditional additions when the change touches the relevant surface:
   `bun run check --only design-tokens`
 - i18n / user-visible copy: `bun run check --only vocabulary` (locale parity runs inside
   `bun run test` via `packages/shared/src/__tests__/i18n/locale-coverage.test.ts`)
+- i18n catalogs, `docs/docs` pages, or design guides (each `DESIGN*.md` and `.claude/skills/design`):
+  `bun run check --only em-dashes` (the `DESIGN.md` § Voice & Copy rule; pages generated from the
+  ontology keep its punctuation and are skipped)
+- The brand voice page, `DESIGN.md` § Voice & Copy, the prompt contracts, or a surface that restates
+  them (the files `scripts/design/check-brand-voice-parity.mjs` lists as its inputs):
+  `bun run check --only brand-voice-parity`
 - Stories / Storybook-covered surfaces:
   `bun run --filter @green-goods/shared check:stories` and
   `bun run --filter @green-goods/shared check:story-quality`
@@ -159,8 +172,9 @@ Agent or Docs; the conditional commands above close those scopes.
 
 Visible UI additionally needs rendered proof labeled per `AGENTS.md § Browser Evidence`. Surfaces
 in the authenticated class need proof through the authenticated Brave profile; every other surface
-accepts labeled mock-auth localhost, Storybook, or CI Playwright proof. The `browser-proof` check
-is advisory: record the proof, or that it is pending and why, in the review, and never present
+accepts labeled mock-auth localhost, Storybook, or CI Playwright proof, as captures at 375 and 1280
+wide (the selector's `rendered-proof` check). The `browser-proof` and `rendered-proof` checks are
+advisory: record the proof, or that it is pending and why, in the review, and never present
 clean-room evidence as authenticated proof.
 
 ## Ready-for-CI Push Gate
@@ -173,16 +187,38 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
 ```
 
 The focused path may be inferred when the changed file is itself a direct test (`*.test.*`,
-`*.spec.*` or a Solidity `*.t.sol`), never from a helper or note beside one. The push selector
-chooses changed-path format/lint, direct behavior proof, and owner-package typecheck/build only when
-an interface, route, generated artifact, or runtime composition moved. It also runs the repository
-checks CI applies to those paths: `test-quality` for tests, test helpers and files a certified seam
+`*.spec.*` or a Solidity `*.t.sol`), never from a helper or note beside one. The push is a thin
+pre-check (D16): the selector chooses changed-path format/lint, focused behavior proof, and the
+owner's typecheck when an interface, route, generated artifact, or runtime composition moved (the
+Indexer's build is its typecheck, so it stands in there). It also runs the cheap repository checks
+CI applies to those paths: `react-patterns` for package source and manifests; `test-quality` for tests, test helpers and files a certified seam
 fingerprints; `docs-generated` for every input of `scripts/docs/generate.mjs` and `docs/`;
 `docs-authority` for any script, configuration or guide outside Plan Hubs; and
 `immutable-plan-reports` for Plan Hub reports, over the plan's own commits and working tree, because
 CI rejects any edit, deletion or rename of a dated report. Ordinary Shared
 implementation changes do not run complete Client, Admin, or Agent suites locally; those remain CI
 responsibilities.
+
+Production builds, the Storybook build, the browser presets (`browser-passkey`,
+`browser-work-exploration`, `browser-pwa-preview`) and whole package suites belong to PR CI. A
+push leaves each to the workflow that runs it (Client, Admin, Agent, Design, Shared, Indexer or
+Docs) when that workflow is expected for the change, and the plan lists it as left to CI; where the
+workflow does not run for the path, the check stays local. A push runs no suite whole, so a changed
+test helper or a deleted test names the test that still proves it, however cheap its suite. An
+explicit `--check` always runs. A critical contracts change is the exception: it keeps its full
+local gate, builds and whole suites included.
+
+A critical Shared push (`AGENTS.md § Change Criticality`) keeps that shape. Its mandatory, uncapped
+override is the owner's typecheck and focused suite plus every consumer's source and test typecheck;
+a consumer suite runs only when `--test-path` names one of its tests, and the consumer suites and
+production builds stay with CI's Shared, Client, Admin and Agent workflows, which must be green on
+the current head. The critical owner names a test even for a barrel change, since its mandatory
+suite runs focused rather than whole, and format and lint stay scoped to the changed paths as in
+every push. A critical qa run keeps the same consumer rule. An explicit `--risk critical` with no
+matched override makes every changed owner critical. A critical contracts change keeps the full
+local gate it had before D15, unchanged: the contracts gate (`abi-artifacts`, `contracts-build`,
+`contracts-test`, `contracts-verify-fast`) plus every consumer's whole suites and builds, because
+the contracts verify step has no pull-request CI equivalent.
 
 Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
 release promotion (a `release/*` head into `main`) compares against `origin/develop`, in CI and
@@ -193,14 +229,15 @@ toolchain, or environment drift invalidates it.
 When direct proof needs explicit paths, pass the same whitespace-separated `surface:path` entries
 to the hook through `GREEN_GOODS_PUSH_TEST_PATHS`, for example:
 `GREEN_GOODS_PUSH_TEST_PATHS="client:src/__tests__/views/PublicGardenDetail.test.tsx shared:src/__tests__/i18n/locale-coverage.test.ts" git push origin <branch>`.
-The hook forwards each entry as `--test-path` and retains every selected gate.
+The hook forwards each entry as `--test-path` and retains every selected gate, so a manual run
+given the same entries as `--test-path` flags leaves receipts the hook can reuse.
 
 Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-file formatting and
 critical-surface warnings may run during editing, but package-wide validation is owned by the
 coordinating agent rather than edit or task-completion hooks.
 
-In every local intent the plan lists the manual `browser-proof` check as advisory pending
-evidence. The pre-push hook succeeds when every selected automated check passes; an unavailable
+Where a plan selects them, it lists the manual `browser-proof` and `rendered-proof` checks as
+advisory pending evidence. The pre-push hook succeeds when every selected automated check passes; an unavailable
 automated capability, failed check, or missing focused proof still stops it. The hook runs the gate
 through `scripts/dev/node-cli.js`, so a shell whose Node differs from the pinned toolchain no longer
 blocks every check. Only the release gate requires the manual proof, through
@@ -208,7 +245,7 @@ blocks every check. Only the release gate requires the manual proof, through
 
 ## Ship Gate (explicit full local pipeline)
 
-The uncached full local gate for an explicit offline/full-readiness request, critical surface, or
+The uncached full local gate for an explicit offline/full-readiness request or
 release:
 
 ```bash
@@ -219,7 +256,8 @@ Ship uses the same conditional additions listed in the Production Review Readine
 review, ship may run mutating format and branch/commit safety steps because the user explicitly
 requested the full local gate. Ordinary commit, push, and PR creation use targeted proof plus the
 Ready-for-CI Push Gate, then rely on current-head GitHub CI for merge approval. Critical surfaces
-still require their selector-mandated complete local override before push and CI afterward.
+still require their selector-mandated override before push and CI afterward: owner typecheck and
+focused suite plus consumer typechecks for Shared, the full local gate for contracts.
 
 Release runs `node scripts/dev/ci-local.js --intent release`. When the change touches the
 authenticated surface class, that gate requires `--attest browser-proof="<engine, session, date,

@@ -13,7 +13,7 @@ import type React from "react";
 import { useIntl } from "react-intl";
 
 // ----------------------------------------------------------------------------
-// Admin fork of the shared Canvas AppBar (Cockpit M3, finished — 1a).
+// Admin fork of the shared Canvas AppBar (Hub M3, finished — 1a).
 //
 // Forked so the bar's styling lives in admin's own JSX, ending the remote
 // overrides in admin-m3-overrides.css. Behavior (slots, refresh registration,
@@ -57,7 +57,12 @@ function TopBarIconButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => {
+        // Safari does not focus a clicked button, and the surface it opens hands focus back to
+        // whatever had it on opening: take focus first, so that is this button.
+        event.currentTarget.focus();
+        onClick();
+      }}
       aria-label={tooltip}
       className={cn(ICON_BTN, className)}
       data-component="AppBar"
@@ -67,7 +72,7 @@ function TopBarIconButton({
       <span
         className={cn(
           "pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap",
-          "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface)/0.9)] px-2.5 py-1 text-label-md font-medium text-[rgb(var(--m3-inverse-on-surface))]",
+          "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface))] px-2.5 py-1 type-label-sm font-medium text-[rgb(var(--m3-inverse-on-surface))]",
           "opacity-0 transition-opacity group-hover/icon:opacity-100",
           "motion-reduce:transition-none"
         )}
@@ -156,14 +161,14 @@ export function AppBar({
               <button
                 type="button"
                 onClick={sheetContext.onBack}
-                aria-label={formatMessage({ id: "cockpit.topBar.back", defaultMessage: "Back" })}
+                aria-label={formatMessage({ id: "hub.topBar.back", defaultMessage: "Back" })}
                 className={ICON_BTN}
                 data-component="AppBar"
                 data-slot="back-button"
               >
                 <RiArrowLeftLine className="h-5 w-5" />
               </button>
-              <span className="truncate text-title-md text-text-strong" data-slot="sheet-label">
+              <span className="truncate type-title-md text-text-strong" data-slot="sheet-label">
                 {sheetContext.label}
               </span>
             </>
@@ -180,7 +185,7 @@ export function AppBar({
             <TopBarIconButton
               slot="refresh-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.refresh",
+                id: "hub.topBar.refresh",
                 defaultMessage: "Refresh",
               })}
               onClick={refreshAction.onRefresh}
@@ -196,7 +201,7 @@ export function AppBar({
             <TopBarIconButton
               slot="search-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.openSearch",
+                id: "hub.topBar.openSearch",
                 defaultMessage: "Open Search",
               })}
               onClick={onOpenSearch}
@@ -212,7 +217,7 @@ export function AppBar({
             <TopBarIconButton
               slot="notifications-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.notifications",
+                id: "hub.topBar.notifications",
                 defaultMessage: "Notifications",
               })}
               onClick={onOpenNotifications}
@@ -226,7 +231,7 @@ export function AppBar({
             <TopBarIconButton
               slot="settings-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.openSettings",
+                id: "hub.topBar.openSettings",
                 defaultMessage: "Open Settings",
               })}
               onClick={onOpenSettings}
@@ -240,7 +245,7 @@ export function AppBar({
             <TopBarIconButton
               slot="profile-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.openProfile",
+                id: "hub.topBar.openProfile",
                 defaultMessage: "Profile",
               })}
               onClick={onOpenProfile}

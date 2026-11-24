@@ -8,10 +8,14 @@ import {
   type SubmitWorkCommand,
 } from "../../modules/work/submit-work-command";
 import type { Action } from "../../types/domain";
-import type { DraftWorkLink, WorkDraftRecord, WorkJobPayload } from "../../types/job-queue";
+import type { DraftWorkLink, Job, WorkDraftRecord, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { createJobQueueDependencies } from "../test-utils/job-queue-fakes";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import type { JobExecution, JobQueueConnectivity } from "../../modules/job-queue/ports";
+import { createJobQueue } from "../../modules/job-queue/queue";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import { draftDB } from "../../modules/job-queue/draft-db";
 import {
   deleteDraftOfQueuedWork,
@@ -20,7 +24,10 @@ import {
 } from "../../modules/work/draft-lifecycle";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
-import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+} from "../../modules/work/work-confirmation";
 import { dependentWorkLinkPayload } from "../../modules/commitment-pooling/work-link-intent";
 import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 
@@ -29,6 +36,11 @@ const heic = vi.hoisted(() => ({
   convertHeicPhoto: vi.fn(async (): Promise<unknown> => ({ status: "unavailable" })),
 }));
 vi.mock("../../modules/work/heic-conversion", () => heic);
+const telemetry = vi.hoisted(() => ({ track: vi.fn() }));
+vi.mock("../../modules/app/posthog", async (original) => ({
+  ...(await original<typeof import("../../modules/app/posthog")>()),
+  track: telemetry.track,
+}));
 const hash = `0x${"12".repeat(32)}` as const;
 const LINK: DraftWorkLink = {
   commitmentId: "14",
@@ -73,6 +85,37 @@ function fixture() {
   });
   ports.direct.submitWork = send;
   return { command, ports, send };
+}
+
+/**
+ * A steward's Submit in the Hub from a passkey or embedded account:
+ * no offline queue, the submission retained, and the send made by the queue's
+ * own processing. Only the executor, where the account signs, is a stand-in.
+ */
+function adminQueueSubmit(
+  authMode: "passkey" | "embedded",
+  execute: (jobId: string, job: Job) => Promise<JobExecution>,
+  canSend: JobQueueConnectivity["canSend"] = async () => null
+) {
+  const { command } = fixture();
+  Object.assign(command, { authMode, allowOfflineQueue: false, retainSubmission: true });
+  const queue = createJobQueue(
+    createJobQueueDependencies({
+      store: jobQueueDB,
+      executors: { execute },
+      connectivity: { isOnline: () => true, canSend },
+    })
+  );
+  const ports = createDefaultSubmitWorkPorts({
+    sender: createMockTransactionSender({ authMode }),
+    jobQueue: queue,
+  });
+  ports.connectivity = { isOnline: () => true, confirm: async () => true };
+  const retained = async () =>
+    (await jobQueueDB.getJobs({ userAddress: command.userAddress!, synced: false })).find(
+      (job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId
+    );
+  return { command, ports, retained };
 }
 
 /**
@@ -371,6 +414,39 @@ describe("PWA durable submission boundary", () => {
     await jobQueueDB.deleteJob((await links())[0].id);
   });
 
+  it("queues wallet work for a promise this account is still taking up, and sends none of it", async () => {
+    const { command, ports, send } = fixture();
+    command.chainId = 42161;
+    command.linkIntent = LINK;
+    // The take-up queued in the same tap, not landed yet (decision 18).
+    const takeUpId = await jobQueueDB.addJob({
+      kind: "claim",
+      payload: {
+        commitmentId: 14n,
+        kind: 1,
+        gardenContext: LINK.garden,
+        gardenAddress: LINK.garden,
+      },
+      userAddress: command.userAddress!,
+      chainId: 42161,
+      meta: { chainId: 42161 },
+    });
+    try {
+      await expect(submitWork(command, ports)).resolves.toMatchObject({ kind: "queued" });
+
+      expect(send).not.toHaveBeenCalled();
+      const queued = (
+        await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "work", synced: false })
+      ).filter((job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId);
+      expect(queued).toHaveLength(1);
+      expect(queued[0].payload).toMatchObject({
+        dependentWorkLink: { commitmentId: 14n, requirementIndex: 0 },
+      });
+    } finally {
+      await jobQueueDB.deleteJob(takeUpId);
+    }
+  });
+
   it("rolls back the Work and dependent link when photo storage fails, before signing", async () => {
     const { command, ports, send } = fixture();
     command.chainId = 42161;
@@ -417,7 +493,11 @@ describe("PWA durable submission boundary", () => {
   ])("rejects a mismatched dependent target before admitting or signing Work: %s", async (change) => {
     const { command, ports, send } = fixture();
     command.chainId = 42161;
-    command.linkIntent = { ...LINK, ...change };
+    // Persisted intents can carry malformed fields despite the compile-time contract.
+    command.linkIntent = {
+      ...LINK,
+      ...change,
+    } as unknown as ResolvedSubmitWorkCommand["linkIntent"];
     await expect(submitWork(command, ports)).rejects.toThrow("work-link-intent-mismatch");
     expect(send).not.toHaveBeenCalled();
     expect(
@@ -498,7 +578,7 @@ describe("PWA durable submission boundary", () => {
     command.allowOfflineQueue = false;
     command.retainSubmission = true;
     ports.connectivity.confirm = async () => false;
-    await expect(submitWork(command, ports)).rejects.toThrow("Offline queue is disabled");
+    await expect(submitWork(command, ports)).rejects.toThrow(ConnectionNeededError);
     expect(send).not.toHaveBeenCalled();
     const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress! });
     expect(
@@ -513,6 +593,132 @@ describe("PWA durable submission boundary", () => {
         ?.meta?.requiresExplicitSend
     ).toBe(true);
   });
+
+  // Beta, 4 Nov: a passkey steward's Submit was refused before any send, and
+  // the refusal read as work saved offline.
+  it.each([
+    "passkey",
+    "embedded",
+  ] as const)("sends a %s admin submission on Submit, and never a second copy", async (authMode) => {
+    const execute = vi.fn(
+      async (): Promise<JobExecution> => ({ status: "complete", txHash: hash })
+    );
+    const { command, ports } = adminQueueSubmit(authMode, execute);
+
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "processed",
+      txHash: hash,
+    });
+    await expect(submitWork(command, ports)).resolves.toMatchObject({ txHash: hash });
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { after: "a send that failed", blocked: null, error: "Network request failed", sends: 2 },
+    {
+      after: "an unconfirmed connection",
+      blocked: "connection-unconfirmed" as const,
+      error: ConnectionNeededError,
+      sends: 1,
+    },
+  ])("fails a passkey admin Submit after $after, and the next Submit sends the held work", async ({
+    blocked,
+    error,
+    sends,
+  }) => {
+    let sendBlocked: Awaited<ReturnType<JobQueueConnectivity["canSend"]>> = blocked;
+    let failNext = !blocked;
+    const execute = vi.fn(async (_jobId: string, job: Job): Promise<JobExecution> => {
+      if (!failNext) return { status: "complete", txHash: hash };
+      failNext = false;
+      // The executor stores the job as it uploads; the explicit send has lifted its hold.
+      await jobQueueDB.updateJob(job);
+      throw new Error("Network request failed");
+    });
+    const { command, ports, retained } = adminQueueSubmit(
+      "passkey",
+      execute,
+      async () => sendBlocked
+    );
+
+    await expect(submitWork(command, ports)).rejects.toThrow(error);
+    expect((await retained())?.meta?.requiresExplicitSend).toBe(true);
+
+    sendBlocked = null;
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "processed",
+      txHash: hash,
+    });
+    expect(execute).toHaveBeenCalledTimes(sends);
+  });
+
+  it("checks a passkey admin send awaiting confirmation through the queue, never sending it twice", async () => {
+    let confirmed = false;
+    const broadcast = vi.fn();
+    const execute = vi.fn(async (_jobId: string, job: Job): Promise<JobExecution> => {
+      const payload = job.payload as WorkJobPayload;
+      if (!payload.uploadCheckpoint?.transactionHash) {
+        broadcast();
+        payload.uploadCheckpoint = {
+          submittedAt: "2026-11-04T00:00:00Z",
+          files: {},
+          transactionHash: hash,
+        };
+        await jobQueueDB.updateJob(job);
+      }
+      return confirmed
+        ? { status: "complete", txHash: hash }
+        : { status: "waiting", reason: "awaiting-confirmation" };
+    });
+    const { command, ports } = adminQueueSubmit("passkey", execute);
+
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+    });
+    // Check Confirmation submits again.
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+    });
+    confirmed = true;
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "processed",
+      txHash: hash,
+    });
+    expect(execute).toHaveBeenCalledTimes(3);
+    expect(broadcast).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { blockedBy: "the browser", queueRefuses: false },
+    { blockedBy: "the queue", queueRefuses: true },
+  ])("keeps a recorded passkey admin send awaiting when $blockedBy confirms no connection", async ({
+    queueRefuses,
+  }) => {
+    let sendBlocked: Awaited<ReturnType<JobQueueConnectivity["canSend"]>> = null;
+    const execute = vi.fn(async (_jobId: string, job: Job): Promise<JobExecution> => {
+      (job.payload as WorkJobPayload).uploadCheckpoint = {
+        submittedAt: "2026-11-04T00:00:00Z",
+        files: {},
+        transactionHash: hash,
+      };
+      await jobQueueDB.updateJob(job);
+      return { status: "waiting", reason: "awaiting-confirmation" };
+    });
+    const { command, ports } = adminQueueSubmit("passkey", execute, async () => sendBlocked);
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+    });
+
+    if (queueRefuses) sendBlocked = "connection-unconfirmed";
+    else ports.connectivity.confirm = async () => false;
+    // Check Confirmation: the send is on record, so it is unchecked, never "nothing was sent".
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+      reason: "connection-unconfirmed",
+    });
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
   it("queues a submission instead of sending while the connection is unconfirmed", async () => {
     const { command, ports, send } = fixture();
     ports.connectivity = { isOnline: () => true, confirm: async () => false };
@@ -942,6 +1148,34 @@ describe("PWA durable submission boundary", () => {
       )
     ).toMatchObject({ kind: "direct", txHash: hash });
     expect(send).toHaveBeenCalledTimes(1);
+  });
+  it("reports each end of the queued work a wallet sends once: processed, reverted, or refused", async () => {
+    const tracked = (event: string) =>
+      telemetry.track.mock.calls.filter(([name]) => name === event).map(([, props]) => props);
+    telemetry.track.mockClear();
+    const sent = fixture();
+    await submitWork(sent.command, sent.ports);
+    await submitWork({ ...sent.command }, sent.ports);
+    expect(tracked("offline_job_processed")).toEqual([
+      expect.objectContaining({ job_kind: "work", attempts: 1 }),
+    ]);
+
+    const reverted = fixture();
+    reverted.ports.direct.submitWork = vi.fn(async () => {
+      throw new WorkTransactionReverted(hash);
+    });
+    await expect(submitWork(reverted.command, reverted.ports)).rejects.toBeInstanceOf(
+      WorkTransactionReverted
+    );
+    const firstTryFailure = expect.objectContaining({ job_kind: "work", attempts: 1 });
+    expect(tracked("offline_job_permanently_failed")).toEqual([firstTryFailure]);
+
+    const refused = fixture();
+    const failure = new WorkSubmissionError("Cannot encode work", "transaction");
+    refused.ports.direct.submitWork = vi.fn().mockRejectedValue(failure);
+    await expect(submitWork(refused.command, refused.ports)).rejects.toBe(failure);
+    expect(tracked("offline_job_permanently_failed")).toEqual([firstTryFailure, firstTryFailure]);
+    expect(tracked("offline_job_processed")).toHaveLength(1);
   });
   it("allows only one immediate sender for two simultaneous submissions", async () => {
     const { command, ports, send } = fixture();

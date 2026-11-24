@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getOntologyManifestVersion,
+  getOntologyChainMaturity,
   getOntologyMaturity,
   getOntologyRelationships,
   getOntologySafeClaims,
@@ -26,9 +27,31 @@ describe("ontology query seam", () => {
   });
 
   it("keeps protocol deployment separate from product availability", () => {
+    expect(getOntologyMaturity("entity:commitment-series")?.deployment).toBe("deployed");
+    expect(getOntologyMaturity("entity:commitment-series")?.availability).toBe(
+      "deployed-not-available"
+    );
+  });
+
+  it("reports released coordination and G$ rewards with their limit", () => {
     expect(getOntologyMaturity("Commitment")?.deployment).toBe("deployed");
-    expect(getOntologyMaturity("Commitment")?.availability).toBe("deployed-not-available");
-    expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain("not yet");
+    expect(getOntologyMaturity("Commitment")?.availability).toBe("available");
+    expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain(
+      "a promise can carry a G$ reward"
+    );
+    expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain(
+      "No member payout has been sent yet"
+    );
+    expect(getOntologyMaturity("Commitment Payout Plan")?.availability).toBe("available");
+    expect(getOntologyMaturity("entity:commitment-series")?.availability).toBe(
+      "deployed-not-available"
+    );
+    expect(getOntologyChainMaturity("entity:commitment-pool", 42161)?.availability).toBe(
+      "available"
+    );
+    expect(getOntologyChainMaturity("entity:commitment-pool", 11155111)?.deployment).toBe(
+      "not-deployed"
+    );
   });
 
   it("returns declared relationships and manifest metadata", () => {

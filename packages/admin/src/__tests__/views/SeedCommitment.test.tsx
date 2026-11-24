@@ -193,6 +193,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
+  useFocusAfterFlip: () => undefined,
 }));
 
 vi.mock(
@@ -479,7 +480,7 @@ describe("SeedCommitmentDialog", () => {
     // Every step names the pool the promises land in.
     expect(within(dialog()).getAllByText("Rocinha’s pool").length).toBeGreaterThan(0);
     const select = within(dialog()).getByLabelText(
-      /what does this commitment tie to/i
+      /what does this promise tie to/i
     ) as HTMLSelectElement;
     const labels = Array.from(select.options).map((option) => option.textContent);
     expect(labels).toEqual([
@@ -492,7 +493,7 @@ describe("SeedCommitmentDialog", () => {
 
   it("asks for context before the two work types, keeping a campaign separate from support", async () => {
     renderSeed();
-    const context = within(dialog()).getByLabelText(/what does this commitment tie to/i);
+    const context = within(dialog()).getByLabelText(/what does this promise tie to/i);
     const work = within(dialog()).getByRole("radiogroup", { name: /what type of work/i });
     expect(within(work).getAllByRole("radio")).toHaveLength(2);
     expect(context.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -562,8 +563,7 @@ describe("SeedCommitmentDialog", () => {
     );
     // The season is this pool's own, never the earlier promise's.
     expect(
-      (within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement)
-        .value
+      (within(dialog()).getByLabelText(/what does this promise tie to/i) as HTMLSelectElement).value
     ).toBe("12");
   });
 
@@ -695,7 +695,7 @@ describe("SeedCommitmentDialog", () => {
         within(dialog()).getByText("Enter an amount in dollars above zero, like 5.00.")
       ).toBeInTheDocument()
     );
-    expect(dialog().textContent).not.toContain("cockpit.garden.pool.seed.error");
+    expect(dialog().textContent).not.toContain("hub.garden.pool.seed.error");
   });
 
   it("prefills steward review when the pool is the protocol's, and lets the steward gate an offer", async () => {
@@ -826,7 +826,7 @@ describe("SeedCommitmentDialog", () => {
     mocks.console = { ...consoleFor(), model: { ...consoleFor().model, season: null } };
     const { settleQueries } = renderMounted();
     const cycleSelect = () =>
-      within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement;
+      within(dialog()).getByLabelText(/what does this promise tie to/i) as HTMLSelectElement;
     // Cold load: no season yet, and no protocol pool, so the one-time defaults
     // are cycle-less with the fallback off.
     expect(cycleSelect().value).toBe("0");
@@ -846,7 +846,7 @@ describe("SeedCommitmentDialog", () => {
     mocks.console = { ...consoleFor(), model: { ...consoleFor().model, season: null } };
     const { settleQueries } = renderMounted();
     const cycleSelect = () =>
-      within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement;
+      within(dialog()).getByLabelText(/what does this promise tie to/i) as HTMLSelectElement;
     fireEvent.change(cycleSelect(), { target: { value: "13" } });
 
     mocks.console = consoleFor();

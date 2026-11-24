@@ -1,15 +1,19 @@
 // The photos staged on Submit Work's media step: how many against what the
 // action requires, and each one as a tile that opens larger and can be removed.
 // The count follows the PWA's media rule pill (amber until the requirement is
-// met, then green with a tick) in the cockpit's own status badge. The tiles sit
+// met, then green with a tick) in the Hub's own status badge. The tiles sit
 // beside the shared FileUploadField, which keeps only its label and upload well
 // here, so the four other admin forms that use it are untouched.
+
+import { Button } from "@green-goods/shared/components/Button";
 import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   getWorkMediaId,
   isVideoFile,
+  isWorkMedia,
   isWorkPhoto,
 } from "@green-goods/shared/modules/work/media-processing";
 import {
@@ -22,13 +26,12 @@ import {
 } from "@remixicon/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { imagePreviewLabels } from "@/components/imagePreviewLabels";
 
 export interface SubmitWorkPhotosProps {
   /** Media staged for this submission, in the order it was added. */
   images: File[];
-  /** How many photos the action requires; 0 when photos are optional. */
+  /** How many photos or videos the action requires; 0 when media is optional. */
   minRequired: number;
   onRemove: (index: number) => void;
 }
@@ -71,9 +74,8 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
     };
   }, []);
 
-  // The requirement is in photos, so only photos count: the same rule the Next
-  // button and the submission check.
-  const count = images.filter((file) => isWorkPhoto(file)).length;
+  // Share the minimum with Next and submission, while previews remain photo-only.
+  const count = images.filter((file) => isWorkMedia(file)).length;
   const met = count >= minRequired;
   const showCount = minRequired > 0 || count > 0;
 
@@ -131,14 +133,15 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
               <li key={getWorkMediaId(file)} className="min-w-0 space-y-1.5">
                 <div className="relative">
                   {url ? (
-                    <AdminButton
-                      variant="text"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="tertiary"
+                      size="compact"
                       onClick={() => setPreviewFile(file)}
                       aria-haspopup="dialog"
                       aria-label={previewLabel}
                       title={previewLabel}
-                      className="group my-0 flex aspect-square h-auto w-full min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
+                      className="group my-0 flex aspect-square h-auto max-h-none w-full min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
                     >
                       <ImageWithFallback
                         src={url}
@@ -154,7 +157,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
                           className={`h-6 w-6 text-static-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 ${OVERLAY_MOTION}`}
                         />
                       </span>
-                    </AdminButton>
+                    </Button>
                   ) : (
                     <div className="flex aspect-square items-center justify-center rounded-lg border border-stroke-soft bg-bg-weak text-text-soft">
                       {isVideoFile(file) ? (
@@ -164,24 +167,30 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
                       )}
                     </div>
                   )}
-                  <AdminIconButton
-                    variant="tonal"
-                    size="sm"
-                    label={formatMessage(
+                  <IconButton
+                    emphasis="secondary"
+                    size="compact"
+                    aria-label={formatMessage(
+                      { id: "admin.fileUpload.remove" },
+                      { filename: file.name }
+                    )}
+                    title={formatMessage(
                       { id: "admin.fileUpload.remove" },
                       { filename: file.name }
                     )}
                     onClick={() => onRemove(index)}
                     className="absolute right-1.5 top-1.5 my-0 shadow-[var(--m3-elevation-1)]"
-                  >
-                    <RiCloseLine aria-hidden="true" />
-                  </AdminIconButton>
+                    icon={<RiCloseLine aria-hidden="true" />}
+                  />
                 </div>
                 <div className="min-w-0">
-                  <p className="break-words body-xs font-medium text-text-strong" title={file.name}>
+                  <p
+                    className="break-words type-meta font-medium text-text-strong"
+                    title={file.name}
+                  >
                     {file.name}
                   </p>
-                  <p className="body-xs text-text-soft">{formatSize(file.size)}</p>
+                  <p className="type-meta text-text-soft">{formatSize(file.size)}</p>
                 </div>
               </li>
             );

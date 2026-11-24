@@ -1,14 +1,3 @@
-/**
- * Client Offline Work Submission CI Tests
- *
- * Walks the whole work wizard with the network switched off and checks that
- * the submission lands in the durable queue instead of failing, that Your Work
- * does not offer an upload action while offline, and that a reconnect sends
- * nothing on its own: the queued work waits for Upload all.
- * Uses the same clean-room seam as the other client CI specs: dev mock auth
- * (wallet mode) plus mocked indexer, EAS, and RPC boundaries.
- */
-
 import { expect, test } from "@playwright/test";
 import {
   encodeAbiParameters,
@@ -88,19 +77,15 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(page.getByTestId("work-dashboard-button")).toBeEnabled({ timeout: 15000 });
     await page.getByRole("link", { name: "Garden" }).click();
 
-    const actionCard = page.getByTestId("action-card").first();
-    const gardenCard = page.getByTestId("garden-card").first();
+    // The account's one garden is active, with one action and nothing owed, so the flow skips
+    // Start and opens on Media with that action.
+    const steps = page.getByRole("list", { name: "Steps" }).getByRole("listitem");
     // A cold dev server transforms the wizard route on first request.
-    await expect(actionCard).toBeVisible({ timeout: 15000 });
-    await expect(gardenCard).toBeVisible();
-    await actionCard.click();
-    await gardenCard.click();
-    const startButton = page.getByRole("button", { name: "Start Gardening" });
-    await expect(startButton).toBeEnabled();
-    await startButton.click();
+    await expect(steps.nth(1)).toHaveAttribute("aria-current", "step", { timeout: 15000 });
+    await expect(page.getByRole("button", { name: "Start Gardening" })).toHaveCount(0);
 
     // Warm the on-demand image compressor once while online for the same
-    // reason, then return to the first step so every step below runs offline.
+    // reason, then take the photo off again so every step below runs offline.
     const mediaInput = page.locator("#work-media-upload");
     await mediaInput.setInputFiles({
       name: "warm-up.png",
@@ -111,16 +96,10 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(detailsButton).toBeEnabled({ timeout: 15000 });
     await page.getByRole("button", { name: "Remove media 1" }).click();
     await expect(detailsButton).toBeDisabled();
-    await page.getByRole("button", { name: "Go back" }).click();
-    await expect(startButton).toBeEnabled();
 
     await context.setOffline(true);
     await expect(page.getByRole("status", OFFLINE_STATUS)).toBeVisible({ timeout: 10000 });
 
-    // Step 1: action and garden.
-    await startButton.click();
-
-    // Step 2: media.
     await mediaInput.setInputFiles({
       name: "planting-proof.png",
       mimeType: "image/png",
@@ -129,7 +108,7 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(detailsButton).toBeEnabled({ timeout: 15000 });
     await detailsButton.click();
 
-    // Step 3: details. The planting action requires both counts and a species.
+    // The planting action requires both counts and a species.
     await page.getByRole("spinbutton", { name: /^Seedlings Planted/ }).fill("3");
     await page.getByRole("spinbutton", { name: /^Participants/ }).fill("2");
     await page.getByRole("button", { name: "Fruit tree" }).click();
@@ -137,7 +116,6 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(reviewButton).toBeEnabled();
     await reviewButton.click();
 
-    // Step 4: review still opens offline and says what will happen.
     await expect(
       page.getByText(
         "You're offline. Your work stays on this device until you upload it from Your Work."
@@ -148,13 +126,10 @@ test.describe("Offline Work Submission CI Tests", () => {
     await attachScreenshot(page, "review-step-offline");
     await uploadButton.click();
 
-    // The submission is queued, not failed: the dashboard opens on it and the
-    // Home badge counts it while still offline.
     const dashboard = page.getByRole("dialog");
     await expect(dashboard).toBeVisible({ timeout: 15000 });
-    // Exactly one queued submission. Offline the header line reads "Offline · {time}"
-    // once any read has been saved, so count the Pending rows waiting to upload instead,
-    // each with its pill and the line saying what happens once connected.
+    // Offline, the header reads "Offline · {time}" once any read is saved, so count the
+    // Pending upload rows instead.
     const queued = dashboard.locator('[data-component="PendingCard"][data-kind="upload"]');
     await expect(queued).toHaveCount(1, { timeout: 15000 });
     await expect(queued.getByText("To upload", { exact: true })).toBeVisible();
@@ -165,7 +140,6 @@ test.describe("Offline Work Submission CI Tests", () => {
       page.getByRole("status", { ...OFFLINE_STATUS, includeHidden: true })
     ).toBeVisible();
 
-    // Pending still shows the queued work, but cannot offer upload while offline.
     await expect(dashboard.getByTestId("upload-all")).toHaveCount(0);
     await attachScreenshot(page, "queued-in-dashboard-offline");
     await dashboard.getByTestId("tab-completed").click();
@@ -179,8 +153,6 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(yourWork).toBeEnabled();
     await expect(page.getByRole("link", { name: /Home/ })).toContainText("1");
 
-    // Reconnect: nothing sends on its own. The work stays queued behind Upload all,
-    // neither dropped nor duplicated, and Your Work opens it.
     await context.setOffline(false);
     await expect(page.getByRole("status", { name: "App is back online" })).toBeVisible({
       timeout: 10000,

@@ -14,7 +14,14 @@ import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import { buildCommitmentEvidenceDocument, evidenceMediaKind } from "../commitment-pooling/evidence";
 import type { EvidenceJobPayload } from "../commitment-pooling/jobs";
-import { identifyWorkFile } from "../work/work-attachments";
+import { assertWorkUploadConsent, UploadPolicyRequiredError } from "../work/upload-policy";
+import {
+  identifyWorkFile,
+  isWorkDocument,
+  publishableWorkFile,
+  publishedDocumentName,
+  UnpublishablePhotoError,
+} from "../work/work-attachments";
 import { jobQueueDB } from "./db";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
 import { MAX_RETRIES } from "./queue-policy";
@@ -40,11 +47,18 @@ interface EvidenceUploads {
  * Failure is reported as waiting, never thrown: a dead gateway has nothing to
  * do with this proof and must not spend one of the job's own attempts. The
  * publish attempts are counted separately, so a gateway that never returns
- * still lets the job fail once it has tried as many times as any other.
+ * still lets the job fail once it has tried as many times as any other. A
+ * photo that cannot be published without its metadata ends the job at once.
  */
 export async function publishPendingEvidence(jobId: string, job: Job): Promise<PublishOutcome> {
   if (job.kind !== "evidence") return { published: true };
   const payload = job.payload as EvidenceJobPayload;
+  try {
+    assertWorkUploadConsent(payload.uploadConsent, job.userAddress);
+  } catch (error) {
+    if (!(error instanceof UploadPolicyRequiredError)) throw error;
+    return { published: false, reason: error.message, terminal: true };
+  }
   if (payload.cid) return { published: true };
 
   // A photo picked before the decoder could load becomes a JPEG before anything
@@ -62,7 +76,11 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
     const { uploadFileToIPFS, uploadJSONToIPFS } = await import("../data/ipfs/upload");
     const files = (await jobQueueDB.getImagesForJob(jobId)).map((image) => image.file);
     const audioFiles = files.filter((file) => file.type.startsWith("audio/"));
-    const mediaFiles = files.filter((file) => !file.type.startsWith("audio/"));
+    // Documents are listed apart from the photos and videos, which readers draw as pictures.
+    const documentFiles = files.filter((file) => isWorkDocument(file));
+    const mediaFiles = files.filter(
+      (file) => !file.type.startsWith("audio/") && !isWorkDocument(file)
+    );
     const context = { source: "commitment-evidence", gardenAddress: payload.gardenAddress };
     const uploads: EvidenceUploads = {
       files: { ...(job.meta?.evidenceUploads as EvidenceUploads | undefined)?.files },
@@ -70,10 +88,12 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
     // Each CID is written back the moment it exists, so a retry uploads only
     // the files that did not make it.
     const pin = async (file: File, fileIndex: number, totalFiles: number) => {
-      const { contentHash } = await identifyWorkFile(file);
+      // A photo is pinned without its location and camera metadata, like a work's.
+      const published = await publishableWorkFile(file);
+      const { contentHash } = await identifyWorkFile(published);
       const pinned = uploads.files[contentHash];
       if (pinned) return pinned.cid;
-      const { cid } = await uploadFileToIPFS(file, { ...context, fileIndex, totalFiles });
+      const { cid } = await uploadFileToIPFS(published, { ...context, fileIndex, totalFiles });
       uploads.files[contentHash] = { cid };
       // Mutated, not replaced: the caller rewrites this job with the meta it holds.
       job.meta = { ...(job.meta ?? {}), evidenceUploads: uploads };
@@ -91,12 +111,23 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
       const cid = await pin(file, index, audioFiles.length);
       audio.push({ cid, mime: file.type });
     }
+    const documents = [];
+    for (const [index, file] of documentFiles.entries()) {
+      const cid = await pin(file, index, documentFiles.length);
+      documents.push({
+        cid,
+        mime: file.type,
+        name: publishedDocumentName(file.name),
+        size: file.size,
+      });
+    }
 
     const document = buildCommitmentEvidenceDocument({
       note: payload.note,
       links: (payload.links ?? []).map((url) => ({ url })),
       media,
       audio,
+      documents,
     });
     const { cid } = await uploadJSONToIPFS(document as unknown as Record<string, unknown>, {
       ...context,
@@ -106,6 +137,10 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
     await jobQueueDB.updateJob({ ...job, payload });
     return { published: true };
   } catch (error) {
+    // A photo that cannot be published is the proof's own problem, not a gateway's:
+    // no attempt is spent on it, and it ends at once rather than retrying.
+    if (error instanceof UnpublishablePhotoError)
+      return { published: false, reason: "photo-unreadable", terminal: true };
     const attempts = Number(job.meta?.evidenceAttempts ?? 0) + 1;
     // Mutated, not replaced, for the same reason the metadata step does it:
     // the caller rewrites the job on the waiting path with the meta it holds.

@@ -1,8 +1,14 @@
 import type { Address } from "../../types/domain";
 import type { CommitmentReadModel } from "./types";
 
+/**
+ * How the reader acts on a row: confirming for the garden (`ORDINARY`), as
+ * themselves on a promise in a pool they steward (`OWN`), by a reasoned
+ * step-in, or as the pool's steward resolving a dispute.
+ */
 export type ConfirmQueueEligibility =
   | "ORDINARY"
+  | "OWN"
   | "POOL_FALLBACK"
   | "PROTOCOL_FALLBACK"
   | "DISPUTED";
@@ -31,6 +37,12 @@ export interface ConfirmQueueProjectionInput {
       canDispute?: boolean;
     }>;
   }>;
+  /** The reader's own confirmations, each in the pool of the garden it names. */
+  own?: ReadonlyArray<{
+    commitment: CommitmentReadModel;
+    garden: Address;
+    gardenName: string;
+  }>;
   fallback?: ReadonlyArray<{
     commitment: CommitmentReadModel;
     path: "POOL_FALLBACK" | "PROTOCOL_FALLBACK";
@@ -45,6 +57,16 @@ export interface ConfirmQueueProjectionInput {
     garden: Address;
     gardenName: string;
   }>;
+}
+
+/** The Confirm tab's badge: every row the queue lists, of every kind. */
+export function countConfirmQueue(toConfirm: ConfirmQueueProjectionInput): number {
+  return (
+    toConfirm.groups.reduce((sum, group) => sum + group.rows.length, 0) +
+    (toConfirm.own?.length ?? 0) +
+    (toConfirm.fallback?.length ?? 0) +
+    (toConfirm.disputed?.length ?? 0)
+  );
 }
 
 type MetadataTitleMap = ReadonlyMap<string, { title?: string | null }>;
@@ -71,6 +93,17 @@ export function selectConfirmQueueRows(input: {
       canDispute: row.canDispute,
     }))
   );
+  // The pool is the reader's own garden's, so its steward may dispute it there.
+  const own = (toConfirm.own ?? []).map((row) => ({
+    commitment: row.commitment,
+    garden: row.garden,
+    gardenName: row.gardenName,
+    eligibility: "OWN" as const,
+    title: titleOf(row.commitment),
+    poolGarden: row.garden,
+    poolGardenName: row.gardenName,
+    canDispute: true,
+  }));
   const fallback = (toConfirm.fallback ?? []).map((row) => ({
     commitment: row.commitment,
     garden: row.garden,
@@ -92,13 +125,13 @@ export function selectConfirmQueueRows(input: {
     canDispute: true,
   }));
   const included = include ? new Set(include) : null;
-  const rows = [...ordinary, ...fallback, ...disputed].filter(
+  const rows = [...ordinary, ...own, ...fallback, ...disputed].filter(
     (row) => !included || included.has(row.eligibility)
   );
   return rows.filter((row) => matchesConfirmSearch(row, search));
 }
 
-/** Whether a row answers the Hub's search: its title, its garden, or its pool's garden. */
+/** Whether a row answers Review's search: its title, its garden, or its pool's garden. */
 export function matchesConfirmSearch(
   row: Pick<ConfirmQueueProjectionRow, "title" | "gardenName" | "poolGardenName">,
   search: string
@@ -153,9 +186,14 @@ export function reconcileConfirmVisit<
   return next;
 }
 
-/** A confirmation made here this visit: landed, or queued on this device to send. */
+/**
+ * A confirmation made here this visit: landed, queued on this device to send, sent with its receipt
+ * still out (`still-confirming`, PRD-1552), or proposed to a Safe and waiting for its signers
+ * (PRD-957). The queue keeps the last two and settles them from the chain, so neither is confirmed
+ * nor waiting here to be sent.
+ */
 export interface ConfirmDecision {
-  kind: "confirmed" | "queued";
+  kind: "confirmed" | "queued" | "still-confirming" | "safe-signers";
   /** When it settled, in milliseconds. */
   at: number;
 }
@@ -164,14 +202,21 @@ export type ConfirmRowState =
   | { status: "waiting" }
   | { status: "confirmed"; at: number }
   | { status: "queued"; at: number }
+  | { status: "still-confirming"; at: number }
+  | { status: "safe-signers"; at: number }
   | { status: "gone" };
 
-/** Where one row stands this visit: this visit's decision, then whether the queue still lists it. */
+/**
+ * Where one row stands this visit: this visit's decision, then whether the queue still lists it. A
+ * send still on its way that the queue no longer lists has landed, so it reads as settled.
+ */
 export function confirmRowState(
   key: string,
   input: { live: ReadonlySet<string>; decisions: Readonly<Record<string, ConfirmDecision>> }
 ): ConfirmRowState {
   const decision = input.decisions[key];
-  if (decision) return { status: decision.kind, at: decision.at };
+  const onItsWay = decision?.kind === "still-confirming" || decision?.kind === "safe-signers";
+  if (decision && (input.live.has(key) || !onItsWay))
+    return { status: decision.kind, at: decision.at };
   return input.live.has(key) ? { status: "waiting" } : { status: "gone" };
 }

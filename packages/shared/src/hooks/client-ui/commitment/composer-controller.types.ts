@@ -21,6 +21,8 @@ export interface CommitmentComposerController {
   openActions: Action[];
   /** Chosen actions whose window has ended; placement waits until they are removed. */
   closedActionUIDs: string[];
+  /** Chosen actions whose window isn't known yet; placement waits until it is, or they are removed. */
+  uncheckedActionUIDs: string[];
   openCycles: CommitmentCycleRecord[];
   cycleNames: CommitmentCycleNameMap["byCycleId"];
   gardenName: string | null;

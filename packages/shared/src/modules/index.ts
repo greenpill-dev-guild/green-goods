@@ -31,9 +31,6 @@ export {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
   trackAuthSwitchMethod,
-  trackAuthWalletConnectFailed,
-  trackAuthWalletConnectStarted,
-  trackAuthWalletConnectSuccess,
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,
   trackGardenJoinStarted,
@@ -53,7 +50,8 @@ export {
   trackWorkWalletRequestFailed,
   trackWorkWalletRequestStarted,
 } from "./app/analytics-events";
-// harvestDistributionAnalytics is not re-exported: its only consumer imports it directly.
+// harvestDistributionAnalytics and the wallet sign-in analytics are not re-exported: each
+// one's only consumer imports it directly.
 // ============================================================================
 // APP / ERROR TRACKING
 // ============================================================================

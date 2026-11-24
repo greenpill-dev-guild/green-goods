@@ -5,6 +5,7 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import {
   attemptById,
+  awaitSafeSigners,
   recordedOutcome,
   reserveAttempt,
   storeOutcome,
@@ -19,6 +20,7 @@ import { participantWriter } from "./notify";
 import { operationSubject } from "./operation-subjects";
 import { operationById, setOperationState } from "./operations";
 import { audit, participantEpoch } from "./participants";
+import { SAFE_CHECK_PASSES, SAFE_CHECK_PAYLOAD } from "./reconciliation";
 import type { ReportingCore } from "./runtime";
 import type { BrowserSession } from "./sessions";
 import { sessionOwnsOperation } from "./views";
@@ -76,6 +78,10 @@ export async function reserveOwnerAttempt(
     return { ok: false, errorCode: "dependency_unavailable" };
   }
   return inTransaction(core.db, () => {
+    // A page whose session ended while the reads above were awaited can't start a send: by then
+    // the chat may have said its link expired with nothing sent.
+    if (input.session.expiresAt <= core.clock.now())
+      return { ok: false as const, errorCode: "forbidden" as const };
     const subject = operationSubject(core, operation);
     const confirmation = confirmationById(core, operation.confirmationId);
     if (!subject?.awaitingOwner || subject.revision !== operation.resourceRevision) {
@@ -223,6 +229,57 @@ export function recordOwnerOutcome(
       });
       return { ok: true, response };
     }
+    if (input.outcome.kind === "safe_proposal") {
+      if (!acceptsSafeProposal(attempt, input.outcome)) {
+        audit(
+          core,
+          "outcome_hint_rejected",
+          { kind: "attempt", id: attempt.id },
+          { hint: input.outcome.kind, state: attempt.state }
+        );
+        return { ok: false, errorCode: "conflict" };
+      }
+      const subject = operationSubject(core, operation);
+      if (!subject) return { ok: false, errorCode: "unavailable" };
+      awaitSafeSigners(core, attempt.id);
+      setOperationState(core, operation.id, "reconciling");
+      // Straight from the wallet, the proposal is the send's first news; after a reported hash,
+      // the report has already moved on.
+      if (attempt.state === "wallet_pending") subject.advance("BROADCAST", true);
+      audit(
+        core,
+        "attempt_safe_proposal",
+        { kind: "attempt", id: attempt.id },
+        { safeTxHash: input.outcome.safeTxHash ?? null }
+      );
+      // Its own check, long enough for the owners to sign. Any earlier one for the reported hash
+      // ends on its next pass (`reconcileOperation`), so none runs out and raises an alert.
+      enqueueJob(core, {
+        kind: "reconcile_operation",
+        subjectId: operation.id,
+        dedupeKey: `reconcile:${attempt.id}:safe`,
+        payload: SAFE_CHECK_PAYLOAD,
+        maxAttempts: SAFE_CHECK_PASSES,
+      });
+      participantWriter(core, {
+        participantId: subject.participantId,
+        conversationId: subject.conversationId,
+        dedupePrefix: `safe:${attempt.id}`,
+      })?.say(subject.kind === "review" ? "review.safeSigners" : "publish.safeSigners");
+      const response = {
+        ok: true as const,
+        operationState: "reconciling",
+        attemptState: "broadcast",
+      };
+      storeOutcome(core, {
+        attemptId: attempt.id,
+        idempotencyKey: input.idempotencyKey,
+        requestDigest,
+        outcomeKind: input.outcome.kind,
+        response,
+      });
+      return { ok: true, response };
+    }
     const lateReference = lateBroadcastReference(attempt, input.outcome);
     if (lateReference) {
       updateAttempt(core, attempt.id, { state: "broadcast", ...lateReference });
@@ -320,6 +377,33 @@ export function recordOwnerOutcome(
     });
     return { ok: true, response };
   });
+}
+
+/**
+ * Whether a Safe proposal answers this owner attempt: one still waiting on the wallet, one whose
+ * window closed with nothing heard, or one the page already reported by the proposal's own hash.
+ * A proposal for another hash, or for an attempt that sent something else, is not this send's.
+ */
+function acceptsSafeProposal(
+  attempt: {
+    mode: string;
+    state: string;
+    reasonCode: string | null;
+    transactionHash: string | null;
+    userOperationHash: string | null;
+  },
+  outcome: { safeTxHash?: string }
+): boolean {
+  if (attempt.mode !== "owner" || attempt.userOperationHash) return false;
+  if (attempt.state === "wallet_pending") return true;
+  if (attempt.state === "uncertain")
+    return attempt.reasonCode === "callback_missing" && !attempt.transactionHash;
+  return (
+    attempt.state === "broadcast" &&
+    (attempt.reasonCode === null || attempt.reasonCode === "callback_missing") &&
+    Boolean(outcome.safeTxHash) &&
+    attempt.transactionHash?.toLowerCase() === outcome.safeTxHash?.toLowerCase()
+  );
 }
 
 /** Allows a late reference only while the callback-missing attempt has no recorded hashes. */

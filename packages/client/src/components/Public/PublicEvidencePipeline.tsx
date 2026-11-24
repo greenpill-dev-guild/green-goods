@@ -110,7 +110,7 @@ function stepCopy(
           definition={formatMessage({
             id: "public.pool.terms.commitment",
             defaultMessage:
-              "An offer or request recorded in a Garden's pool, naming who will carry it out and the window to deliver it in.",
+              "An offer or request recorded in a garden's pool, naming who will carry it out and the window to deliver it in.",
           })}
         />
       ),
@@ -128,7 +128,7 @@ function stepCopy(
           definition={formatMessage({
             id: "public.pool.terms.certificate",
             defaultMessage:
-              "A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform.",
+              "A bundle of approved work, grounded in an assessment and kept as a public record that stays readable beyond any one platform.",
           })}
         />
       ),

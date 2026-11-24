@@ -1,10 +1,12 @@
 import {
   encodeGardenJoinAuthorization,
+  encodeGardenJoinCountAuthorization,
   type CreateGardenJoinRequestInput,
   type GardenJoinRequestAvailabilityResponse,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiError,
   type GardenJoinRequestApiErrorCode,
+  type GardenJoinRequestCountResponse,
   type GardenJoinRequestKind,
   type GardenJoinRequestQueueResponse,
   type GardenJoinRequestSelfResponse,
@@ -37,7 +39,7 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "request_not_saved":
       return {
         id: "app.garden.joinRequest.error.notSaved",
-        defaultMessage: "This attempt did not save a request. Please try again.",
+        defaultMessage: "That didn’t go through. Please try again.",
       };
     case "already_member":
       return {
@@ -59,17 +61,17 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "resolution_conflict":
       return {
         id: "app.garden.joinRequest.error.conflict",
-        defaultMessage: "This request changed or was already used. Check its status and try again.",
+        defaultMessage: "This changed or was already used. Check its status and try again.",
       };
     case "request_expired":
       return {
         id: "app.garden.joinRequest.error.expired",
-        defaultMessage: "This request expired. You can send a new one.",
+        defaultMessage: "This expired. You can ask again.",
       };
     case "request_not_found":
       return {
         id: "app.garden.joinRequest.error.notFound",
-        defaultMessage: "We could not find this join request.",
+        defaultMessage: "We couldn’t find this. It may have been withdrawn or already answered.",
       };
     case "open_joining_enabled":
       return {
@@ -79,12 +81,12 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "garden_role_required":
       return {
         id: "app.garden.joinRequest.error.permission",
-        defaultMessage: "You do not have permission to manage this request.",
+        defaultMessage: "You don’t have permission to change this.",
       };
     case "queue_full":
       return {
         id: "app.garden.joinRequest.error.queueFull",
-        defaultMessage: "This garden's request queue is full right now. Please try again later.",
+        defaultMessage: "This garden’s queue is full right now. Please try again later.",
       };
     case "rate_limited":
       return {
@@ -94,19 +96,19 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "chain_unsupported":
       return {
         id: "app.garden.joinRequest.error.unsupportedChain",
-        defaultMessage: "Garden join requests are not available on this network.",
+        defaultMessage: "This isn’t available on this network.",
       };
     case "request_withdrawn":
       return {
         id: "app.garden.joinRequest.error.withdrawn",
-        defaultMessage: "This request was already withdrawn.",
+        defaultMessage: "This was already withdrawn.",
       };
     case "provider_unavailable":
     case "internal_error":
     case "origin_not_allowed":
       return {
         id: "app.garden.joinRequest.error.unavailable",
-        defaultMessage: "Garden join requests are unavailable right now. Please try again later.",
+        defaultMessage: "This isn’t available right now. Please try again later.",
       };
     default:
       if (
@@ -115,12 +117,12 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
       ) {
         return {
           id: "app.garden.joinRequest.error.unavailable",
-          defaultMessage: "Garden join requests are unavailable right now. Please try again later.",
+          defaultMessage: "This isn’t available right now. Please try again later.",
         };
       }
       return {
         id: "app.garden.joinRequest.error.generic",
-        defaultMessage: "We could not complete the request. Please try again.",
+        defaultMessage: "That didn’t go through. Please try again.",
       };
   }
 }
@@ -138,6 +140,12 @@ function collectionRoute(gardenAddress: Address): string {
 
 function scopedRoute(path: string, proof: GardenJoinProofEnvelope): string {
   return proof.kind ? `${path}?kind=${encodeURIComponent(proof.kind)}` : path;
+}
+
+function isCountGrant(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const { token, expiresAt } = value as { token?: unknown; expiresAt?: unknown };
+  return typeof token === "string" && token.length > 0 && Number.isSafeInteger(expiresAt);
 }
 
 function hasRequestKind(record: unknown, kind: GardenJoinRequestKind): boolean {
@@ -225,7 +233,8 @@ async function request<T>(
       proof?.action === "list" &&
       (!("items" in payload) ||
         !Array.isArray(payload.items) ||
-        !payload.items.every((record) => hasRequestKind(record, expectedKind)))
+        !payload.items.every((record) => hasRequestKind(record, expectedKind)) ||
+        ("countGrant" in payload && !isCountGrant(payload.countGrant)))
     ) {
       throw new Error("Invalid garden request queue.");
     }
@@ -328,6 +337,26 @@ export const gardenJoinRequestTransport = {
       { method: "GET" },
       baseUrl
     );
+  },
+
+  /** The garden's waiting total, or one queue's with `kind`; an older service sends the total. */
+  async count(
+    gardenAddress: Address,
+    token: string,
+    options: { kind?: GardenJoinRequestKind } = {},
+    baseUrl?: string
+  ) {
+    const query = options.kind ? `?kind=${encodeURIComponent(options.kind)}` : "";
+    const response = await request<GardenJoinRequestCountResponse>(
+      `${collectionRoute(gardenAddress)}/count${query}`,
+      null,
+      { method: "GET", headers: { Authorization: encodeGardenJoinCountAuthorization(token) } },
+      baseUrl
+    );
+    if (!Number.isSafeInteger(response.waiting) || response.waiting < 0) {
+      throw new GardenJoinRequestTransportError("Invalid garden request count.");
+    }
+    return response;
   },
 
   resolve(

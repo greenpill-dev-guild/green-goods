@@ -49,8 +49,13 @@ describe("where a queued item stands for Upload all", () => {
       reason: "action-ended",
     });
   });
+  it("offers consent recovery when an executor finds a legacy draft, even before preparation", () => {
+    expect(
+      queuedUploadStatus(queued("work", { meta: { waitingReason: "upload-policy-required" } }))
+    ).toEqual({ state: "blocked", reason: "upload-policy-required" });
+  });
 
-  it("reports photos that wait for the decoder or could not convert", () => {
+  it("reports photos that wait for the decoder or could not convert, and a video it could not read", () => {
     expect(
       queuedUploadStatus(
         queued("work", {
@@ -69,6 +74,10 @@ describe("where a queued item stands for Upload all", () => {
         })
       ).state
     ).toBe("photo-needs-attention");
+    // The queue's own send says a held file is a video, so the person is told it is one.
+    expect(
+      queuedUploadStatus(queued("work", { meta: { waitingReason: "video-needs-attention" } }))
+    ).toEqual({ state: "photo-needs-attention", video: true });
   });
 
   it("never offers a sent, reverted, or retired item for upload", () => {
@@ -97,6 +106,26 @@ describe("where a queued item stands for Upload all", () => {
       queuedUploadStatus(queued("work", { meta: ready, attempts: 5, lastError: "Max retries" }))
         .state
     ).toBe("failed");
+  });
+
+  it("holds a work behind its take-up: on its way while the take-up is, stopped once it gave up", () => {
+    const prepared = queued("work", {
+      meta: { preparation: { status: "ready", checkedAt: CHECKED_AT } },
+    });
+    const takeUp = queued("claim");
+
+    expect(queuedUploadStatus(prepared, { takeUp })).toEqual({ state: "take-up-pending" });
+    expect(
+      queuedUploadStatus(prepared, {
+        takeUp: { ...takeUp, attempts: 5, lastError: "Max retries (5) exceeded" },
+      })
+    ).toEqual({ state: "take-up-failed" });
+    expect(queuedUploadStatus(prepared, { takeUp: null })).toEqual({ state: "ready" });
+    // A work whose send is on record is confirmed, never held: it may already be on the chain.
+    const sent = queued("work", {
+      payload: { uploadCheckpoint: { submittedAt: "", files: {}, broadcastPending: true } },
+    });
+    expect(queuedUploadStatus(sent, { takeUp })).toEqual({ state: "sent" });
   });
 
   it("ignores a preparation record it does not understand", () => {

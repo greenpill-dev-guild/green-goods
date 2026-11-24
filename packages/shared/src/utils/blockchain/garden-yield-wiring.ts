@@ -188,7 +188,7 @@ export function annotateGardenSignalPools({
 
     return {
       poolAddress: normalizedPool,
-      poolType: isTypedHypercertPool ? PoolType.Hypercert : PoolType.Action,
+      poolType: isTypedHypercertPool ? PoolType.HypercertSignal : PoolType.ActionSignal,
       gardenAddress: normalizedGarden,
       communityAddress: normalizedCommunity,
     };

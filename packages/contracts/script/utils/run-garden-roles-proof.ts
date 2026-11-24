@@ -10,11 +10,17 @@ const reviewedSafeBindings = path.resolve(
   contractsRoot,
   "config/celo-garden-accounts/garden-safe-final-bindings-2026-08-15.json",
 );
+// The block both proofs fork Celo at (CELO_FORK_BLOCK in each file). The modifiers have since been
+// deployed on Celo, so the factory refuses the planner's live-head simulation with TakenAddress. The
+// planner reads the state the proofs fork instead. A proof-block plan writes only proof files, so
+// running this never replaces the reviewed plans deploy and enable read.
+const PROOF_CELO_BLOCK = 75_178_393;
 
 loadDotenv({ path: path.resolve(contractsRoot, "../../.env"), override: false, quiet: true });
 
-// The proof consumes the planner's own artifact, so the fixture is regenerated first and the fork
-// runs against the exact condition tree the release would install.
+// The proofs consume the planner's own artifact, so the fixture is regenerated first and the fork
+// runs against the exact condition tree the release would install. The personal service deposit
+// proof reads the same fixture. Keep this path in step with the garden-roles shard glob.
 const networks = new NetworkManager();
 const environment = {
   ...process.env,
@@ -31,11 +37,26 @@ function run(command: string, args: string[], label: string): void {
 
 run(
   process.execPath,
-  ["script/deploy/garden-roles.ts", "plan", "--safe-plan", reviewedSafeBindings],
+  [
+    "script/deploy/garden-roles.ts",
+    "plan",
+    "--safe-plan",
+    reviewedSafeBindings,
+    "--proof-block",
+    String(PROOF_CELO_BLOCK),
+  ],
   "generating the reviewed permission fixture from checked-in Safe bindings",
 );
 run(
   "forge",
-  ["test", "--isolate", "--match-path", "test/fork/CeloGardenRolesPermission.t.sol", "--threads", "1", "-vvv"],
-  "running the pinned Celo Roles permission fork proof",
+  [
+    "test",
+    "--isolate",
+    "--match-path",
+    "test/fork/{CeloGardenRolesPermission,CeloPersonalServiceDeposit}.t.sol",
+    "--threads",
+    "1",
+    "-vvv",
+  ],
+  "running the pinned Celo Roles permission and personal service deposit fork proofs",
 );

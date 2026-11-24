@@ -1,0 +1,471 @@
+{
+  "scope": "22 October local voucher pilot; no publication or live readiness",
+  "branch": "feature/cosmo-local-contracts",
+  "prePilotHead": "888d93edf55f98d40dad1ef0c73a410efa4e2bc6",
+  "comparisonBase": "d7bbbf00d6af63f39a1aea6fe84fb6f2bbcc72be",
+  "selectedCheckHead": "8b1a32a4cbfa5f668a033ee5a43316a36c02ec2a",
+  "commits": [
+    {
+      "sha": "92e861f1110de802f48be36ad5ba29ae0bb43146",
+      "signature": "G"
+    },
+    {
+      "sha": "8b1a32a4cbfa5f668a033ee5a43316a36c02ec2a",
+      "signature": "G"
+    },
+    {
+      "sha": "731fe894598eac9ddf9107adc23278533c5c0d99",
+      "signature": "G"
+    },
+    {
+      "sha": "66a3844beec67cde3723c08ebae0fda63c241206",
+      "signature": "G"
+    }
+  ],
+  "sourceAttribution": "Passing checks are working-tree evidence. Reviewed owned blobs match signed commits. The PT working tree retains one unrelated value difference; no full committed-tree or CI receipt is claimed. The later snapshot-control metadata repair has fresh typecheck, Storybook build and rendered-docs evidence.",
+  "toolchain": {
+    "node": "22.22.1",
+    "bun": "1.4.2",
+    "foundry": "1.7.1",
+    "localSolc": "0.8.28",
+    "clcArtifactSolc": "0.8.34"
+  },
+  "profiles": {
+    "focusedFork": "fork; via_ir=true; inherited optimizer_runs200; fuzz32; Cancun",
+    "fullContracts": "repository test profile; via_ir=true; optimizer off; fuzz1000; production-codegen gas fixtures separately rebuilt"
+  },
+  "pin": {
+    "network": "gnosis-mainnet",
+    "app": "Green Goods",
+    "chainId": 100,
+    "blockNumber": 48848261,
+    "blockHash": "0x03be75732ad238a0c04d6044a42d2fd7baec4b48f89afed9670886ca0477b60d",
+    "stateRoot": "0x40af6e1f0defc8f53144225effa8b5567ff151062b56271629e27c6ca605af22",
+    "upstream": "selected Alchemy connector; read-only",
+    "observedDateUtc": "2026-10-22",
+    "exactObservationTime": "unknown; observed during this pilot turn"
+  },
+  "forkEvidence": {
+    "publishedDocsCommit": "ce090fd3d5a7493c726fb939da39af15ef1c9d7c",
+    "runtimeHashAssertions": 8,
+    "priorGenuineCachedResponses": 110,
+    "freshAlchemyResponses": 66,
+    "transport": "read-only loopback relay; actual cached responses plus Alchemy; not independent Merkle authentication of all cached state",
+    "cleanRoom": "published documentation, handwritten interfaces, artifacts and chain data; no AGPL implementation source"
+  },
+  "commands": [
+    "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true GNOSIS_RPC_URL=http://127.0.0.1:53088 node scripts/dev/ci-local.js --intent checkpoint --checkpoint-scope lane --changed \"$(paste -sd, /private/tmp/green-goods-local-pilot-20261022/owned-paths.txt)\" --check contracts-verify-fast --check vocabulary --check story-quality --check agentic-readiness --test-path shared:src/__tests__/service-access-pilot.test.ts --test-path client:src/__tests__/views/VoucherPilotJourney.test.tsx --test-path contracts:test/integration/CosmoLocalVoucher.t.sol --test-path contracts:test/fork/GnosisVoucherPilot.t.sol --test-path contracts:test/fork/GnosisVoucherPurchase.t.sol --test-path contracts:test/fork/GnosisVoucherRedemption.t.sol",
+    "node scripts/quality/check-source-structure.js --base 888d93edf55f98d40dad1ef0c73a410efa4e2bc6",
+    "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run check -- --intent qa --changed packages/client/src/views/Home/Garden/Commitment/VoucherPilotJourney.stories.tsx --test-path client:src/__tests__/views/VoucherPilotJourney.test.tsx",
+    "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --filter @green-goods/shared check:story-quality"
+  ],
+  "changedPaths": [
+    ".plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md",
+    ".plans/backlog/cosmo-local-credit-interop/handoffs/codex-local-voucher-pilot.md",
+    ".plans/backlog/cosmo-local-credit-interop/plan.todo.md",
+    ".plans/backlog/cosmo-local-credit-interop/spec.md",
+    ".plans/backlog/cosmo-local-credit-interop/status.json",
+    "packages/client/src/__tests__/views/ServiceAccess.test.tsx",
+    "packages/client/src/__tests__/views/VoucherPilotJourney.test.tsx",
+    "packages/client/src/views/Home/Garden/Commitment/ServiceAccessPanel.tsx",
+    "packages/client/src/views/Home/Garden/Commitment/VoucherPilotJourney.stories.tsx",
+    "packages/client/src/views/Home/Garden/Commitment/VoucherPilotJourney.tsx",
+    "packages/client/src/views/Home/Garden/Commitment/serviceAccessStoryFixtures.ts",
+    "packages/contracts/test/fork/GnosisVoucherPilot.t.sol",
+    "packages/contracts/test/helpers/CLCVoucherPilotFixture.sol",
+    "packages/contracts/test/helpers/CosmoLocalPilotVoucher.sol",
+    "packages/contracts/test/integration/CosmoLocalVoucher.t.sol",
+    "packages/shared/.storybook/serviceAccessPilotFixtures.ts",
+    "packages/shared/src/__tests__/service-access-pilot.test.ts",
+    "packages/shared/src/__tests__/useServiceAccess.test.tsx",
+    "packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts",
+    "packages/shared/src/i18n/en.json",
+    "packages/shared/src/i18n/es.json",
+    "packages/shared/src/i18n/pt.json",
+    "packages/shared/src/modules/commitment-pooling/demo/demo-commitments.ts",
+    "packages/shared/src/modules/commitment-pooling/demo/demo-service-access-fixtures.ts",
+    "packages/shared/src/modules/commitment-pooling/demo/demo-service-access.ts",
+    "packages/shared/src/modules/commitment-pooling/demo/demo-service-pilot.ts",
+    "packages/shared/src/modules/commitment-pooling/demo/demo-world.ts",
+    "packages/shared/src/modules/commitment-pooling/index.ts",
+    "packages/shared/src/modules/commitment-pooling/service-access-pilot-types.ts",
+    "packages/shared/src/modules/commitment-pooling/service-access-pilot.ts",
+    "packages/shared/src/modules/commitment-pooling/service-access-types.ts",
+    "packages/shared/src/modules/commitment-pooling/service-access.ts"
+  ],
+  "checks": [
+    {
+      "id": "format",
+      "command": "bunx @biomejs/biome format --no-errors-on-unmatched '.plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md' '.plans/backlog/cosmo-local-credit-interop/handoffs/codex-local-voucher-pilot.md' '.plans/backlog/cosmo-local-credit-interop/plan.todo.md' '.plans/backlog/cosmo-local-credit-interop/spec.md' '.plans/backlog/cosmo-local-credit-interop/status.json' 'packages/client/src/__tests__/views/ServiceAccess.test.tsx' 'packages/client/src/__tests__/views/VoucherPilotJourney.test.tsx' 'packages/client/src/views/Home/Garden/Commitment/ServiceAccessPanel.tsx' 'packages/client/src/views/Home/Garden/Commitment/VoucherPilotJourney.stories.tsx' 'packages/client/src/views/Home/Garden/Commitment/VoucherPilotJourney.tsx' 'packages/client/src/views/Home/Garden/Commitment/serviceAccessStoryFixtures.ts' 'packages/contracts/test/fork/GnosisVoucherPilot.t.sol' 'packages/contracts/test/helpers/CLCVoucherPilotFixture.sol' 'packages/contracts/test/helpers/CosmoLocalPilotVoucher.sol' 'packages/contracts/test/integration/CosmoLocalVoucher.t.sol' 'packages/shared/.storybook/serviceAccessPilotFixtures.ts' 'packages/shared/src/__tests__/service-access-pilot.test.ts' 'packages/shared/src/__tests__/useServiceAccess.test.tsx' 'packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts' 'packages/shared/src/i18n/en.json' 'packages/shared/src/i18n/es.json' 'packages/shared/src/i18n/pt.json' 'packages/shared/src/modules/commitment-pooling/demo/demo-commitments.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-service-access-fixtures.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-service-access.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-service-pilot.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-world.ts' 'packages/shared/src/modules/commitment-pooling/index.ts' 'packages/shared/src/modules/commitment-pooling/service-access-pilot-types.ts' 'packages/shared/src/modules/commitment-pooling/service-access-pilot.ts' 'packages/shared/src/modules/commitment-pooling/service-access-types.ts' 'packages/shared/src/modules/commitment-pooling/service-access.ts'",
+      "mandatory": false,
+      "selectedBy": ["automatic-hygiene"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "lint",
+      "command": "bun --bun run oxlint 'packages/client/src/views/Home/Garden/Commitment/ServiceAccessPanel.tsx' 'packages/client/src/views/Home/Garden/Commitment/VoucherPilotJourney.tsx' 'packages/client/src/views/Home/Garden/Commitment/serviceAccessStoryFixtures.ts' 'packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-commitments.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-service-access-fixtures.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-service-access.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-service-pilot.ts' 'packages/shared/src/modules/commitment-pooling/demo/demo-world.ts' 'packages/shared/src/modules/commitment-pooling/index.ts' 'packages/shared/src/modules/commitment-pooling/service-access-pilot-types.ts' 'packages/shared/src/modules/commitment-pooling/service-access-pilot.ts' 'packages/shared/src/modules/commitment-pooling/service-access-types.ts' 'packages/shared/src/modules/commitment-pooling/service-access.ts' --deny-warnings",
+      "mandatory": false,
+      "selectedBy": ["automatic-hygiene"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "shared-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/shared",
+      "mandatory": true,
+      "selectedBy": ["surface:shared", "critical-override"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "shared-test-typecheck",
+      "command": "bun run typecheck --scope tests",
+      "cwd": "packages/shared",
+      "mandatory": false,
+      "selectedBy": ["validation-only:shared:types"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "shared-test",
+      "command": "node ../../node_modules/.bin/turbo run test --filter=@green-goods/shared --output-logs=new-only",
+      "cwd": "packages/shared",
+      "mandatory": true,
+      "selectedBy": ["surface:shared", "validation-only:shared:tests", "critical-override"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "client-test-typecheck",
+      "command": "bun run typecheck --scope tests",
+      "cwd": "packages/client",
+      "mandatory": false,
+      "selectedBy": ["validation-only:client:types"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "client-test",
+      "command": "node ../../node_modules/.bin/turbo run test --filter=@green-goods/client --output-logs=new-only",
+      "cwd": "packages/client",
+      "mandatory": true,
+      "selectedBy": ["surface:client", "validation-only:client:tests", "critical-override"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "admin-test",
+      "command": "node ../../node_modules/.bin/turbo run test --filter=@green-goods/admin --output-logs=new-only",
+      "cwd": "packages/admin",
+      "mandatory": true,
+      "selectedBy": ["surface:admin", "critical-override"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "agent-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/agent",
+      "mandatory": false,
+      "selectedBy": ["surface:agent"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "agent-test",
+      "command": "node ../../node_modules/.bin/turbo run test --filter=@green-goods/agent --output-logs=new-only",
+      "cwd": "packages/agent",
+      "mandatory": true,
+      "selectedBy": ["surface:agent", "critical-override"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "contracts-test",
+      "command": "bun run test --suite solidity --profile match test/fork/GnosisVoucherPilot.t.sol && bun run test --suite solidity --profile match test/fork/GnosisVoucherPurchase.t.sol && bun run test --suite solidity --profile match test/fork/GnosisVoucherRedemption.t.sol && bun run test --suite solidity --profile match test/integration/CosmoLocalVoucher.t.sol",
+      "cwd": "packages/contracts",
+      "mandatory": false,
+      "selectedBy": ["validation-only:contracts:tests"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "contracts-verify-fast",
+      "command": "./scripts/contracts/verify-production.sh --skip-e2e --skip-dry-run",
+      "mandatory": false,
+      "selectedBy": ["explicit-request"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "staged-modules",
+      "command": "node scripts/quality/check-staged-modules.mjs",
+      "mandatory": false,
+      "selectedBy": ["client:staged-boundary"],
+      "observedResult": "passed in selected checkpoint before source-structure stopped it"
+    },
+    {
+      "id": "source-structure",
+      "command": "node scripts/quality/check-source-structure.js --base 'd7bbbf00d6af63f39a1aea6fe84fb6f2bbcc72be'",
+      "mandatory": false,
+      "selectedBy": ["conditional:source-structure"],
+      "observedResult": "failed: unchanged pre-pilot contract sources exceed350 as new files relative origin/develop"
+    },
+    {
+      "id": "design-guardrails",
+      "command": "design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md && design.md lint --format json docs/DESIGN.md && node scripts/design/md-generate.mjs --check && bash scripts/design/check-tokens.sh && bash scripts/design/check-vocab.sh",
+      "mandatory": false,
+      "selectedBy": ["conditional:design-guardrails"],
+      "observedResult": "passed with runner checkEnvironment"
+    },
+    {
+      "id": "supply-chain",
+      "command": "node scripts/quality/check-codex-docs.js && node scripts/quality/check-guidance-links.mjs && node scripts/quality/check-immutable-plan-reports.mjs && bash scripts/quality/check-test-quality.sh && node scripts/harness/plan-hub.mjs validate && node --test scripts/harness/plan-hub.test.mjs",
+      "mandatory": false,
+      "selectedBy": ["conditional:supply-chain"],
+      "observedResult": "passed in standalone continuation; inherited process environment, no selector receipt reuse"
+    },
+    {
+      "id": "story-quality",
+      "command": "bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
+      "mandatory": false,
+      "selectedBy": [
+        "explicit-request",
+        "validation-only:shared:stories",
+        "validation-only:client:stories"
+      ],
+      "observedResult": "failed global coverage: three unrelated Admin surfaces; standalone story-quality rules pass"
+    },
+    {
+      "id": "storybook-build",
+      "command": "bun run build-storybook",
+      "cwd": "packages/shared",
+      "mandatory": false,
+      "selectedBy": ["validation-only:shared:storybook-config"],
+      "observedResult": "passed in standalone continuation; inherited process environment, no selector receipt reuse"
+    },
+    {
+      "id": "agentic-readiness",
+      "command": "DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search \"agentic frontend CSS accessibility browser validation DevTools MCP\" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility && bun scripts/check-browser-verification-policy.mjs && node scripts/quality/check-skill-behavior-contracts.mjs && design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md && design.md lint --format json docs/DESIGN.md && node scripts/design/md-generate.mjs --check && bash scripts/design/check-tokens.sh && node scripts/dev/node-cli.js node --test scripts/quality/check-ontology.test.mjs && node scripts/quality/check-ontology.mjs && bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
+      "mandatory": false,
+      "selectedBy": ["explicit-request"],
+      "observedResult": "failed only at global Admin story coverage after preceding components passed"
+    },
+    {
+      "id": "vocabulary",
+      "command": "bash scripts/design/check-vocab.sh",
+      "mandatory": false,
+      "selectedBy": ["explicit-request"],
+      "observedResult": "passed in standalone continuation; inherited process environment, no selector receipt reuse"
+    },
+    {
+      "id": "em-dashes",
+      "command": "node scripts/dev/node-cli.js node --test scripts/design/check-em-dashes.test.mjs && node scripts/design/check-em-dashes.mjs",
+      "mandatory": false,
+      "selectedBy": ["conditional:em-dashes"],
+      "observedResult": "passed in standalone continuation; inherited process environment, no selector receipt reuse"
+    }
+  ],
+  "focusedResults": {
+    "earnedIntegration": 8,
+    "pinnedPilot": 16,
+    "existingPurchase": 22,
+    "existingRedemption": 10,
+    "sharedPilotAndLegacy": 55,
+    "clientPilotAndLegacy": 48
+  },
+  "completeSuiteResults": {
+    "shared": {
+      "passed": 7563,
+      "skipped": 16
+    },
+    "client": {
+      "passed": 1783,
+      "skipped": 0
+    },
+    "admin": {
+      "passed": 1329,
+      "skipped": 0
+    },
+    "agent": {
+      "passed": 776,
+      "skipped": 1
+    },
+    "solidity": {
+      "passed": 2195,
+      "skipped": 0
+    },
+    "productionGas": 3,
+    "contractCli": 31,
+    "contractScripts": 331,
+    "storybookBuild": {
+      "components": 431,
+      "stories": 2313,
+      "groups": 44
+    }
+  },
+  "blockers": [
+    {
+      "check": "source-structure",
+      "files": [
+        "packages/contracts/src/modules/GnosisVoucherEscrow.sol",
+        "packages/contracts/src/modules/VoucherRedemptionModule.sol"
+      ],
+      "observedLines": [387, 389],
+      "limit": 350,
+      "unchangedSince": "888d93edf55f98d40dad1ef0c73a410efa4e2bc6",
+      "pilotDeltaCheck": "passed against pre-pilot baseline; original origin/develop failure remains open"
+    },
+    {
+      "checks": ["story-quality", "agentic-readiness"],
+      "missingStories": [
+        "packages/admin/src/components/Boot/AdminStartupConnect.tsx",
+        "packages/admin/src/components/Boot/AdminWorkspace.tsx",
+        "packages/admin/src/components/Layout/ConnectPrompt.tsx"
+      ],
+      "scope": "unrelated concurrent Admin work; the pilot has a real story and standalone story-quality rules pass"
+    }
+  ],
+  "preservedGates": [
+    "helper provenance/security review",
+    "actual member control/signing on all required chains",
+    "provider/sponsorship/recovery proof",
+    "COM-46 approved private issuer evidence",
+    "all existing release gates and human live authority"
+  ],
+  "ownedSources": [
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/service-access-types.ts",
+      "workingTreeSha256": "a766c9067263fcac86cc7f3ad4de18e865590cff3fc17997d5246cfe0c69c2b2",
+      "committedSha256": "a766c9067263fcac86cc7f3ad4de18e865590cff3fc17997d5246cfe0c69c2b2"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/service-access.ts",
+      "workingTreeSha256": "465d7d3b8760cf7873fe8142d82bf238b7a212047975e81191df50420075a927",
+      "committedSha256": "465d7d3b8760cf7873fe8142d82bf238b7a212047975e81191df50420075a927"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/service-access-pilot.ts",
+      "workingTreeSha256": "5802b7c20b598f46c9b09618a1c14f02e5b8476f6a615e48b401165fb9975a8a",
+      "committedSha256": "5802b7c20b598f46c9b09618a1c14f02e5b8476f6a615e48b401165fb9975a8a"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/service-access-pilot-types.ts",
+      "workingTreeSha256": "ca85f54657c0d7b7a9ddd37df000349b4c467fa50bcd1f99fb3dd7860d99a7fa",
+      "committedSha256": "ca85f54657c0d7b7a9ddd37df000349b4c467fa50bcd1f99fb3dd7860d99a7fa"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/index.ts",
+      "workingTreeSha256": "808162fb00e6b0742df4c23daa4c31f2f59e94b784787544eadb73734ec68143",
+      "committedSha256": "808162fb00e6b0742df4c23daa4c31f2f59e94b784787544eadb73734ec68143"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/demo/demo-service-access.ts",
+      "workingTreeSha256": "0af0fc1793397eb013489cfb3de68161c6993d017dfdc382bd32070e57d4a22f",
+      "committedSha256": "0af0fc1793397eb013489cfb3de68161c6993d017dfdc382bd32070e57d4a22f"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/demo/demo-service-access-fixtures.ts",
+      "workingTreeSha256": "a62811570da73bfd064c7bf6ae7efbcfa301f480745d16dee7471c8f687cd7a7",
+      "committedSha256": "a62811570da73bfd064c7bf6ae7efbcfa301f480745d16dee7471c8f687cd7a7"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/demo/demo-service-pilot.ts",
+      "workingTreeSha256": "4c466758d936474f36e0151aa340637579a2fa0c06f431a8be9c28cd4b2a0d9a",
+      "committedSha256": "4c466758d936474f36e0151aa340637579a2fa0c06f431a8be9c28cd4b2a0d9a"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/demo/demo-commitments.ts",
+      "workingTreeSha256": "7f3716beba7a3e64303d2d37d811c0e04516a0847d89fddcd97c742c2b0507ab",
+      "committedSha256": "7f3716beba7a3e64303d2d37d811c0e04516a0847d89fddcd97c742c2b0507ab"
+    },
+    {
+      "path": "packages/shared/src/modules/commitment-pooling/demo/demo-world.ts",
+      "workingTreeSha256": "fb313468973686da94cde2e2724109a5ddbfc36ee67ef03cea6c83ea6f2c79f7",
+      "committedSha256": "fb313468973686da94cde2e2724109a5ddbfc36ee67ef03cea6c83ea6f2c79f7"
+    },
+    {
+      "path": "packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts",
+      "workingTreeSha256": "13f51ca321a0c9fb54291659ceeadca5275466e1d3af301573fb4916e2b8de4e",
+      "committedSha256": "13f51ca321a0c9fb54291659ceeadca5275466e1d3af301573fb4916e2b8de4e"
+    },
+    {
+      "path": "packages/shared/src/__tests__/service-access-pilot.test.ts",
+      "workingTreeSha256": "9b230a473a052a76e4ee798de2a11c584cf4e914e3740b77da09830e5cff5b6e",
+      "committedSha256": "9b230a473a052a76e4ee798de2a11c584cf4e914e3740b77da09830e5cff5b6e"
+    },
+    {
+      "path": "packages/shared/src/__tests__/useServiceAccess.test.tsx",
+      "workingTreeSha256": "622ff10adc8ff525c025005bf37020e4e0bb75acf4da4e35a2068e6076da0500",
+      "committedSha256": "622ff10adc8ff525c025005bf37020e4e0bb75acf4da4e35a2068e6076da0500"
+    },
+    {
+      "path": "packages/client/src/views/Home/Garden/Commitment/ServiceAccessPanel.tsx",
+      "workingTreeSha256": "6fff47f9507c89460e7b32d94ca0bb9b8cf0728d9b16bee79b6468ff6e14d393",
+      "committedSha256": "6fff47f9507c89460e7b32d94ca0bb9b8cf0728d9b16bee79b6468ff6e14d393"
+    },
+    {
+      "path": "packages/client/src/views/Home/Garden/Commitment/serviceAccessStoryFixtures.ts",
+      "workingTreeSha256": "3745e66ae4494101c969a196c7350bbe6064c321061b247f79235b826b2944b4",
+      "committedSha256": "3745e66ae4494101c969a196c7350bbe6064c321061b247f79235b826b2944b4"
+    },
+    {
+      "path": "packages/client/src/views/Home/Garden/Commitment/VoucherPilotJourney.tsx",
+      "workingTreeSha256": "4071b2f870cc55ca36047905c68252b6a8cb351e42a3983fcd72e8aed9403e37",
+      "committedSha256": "4071b2f870cc55ca36047905c68252b6a8cb351e42a3983fcd72e8aed9403e37"
+    },
+    {
+      "path": "packages/client/src/views/Home/Garden/Commitment/VoucherPilotJourney.stories.tsx",
+      "workingTreeSha256": "868554695f0a203497d01c4a7fc498ba3732afeb732f349402131204f06f57ea",
+      "committedSha256": "868554695f0a203497d01c4a7fc498ba3732afeb732f349402131204f06f57ea"
+    },
+    {
+      "path": "packages/client/src/__tests__/views/VoucherPilotJourney.test.tsx",
+      "workingTreeSha256": "1916c0d35cb5c7399e08c5feef6f26b0318cebfc94c694c07de7bedf148d8cd0",
+      "committedSha256": "1916c0d35cb5c7399e08c5feef6f26b0318cebfc94c694c07de7bedf148d8cd0"
+    },
+    {
+      "path": "packages/client/src/__tests__/views/ServiceAccess.test.tsx",
+      "workingTreeSha256": "268c3302ccdca4351ef3878bdcd2062598ee2e36c1d46fdf52235aa424b45679",
+      "committedSha256": "268c3302ccdca4351ef3878bdcd2062598ee2e36c1d46fdf52235aa424b45679"
+    },
+    {
+      "path": "packages/shared/src/i18n/en.json",
+      "workingTreeSha256": "20dc3eb2294bd783bb6a08ce0a70d10610cfd17566926f247f9deed4b4f647d5",
+      "committedSha256": "20dc3eb2294bd783bb6a08ce0a70d10610cfd17566926f247f9deed4b4f647d5"
+    },
+    {
+      "path": "packages/shared/src/i18n/es.json",
+      "workingTreeSha256": "461d5d37e24ed3a5b1a2dbe652d765481275d0125aa2eff6ee07f4219f7da9f1",
+      "committedSha256": "461d5d37e24ed3a5b1a2dbe652d765481275d0125aa2eff6ee07f4219f7da9f1"
+    },
+    {
+      "path": "packages/shared/.storybook/serviceAccessPilotFixtures.ts",
+      "workingTreeSha256": "13dfc17c4376c4757515b53f10673621fe75e904a46be0ea98fd529315aba48b",
+      "committedSha256": "13dfc17c4376c4757515b53f10673621fe75e904a46be0ea98fd529315aba48b"
+    },
+    {
+      "path": "packages/shared/src/i18n/pt.json",
+      "workingTreeSha256": "8e123c2858d07537da85038f1f175a4fc5b0fe54aab4b20bf2899b2a648e973f",
+      "committedSha256": "5e8018796c2c00f62e6b2fa9c6b6aac06c197b960c618b51e2d7b5c3219992d1"
+    },
+    {
+      "path": "packages/contracts/test/fork/GnosisVoucherPilot.t.sol",
+      "workingTreeSha256": "0aa6aef1dd78a0ec26045addb23df53d4605f7fb499c65f715bca6b170516a51",
+      "committedSha256": "0aa6aef1dd78a0ec26045addb23df53d4605f7fb499c65f715bca6b170516a51"
+    },
+    {
+      "path": "packages/contracts/test/helpers/CLCVoucherPilotFixture.sol",
+      "workingTreeSha256": "3fc146e4da707ba698b6adc9a465d60e7823f43a55d619af13bac11d2a03b03a",
+      "committedSha256": "3fc146e4da707ba698b6adc9a465d60e7823f43a55d619af13bac11d2a03b03a"
+    },
+    {
+      "path": "packages/contracts/test/integration/CosmoLocalVoucher.t.sol",
+      "workingTreeSha256": "5a0a3fe0a8cc7c805842f77b89e5b1c8e0d7f3ebc99199cb5c3317bb6cd03c67",
+      "committedSha256": "5a0a3fe0a8cc7c805842f77b89e5b1c8e0d7f3ebc99199cb5c3317bb6cd03c67"
+    },
+    {
+      "path": "packages/contracts/test/helpers/CosmoLocalPilotVoucher.sol",
+      "workingTreeSha256": "0f5af37b4d78715e0adbb8c457b472801962d02c2c39ab7d37e8cf9b4773fd24",
+      "committedSha256": "0f5af37b4d78715e0adbb8c457b472801962d02c2c39ab7d37e8cf9b4773fd24"
+    }
+  ],
+  "configurationSha256": {
+    "packages/contracts/foundry.toml": "15cc15d84e9d12c566ca2a6a5a9562fee1d51b373c7f81cb2a9ea83ce5028244",
+    "packages/contracts/foundry.lock": "748e3d344ecbf6a0f6e8d16053e437954c3755b9a567b9fa06461bd55ebc886b",
+    "packages/contracts/package.json": "e948e9693b93cd14c09caac1bffed2cf62a088386722cf0d7c24d5a77ab3a69e",
+    "bun.lock": "85cb5b30fabdce6225c2b44337336ca7f90a95fe99aea26d5637606c8d0094d6"
+  },
+  "temporaryEvidenceRoot": "/private/tmp/green-goods-local-pilot-20261022",
+  "localOnly": true
+}

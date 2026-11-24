@@ -1,18 +1,19 @@
-import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { AdminUploadConsentDialog } from "@/components/AdminUploadConsentDialog";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   getMinRequiredWorkImages,
   type SubmitWorkAuthSnapshot,
   useSubmitWorkController,
 } from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
+import { RiLockLine, RiSearchLine, RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
+import { localizeActionForDisplay } from "@/components/Action/actionDisplay";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { FlowSendFooter, flowSendPhase, SingleSendNote } from "@/components/Layout/FlowSendFooter";
-import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
 import { SubmitWorkStepContent } from "./SubmitWorkStepContent";
 import { submitWorkSendStatus } from "./submitWorkStatus";
 
@@ -91,7 +92,11 @@ export function SubmitWorkFlow({
   if (!garden) {
     return (
       <ActionFlowShell layout={layout} title={title} onBack={exitBack} backLabel={exitLabel}>
-        <Alert variant="error">{formatMessage({ id: "app.garden.admin.notFound" })}</Alert>
+        <EmptyState
+          tone="error"
+          icon={<RiSearchLine />}
+          title={formatMessage({ id: "app.garden.admin.notFound" })}
+        />
       </ActionFlowShell>
     );
   }
@@ -104,13 +109,15 @@ export function SubmitWorkFlow({
         onBack={exitBack}
         backLabel={exitLabel}
       >
-        <Alert variant="warning">
-          {formatMessage({
+        <EmptyState
+          tone="warning"
+          icon={<RiLockLine />}
+          title={formatMessage({
             id: isAuthenticated
               ? "app.admin.work.submit.noPermission"
               : "app.admin.work.submit.connectWallet",
           })}
-        </Alert>
+        />
       </ActionFlowShell>
     );
   }
@@ -123,22 +130,21 @@ export function SubmitWorkFlow({
         onBack={exitBack}
         backLabel={exitLabel}
       >
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-stroke-soft bg-bg-white p-8 text-center">
-          <RiSeedlingLine className="h-10 w-10 text-text-soft" aria-hidden="true" />
-          <p className="body-sm font-semibold text-text-strong">
-            {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
-          </p>
-          <p className="max-w-sm body-xs text-text-sub">
-            {formatMessage({ id: "app.admin.work.submit.noActionsForDomainHint" })}
-          </p>
-          <AdminButton
-            type="button"
-            variant="filled"
-            onClick={() => navigate(adminRoutes.gardenSettings({ gardenId: garden.id }))}
-          >
-            {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
-          </AdminButton>
-        </div>
+        <EmptyState
+          icon={<RiSeedlingLine />}
+          title={formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
+          description={formatMessage({ id: "app.admin.work.submit.noActionsForDomainHint" })}
+          action={
+            <Button
+              type="button"
+              emphasis="primary"
+              size="sm"
+              onClick={() => navigate(adminRoutes.gardenSettings({ gardenId: garden.id }))}
+            >
+              {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
+            </Button>
+          }
+        />
       </ActionFlowShell>
     );
   }
@@ -164,7 +170,7 @@ export function SubmitWorkFlow({
       title: formatMessage({ id: "app.admin.work.submit.step.media", defaultMessage: "Media" }),
       description: formatMessage({
         id: "app.admin.work.submit.step.media.hint",
-        defaultMessage: "Add photos of the work",
+        defaultMessage: "Add media of the work",
       }),
     },
     {
@@ -207,7 +213,11 @@ export function SubmitWorkFlow({
           : formatMessage({ id: "app.admin.work.submit.submit" })
       }
       // The Review's primary submits the form, which validates once more before it sends.
-      sendButtonProps={{ type: "submit", form: formId, leadingIcon: <RiUploadCloudLine /> }}
+      sendButtonProps={{
+        type: "submit",
+        form: formId,
+        leadingIcon: <RiUploadCloudLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+      }}
       note={awaitingConfirmation ? status.description : <SingleSendNote phase={phase} />}
       nextDisabled={activeStepId === "action" && !selectedAction}
       held={busy}
@@ -227,31 +237,34 @@ export function SubmitWorkFlow({
   );
 
   return (
-    <ActionFlowShell
-      layout={layout}
-      title={title}
-      context={garden.name}
-      steps={stepConfigs}
-      currentStep={currentStep}
-      complete={sent}
-      // Once the work is sent no step reopens: the way on is Done.
-      onStepClick={sent ? undefined : handleStepJump}
-      footer={footer}
-    >
-      <form id={formId} onSubmit={handleFormSubmit}>
-        <div
-          ref={phaseRef}
-          tabIndex={-1}
-          key={activeStepId}
-          className="action-flow-fade space-y-4 outline-none"
-        >
-          <SubmitWorkStepContent
-            controller={controller}
-            photoRequirementText={photoRequirementText}
-            reviewStatus={status}
-          />
-        </div>
-      </form>
-    </ActionFlowShell>
+    <>
+      <AdminUploadConsentDialog prompt={mutation.uploadPolicy} />
+      <ActionFlowShell
+        layout={layout}
+        title={title}
+        context={garden.name}
+        steps={stepConfigs}
+        currentStep={currentStep}
+        complete={sent}
+        // Once the work is sent no step reopens: the way on is Done.
+        onStepClick={sent ? undefined : handleStepJump}
+        footer={footer}
+      >
+        <form id={formId} onSubmit={handleFormSubmit}>
+          <div
+            ref={phaseRef}
+            tabIndex={-1}
+            key={activeStepId}
+            className="action-flow-fade space-y-4 outline-none"
+          >
+            <SubmitWorkStepContent
+              controller={controller}
+              photoRequirementText={photoRequirementText}
+              reviewStatus={status}
+            />
+          </div>
+        </form>
+      </ActionFlowShell>
+    </>
   );
 }

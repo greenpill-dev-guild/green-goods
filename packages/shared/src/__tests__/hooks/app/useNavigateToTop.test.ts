@@ -21,12 +21,6 @@ describe("hooks/app/useNavigateToTop", () => {
     vi.clearAllMocks();
   });
 
-  it("returns a navigation function", () => {
-    const { result } = renderHook(() => useNavigateToTop());
-
-    expect(typeof result.current).toBe("function");
-  });
-
   it("navigates without touching scroll (scroll is handled by target view)", () => {
     const { result } = renderHook(() => useNavigateToTop());
 
@@ -48,18 +42,6 @@ describe("hooks/app/useNavigateToTop", () => {
     expect(scrollEl.scrollTop).toBe(500);
 
     scrollEl.remove();
-  });
-
-  it("enables view transitions by default", () => {
-    const { result } = renderHook(() => useNavigateToTop());
-
-    act(() => {
-      result.current("/path");
-    });
-
-    expect(mockNavigate).toHaveBeenCalledWith("/path", {
-      viewTransition: true,
-    });
   });
 
   it("allows disabling view transitions", () => {

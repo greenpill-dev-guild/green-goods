@@ -25,7 +25,7 @@ export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
             id="campaign-cookie-jar-claim-amount"
             className="min-w-0 flex-1"
             label={formatMessage({
-              id: "cockpit.community.cookies.claimAmountPerSteward",
+              id: "hub.community.cookies.claimAmountPerSteward",
               defaultMessage: "Claim amount per steward",
             })}
             value={claimAmount}
@@ -33,8 +33,9 @@ export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
             placeholder="0.00"
             inputProps={{ inputMode: "decimal" }}
           />
-          {/* mb-5 lifts the unit over the field's reserved supporting line, so it centres on the field. */}
-          <span className="mb-5 inline-flex min-h-11 items-center rounded-[var(--m3-shape-full)] border border-stroke-soft px-3 text-label-md text-text-sub">
+          {/* mb-3 centres the unit on the field's box, whose middle sits 6px above the
+              field's: the label above it is 24px, the message line under it 36px. */}
+          <span className="mb-3 inline-flex min-h-11 items-center rounded-[var(--m3-shape-full)] border border-stroke-soft px-3 type-label-sm text-text-sub">
             {tokenSymbol || "TOKEN"}
           </span>
         </div>

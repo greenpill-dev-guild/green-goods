@@ -26,6 +26,7 @@ vi.mock("../../../modules/job-queue/db", () => ({ jobQueueDB: {} }));
 
 import { useWorkUploadPreparation } from "../../../hooks/work/useWorkUploadPreparation";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
+import { trackUploadPreparation } from "../../../modules/job-queue/job-analytics";
 import { connectivityStore } from "../../../stores/connectivity";
 
 const USER = "0x1111111111111111111111111111111111111111";
@@ -41,8 +42,9 @@ describe("useWorkUploadPreparation", () => {
     await waitFor(() =>
       expect(mocks.setActiveUploadPreparation).toHaveBeenCalledWith(mocks.preparation)
     );
+    // Each try is recorded, without its content, so a stuck work reads apart from a slow one.
     expect(mocks.createUploadPreparation).toHaveBeenCalledWith(
-      expect.objectContaining({ userAddress: USER, chainId: 42161 })
+      expect.objectContaining({ userAddress: USER, chainId: 42161, record: trackUploadPreparation })
     );
     expect(mocks.preparation.schedule).toHaveBeenCalledTimes(1);
 

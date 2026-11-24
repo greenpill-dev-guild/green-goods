@@ -1,5 +1,6 @@
 /** @vitest-environment happy-dom */
 
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createPublicWebMcpTools,
@@ -15,12 +16,13 @@ function getTool(name: PublicWebMcpTool["name"], tools = createPublicWebMcpTools
   return tool;
 }
 
+function defineModelContext(target: Document | Navigator, value: unknown) {
+  Object.defineProperty(target, "modelContext", { configurable: true, value });
+}
+
 function modelContextWithRegister(registerTool = vi.fn<(tool: PublicWebMcpTool) => unknown>()) {
   const modelContext = { registerTool };
-  Object.defineProperty(navigator, "modelContext", {
-    configurable: true,
-    value: modelContext,
-  });
+  defineModelContext(document, modelContext);
   return { modelContext, registerTool };
 }
 
@@ -41,6 +43,8 @@ describe("public WebMCP tools", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     window.history.pushState({}, "", "/");
+    defineModelContext(document, undefined);
+    defineModelContext(navigator, undefined);
     Object.defineProperty(window, "__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__", {
       configurable: true,
       value: undefined,
@@ -88,27 +92,28 @@ describe("public WebMCP tools", () => {
     });
   });
 
-  it("does nothing when the browser has no WebMCP modelContext", () => {
-    Object.defineProperty(navigator, "modelContext", { configurable: true, value: undefined });
+  it("does nothing when the browser has no WebMCP modelContext", async () => {
+    defineModelContext(document, undefined);
+    defineModelContext(navigator, undefined);
 
-    registerPublicWebMcpTools();
+    await registerPublicWebMcpTools();
 
     expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBeUndefined();
   });
 
-  it("does nothing when modelContext cannot register tools", () => {
-    Object.defineProperty(navigator, "modelContext", { configurable: true, value: {} });
+  it("does nothing when modelContext cannot register tools", async () => {
+    defineModelContext(document, {});
 
-    registerPublicWebMcpTools();
+    await registerPublicWebMcpTools();
 
     expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBeUndefined();
     expect(window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__).toBeUndefined();
   });
 
-  it("registers public-safe tools when modelContext is available", () => {
+  it("registers public-safe tools when modelContext is available", async () => {
     const { modelContext, registerTool } = modelContextWithRegister();
 
-    registerPublicWebMcpTools();
+    await registerPublicWebMcpTools();
 
     expect(registerTool).toHaveBeenCalledTimes(2);
     expect(window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__).toEqual([
@@ -122,13 +127,96 @@ describe("public WebMCP tools", () => {
     expect(registerTool.mock.contexts).toEqual([modelContext, modelContext]);
   });
 
-  it("does not register duplicate tools after the first successful registration", () => {
-    const { registerTool } = modelContextWithRegister();
+  it("falls back to navigator.modelContext only when document.modelContext is absent", async () => {
+    const registerTool = vi.fn<(tool: PublicWebMcpTool) => unknown>();
+    const legacyModelContext = { registerTool };
+    defineModelContext(document, undefined);
+    defineModelContext(navigator, legacyModelContext);
 
-    registerPublicWebMcpTools();
-    registerPublicWebMcpTools();
+    await registerPublicWebMcpTools();
 
     expect(registerTool).toHaveBeenCalledTimes(2);
+    expect(registerTool.mock.contexts).toEqual([legacyModelContext, legacyModelContext]);
+    expect(window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__).toEqual([
+      "green_goods_describe_public_page",
+      "green_goods_navigate_public_route",
+    ]);
+  });
+
+  it("prefers document.modelContext when a browser exposes both objects", async () => {
+    const { modelContext, registerTool } = modelContextWithRegister();
+    const legacyRegisterTool = vi.fn<(tool: PublicWebMcpTool) => unknown>();
+    defineModelContext(navigator, { registerTool: legacyRegisterTool });
+
+    await registerPublicWebMcpTools();
+
+    expect(registerTool).toHaveBeenCalledTimes(2);
+    expect(registerTool.mock.contexts).toEqual([modelContext, modelContext]);
+    expect(legacyRegisterTool).not.toHaveBeenCalled();
+    expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBe(true);
+  });
+
+  it("does not register duplicate tools after the first successful registration", async () => {
+    const { registerTool } = modelContextWithRegister();
+
+    await registerPublicWebMcpTools();
+    await registerPublicWebMcpTools();
+
+    expect(registerTool).toHaveBeenCalledTimes(2);
+    expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBe(true);
+  });
+
+  it("waits for every registration and shares an in-flight attempt", async () => {
+    let resolveFirst!: () => void;
+    let resolveSecond!: () => void;
+    const first = new Promise<void>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const second = new Promise<void>((resolve) => {
+      resolveSecond = resolve;
+    });
+    const registerTool = vi.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
+    modelContextWithRegister(registerTool);
+
+    const registration = registerPublicWebMcpTools();
+    expect(registerPublicWebMcpTools()).toBe(registration);
+    resolveFirst();
+    await Promise.resolve();
+    expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBeUndefined();
+    expect(window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__).toBeUndefined();
+    resolveSecond();
+    await registration;
+    expect(registerTool).toHaveBeenCalledTimes(2);
+    expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBe(true);
+  });
+
+  it.each([
+    "rejection",
+    "throw",
+  ])("cleans up a partial registration after a %s and permits retry", async (failure) => {
+    const warning = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const active = new Set<string>();
+    let fail = true;
+    const registerTool = vi.fn((tool: PublicWebMcpTool, options?: { signal?: AbortSignal }) => {
+      if (fail && tool.name === "green_goods_navigate_public_route") {
+        const error = new Error("permission denied");
+        if (failure === "throw") throw error;
+        return Promise.reject(error);
+      }
+      active.add(tool.name);
+      options?.signal?.addEventListener("abort", () => active.delete(tool.name));
+      return Promise.resolve();
+    });
+    modelContextWithRegister(registerTool);
+
+    await registerPublicWebMcpTools();
+    expect(active.size).toBe(0);
+    expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBeUndefined();
+    expect(window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__).toBeUndefined();
+    expect(warning).toHaveBeenCalledOnce();
+    fail = false;
+    await registerPublicWebMcpTools();
+    expect(active.size).toBe(2);
     expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBe(true);
   });
 

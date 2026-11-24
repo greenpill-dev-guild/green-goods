@@ -1,12 +1,13 @@
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
+import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
 import { type Action, Domain } from "@green-goods/shared/types/domain";
 import { instructionTemplates } from "@green-goods/shared/utils/action/templates";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { FieldNotesSection } from "./GardenDetailFieldNotes";
 
@@ -89,6 +90,44 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+export const PhotoRecord: Story = {
+  args: { notes: [{ ...note, media: ["/images/hero-garden.webp"] }] },
+  render: (args) => (
+    <IntlProvider locale="en" messages={en}>
+      <FieldNotesSection {...args} />
+    </IntlProvider>
+  ),
+};
+
+export const PhotoKeyboardFocus: Story = {
+  ...PhotoRecord,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(within(canvasElement).getByRole("button", { name: /Waste sorting/ }));
+    const record = await body.findByRole("dialog");
+    const photo = within(record).getByRole("button", { name: "View photo 1" });
+    for (const keyboard of [false, true]) {
+      if (keyboard) {
+        photo.focus();
+        await userEvent.keyboard("{Enter}");
+      } else {
+        await userEvent.click(photo);
+      }
+      await expect(await body.findByRole("dialog", { name: "Photo viewer" })).toBeVisible();
+      await userEvent.keyboard("{Escape}");
+      await expect(body.queryByTestId("image-preview-dialog")).not.toBeInTheDocument();
+      await expect(record).toBeVisible();
+      await waitFor(() => expect(photo).toHaveFocus());
+    }
+    for (const shift of [false, true]) {
+      for (let step = 0; step < 8; step += 1) {
+        await userEvent.tab({ shift });
+        await expect(record.contains(canvasElement.ownerDocument.activeElement)).toBe(true);
+      }
+    }
+  },
+};
 
 export const Portuguese: Story = {
   render: (args) => (

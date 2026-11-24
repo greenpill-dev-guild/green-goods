@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { commitmentNeedsSeat, selectCommitmentActKind } from "../modules/commitment-pooling/acts";
+import type { DueClock } from "../modules/commitment-pooling/due-dates";
 import type { CommitmentDerivedState } from "../modules/commitment-pooling/types";
 
 const base = { derivedState: "ACTIVE" as CommitmentDerivedState, claimMode: "OPEN" as const };
+/** A clock read before any promise falls due. */
+const EPOCH: DueClock = { now: 0n, cycleEndTimes: new Map() };
 
 describe("one act table for every surface", () => {
   it("marks the provider as needed while their proof is waiting to be sent", () => {
@@ -113,11 +116,21 @@ describe("one act table for every surface", () => {
       claimMode: "APPROVAL_GATED" as const,
     };
     expect(
-      selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember: true })
+      selectCommitmentActKind({
+        commitment: offered,
+        seat: "bystander",
+        isMember: true,
+        clock: EPOCH,
+      })
     ).toBe("takeUp");
-    expect(selectCommitmentActKind({ commitment: gated, seat: "bystander", isMember: true })).toBe(
-      "askToTakeUp"
-    );
+    expect(
+      selectCommitmentActKind({
+        commitment: gated,
+        seat: "bystander",
+        isMember: true,
+        clock: EPOCH,
+      })
+    ).toBe("askToTakeUp");
     for (const isMember of [false, undefined]) {
       expect(
         selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember })
@@ -135,6 +148,35 @@ describe("one act table for every surface", () => {
         isCreator: true,
       })
     ).toBe("withdraw");
+  });
+
+  it("offers no take-up past the due date on the chain's clock, and still offers withdrawal", () => {
+    const now = 1_800_000_000n;
+    const asked = { ...base, derivedState: "REQUESTED" as CommitmentDerivedState };
+    const act = (dueDate: bigint, seat: "bystander" | "confirmer" = "bystander") =>
+      selectCommitmentActKind({
+        commitment: { ...asked, dueDate },
+        seat,
+        isMember: true,
+        isCreator: seat === "confirmer",
+        clock: { now, cycleEndTimes: new Map() },
+      });
+    // Without a due date of its own, the chain reads the end of its season.
+    const inSeason = (seasonEnd: bigint) =>
+      selectCommitmentActKind({
+        commitment: { ...asked, cycleId: 5n },
+        seat: "bystander",
+        isMember: true,
+        clock: { now, cycleEndTimes: new Map([["5", seasonEnd]]) },
+      });
+
+    expect(act(now - 1n)).toBeNull();
+    // The chain lets anyone expire it only after its due second.
+    expect(act(now)).toBe("takeUp");
+    expect(act(now + 6n * 3_600n)).toBe("takeUp");
+    expect(act(now - 1n, "confirmer")).toBe("withdraw");
+    expect(inSeason(now - 1n)).toBeNull();
+    expect(inSeason(now)).toBe("takeUp");
   });
 });
 describe("composing a settled commitment again", () => {

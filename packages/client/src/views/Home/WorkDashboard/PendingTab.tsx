@@ -1,32 +1,23 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import {
-  discardPendingProof,
-  type PendingProof,
-  usePendingProof,
-} from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
+import { usePendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
 import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
 import { useLinkedWorkUIDs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
 import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
 import { useQueuedWorkActions } from "@green-goods/shared/hooks/work/useQueuedWorkActions";
-import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
 import type { WorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
-import { logger } from "@green-goods/shared/modules/app/logger";
 import type { WorkDashboardPendingFilter } from "@green-goods/shared/stores/useUIStore";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
-import { RiErrorWarningLine, RiRefreshLine, RiTaskLine } from "@remixicon/react";
-import React, { useMemo, useState } from "react";
-import { type IntlShape, useIntl } from "react-intl";
-import { DraftCard } from "@/components/Cards";
-import { PendingCard } from "@/components/Cards/Work/PendingCard";
+import { RiErrorWarningLine, RiLoader4Line, RiRefreshLine, RiTaskLine } from "@remixicon/react";
+import React, { useState } from "react";
+import { useIntl } from "react-intl";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
-import { EmptyState, Loader } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import {
   decisionRow,
@@ -35,7 +26,6 @@ import {
   type PendingRowContext,
   proofRow,
   submissionRow,
-  toReviewRow,
 } from "./buildPendingRows";
 import {
   filterPendingRows,
@@ -45,18 +35,20 @@ import {
   readsBehindFilter,
   sortPendingRows,
 } from "./pendingRows";
+import { deleteWorkDraft, discardCopy, discardProof } from "./pendingDiscard";
+import { PendingRowCard } from "./PendingRowCard";
 import type { UploadAction } from "./uploadActions";
-import { WorkListHeader } from "./WorkListTab";
+import { SheetListHeader } from "@/components/Sheets/SheetListHeader";
 
 interface PendingTabProps {
+  /** The active garden's scope (DL-129), which the tab's own drafts and proof follow too. */
+  inScope: (gardens: readonly (string | null | undefined)[]) => boolean;
   /** Your own work still pending: on this phone, or on the record without a review. */
   submissions: Work[];
   isOnThisDevice: (work: Work) => boolean;
-  /** Work in gardens you steward that waits for your review. */
-  toReview: Work[];
   /** Work you reviewed on this phone whose review is still on its way. */
   decisions: Work[];
-  uploads: Pick<WorkUploads, "decisionFor" | "pausedForDataSaver">;
+  uploads: Pick<WorkUploads, "decisionFor" | "pausedForDataSaver" | "statusOf">;
   viewer: Address | null;
   /** The record's reads; the queue's own read is taken here. */
   reads: Record<Exclude<PendingReadName, "queue">, PendingRead>;
@@ -77,7 +69,6 @@ interface PendingTabProps {
 const FILTER_LABELS: Record<WorkDashboardPendingFilter, string> = {
   all: "app.workDashboard.filter.all",
   needs: "app.workDashboard.filter.needs",
-  needsReview: "app.workDashboard.filter.needsReview",
   upload: "app.workDashboard.filter.upload",
   editing: "app.workDashboard.filter.editing",
   checking: "app.workDashboard.filter.checking",
@@ -87,7 +78,6 @@ const FILTER_LABELS: Record<WorkDashboardPendingFilter, string> = {
 const COUNT_LABELS: Record<WorkDashboardPendingFilter, string> = {
   all: "app.workDashboard.pending.itemsPending",
   needs: "app.pending.count.needs",
-  needsReview: "app.pending.count.needsReview",
   upload: "app.pending.count.upload",
   editing: "app.drafts.count",
   checking: "app.pending.count.checking",
@@ -105,15 +95,15 @@ function clientWorkIdOf(work: Work): string | null {
 }
 
 /**
- * Your Work › Pending (D12, D13, D17): one list sorted by what needs you,
- * holding work, reviews and proof that are still on this phone or waiting for
- * a review. The header is the count, Refresh and Upload all, then the filter.
- * Discard is offered only where it's safe and always asks first.
+ * Your Work › Pending (D12, D13, D17, DL-149): one list of the member's own, sorted by what needs
+ * them, holding work, reviews and proof that are still on this phone or waiting for a review. The
+ * header is the count, Refresh and Upload all, then the filter. Discard is offered only where it's
+ * safe and always asks first.
  */
 export const PendingTab: React.FC<PendingTabProps> = ({
+  inScope,
   submissions,
   isOnThisDevice,
-  toReview,
   decisions,
   uploads,
   viewer,
@@ -136,7 +126,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   const queue = useCommitmentQueueState(viewer);
   const { sendsFromTap } = useCommitmentJobs({ chainId });
   const { data: actions = [] } = useActions();
-  const onRecord = [...submissions.filter((work) => !isOnThisDevice(work)), ...toReview];
+  const onRecord = submissions.filter((work) => !isOnThisDevice(work));
   const { linked } = useLinkedWorkUIDs({ chainId, workUIDs: onRecord.map((work) => work.id) });
 
   const context: PendingRowContext = {
@@ -153,13 +143,26 @@ export const PendingTab: React.FC<PendingTabProps> = ({
         (clientWorkId !== null && queue.linkedWorkIds.has(clientWorkId))
       );
     },
+    takeUpStage: (work) => {
+      const state = uploads.statusOf(work.id)?.state;
+      return state === "take-up-failed" ? "failed" : state === "take-up-pending" ? "pending" : null;
+    },
+    linkFailed: (work) => {
+      const clientWorkId = clientWorkIdOf(work);
+      return (
+        queue.failedLinkWorkIds.has(work.id.toLowerCase()) ||
+        (clientWorkId !== null && queue.failedLinkWorkIds.has(clientWorkId))
+      );
+    },
   };
   const rows = sortPendingRows([
     ...submissions.map((work) => submissionRow(work, isOnThisDevice(work), context)),
     ...decisions.map((work) => decisionRow(work, uploads.decisionFor(work.id), context)),
-    ...toReview.map((work) => toReviewRow(work, context)),
-    ...drafts.map(draftRow),
-    ...proofs.items.map((proof) => proofRow(proof, context)),
+    ...drafts.filter((draft) => inScope([draft.gardenAddress])).map(draftRow),
+    // Proof follows the garden saved with it, as the Your Work count does.
+    ...proofs.items
+      .filter((proof) => inScope([proof.savedGarden]))
+      .map((proof) => proofRow(proof, context)),
   ]);
   const shown = filterPendingRows(rows, pendingFilter);
   const options = pendingFilterOptions(rows, pendingFilter);
@@ -236,7 +239,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
 
   return (
     <div className="flex min-h-full flex-col">
-      <WorkListHeader
+      <SheetListHeader
         statusText={statusText}
         onRefresh={showRefresh ? refresh : undefined}
         isFetching={isFetching}
@@ -281,18 +284,19 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             </NativeSelect>
           </div>
         )}
-      </WorkListHeader>
+      </SheetListHeader>
 
       {isLoading ? (
-        <div className="flex flex-1 flex-col items-center justify-center pb-32">
-          <Loader />
-          <p className="mt-4 text-sm text-text-soft-400">
-            {intl.formatMessage({
-              id: "app.workDashboard.loading",
-              defaultMessage: "Loading your work...",
-            })}
-          </p>
-        </div>
+        <EmptyState
+          busy
+          className="flex-1"
+          placement="sheet"
+          icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+          title={intl.formatMessage({
+            id: "app.workDashboard.loading",
+            defaultMessage: "Loading your work...",
+          })}
+        />
       ) : failed ? (
         <EmptyState
           className="flex-1"
@@ -329,7 +333,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
           description={intl.formatMessage({ id: "app.workDashboard.pending.description" })}
         />
       ) : (
-        <ul className="flex flex-col gap-3 px-4 pb-6" data-testid="pending-list">
+        <ul className="flex flex-col gap-(--gg-list-gap) px-4 pb-6" data-testid="pending-list">
           {shown.map((row) => (
             <li key={row.id} className="cv-draft-card">
               <PendingRowCard
@@ -360,139 +364,3 @@ export const PendingTab: React.FC<PendingTabProps> = ({
     </div>
   );
 };
-
-/** One row: work, a review, a draft or proof, each in the pending card. */
-function PendingRowCard({
-  row,
-  actionTitle,
-  onOpen,
-  onDiscard,
-}: {
-  row: PendingRow;
-  actionTitle?: string;
-  onOpen: () => void;
-  onDiscard?: () => void;
-}) {
-  const intl = useIntl();
-  if (row.type === "draft") {
-    return (
-      <DraftCard
-        draft={row.draft}
-        actionTitle={actionTitle}
-        onResume={onOpen}
-        onDelete={() => onDiscard?.()}
-      />
-    );
-  }
-  if (row.type === "proof") return <ProofCard row={row} onOpen={onOpen} onDiscard={onDiscard} />;
-  return (
-    <PendingCard
-      {...row.card}
-      thumbnailUrl={row.work.media[0] ?? null}
-      onOpen={onOpen}
-      onDiscard={onDiscard}
-      discardLabel={intl.formatMessage(
-        { id: "app.pending.discardLabel" },
-        { title: row.card.title }
-      )}
-    />
-  );
-}
-
-/** Queued proof shows its first photo, read from the queue. */
-function ProofCard({
-  row,
-  onOpen,
-  onDiscard,
-}: {
-  row: Extract<PendingRow, { type: "proof" }>;
-  onOpen: () => void;
-  onDiscard?: () => void;
-}) {
-  const intl = useIntl();
-  // The preview hook keys its URLs by the array it's handed, so it must stay the same array.
-  const { firstPhoto } = row.proof;
-  const photos = useMemo(() => (firstPhoto ? [firstPhoto] : []), [firstPhoto]);
-  const [thumbnailUrl] = useWorkPreviewUrls(photos);
-  return (
-    <PendingCard
-      {...row.card}
-      thumbnailUrl={thumbnailUrl ?? null}
-      onOpen={row.proof.garden ? onOpen : undefined}
-      onDiscard={onDiscard}
-      discardLabel={intl.formatMessage(
-        { id: "app.pending.discardLabel" },
-        { title: row.card.title }
-      )}
-    />
-  );
-}
-
-function discardCopy(intl: IntlShape, row: PendingRow | null) {
-  const text = (id: string) => intl.formatMessage({ id });
-  if (row?.type === "draft")
-    return {
-      title: text("app.drafts.delete.title"),
-      description: text("app.drafts.delete.description"),
-      confirmLabel: text("app.drafts.delete.confirm"),
-      cancelLabel: text("app.drafts.delete.cancel"),
-    };
-  return {
-    title: text(
-      row?.type === "proof" ? "app.pending.proofDiscard.title" : "app.uploads.discardConfirmTitle"
-    ),
-    description: text(
-      row?.type === "proof"
-        ? "app.pending.proofDiscard.description"
-        : "app.uploads.discardConfirmDescription"
-    ),
-    confirmLabel: text("app.uploads.discard"),
-    cancelLabel: text("app.uploads.keep"),
-  };
-}
-
-async function deleteWorkDraft(
-  intl: IntlShape,
-  deleteDraft: (draftId: string) => Promise<unknown>,
-  draftId: string
-) {
-  try {
-    await deleteDraft(draftId);
-  } catch (error) {
-    logger.error("[PendingTab] Failed to delete draft", { error });
-    toastService.error({
-      title: intl.formatMessage({ id: "app.drafts.delete.error" }),
-      message: intl.formatMessage({ id: "app.drafts.delete.errorMessage" }),
-      context: "drafts",
-    });
-  }
-}
-
-/** The queue refuses a proof that may already be on its way; that is said, not logged as a fault. */
-async function discardProof(intl: IntlShape, proof: PendingProof) {
-  const toast = { id: "pending-proof-discard", context: "pending proof" } as const;
-  try {
-    const discarded = await discardPendingProof(proof);
-    if (discarded) {
-      toastService.success({
-        ...toast,
-        title: intl.formatMessage({ id: "app.pending.proofDiscarded.title" }),
-        message: intl.formatMessage({ id: "app.uploads.discardedMessage" }),
-      });
-      return;
-    }
-    toastService.error({
-      ...toast,
-      title: intl.formatMessage({ id: "app.pending.proofDiscardFailed.title" }),
-      message: intl.formatMessage({ id: "app.pending.proofDiscardRefused.message" }),
-    });
-  } catch (error) {
-    logger.error("[PendingTab] Could not discard the proof", { error, proofId: proof.id });
-    toastService.error({
-      ...toast,
-      title: intl.formatMessage({ id: "app.pending.proofDiscardFailed.title" }),
-      message: intl.formatMessage({ id: "app.pending.proofDiscardFailed.message" }),
-      error,
-    });
-  }
-}

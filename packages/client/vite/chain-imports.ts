@@ -1,4 +1,4 @@
-import { transformAsync, types, type PluginObj } from "@babel/core";
+import { transformAsync, types, type PluginObject } from "@babel/core";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import type { Plugin } from "vite";
@@ -33,7 +33,7 @@ export function createChainImportsPlugin(): Plugin {
         sourceMaps: true,
         parserOpts: { plugins: ["typescript", "jsx"] },
         plugins: [
-          (): PluginObj => ({
+          (): PluginObject => ({
             visitor: {
               ImportDeclaration(path) {
                 if (path.node.source.value !== "viem/chains" || path.node.importKind === "type")
@@ -63,7 +63,9 @@ export function createChainImportsPlugin(): Plugin {
           }),
         ],
       });
-      if (result?.code) return { code: result.code, map: result.map };
+      if (result?.code) {
+        return { code: result.code, map: result.map ? JSON.stringify(result.map) : null };
+      }
     },
   };
 }

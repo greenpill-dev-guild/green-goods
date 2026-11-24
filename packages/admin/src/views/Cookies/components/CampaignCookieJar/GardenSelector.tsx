@@ -1,8 +1,8 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
@@ -31,7 +31,7 @@ function GardenSelectorCheckbox({
       label={garden.name}
       description={formatMessage(
         {
-          id: "cockpit.community.cookies.stewardCount",
+          id: "hub.community.cookies.stewardCount",
           defaultMessage: "{count, plural, one {# steward} other {# stewards}} · {address}",
         },
         { count: garden.stewards.length, address: addressLabel }
@@ -78,64 +78,62 @@ export function GardenSelector({
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <AdminTextField
-          id="campaign-cookie-jar-garden-search"
-          className="min-w-0"
-          label={formatMessage({
-            id: "cockpit.community.cookies.searchGardens",
-            defaultMessage: "Search gardens",
-          })}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={formatMessage({
-            id: "cockpit.community.cookies.searchGardensPlaceholder",
-            defaultMessage: "Search by name, slug, or address",
-          })}
-        />
-        {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
-        <div className="flex flex-wrap gap-2 md:mb-5">
-          <AdminButton
+      <AdminTextField
+        id="campaign-cookie-jar-garden-search"
+        label={formatMessage({
+          id: "hub.community.cookies.searchGardens",
+          defaultMessage: "Search gardens",
+        })}
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder={formatMessage({
+          id: "hub.community.cookies.searchGardensPlaceholder",
+          defaultMessage: "Search by name, slug, or address",
+        })}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="type-meta text-text-sub">
+          {formatMessage(
+            {
+              id: "hub.community.cookies.gardenSelectorSummary",
+              defaultMessage:
+                "{selected, plural, one {# selected garden} other {# selected gardens}} - {visible, plural, one {# visible garden} other {# visible gardens}}",
+            },
+            { selected: selectedGardenIds.length, visible: filteredGardens.length }
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => onSelectMany?.(filteredGardens.map((garden) => garden.id))}
             disabled={!onSelectMany || filteredGardens.length === 0 || allVisibleSelected}
           >
             {formatMessage({
-              id: "cockpit.community.cookies.selectVisibleGardens",
+              id: "hub.community.cookies.selectVisibleGardens",
               defaultMessage: "Select Visible",
             })}
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             onClick={onClear}
             disabled={!onClear || selectedGardenIds.length === 0}
           >
             {formatMessage({
-              id: "cockpit.community.cookies.clearGardens",
+              id: "hub.community.cookies.clearGardens",
               defaultMessage: "Clear",
             })}
-          </AdminButton>
+          </Button>
         </div>
       </div>
-      <p className="text-body-sm text-text-sub">
-        {formatMessage(
-          {
-            id: "cockpit.community.cookies.gardenSelectorSummary",
-            defaultMessage:
-              "{selected, plural, one {# selected garden} other {# selected gardens}} - {visible, plural, one {# visible garden} other {# visible gardens}}",
-          },
-          { selected: selectedGardenIds.length, visible: filteredGardens.length }
-        )}
-      </p>
       <div className={`rounded-[var(--m3-shape-md)] border border-stroke-soft ${listClassName}`}>
         {visibleGardens.length === 0 ? (
-          <p className="p-4 text-body-sm text-text-sub">
+          <p className="p-4 type-meta text-text-sub">
             {formatMessage({
-              id: "cockpit.community.cookies.noGardenMatches",
+              id: "hub.community.cookies.noGardenMatches",
               defaultMessage: "No gardens match that search.",
             })}
           </p>

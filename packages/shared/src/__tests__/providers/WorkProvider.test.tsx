@@ -13,6 +13,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
+import type { Address } from "../../types/domain";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
@@ -106,6 +107,7 @@ vi.mock("../../utils/debug", () => ({
 // Imports after mocks
 // ============================================
 
+import { QueryClientProvider } from "@tanstack/react-query";
 import { validationToasts } from "../../components/toast";
 import { validateWorkSubmissionContext } from "../../modules/work/work-submission";
 import { useWork, WorkProvider } from "../../providers/Work";
@@ -115,21 +117,28 @@ import {
   createMockUserContext,
   MOCK_ADDRESSES,
 } from "../test-utils/mock-factories";
+import { createTestQueryClient } from "../test-utils/query-client";
 
 // ============================================
 // Test Utilities
 // ============================================
 
 /**
- * Creates a wrapper that nests IntlProvider > WorkProvider
+ * Creates a wrapper that nests QueryClientProvider > IntlProvider > WorkProvider, as the app
+ * does: the account's gardens ask the chain about gardens it asked to join (`useMyGardens`).
  * This is the correct wrapper for testing useWork()
  */
 const createFullWrapper = () => {
+  const queryClient = createTestQueryClient();
   return ({ children }: { children: ReactNode }) =>
     createElement(
-      IntlProvider,
-      { locale: "en", messages: {} },
-      createElement(WorkProvider, null, children)
+      QueryClientProvider,
+      { client: queryClient },
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: {} },
+        createElement(WorkProvider, null, children)
+      )
     );
 };
 
@@ -350,7 +359,7 @@ describe("providers/WorkProvider", () => {
       // Garden with uppercase gardener address
       const garden = createMockGarden({
         id: "mixed-case-garden",
-        gardeners: [userAddress.toUpperCase()],
+        gardeners: [userAddress.toUpperCase() as Address],
         stewards: [],
       });
 

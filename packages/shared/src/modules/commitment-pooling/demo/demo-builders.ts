@@ -140,7 +140,7 @@ export type CommitmentSeed = Partial<CommitmentReadModel> &
 
 export function commitment(seed: CommitmentSeed): CommitmentReadModel {
   const state = seed.onchainState;
-  return {
+  const record: CommitmentReadModel = {
     id: `${DEMO_CHAIN_ID}-${seed.commitmentId.toString()}`,
     chainId: DEMO_CHAIN_ID,
     creationSeen: true,
@@ -174,6 +174,13 @@ export function commitment(seed: CommitmentSeed): CommitmentReadModel {
     contributorsFrozen: false,
     metadataCID: `bafy-demo-c${seed.commitmentId.toString()}`,
     ...seed,
+  };
+  if ("acceptanceAt" in seed) return record;
+  // The indexer writes the taker and the time it took a promise up together. Each demo record
+  // gets its own hour within the three days before NOW, so the world reads the same every time.
+  return {
+    ...record,
+    acceptanceAt: record.counterparty ? NOW - 3_600 * (1 + Number(seed.commitmentId % 72n)) : null,
   };
 }
 

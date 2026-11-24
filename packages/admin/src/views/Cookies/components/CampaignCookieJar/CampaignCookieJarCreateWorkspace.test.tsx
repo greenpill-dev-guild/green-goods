@@ -48,7 +48,7 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarFactoryAddress", () =>
   }),
 }));
 vi.mock("@green-goods/shared/hooks/gardener/useRole", () => ({
-  useRole: () => ({ isDeployer: true, loading: false }),
+  useRole: () => ({ isProtocolTeam: true, loading: false }),
 }));
 // The route blocker needs a data router; closing is not what these cases test.
 vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({

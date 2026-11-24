@@ -71,6 +71,25 @@ function isCanonicalArchiveMove(entry) {
   );
 }
 
+/**
+ * A hub promoted between live stages (ideas, backlog, active) carries its reports with it. The move
+ * keeps each report byte for byte, in the same hub under the same name, so it is not an edit.
+ */
+function isCanonicalStageMove(entry) {
+  if (entry.status !== "R" || entry.similarity !== 100 || !entry.oldPath || !entry.path) {
+    return false;
+  }
+  const source = liveReportPattern.exec(entry.oldPath);
+  const destination = liveReportPattern.exec(entry.path);
+  return Boolean(
+    source &&
+      destination &&
+      source[1] !== destination[1] &&
+      source[2] === destination[2] &&
+      source[3] === destination[3],
+  );
+}
+
 const hubPrefixPattern = /^(\.plans\/[^/]+\/[^/]+)\//;
 
 function hubOfStatusDeletion(entryPath) {
@@ -92,7 +111,7 @@ export function immutableReportViolations(entries) {
   for (const entry of entries) {
     if (entry.status === "A" || entry.status === "C") continue;
     const historicalPath = entry.oldPath ?? entry.path;
-    if (isCanonicalArchiveMove(entry)) continue;
+    if (isCanonicalArchiveMove(entry) || isCanonicalStageMove(entry)) continue;
     if (entry.status === "D") {
       const hubOfEntry = hubPrefixPattern.exec(historicalPath);
       if (hubOfEntry && retiredHubs.has(hubOfEntry[1])) continue;

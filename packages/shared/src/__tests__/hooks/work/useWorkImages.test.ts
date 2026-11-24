@@ -72,12 +72,6 @@ describe("useWorkImages", () => {
 
       expect(result.current.images).toEqual([]);
     });
-
-    it("provides a setImages function", () => {
-      const { result } = renderHook(() => useWorkImages());
-
-      expect(typeof result.current.setImages).toBe("function");
-    });
   });
 
   it("does not read or write the retired unscoped image store", () => {

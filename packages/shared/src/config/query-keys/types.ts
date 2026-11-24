@@ -68,6 +68,7 @@ export type QueryKey =
   | typeof queryKeys.profileAvatars.all
   | ReturnType<typeof queryKeys.profileAvatars.record>
   | ReturnType<typeof queryKeys.ens.name>
+  | ReturnType<typeof queryKeys.ens.passkeyName>
   | ReturnType<typeof queryKeys.ens.address>
   | ReturnType<typeof queryKeys.ens.avatar>
   | ReturnType<typeof queryKeys.ens.registrationStatus>

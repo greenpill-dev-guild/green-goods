@@ -4,6 +4,16 @@ import { VaultActionRouteDialog } from "@/views/Community/components/VaultAction
 
 const GARDEN = "0x2222222222222222222222222222222222222222";
 const mocks = vi.hoisted(() => ({ vaults: vi.fn(), navigate: vi.fn(), refetch: vi.fn() }));
+// The dialog's in-flight route hold needs a data router; CommunitySheetDescriptor.test proves it.
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
+  useDirtyClose: () => ({
+    onOpenChange: () => undefined,
+    confirmOpen: false,
+    cancelClose: () => undefined,
+    confirmClose: () => undefined,
+  }),
+}));
+
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({ data: [], isLoading: false }),
 }));
@@ -24,6 +34,11 @@ vi.mock("@/components/Vault", () => ({
   WithdrawModal: ({ gardenAddress }: { gardenAddress: string }) => (
     <div>Withdraw for {gardenAddress}</div>
   ),
+}));
+
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
 }));
 
 describe("VaultActionRouteDialog address rejection and recovery", () => {

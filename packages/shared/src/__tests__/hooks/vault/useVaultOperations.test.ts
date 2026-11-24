@@ -8,6 +8,7 @@ import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 // Mock matchMedia before any module imports that touch theme system
 Object.defineProperty(window, "matchMedia", {
@@ -42,6 +43,7 @@ const toastService = {
   dismiss: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
+  info: vi.fn(),
 };
 
 const mockUser: { authMode: string; smartAccountClient: unknown; primaryAddress: string } = {
@@ -62,7 +64,8 @@ vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mockTransactionSender,
 }));
 
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   readContract: (...args: unknown[]) => mockReadContract(...args),
   waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
 }));
@@ -98,6 +101,13 @@ function trackedQueryClient() {
 }
 
 const operationsModule = await import("../../../hooks/vault/useVaultOperations");
+const { isUnconfirmedTxError, mayStillLand } = await import(
+  "../../../utils/errors/tx-error-classifier"
+);
+const { parseContractError } = await import("../../../utils/errors/contract-errors");
+const { useTxErrorMessages } = await import("../../../hooks/utils/useTxErrorMessages");
+const { ReceiptWaitLimitError, TransactionConfirmationPendingError, TransactionRevertedError } =
+  await import("../../../modules/transactions/types");
 const {
   useVaultDeposit,
   useOctantVaultWalletEndow,
@@ -107,6 +117,11 @@ const {
   useEmergencyPause,
   useEnableAutoAllocate,
 } = operationsModule;
+
+vi.mock("../../../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
+}));
 
 describe("hooks/vault/useVaultOperations", () => {
   beforeEach(() => {
@@ -183,6 +198,134 @@ describe("hooks/vault/useVaultOperations", () => {
     );
     expect(invalidateSpy).toHaveBeenCalled();
   }, 20_000);
+
+  describe("a deposit nobody can confirm", () => {
+    const deposit = {
+      gardenAddress: TEST_GARDEN as `0x${string}`,
+      assetAddress: TEST_ASSET as `0x${string}`,
+      vaultAddress: TEST_VAULT as `0x${string}`,
+      amount: 10n,
+    };
+    const PENDING = { hash: `0x${"a".repeat(64)}`, sponsored: false, confirmation: "pending" };
+    const allowanceCovers = () =>
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // preview
+        .mockResolvedValueOnce(10n) // allowance
+        .mockResolvedValueOnce(10n); // preview again
+
+    it.each([
+      ["comes back with no receipt", () => mockSendContractCall.mockResolvedValueOnce(PENDING)],
+      [
+        "runs out of time waiting for one",
+        () =>
+          mockSendContractCall.mockRejectedValueOnce(
+            Object.assign(new Error("Timed out"), { name: "WaitForTransactionReceiptTimeoutError" })
+          ),
+      ],
+    ])("reads neither done nor failed when it %s", async (_case, arrange) => {
+      allowanceCovers();
+      arrange();
+      const queryClient = trackedQueryClient();
+      const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+      const { result } = renderHookWithProviders(() => useVaultDeposit(), { queryClient });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
+      });
+
+      expect(toastService.success).not.toHaveBeenCalled();
+      expect(toastService.error).not.toHaveBeenCalled();
+      expect(mockErrorHandler).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledOnce();
+      // It may have landed, so what the forms read straight from the chain is worth reading again.
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["balance"] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["readContract"] });
+    });
+
+    it("records a deposit that may still land as confirming, a withdraw as confirmed (PRD-1553)", async () => {
+      const captured: Array<[string, Record<string, unknown>]> = [];
+      const unregister = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event.startsWith("send_act_")) captured.push([event, properties]);
+        },
+      });
+      try {
+        allowanceCovers();
+        mockSendContractCall.mockRejectedValueOnce(
+          Object.assign(new Error("Timed out"), { name: "WaitForTransactionReceiptTimeoutError" })
+        );
+        const deposits = renderHookWithProviders(() => useVaultDeposit(), {
+          queryClient: trackedQueryClient(),
+        });
+        await act(async () => {
+          await expect(deposits.result.current.mutateAsync(deposit)).rejects.toSatisfy(
+            isUnconfirmedTxError
+          );
+        });
+        mockReadContract.mockResolvedValueOnce(100n); // maxWithdraw
+        const withdrawals = renderHookWithProviders(() => useVaultWithdraw(), {
+          queryClient: trackedQueryClient(),
+        });
+        await act(async () => {
+          await withdrawals.result.current.mutateAsync({ ...deposit, amount: 5n });
+        });
+
+        expect(captured.map(([event, { act, outcome }]) => [event, act, outcome])).toEqual([
+          ["send_act_started", "vault_deposit", undefined],
+          ["send_act_ended", "vault_deposit", "confirming"],
+          ["send_act_started", "vault_withdraw", undefined],
+          ["send_act_ended", "vault_withdraw", "confirmed"],
+        ]);
+        const sent = JSON.stringify(captured).toLowerCase();
+        for (const address of [TEST_PRIMARY_ADDRESS, TEST_GARDEN, TEST_ASSET, TEST_VAULT])
+          expect(sent).not.toContain(address);
+      } finally {
+        unregister();
+      }
+    });
+
+    it("stops before the deposit when an approval has no receipt", async () => {
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // preview
+        .mockResolvedValueOnce(0n); // allowance
+      mockSendContractCall.mockResolvedValueOnce(PENDING);
+      const { result } = renderHookWithProviders(() => useVaultDeposit(), {
+        queryClient: trackedQueryClient(),
+      });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
+      });
+
+      expect(mockSendContractCall).toHaveBeenCalledOnce();
+      expect(toastService.error).not.toHaveBeenCalled();
+    });
+
+    it("gives a form the wording, not a raw error", () => {
+      const { result } = renderHookWithProviders(() =>
+        useTxErrorMessages(new TransactionConfirmationPendingError())
+      );
+
+      expect(result.current.view.severity).toBe("warning");
+      expect(result.current.message).toMatch(/could still go through/);
+    });
+
+    it("leaves the message to the form when errors show inline", async () => {
+      allowanceCovers();
+      mockSendContractCall.mockResolvedValueOnce(PENDING);
+      const { result } = renderHookWithProviders(() => useVaultDeposit({ errorMode: "inline" }), {
+        queryClient: trackedQueryClient(),
+      });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
+      });
+
+      expect(toastService.info).not.toHaveBeenCalled();
+    });
+  });
 
   it("skips approve when allowance is already sufficient", async () => {
     // Read sequence (no minSharesOut -> early slippage check skipped):
@@ -519,6 +662,185 @@ describe("hooks/vault/useVaultOperations", () => {
     });
 
     expect(lifecycleSteps).toEqual(["error"]);
+  });
+
+  const sentHash = `0x${"de".repeat(32)}` as const;
+  it.each([
+    [
+      "past its receipt limit, naming no transaction",
+      new ReceiptWaitLimitError(120_000),
+      { rejects: true },
+    ],
+    [
+      "past its receipt limit",
+      new ReceiptWaitLimitError(120_000, { hash: sentHash }),
+      { resolves: sentHash },
+    ],
+    [
+      "proposed to a Safe",
+      { hash: sentHash, sponsored: false, confirmation: "pending", awaiting: "safe-signers" },
+      { resolves: null },
+    ],
+  ])("records an Endow deposit %s as confirming, not failed (PRD-1553)", async (_case, answer, settles) => {
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // balanceOf
+        .mockResolvedValueOnce(10n) // preApprovalPreview
+        .mockResolvedValueOnce(10n) // allowance (enough, so no approval)
+        .mockResolvedValueOnce(10n); // post-approval previewDeposit
+      if (answer instanceof Error) mockSendContractCall.mockRejectedValueOnce(answer);
+      else mockSendContractCall.mockResolvedValueOnce(answer);
+      const { result } = renderHookWithProviders(
+        () => useOctantVaultWalletEndow({ errorMode: "inline" }),
+        { queryClient: trackedQueryClient() }
+      );
+
+      let settled: { resolved: unknown } | { rejected: unknown } | undefined;
+      await act(async () => {
+        // A deposit naming no transaction still rejects; the others settle as submitted.
+        settled = await result.current
+          .mutateAsync({
+            intentKind: "wallet_endow",
+            paymentMethod: "wallet",
+            chainId: TEST_OCTANT_CHAIN_ID,
+            vaultAddress: TEST_VAULT as `0x${string}`,
+            assetAddress: TEST_ASSET as `0x${string}`,
+            assetSymbol: "WETH",
+            assetDecimals: 18,
+            amount: 10n,
+            receiver: {
+              intentKind: "wallet_endow",
+              paymentMethod: "wallet",
+              receiverKind: "connected_wallet",
+              receiverCustody: "connected_wallet",
+              receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+            },
+          })
+          .then(
+            (resolved) => ({ resolved }),
+            (rejected: unknown) => ({ rejected })
+          );
+      });
+
+      // How each case settles is the contract checkout reads (PRD-1570).
+      if ("rejects" in settles) expect(settled).toHaveProperty("rejected");
+      else expect(settled).toEqual({ resolved: settles.resolves });
+      expect(endings).toEqual(["confirming"]);
+    } finally {
+      unregister();
+    }
+  });
+
+  const endowIntent = () =>
+    ({
+      intentKind: "wallet_endow",
+      paymentMethod: "wallet",
+      chainId: TEST_OCTANT_CHAIN_ID,
+      vaultAddress: TEST_VAULT as `0x${string}`,
+      assetAddress: TEST_ASSET as `0x${string}`,
+      assetSymbol: "WETH",
+      assetDecimals: 18,
+      amount: 10n,
+      receiver: {
+        intentKind: "wallet_endow",
+        paymentMethod: "wallet",
+        receiverKind: "connected_wallet",
+        receiverCustody: "connected_wallet",
+        receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+      },
+    }) as const;
+
+  /** Runs an Endow whose approval ends as `approval` does, in one error mode. */
+  async function endowWithApproval(
+    errorMode: "inline" | "auto",
+    approval: { resolves: unknown } | { rejects: unknown }
+  ) {
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // balanceOf
+        .mockResolvedValueOnce(10n) // preApprovalPreview
+        .mockResolvedValueOnce(0n); // allowance (none, so it approves)
+      if ("resolves" in approval) mockSendContractCall.mockResolvedValueOnce(approval.resolves);
+      else mockSendContractCall.mockRejectedValueOnce(approval.rejects);
+      const { result } = renderHookWithProviders(() => useOctantVaultWalletEndow({ errorMode }), {
+        queryClient: trackedQueryClient(),
+      });
+      let thrown: unknown;
+      await act(async () => {
+        thrown = await result.current.mutateAsync(endowIntent()).catch((error: unknown) => error);
+      });
+      return { thrown, endings };
+    } finally {
+      unregister();
+    }
+  }
+
+  it.each([
+    [
+      "a Safe only proposed",
+      {
+        resolves: {
+          hash: sentHash,
+          sponsored: false,
+          confirmation: "pending",
+          awaiting: "safe-signers",
+        },
+      },
+      "SafeProposalPending",
+    ],
+    [
+      "past its receipt limit",
+      { rejects: new ReceiptWaitLimitError(120_000, { hash: sentHash }) },
+      "SendStillConfirming",
+    ],
+  ] as const)("says an Endow approval %s may still land, in both error modes, and ends confirming (PRD-1570)", async (_case, approval, parsedName) => {
+    for (const errorMode of ["inline", "auto"] as const) {
+      vi.clearAllMocks();
+      const { thrown, endings } = await endowWithApproval(errorMode, approval);
+
+      // The stage error keeps the send as its cause, so it reads as one that may still land.
+      expect(thrown).toMatchObject({ name: "VaultDepositStageError", stage: "approval" });
+      expect(mayStillLand(thrown)).toBe(true);
+      // A Safe proposal says the Safe's owners hold it, even through the stage error.
+      expect(parseContractError(thrown).name).toBe(parsedName);
+      expect(endings).toEqual(["confirming"]);
+      // Neither mode shows "Approval failed"; the handler says it may still land.
+      expect(toastService.error).not.toHaveBeenCalled();
+      expect(mockErrorHandler).toHaveBeenCalledWith(
+        thrown,
+        expect.objectContaining({ showToast: true })
+      );
+      // The deposit waits for an allowance that is not there yet.
+      expect(mockSendContractCall).toHaveBeenCalledOnce();
+    }
+  });
+
+  it("keeps the failure message for an Endow approval that reverted (PRD-1570)", async () => {
+    const { thrown, endings } = await endowWithApproval("auto", {
+      rejects: new TransactionRevertedError(sentHash),
+    });
+
+    expect(mayStillLand(thrown)).toBe(false);
+    expect(endings).toEqual(["failed"]);
+    expect(toastService.error).toHaveBeenCalledOnce();
+    expect(mockErrorHandler).toHaveBeenCalledWith(
+      thrown,
+      expect.objectContaining({ showToast: false })
+    );
   });
 
   it("wraps ETH into canonical mainnet WETH before the existing vault deposit path", async () => {

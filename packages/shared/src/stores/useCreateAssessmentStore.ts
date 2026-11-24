@@ -6,7 +6,7 @@ import {
   assessmentStepFields,
   createAssessmentFormSchema,
   createDefaultAssessmentForm,
-} from "../hooks/assessment/useCreateAssessmentForm";
+} from "../modules/assessment/create-form";
 import { CynefinPhase, Domain, type SmartOutcome } from "../types/domain";
 import {
   addSmartOutcomeTransition,

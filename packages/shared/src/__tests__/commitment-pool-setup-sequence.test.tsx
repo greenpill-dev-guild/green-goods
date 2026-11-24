@@ -8,7 +8,7 @@
  * write that never went out is the only one sent again.
  */
 
-import { act } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommitmentPoolSetupSequence } from "../hooks/commitment-pooling/useCommitmentPoolSetupSequence";
 import {
@@ -18,11 +18,13 @@ import {
   openSeasonSteps,
   type PoolChainReader,
   type PoolSetupStep,
+  poolSetupBudget,
   settingsSteps,
   walletPrompts,
 } from "../modules/commitment-pooling/pool-setup";
 import { createTestQueryClient } from "./test-utils/query-client";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
+import { registerTelemetrySink } from "../modules/app/telemetry-sink";
 
 const POOL_ID = 7n;
 
@@ -403,6 +405,55 @@ describe("useCommitmentPoolSetupSequence", () => {
     expect(alreadyOpen.result.current.state.landed).toEqual(["openPool", "openCycle"]);
   });
 
+  it("records each run as one act, a seed whose outcome it never learned as confirming (PRD-1553)", async () => {
+    const captured: Array<[string, Record<string, unknown>]> = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event.startsWith("send_act_")) captured.push([event, properties]);
+      },
+    });
+    try {
+      const seeded = fakeChain({
+        poolState: POOL.READY,
+        cycles: { "12": { state: CYCLE.SEEDED } },
+      });
+      mocks.sender.sendContractCall.mockImplementation(async (call) => seeded.apply(call));
+      const season = renderSequence(seeded.reader);
+      await act(async () => {
+        await season.result.current.run(
+          openSeasonSteps({
+            poolId: POOL_ID,
+            cycleId: 12n,
+            allocation: MODEL_ONE,
+            recognitionPolicy: RECOGNITION,
+          })
+        );
+      });
+      const campaign = fakeChain({ poolState: POOL.OPEN, cycles: { "12": { state: CYCLE.OPEN } } });
+      mocks.sender.sendContractCall.mockImplementation(async (call) => {
+        if (call.functionName !== "seedCycle") return campaign.apply(call);
+        campaign.apply(call);
+        throw new Error("Timed out waiting for the receipt");
+      });
+      const seeding = renderSequence(campaign.reader);
+      await act(async () => {
+        await seeding.result.current.run(CAMPAIGN_PLAN);
+      });
+
+      expect(
+        captured.map(([event, { act, operation, outcome }]) => [event, act, operation, outcome])
+      ).toEqual([
+        ["send_act_started", "pool_setup", "openPool,openCycle", undefined],
+        ["send_act_ended", "pool_setup", "openPool,openCycle", "confirmed"],
+        ["send_act_started", "pool_setup", "seedCycle,openCycle", undefined],
+        ["send_act_ended", "pool_setup", "seedCycle,openCycle", "confirming"],
+      ]);
+      expect(JSON.stringify(captured)).not.toContain("bafy-campaign");
+    } finally {
+      unregister();
+    }
+  });
+
   it("refuses an open cycle whose stored terms are not the ones this run planned", async () => {
     // Another steward opened the same seeded season on a different split while
     // this flow was up. Both snapshots are fixed at open, so reading OPEN is
@@ -746,8 +797,23 @@ describe("useCommitmentPoolSetupSequence", () => {
   });
 });
 
+describe("poolSetupBudget", () => {
+  it("has ceilings only where they were sized, enough for every write before an opening", () => {
+    expect(poolSetupBudget(42161)).toMatchObject({ sponsorship: "required" });
+    expect(poolSetupBudget(42161)?.maxCalls).toBeGreaterThanOrEqual(FIRST_RUN.length - 1);
+    expect(poolSetupBudget(10)).toBeNull();
+  });
+});
+
 describe("walletPrompts", () => {
   const FIRST_RUN_ACTIONS = FIRST_RUN.map((step) => step.action);
+
+  it("lets an opening share the prompt once its cycle is known", () => {
+    expect(walletPrompts(["openPool", "openCycle"], true, true)).toEqual([1, 1]);
+    expect(walletPrompts(["openPool", "openCycle"], false, true)).toEqual([1, 2]);
+    expect(walletPrompts(["openCycle"], true, true)).toEqual([1]);
+    expect(walletPrompts(["openPool", "openCycle"], true)).toEqual([1, 2]);
+  });
 
   it("gives every write its own prompt when the wallet cannot batch", () => {
     expect(walletPrompts(FIRST_RUN_ACTIONS, false)).toEqual([1, 2, 3, 4, 5, 6]);
@@ -825,13 +891,16 @@ describe("useCommitmentPoolSetupSequence with a wallet that batches", () => {
     };
   }
 
+  const startingAuthMode = mocks.sender.authMode;
   beforeEach(() => {
     vi.clearAllMocks();
     batchSender.canSendAtomicBatch = vi.fn(async () => true);
+    Object.assign(mocks.sender, { authMode: "wallet" });
   });
   afterEach(() => {
     delete batchSender.canSendAtomicBatch;
     delete batchSender.sendAtomicBatch;
+    Object.assign(mocks.sender, { authMode: startingAuthMode });
   });
 
   it("asks once for the five writes before the opening, then once to open the season", async () => {
@@ -849,6 +918,8 @@ describe("useCommitmentPoolSetupSequence with a wallet that batches", () => {
       functionName: string;
     }>;
     expect(batchSender.sendAtomicBatch).toHaveBeenCalledOnce();
+    // A wallet sets its own limits in its own prompt.
+    expect(batchSender.sendAtomicBatch.mock.calls[0]?.[1]?.batchBudget).toBeUndefined();
     expect(batched.map((call) => call.functionName)).toEqual([
       "setPoolCharter",
       "setProviderOpenCommitmentCap",
@@ -948,6 +1019,203 @@ describe("useCommitmentPoolSetupSequence with a wallet that batches", () => {
     expect(batchSender.sendAtomicBatch).toHaveBeenCalledOnce();
     expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
     expect(chain.cycles.size).toBe(1);
+  });
+
+  it("opens a seeded season in one prompt, since its id is already known", async () => {
+    const { reader, apply, chain } = fakeChain({
+      poolState: POOL.READY,
+      cycles: { "12": { state: CYCLE.SEEDED } },
+    });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(
+        openSeasonSteps({
+          poolId: POOL_ID,
+          cycleId: 12n,
+          allocation: MODEL_ONE,
+          recognitionPolicy: RECOGNITION,
+        })
+      );
+    });
+
+    const batched = batchSender.sendAtomicBatch.mock.calls[0]?.[0] as Array<{
+      functionName: string;
+    }>;
+    expect(batched.map((call) => call.functionName)).toEqual(["openPool", "openCycle"]);
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(result.current.state.status).toBe("complete");
+    expect(result.current.state.steps.map((step) => step.batched)).toEqual([true, true]);
+  });
+
+  it("asks once for a season whose pool is already open", async () => {
+    const { reader, apply, chain } = fakeChain({
+      poolState: POOL.OPEN,
+      cycles: { "12": { state: CYCLE.SEEDED } },
+    });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(
+        openSeasonSteps({
+          poolId: POOL_ID,
+          cycleId: 12n,
+          allocation: MODEL_ONE,
+          recognitionPolicy: RECOGNITION,
+        })
+      );
+    });
+
+    expect(batchSender.sendAtomicBatch).not.toHaveBeenCalled();
+    expect(sentFunctions()).toEqual(["openCycle"]);
+  });
+
+  it("asks a passkey by name, and sends with the ceilings a passkey needs", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    Object.assign(mocks.sender, { authMode: "passkey" });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+
+    expect(batchSender.canSendAtomicBatch).toHaveBeenCalledWith(42161, "pool-setup");
+    expect(batchSender.sendAtomicBatch).toHaveBeenCalledOnce();
+    expect(batchSender.sendAtomicBatch.mock.calls[0]?.[1]).toMatchObject({
+      batchBudget: poolSetupBudget(42161),
+    });
+    expect(sentFunctions()).toEqual(["openCycle"]);
+    expect(result.current.state.status).toBe("complete");
+  });
+
+  it("repeats on a passkey only what did not land", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    Object.assign(mocks.sender, { authMode: "passkey" });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall
+      .mockImplementationOnce(async () => {
+        throw new Error("User rejected the request");
+      })
+      .mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+    expect(result.current.state.failedStep).toBe("openCycle");
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(batchSender.sendAtomicBatch).toHaveBeenCalledOnce();
+    expect(sentFunctions()).toEqual(["openCycle", "openCycle"]);
+    expect(chain.cycles.size).toBe(1);
+    expect(result.current.state.status).toBe("complete");
+  });
+
+  it("stays one write at a time for a passkey nobody has listed, or a chain with no ceilings", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    Object.assign(mocks.sender, { authMode: "passkey" });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const queryClient = createTestQueryClient();
+    const { result } = renderHookWithProviders(
+      () => useCommitmentPoolSetupSequence({ chainId: 10, reader }),
+      { queryClient }
+    );
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+
+    expect(poolSetupBudget(10)).toBeNull();
+    expect(result.current.batching).toBe("unavailable");
+    expect(batchSender.sendAtomicBatch).not.toHaveBeenCalled();
+    expect(sentFunctions()).toHaveLength(6);
+  });
+
+  it("can seed again after a batch that never went out, whatever its error says", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    Object.assign(mocks.sender, { authMode: "passkey" });
+    const send = atomicBatch(apply, chain);
+    let first = true;
+    batchSender.sendAtomicBatch = vi.fn(async (calls, options) => {
+      if (first) {
+        first = false;
+        options?.onNeverSent?.();
+        throw new Error("The bundler could not estimate this");
+      }
+      return send(calls, options);
+    });
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+    expect(result.current.state.failure).toBe("send-failed");
+    expect(result.current.batching).toBe("available");
+
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(result.current.state.status).toBe("complete");
+    expect(chain.cycles.size).toBe(1);
+  });
+
+  it("goes write by write on the next try when the group is past its ceilings, and says so", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    Object.assign(mocks.sender, { authMode: "passkey" });
+    batchSender.sendAtomicBatch = vi.fn(async (_calls, options) => {
+      options?.onNeverSent?.();
+      throw new Error("batch-budget-exceeded");
+    });
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+    expect(result.current.state.failure).toBe("send-failed");
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.batching).toBe("unavailable"));
+
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(batchSender.sendAtomicBatch).toHaveBeenCalledOnce();
+    expect(sentFunctions()).toHaveLength(6);
+    expect(result.current.state.status).toBe("complete");
+    expect(chain.poolState).toBe(POOL.OPEN);
+
+    // A fresh open of the flow asks again.
+    await act(async () => {
+      result.current.reset();
+    });
+    await waitFor(() => expect(result.current.batching).toBe("available"));
+  });
+
+  it("takes a sender that can't answer as one that can't batch", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    batchSender.canSendAtomicBatch = vi.fn(async () => {
+      throw new Error("wallet did not answer");
+    });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+
+    expect(result.current.batching).toBe("unavailable");
+    expect(sentFunctions()).toHaveLength(6);
+    expect(result.current.state.status).toBe("complete");
   });
 
   it("sends one write at a time when the wallet cannot batch", async () => {

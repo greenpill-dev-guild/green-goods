@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type {
   KarmaIntegrationController,
@@ -6,7 +8,6 @@ import type {
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 interface KarmaStatusPresentation {
@@ -19,60 +20,60 @@ interface KarmaStatusPresentation {
 
 const STATUS_PRESENTATION = {
   unsupported: {
-    badgeId: "cockpit.garden.karma.status.unsupported",
+    badgeId: "hub.garden.karma.status.unsupported",
     badgeDefault: "Unavailable",
-    bodyId: "cockpit.garden.karma.body.unsupported",
+    bodyId: "hub.garden.karma.body.unsupported",
     bodyDefault: "Karma sync is not available for this network.",
     variant: "neutral",
   },
   "upgrade-needed": {
-    badgeId: "cockpit.garden.karma.status.upgradeNeeded",
+    badgeId: "hub.garden.karma.status.upgradeNeeded",
     badgeDefault: "Migration needed",
-    bodyId: "cockpit.garden.karma.body.upgradeNeeded",
+    bodyId: "hub.garden.karma.body.upgradeNeeded",
     bodyDefault:
       "This garden was created before Karma support and needs a one-time migration. Ask the Green Goods team to migrate this garden.",
     variant: "warning",
   },
   "no-project": {
-    badgeId: "cockpit.garden.karma.status.noProject",
+    badgeId: "hub.garden.karma.status.noProject",
     badgeDefault: "No profile",
-    bodyId: "cockpit.garden.karma.body.noProject",
-    bodyDefault: "This Garden does not have a Karma profile yet.",
+    bodyId: "hub.garden.karma.body.noProject",
+    bodyDefault: "This garden does not have a Karma profile yet.",
     variant: "warning",
   },
   "stale-details": {
-    badgeId: "cockpit.garden.karma.status.staleDetails",
+    badgeId: "hub.garden.karma.status.staleDetails",
     badgeDefault: "Details pending",
-    bodyId: "cockpit.garden.karma.body.staleDetails",
+    bodyId: "hub.garden.karma.body.staleDetails",
     bodyDefault: "Garden details changed and are waiting to be reflected on Karma.",
     variant: "warning",
   },
   "access-pending": {
-    badgeId: "cockpit.garden.karma.status.accessPending",
+    badgeId: "hub.garden.karma.status.accessPending",
     badgeDefault: "Access pending",
-    bodyId: "cockpit.garden.karma.body.accessPending",
+    bodyId: "hub.garden.karma.body.accessPending",
     bodyDefault: "Garden roles changed and Karma access still needs to catch up.",
     variant: "warning",
   },
   failed: {
-    badgeId: "cockpit.garden.karma.status.failed",
+    badgeId: "hub.garden.karma.status.failed",
     badgeDefault: "Sync failed",
-    bodyId: "cockpit.garden.karma.body.failed",
-    bodyDefault: "The last Karma sync did not finish. Your Garden data is safe and you can retry.",
+    bodyId: "hub.garden.karma.body.failed",
+    bodyDefault: "The last Karma sync did not finish. Your garden data is safe and you can retry.",
     variant: "error",
   },
   retrying: {
-    badgeId: "cockpit.garden.karma.status.retrying",
+    badgeId: "hub.garden.karma.status.retrying",
     badgeDefault: "Syncing",
-    bodyId: "cockpit.garden.karma.body.retrying",
+    bodyId: "hub.garden.karma.body.retrying",
     bodyDefault: "Karma is reconciling the project, details, and role access.",
     variant: "info",
   },
   synced: {
-    badgeId: "cockpit.garden.karma.status.synced",
+    badgeId: "hub.garden.karma.status.synced",
     badgeDefault: "Synced",
-    bodyId: "cockpit.garden.karma.body.synced",
-    bodyDefault: "The Karma profile and Garden role access are current.",
+    bodyId: "hub.garden.karma.body.synced",
+    bodyDefault: "The Karma profile and garden role access are current.",
     variant: "success",
   },
 } satisfies Record<KarmaIntegrationStatusName, KarmaStatusPresentation>;
@@ -113,8 +114,10 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
   }
 
   const presentation = STATUS_PRESENTATION[integration.status.status];
+  const { hold, progress, signatures } = integration;
+  // A sync nobody can confirm yet pauses the next one until it is checked or moved on from.
   const canRunReconcile =
-    RECONCILABLE_STATES.has(integration.status.status) && integration.canReconcile;
+    RECONCILABLE_STATES.has(integration.status.status) && integration.canReconcile && !hold;
   const showPendingAction = integration.status.status === "retrying" || integration.isPending;
 
   const run = (action: () => Promise<unknown>) => {
@@ -130,65 +133,97 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
       aria-labelledby={titleId}
       data-component="KarmaIntegrationPanel"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <AdminCardTitle id={titleId}>
+      {/* The status sits on the title's first line (centred on its 24px line,
+          however many lines a translated title takes) and never wraps; the
+          description takes the card's full width under them, so a two-word
+          status such as "Migration needed" stays one line in the rail
+          (qa-session 2026-10-30 OBS-06). */}
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          <AdminCardTitle id={titleId} className="min-w-0">
             {formatMessage({
-              id: "cockpit.garden.karma.title",
+              id: "hub.garden.karma.title",
               defaultMessage: "Karma Integration",
             })}
           </AdminCardTitle>
-          <p className="mt-1 body-xs text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.karma.description",
-              defaultMessage:
-                "Check the public Karma profile and repair project or role sync when needed.",
-            })}
-          </p>
+          <span className="shrink-0 whitespace-nowrap">
+            <StatusBadge
+              variant={presentation.variant}
+              size="sm"
+              aria-live={integration.status.status === "retrying" ? "off" : "polite"}
+            >
+              {formatMessage({
+                id: presentation.badgeId,
+                defaultMessage: presentation.badgeDefault,
+              })}
+            </StatusBadge>
+          </span>
         </div>
-        <StatusBadge
-          variant={presentation.variant}
-          size="sm"
-          aria-live={integration.status.status === "retrying" ? "off" : "polite"}
-        >
+        <p className="mt-1 type-body text-text-soft">
           {formatMessage({
-            id: presentation.badgeId,
-            defaultMessage: presentation.badgeDefault,
+            id: "hub.garden.karma.description",
+            defaultMessage:
+              "Check the public Karma profile and repair project or role sync when needed.",
           })}
-        </StatusBadge>
+        </p>
       </div>
 
-      <p className="body-sm text-text-sub">
+      <p className="type-body text-text-sub">
         {formatMessage({
           id: presentation.bodyId,
           defaultMessage: presentation.bodyDefault,
         })}
       </p>
 
+      {hold && !showPendingAction ? (
+        <TxHoldFeedback
+          title={formatMessage({ id: "hub.garden.karma.hold.title" })}
+          message={formatMessage({ id: "hub.garden.karma.hold.body" })}
+          hasUnreadValues={false}
+          isSettling={integration.isSettlingHold}
+          onCheckAgain={() => void integration.checkHoldAgain()}
+          onMoveOn={() => void integration.moveOnFromHold()}
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         {showPendingAction ? (
-          <AdminButton type="button" variant="tonal" size="sm" loading disabled>
+          <Button type="button" emphasis="secondary" size="compact" loading disabled>
             {formatMessage({
-              id: "cockpit.garden.karma.action.retrying",
+              id: "hub.garden.karma.action.retrying",
               defaultMessage: "Syncing…",
             })}
-          </AdminButton>
+          </Button>
         ) : canRunReconcile ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="tonal"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => run(integration.reconcile)}
           >
             {formatMessage({
               id:
                 integration.status.status === "failed"
-                  ? "cockpit.garden.karma.action.retry"
-                  : "cockpit.garden.karma.action.reconcile",
+                  ? "hub.garden.karma.action.retry"
+                  : "hub.garden.karma.action.reconcile",
               defaultMessage:
                 integration.status.status === "failed" ? "Retry Karma Sync" : "Retry Sync",
             })}
-          </AdminButton>
+          </Button>
+        ) : null}
+
+        {/* How many prompts a press brings, said before the first one and counted while they come. */}
+        {showPendingAction && progress && progress.signatures > 1 ? (
+          <span role="status" className="type-meta text-text-soft">
+            {formatMessage(
+              { id: "app.work.batch.signatureStep" },
+              { step: progress.signature, total: progress.signatures }
+            )}
+          </span>
+        ) : canRunReconcile && signatures !== null ? (
+          <span className="type-meta text-text-soft">
+            {formatMessage({ id: "app.treasury.signatures" }, { count: signatures })}
+          </span>
         ) : null}
 
         {integration.profileUrl ? (
@@ -196,14 +231,14 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             href={integration.profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 text-label-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
+            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 type-meta-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
             aria-label={formatMessage({
-              id: "cockpit.garden.karma.profileLinkLabel",
+              id: "hub.garden.karma.profileLinkLabel",
               defaultMessage: "Open This Garden's Karma Profile",
             })}
           >
             {formatMessage({
-              id: "cockpit.garden.karma.profileLink",
+              id: "hub.garden.karma.profileLink",
               defaultMessage: "Open Karma Profile",
             })}
             <RiExternalLinkLine className="h-4 w-4" aria-hidden />

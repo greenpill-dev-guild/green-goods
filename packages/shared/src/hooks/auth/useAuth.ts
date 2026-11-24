@@ -20,12 +20,16 @@
  * ```
  */
 
-import type { SmartAccountClientResolver } from "../../types/auth";
+import type {
+  SmartAccountClientResolver,
+  WalletConnectFailure,
+  WalletRestoreState,
+} from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import { type AuthMode } from "../../modules/auth/session";
-import { useAuthContext } from "../../providers/Auth";
+import { useAuthContext, type AuthActionsValue, type AuthStateValue } from "../../providers/Auth";
 
 // Export auth context hooks and types
 export {
@@ -36,6 +40,7 @@ export {
   useAuthContext,
   useAuthState,
 } from "../../providers/Auth";
+export { useWalletReconnectPrompt } from "./useWalletReconnectPrompt";
 
 /**
  * Unified auth context returned by useAuth.
@@ -45,6 +50,16 @@ export {
  * Legacy aliases are omitted — use the primary action names instead.
  */
 interface UseAuthReturn {
+  preparePilotAccount?: AuthActionsValue["preparePilotAccount"];
+  findExistingPilotAccount?: AuthActionsValue["findExistingPilotAccount"];
+  quotePilotAccount?: AuthActionsValue["quotePilotAccount"];
+  confirmPilotAccount?: AuthActionsValue["confirmPilotAccount"];
+  reconcilePilotAccount?: AuthActionsValue["reconcilePilotAccount"];
+  cancelPilotAccountEnrollment?: AuthActionsValue["cancelPilotAccountEnrollment"];
+  walletReleaseStalled?: boolean;
+  walletConnectFailure?: WalletConnectFailure | null;
+  /** A wallet account whose wallet has not answered yet, or null once it has. */
+  walletRestore: WalletRestoreState | null;
   // Core state
   authMode: AuthMode;
   isReady: boolean;
@@ -55,6 +70,9 @@ interface UseAuthReturn {
   // Passkey state
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
+  passkeyAccountProfile?:
+    | import("../../modules/auth/account-profile").PasskeyAccountProfileId
+    | null;
   smartAccountClient: SmartAccountClient | null;
   resolveSmartAccountClient: SmartAccountClientResolver | null;
   userName: string | null;
@@ -67,15 +85,21 @@ interface UseAuthReturn {
   // Embedded wallet state (AppKit email/social)
   embeddedAddress: Hex | null;
 
+  // Email session (Openfort): "email", or null for any other session
+  openfortMethod: AuthStateValue["openfortMethod"];
+
   // External wallet state (always tracked, even in passkey mode)
   externalWalletConnected: boolean;
   externalWalletAddress: Hex | null;
 
   // Actions - Primary flow
   createAccount: (userName: string) => Promise<void>;
-  loginWithPasskey: (userName?: string) => Promise<void>;
+  loginWithPasskey: AuthActionsValue["loginWithPasskey"];
+  loginWithOriginalPasskey?: AuthActionsValue["loginWithOriginalPasskey"];
   loginWithWallet: () => void;
   loginWithEmbedded: () => void;
+  requestSignInCode?: AuthActionsValue["requestSignInCode"];
+  loginWithCode?: AuthActionsValue["loginWithCode"];
   signOut: () => Promise<void>;
 
   // Actions - Switching auth methods
@@ -99,6 +123,15 @@ export function useAuth(): UseAuthReturn {
   const auth = useAuthContext();
 
   return {
+    preparePilotAccount: auth.preparePilotAccount,
+    findExistingPilotAccount: auth.findExistingPilotAccount,
+    quotePilotAccount: auth.quotePilotAccount,
+    confirmPilotAccount: auth.confirmPilotAccount,
+    reconcilePilotAccount: auth.reconcilePilotAccount,
+    cancelPilotAccountEnrollment: auth.cancelPilotAccountEnrollment,
+    walletReleaseStalled: auth.walletReleaseStalled,
+    walletConnectFailure: auth.walletConnectFailure,
+    walletRestore: auth.walletRestore ?? null,
     // Core state
     authMode: auth.authMode,
     isReady: auth.isReady,
@@ -109,6 +142,7 @@ export function useAuth(): UseAuthReturn {
     // Passkey state
     credential: auth.credential,
     smartAccountAddress: auth.smartAccountAddress,
+    passkeyAccountProfile: auth.passkeyAccountProfile ?? null,
     smartAccountClient: auth.smartAccountClient,
     resolveSmartAccountClient: auth.resolveSmartAccountClient,
     userName: auth.userName,
@@ -120,6 +154,7 @@ export function useAuth(): UseAuthReturn {
 
     // Embedded wallet state
     embeddedAddress: auth.embeddedAddress,
+    openfortMethod: auth.openfortMethod ?? null,
 
     // External wallet state
     externalWalletConnected: auth.externalWalletConnected,
@@ -128,8 +163,11 @@ export function useAuth(): UseAuthReturn {
     // Actions - Primary flow
     createAccount: auth.createAccount,
     loginWithPasskey: auth.loginWithPasskey,
+    loginWithOriginalPasskey: auth.loginWithOriginalPasskey,
     loginWithWallet: auth.loginWithWallet,
     loginWithEmbedded: auth.loginWithEmbedded,
+    requestSignInCode: auth.requestSignInCode,
+    loginWithCode: auth.loginWithCode,
     signOut: auth.signOut,
 
     // Actions - Switching
@@ -144,3 +182,5 @@ export function useAuth(): UseAuthReturn {
 
 // Re-exported for backwards compatibility with old import sites.
 export type { AuthMode } from "../../modules/auth/session";
+/** Passkey and email sessions send through a sponsored Kernel smart account. */
+export { isSmartAccountAuthMode } from "../../types/auth";

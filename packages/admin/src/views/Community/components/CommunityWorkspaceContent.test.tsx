@@ -2,7 +2,7 @@ import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/comm
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 import messages from "@green-goods/shared/i18n/en.json";
 import type { ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -21,6 +21,9 @@ vi.mock("./CommunityPools", () => ({
       {props.railContent}
     </>
   ),
+}));
+vi.mock("./CommunityMembersDialogs", () => ({
+  CommunityMembersDialogs: () => <div data-testid="member-dialogs" />,
 }));
 vi.mock("./CommunityMembersTab", () => ({
   CommunityMembersTab: (props: object) => (
@@ -77,6 +80,9 @@ const baseWorkspace = {
   memberSearch: "",
   mode: "members",
   pools: [],
+  poolsRead: true,
+  poolsUnread: false,
+  rereadPools: noop,
   roleMembers: {
     gardener: [],
     operator: [],
@@ -118,6 +124,13 @@ describe("CommunityWorkspaceContent", () => {
 
     renderWorkspace({ communityLoading: true });
     expect(screen.getByText("loading:members")).toBeInTheDocument();
+  });
+
+  it("keeps the member dialogs mounted while a tab loads, so an open one survives it (DL-140)", () => {
+    renderWorkspace({ mode: "endowment", vaultsLoading: true });
+
+    expect(screen.getByText("loading:endowment")).toBeInTheDocument();
+    expect(screen.getByTestId("member-dialogs")).toBeInTheDocument();
   });
 
   it.each([
@@ -175,5 +188,83 @@ describe("Coordination funding status with governance disabled", () => {
     expect(useGardenYieldWiringState).toHaveBeenLastCalledWith(baseWorkspace.gardenId, {
       enabled: false,
     });
+  });
+  it("keeps the yield wiring check while the pool list is unread, since it reads on its own", () => {
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: "missing-resolver-wiring",
+    } as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({ mode: "coordination", pools: [], poolsRead: false, poolsUnread: true });
+    expect(useGardenYieldWiringState).toHaveBeenLastCalledWith(baseWorkspace.gardenId, {
+      enabled: true,
+    });
+    expect(screen.getByText(messages["app.community.yield.notConnected"])).toBeInTheDocument();
+    // The wiring check answered, so an error about it would contradict the answer.
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows no read error when the wiring check answered connected, though the pool list is unread", () => {
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: "connected",
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({ mode: "coordination", pools: [], poolsRead: false, poolsUnread: true });
+
+    expect(screen.getByText(messages["app.community.yield.connected"])).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+  it("offers a retry outside the governance tab when the pool list and the wiring check both fail", () => {
+    const rereadPools = vi.fn();
+    const refetch = vi.fn();
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: undefined,
+      refetch,
+    } as unknown as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({
+      mode: "coordination",
+      pools: [],
+      poolsRead: false,
+      poolsUnread: true,
+      rereadPools,
+    });
+
+    expect(screen.queryByTestId("coordination")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      messages["hub.community.yield.readError.title"]
+    );
+    fireEvent.click(screen.getByRole("button", { name: messages["app.common.retry"] }));
+    expect(rereadPools).toHaveBeenCalledTimes(1);
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rereads only the pool list when no community is known, since the wiring check is off", () => {
+    const rereadPools = vi.fn();
+    const refetch = vi.fn();
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: undefined,
+      refetch,
+    } as unknown as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({
+      mode: "coordination",
+      community: null,
+      pools: [],
+      poolsRead: false,
+      poolsUnread: true,
+      rereadPools,
+    } as unknown as Partial<CommunityWorkspace>);
+
+    fireEvent.click(screen.getByRole("button", { name: messages["app.common.retry"] }));
+    expect(rereadPools).toHaveBeenCalledTimes(1);
+    expect(refetch).not.toHaveBeenCalled();
+  });
+
+  it("waits for the first wiring read before showing the read error", () => {
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: undefined,
+      isPending: true,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({ mode: "coordination", pools: [], poolsRead: false, poolsUnread: true });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

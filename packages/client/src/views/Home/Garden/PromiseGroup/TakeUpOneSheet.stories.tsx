@@ -28,6 +28,7 @@ const meta: Meta<typeof TakeUpOneSheet> = {
     actLabelId: "app.pool.group.act.takeUpOne",
     title: STORY_GROUP_TITLE,
     terms: "2 hours · Due Oct 30, 2026",
+    reward: null,
     state: { step: "idle" },
     onTakeUp: fn(),
     onTakeUpNext: fn(),
@@ -39,12 +40,13 @@ const meta: Meta<typeof TakeUpOneSheet> = {
 export default meta;
 type Story = StoryObj<typeof TakeUpOneSheet>;
 
-/** Ready (c3): the one promise's terms, that the app picks, the act over Cancel. */
+/** Ready (c3): the one promise's terms and reward, that the app picks, the act over Cancel. */
 export const Ready: Story = {
+  args: { reward: "$5.00, paid in G$ after it's kept" },
   play: async ({ args }) => {
-    await expect(
-      await screen.findByText("The app picks which one.", { exact: false })
-    ).toBeVisible();
+    await expect(await screen.findByText("Take Up One of These Promises")).toBeVisible();
+    await expect(screen.getByText("The app picks which one.", { exact: false })).toBeVisible();
+    await expect(screen.getByText("$5.00, paid in G$ after it's kept")).toBeVisible();
     const act = screen.getByRole("button", { name: "Take Up One" });
     await expect(act.getBoundingClientRect().bottom).toBeLessThanOrEqual(
       screen.getByRole("button", { name: "Cancel" }).getBoundingClientRect().top
@@ -63,13 +65,15 @@ export const Checking: Story = {
   },
 };
 
-/** A steward-reviewed group (c3b): it asks for one nobody has asked for yet, and holds nothing. */
+/**
+ * A steward-reviewed group (c3b): it requests one nobody has requested yet, and holds nothing.
+ * "Request" is only what waits on a steward's yes (DL-175), so the title and copy say it too.
+ */
 export const AskInAReviewedGroup: Story = {
   args: { approvalGated: true, actLabelId: "app.pool.group.act.askToTakeUpOne" },
   play: async () => {
-    await expect(
-      await screen.findByText("Asking holds nothing for you.", { exact: false })
-    ).toBeVisible();
+    await expect(await screen.findByText("Ask to Take Up One of These Promises")).toBeVisible();
+    await expect(screen.getByText("Asking holds nothing for you.", { exact: false })).toBeVisible();
     await expect(screen.getByRole("button", { name: "Ask to Take Up One" })).toBeEnabled();
   },
 };

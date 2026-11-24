@@ -1,7 +1,12 @@
-import { type LoaderFunctionArgs, type RouteObject, redirect } from "react-router-dom";
+import {
+  type LoaderFunctionArgs,
+  type RouteObject,
+  redirect,
+  redirectDocument,
+} from "react-router-dom";
 import type { RecoveryView } from "@/components/Errors/ErrorRecovery";
 import { RouteErrorBoundary } from "@/components/Errors/RouteErrorBoundary";
-import { APP_ROUTES, LEGACY_APP_ROUTES } from "./pwaRouting";
+import { APP_ROUTES, LEGACY_APP_ROUTES, PWA_APP_SCOPE } from "./pwaRouting";
 import { getSharedRecordPath, takePendingSharedLink } from "./sharedLink";
 import {
   requirePwaPresentationLoader,
@@ -19,17 +24,23 @@ export const CLIENT_ROUTE_IDS = {
   publicLanding: "public-landing",
   publicGardens: "public-gardens",
   publicGardenDetail: "public-garden-detail",
+  publicGardenPassport: "public-garden-passport",
   publicCookies: "public-cookies",
   publicFund: "public-fund",
   publicVaults: "public-vaults",
   publicImpact: "public-impact",
   publicActions: "public-actions",
   publicGlossary: "public-glossary",
+  publicStrategy: "public-strategy",
+  publicPrivacy: "public-privacy",
+  publicContact: "public-contact",
+  publicTerms: "public-terms",
   publicReporting: "public-reporting",
   publicReportingRecovery: "public-reporting-recovery",
   publicReportingPermissions: "public-reporting-permissions",
   login: "login",
   home: "home",
+  homeExplore: "home-explore",
   garden: "garden",
   gardenSubmit: "garden-submit",
   profile: "profile",
@@ -116,6 +127,14 @@ const combinedAppRoutes = [
                 Component: (await import("@/views/Public/GardenDetail")).default,
               }),
             },
+            // The garden's passport for funders (DL-201): its own page, so it has one address to share.
+            {
+              id: CLIENT_ROUTE_IDS.publicGardenPassport,
+              path: "gardens/:id/passport",
+              lazy: async () => ({
+                Component: (await import("@/views/Public/GardenPassport")).default,
+              }),
+            },
             {
               path: "gardens/:id/work/:workId",
               lazy: async () => ({
@@ -164,8 +183,28 @@ const combinedAppRoutes = [
                 Component: (await import("@/views/Public/Glossary")).default,
               }),
             },
+            {
+              id: CLIENT_ROUTE_IDS.publicStrategy,
+              path: "strategy",
+              lazy: async () => ({ Component: (await import("@/views/Public/Strategy")).default }),
+            },
+            {
+              id: CLIENT_ROUTE_IDS.publicPrivacy,
+              path: "privacy",
+              lazy: async () => ({ Component: (await import("@/views/Public/Privacy")).default }),
+            },
+            {
+              id: CLIENT_ROUTE_IDS.publicTerms,
+              path: "terms",
+              lazy: async () => ({ Component: (await import("@/views/Public/Terms")).default }),
+            },
+            {
+              id: CLIENT_ROUTE_IDS.publicContact,
+              path: "contact",
+              lazy: async () => ({ Component: (await import("@/views/Public/Contact")).default }),
+            },
           ]),
-          // The reporting ceremony pages use the focused shell and are drawn as the app draws.
+          // The reporting ceremony pages use the focused shell and take the website's look (DL-121).
           errorFrame("ceremony", [
             // Static before dynamic: the permissions page must never be read as a locator.
             {
@@ -256,6 +295,14 @@ const combinedAppRoutes = [
                       lazy: async () => ({ Component: (await import("@/views/Home")).default }),
                       children: [
                         {
+                          // Declared before the garden's id, so "explore" is never read as one.
+                          id: CLIENT_ROUTE_IDS.homeExplore,
+                          path: APP_ROUTES.explore.slice(APP_ROUTES.home.length + 1),
+                          lazy: async () => ({
+                            Component: (await import("@/views/Home/Explore")).Explore,
+                          }),
+                        },
+                        {
                           id: CLIENT_ROUTE_IDS.garden,
                           path: ":id",
                           lazy: async () => ({
@@ -333,6 +380,21 @@ if (!publicShell || !pwaRuntime) {
   throw new Error("Client route trees are missing their presentation roots");
 }
 
+/**
+ * A browser visit to the app's URLs is answered by the app's worker, which then
+ * keeps the page for as long as it stays in the same document, and knows it by
+ * the URL it opened with. Leaving with a new document lets go of the worker, so
+ * a tab that bounced off /home neither holds an update back nor counts as an
+ * open app window. The hash-routed IPFS build has one scope and keeps its redirect.
+ */
+function leaveForWebsite(url: URL, target: string) {
+  // A worker's scope is a plain URL prefix: "/home" also answers "/homepage".
+  const inAppScope = url.pathname.startsWith(PWA_APP_SCOPE);
+  return inAppScope && import.meta.env.VITE_USE_HASH_ROUTER !== "true"
+    ? redirectDocument(target)
+    : redirect(target);
+}
+
 export const publicAppRoutes: RouteObject[] = [
   {
     ...combinedRoot,
@@ -342,7 +404,7 @@ export const publicAppRoutes: RouteObject[] = [
         path: "*",
         loader: ({ request }) => {
           const url = new URL(request.url);
-          return redirect(getSharedRecordPath(url.pathname, "gardens") ?? "/");
+          return leaveForWebsite(url, getSharedRecordPath(url.pathname, "gardens") ?? "/");
         },
       },
     ],

@@ -6,6 +6,8 @@ import { PublicApp } from "@/PublicApp";
 import { AppErrorBoundary } from "@/components/Errors/AppErrorBoundary";
 import { PublicRecoveryViews } from "@/components/Errors/PublicRecoveryViews";
 import { registerPublicWebMcpTools } from "@/webmcp";
+import { afterPublicContentPaint } from "@/config/publicStartup";
+import { importPublicLocaleCatalogue } from "@/views/Public/publicLocaleCatalogue";
 
 registerPublicWebMcpTools();
 
@@ -15,7 +17,11 @@ export default function PublicBootstrap() {
     <PublicRecoveryViews>
       <HelmetProvider>
         <AppErrorBoundary view="frame">
-          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
+          <AppProvider
+            posthogKey={import.meta.env.VITE_POSTHOG_KEY}
+            scheduleTelemetry={afterPublicContentPaint}
+            importCatalogue={importPublicLocaleCatalogue}
+          >
             <ServiceWorkerUpdateProvider>
               <PublicApp />
             </ServiceWorkerUpdateProvider>

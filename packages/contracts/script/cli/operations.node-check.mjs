@@ -30,6 +30,23 @@ test('standalone reporting policy separates offline, RPC, keystore broadcast and
   assert.deepEqual(resolve('verify reporting-kernel --network arbitrum --mode simulate').args, ['script/reporting-kernel-compatibility.ts', '--network', 'arbitrum', '--simulate']);
   assert.throws(() => resolve('verify reporting-kernel --network arbitrum --mode broadcast'), /Unsupported mode/);
 });
+test('standalone reward payer gets the policy safeguards and its own handler', () => {
+  assert.deepEqual(resolve('deploy reward-payer --network arbitrum --mode preflight').args, ['script/deploy/reward-payer.ts', 'deploy', '--network', 'arbitrum', '--preflight']);
+  assert.deepEqual(resolve(`deploy reward-payer --network localhost --mode plan --sender ${OPERATOR} --expected-nonce 3`).args, ['script/deploy/reward-payer.ts', 'deploy', '--network', 'localhost', '--plan-only', '--sender', OPERATOR, '--expected-nonce', '3']);
+  assert.throws(() => resolve('deploy reward-payer --network arbitrum --mode broadcast'), /Reward payer broadcast requires --expected-nonce/);
+  assert.throws(() => resolve('deploy reward-payer --network arbitrum --mode plan --expected-nonce 0'), /Reward payer planning requires --sender/);
+  assert.throws(() => resolve(`deploy reward-payer --network arbitrum --mode simulate --sender ${OPERATOR}`), /reward payer operation/);
+  assert.throws(() => resolve('deploy reward-payer --network celo --mode preflight'), /Unsupported network/);
+  assert.throws(() => resolve('deploy reward-payer --network arbitrum --mode broadcast --expected-nonce 0 --private-key secret'), /Unknown/);
+  const broadcast = resolve('deploy reward-payer --network arbitrum --mode broadcast --expected-nonce 0');
+  assert.equal(broadcast.env.FOUNDRY_KEYSTORE_ACCOUNT, 'green-goods-deployer');
+  assert.equal(broadcast.env.PINATA_JWT, '');
+  assert.ok(broadcast.capabilities.includes('configured RPC'));
+  assert.ok(!resolve('deploy reward-payer --network arbitrum --mode preflight').capabilities.includes('configured RPC'));
+  assert.deepEqual(resolve('verify reward-payer --network arbitrum --receipt 0x' + 'a'.repeat(64)).args, ['script/deploy/reward-payer.ts', 'verify', '--network', 'arbitrum', '--receipt', `0x${'a'.repeat(64)}`]);
+  assert.throws(() => resolve('verify reward-payer --network localhost --publish-source'), /explorer/);
+  assert.throws(() => resolve('verify reward-payer --network arbitrum --mode simulate'), /Unknown/);
+});
 test('help and explain run in a fresh process without handler imports or env loading', () => {
   for (const args of [['help'], ['deploy', 'core', '--network', 'arbitrum', '--mode', 'preflight', '--explain', '--json']]) {
     const result = spawnSync(process.execPath, ['script/cli.mjs', ...args], { cwd: PACKAGE_ROOT, env: { PATH: process.env.PATH }, encoding: 'utf8' });
@@ -93,6 +110,15 @@ test('CookieJarModule upgrade is storage-gated and rehearsed against live Arbitr
   assert.ok(jars.args.includes(OPERATOR));
   assert.deepEqual(resolve('upgrade cookie-jar-module --network arbitrum --mode simulate').checks, []);
   assert.deepEqual(resolve('upgrade cookie-jar-module --network sepolia --mode broadcast').checks.map((check) => check.args), [['script/check-storage-layout.sh', '--contract', 'CookieJarModule']]);
+});
+test('YieldResolver upgrade is storage-gated and rehearsed against live Arbitrum before broadcast', () => {
+  for (const target of ['yield-resolver', 'signal-pool-yield-wiring', 'all']) {
+    const upgrade = resolve(`upgrade ${target} --network arbitrum --mode broadcast`);
+    assert.deepEqual(upgrade.checks.map((check) => [check.command, ...check.args]), [['bash', 'script/check-storage-layout.sh', '--contract', 'YieldResolver'], ['bun', 'script/utils/fork-shards.mjs', 'run', 'yield-resolver-upgrade-arbitrum']], target);
+  }
+  assert.ok(resolve('upgrade yield-resolver --network arbitrum --mode broadcast').args.includes(OPERATOR));
+  assert.deepEqual(resolve('upgrade yield-resolver --network arbitrum --mode simulate').checks, []);
+  assert.deepEqual(resolve('upgrade yield-resolver --network sepolia --mode broadcast').checks.map((check) => check.args), [['script/check-storage-layout.sh', '--contract', 'YieldResolver']]);
 });
 test('operator boundary resolution is fixed and cannot recurse or override network', () => {
   const roles = resolveOperatorBoundary('garden-roles', ['--plan', 'reviewed.json', '--step', '1', '--broadcast', 'true']);
@@ -262,4 +288,111 @@ test('network-scoped chain selections cannot conflict before execution', () => {
   assert.throws(() => resolve('verify --network arbitrum --chain-id 1'), /conflicts/);
   assert.throws(() => resolve('verify --network arbitrum --chain-id nope'), /positive safe integer/);
   assert.ok(resolve('verify --network arbitrum --chain-id 42161').args.includes('42161'));
+});
+
+test('voucher release preparation separates offline planning from isolated simulation and has no broadcast mode', () => {
+  const preflight = resolve('release vouchers --mode preflight');
+  assert.equal(preflight.network, undefined);
+  assert.deepEqual(preflight.args, ['script/deploy/voucher-release.ts', '--preflight']);
+  assert.ok(!preflight.capabilities.includes('configured RPC'));
+  assert.ok(resolve('release vouchers --mode plan').args.includes('--plan-only'));
+  const simulation = resolve('release vouchers --mode simulate --plan .generated/voucher-release/pilot.plan.json');
+  assert.ok(simulation.capabilities.includes('owned isolated Anvil forks'));
+  assert.ok(!simulation.capabilities.includes('authorized signer'));
+  for (const suffix of ['--mode broadcast', '--mode simulate --private-key secret', '--mode preflight --network gnosis', '--mode preflight --rpc-url https://rpc.invalid', '--mode preflight --mode plan']) {
+    assert.throws(() => resolve(`release vouchers ${suffix}`));
+  }
+});
+
+test('steward Safe release prepares roster-driven custody without a broadcast path', () => {
+  const preflight = resolve('release steward-safe --mode preflight');
+  assert.deepEqual(preflight.args, ['script/deploy/steward-safe-release.ts', '--preflight']);
+  assert.match(preflight.safeguards[0], /^roster-driven threshold: one valid steward signs alone, two or more need two signatures;/);
+  assert.ok(resolve('release steward-safe --mode plan').args.includes('--plan-only'));
+  assert.ok(resolve('release steward-safe --mode simulate --plan .generated/steward-safe/pilot.plan.json').args.includes('--simulate'));
+  for (const suffix of ['--mode broadcast', '--mode preflight --private-key secret', '--mode plan --network gnosis', '--mode preflight --rpc-url https://rpc.invalid']) {
+    assert.throws(() => resolve(`release steward-safe ${suffix}`));
+  }
+});
+
+test('CLC and source upgrade preparation expose only their owned fork modes', () => {
+  for (const [command, handler, rpc] of [
+    ['clc', 'clc-release.ts', 'Gnosis RPC'],
+    ['source-upgrades', 'source-upgrade-release.ts', 'Arbitrum RPC'],
+  ]) {
+    const preflight = resolve(`release ${command} --mode preflight`);
+    assert.deepEqual(preflight.args, [`script/deploy/${handler}`, '--preflight']);
+    assert.equal(preflight.network, undefined);
+    assert.ok(!preflight.capabilities.includes(rpc));
+    assert.ok(resolve(`release ${command} --mode plan`).args.includes('--plan-only'));
+    const simulation = resolve(`release ${command} --mode simulate --plan .generated/example.plan.json`);
+    assert.ok(simulation.capabilities.includes(rpc));
+    assert.ok(simulation.capabilities.includes('owned isolated Anvil forks'));
+    assert.ok(!simulation.capabilities.includes('authorized signer'));
+    for (const suffix of ['--mode broadcast', '--mode simulate', '--mode preflight --plan unwanted.json', '--mode plan --plan unwanted.json', '--mode preflight --output unwanted.json', '--mode preflight --network gnosis', '--mode preflight --rpc-url https://rpc.invalid', '--mode plan --private-key secret']) {
+      assert.throws(() => resolve(`release ${command} ${suffix}`));
+    }
+  }
+  const members = resolve('release clc --mode simulate --members config/member-extension.json --plan .generated/clc-release/member.plan.json --receipts .generated/clc-release/member.receipts.json');
+  assert.ok(members.args.includes('--members'));
+  assert.ok(members.args.includes('--receipts'));
+  assert.ok(!members.capabilities.includes('authorized signer'));
+  assert.throws(() => resolve('release clc --mode preflight --receipts .generated/clc-release/receipt.json'), /simulate mode/);
+  assert.ok(resolve('release pilot --mode preflight --clc-members config/member-extension.json').args.includes('--clc-members'));
+});
+
+test('live pilot packaging requires four component plans and has no compound simulator', () => {
+  assert.deepEqual(resolve('release pilot --mode preflight').args, ['script/deploy/live-pilot-package.ts', '--preflight']);
+  const inputs = '--source-upgrades-plan source.json --steward-safe-plan steward.json --vouchers-plan vouchers.json --clc-plan clc.json';
+  const planned = resolve(`release pilot --mode plan ${inputs} --output .generated/live-pilot/pilot.json`);
+  assert.equal(planned.args[0], 'script/deploy/live-pilot-package.ts');
+  assert.ok(planned.args.includes('--plan-only'));
+  assert.ok(!planned.capabilities.some((capability) => /RPC|signer|fork/.test(capability)));
+  for (const suffix of ['--mode plan', '--mode plan --clc-plan clc.json', '--mode preflight --clc-plan clc.json', '--mode preflight --output unwanted.json', '--mode simulate', '--mode broadcast', '--mode preflight --private-key secret', '--mode preflight --network gnosis']) {
+    assert.throws(() => resolve(`release pilot ${suffix}`));
+  }
+});
+
+test('garden downstream extension binds plan and manifest and separates receipt verification from signing', () => {
+  const inputs = '--manifest config/clc-garden-exchanges.json --plan .generated/clc-release/garden.plan.json';
+  const verified = resolve(`release downstream --mode verify ${inputs}`);
+  assert.ok(verified.args.includes('--verify'));
+  assert.ok(verified.args.includes('--manifest'));
+  assert.ok(!verified.capabilities.includes('authorized signer'));
+  assert.ok(resolve(`release downstream --mode broadcast ${inputs}`).args.includes('--broadcast'));
+  for (const suffix of ['--mode verify', '--mode simulate --manifest config/garden.json', '--mode broadcast --plan plan.json', '--mode simulate --receipts receipts.json'])
+    assert.throws(() => resolve(`release downstream ${suffix}`));
+});
+
+test('CLC and pilot handlers reject unsafe paths and modes before compilation', () => {
+  for (const [handler, args, expected] of [
+    ['clc-release.ts', ['--preflight', '--plan', 'unexpected.json'], /exactly one CLC release mode/],
+    ['clc-release.ts', ['--preflight', '--manifest', '../outside.json'], /owned JSON directory/],
+    ['clc-release.ts', ['--simulate', '--plan', '.generated/voucher-release/foreign.json'], /owned JSON directory/],
+    ['clc-release.ts', ['--preflight', '--rpc-url', 'https://rpc.invalid'], /Unknown option/],
+    ['clc-release.ts', ['--preflight', '--receipts', '.generated/clc-release/member.receipts.json'], /exactly one CLC release mode/],
+    ['clc-release.ts', ['--preflight', '--members', '../outside.json'], /owned JSON directory/],
+    ['clc-release.ts', ['--simulate', '--plan', '.generated/clc-release/member.plan.json', '--receipts', '.generated/clc-release/receipt.json', '--output', '.generated/clc-release/RECEIPT.json'], /cannot overwrite/],
+    ['live-pilot-package.ts', ['--preflight', '--manifest', '../outside.json'], /owned JSON directory/],
+    ['live-pilot-package.ts', ['--preflight', '--clc-plan', 'unexpected.json'], /plan mode requires all four/],
+    ['live-pilot-package.ts', ['--plan-only'], /plan mode requires all four/],
+    ['live-pilot-package.ts', ['--simulate'], /Unknown option/],
+  ]) {
+    const result = spawnSync('bun', ['--no-env-file', `script/deploy/${handler}`, ...args], { cwd: PACKAGE_ROOT, env: { PATH: process.env.PATH }, encoding: 'utf8' });
+    assert.equal(result.status, 1, result.stdout);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, expected);
+  }
+});
+
+test('pilot preflight reports pending inputs without RPC credentials or compilation', () => {
+  const result = spawnSync('bun', ['--no-env-file', 'script/deploy/live-pilot-package.ts', '--preflight'], { cwd: PACKAGE_ROOT, env: { PATH: process.env.PATH }, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.state, 'preflight');
+  assert.equal(report.compilationIncluded, false);
+  assert.equal(report.liveBroadcast, false);
+  assert.equal(report.activationIncluded, false);
+  assert.ok(report.deploymentMissing.includes('clc.techAndSunSafe'));
+  assert.ok(report.activationMissing.includes('live.sameAddressMemberSigningCeremony'));
 });

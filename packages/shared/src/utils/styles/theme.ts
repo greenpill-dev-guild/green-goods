@@ -20,13 +20,17 @@ function systemTheme(): Resolved {
 /**
  * Point the browser chrome (Android status bar, installed-app title bar) at the
  * resolved theme. The colors live on the document's `theme-color` meta as
- * `data-light` / `data-dark`, which keeps per-build branding (production vs the
- * beta build's single pinned color) out of this module.
+ * `data-light` / `data-dark`, with the installed app's own ground as
+ * `data-app-light` / `data-app-dark`, which keeps per-build branding (production
+ * vs the beta build's single pinned color) out of this module.
  */
 function syncThemeColor(resolved: Resolved): void {
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  const color = meta?.dataset[resolved];
-  if (meta && color) meta.content = color;
+  if (!meta) return;
+  const installedApp = document.documentElement.dataset.bootPresentation === "pwa";
+  const color =
+    (installedApp && meta.getAttribute(`data-app-${resolved}`)) || meta.dataset[resolved];
+  if (color) meta.content = color;
 }
 
 /**

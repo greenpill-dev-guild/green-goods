@@ -1,17 +1,13 @@
-import { WagmiProvider } from "wagmi";
-import { ensureAppKit } from "../config/appkit";
+import { type Config, WagmiProvider } from "wagmi";
+import { type AppKitMetadata, activeWagmiConfig, ensureAppKit } from "../config/appkit";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 
 interface AppKitProviderProps {
   children: React.ReactNode;
   projectId: string;
-  metadata: {
-    name: string;
-    description: string;
-    url: string;
-    icons: string[];
-  };
+  metadata: AppKitMetadata;
   defaultChainId?: number;
+  fontFamily?: string;
 }
 
 export function AppKitProvider({
@@ -19,6 +15,7 @@ export function AppKitProvider({
   projectId,
   metadata,
   defaultChainId = DEFAULT_CHAIN_ID,
+  fontFamily,
 }: AppKitProviderProps) {
   // Ensure the shared singleton is configured before rendering WagmiProvider.
   // wagmiConfig is non-null here — AppKitProvider only renders in the browser.
@@ -26,13 +23,19 @@ export function AppKitProvider({
     projectId,
     metadata,
     defaultChainId,
+    fontFamily,
   });
 
   if (!wagmiConfig) {
     throw new Error("AppKitProvider requires a browser environment (wagmiConfig is null in SSR)");
   }
 
-  return <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>;
+  // Under the development mock-auth seam this is a config no wallet can sign through.
+  return (
+    <WagmiProvider config={activeWagmiConfig(wagmiConfig as unknown as Config)}>
+      {children}
+    </WagmiProvider>
+  );
 }
 
 // Re-export AppKit hook

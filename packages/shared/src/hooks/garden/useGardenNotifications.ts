@@ -1,0 +1,356 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { worksKeys } from "../../config/query-keys/work";
+import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
+import {
+  deriveGardenNotifications,
+  type GardenNotification as GardenNotificationEvent,
+  gardenNotificationsScope,
+  isNotificationCleared,
+  isNotificationNew,
+  NEW_NOTIFICATION_WINDOW_SECONDS,
+  type SeenNotification,
+} from "../../modules/garden/notifications";
+import { resolveGardenWorkRows } from "../../modules/work/local-status-overlay";
+import { readGardenActivity } from "../../modules/work/work-list";
+import { useGardenNotificationsSeenStore } from "../../stores/useGardenNotificationsSeenStore";
+import type { Address } from "../../types/domain";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useCommitmentPools, useCommitments } from "../commitment-pooling/useCommitmentPooling";
+import { usePoolClaimRequests } from "../commitment-pooling/usePoolClaimRequests";
+import { useHasRole } from "../roles/useHasRole";
+import { useDocumentEvent } from "../utils/useEventListener";
+import { useTimeout } from "../utils/useTimeout";
+import { useWorks } from "../work/useWorks";
+import { useWorkVisibility, workVisibilityQuery } from "../work/useWorkVisibility";
+import { useGardenPermissions } from "./useGardenPermissions";
+import { useJoinRequestCount } from "./useJoinRequestCount";
+import { useMyGardens } from "./useMyGardens";
+
+import type { HubGardenChangeRow as HubChangeRow } from "./useHubGardenChanges";
+
+// The Hub's bell lives beside the installed app's, on this declared leaf (PRD-1536).
+export { useHubGardenChanges } from "./useHubGardenChanges";
+/** One change in the Hub's bell. A local alias, for the reason below. */
+export type HubGardenChangeRow = HubChangeRow;
+
+/**
+ * One of the bell's events (`modules/garden/notifications`). A local alias rather than a
+ * re-export: Storybook's module mock reads a re-export as a runtime import and fails on a type.
+ */
+export type GardenNotification = GardenNotificationEvent;
+
+export interface GardenNotifications {
+  /** The garden's events for the signed-in account, newest first, each new or seen here. */
+  notifications: Array<GardenNotification & { isNew: boolean }>;
+  /** What the bell's badge counts: the events this device has not shown yet. */
+  newCount: number;
+  /** A read has not answered yet, the account's roles included, so the list may still grow. */
+  isLoading: boolean;
+  /** A read failed, so the list may be missing events. */
+  isError: boolean;
+  /**
+   * The work reads answered only in part: some decisions could not be read, the week held more
+   * than one read lists, or a work's decisions disagree, so an approval may be missing or a
+   * decided submission still listed.
+   */
+  isIncomplete: boolean;
+  /**
+   * Record that the member was shown these events, on this device, and recompute what is new as
+   * of now. The sheet calls it with the rows its open tab lists, as it opens and as they change,
+   * so an event that lands under another tab stays new until that tab is opened (DL-133).
+   */
+  markSeen: (shown: readonly SeenNotification[]) => void;
+  /**
+   * Hide every listed event on this device and count it seen: the sheet's Clear All (DL-133).
+   * A later event is new and listed as before.
+   */
+  clearAll: () => void;
+  /**
+   * Read every source of the events again, as the sheet does when it opens and from its Refresh
+   * (DL-168). A source that is off (no pool yet, no grant, no steward role) stays off, and a read
+   * already running is joined rather than started over. The account's roles gate the steward
+   * events, so a roster or steward-role read that failed is asked again too; one that answered
+   * stays, kept fresh by its own read.
+   */
+  refresh: () => void;
+  /** A read is running, the first one or a refresh. */
+  isFetching: boolean;
+}
+
+const nowInSeconds = () => Math.floor(Date.now() / 1000);
+
+/** How long after an event leaves the week its newness is recomputed, past clock granularity. */
+const WEEK_BOUNDARY_MARGIN_MS = 1_000;
+
+/**
+ * The bell's events for the signed-in account in one garden (`modules/garden/notifications`),
+ * from the garden's works, the promises the account is party to and, for whoever may decide
+ * them, the take-up requests waiting in the garden's pool and the join requests waiting in
+ * Gardeners. Mount it once the garden is known; Home passes its active garden. It reads the
+ * app's default chain, as the work list does. Of its own it writes only this device's records,
+ * the events it has shown and the join-request count it last read: nothing goes on chain or to
+ * the agent, and no read asks to sign.
+ *
+ * Newness is a question of the clock, so it is recomputed while the app stays mounted: when the
+ * sheet opens, when the page becomes visible again, and when the next new event leaves the
+ * week. A badge never outlives its event's week.
+ */
+export function useGardenNotifications(gardenId: string): GardenNotifications {
+  const chainId = DEFAULT_CHAIN_ID;
+  const queryClient = useQueryClient();
+  const visibility = useWorkVisibility(chainId);
+  const { isVisible } = visibility;
+  const account = usePrimaryAddress();
+  const myGardens = useMyGardens(account, chainId);
+  const permissions = useGardenPermissions();
+  const mine = myGardens.gardens.find(
+    ({ garden }) => garden.id.toLowerCase() === gardenId.toLowerCase()
+  );
+  // Each steward event follows the read that gates its act on the phone: the work page's review
+  // (`canManageGarden`, from the garden's record) and the claim panel's decision, a live chain
+  // read of the pool's garden (`stewardsPoolGarden`: the steward or owner hat).
+  const canReviewWork = mine ? permissions.canManageGarden(mine.garden) : false;
+  const stewardRead = useHasRole(
+    gardenId as Address,
+    (account ?? undefined) as Address | undefined,
+    "steward",
+    chainId
+  );
+  const canDecideTakeUps = stewardRead.hasRole;
+  // Gardeners answers requests to join for the work page's stewards and owners, and lists no
+  // other kind. Their count is read only with the grant a signed check of that queue left here.
+  const canAnswerJoinRequests = canReviewWork;
+  const joinRequestRead = useJoinRequestCount(gardenId, {
+    enabled: canAnswerJoinRequests,
+    kind: "garden_membership",
+  });
+
+  // The garden's page of works, read as the installed app's other work screens read it, so they
+  // share one projection and the bell never writes the Hub's merged rows, which those screens
+  // take as overlays.
+  const workRead = useWorks(gardenId, { offline: true });
+  // The week's works and decisions, however far back each work began: the page holds only the
+  // newest works, and an older one decided this week is as new as a fresh submission.
+  const activityRead = useQuery({
+    queryKey: worksKeys.activity(gardenId, chainId),
+    queryFn: async () =>
+      readGardenActivity({
+        garden: gardenId,
+        chainId,
+        since: nowInSeconds() - NEW_NOTIFICATION_WINDOW_SECONDS,
+        visibility: await queryClient.fetchQuery(workVisibilityQuery(chainId)),
+      }),
+    enabled: Boolean(gardenId),
+    networkMode: "online",
+    staleTime: STALE_TIMES.works,
+    gcTime: GC_TIMES.works,
+  });
+  const poolsRead = useCommitmentPools({ chainId, garden: gardenId as Address });
+  const poolId = poolsRead.pools[0]?.poolId;
+  // The promises the account is party to, the Promises launcher's own read, so the key is
+  // shared with it and the read never grows with the pool's history. It waits for the pool id,
+  // since only the rows of the garden's pool count.
+  const commitmentsRead = useCommitments(
+    { chainId, account: (account ?? undefined) as Address | undefined },
+    { enabled: poolId !== undefined && Boolean(account) }
+  );
+  // Without a pool id this read would cover every take-up request on the chain.
+  const takeUpsRead = usePoolClaimRequests(
+    { chainId, poolId: poolId ?? 0n, state: "PENDING" },
+    { enabled: canDecideTakeUps && poolId !== undefined }
+  );
+
+  const scope = gardenNotificationsScope(chainId, account, gardenId);
+  const record = useGardenNotificationsSeenStore((state) =>
+    scope ? state.seenByScope[scope] : undefined
+  );
+  const writeSeen = useGardenNotificationsSeenStore((state) => state.markSeen);
+  const clearMarks = useGardenNotificationsSeenStore((state) => state.clearAll);
+  const joinRequestsRecord = useGardenNotificationsSeenStore((state) =>
+    scope ? state.joinRequestsByScope[scope] : undefined
+  );
+  const noteJoinRequests = useGardenNotificationsSeenStore((state) => state.noteJoinRequests);
+
+  // Each answer of the count is noted here, and this device dates a rise as it reads one. A browser
+  // that no longer holds a grant drops the record, since nothing here can read the queue again.
+  const joinRequestsWaiting = joinRequestRead.waiting;
+  const holdsJoinRequestGrant = joinRequestRead.hasGrant;
+  useEffect(() => {
+    if (!scope) return;
+    if (canAnswerJoinRequests && !holdsJoinRequestGrant) {
+      noteJoinRequests(scope, 0, nowInSeconds());
+    } else if (joinRequestsWaiting !== undefined) {
+      noteJoinRequests(scope, joinRequestsWaiting, nowInSeconds());
+    }
+  }, [scope, canAnswerJoinRequests, holdsJoinRequestGrant, joinRequestsWaiting, noteJoinRequests]);
+
+  // The moment newness is judged against. It moves when the sheet opens, when the page comes
+  // back and when the next new event leaves the week; a render alone never moves it.
+  const [now, setNow] = useState(nowInSeconds);
+  const refreshNow = useCallback(() => setNow(nowInSeconds()), []);
+  useDocumentEvent("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshNow();
+  });
+
+  const { works } = workRead;
+  const { data: activity } = activityRead;
+  const { data: cachedCommitments } = commitmentsRead;
+  const { data: cachedTakeUps } = takeUpsRead;
+  const { notifications, newCount, weekIncomplete } = useMemo(() => {
+    if (!account) return { notifications: [], newCount: 0, weekIncomplete: false };
+    // The page's rows carry this device's own decisions, so they win where both list a work.
+    const onPage = new Set(works.map((work) => work.id));
+    const week = activity
+      ? resolveGardenWorkRows({
+          remote: activity.rows.filter((work) => isVisible(work.id)),
+          saved: undefined,
+          overlay: undefined,
+        })
+      : null;
+    // A work whose decisions disagree in one timestamp bucket has no known status: it is listed
+    // neither as a submission nor as a decision, and the week is incomplete for it.
+    const thisWeek = week
+      ? week.rows.filter((work) => !onPage.has(work.id) && !week.unknownIds.has(work.id))
+      : [];
+    // A disabled read still answers from the cache, and the account's read spans every pool,
+    // so only the rows of the garden's own pool count.
+    const inPool = (candidatePoolId: bigint | null | undefined) =>
+      poolId !== undefined && candidatePoolId === poolId;
+    // An event cleared on this device stays out of the list (DL-133).
+    const listed = deriveGardenNotifications({
+      account,
+      canReviewWork,
+      canDecideTakeUps,
+      works: [...works, ...thisWeek],
+      commitments: (cachedCommitments ?? []).filter((commitment) => inPool(commitment.poolId)),
+      takeUpRequests: (cachedTakeUps ?? []).filter((row) => inPool(row.commitment.poolId)),
+      // The record follows the read that answers; it stands only while that read says some wait.
+      joinRequests: joinRequestsWaiting ? joinRequestsRecord : undefined,
+    })
+      .filter((notification) => !isNotificationCleared(notification, record))
+      .map((notification) => ({
+        ...notification,
+        isNew: isNotificationNew(notification, record, now),
+      }));
+    return {
+      notifications: listed,
+      newCount: listed.filter(({ isNew }) => isNew).length,
+      weekIncomplete: week !== null && week.unknownIds.size > 0,
+    };
+  }, [
+    account,
+    canReviewWork,
+    canDecideTakeUps,
+    works,
+    activity,
+    isVisible,
+    poolId,
+    cachedCommitments,
+    cachedTakeUps,
+    joinRequestsWaiting,
+    joinRequestsRecord,
+    record,
+    now,
+  ]);
+
+  // The next new event to leave the week takes its newness with it, so a badge goes by itself.
+  const { set: scheduleRefresh } = useTimeout();
+  useEffect(() => {
+    const leaving = notifications
+      .filter(({ isNew }) => isNew)
+      .map(({ at }) => at + NEW_NOTIFICATION_WINDOW_SECONDS);
+    if (leaving.length === 0) return;
+    const delayMs = Math.min(...leaving) * 1000 - Date.now() + WEEK_BOUNDARY_MARGIN_MS;
+    return scheduleRefresh(refreshNow, Math.max(0, delayMs));
+  }, [notifications, refreshNow, scheduleRefresh]);
+
+  const markSeen = useCallback(
+    (shown: readonly SeenNotification[]) => {
+      const at = nowInSeconds();
+      setNow(at);
+      if (scope) writeSeen(scope, shown, at);
+    },
+    [writeSeen, scope]
+  );
+  const clearAll = useCallback(() => {
+    const at = nowInSeconds();
+    setNow(at);
+    if (scope) clearMarks(scope, notifications, at);
+  }, [clearMarks, notifications, scope]);
+
+  // The work page's read decides for itself whether it can run (online, or its offline copy), and
+  // the join-request count needs a grant; the query reads answer whether they are on. A failed
+  // role read is asked again unless it is already being asked; one that answered is left alone,
+  // since asking again would read every garden on the chain each time the sheet opens.
+  const { refetch: refetchWorkPage } = workRead;
+  const { refetch: readJoinRequestsAgain } = joinRequestRead;
+  const { refetch: readRosterAgain } = myGardens;
+  const { refetch: readStewardRoleAgain } = stewardRead;
+  const rosterFailed = myGardens.isError && !myGardens.isFetching;
+  const stewardRoleFailed = Boolean(stewardRead.error) && !stewardRead.isFetching;
+  const refresh = useCallback(() => {
+    refreshNow();
+    if (rosterFailed) readRosterAgain();
+    if (stewardRoleFailed) void readStewardRoleAgain();
+    refetchWorkPage();
+    readJoinRequestsAgain();
+    for (const read of [activityRead, poolsRead, commitmentsRead, takeUpsRead]) {
+      if (read.isEnabled) void read.refetch({ cancelRefetch: false });
+    }
+  }, [
+    refreshNow,
+    rosterFailed,
+    readRosterAgain,
+    stewardRoleFailed,
+    readStewardRoleAgain,
+    refetchWorkPage,
+    readJoinRequestsAgain,
+    activityRead,
+    poolsRead,
+    commitmentsRead,
+    takeUpsRead,
+  ]);
+
+  return {
+    notifications,
+    newCount,
+    isLoading:
+      (!myGardens.isLoaded && !myGardens.isError) ||
+      stewardRead.isLoading ||
+      workRead.isLoading ||
+      activityRead.isLoading ||
+      poolsRead.isLoading ||
+      commitmentsRead.isLoading ||
+      takeUpsRead.isLoading ||
+      joinRequestRead.isLoading,
+    isError:
+      myGardens.isError ||
+      Boolean(stewardRead.error) ||
+      workRead.isError ||
+      activityRead.isError ||
+      poolsRead.isError ||
+      commitmentsRead.isError ||
+      takeUpsRead.isError ||
+      joinRequestRead.isError,
+    isIncomplete:
+      workRead.refreshWarning ||
+      workRead.hasUnknownStatuses ||
+      activity?.complete === false ||
+      weekIncomplete,
+    markSeen,
+    clearAll,
+    refresh,
+    // Every source a refresh reads again, so Refresh shows progress until the last has answered.
+    isFetching:
+      myGardens.isFetching ||
+      stewardRead.isFetching ||
+      workRead.isFetching ||
+      activityRead.isFetching ||
+      poolsRead.isFetching ||
+      commitmentsRead.isFetching ||
+      takeUpsRead.isFetching ||
+      joinRequestRead.isFetching,
+  };
+}

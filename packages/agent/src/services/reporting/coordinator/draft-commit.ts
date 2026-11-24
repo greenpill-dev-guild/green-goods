@@ -13,9 +13,20 @@ import { invalidateConfirmation } from "../confirmations";
 import {
   commitDraft,
   type DraftRecord,
+  isOpenLifecycle,
+  pinnedQuestionProfile,
+  pinQuestionProfile,
   REPORT_LIFECYCLE_VERSION,
   type ReportLifecycle,
 } from "../drafts";
+import { closeSubjectPrompt } from "../prompts";
+import {
+  profileRef,
+  QUESTION_PROFILES,
+  type QuestionProfile,
+  questionProfileFor,
+} from "../questions";
+import type { ReportingCore } from "../runtime";
 
 /** Thrown inside a commit transaction to roll it back when another writer changed the draft. */
 export class StaleDraftError extends Error {
@@ -97,6 +108,11 @@ export function commitContentChange(
     participantAction: true,
   });
   if (committed === "stale") throw new StaleDraftError();
+  // A report that takes an activity takes the newest way of asking its fields, and keeps it.
+  if (snapshot?.digest !== draft.snapshot?.digest) {
+    const profile = questionProfileFor(snapshot, core.questions ?? QUESTION_PROFILES);
+    pinQuestionProfile(core, draft.id, profile ? profileRef(profile) : null);
+  }
   if (!["collecting", "review"].includes(lifecycleState(draft)))
     supersedeConfirmedWork(core, draft.id);
   return committed;
@@ -123,7 +139,11 @@ function supersedeConfirmedWork(core: Parameters<typeof commitDraft>[0], draftId
     .run({ draft: draftId });
 }
 
-/** Commits lifecycle-only events at the current revision. */
+/**
+ * Commits lifecycle-only events at the current revision. A report that ends (published,
+ * cancelled or expired) closes its open question too: left open, it would take the gardener's next
+ * message for an answer to a report that can no longer change.
+ */
 export function commitLifecycle(
   core: Parameters<typeof commitDraft>[0],
   draft: DraftRecord,
@@ -140,5 +160,23 @@ export function commitLifecycle(
     authorAccountId: options.authorAccountId,
   });
   if (committed === "stale") throw new StaleDraftError();
+  if (!isOpenLifecycle(committed.lifecycle))
+    closeSubjectPrompt(core, draft.conversationId, "draft", draft.id);
   return { draft: committed, refused };
+}
+
+/**
+ * The profile a report's fields are asked and read with. `snapshot` is the activity as the turn
+ * holds it: the report's own keeps the profile it was pinned to, and one the turn has just taken
+ * gets the newest, which the commit then pins.
+ */
+export function questionProfileOf(
+  core: ReportingCore,
+  draft: Pick<DraftRecord, "id" | "snapshot">,
+  snapshot: ActionDefinitionSnapshot | null = draft.snapshot
+): QuestionProfile | null {
+  const profiles = core.questions ?? QUESTION_PROFILES;
+  return snapshot?.digest === draft.snapshot?.digest
+    ? questionProfileFor(snapshot, profiles, pinnedQuestionProfile(core, draft.id))
+    : questionProfileFor(snapshot, profiles);
 }

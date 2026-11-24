@@ -67,12 +67,34 @@ function formatLogEntry(
 }
 
 /**
+ * Serialize a log entry as one line of JSON for log aggregation.
+ * `JSON.stringify` throws on a bigint or a cycle, which turns a log call into a throw at its
+ * call site. Contexts carry bigints (viem receipts and amounts, and the call args a viem
+ * contract error keeps), so a bigint is written as its decimal string and a reference back
+ * to an enclosing object as "[Circular]". Every other value serializes as before.
+ */
+function serializeLogEntry(contextObj: Record<string, unknown>): string {
+  // The objects on the path from the entry down to the value being written.
+  const ancestors: unknown[] = [];
+  return JSON.stringify(contextObj, function (this: unknown, _key: string, value: unknown) {
+    if (typeof value === "bigint") return value.toString();
+    if (typeof value !== "object" || value === null) return value;
+    // `this` holds `value`, so anything above it on the path belongs to a finished branch.
+    while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) ancestors.pop();
+    if (ancestors.includes(value)) return "[Circular]";
+    ancestors.push(value);
+    return value;
+  });
+}
+
+/**
  * Check if we're in development mode
  */
 function isDevelopment(): boolean {
   try {
-    // Vite environment
-    return (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
+    // Vite environment. Spelled `import.meta.env` so Vitest's env stubs reach it; DEV is
+    // widened because the Agent compiles this file with Bun's types, where it is a string.
+    return (import.meta.env?.DEV as unknown) === true;
   } catch {
     // Node.js or unknown environment
     return process.env.NODE_ENV !== "production";
@@ -91,7 +113,7 @@ export const logger: Logger = {
       console.error(formatted, contextObj);
     } else {
       // Production: output as JSON for log aggregation
-      console.error(JSON.stringify(contextObj));
+      console.error(serializeLogEntry(contextObj));
     }
   },
 
@@ -100,7 +122,7 @@ export const logger: Logger = {
     if (isDevelopment()) {
       console.warn(formatted, contextObj);
     } else {
-      console.warn(JSON.stringify(contextObj));
+      console.warn(serializeLogEntry(contextObj));
     }
   },
 
@@ -109,7 +131,7 @@ export const logger: Logger = {
     if (isDevelopment()) {
       console.info(formatted, contextObj);
     } else {
-      console.info(JSON.stringify(contextObj));
+      console.info(serializeLogEntry(contextObj));
     }
   },
 

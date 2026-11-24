@@ -29,7 +29,7 @@ async function warmClientBoot(page: Page, clientUrl: string): Promise<void> {
 async function warmAdminBoot(page: Page, adminUrl: string): Promise<void> {
   const startedAt = Date.now();
   try {
-    await page.goto(`${adminUrl}/hub`, {
+    await page.goto(`${adminUrl}/review`, {
       waitUntil: "domcontentloaded",
       timeout: ADMIN_WARMUP_TIMEOUT_MS,
     });
@@ -77,25 +77,21 @@ async function globalSetup() {
   const isCI = process.env.CI === "true";
   const protocol = isCI ? "http" : "https";
 
-  // Set test environment variables
   process.env.TEST_INDEXER_URL = "http://localhost:3006/v1/graphql";
   process.env.TEST_CLIENT_URL = `${protocol}://localhost:3001`;
   process.env.TEST_ADMIN_URL = `${protocol}://localhost:3002`;
   process.env.TEST_CHAIN_ID = "11155111"; // Sepolia
 
-  // Enable service worker only for PWA tests
   if (process.env.ENABLE_PWA_E2E === "true") {
     process.env.VITE_ENABLE_SW_DEV = "true";
   }
 
-  // Skip health check if requested
   if (envFlag("SKIP_HEALTH_CHECK")) {
     console.log("⏭️  Skipping health check (SKIP_HEALTH_CHECK=true)\n");
     console.log("✅ Global setup complete\n");
     return;
   }
 
-  // Run health checks
   const browser = await chromium.launch({
     channel: process.env.PLAYWRIGHT_QUALIFIED === "true" ? "chromium" : undefined,
   });

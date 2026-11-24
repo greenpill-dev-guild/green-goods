@@ -82,9 +82,9 @@ const CUMULATIVE_WEIGHTS = {
 const STAGE_MESSAGES: Record<SubmissionStage, string> = {
   idle: "Ready to submit",
   compressing: "Compressing images...",
-  uploading: "Uploading to IPFS...",
+  uploading: "Uploading photos…",
   confirming: "Confirm in your wallet...",
-  syncing: "Syncing with blockchain...",
+  syncing: "Recording your work…",
   complete: "Submission complete!",
   error: "Submission failed",
 };

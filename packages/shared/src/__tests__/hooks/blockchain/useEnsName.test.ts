@@ -67,18 +67,7 @@ describe("useEnsName", () => {
         expect(result.current.isSuccess).toBe(true);
       });
       expect(result.current.data).toBe("vitalik.eth");
-    });
-
-    it("passes the normalized address to the resolver", async () => {
-      mockResolveEnsName.mockResolvedValue("vitalik.eth");
-
-      renderHookWithQueryClient(() => useEnsName(VALID_ADDRESS), {
-        queryClient,
-      });
-
-      await waitFor(() => {
-        expect(mockResolveEnsName).toHaveBeenCalledWith(VALID_ADDRESS.toLowerCase(), {});
-      });
+      expect(mockResolveEnsName).toHaveBeenCalledWith(VALID_ADDRESS.toLowerCase(), {});
     });
   });
 

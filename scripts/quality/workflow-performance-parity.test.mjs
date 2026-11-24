@@ -30,6 +30,8 @@ function read(relativePath) {
   return readFileSync(join(root, relativePath), "utf8");
 }
 
+const { toolchain } = JSON.parse(read("scripts/data/validation-policy.json"));
+
 function workflowEventBlock(source, event) {
   const marker = `  ${event}:\n`;
   const start = source.indexOf(marker);
@@ -73,11 +75,19 @@ function coverageGlobFloors(packageName) {
   return Object.fromEntries(entries);
 }
 
+test("the Agents Doctor caller runs the doctor script from the guild commit it pins the workflow to", () => {
+  const workflow = read(".github/workflows/agents-doctor.yml");
+  const pinned = workflow.match(/uses: greenpill-dev-guild\/\.github\/\.github\/workflows\/agents-doctor\.yml@([0-9a-f]{40})\b/)?.[1];
+  assert.ok(pinned, "the caller pins the guild workflow to a full SHA");
+  // Without doctor-ref the script floats on the guild's main; with another SHA it drifts from the workflow.
+  assert.equal(workflow.match(/^\s*doctor-ref: ([0-9a-f]{40})\s*$/m)?.[1], pinned);
+});
+
 test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
   const action = read(".github/actions/setup-js/action.yml");
 
-  assert.match(action, /node-version:\s*["']22\.22\.1["']/);
-  assert.match(action, /bun-version:\s*["']1\.4\.2["']/);
+  assert.equal(action.match(/node-version:\s*["']([^"']+)["']/)?.[1], toolchain.node);
+  assert.equal(action.match(/bun-version:\s*["']([^"']+)["']/)?.[1], toolchain.bun);
   assert.match(action, /uses:\s*actions\/setup-node@[0-9a-f]{40}/);
   assert.match(action, /uses:\s*oven-sh\/setup-bun@[0-9a-f]{40}/);
   assert.match(action, /bun install --frozen-lockfile/);
@@ -199,30 +209,35 @@ test("Supply Chain classifier routes each change class without broad fallthrough
     guidance: false,
     supply: false,
     parity: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([".claude/skills/ship/SKILL.md"]), {
     format: true,
     guidance: true,
     supply: false,
     parity: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges(["bun.lock"]), {
     format: true,
     guidance: false,
     supply: true,
     parity: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([".github/workflows/design.yml"]), {
     format: true,
     guidance: false,
     supply: true,
     parity: true,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([], { workflowDispatch: true }), {
     format: true,
     guidance: true,
     supply: true,
     parity: true,
+    deadcode: true,
   });
   // Catalog and ledger edits reach the guidance job, where the cross-revision
   // Test ID guard runs; a data-only PR must not skip it.
@@ -232,6 +247,7 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       guidance: true,
       supply: false,
       parity: false,
+      deadcode: true,
     });
   }
   // The parity suite holds the tests for these test-quality inputs, so a change to one runs it.
@@ -247,7 +263,28 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       guidance: false,
       supply: false,
       parity: true,
+      deadcode: true,
     });
+  }
+  // Knip reads workflows, hooks and tool configs as well as code, so the dead-code job runs on every run.
+  for (const knipInput of [".husky/pre-commit", ".mcp.json", ".gitignore", "docs/docs/index.mdx"]) {
+    assert.equal(classifySupplyChainChanges([knipInput]).deadcode, true, knipInput);
+  }
+});
+
+test("QA runtime and catalog changes reach the existing required behavioral job", () => {
+  const source = read(".github/workflows/supply-chain-guardrails.yml");
+  const start = source.search(/^  guidance:\n/m);
+  assert.notEqual(start, -1);
+  const job = source.slice(start, source.indexOf("\n  parity:", start));
+  assert.match(job, /run: bun run check --only agent-tools-test/);
+  for (const path of ["packages/qa/store.ts", "packages/qa/runs.ts", "packages/qa/api/runs.ts", "packages/qa/index.html", "scripts/agents/qa-app-store.test.ts", "scripts/data/qa-test-catalog.json"]) {
+    assert.equal(classifySupplyChainChanges([path]).guidance, true, path);
+  }
+  for (const event of ["push", "pull_request"]) {
+    assert.ok(workflowEventBlock(source, event).includes('"packages/qa/**"'));
+    assert.ok(workflowEventBlock(source, event).includes('"scripts/agents/**"'));
+    assert.ok(workflowEventBlock(read(".github/workflows/client.yml"), event).includes('"packages/agent/src/**"'));
   }
 });
 
@@ -307,6 +344,9 @@ test("local hooks keep commit light and reuse the focused push contract", () => 
   const settings = JSON.parse(read(".claude/settings.json"));
   const completionGate = read(".claude/scripts/task-completion-gate.sh");
 
+  for (const hook of [preCommit, prePush]) {
+    assert.match(hook, /^export PATH="\$PATH:\$HOME\/\.bun\/bin:\$HOME\/\.local\/bin"$/m);
+  }
   assert.match(preCommit, /bunx lint-staged/);
   assert.doesNotMatch(preCommit, /ci-local|bun run lint|bun run test|typecheck/);
   assert.match(
@@ -323,15 +363,24 @@ test("local hooks keep commit light and reuse the focused push contract", () => 
   // agent-hooks.test.mjs exercises advisory completion through real event fixtures.
 });
 
-test("every direct Node and Bun setup uses the exact repository versions", () => {
-  for (const [file, source] of workflowSources()) {
+test("local, CI, and container runtime pins match the validation toolchain", () => {
+  const setupPaths = [".github/actions/setup-js/action.yml", ".github/workflows/ci-gate.yml"];
+  for (const [file, source] of [...workflowSources(), ...setupPaths.map((file) => [file, read(file)])]) {
     for (const match of source.matchAll(/node-version:\s*["']?([^\s"']+)/g)) {
-      assert.equal(match[1], "22.22.1", `${file} has a drifting Node pin`);
+      assert.equal(match[1], toolchain.node, `${file} has a drifting Node pin`);
     }
     for (const match of source.matchAll(/bun-version:\s*["']?([^\s"']+)/g)) {
-      assert.equal(match[1], "1.4.2", `${file} has a drifting Bun pin`);
+      assert.equal(match[1], toolchain.bun, `${file} has a drifting Bun pin`);
     }
   }
+  const mise = read(".mise.toml");
+  assert.equal(mise.match(/^node = "([^"]+)"/m)?.[1], toolchain.node);
+  assert.equal(mise.match(/^bun = "([^"]+)"/m)?.[1], toolchain.bun);
+  assert.equal(JSON.parse(read("package.json")).packageManager, `bun@${toolchain.bun}`);
+  assert.equal(read("packages/agent/Dockerfile").match(/^ARG BUN_VERSION=(\S+)/m)?.[1], toolchain.bun);
+  const indexer = read("packages/indexer/Dockerfile");
+  assert.equal(indexer.match(/^FROM oven\/bun:([^\s]+)-slim AS bun$/m)?.[1], toolchain.bun);
+  assert.equal(indexer.match(/^FROM node:([^\s]+)-slim$/m)?.[1], toolchain.node);
 });
 
 test("raw Solidity source does not fan out to mocked consumer workflows", () => {
@@ -526,7 +575,10 @@ test("CI coverage drops HTML generation without weakening local reports or thres
   assert.equal(indexerCoverage.steps.length, 1);
   const coverageArgs = indexerCoverage.steps[0].args;
   assert.deepEqual(coverageArgs.slice(1, 6), ["c8", "--reporter", "text", "--reporter", "json"]);
-  assert.deepEqual(coverageArgs.slice(8), ["mocha", "--require", "tsx", "--timeout", "30000", "test/**/*.ts"]);
+  assert.deepEqual(coverageArgs.slice(8), [
+    "mocha", "--node-option", "no-experimental-require-module", "--node-option", "import=tsx",
+    "--timeout", "30000", "test/**/*.ts",
+  ]);
   assert.match(
     read(".github/workflows/indexer.yml"),
     /run:\s*bun run test --scope handlers --coverage --reporter text --reporter json/,
@@ -539,7 +591,7 @@ test("Shared critical, Cookie Jar, and image-compression coverage globs preserve
     "src/modules/job-queue/**": [76, 82, 85, 82],
     "src/hooks/auth/**": [73, 76, 77, 75],
     "src/hooks/vault/**": [57, 66, 71, 69],
-    "src/hooks/cookie-jar/useCookieJarDeposit.ts": [58, 74, 86, 86],
+    "src/hooks/cookie-jar/useCookieJarDepositMutation.ts": [58, 74, 86, 86],
     "src/hooks/cookie-jar/useCampaignCookieJar.ts": [43, 33, 39, 38],
     "src/utils/work/image-compression.ts": [35, 67, 69, 68],
   });
@@ -865,17 +917,18 @@ test("Client CI keeps staged modules isolated", () => {
   assert.match(source, /name: Check staged client modules\n\s+run: bun run check --only staged-modules/);
 });
 
-test("PR Test jobs run plain tests; thresholds are enforced nightly and on main", () => {
-  for (const file of ["shared.yml", "client.yml", "admin.yml"]) {
+test("Client and Admin PR tests hold their coverage floors; sharded Shared runs plain and its floors run nightly and on main", () => {
+  const testJob = (file) => {
     const source = read(`.github/workflows/${file}`);
-    const testJob = source.slice(
-      source.indexOf("  test:"),
-      source.indexOf("  lint-", source.indexOf("  test:")),
-    );
-
-    assert.match(testJob, /run:\s*bun run test(?:\s|$)/, `${file} Test must stay plain`);
-    assert.doesNotMatch(testJob, /coverage/, `${file} Test must not collect coverage`);
+    return source.slice(source.indexOf("  test:"), source.indexOf("  lint-", source.indexOf("  test:")));
+  };
+  // A whole suite in one job can hold the package's floors on every pull request.
+  for (const file of ["client.yml", "admin.yml"]) {
+    assert.match(testJob(file), /run:\s*bun run test --coverage(?:\s|$)/, `${file} Test must hold its coverage floors`);
   }
+  // Shared's suite runs in shards, and a shard cannot meet a whole-package floor.
+  assert.match(testJob("shared.yml"), /run:\s*bun run test --shard/, "shared.yml Test stays sharded");
+  assert.doesNotMatch(testJob("shared.yml"), /coverage/, "shared.yml Test must not collect coverage per shard");
 
   const source = read(".github/workflows/coverage-nightly.yml");
   assert.match(source, /schedule:\s*\n\s*- cron:/);
@@ -946,7 +999,7 @@ test("contracts realism remains equivalent without unrelated tool setup", () => 
     realism,
     /Install Foundry|setup-bun|bun install|submodules:\s*recursive/,
   );
-  assert.match(realism, /node-version:\s*["']22\.22\.1["']/);
+  assert.equal(realism.match(/node-version:\s*["']([^"']+)["']/)?.[1], toolchain.node);
   assert.match(realism, /bash scripts\/contracts\/validate-test-realism-tooling\.sh/);
   assert.match(realism, /bash scripts\/contracts\/check-test-realism\.sh/);
 });
@@ -973,7 +1026,9 @@ test("repository formatting runs once, early in the broad guardrail", () => {
 test("contract fork CI selects the same shards through the argument-based runner", () => {
   const source = read(".github/workflows/contracts.yml");
   const core = source.slice(source.indexOf("  fork-readiness-core:"), source.indexOf("  fork-readiness-arbitrum:"));
-  assert.deepEqual([...core.matchAll(/- shard: ([\w-]+)/g)].map((match) => match[1]), ["sepolia", "ethereum"]);
+  assert.deepEqual([...core.matchAll(/- shard: ([\w-]+)/g)].map((match) => match[1]), [
+    "sepolia", "ethereum", "garden-account-release", "garden-roles", "gnosis-vouchers",
+  ]);
   assert.match(core, /working-directory: packages\/contracts\s+run: bun run test:shard run \$\{\{ matrix\.shard \}\}/);
   const sequential = source.slice(source.indexOf("  fork-readiness-arbitrum:"));
   assert.deepEqual([...sequential.matchAll(/bun run test:shard run ([\w-]+)/g)].map((match) => match[1]), [
@@ -982,7 +1037,12 @@ test("contract fork CI selects the same shards through the argument-based runner
   assert.doesNotMatch(source, /test:fork:[\w:-]+/);
 });
 
+// Three tests run the fixture in sequence inside the push gate's 180s budget. A hang in one
+// chain is systemic, so the rest skip instead of each waiting out their own cap.
+let aggregateFixtureHung = false;
+
 function aggregateFixture(command, failingPackage) {
+  assert.equal(aggregateFixtureHung, false, "an earlier aggregate chain hung; skipping this one");
   const fixture = mkdtempSync(join(tmpdir(), "gg-aggregate-selection-"));
   const log = join(fixture, "calls");
   const rootScripts = JSON.parse(read("package.json")).scripts;
@@ -1018,9 +1078,14 @@ fi
   try {
     if (command === "test") assert.equal(rootScripts.test, "node scripts/dev/test.js");
     const result = spawnSync(command === "test" ? "node" : "bun", command === "test" ? ["scripts/dev/test.js"] : ["--no-env-file", "run", command], {
-      cwd: fixture, encoding: "utf8", timeout: 10_000,
+      // The chain spawns five to seven `bun run` processes; under the load of several push gates
+      // at once each spawn slows and a 10s cap failed runs whose diffs never touched this file.
+      // The tests check order, not speed, so the cap only has to catch a hang, and three caps
+      // in a row still fit the 180s push budget.
+      cwd: fixture, encoding: "utf8", timeout: 45_000,
       env: { ...process.env, CALL_LOG: log, AGGREGATE_PATH: process.env.PATH, PATH: `${join(fixture, "bin")}:${process.env.PATH}` },
     });
+    if (result.error?.code === "ETIMEDOUT" || result.signal === "SIGTERM") aggregateFixtureHung = true;
     return { ...result, calls: readFileSync(log, "utf8").trim().split("\n") };
   } finally {
     rmSync(fixture, { recursive: true, force: true });

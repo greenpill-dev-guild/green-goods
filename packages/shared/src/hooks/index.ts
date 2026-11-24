@@ -40,8 +40,8 @@ export type { UseAnalyticsIdentityOptions } from "./analytics/useAnalyticsIdenti
 export { useAnalyticsIdentity } from "./analytics/useAnalyticsIdentity";
 export type { UsePageViewOptions } from "./analytics/usePageView";
 export { usePageView } from "./analytics/usePageView";
-export type { ArrivalInputs, ArrivalKind, ArrivalState } from "./app/useArrivalState";
-export { resolveArrivalKind, useArrivalState } from "./app/useArrivalState";
+export type { ArrivalState } from "./app/useArrivalState";
+export { useArrivalState } from "./app/useArrivalState";
 // ============================================================================
 // APP
 // ============================================================================
@@ -193,10 +193,9 @@ export { useAccessibleCookieJars } from "./cookie-jar/useAccessibleCookieJars";
 export {
   useCampaignCookieJar,
   useCampaignCookieJarDeposit,
+  useCampaignCookieJarSync,
   useCampaignCookieJarWithdraw,
   useCreateCampaignCookieJar,
-  useSyncCampaignCookieJarAllowlist,
-  useUpdateCampaignCookieJarMetadata,
 } from "./cookie-jar/useCampaignCookieJar";
 export { useCampaignCookieJarCampaigns } from "./cookie-jar/useCampaignCookieJarCampaigns";
 export {
@@ -214,16 +213,10 @@ export { useUserCookieJars } from "./cookie-jar/useUserCookieJars";
 // ============================================================================
 // ENS (Subdomain registration via CCIP)
 // ============================================================================
-export type { ENSClaimResult } from "./ens/useENSClaim";
-export { useENSClaim } from "./ens/useENSClaim";
 export { useENSRegistrationStatus } from "./ens/useENSRegistrationStatus";
-export type { ENSReleaseResult } from "./ens/useENSReleaseName";
-export { useENSReleaseName } from "./ens/useENSReleaseName";
 export { useGreenGoodsEnsName } from "./ens/useGreenGoodsEnsName";
 export { useProtocolMemberStatus } from "./ens/useProtocolMemberStatus";
 export { useSlugAvailability } from "./ens/useSlugAvailability";
-export type { SlugFormValues } from "./ens/useSlugForm";
-export { slugSchema, useSlugForm } from "./ens/useSlugForm";
 // ============================================================================
 // GARDEN
 // ============================================================================
@@ -385,6 +378,7 @@ export type {
 } from "./public/usePublicGardenDetail";
 export { usePublicGardenDetail } from "./public/usePublicGardenDetail";
 export { usePublicCommitmentImpact } from "./public/usePublicCommitmentImpact";
+export { usePublicGardenHypercerts } from "./public/usePublicGardenHypercerts";
 export { usePublicGardenPool } from "./public/usePublicGardenPool";
 export type { PublicGardenSummary } from "./public/usePublicGardens";
 export { publicGardenHelpers, usePublicGardens } from "./public/usePublicGardens";
@@ -397,8 +391,8 @@ export type {
   PublicVaultSummary,
   PublicVaultSummaryAsset,
   PublicVaultSummaryAssetSymbol,
-} from "./public/usePublicVaultSummary";
-export { usePublicVaultSummary } from "./public/usePublicVaultSummary";
+} from "./public/usePublicVaultCatalogSummary";
+export { usePublicVaultCatalogSummary } from "./public/usePublicVaultCatalogSummary";
 export type { PublicVolume, PublicVolumeActiveGarden } from "./public/usePublicVolume";
 export {
   SEASON_ONE_VOLUME_ID,
@@ -472,7 +466,6 @@ export type { UseDepositFormResult } from "./vault/useDepositForm";
 export { useDepositForm } from "./vault/useDepositForm";
 export { useFunderLeaderboard } from "./vault/useFunderLeaderboard";
 export { useGardenVaults } from "./vault/useGardenVaults";
-export { useHarvestableYield } from "./vault/useHarvestableYield";
 export { useMyVaultDeposits } from "./vault/useMyVaultDeposits";
 export {
   type OctantVaultHarvestableYield,
@@ -509,7 +502,6 @@ export {
   type OctantVaultRedeemParams,
   useOctantVaultRedeem,
 } from "./vault/useOctantVaultWithdraw";
-export { useStrategyRate } from "./vault/useStrategyRate";
 export { useVaultDeposits } from "./vault/useVaultDeposits";
 export { useVaultEvents } from "./vault/useVaultEvents";
 export {
@@ -538,8 +530,6 @@ export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
 export { type NeedsReviewState, useNeedsReview } from "./work/useNeedsReview";
-export type { PendingReviewCountState } from "./work/usePendingReviewCount";
-export { usePendingReviewCount } from "./work/usePendingReviewCount";
 export type { PlatformStats } from "./work/usePlatformStats";
 export { usePlatformStats } from "./work/usePlatformStats";
 export { useReviewerGardenIds } from "./work/useReviewerGardenIds";
@@ -570,12 +560,7 @@ export { useWorkMutation } from "./work/useWorkMutation";
 export type { UseWorkMutationWithProgressReturn } from "./work/useWorkMutationWithProgress";
 export { useWorkMutationWithProgress } from "./work/useWorkMutationWithProgress";
 export type { UseWorksOptions } from "./work/useWorks";
-export {
-  jobToWork,
-  usePendingWorksCount,
-  useQueueStatistics,
-  useWorks,
-} from "./work/useWorks";
+export { jobToWork, usePendingWorksCount, useWorks } from "./work/useWorks";
 export { useAllocateYield } from "./yield/useAllocateYield";
 export {
   type GardenYieldSummary,

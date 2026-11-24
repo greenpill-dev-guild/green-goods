@@ -96,7 +96,7 @@ const meta: Meta<typeof CommunityPools> = {
     docs: {
       description: {
         component:
-          "Community → Coordination's pooling section speaks only for the garden in the header: its pool, one tap from the console in the Garden workspace. The protocol's own operations (settlement, protocol funding, protocol confirmations) appear only when that garden is the Green Goods Community Garden, so no other garden can reach the protocol pool.",
+          "Community → Coordination's pooling section speaks only for the garden in the header: its pool, one tap from the console in the Garden workspace. The protocol's own operations (settlement, protocol funding, protocol confirmations, who may create a garden) appear only when that garden is the Green Goods Community Garden, so no other garden can reach the protocol pool.",
       },
     },
   },

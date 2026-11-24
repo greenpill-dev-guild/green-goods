@@ -133,8 +133,8 @@ function SpringTokenCard({ token }: { token: SpringToken }) {
     <div className="flex flex-col gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-label-sm font-medium text-text-strong-950">{token.name}</div>
-          <div className="mt-1 text-paragraph-xs text-text-sub-600">{token.description}</div>
+          <div className="type-label-sm font-medium text-text-strong-950">{token.name}</div>
+          <div className="mt-1 type-meta text-text-sub-600">{token.description}</div>
         </div>
         <span className="shrink-0 rounded-full border border-stroke-soft-200 bg-bg-soft-200 px-2 py-1 text-[10px] font-medium uppercase text-text-soft-400">
           {token.family}
@@ -153,7 +153,7 @@ function SpringTokenCard({ token }: { token: SpringToken }) {
         </code>
       </div>
 
-      <div className="text-paragraph-xs text-text-sub-600">{token.use}</div>
+      <div className="type-meta text-text-sub-600">{token.use}</div>
     </div>
   );
 }
@@ -187,7 +187,7 @@ function MotionPreview({ token }: { token: SpringToken }) {
       <button
         type="button"
         onClick={replay}
-        className="rounded-lg border border-stroke-soft-200 bg-bg-soft-200 px-3 py-1.5 text-label-xs text-text-strong-950 active:scale-95"
+        className="rounded-lg border border-stroke-soft-200 bg-bg-soft-200 px-3 py-1.5 type-meta font-medium text-text-strong-950 active:scale-95"
       >
         Play {token.name}
       </button>
@@ -206,7 +206,7 @@ function LegacyUtilityList() {
         >
           <code className="text-[11px] text-text-strong-950">{utility.className}</code>
           <code className="text-[11px] text-text-sub-600">{utility.preferredToken}</code>
-          <span className="text-paragraph-xs text-text-sub-600">{utility.note}</span>
+          <span className="type-meta text-text-sub-600">{utility.note}</span>
         </div>
       ))}
     </div>
@@ -232,7 +232,7 @@ type Story = StoryObj;
 export const Default: Story = {
   render: () => (
     <div className="space-y-6">
-      <p className="text-paragraph-sm text-text-sub-600">
+      <p className="type-label-sm text-text-sub-600">
         Root <code>DESIGN.md</code> is the canonical DesignMD source.{" "}
         <code>packages/shared/src/styles/theme.css</code> projects that source into runtime aliases,
         including the seven spring tokens component CSS should use.
@@ -249,7 +249,7 @@ export const Default: Story = {
 export const Interactive: Story = {
   render: () => (
     <div className="space-y-6">
-      <p className="text-paragraph-sm text-text-sub-600">
+      <p className="type-label-sm text-text-sub-600">
         The previews use each token through <code>var(--spring-*)</code>. Spatial tokens move the
         square; effects tokens fade it.
       </p>
@@ -265,7 +265,7 @@ export const Interactive: Story = {
 export const LegacyUtilities: Story = {
   render: () => (
     <div className="space-y-4">
-      <p className="text-paragraph-sm text-text-sub-600">
+      <p className="type-label-sm text-text-sub-600">
         Existing utility classes can stay for compatibility, but they are not the source of truth
         for new motion work. New CSS should use the named spring families directly.
       </p>

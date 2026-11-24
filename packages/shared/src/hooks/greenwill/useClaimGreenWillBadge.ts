@@ -8,6 +8,7 @@ import {
   encodeAbiParameters,
   type Hex,
 } from "viem";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
@@ -24,7 +25,8 @@ import {
   type GreenWillSupportClaimParams,
 } from "../../types/greenwill";
 import { normalizeAddress, ZERO_ADDRESS } from "../../utils/blockchain/address";
-import { getNetworkContracts, GreenWillABI } from "../../utils/blockchain/contracts";
+import { GreenWillABI } from "../../utils/blockchain/contract-abis/green-will";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { extractErrorMessage } from "../../utils/errors/extract-message";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
@@ -122,6 +124,11 @@ function useClaimGreenWillBadge(
   const sender = useTransactionSender();
   const { primaryAddress } = useUser();
   const chainId = useCurrentChain();
+  const claimAct: SendActContext = {
+    act: "greenwill_badge_claim",
+    authMode: sender?.authMode,
+    chainId,
+  };
   const greenWillAddress = getNetworkContracts(chainId).greenWill;
   const invalidate = useCallback(() => {
     if (!primaryAddress) return;
@@ -148,7 +155,7 @@ function useClaimGreenWillBadge(
   // The toasts belong to the mutation, not the dialog, so a claim that lands
   // after the person closed the dialog or left the page still says so.
   const mutation = useMutation({
-    mutationFn: async (variables?: unknown) => {
+    mutationFn: recordedSendAct(claimAct, async (variables?: unknown) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) throw new Error("Connected account required");
       if (!greenWillAddress || greenWillAddress === ZERO_ADDRESS) {
@@ -193,7 +200,7 @@ function useClaimGreenWillBadge(
       // A Safe-style wallet returns before the claim executes; the result says
       // so, and the claim only counts once it does.
       return result;
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         id: `greenwill-claim-${badgeId}`,

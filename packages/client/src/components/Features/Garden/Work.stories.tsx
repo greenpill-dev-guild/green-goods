@@ -1,4 +1,5 @@
-import type { Action, Work } from "@green-goods/shared/types/domain";
+import { type Action, Domain, type Work } from "@green-goods/shared/types/domain";
+import { domainMaskOf } from "@green-goods/shared/utils/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
 import { withAppPage, withRouter } from "../../../../../shared/.storybook/decorators";
@@ -91,6 +92,7 @@ const meta: Meta<typeof GardenWork> = {
   args: {
     works: WORKS,
     actions: ACTIONS,
+    domainMask: 15,
     readState: { isError: false, isLoading: false, isPaused: false, availability: "available" },
   },
 };
@@ -102,10 +104,12 @@ export const AllWork: Story = {
   tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // The count is the bare number; screen readers hear what it counts.
-    const status = canvas.getByRole("status");
-    await expect(within(status).getByText("6")).toBeVisible();
-    await expect(within(status).getByText("6 submissions")).toHaveClass("sr-only");
+    // The count says what it counts, the one text everyone reads (DL-166). Each row's
+    // pill is a status too, so the count is found by what it says.
+    const status = canvas.getByText("6 submissions").closest<HTMLElement>('[role="status"]');
+    await expect(status).not.toBeNull();
+    await expect(status).toBeVisible();
+    await expect(status).toHaveTextContent(/^6 submissions$/);
     const type = canvas.getByRole("combobox", { name: "Type of work" });
     // All work, then the actions that have work here, A to Z.
     await expect([...(type as HTMLSelectElement).options].map((option) => option.text)).toEqual([
@@ -126,7 +130,35 @@ export const OneType: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Type of work" }), "1");
-    await expect(within(canvas.getByRole("status")).getByText("2")).toBeVisible();
+    const status = canvas.getByText("2 submissions").closest<HTMLElement>('[role="status"]');
+    await expect(status).toHaveTextContent(/^2 submissions$/);
+  },
+};
+
+export const SupportedDomains: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    domainMask: domainMaskOf([Domain.AGRO]),
+    actions: ACTIONS.map((entry, index) => ({
+      ...entry,
+      domain: index === 1 ? Domain.EDU : Domain.AGRO,
+    })),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const type = canvas.getAllByRole("combobox")[0] as HTMLSelectElement;
+    await expect([...type.options].map((option) => option.value)).toEqual([
+      "all",
+      "1",
+      "5",
+      "4",
+      "3",
+    ]);
+    await expect(canvas.getByText("Seed Library Count")).toBeVisible();
+    await userEvent.selectOptions(type, "1");
+    await expect(canvas.queryByText("Seed Library Count")).toBeNull();
+    await userEvent.selectOptions(type, "all");
+    await expect(canvas.getByText("Seed Library Count")).toBeVisible();
   },
 };
 
@@ -139,7 +171,7 @@ export const Loading: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("status")).toHaveTextContent("Gathering… this garden's work");
-    await expect(canvasElement.querySelectorAll("[data-skeleton=work-card]")).toHaveLength(5);
+    await expect(canvasElement.querySelectorAll("[data-skeleton=item-row]")).toHaveLength(5);
   },
 };
 
@@ -161,5 +193,24 @@ export const LoadError: Story = {
     works: [],
     readState: { isError: true, isLoading: false, isPaused: false, availability: "unavailable" },
     onRefresh: () => undefined,
+  },
+};
+
+/** Synthetic selected-record projection; the hook suite also covers cached and queued rows. */
+export const SelectedWorkHidden: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    works: WORKS.slice(1),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("5 submissions")).toBeVisible();
+  },
+};
+
+/** An older offline cache keeps its data but has no classification snapshot yet. */
+export const WaitingForVisibilitySnapshot: Story = {
+  args: {
+    works: [],
+    readState: { isError: false, isLoading: false, isPaused: true, availability: "unavailable" },
   },
 };

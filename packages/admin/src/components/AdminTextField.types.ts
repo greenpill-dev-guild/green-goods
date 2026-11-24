@@ -15,11 +15,18 @@ interface AdminTextFieldCommonProps {
   disabled?: boolean;
   leadingIcon?: ComponentType<{ className?: string }>;
   trailingIcon?: ComponentType<{ className?: string }>;
-  variant?: "filled" | "outlined";
   name?: string;
   id?: string;
   placeholder?: string;
   className?: string;
+  /**
+   * A button that acts on what the field holds (Add, Remove, Use Max), in the
+   * control's own row and centred on it at every field height, with the
+   * message line running under both. A button laid beside the whole field
+   * instead lines up with the label, the control and the reserved message line
+   * together, and lands low.
+   */
+  action?: React.ReactNode;
   /**
    * Count the text toward the control's own `maxLength`, shown as M3's
    * "324 / 420" at the end of the supporting row. Without a `maxLength` there
@@ -44,7 +51,8 @@ export interface AdminTextFieldProps extends AdminTextFieldCommonProps {
   inputProps?: React.ComponentPropsWithoutRef<"input">;
 }
 
-export interface AdminTextAreaProps extends AdminTextFieldCommonProps {
+/** A text area is many lines tall, so it takes no inline action. */
+export interface AdminTextAreaProps extends Omit<AdminTextFieldCommonProps, "action"> {
   onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
   /** Visible text rows before scrolling; the field is vertically resizable. */
@@ -54,8 +62,9 @@ export interface AdminTextAreaProps extends AdminTextFieldCommonProps {
   };
 }
 
+/** Shared's `NativeSelect` draws the chevron, so a select takes no trailing icon. */
 export interface AdminSelectProps
-  extends Omit<AdminTextFieldCommonProps, "showCount" | "countBytes"> {
+  extends Omit<AdminTextFieldCommonProps, "showCount" | "countBytes" | "trailingIcon"> {
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
   /** The `<option>` elements. An empty-value option acts as the placeholder row. */

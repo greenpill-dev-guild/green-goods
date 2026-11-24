@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -112,12 +112,30 @@ describe("PwaSheet layout contract", () => {
   it("leaves every cap to the height tiers: the surface sets none of its own", () => {
     expect(declarations("surface")).toMatch(/height:\s*auto/);
     expect(declarations("surface")).not.toMatch(/max-height/);
-    expect(declarations("surface")).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);
   });
 
-  it("tints the drag handle and locks its touch action", () => {
-    expect(declarations("grip")).toMatch(/background-color:\s*rgb\(var\(--tone-primary/);
-    expect(declarations("drag-handle")).toMatch(/touch-action:\s*none/);
+  it("paints every bottom sheet from one material rule, the installed app's values as fallbacks", () => {
+    // The Hub's phone dialogs carry the same rule and set only the two tokens.
+    const material = utilitiesContent.match(/\[data-sheet-surface\]\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(material).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);
+    expect(material).toMatch(/border-bottom:\s*0/);
+    expect(material).toMatch(
+      /background-color:\s*var\(--gg-sheet-fill,\s*var\(--color-material-solid\)\)/
+    );
+    expect(material).toMatch(
+      /border:\s*1px solid var\(--gg-sheet-edge,\s*rgb\(var\(--stroke-soft-200\)\)\)/
+    );
+  });
+
+  it("tints the grip and locks touch only on a handle that drags", () => {
+    const grip = (selector: string) =>
+      utilitiesContent.match(new RegExp(`${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+    const handle = '\\[data-component="SheetGrip"\\]\\[data-slot="drag-handle"\\]';
+    expect(grip('\\[data-component="SheetGrip"\\]\\[data-slot="grip"\\]')).toMatch(
+      /background-color:\s*rgb\(var\(--tone-primary/
+    );
+    expect(grip(`${handle}\\[data-drag-region\\]`)).toMatch(/touch-action:\s*none/);
+    expect(grip(handle)).not.toMatch(/touch-action|cursor/);
   });
 
   it("ships the scrollable body under the shared header", () => {
@@ -225,8 +243,9 @@ describe("SheetHeader anatomy contract (DL-028)", () => {
   const declarations = (slot: string) => utilitiesContent.match(rule(slot))?.[1] ?? "";
 
   it("types the title at 18/600 on a 24px line and the description at 14/400 on 20px", () => {
-    expect(declarations("title")).toMatch(/font-size:\s*1\.125rem/);
-    expect(declarations("title")).toMatch(/line-height:\s*1\.5rem/);
+    // A surface may set its own title size (the Hub keeps 22px); 18/24 is the fallback.
+    expect(declarations("title")).toMatch(/font-size:\s*var\(--gg-sheet-title-size,\s*1\.125rem\)/);
+    expect(declarations("title")).toMatch(/line-height:\s*var\(--gg-sheet-title-line,\s*1\.5rem\)/);
     expect(declarations("title")).toMatch(/font-weight:\s*600/);
     expect(declarations("description")).toMatch(/font-size:\s*0\.875rem/);
     expect(declarations("description")).toMatch(/line-height:\s*1\.25rem/);
@@ -256,7 +275,7 @@ describe("SheetHeader anatomy contract (DL-028)", () => {
       /\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*var\(--gg-icon-size-md, 2\.75rem\)/
     );
     expect(utilitiesContent).toMatch(
-      /\[data-scroll-edge="top"\]\s*\{[^}]*background-attachment:\s*local,\s*scroll/
+      /\[data-scroll-edge="top"\],\s*\[data-body-scroll-edge="top"\] \[data-component="SheetBody"\]\s*\{[^}]*background-attachment:\s*local,\s*scroll/
     );
     expect(utilitiesContent).toMatch(/\[data-scroll-edge="both"\]/);
   });
@@ -282,6 +301,13 @@ describe("SheetActions layout contract (DL-016)", () => {
     expect(block('[data-component="SheetActions"][data-layout="steps"]')).toMatch(
       /flex-direction:\s*row/
     );
+    // A note takes a full line above that row, which wraps only when it carries one.
+    expect(block('[data-component="SheetActions"][data-layout="steps"][data-note]')).toMatch(
+      /flex-wrap:\s*wrap/
+    );
+    expect(
+      block('[data-component="SheetActions"][data-layout="steps"] > [data-slot="note"]')
+    ).toMatch(/flex:\s*0 0 100%/);
   });
 
   it("becomes one right-aligned row with the primary rightmost from 640px", () => {
@@ -293,11 +319,59 @@ describe("SheetActions layout contract (DL-016)", () => {
     );
     expect(wide).toMatch(/justify-content:\s*flex-end/);
     expect(wide).toMatch(/\[data-layout="stack"\] > \[data-action="primary"\]\s*\{\s*order:\s*2/);
+    // A note takes the start of that row and the room the actions leave.
+    expect(wide).toMatch(/> \[data-slot="note"\]\s*\{\s*flex:\s*1 1 0%;\s*order:\s*-2/);
   });
 
   it("draws the scroll-edge divider without script", () => {
     expect(block('[data-scroll-edge="bottom"]')).toMatch(
       /background-attachment:\s*local,\s*scroll/
     );
+  });
+});
+
+// The apps support Chrome 111, Safari 16.4 and Firefox 128. Tests render only in a current
+// engine, so these source contracts stand in for the old ones: each guards a feature that
+// broke a page in an older browser.
+describe("supported browser floor", () => {
+  const packagesRoot = resolve(__dirname, "../../../..");
+  const sourceFiles = (extension: RegExp) =>
+    ["shared", "client", "admin"].flatMap((pkg) => {
+      const root = resolve(packagesRoot, pkg, "src");
+      return (readdirSync(root, { recursive: true }) as string[])
+        .filter((file) => extension.test(file) && !/__(tests|mocks)__/.test(file))
+        .map((file) => ({
+          file: `${pkg}/src/${file}`,
+          text: readFileSync(resolve(root, file), "utf-8"),
+        }));
+    });
+  const withoutComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("draws no color with relative color syntax, which drops the color before Chrome 119", () => {
+    const relativeColor = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(\s*from\s/;
+    const offenders = sourceFiles(/\.css$/).filter(({ text }) =>
+      relativeColor.test(withoutComments(text))
+    );
+    expect(offenders.map(({ file }) => file)).toEqual([]);
+  });
+
+  it("hides a native popover where the browser has no Popover API", () => {
+    expect(withoutComments(utilitiesContent)).toMatch(
+      /@supports not selector\(:popover-open\)\s*\{\s*\[popover\]\s*\{\s*display:\s*none;\s*\}\s*\}/
+    );
+  });
+
+  it("gives every subgrid row its own columns where subgrid is missing, before Chrome 117", () => {
+    const unguarded = sourceFiles(/\.tsx?$/).flatMap(({ file, text }) =>
+      text
+        .split("\n")
+        .filter(
+          (line) =>
+            line.includes("grid-cols-subgrid") &&
+            !line.includes("not-supports-[grid-template-columns:subgrid]:grid-cols-")
+        )
+        .map(() => file)
+    );
+    expect(unguarded).toEqual([]);
   });
 });

@@ -50,6 +50,7 @@ export function resetWorkFlowTransition(
     draftSaveState: "idle",
     draftError: null,
     draftLinkCleared: false,
+    startSkipAction: null,
     location: undefined,
     activeTab: WorkTab.Intro,
     submissionCompleted: false,

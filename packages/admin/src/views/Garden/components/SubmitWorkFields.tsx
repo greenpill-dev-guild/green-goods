@@ -3,9 +3,10 @@ import {
   type useWorkForm,
   WORK_FORM_ERROR_IDS,
 } from "@green-goods/shared/hooks/work/useWorkForm";
+import { Button } from "@green-goods/shared/components/Button";
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import { useState } from "react";
-import { Controller } from "react-hook-form";
+import { Controller, useFieldArray } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
@@ -22,20 +23,84 @@ const DETAIL_ERROR_MESSAGES: {
   belowZero: { id: "app.work.form.error.belowZero", defaultMessage: "Enter 0 or more" },
 };
 
+interface SubmitWorkFieldsProps {
+  inputs: WorkInput[];
+  control: ReturnType<typeof useWorkForm>["control"];
+  register: ReturnType<typeof useWorkForm>["register"];
+  errors: Record<string, unknown>;
+  /** Next has been pressed on this step: every field shows its error, used or not. */
+  showValidation: boolean;
+}
+
+function SubmitWorkRepeater({
+  input,
+  error,
+  onBlur,
+  ...form
+}: Omit<SubmitWorkFieldsProps, "inputs"> & {
+  input: WorkInput;
+  error?: string;
+  onBlur: () => void;
+}) {
+  const { formatMessage } = useIntl();
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: input.key as never,
+  });
+  const removeLabel = formatMessage({ id: "app.common.remove", defaultMessage: "Remove" });
+  return (
+    <AdminFieldGroup label={input.title} required={input.required} error={error}>
+      <div
+        className="space-y-3"
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) onBlur();
+        }}
+      >
+        {fields.map((row, index) => (
+          <div
+            key={row.id}
+            role="group"
+            aria-label={`${input.title} ${index + 1}`}
+            className="space-y-2"
+          >
+            <SubmitWorkFields
+              {...form}
+              inputs={(input.repeaterFields ?? []).map((child) => ({
+                ...child,
+                key: `${input.key}.${index}.${child.key}`,
+              }))}
+            />
+            <Button
+              type="button"
+              emphasis="tertiary"
+              size="compact"
+              aria-label={`${removeLabel} ${input.title} ${index + 1}`}
+              onClick={() => remove(index)}
+            >
+              {removeLabel}
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          emphasis="secondary"
+          size="compact"
+          onClick={() => append({} as never)}
+        >
+          {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+        </Button>
+      </div>
+    </AdminFieldGroup>
+  );
+}
+
 export function SubmitWorkFields({
   inputs,
   control,
   register,
   errors,
   showValidation,
-}: {
-  inputs: WorkInput[];
-  control: ReturnType<typeof useWorkForm>["control"];
-  register: ReturnType<typeof useWorkForm>["register"];
-  errors: Record<string, { message?: string } | undefined>;
-  /** Next has been pressed on this step: every field shows its error, used or not. */
-  showValidation: boolean;
-}) {
+}: SubmitWorkFieldsProps) {
   const { formatMessage } = useIntl();
   // The work form checks every field as soon as an action is chosen, so an error can be waiting
   // before its field is used. Until Next is pressed, a field shows its own once it has been left.
@@ -51,7 +116,15 @@ export function SubmitWorkFields({
     });
   const errorText = (key: string) => {
     if (!showValidation && !leftFields[key]) return undefined;
-    const message = errors[key]?.message;
+    const field = key
+      .split(".")
+      .reduce<unknown>(
+        (value, part) =>
+          value && typeof value === "object" ? Reflect.get(value, part) : undefined,
+        errors
+      );
+    const message = field && typeof field === "object" ? Reflect.get(field, "message") : undefined;
+    if (typeof message !== "string") return undefined;
     const known = Object.values(DETAIL_ERROR_MESSAGES).find((entry) => entry.id === message);
     return known ? formatMessage(known) : message;
   };
@@ -61,6 +134,20 @@ export function SubmitWorkFields({
     <>
       {inputs.map((input) => {
         const error = errorText(input.key);
+        if (input.type === "repeater") {
+          return (
+            <SubmitWorkRepeater
+              key={input.key}
+              input={input}
+              control={control}
+              register={register}
+              errors={errors}
+              showValidation={showValidation}
+              error={error}
+              onBlur={() => markLeft(input.key)}
+            />
+          );
+        }
         if (input.type === "number" || input.type === "text") {
           return (
             <AdminTextField

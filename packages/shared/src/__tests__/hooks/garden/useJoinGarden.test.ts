@@ -8,6 +8,7 @@
  *   2. Pending join optimistic state (localStorage, 15-min TTL)
  */
 
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const PENDING_JOINS_KEY = "greengoods:pending-joins";
@@ -65,11 +66,264 @@ vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ smartAccountAddress: null, smartAccountClient: null, eoa: null }),
 }));
 
-vi.mock("../../../hooks/utils/useTimeout", () => ({
-  useDelayedInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
-}));
+const { isGardenMember, usePendingJoinsVersion } = await import(
+  "../../../hooks/garden/useJoinGarden"
+);
+const {
+  hasFreshPendingJoin,
+  addPendingJoin,
+  forgetListedPendingJoins,
+  pendingJoinGardenIds,
+  removePendingJoin,
+} = await import("../../../modules/garden/pending-joins");
+const { logger } = await import("../../../modules/app/logger");
 
-const { isGardenMember } = await import("../../../hooks/garden/useJoinGarden");
+describe("departure cleanup of pending joins", () => {
+  it("forgets a pending join even when the garden address casing differs", () => {
+    const garden = "0xAbcDEF0000000000000000000000000000000000";
+    addPendingJoin(garden, "0x1111111111111111111111111111111111111111");
+    removePendingJoin(garden.toLowerCase());
+    expect(hasFreshPendingJoin(garden, "0x1111111111111111111111111111111111111111")).toBe(false);
+  });
+  it("treats a malformed saved record as empty rather than failing a confirmed departure", () => {
+    localStorage.setItem("greengoods:pending-joins", "null");
+    expect(() => removePendingJoin("0x1111111111111111111111111111111111111111")).not.toThrow();
+  });
+});
+
+describe("usePendingJoinsVersion at a join's limit", () => {
+  const user = "0x7777777777777777777777777777777777777777";
+  const LIMIT = 15 * 60_000;
+
+  function saveJoins(timestampByGarden: Record<string, number>) {
+    const records = Object.entries(timestampByGarden).map(([gardenId, timestamp]) => [
+      gardenId,
+      { address: user, timestamp },
+    ]);
+    localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(Object.fromEntries(records)));
+  }
+
+  const savedGardens = () =>
+    Object.keys(JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) ?? "{}"));
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    vi.mocked(logger.warn).mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    localStorage.clear();
+  });
+
+  // More than one screen subscribes, and each keeps its own timer. Only the first to wake has
+  // anything to forget, so a limit reaches every subscriber once and the render loop in
+  // `removePendingJoin`'s comment has nothing to feed on.
+  it("ticks each subscriber once per lapsed join, waits for the next, then stays quiet", () => {
+    const now = Date.now();
+    saveJoins({ "garden-first": now, "garden-second": now + 60_000 });
+    const one = renderHook(() => usePendingJoinsVersion());
+    const other = renderHook(() => usePendingJoinsVersion());
+    const versions = () => [one.result.current, other.result.current];
+
+    act(() => vi.advanceTimersByTime(LIMIT));
+    expect(versions()).toEqual([0, 0]);
+
+    act(() => vi.advanceTimersByTime(1));
+    expect(versions()).toEqual([1, 1]);
+    expect(savedGardens()).toEqual(["garden-second"]);
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(versions()).toEqual([2, 2]);
+    expect(savedGardens()).toEqual([]);
+
+    act(() => vi.advanceTimersByTime(LIMIT * 2));
+    expect(versions()).toEqual([2, 2]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("leaves no timer behind on unmount", () => {
+    saveJoins({ "garden-first": Date.now() });
+    const { unmount } = renderHook(() => usePendingJoinsVersion());
+    expect(vi.getTimerCount()).toBe(1);
+
+    unmount();
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("checks the clock when the screen comes back from a sleep that held its timer", () => {
+    saveJoins({ "garden-first": Date.now() });
+    const { result } = renderHook(() => usePendingJoinsVersion());
+
+    vi.setSystemTime(Date.now() + LIMIT + 1);
+    expect(result.current).toBe(0);
+
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(result.current).toBe(1);
+    expect(savedGardens()).toEqual([]);
+  });
+
+  it("waits again when its timer wakes before the clock has reached the limit", () => {
+    saveJoins({ "garden-first": Date.now() });
+    const { result } = renderHook(() => usePendingJoinsVersion());
+
+    vi.setSystemTime(Date.now() - 60_000);
+    act(() => vi.advanceTimersByTime(LIMIT + 1));
+    expect(result.current).toBe(0);
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(result.current).toBe(1);
+  });
+
+  // A delay past setTimeout's range fires at once; with the record still fresh, that would spin.
+  it("waits out a saved timestamp far in the future instead of firing at once", () => {
+    saveJoins({ "garden-odd": Number.MAX_SAFE_INTEGER });
+    const setTimer = vi.spyOn(globalThis, "setTimeout");
+    const { result } = renderHook(() => usePendingJoinsVersion());
+
+    act(() => vi.advanceTimersByTime(LIMIT));
+
+    expect(setTimer).toHaveBeenCalledOnce();
+    expect(result.current).toBe(0);
+  });
+
+  // The record reads as gone once the write is refused, so subscribers hear of the limit and a
+  // reader that comes back finds nothing to remove, which keeps the render loop from starting.
+  it("tells subscribers once when storage refuses to forget a lapsed join", () => {
+    const gardenId = "garden-refused-lapse";
+    const saved = JSON.stringify({ [gardenId]: { address: user, timestamp: Date.now() } });
+    vi.stubGlobal("localStorage", {
+      getItem: () => saved,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
+    });
+    const { result } = renderHook(() => usePendingJoinsVersion());
+
+    act(() => vi.advanceTimersByTime(LIMIT + 1));
+
+    expect(result.current).toBe(1);
+    expect(isGardenMember(user, [], [], gardenId)).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(result.current).toBe(1);
+    expect(logger.warn).toHaveBeenCalledOnce();
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Could not forget a settled pending join",
+      expect.objectContaining({ source: "removePendingJoin" })
+    );
+  });
+
+  // A failed join rolls back through here, so its record must not keep reading as a fresh join.
+  it("stops counting a fresh join it could not forget, until a write lands", () => {
+    const gardenId = "garden-refused-fresh";
+    let stored = JSON.stringify({ [gardenId]: { address: user, timestamp: Date.now() } });
+    let refuses = true;
+    vi.stubGlobal("localStorage", {
+      getItem: () => stored,
+      setItem: (_key: string, value: string) => {
+        if (refuses) throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+        stored = value;
+      },
+    });
+
+    removePendingJoin(gardenId);
+    expect(isGardenMember(user, [], [], gardenId)).toBe(false);
+    expect(pendingJoinGardenIds(user).size).toBe(0);
+
+    refuses = false;
+    addPendingJoin("garden-next", user);
+    expect(Object.keys(JSON.parse(stored))).toEqual(["garden-next"]);
+
+    addPendingJoin(gardenId, user);
+    expect(isGardenMember(user, [], [], gardenId)).toBe(true);
+  });
+
+  // A welcome lands from a status check and from an effect, so a refused write must not throw
+  // there, and the join the chain holds keeps counting in this tab until a write lands.
+  it("keeps counting a join storage refused to save, until a write lands", () => {
+    const gardenId = "garden-refused-save";
+    let stored = "{}";
+    let refuses = true;
+    vi.stubGlobal("localStorage", {
+      getItem: () => stored,
+      setItem: (_key: string, value: string) => {
+        if (refuses) throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+        stored = value;
+      },
+    });
+
+    expect(() => addPendingJoin(gardenId, user)).not.toThrow();
+    expect(isGardenMember(user, [], [], gardenId)).toBe(true);
+    expect(pendingJoinGardenIds(user).has(gardenId)).toBe(true);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Could not save a pending join",
+      expect.objectContaining({ source: "addPendingJoin" })
+    );
+
+    refuses = false;
+    addPendingJoin("garden-next", user);
+    expect(Object.keys(JSON.parse(stored)).sort()).toEqual(["garden-next", gardenId]);
+  });
+});
+
+describe("forgetListedPendingJoins", () => {
+  const user = "0x5555555555555555555555555555555555555555";
+  const other = "0x6666666666666666666666666666666666666666";
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it("forgets only the account's own joins in gardens whose roster lists it", () => {
+    const joinedAt = Date.now();
+    localStorage.setItem(
+      PENDING_JOINS_KEY,
+      JSON.stringify({
+        "garden-listed": { address: user, timestamp: joinedAt },
+        "garden-waiting": { address: user, timestamp: joinedAt },
+        "garden-shared": { address: other, timestamp: joinedAt },
+      })
+    );
+
+    forgetListedPendingJoins(user.toUpperCase().replace("0X", "0x"), [
+      "GARDEN-LISTED",
+      "garden-shared",
+    ]);
+
+    expect(JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) ?? "{}")).toEqual({
+      "garden-waiting": { address: user, timestamp: joinedAt },
+      "garden-shared": { address: other, timestamp: joinedAt },
+    });
+  });
+
+  it("keeps going when storage refuses the write, and says so", () => {
+    const gardenId = "garden-refused-listed";
+    const saved = JSON.stringify({ [gardenId]: { address: user, timestamp: Date.now() } });
+    vi.stubGlobal("localStorage", {
+      getItem: () => saved,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
+    });
+
+    expect(() => forgetListedPendingJoins(user, [gardenId])).not.toThrow();
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Could not forget a settled pending join",
+      expect.objectContaining({ source: "removePendingJoin" })
+    );
+  });
+});
 
 describe("isGardenMember", () => {
   beforeEach(() => {
@@ -137,7 +391,7 @@ describe("isGardenMember", () => {
     expect(stored[gardenId]).toBeUndefined();
   });
 
-  it("cleans up pending join when confirmed in gardeners list", () => {
+  it("leaves a pending join to the roster read when the list names the user", () => {
     const user = "0x4444444444444444444444444444444444444444";
     const gardenId = "garden-confirmed";
 
@@ -150,12 +404,11 @@ describe("isGardenMember", () => {
     };
     localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pendingJoins));
 
-    // User is now confirmed in gardeners list
+    // The list may only hold the join's own optimistic entry.
     const result = isGardenMember(user, [user], [], gardenId);
     expect(result).toBe(true);
 
-    // Pending join should be cleaned up since the user is now confirmed
-    const stored = JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
-    expect(stored[gardenId]).toBeUndefined();
+    // `useMyGardens` settles it once a read of the roster lists the user.
+    expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe(JSON.stringify(pendingJoins));
   });
 });

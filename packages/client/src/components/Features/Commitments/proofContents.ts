@@ -2,7 +2,7 @@ import type { ProofContents } from "@green-goods/shared/hooks/client-ui/commitme
 import type { IntlShape } from "react-intl";
 
 /**
- * What a proof holds, in words: "2 photos, 1 voice note, 1 link". The media
+ * What a proof holds, in words: "2 photos, 1 document, 1 voice note, 1 link". The media
  * step's pill, the note's hint and the promise's "on its way" line all say it
  * the same way. `words` decides when the note counts: always (the pill), only
  * when it is all the proof holds (the promise's line), or never (the note's
@@ -22,6 +22,9 @@ export function describeProofContents(
       : null,
     contents.videos > 0
       ? intl.formatMessage({ id: "app.proof.contents.videos" }, { count: contents.videos })
+      : null,
+    contents.documents > 0
+      ? intl.formatMessage({ id: "app.proof.contents.documents" }, { count: contents.documents })
       : null,
     contents.voiceNotes > 0
       ? intl.formatMessage({ id: "app.proof.contents.voiceNotes" }, { count: contents.voiceNotes })

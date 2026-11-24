@@ -93,13 +93,13 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
       {/* JSON Preview */}
       <div className="border-t border-stroke-soft p-4 bg-bg-soft">
         <details>
-          <summary className="body-sm font-medium text-text-strong cursor-pointer mb-2">
+          <summary className="type-body font-medium text-text-strong cursor-pointer mb-2">
             {formatMessage({
               id: "app.admin.actions.instructions.jsonPreview",
               defaultMessage: "JSON Preview",
             })}
           </summary>
-          <pre className="body-xs bg-bg-white p-3 rounded border border-stroke-soft overflow-x-auto">
+          <pre className="type-meta bg-bg-white p-3 rounded border border-stroke-soft overflow-x-auto">
             {JSON.stringify(value, null, 2)}
           </pre>
         </details>

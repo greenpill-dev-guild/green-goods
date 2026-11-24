@@ -100,3 +100,22 @@ export const DecisionReadUnavailable: Story = {
     },
   },
 };
+
+export const Documentation: Story = {
+  args: {
+    evidenceOnly: false,
+    can: {
+      ...dialog.can,
+      markReady: false,
+      attachAssessment: false,
+      cancel: false,
+      expire: false,
+      syncWorkDecisions: true,
+    },
+    reconciliation: {
+      ...dialog.reconciliation,
+      count: 2,
+      decisionUIDs: [`0x${"ab".repeat(32)}`, `0x${"cd".repeat(32)}`],
+    },
+  },
+};

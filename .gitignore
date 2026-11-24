@@ -395,3 +395,7 @@ credentials.json
 # environment / a build secret, not a committed file.
 .sentryclirc
 .env.sentry-build-plugin
+
+# Tina editor bundles and local generated client; schema lock is committed.
+docs/static/admin/
+docs/tina/__generated__/

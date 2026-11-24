@@ -2,9 +2,9 @@
 pragma solidity ^0.8.25;
 
 /// @title ICookieJarFactory
-/// @notice Minimal interface for the 1Hive CookieJarFactory (sibling repo)
+/// @notice Minimal interface for Greenpill Dev Guild's CookieJarFactory (sibling repo)
 /// @dev Only includes createCookieJar() and the struct types needed by CookieJarModule.
-///      Full source: https://github.com/1Hive/cookie-jar
+///      Full source: https://github.com/greenpill-dev-guild/cookie-jar
 interface ICookieJarFactory {
     // ═══════════════════════════════════════════════════════════════════════════
     // Structs (mirrors CookieJarLib)

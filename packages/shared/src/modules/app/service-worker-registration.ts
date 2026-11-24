@@ -59,6 +59,7 @@ const tierListeners = new Map<PwaShellTier, Set<TierListener>>();
 const tierOutcome = new Map<PwaShellTier, PwaShellTierStatus>();
 const requestedTiers = new Set<PwaShellTier>();
 let shellListenersStarted = false;
+let appRegistration: ServiceWorkerRegistration | undefined;
 
 function tierState(worker: ServiceWorker): Map<PwaShellTier, PwaShellTierStatus | "scheduled"> {
   const existing = shellPreparationState.get(worker);
@@ -116,7 +117,9 @@ function postTierRequest(worker: ServiceWorker, tier: PwaShellTier): void {
 }
 
 function requestTier(tier: PwaShellTier): void {
-  const worker = navigator.serviceWorker.controller;
+  // The install page is outside the /home scope and will never have a
+  // controller. Its own registered app worker can still prepare the files.
+  const worker = appRegistration ? appRegistration.active : navigator.serviceWorker.controller;
   if (!worker) return;
   const state = tierState(worker);
   const pause = () => {
@@ -341,11 +344,26 @@ async function registerServiceWorker(
     const registration = await navigator.serviceWorker.register(config.scriptUrl, config.options);
 
     serviceWorkerManager.attachRegistration(registration);
-    await navigator.serviceWorker.ready;
+    appRegistration = registration;
+    const installing = registration.installing ?? registration.waiting;
+    if (installing && !registration.active) {
+      await new Promise<void>((resolve, reject) => {
+        const onState = () => {
+          if (installing.state === "activated" || installing.state === "redundant") {
+            installing.removeEventListener("statechange", onState);
+            if (installing.state === "activated") resolve();
+            else reject(new Error("Service worker installation did not complete"));
+          }
+        };
+        installing.addEventListener("statechange", onState);
+        onState();
+      });
+    }
     // An app already on the home screen asks for the offline-ready tier every
     // launch: `appinstalled` fires once, and only for the install that happens
     // in this tab, so it cannot reach anyone who installed on an older build.
     if (isStandaloneMode()) schedulePwaShellPreparation("priority");
+    else if (requestedTiers.has("priority")) requestTier("priority");
     schedulePwaTailPreparation();
 
     track("service_worker_registered", {

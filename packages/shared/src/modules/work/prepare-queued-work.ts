@@ -19,6 +19,8 @@ import { saveUnderClaim, type WorkClaim } from "../job-queue/work-claims";
 import { SimulationRejected } from "./simulation-rejected";
 import { type UploadKindDependencies, uploadKindOf } from "./upload-kinds";
 import type { UploadPreparation } from "./upload-state";
+import { UnpublishablePhotoError } from "./work-attachments";
+import { UploadPolicyRequiredError } from "./upload-policy";
 
 export type PreparationResult = UploadPreparation["status"] | "retry-later" | "skipped";
 
@@ -53,6 +55,12 @@ export async function prepareQueuedJob(
     const status = await kind.prepare(job, { chainId, claim, save, dependencies });
     return await record({ status, checkedAt: checkedAt() });
   } catch (error) {
+    if (error instanceof UploadPolicyRequiredError)
+      return record({
+        status: "blocked",
+        reason: "upload-policy-required",
+        checkedAt: checkedAt(),
+      }).catch(() => "retry-later" as const);
     if (error instanceof Error && error.message === "submission-ownership-changed")
       return "skipped";
     // A missing module cannot be retried within this document. Keep the job as
@@ -63,6 +71,14 @@ export async function prepareQueuedJob(
       return record({ status: "blocked", reason: error.reason, checkedAt: checkedAt() }).catch(
         () => "retry-later" as const
       );
+    // A photo that cannot be published would be refused on every try: it waits, named.
+    if (error instanceof UnpublishablePhotoError)
+      return record({
+        status: "photo-needs-attention",
+        photo: error.photo,
+        ...(error.video ? { video: true as const } : {}),
+        checkedAt: checkedAt(),
+      }).catch(() => "retry-later" as const);
     logger.warn("[UploadPreparation] Queued item will be prepared again later", {
       jobId: job.id,
       kind: job.kind,

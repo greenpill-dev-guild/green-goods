@@ -39,7 +39,6 @@ describe("Crypto Service", () => {
     it("should fail decryption with tampered data", () => {
       const encrypted = encryptPrivateKey(testPrivateKey);
 
-      // Tamper with ciphertext
       const tampered = {
         ...encrypted,
         ciphertext: "0000" + encrypted.ciphertext.slice(4),
@@ -75,7 +74,6 @@ describe("Crypto Service", () => {
       expect(isValidPrivateKey(testPrivateKey)).toBe(true);
       expect(isValidPrivateKey("0x" + "f".repeat(64))).toBe(true);
 
-      // Invalid cases
       expect(isValidPrivateKey("not-a-key")).toBe(false);
       expect(isValidPrivateKey("0x" + "g".repeat(64))).toBe(false); // Invalid hex
       expect(isValidPrivateKey("0x" + "a".repeat(63))).toBe(false); // Too short
@@ -87,7 +85,6 @@ describe("Crypto Service", () => {
       expect(isValidAddress("0x" + "0".repeat(40))).toBe(true);
       expect(isValidAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")).toBe(true);
 
-      // Invalid cases
       expect(isValidAddress("0x" + "0".repeat(39))).toBe(false);
       expect(isValidAddress("0x" + "0".repeat(41))).toBe(false);
       expect(isValidAddress("not-an-address")).toBe(false);
@@ -98,7 +95,6 @@ describe("Crypto Service", () => {
     it("should generate cryptographically secure private keys", () => {
       const keys = new Set<string>();
 
-      // Generate 100 keys
       for (let i = 0; i < 100; i++) {
         const key = generateSecurePrivateKey();
         expect(isValidPrivateKey(key)).toBe(true);

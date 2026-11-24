@@ -19,7 +19,7 @@ export function CampaignCookieJarAssetPicker({
   return (
     <AdminChoiceGroup
       ariaLabel={formatMessage({
-        id: "cockpit.community.cookies.assetPicker",
+        id: "hub.community.cookies.assetPicker",
         defaultMessage: "Payout asset",
       })}
       value={selectedAssetId}
@@ -36,19 +36,19 @@ export function CampaignCookieJarAssetPicker({
             <span className="block">
               {formatMessage(
                 {
-                  id: "cockpit.community.cookies.assetDecimals",
+                  id: "hub.community.cookies.assetDecimals",
                   defaultMessage: "{symbol} - {decimals} decimals",
                 },
                 { symbol: asset.symbol, decimals: asset.decimals }
               )}
             </span>
-            <span className="mt-2 block break-all text-label-sm">
+            <span className="mt-2 block break-all type-meta-sm">
               {asset.supported && asset.address ? (
                 <EnsAddressText address={asset.address} />
               ) : (
                 formatMessage(
                   {
-                    id: "cockpit.community.cookies.assetUnavailable",
+                    id: "hub.community.cookies.assetUnavailable",
                     defaultMessage: "{asset} is not available on this network yet.",
                   },
                   { asset: asset.label }

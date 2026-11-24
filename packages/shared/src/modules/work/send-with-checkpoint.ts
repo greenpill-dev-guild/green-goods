@@ -15,8 +15,11 @@
  */
 
 import type { Hex } from "viem";
+import type { BatchReference } from "../transactions/batch-types";
+import { rememberBatchBroadcast, retainedBatchBroadcast } from "./batch-send-reference";
 import type { SendCheckpoint } from "../../types/job-queue";
 import { logger } from "../app/logger";
+import { intentHead } from "../job-queue/send-chain-reads";
 import {
   type BroadcastReference,
   type ContractCall,
@@ -25,7 +28,6 @@ import {
   type TransactionSender,
   type TxResult,
 } from "../transactions/types";
-import { intentHead } from "../job-queue/send-chain-reads";
 import { classifySendFailure } from "./send-outcome";
 import {
   AwaitingWorkConfirmation,
@@ -56,17 +58,50 @@ export interface CheckpointedSend {
   /** A head read before the send, kept when the one at the intent cannot be read. */
   headBeforeSend?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime">;
   assertOwnership?: () => void | Promise<void>;
+  /** Revalidate action eligibility after a prompt, before the send intent can be recorded. */
+  beforeBroadcast?: () => Promise<void>;
+  /**
+   * How long the sender waits for the receipt (`TransactionSendOptions.receiptWaitLimitMs`).
+   * Past it the send is `may-have-sent`, its error a `ReceiptWaitLimitError`.
+   */
+  receiptWaitLimitMs?: number;
   now?: () => number;
 }
 
 export type CheckpointedSendResult =
-  | { status: "sent"; hash: Hex; confirmation?: TxResult["confirmation"] }
+  | {
+      status: "sent";
+      hash: Hex;
+      confirmation?: TxResult["confirmation"];
+      awaiting?: TxResult["awaiting"];
+    }
   /** Mined and reverted. The record is left alone: what a revert means is the caller's call. */
   | { status: "reverted"; error: TransactionRevertedError }
   /** Nothing reached the network, and the intent is cleared so the job may be sent again. */
   | { status: "not-sent"; cancelled: boolean; error: unknown }
   /** The answer was lost. The record is kept, so the send is confirmed and never repeated. */
   | { status: "may-have-sent"; error: unknown };
+
+/**
+ * Notes on the record what a sent call waits for, such as a Safe's signers, so a screen can say so
+ * after this send ends (PRD-1564). Its broadcast is already on record, which is all that keeps it
+ * from going out twice, so a write that fails here is logged and the send stays sent.
+ */
+async function recordAwaiting(
+  write: RecordSend,
+  jobIds: readonly string[],
+  awaiting: NonNullable<TxResult["awaiting"]>
+): Promise<void> {
+  try {
+    await write((current) => ({ ...current, awaiting }));
+  } catch (error) {
+    logger.warn("[SendCheckpoint] Could not note what a sent call waits for", {
+      jobIds,
+      awaiting,
+      error,
+    });
+  }
+}
 
 export async function sendWithCheckpoint({
   sender,
@@ -76,6 +111,8 @@ export async function sendWithCheckpoint({
   readChainHead,
   headBeforeSend,
   assertOwnership,
+  beforeBroadcast,
+  receiptWaitLimitMs,
   now = Date.now,
 }: CheckpointedSend): Promise<CheckpointedSendResult> {
   let intentAttempted = false;
@@ -124,8 +161,10 @@ export async function sendWithCheckpoint({
   try {
     const result = await sender.sendContractCall(call, {
       ...(assertOwnership ? { assertOwnership } : {}),
+      ...(receiptWaitLimitMs ? { receiptWaitLimitMs } : {}),
       onBeforeBroadcast: async (reference) => {
         await assertOwnership?.();
+        await beforeBroadcast?.();
         carriedByOperation ||= reference?.kind === "user-operation";
         await readHead();
         const at = new Date(now()).toISOString();
@@ -136,6 +175,15 @@ export async function sendWithCheckpoint({
           ...(reference ? { broadcast: reference } : {}),
         }));
         intentRecorded = true;
+      },
+      onBatchReference: async (reference: BatchReference) => {
+        broadcastKnown = true;
+        for (const id of jobIds) rememberBatchBroadcast(id, reference);
+        await write((current) => ({
+          ...current,
+          batchReference: reference,
+          broadcastPending: true,
+        }));
       },
       onBroadcastReference,
       onBroadcast,
@@ -150,7 +198,13 @@ export async function sendWithCheckpoint({
       }
       await onBroadcast(result.hash);
     }
-    return { status: "sent", hash: result.hash, confirmation: result.confirmation };
+    if (result.awaiting) await recordAwaiting(write, jobIds, result.awaiting);
+    return {
+      status: "sent",
+      hash: result.hash,
+      confirmation: result.confirmation,
+      ...(result.awaiting ? { awaiting: result.awaiting } : {}),
+    };
   } catch (error) {
     if (error instanceof TransactionRevertedError) return { status: "reverted", error };
     if (error instanceof TransactionReplacementError && error.code === "transaction_cancelled") {
@@ -213,6 +267,24 @@ export async function settleRecordedSend(input: {
   settleUnanswered?: (transactionHash: Hex) => Promise<Hex>;
 }): Promise<Hex> {
   const { checkpoint, jobId } = input;
+  const batch = checkpoint?.batchReference ?? retainedBatchBroadcast(jobId);
+  if (batch) {
+    if (batch.chainId !== input.chainId) throw new Error("batch-reference-scope-mismatch");
+    const outcome = await input.sender.reconcileBatch?.(batch);
+    if (
+      outcome?.status === "confirmed" &&
+      outcome.receipts.length === 1 &&
+      outcome.receipts[0].status === "success"
+    )
+      return outcome.receipts[0].transactionHash;
+    if (outcome?.status === "reverted") {
+      forgetWorkBroadcast(jobId);
+      await input.clear();
+      throw new TransactionRevertedError(outcome.receipts[0]?.transactionHash ?? "0x");
+    }
+    // An expired wallet ID or multiple candidate receipts must never fall through to absence-based reopening.
+    throw new AwaitingWorkConfirmation(outcome?.receipts[0]?.transactionHash ?? "0x");
+  }
   const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
   let transactionHash =
     checkpoint?.transactionHash ?? (broadcast?.kind === "transaction" ? broadcast.hash : undefined);

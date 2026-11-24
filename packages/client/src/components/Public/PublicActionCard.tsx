@@ -1,22 +1,14 @@
+import { getDomainStyle } from "@green-goods/shared/config/domain";
 import type { Action } from "@green-goods/shared/types/domain";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
-import type { EditorialDomain } from "./atoms";
 
 export interface PublicActionCardProps {
   action: Action;
   onOpen: (action: Action) => void;
 }
-
-const DOMAIN_INK_CLASSES: Record<EditorialDomain, string> = {
-  all: "bg-bg-weak-50 text-text-sub-600",
-  solar: "bg-domain-solar-soft text-domain-solar",
-  agro: "bg-domain-agro-soft text-domain-agro",
-  education: "bg-domain-education-soft text-domain-education",
-  waste: "bg-domain-waste-soft text-domain-waste",
-};
 
 /**
  * PublicActionCard — read-only Action template card for the public library.
@@ -33,11 +25,10 @@ const DOMAIN_INK_CLASSES: Record<EditorialDomain, string> = {
 export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
   const { formatMessage, locale } = useIntl();
   const { title, description } = localizeAction(action, locale);
-  const slug = domainSlug(action.domain);
-  const domainKey: EditorialDomain = (slug ?? "all") as EditorialDomain;
+  const domain = getDomainStyle(action.domain);
   const domainLabel = formatMessage({
-    id: `app.domain.tab.${slug ?? "unknown"}`,
-    defaultMessage: slug ?? String(action.domain),
+    id: domain?.labelId ?? "app.domain.tab.unknown",
+    defaultMessage: domain?.defaultLabel ?? String(action.domain),
   });
 
   return (
@@ -62,7 +53,7 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
       <span
         className={cn(
           "inline-flex w-fit items-center rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em]",
-          DOMAIN_INK_CLASSES[domainKey]
+          domain ? cn(domain.colors.bg, domain.colors.text) : "bg-bg-weak-50 text-text-sub-600"
         )}
       >
         {domainLabel}
@@ -80,27 +71,4 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
       ) : null}
     </button>
   );
-}
-
-function domainSlug(domain: number | string | null): EditorialDomain | null {
-  if (domain === null) return null;
-  if (typeof domain === "string") {
-    const lower = domain.toLowerCase();
-    if (["solar", "agro", "education", "waste"].includes(lower)) {
-      return lower as EditorialDomain;
-    }
-    return null;
-  }
-  switch (domain) {
-    case 0:
-      return "solar";
-    case 1:
-      return "agro";
-    case 2:
-      return "education";
-    case 3:
-      return "waste";
-    default:
-      return null;
-  }
 }

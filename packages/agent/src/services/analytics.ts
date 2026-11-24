@@ -2,6 +2,13 @@ import { createHash } from "node:crypto";
 import { PostHog } from "posthog-node";
 import { createLogger } from "./logger";
 import type { InboundMessage, OutboundResponse, Platform } from "../types";
+import {
+  classifyTestTraffic,
+  normalizeTelemetryAddress,
+  parseTestTrafficAddresses,
+  TELEMETRY_UNKNOWN,
+  type TelemetrySegmentation,
+} from "@green-goods/shared/public-contracts";
 import type {
   GardenJoinRequestedVia,
   GardenJoinRequestKind,
@@ -21,7 +28,10 @@ export type AgentAnalyticsEvent =
   | "join_request_status_checked"
   | "join_request_resolved"
   | "join_request_withdrawn"
-  | "join_request_expired";
+  | "join_request_expired"
+  | "funding_intent_started"
+  | "funding_intent_ended"
+  | "upload_sign_ended";
 
 type AgentAnalyticsProperties = Record<string, boolean | number | string | null | undefined>;
 
@@ -65,11 +75,67 @@ interface AgentAnalyticsClient {
 export interface InitAgentAnalyticsOptions {
   apiKey?: string;
   enabled: boolean;
+  /** The deployment environment and release the Agent's Sentry reports carry (PRD-1560). */
+  environment?: string;
+  release?: string;
+  /** Comma-separated test account and garden addresses, from the deployment's secrets. */
+  testAccounts?: string;
+  testGardens?: string;
 }
 
-let client: AgentAnalyticsClient | null = null;
+/** The account and garden an event is about, placed against the test records and never sent. */
+export interface AgentEventSubject {
+  account?: string | null;
+  garden?: string | null;
+}
 
-export function initAgentAnalytics({ apiKey, enabled }: InitAgentAnalyticsOptions): void {
+interface AgentSegmentationRecords {
+  environment: string;
+  release: string;
+  testAccounts: ReadonlySet<string> | null;
+  testGardens: ReadonlySet<string> | null;
+}
+
+const UNSEGMENTED: AgentSegmentationRecords = {
+  environment: TELEMETRY_UNKNOWN,
+  release: TELEMETRY_UNKNOWN,
+  testAccounts: null,
+  testGardens: null,
+};
+
+let client: AgentAnalyticsClient | null = null;
+let records: AgentSegmentationRecords = UNSEGMENTED;
+
+function agentSegmentation(subject: AgentEventSubject = {}): TelemetrySegmentation {
+  return {
+    environment: records.environment,
+    app_surface: "agent",
+    release: records.release,
+    is_test_account: classifyTestTraffic(
+      records.testAccounts,
+      normalizeTelemetryAddress(subject.account)
+    ),
+    is_test_garden: classifyTestTraffic(
+      records.testGardens,
+      normalizeTelemetryAddress(subject.garden)
+    ),
+  };
+}
+
+export function initAgentAnalytics({
+  apiKey,
+  enabled,
+  environment,
+  release,
+  testAccounts,
+  testGardens,
+}: InitAgentAnalyticsOptions): void {
+  records = {
+    environment: environment?.trim() || TELEMETRY_UNKNOWN,
+    release: release?.trim() || TELEMETRY_UNKNOWN,
+    testAccounts: parseTestTrafficAddresses(testAccounts),
+    testGardens: parseTestTrafficAddresses(testGardens),
+  };
   const trimmedKey = apiKey?.trim();
   if (!enabled || !trimmedKey) {
     client = null;
@@ -83,6 +149,7 @@ export function initAgentAnalytics({ apiKey, enabled }: InitAgentAnalyticsOption
 
 export function resetAgentAnalyticsForTests(): void {
   client = null;
+  records = UNSEGMENTED;
 }
 
 export function hashAgentDistinctId(platform: Platform, platformId: string): string {
@@ -105,7 +172,8 @@ export function getMessageAnalyticsProperties(message: InboundMessage): AgentAna
 export async function trackAgentEvent(
   event: AgentAnalyticsEvent,
   distinctId: string,
-  properties: AgentAnalyticsProperties = {}
+  properties: AgentAnalyticsProperties = {},
+  subject?: AgentEventSubject
 ): Promise<void> {
   if (!client) return;
 
@@ -114,7 +182,7 @@ export async function trackAgentEvent(
       client.capture({
         distinctId,
         event,
-        properties,
+        properties: { ...properties, ...agentSegmentation(subject) },
       })
     );
   } catch (error) {
@@ -136,9 +204,62 @@ export async function trackAgentRuntimeStarted(input: {
 
 export function trackGardenJoinRequestEvent(
   event: Extract<AgentAnalyticsEvent, `join_request_${string}`>,
-  properties: GardenJoinRequestAnalyticsProperties
+  properties: GardenJoinRequestAnalyticsProperties,
+  subject?: AgentEventSubject
 ): Promise<void> {
-  return trackAgentEvent(event, RUNTIME_DISTINCT_ID, properties);
+  return trackAgentEvent(event, RUNTIME_DISTINCT_ID, properties, subject);
+}
+
+/** How an Agent attempt settled, in the same words the App's send acts use (PRD-1561). */
+export type FundingAttemptOutcome = "confirmed" | "failed" | "cancelled";
+
+/** The attempt record's version, so a question can tell this shape from a later one. */
+const AGENT_ATTEMPT_SCHEMA_VERSION = 1;
+
+type FundingIntentAnalyticsProperties = {
+  attempt_id: string;
+  chain_id: number;
+  destination_type: string;
+  funding_intent: string;
+  payment_method: string;
+  source_route?: string;
+  outcome?: FundingAttemptOutcome;
+  funding_status?: string;
+  failure_code?: string;
+};
+
+export function trackFundingIntentEvent(
+  event: "funding_intent_started" | "funding_intent_ended",
+  properties: FundingIntentAnalyticsProperties,
+  garden: string
+): Promise<void> {
+  return trackAgentEvent(
+    event,
+    RUNTIME_DISTINCT_ID,
+    { ...properties, schema_version: AGENT_ATTEMPT_SCHEMA_VERSION },
+    { garden }
+  );
+}
+
+type UploadSignAnalyticsProperties = {
+  outcome: "confirmed" | "failed";
+  /** Why a request got no signed URL; absent when it got one. */
+  reason?: "invalid_request" | "provider_unavailable";
+  category?: string;
+  mime_type?: string;
+};
+
+/** One upload signing request's outcome. */
+export function trackUploadSignEnded(
+  properties: UploadSignAnalyticsProperties,
+  garden?: string
+): Promise<void> {
+  return trackAgentEvent(
+    "upload_sign_ended",
+    RUNTIME_DISTINCT_ID,
+    { ...properties, schema_version: AGENT_ATTEMPT_SCHEMA_VERSION },
+    { garden }
+  );
 }
 
 export async function trackAgentMessageReceived(message: InboundMessage): Promise<void> {

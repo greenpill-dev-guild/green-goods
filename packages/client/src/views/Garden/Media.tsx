@@ -1,35 +1,67 @@
+import type { AuthMode } from "@green-goods/shared/hooks/auth/useAuth";
 import { Button } from "@green-goods/shared/components/Button";
-import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { track } from "@green-goods/shared/modules/app/posthog";
 import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
+import { track } from "@green-goods/shared/modules/app/posthog";
 import {
   getSafeMediaBatchMetadata,
   getSafeMediaMetadata,
   getWorkMediaId,
   isHeicFile,
   isVideoFile,
+  isWorkDocument,
+  isWorkMedia,
   validateWorkAttachments,
   validateWorkVideo,
+  WORK_DOCUMENT_ACCEPT,
+  WORK_DOCUMENT_MAX_COUNT,
+  type WorkMediaSource,
 } from "@green-goods/shared/modules/work/media-processing";
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import type { Action } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiImageFill, RiLoader4Line } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useIntl } from "react-intl";
+import { defineMessages, type NoMessageValues, useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
-import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Display";
-import { Books } from "@/components/Features";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 import {
   MediaRulePill,
   type PendingPhotoState,
-  WorkMediaPhotoCard,
-  WorkMediaVideoCard,
+  SubmissionMediaList,
 } from "@/components/Features/Work";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
+
+const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif";
+const PHOTO_AND_VIDEO_ACCEPT = `${PHOTO_ACCEPT},video/mp4,video/webm`;
+
+/** What a pick's toasts say when it leaves files out: how many, and which limit did it. */
+const limitMessages = defineMessages<{
+  notAdded: { dropped: number };
+  limits: NoMessageValues;
+  actionLimit: { max: number };
+  documentLimit: { max: number };
+}>({
+  notAdded: {
+    id: "app.garden.upload.truncatedTitle",
+    defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
+  },
+  limits: {
+    id: "app.garden.attachments.invalid",
+    defaultMessage:
+      "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; documents: 10 MB, up to 5; all files: 50 MB.",
+  },
+  actionLimit: {
+    id: "app.garden.upload.truncatedMessage",
+    defaultMessage: "You can add up to {max} for this action.",
+  },
+  documentLimit: {
+    id: "app.garden.upload.documentLimitMessage",
+    defaultMessage: "A work can carry up to {max} documents.",
+  },
+});
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
@@ -40,6 +72,7 @@ interface WorkMediaProps {
   minRequired?: number;
   onMediaClickRef?: React.MutableRefObject<(() => void) | null>;
   onCameraClickRef?: React.MutableRefObject<(() => void) | null>;
+  onDocumentClickRef?: React.MutableRefObject<(() => void) | null>;
   isRecording?: boolean;
   recordingElapsed?: number;
   brokenMediaIds?: ReadonlySet<string>;
@@ -48,12 +81,12 @@ interface WorkMediaProps {
   onRemoveBrokenMedia?: (surface: "media") => void;
   workSubmissionJourneyId?: string | null;
   ensureWorkSubmissionJourneyId?: () => string;
-  authMode?: "wallet" | "passkey" | "embedded" | null;
+  authMode?: AuthMode;
   actionUID?: number | null;
   /** A HEIC photo's conversion while it waits for the decoder; `undefined` otherwise. */
   heicStateOf?: (file: File) => PendingPhotoState | undefined;
   onRetryHeicConversion?: (file: File) => void;
-  /** The promise this work is for, after the heading (O9). */
+  /** After the heading: the first step's garden line, then the work's promise (O9, PRD-1522). */
   pinned?: React.ReactNode;
 }
 
@@ -73,6 +106,34 @@ const getPlatformContext = () => {
   return { platform, isStandalone, isOnline: navigator.onLine };
 };
 
+/** The items an action lists as needed or optional: a label, then one neutral tag each (DL-132). */
+function MediaItems({ label, items }: { label: string; items: readonly string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="type-label-sm text-text-sub-600">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {items.map((item) => {
+          // A steward configures these labels, so a long one truncates and keeps its full text.
+          const display = String(item).replace(/_/g, " ");
+          return (
+            <StatusBadge
+              key={item}
+              size="xs"
+              variant="neutral"
+              showIcon={false}
+              className="max-w-full capitalize"
+              title={display}
+            >
+              <span className="truncate">{display}</span>
+            </StatusBadge>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Format seconds as m:ss */
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -89,6 +150,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   minRequired = 0,
   onMediaClickRef,
   onCameraClickRef,
+  onDocumentClickRef,
   isRecording = false,
   recordingElapsed = 0,
   brokenMediaIds,
@@ -110,12 +172,18 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   );
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const uploadSourceRef = useRef<"gallery" | "camera" | null>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  const uploadSourceRef = useRef<WorkMediaSource | null>(null);
   const isProcessingMedia = processingPhase !== "idle";
+  // A pick is processed across awaits while attachments can still be removed, so its limits
+  // are checked against what is attached when processing ends, not when it began.
+  const attachedRef = useRef({ images, audioNotes });
+  useEffect(() => {
+    attachedRef.current = { images, audioNotes };
+  }, [images, audioNotes]);
   const brokenCount = useMemo(
     () => images.filter((file) => brokenMediaIds?.has(getWorkMediaId(file))).length,
     [brokenMediaIds, images]
@@ -127,27 +195,30 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const photoOnlyData = useMemo(() => {
     const entries: Array<{ url: string; originalIndex: number }> = [];
     images.forEach((file, index) => {
-      if (!isVideoFile(file) && !isHeicFile(file)) {
+      if (!isVideoFile(file) && !isHeicFile(file) && !isWorkDocument(file)) {
         entries.push({ url: mediaUrls[index], originalIndex: index });
       }
     });
     return entries;
   }, [images, mediaUrls]);
 
-  const handleUploadClick = useCallback((source: "gallery" | "camera") => {
+  const handleUploadClick = useCallback((source: WorkMediaSource) => {
     uploadSourceRef.current = source;
     track("media_upload_clicked", { source, ...getPlatformContext() }, { includeSessionId: false });
-    (source === "gallery" ? mediaInputRef : cameraInputRef).current?.click();
+    ({ gallery: mediaInputRef, camera: cameraInputRef, documents: documentInputRef })[
+      source
+    ].current?.click();
   }, []);
 
   // Expose handlers to parent
   useEffect(() => {
     if (onMediaClickRef) onMediaClickRef.current = () => handleUploadClick("gallery");
     if (onCameraClickRef) onCameraClickRef.current = () => handleUploadClick("camera");
-  }, [handleUploadClick, onMediaClickRef, onCameraClickRef]);
+    if (onDocumentClickRef) onDocumentClickRef.current = () => handleUploadClick("documents");
+  }, [handleUploadClick, onMediaClickRef, onCameraClickRef, onDocumentClickRef]);
 
   /**
-   * Unified media upload handler for both the media picker and camera.
+   * Unified media upload handler for the photo picker, the camera and the documents picker.
    * Handles mixed image+video selections: validates videos, compresses images,
    * and appends everything to the existing images[] array.
    */
@@ -167,14 +238,15 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     const fileArray = Array.from(files);
     const safeBatchMetadata = getSafeMediaBatchMetadata(fileArray);
 
-    trackWorkMediaJourneyEvent("work_media_selected", {
+    // Every journey event from this pick carries the same facts about where it came from.
+    const journey = {
       work_submission_journey_id: journeyId,
       source,
       auth_mode: authMode,
       action_uid: actionUID,
       submission_phase: "media",
-      ...safeBatchMetadata,
-    });
+    } as const;
+    trackWorkMediaJourneyEvent("work_media_selected", { ...journey, ...safeBatchMetadata });
 
     track(
       "media_upload_started",
@@ -196,31 +268,19 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         onHeicConversionDeferred: (file) => {
           deferredCount += 1;
           trackWorkMediaJourneyEvent("work_media_heic_conversion_deferred", {
-            work_submission_journey_id: journeyId,
-            source,
-            auth_mode: authMode,
-            action_uid: actionUID,
-            submission_phase: "media",
+            ...journey,
             ...getSafeMediaMetadata(file),
           });
         },
         onHeicConversionStarted: (file) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_started", {
-            work_submission_journey_id: journeyId,
-            source,
-            auth_mode: authMode,
-            action_uid: actionUID,
-            submission_phase: "media",
+            ...journey,
             ...getSafeMediaMetadata(file),
           });
         },
         onHeicConversionSucceeded: (originalFile, convertedFile) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_succeeded", {
-            work_submission_journey_id: journeyId,
-            source,
-            auth_mode: authMode,
-            action_uid: actionUID,
-            submission_phase: "media",
+            ...journey,
             conversion_count: 1,
             ...getSafeMediaMetadata(convertedFile),
             extension: getSafeMediaMetadata(originalFile).extension,
@@ -228,11 +288,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         },
         onHeicConversionFailed: (file) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_failed", {
-            work_submission_journey_id: journeyId,
-            source,
-            auth_mode: authMode,
-            action_uid: actionUID,
-            submission_phase: "media",
+            ...journey,
             rejected_count: 1,
             parsed_error_family: "heic_conversion_failed",
             ...getSafeMediaMetadata(file),
@@ -275,7 +331,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             {
               id: "app.garden.upload.unsupportedMediaMessage",
               defaultMessage:
-                "{count, plural, one {That file is not a supported photo or video.} other {# files are not supported photos or videos.}}",
+                "{count, plural, one {That file is not a supported photo, video or document.} other {# files are not supported photos, videos or documents.}}",
             },
             { count: unsupportedCount }
           ),
@@ -301,24 +357,29 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         });
       }
 
+      // A video over the size limit is refused before it is read; it gets the size line.
+      if (normalized.rejected.some((item) => item.reason === "too_large"))
+        setVideoError(intl.formatMessage(limitMessages.limits));
+
       const normalizedFiles = normalized.accepted.map((item) => item.file);
-      const processedImages: File[] = [];
-      const validVideos: File[] = [];
       const newFiles: File[] = [];
       const { imageCompressor } = await import("@green-goods/shared/utils/work/image-compression");
       for (const file of normalizedFiles) {
+        // A document is kept as it was picked; it is published that way too.
+        if (isWorkDocument(file)) {
+          newFiles.push(file);
+          continue;
+        }
         if (isVideoFile(file)) {
           if (!(await validateWorkVideo(file))) {
-            setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
+            setVideoError(intl.formatMessage(limitMessages.limits));
             continue;
           }
-          validVideos.push(file);
           newFiles.push(file);
           continue;
         }
         // A photo waiting for the decoder is kept as picked; compressing it needs that decoder.
         if (isHeicFile(file)) {
-          processedImages.push(file);
           newFiles.push(file);
           continue;
         }
@@ -338,52 +399,54 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             processed = file;
           }
         }
-        processedImages.push(processed);
         newFiles.push(processed);
       }
 
+      // The action's limit and the ten-file cap are on photos and videos, and documents have
+      // their own five, so a pick past either keeps what still fits and drops only the extras.
+      const maxCount =
+        config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
+      const visualLimit = Math.min(maxCount, 10);
+      const attached = attachedRef.current;
+      let visual = attached.images.filter((file) => !isWorkDocument(file)).length;
+      let documents = attached.images.length - visual;
+      let droppedDocuments = 0;
+      const keptFiles = newFiles.filter((file) => {
+        if (!isWorkDocument(file)) {
+          visual += 1;
+          return visual <= visualLimit;
+        }
+        documents += 1;
+        if (documents <= WORK_DOCUMENT_MAX_COUNT) return true;
+        droppedDocuments += 1;
+        return false;
+      });
+      const droppedCount = newFiles.length - keptFiles.length;
       if (
-        validateWorkAttachments([...images, ...newFiles], audioNotes, 0, { pendingHeic: "accept" })
-          .length
+        validateWorkAttachments([...attached.images, ...keptFiles], attached.audioNotes, 0, {
+          pendingHeic: "accept",
+        }).length
       ) {
+        // Nothing from this pick is added, and the limits say why; trying again cannot help.
         toastService.error({
-          title: intl.formatMessage({
-            id: "app.garden.attachments.invalid",
-            defaultMessage:
-              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; all files: 50 MB.",
-          }),
+          title: intl.formatMessage(limitMessages.notAdded, { dropped: newFiles.length }),
+          message: intl.formatMessage(limitMessages.limits),
         });
         return;
       }
-      const maxCount =
-        config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
-
-      let droppedCount = 0;
-      setImages((prev) => {
-        const combined = [...prev, ...newFiles];
-        if (combined.length > maxCount) {
-          droppedCount = combined.length - maxCount;
-          return combined.slice(0, maxCount);
-        }
-        return combined;
-      });
+      setImages((prev) => [...prev, ...keptFiles]);
 
       if (droppedCount > 0) {
+        // Each limit the pick ran past gets its own sentence, so no dropped file goes unexplained.
+        const limits = [
+          droppedCount > droppedDocuments &&
+            intl.formatMessage(limitMessages.actionLimit, { max: visualLimit }),
+          droppedDocuments > 0 &&
+            intl.formatMessage(limitMessages.documentLimit, { max: WORK_DOCUMENT_MAX_COUNT }),
+        ];
         toastService.info({
-          title: intl.formatMessage(
-            {
-              id: "app.garden.upload.truncatedTitle",
-              defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
-            },
-            { dropped: droppedCount }
-          ),
-          message: intl.formatMessage(
-            {
-              id: "app.garden.upload.truncatedMessage",
-              defaultMessage: "You can add up to {max} for this action.",
-            },
-            { max: maxCount }
-          ),
+          title: intl.formatMessage(limitMessages.notAdded, { dropped: droppedCount }),
+          message: limits.filter(Boolean).join(" "),
           context: "mediaUpload",
         });
       }
@@ -391,9 +454,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       track(
         "media_upload_complete",
         {
-          count: newFiles.length,
-          imageCount: processedImages.length,
-          videoCount: validVideos.length,
+          // What the pick added; files past a limit count only in droppedCount.
+          count: keptFiles.length,
+          imageCount: keptFiles.filter((file) => !isVideoFile(file) && !isWorkDocument(file))
+            .length,
+          videoCount: keptFiles.filter((file) => isVideoFile(file)).length,
+          documentCount: keptFiles.filter((file) => isWorkDocument(file)).length,
           conversionCount: normalized.converted.length,
           rejectedCount: normalized.rejected.length,
           droppedCount,
@@ -414,11 +480,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       toastService.error({
         title: intl.formatMessage({
           id: "app.garden.upload.compressionFailedTitle",
-          defaultMessage: "Couldn't process those images",
+          defaultMessage: "Couldn't prepare those files",
         }),
         message: intl.formatMessage({
           id: "app.garden.upload.compressionFailedMessage",
-          defaultMessage: "Try fewer or smaller images, or check your connection.",
+          defaultMessage: "Try fewer or smaller files, or check your connection.",
         }),
         context: "mediaUpload",
         error,
@@ -432,14 +498,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   };
 
   const removeMedia = (file: File) => {
-    const mediaId = getWorkMediaId(file);
-    if (playingVideoId === mediaId) setPlayingVideoId(null);
-
     if (onRemoveMedia) {
       onRemoveMedia(file, "media");
       return;
     }
 
+    const mediaId = getWorkMediaId(file);
     setImages((prev) => prev.filter((item) => getWorkMediaId(item) !== mediaId));
   };
 
@@ -460,79 +524,59 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     config?.description ||
     intl.formatMessage({
       id: "app.garden.submit.tab.media.instruction",
-      defaultMessage: "Please take a clear photo of the plants in the garden",
+      defaultMessage: "Add media that clearly shows the work you did.",
     });
   const neededItems = useMemo(() => config?.needed?.filter(Boolean) ?? [], [config?.needed]);
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
-  const photoCount = images.filter((file) => !isVideoFile(file)).length;
+  const mediaCount = images.filter((file) => isWorkMedia(file, { pendingHeic: "accept" })).length;
 
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={title} info={description} Icon={RiImageFill} />
       {pinned}
-      {minRequired > 0 || photoCount > 0 ? (
-        <MediaRulePill met={photoCount >= minRequired}>
-          {photoCount >= minRequired
-            ? intl.formatMessage({ id: "app.garden.upload.mediaRule.added" }, { count: photoCount })
+      {minRequired > 0 || mediaCount > 0 ? (
+        <MediaRulePill met={mediaCount >= minRequired}>
+          {mediaCount >= minRequired
+            ? intl.formatMessage({ id: "app.garden.upload.mediaRule.added" }, { count: mediaCount })
             : intl.formatMessage(
                 { id: "app.garden.upload.mediaRule.needed" },
-                { current: photoCount, required: minRequired }
+                { current: mediaCount, required: minRequired }
               )}
         </MediaRulePill>
       ) : null}
 
-      {/* Required items */}
-      {neededItems.length > 0 && (
-        <div>
-          <div className="text-xs tracking-tight mb-1 uppercase">
-            {intl.formatMessage({ id: "app.garden.upload.needed", defaultMessage: "Needed" })}
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            {neededItems.map((item) => (
-              <Badge key={item} className="capitalize" variant="pill" tint="primary">
-                {String(item).replace("_", " ")}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* What the action asks for, as quiet tags under one label each (DL-132). */}
+      <MediaItems
+        label={intl.formatMessage({ id: "app.garden.upload.needed", defaultMessage: "Needed" })}
+        items={neededItems}
+      />
+      <MediaItems
+        label={intl.formatMessage({ id: "app.garden.upload.optional", defaultMessage: "Optional" })}
+        items={optionalItems}
+      />
 
-      {/* Optional items */}
-      {optionalItems.length > 0 && (
-        <div>
-          <div className="text-xs tracking-tight mb-1 uppercase">
-            {intl.formatMessage({ id: "app.garden.upload.optional", defaultMessage: "Optional" })}
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            {optionalItems.map((item) => (
-              <Badge key={item} className="capitalize" variant="pill" tint="primary">
-                {String(item).replace("_", " ")}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Hidden file inputs (2: media + camera) */}
+      {/* Hidden file inputs: photos and videos, the camera, and documents */}
       <div className="hidden">
-        <input
-          ref={mediaInputRef}
-          id="work-media-upload"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm"
-          onChange={handleMediaUpload}
-          multiple
-          disabled={isProcessingMedia}
-        />
-        <input
-          ref={cameraInputRef}
-          id="work-media-camera"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-          capture="environment"
-          onChange={handleMediaUpload}
-          disabled={isProcessingMedia}
-        />
+        {(
+          [
+            [mediaInputRef, "work-media-upload", PHOTO_AND_VIDEO_ACCEPT],
+            [cameraInputRef, "work-media-camera", PHOTO_ACCEPT],
+            // Documents have a picker of their own, so the photo picker keeps the photo grid.
+            [documentInputRef, "work-document-upload", WORK_DOCUMENT_ACCEPT],
+          ] as const
+        ).map(([ref, id, accept]) => (
+          <input
+            key={id}
+            ref={ref}
+            id={id}
+            type="file"
+            accept={accept}
+            capture={ref === cameraInputRef ? "environment" : undefined}
+            multiple={ref !== cameraInputRef}
+            onChange={handleMediaUpload}
+            disabled={isProcessingMedia}
+          />
+        ))}
       </div>
 
       {/* Compression progress */}
@@ -646,68 +690,24 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         </div>
       )}
 
-      {/* Unified media grid: list on mobile, 2-col grid on tablet+ */}
-      {images.length > 0 || audioNotes.length > 0 ? (
-        <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-2">
-          {/* Photo and video cards */}
-          {images.map((file, index) => {
-            const isVideo = isVideoFile(file);
-            const url = mediaUrls[index];
-            const mediaId = getWorkMediaId(file);
-            const isBroken = brokenMediaIds?.has(mediaId) ?? false;
-
-            if (isVideo) {
-              return (
-                <WorkMediaVideoCard
-                  key={mediaId}
-                  index={index}
-                  url={url}
-                  isBroken={isBroken}
-                  isPlaying={playingVideoId === mediaId}
-                  onPlay={() => setPlayingVideoId(mediaId)}
-                  onPreviewFailed={() => onPreviewFailed?.(file, "media")}
-                  onRemove={() => removeMedia(file)}
-                />
-              );
-            }
-
-            // Photo card
-            const photoIndex = photoOnlyData.findIndex((p) => p.originalIndex === index);
-            return (
-              <WorkMediaPhotoCard
-                key={mediaId}
-                file={file}
-                index={index}
-                url={url}
-                isBroken={isBroken}
-                heicState={heicStateOf?.(file)}
-                onPreview={() => {
-                  if (photoIndex >= 0) setPreviewIndex(photoIndex);
-                }}
-                onPreviewFailed={() => onPreviewFailed?.(file, "media")}
-                onRemove={() => removeMedia(file)}
-                onRetryConversion={() => onRetryHeicConversion?.(file)}
-              />
-            );
-          })}
-
-          {/* Audio note cards (span full width in grid) */}
-          {audioNotes.map((file, index) => (
-            <div key={`audio-${file.name}-${index}`} className="md:col-span-2">
-              <AudioPlayer
-                file={file}
-                onDelete={() => {
-                  setAudioNotes(audioNotes.filter((_, i) => i !== index));
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="pt-8 px-4 grid place-items-center">
-          <Books />
-        </div>
-      )}
+      {/* The one media list both kinds draw (DL-131); this step owns the files and their URLs. */}
+      <SubmissionMediaList
+        media={images}
+        urls={mediaUrls}
+        audioNotes={audioNotes}
+        isBroken={(file) => brokenMediaIds?.has(getWorkMediaId(file)) ?? false}
+        heicStateOf={heicStateOf}
+        onPreview={(_, index) => {
+          const photoIndex = photoOnlyData.findIndex((p) => p.originalIndex === index);
+          if (photoIndex >= 0) setPreviewIndex(photoIndex);
+        }}
+        onPreviewFailed={(file) => onPreviewFailed?.(file, "media")}
+        onRemoveMedia={(file) => removeMedia(file)}
+        onRemoveAudio={(index) => {
+          setAudioNotes(audioNotes.filter((_, i) => i !== index));
+        }}
+        onRetryHeicConversion={(file) => onRetryHeicConversion?.(file)}
+      />
 
       <ImagePreviewDialog
         isOpen={previewIndex !== null}

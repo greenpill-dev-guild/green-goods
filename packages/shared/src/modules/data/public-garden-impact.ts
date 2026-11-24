@@ -59,18 +59,25 @@ export interface PublicGardenImpactCertificateRecord {
 export interface PublicGardenImpactReaders {
   readGarden(
     chainId: number,
-    gardenAddress: Address
+    gardenAddress: Address,
+    signal?: AbortSignal
   ): Promise<PublicGardenImpactGardenRecord | null>;
-  readWorks(chainId: number, gardenAddress: Address): Promise<PublicGardenImpactWorkRecord[]>;
-  readApprovals(chainId: number): Promise<PublicGardenImpactApprovalRecord[]>;
-  readActions(chainId: number): Promise<PublicGardenImpactActionRecord[]>;
+  readWorks(
+    chainId: number,
+    gardenAddress: Address,
+    signal?: AbortSignal
+  ): Promise<PublicGardenImpactWorkRecord[]>;
+  readApprovals(chainId: number, signal?: AbortSignal): Promise<PublicGardenImpactApprovalRecord[]>;
+  readActions(chainId: number, signal?: AbortSignal): Promise<PublicGardenImpactActionRecord[]>;
   readAssessments(
     chainId: number,
-    gardenAddress: Address
+    gardenAddress: Address,
+    signal?: AbortSignal
   ): Promise<PublicGardenImpactAssessmentRecord[]>;
   readCertificates(
     chainId: number,
-    gardenAddress: Address
+    gardenAddress: Address,
+    signal?: AbortSignal
   ): Promise<PublicGardenImpactCertificateRecord[]>;
 }
 
@@ -78,6 +85,7 @@ export interface PublicGardenImpactLoadInput {
   chainId: number;
   gardenAddress: Address;
   recentLimit: number;
+  signal?: AbortSignal;
 }
 
 export class PublicGardenImpactNotFoundError extends Error {
@@ -230,7 +238,7 @@ export async function loadPublicGardenImpactSnapshot(
   const address = getAddress(input.gardenAddress) as Address;
   let garden: PublicGardenImpactGardenRecord | null;
   try {
-    garden = await deps.readers.readGarden(input.chainId, address);
+    garden = await deps.readers.readGarden(input.chainId, address, input.signal);
   } catch {
     throw new PublicGardenImpactProviderError();
   }
@@ -242,12 +250,13 @@ export async function loadPublicGardenImpactSnapshot(
     throw new PublicGardenImpactNotFoundError();
   }
 
+  input.signal?.throwIfAborted();
   const [works, approvals, actions, assessments, certificates] = await Promise.all([
-    settle(() => deps.readers.readWorks(input.chainId, address), []),
-    settle(() => deps.readers.readApprovals(input.chainId), []),
-    settle(() => deps.readers.readActions(input.chainId), []),
-    settle(() => deps.readers.readAssessments(input.chainId, address), []),
-    settle(() => deps.readers.readCertificates(input.chainId, address), []),
+    settle(() => deps.readers.readWorks(input.chainId, address, input.signal), []),
+    settle(() => deps.readers.readApprovals(input.chainId, input.signal), []),
+    settle(() => deps.readers.readActions(input.chainId, input.signal), []),
+    settle(() => deps.readers.readAssessments(input.chainId, address, input.signal), []),
+    settle(() => deps.readers.readCertificates(input.chainId, address, input.signal), []),
   ]);
   if (!works.available && !assessments.available && !certificates.available) {
     throw new PublicGardenImpactProviderError();

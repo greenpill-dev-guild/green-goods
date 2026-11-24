@@ -17,10 +17,8 @@ import type { PinataUploadSignerConfig } from "../../services/pinata-upload-sign
 import type { SubscriptionClient } from "../../services/subscriptions";
 import type { InMemoryPublicRateLimiter, TrustedProxyConfig } from "../public-protection";
 import type { ThirdwebCheckoutClient } from "../funding/thirdweb";
-import type {
-  ProfileAvatarSignatureVerifier,
-  ProfileAvatarStore,
-} from "../../services/profile-avatars";
+import type { ProfileAvatarStore } from "../../services/profile-avatars";
+import type { AccountSignatureVerifier } from "../../services/account-signatures";
 import type {
   SavedOfferStore,
   SavedOffersSessionStore,
@@ -30,9 +28,13 @@ import type {
   GardenJoinRequestRateLimitPressure,
   GardenJoinRequestStore,
 } from "../../services/garden-join-requests";
+import type { GardenJoinRequestCountGrants } from "../../services/garden-join-request-count-grants";
 import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
 import type { PasskeyDirectory } from "../../services/passkey-directory";
+import type { OpenfortRecovery } from "../../services/openfort-recovery";
 import type { MessagingRouteDeps } from "../routes/messaging";
+import type { VoucherAwardService } from "../../services/voucher-awards";
+import type { ServiceIssuerDeskService } from "../../services/service-issuer-desk";
 
 export interface ServerConfig {
   port: number;
@@ -71,6 +73,7 @@ export interface ServerDeps {
     chainId: number;
     gardenAddress: Address;
     recentLimit: number;
+    signal?: AbortSignal;
   }) => Promise<PublicGardenImpactResponseV1>;
   providerProofRegistry?: ReturnType<typeof createProviderProofRegistry>;
   allowedOrigins?: Set<string>;
@@ -95,7 +98,7 @@ export interface ServerDeps {
   }) => Promise<bigint>;
   profileAvatarStore?: ProfileAvatarStore;
   profileAvatarChainId?: number;
-  profileAvatarSignatureVerifier?: ProfileAvatarSignatureVerifier;
+  profileAvatarSignatureVerifier?: AccountSignatureVerifier;
   savedOfferStore?: SavedOfferStore;
   savedOffersSessionStore?: SavedOffersSessionStore;
   savedOffersSignatureVerifier?: SavedOffersSignatureVerifier;
@@ -106,14 +109,19 @@ export interface ServerDeps {
   gardenJoinRequestsEnabled?: boolean;
   gardenJoinRequestChainId?: number;
   gardenJoinRequestChainReader?: GardenJoinRequestChainReader;
-  gardenJoinRequestSignatureVerifier?: ProfileAvatarSignatureVerifier;
+  gardenJoinRequestSignatureVerifier?: AccountSignatureVerifier;
+  gardenJoinRequestCountGrants?: GardenJoinRequestCountGrants;
   /** Defaults to 24 hours; zero disables the retention sweep. */
   gardenJoinRequestSweepIntervalMs?: number;
   /** Issues passkeys under one domain for every site; absent unless the directory is enabled. */
   passkeyDirectory?: PasskeyDirectory;
+  /** Mints Shield sessions for email accounts; absent unless all four keys are set. */
+  openfortRecovery?: OpenfortRecovery;
   now?: () => number;
   /** Browser ceremony API for agent reporting; absent unless reporting is configured. */
   messaging?: MessagingRouteDeps;
+  voucherAwards?: VoucherAwardService;
+  serviceIssuerDesk?: ServiceIssuerDeskService;
 }
 
 export type AgentServer = Hono & {

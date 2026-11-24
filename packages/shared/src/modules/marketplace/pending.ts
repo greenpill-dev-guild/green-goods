@@ -17,6 +17,15 @@ export async function readMarketplaceSubmissionOutcome(
   const reference = pending.reference;
   if (!reference) return { status: "unresolved" };
   try {
+    // Both approvals under one wallet signature: only the wallet can say what its ID became.
+    if (reference.kind === "wallet-calls") {
+      const execution = await sender?.reconcileBatch?.(reference);
+      if (execution?.status === "reverted") return { status: "reverted" };
+      const [receipt] = execution?.receipts ?? [];
+      return execution?.status === "confirmed" && receipt
+        ? { status: "confirmed", transactionHash: receipt.transactionHash }
+        : { status: "unresolved" };
+    }
     if (reference.kind === "user-operation")
       return (await sender?.reconcileBroadcast?.(reference)) ?? { status: "unresolved" };
     if (!/^0x[\da-f]{64}$/i.test(reference.hash)) return { status: "unresolved" };

@@ -18,6 +18,7 @@ export async function submitWorkBot(
   chainId: number,
   images: File[] | Blob[] | Buffer[]
 ): Promise<`0x${string}`> {
+  if (!client.account) throw new Error("Bot wallet client has no account configured");
   // encodeWorkData normalizes Blob -> File internally (encoders.ts).
   // Convert Buffer -> Blob here so encodeWorkData receives a type it can handle.
   const mediaFiles = images.map((img) => {
@@ -34,18 +35,14 @@ export async function submitWorkBot(
       actionUID,
       media: mediaFiles,
     },
-    chainId
+    chainId,
+    { uploaderAddress: client.account.address }
   );
 
   const easConfig = getEASConfig(chainId);
   const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
   // 3. Send transaction
-  if (!client.account) {
-    throw new Error(
-      "Bot wallet client has no account configured. Provide a wallet client with an account."
-    );
-  }
   const hash = await client.sendTransaction({
     ...txParams,
     chain: client.chain,

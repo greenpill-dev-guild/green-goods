@@ -63,7 +63,7 @@ export const FindNameNotFound: Story = {
 export const ConnectFailed: Story = {
   args: {
     ...ConnectReturning.args,
-    failure: { reason: "prompt_closed", spoken: "Sign in was cancelled." },
+    failure: { reason: "prompt_closed", spoken: "Sign in was canceled." },
   },
 };
 export const Connected: Story = { args: { stage: "connect", account: ACCOUNT } };

@@ -194,17 +194,4 @@ describe("hooks/app/useTheme", () => {
       });
     });
   });
-
-  describe("return value", () => {
-    it("provides all expected properties", () => {
-      const { result } = renderHook(() => useTheme());
-
-      expect(result.current).toHaveProperty("theme");
-      expect(result.current).toHaveProperty("isDark");
-      expect(result.current).toHaveProperty("setTheme");
-      expect(result.current).toHaveProperty("toggleTheme");
-      expect(typeof result.current.setTheme).toBe("function");
-      expect(typeof result.current.toggleTheme).toBe("function");
-    });
-  });
 });

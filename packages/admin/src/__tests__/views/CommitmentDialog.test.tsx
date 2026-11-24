@@ -11,6 +11,7 @@ import {
   contributorFixture,
 } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { commitmentDialogControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { CommitmentVoucherOutcomes } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 
 import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
@@ -30,10 +31,12 @@ vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
 }));
 beforeEach(() => {
   releaseScope.settlementEnabled = true;
+  mocks.voucherOutcomes = null;
 });
 
 const mocks = vi.hoisted(() => ({
   controller: null as CommitmentDialogController | null,
+  voucherOutcomes: null as CommitmentVoucherOutcomes | null,
   navigate: vi.fn(),
   toastError: vi.fn(),
 }));
@@ -41,6 +44,17 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController", () => ({
   useCommitmentDialogController: () => mocks.controller!,
 }));
+
+// A promise's voucher outcomes come from the member's service read, proven where it is built.
+vi.mock(
+  "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController")
+    >()),
+    useCommitmentVoucherOutcomes: () => mocks.voucherOutcomes,
+  })
+);
 
 // This view proves the confirmation flow; ENS resolution has its own coverage.
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
@@ -69,18 +83,21 @@ vi.mock("@/components/AdminReasonDialog", () => ({
   AdminReasonDialog: ({
     isOpen,
     title,
+    description,
     confirmLabel,
     onConfirm,
     children,
   }: {
     isOpen: boolean;
     title: string;
+    description?: string;
     confirmLabel: string;
     onConfirm: (reason: string) => void | Promise<void>;
     children?: React.ReactNode;
   }) =>
     isOpen ? (
       <div role="dialog" aria-label={title}>
+        {description ? <p>{description}</p> : null}
         {children}
         <button type="button" onClick={() => void onConfirm("because")}>
           {confirmLabel}
@@ -339,6 +356,32 @@ describe("CommitmentDialogPanel (W10)", () => {
     );
   });
 
+  it("shows a promise's voucher outcomes after its facts, and nothing for one that has none", () => {
+    const none = renderPanel();
+    expect(screen.queryByRole("region", { name: "Rewards" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Voucher Payment" })).not.toBeInTheDocument();
+    none.unmount();
+
+    mocks.voucherOutcomes = {
+      rewards: [],
+      workFulfilled: false,
+      payment: {
+        asset: { chainId: 100, token: TAKER, symbol: "TEST-B", decimals: 0 },
+        issuer: { name: "Tech and Sun", gender: "feminine" },
+        issuerAccount: TAKER,
+        units: 1n,
+        revision: 1n,
+        admission: null,
+      },
+    };
+    renderPanel();
+    const payment = screen.getByRole("region", { name: "Voucher Payment" });
+    const facts = screen.getByRole("region", { name: "Facts" });
+
+    expect(facts.compareDocumentPosition(payment) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(payment).toHaveTextContent("1 Tech and Sun voucher");
+  });
+
   it("offers the accepted row's three separate acts and routes each through its own reason", async () => {
     mocks.controller = controller({
       can: can({ cancel: true, markReady: true, sendForConfirmation: true }),
@@ -355,10 +398,10 @@ describe("CommitmentDialogPanel (W10)", () => {
     );
     await waitFor(() => expect(acts.markReady).toHaveBeenCalledWith("because"));
 
-    fireEvent.click(screen.getByRole("button", { name: /cancel commitment/i }));
+    fireEvent.click(screen.getByRole("button", { name: /cancel promise/i }));
     fireEvent.click(
-      within(screen.getByRole("dialog", { name: /cancel this commitment/i })).getByRole("button", {
-        name: /^cancel commitment$/i,
+      within(screen.getByRole("dialog", { name: /cancel this promise/i })).getByRole("button", {
+        name: /^cancel promise$/i,
       })
     );
     await waitFor(() => expect(acts.cancel).toHaveBeenCalledWith("because"));
@@ -469,7 +512,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     fireEvent.click(screen.getByRole("button", { name: /^resolve/i }));
     const dialog = screen.getByRole("dialog", { name: /resolve the dispute/i });
     expect(within(dialog).queryByRole("radio", { name: /^kept/i })).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("radio", { name: /cancelled/i }));
+    fireEvent.click(within(dialog).getByRole("radio", { name: /canceled/i }));
     fireEvent.click(within(dialog).getByRole("button", { name: /^resolve$/i }));
     const acts = mocks.controller!.acts;
     await waitFor(() => expect(acts.resolveDispute).toHaveBeenCalledWith("CANCELLED", "because"));
@@ -494,7 +537,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     ).toBeInTheDocument();
   });
 
-  it("confirms a record as kept only from the review the Hub shares, naming the record, its pool and who kept it", async () => {
+  it("confirms a record as kept only from the review Review's Confirm stage shares, naming the record, its pool and who kept it", async () => {
     mocks.controller = controller({
       commitment: {
         onchainState: "READY_FOR_CONFIRMATION",
@@ -509,7 +552,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     fireEvent.click(screen.getByRole("button", { name: /^confirm kept…$/i }));
     const acts = mocks.controller!.acts;
     expect(acts.confirmOrdinary).not.toHaveBeenCalled();
-    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    const review = screen.getByRole("dialog", { name: /confirm this promise kept/i });
     expect(review).toHaveTextContent(/“Repair tool handles” in .+’s pool/);
     expect(review).toHaveTextContent(/kept by/i);
     expect(review).toHaveTextContent(
@@ -517,6 +560,25 @@ describe("CommitmentDialogPanel (W10)", () => {
     );
     fireEvent.click(within(review).getByRole("button", { name: /^confirm kept$/i }));
     await waitFor(() => expect(acts.confirmOrdinary).toHaveBeenCalledTimes(1));
+  });
+
+  // PRD-1205: once Confirm Kept is on its way the review has closed, and the record says where its
+  // confirmation stands instead of offering Confirm Kept again.
+  it("holds Confirm Kept once sent and says the record reads Kept when its last confirmation lands", () => {
+    mocks.controller = controller({
+      commitment: {
+        onchainState: "READY_FOR_CONFIRMATION",
+        state: "READY_FOR_CONFIRMATION",
+        derivedState: "READY_FOR_CONFIRMATION",
+      },
+      can: can({ confirmOrdinary: true }),
+      confirmPhase: { status: "confirmed", key: "confirm-kept:9", hash: null },
+    });
+    renderPanel();
+    expect(screen.getByRole("button", { name: /^confirm kept…$/i })).toBeDisabled();
+    expect(
+      screen.getByText("Confirmed. It reads Kept once its last confirmation is recorded.")
+    ).toBeInTheDocument();
   });
 
   it("opens at who asked once the ask is read, even when the record came from the cache first", () => {
@@ -607,7 +669,42 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(within(asks[1]!).queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("offers Edit Reward on a promise that stands alone, only while nobody has taken it", () => {
+  it("says an ask closed with its canceled promise, not that someone else was approved", () => {
+    const record = commitment({
+      onchainState: "CANCELLED",
+      derivedState: "CANCELLED",
+      state: "CANCELLED",
+      direction: "REQUEST",
+      leadProvider: null,
+      counterparty: null,
+    });
+    mocks.controller = controller({
+      commitment: record,
+      detail: commitmentDetailFixture({
+        commitment: record,
+        claimRequests: [
+          claimFixture({
+            commitmentId: 9n,
+            claimant: TAKER,
+            state: "SUPERSEDED",
+            resolutionCode: "COMMITMENT_CANCELLED",
+            resolvedAt: 1_755_950_000,
+          }),
+        ],
+      }),
+    });
+    renderPanel();
+    const [ask] = within(screen.getByRole("region", { name: "Who asked" })).getAllByRole(
+      "listitem"
+    );
+
+    expect(ask).toHaveAttribute("data-state", "closed");
+    expect(within(ask!).getByText("Closed")).toBeInTheDocument();
+    expect(ask).toHaveTextContent(/promise canceled/);
+    expect(ask).not.toHaveTextContent(/Not chosen|someone else was approved/);
+  });
+
+  it("offers Edit Reward and Edit Confirmers on a promise that stands alone, only while nobody has taken it", () => {
     const untaken = {
       onchainState: "REQUESTED" as const,
       derivedState: "REQUESTED" as const,
@@ -622,21 +719,37 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(editReward()).toBeInTheDocument();
     alone.unmount();
 
-    // A copy in a group changes its reward from the group's inspector.
+    const groupWords = {
+      version: 1 as const,
+      title: "Repair tool handles",
+      displayGroup: { version: 1 as const, id: "group-00000001" },
+    };
+    const editConfirmers = () => screen.queryByRole("button", { name: "Edit Confirmers" });
+
+    // A copy the list shows in a group changes its terms from the group's inspector.
     mocks.controller = controller({
       commitment: untaken,
-      metadata: {
-        version: 1,
-        title: "Repair tool handles",
-        displayGroup: { version: 1, id: "group-00000001" },
-      },
+      metadata: groupWords,
+      editsTermsFromGroup: true,
     });
     const grouped = renderPanel();
     expect(editReward()).not.toBeInTheDocument();
+    expect(editConfirmers()).not.toBeInTheDocument();
     grouped.unmount();
 
-    // A document still loading, or one that couldn't be read, may name a group.
-    mocks.controller = controller({ commitment: untaken, metadataKnown: false });
+    // A group's lone surviving copy lists on its own, so both edits are here (PRD-1548).
+    mocks.controller = controller({
+      commitment: { ...untaken, protocolFallbackEnabled: false },
+      metadata: groupWords,
+      editsTermsFromGroup: false,
+    });
+    const lone = renderPanel();
+    expect(editReward()).toBeInTheDocument();
+    expect(editConfirmers()).toBeInTheDocument();
+    lone.unmount();
+
+    // Until its words and the pool's are read, it may still be a copy.
+    mocks.controller = controller({ commitment: untaken, editsTermsFromGroup: null });
     const unread = renderPanel();
     expect(editReward()).not.toBeInTheDocument();
     unread.unmount();
@@ -658,6 +771,60 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(within(routine).queryByRole("button", { name: /expire now/i })).not.toBeInTheDocument();
     const expire = screen.getByRole("button", { name: /expire now/i });
     expect(expire.closest('[data-slot="expire"]')).not.toBeNull();
+  });
+
+  // PRD-1462: canceling a booked voucher offer leaves the member's vouchers in escrow until the
+  // issuer proposes a return, so the dialog says so before the steward cancels.
+  it("warns that a booked voucher offer's vouchers stay in escrow when it is canceled", () => {
+    mocks.voucherOutcomes = {
+      rewards: [],
+      workFulfilled: false,
+      payment: {
+        asset: { chainId: 100, token: TAKER, symbol: "TEST-B", decimals: 0 },
+        issuer: { name: "Tech and Sun", gender: "feminine" },
+        issuerAccount: TAKER,
+        units: 1n,
+        revision: 1n,
+        admission: null,
+      },
+    };
+    mocks.controller = controller({
+      commitment: { onchainState: "ACCEPTED", derivedState: "ACCEPTED", state: "ACCEPTED" },
+      can: can({ cancel: true }),
+    });
+    renderPanel();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^cancel promise…$/i })[0]!);
+    expect(screen.getByRole("dialog", { name: /cancel this promise/i })).toHaveTextContent(
+      "Committed units release, but the member’s vouchers stay in escrow until the issuer proposes a return from Review Promises."
+    );
+  });
+
+  it("lets a steward cancel a promise nobody has taken up, with a reason, in its own row", async () => {
+    mocks.controller = controller({
+      commitment: { onchainState: "OFFERED", derivedState: "OFFERED", state: "OFFERED" },
+      can: can({ cancel: true, acceptClaim: true, declineClaim: true }),
+    });
+    const steward = renderPanel();
+    const cancel = screen.getByRole("button", { name: /^cancel promise…$/i });
+    expect(cancel.closest('[data-slot="cancel"]')).not.toBeNull();
+    // The Accepted section, with its own cancel, is not drawn on an untaken record.
+    expect(screen.queryByTestId("commitment-accepted-acts")).not.toBeInTheDocument();
+
+    fireEvent.click(cancel);
+    const dialog = screen.getByRole("dialog", { name: /cancel this promise/i });
+    expect(dialog).toHaveTextContent("Nobody has taken this up yet.");
+    fireEvent.click(within(dialog).getByRole("button", { name: /^cancel promise$/i }));
+    await waitFor(() => expect(mocks.controller!.acts.cancel).toHaveBeenCalledWith("because"));
+    steward.unmount();
+
+    // Without the steward's cancel, an untaken record offers none.
+    mocks.controller = controller({
+      commitment: { onchainState: "REQUESTED", derivedState: "REQUESTED", state: "REQUESTED" },
+      can: can({ cancel: false }),
+    });
+    renderPanel();
+    expect(screen.queryByRole("button", { name: /cancel promise/i })).not.toBeInTheDocument();
   });
 
   // ConfirmLib.markReadyForConfirmation waives the requirement counters and the
@@ -805,7 +972,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     });
     renderPanel();
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/newer Work decision needs review/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/newer work decision needs review/i);
     expect(screen.queryByText(/approved linked work counted/i)).not.toBeInTheDocument();
   });
 
@@ -867,7 +1034,7 @@ describe("CommitmentDialogPanel (W10)", () => {
       },
     });
     renderPanel();
-    expect(screen.getByText(/green goods team — fallback/i)).toBeInTheDocument();
+    expect(screen.getByText(/green goods team \(fallback\)/i)).toBeInTheDocument();
     expect(screen.getByText(/no eligible local confirmer/i)).toBeInTheDocument();
   });
 
@@ -900,7 +1067,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(screen.queryByRole("button", { name: "Seed Another Like This" })).toBeNull();
     reader.unmount();
 
-    // The Hub's Confirm stage renders this panel with no wizard beside it.
+    // Review's Confirm stage renders this panel with no wizard beside it.
     mocks.controller = controller();
     renderPanel();
     expect(screen.queryByRole("button", { name: "Seed Another Like This" })).toBeNull();
@@ -918,7 +1085,7 @@ describe("CommitmentDialogPanel (W10)", () => {
       },
     });
     renderPanel();
-    expect(screen.getByText(/isn't switched on in this app yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/isn't switched on in the Hub yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^retry$/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back to pool/i })).toBeInTheDocument();
   });

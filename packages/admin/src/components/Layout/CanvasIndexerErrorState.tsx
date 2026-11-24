@@ -1,44 +1,51 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { RiErrorWarningLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
-import { SeedlingIllustration } from "./SeedlingIllustration";
 
 interface CanvasIndexerErrorStateProps {
   onRetry: () => void;
 }
 
 /**
- * Terminal state shown on `/` when `useEligibleAdminGardens.isError` is true
- * AND the role-confirmed cross-check produced no fallback gardens.
+ * Terminal state shown when the access check could not finish: on `/` when no
+ * garden is eligible and a garden, role or garden-creation read failed
+ * (`useAdminAccessState`'s `indexer-error`), and on a deployer-only route whose
+ * garden-creation read never answered (`RequireRole`).
  *
  * Distinct from `CanvasGardenAccessState` — that copy implies "you don't have
- * access yet"; this copy says "we can't tell yet, the indexer is unreachable".
- * Mixing the two during an outage was the deceptive UX flagged in the audit.
+ * access yet"; this copy says "we can't tell yet". Mixing the two during an
+ * outage was the deceptive UX flagged in the audit. The copy names no source:
+ * the error covers the indexer's garden reads and the chain's role and
+ * garden-creation permission reads alike.
  */
 export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProps) {
   const { formatMessage } = useIntl();
 
   return (
     <section
-      className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
+      className="flex min-h-full flex-col items-center justify-center px-6 py-16"
       data-testid="canvas-indexer-error"
     >
-      <SeedlingIllustration className="h-28 w-28" />
-      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
-        {formatMessage({
-          id: "cockpit.access.indexerErrorTitle",
+      <EmptyState
+        titleAs="h1"
+        tone="error"
+        icon={<RiErrorWarningLine />}
+        title={formatMessage({
+          id: "hub.access.indexerErrorTitle",
           defaultMessage: "Can't load garden access",
         })}
-      </h1>
-      <p className="mt-2 max-w-md body-sm text-text-sub">
-        {formatMessage({
-          id: "cockpit.access.indexerErrorDescription",
+        description={formatMessage({
+          id: "hub.access.indexerErrorDescription",
           defaultMessage:
-            "We couldn't load gardens from the indexer. This is usually temporary — try again in a moment.",
+            "We couldn't check your garden access. This is usually temporary. Try again in a moment.",
         })}
-      </p>
-      <AdminButton className="mt-6" onClick={onRetry}>
-        {formatMessage({ id: "cockpit.access.indexerErrorRetry", defaultMessage: "Try Again" })}
-      </AdminButton>
+        action={
+          <Button type="button" size="sm" onClick={onRetry}>
+            {formatMessage({ id: "hub.access.indexerErrorRetry", defaultMessage: "Try Again" })}
+          </Button>
+        }
+      />
     </section>
   );
 }

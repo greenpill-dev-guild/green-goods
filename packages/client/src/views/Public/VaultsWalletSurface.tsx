@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { getOctantVaultCampaigns } from "@green-goods/shared/modules/vault-crowdfunding/copy";
 import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -98,7 +99,7 @@ export function VaultsPageContent({
   }, [managing]);
 
   const handleEndow = useCallback((campaign: OctantVaultCampaignManifest) => {
-    setSelectedCampaign(campaign);
+    if (ENDOWMENT_DEPOSITS_ENABLED) setSelectedCampaign(campaign);
   }, []);
   const handleClose = useCallback(() => {
     setSelectedCampaign(null);
@@ -180,7 +181,7 @@ export function VaultsPageContent({
               <EditorialKicker className="mb-3">
                 {formatMessage({
                   id: "public.vaults.browse.kicker",
-                  defaultMessage: "Active Campaigns",
+                  defaultMessage: "Active campaigns",
                 })}
               </EditorialKicker>
               <EditorialHeading id="public-vaults-browse-title">
@@ -210,6 +211,19 @@ export function VaultsPageContent({
               </EditorialGhostButton>
             </div>
           </header>
+
+          {!ENDOWMENT_DEPOSITS_ENABLED && (
+            <div className="mt-5 max-w-2xl text-sm text-text-sub-600">
+              <p className="font-semibold text-text-strong-950">
+                {searchParams.has("endow")
+                  ? formatMessage({ id: "public.fund.endowmentPause.title" })
+                  : formatMessage({ id: "public.fund.endowmentPause.status" })}
+              </p>
+              {searchParams.has("endow") && (
+                <p className="mt-1">{formatMessage({ id: "public.fund.endowmentPause.body" })}</p>
+              )}
+            </div>
+          )}
 
           <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
             {campaigns.map((campaign) => (
@@ -242,7 +256,7 @@ export function VaultsPageContent({
             {formatMessage({
               id: "public.vaults.boundary.body",
               defaultMessage:
-                "This page is for Octant-backed campaigns. For the wider Green Goods network, explore Gardens.",
+                "This page is for Octant-backed campaigns. For the wider Green Goods network, explore gardens.",
             })}
           </p>
           <Link
@@ -264,7 +278,9 @@ export function VaultsPageContent({
           open={isManagePanelOpen}
           onExitComplete={handleManagePanelExitComplete}
           onOpenChange={handleManagePanelOpenChange}
-          onEndow={() => handleManagePanelOpenChange(false)}
+          onEndow={
+            ENDOWMENT_DEPOSITS_ENABLED ? () => handleManagePanelOpenChange(false) : undefined
+          }
         />
       ) : selectedCampaign ? (
         <VaultCheckoutDialog

@@ -1,21 +1,8 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { PoolFundingSnapshot } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
 import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { formatGdollar, shortAddress } from "./poolFundingPresentation";
-
-export interface PoolFundingDialogFactProps {
-  label: string;
-  value: string;
-}
-
-export function PoolFundingDialogFact({ label, value }: PoolFundingDialogFactProps) {
-  return (
-    <div>
-      <dt className="body-xs text-text-soft">{label}</dt>
-      <dd className="mt-1 break-words body-sm font-medium text-text-strong">{value}</dd>
-    </div>
-  );
-}
 
 export interface PoolFundingDialogFinancialSectionsProps {
   snapshot: PoolFundingSnapshot | null;
@@ -26,64 +13,63 @@ export function PoolFundingDialogFinancialSections({
 }: PoolFundingDialogFinancialSectionsProps) {
   const { formatMessage, locale } = useIntl();
   const amount = (value: bigint | null) => formatGdollar(value, locale, true);
-  const Fact = PoolFundingDialogFact;
 
   return (
     <>
       <section aria-labelledby="funding-composition-title" className="space-y-3">
         <AdminCardTitle id="funding-composition-title">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.dialog.composition",
+            id: "hub.garden.pool.funding.dialog.composition",
             defaultMessage: "Balance Composition",
           })}
         </AdminCardTitle>
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Fact
+        <FactList frame="inset">
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.balance",
+              id: "hub.garden.pool.funding.balance",
               defaultMessage: "Onchain balance",
             })}
             value={amount(snapshot?.balance?.value ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.committed",
+              id: "hub.garden.pool.funding.committed",
               defaultMessage: "Committed",
             })}
             value={amount(snapshot?.committed ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.expected",
-              defaultMessage: "Expected commitments",
+              id: "hub.garden.pool.funding.expected",
+              defaultMessage: "Expected promise rewards",
             })}
             value={amount(snapshot?.expected ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.feeBuffer",
+              id: "hub.garden.pool.funding.feeBuffer",
               defaultMessage: "Conservative fee buffer",
             })}
             value={amount(snapshot?.feeBuffer ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.availablePromises",
+              id: "hub.garden.pool.funding.availablePromises",
               defaultMessage: "Available for new promises",
             })}
             value={amount(snapshot?.available ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.topUp",
+              id: "hub.garden.pool.funding.topUp",
               defaultMessage: "Suggested top-up",
             })}
             value={amount(snapshot?.suggestedTopUp ?? null)}
           />
-        </dl>
-        <p className="body-xs text-text-soft">
+        </FactList>
+        <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.topUp.note",
+            id: "hub.garden.pool.funding.topUp.note",
             defaultMessage:
               "The suggested top-up is informational. This view cannot move or pull treasury funds.",
           })}
@@ -92,41 +78,35 @@ export function PoolFundingDialogFinancialSections({
           <div className="space-y-2">
             <AdminCardTitle as="h4">
               {formatMessage({
-                id: "cockpit.garden.pool.funding.dialog.obligations",
+                id: "hub.garden.pool.funding.dialog.obligations",
                 defaultMessage: "Obligation Breakdown",
               })}
             </AdminCardTitle>
-            <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-bg-soft px-3">
+            <FactList frame="inset">
               {snapshot.obligations.map((row) => (
-                <li
+                <FactRow
                   key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2 body-sm"
-                >
-                  <span className="text-text-sub">
-                    {formatMessage({
-                      id: `cockpit.garden.pool.funding.obligation.${row.kind}`,
-                      defaultMessage:
-                        row.kind === "plan"
-                          ? "Finalized payout plan"
-                          : row.kind === "funding"
-                            ? "Member funding"
-                            : row.kind === "standalone"
-                              ? "Standalone disbursement"
-                              : "Expected commitment",
-                    })}
-                  </span>
-                  <span className="font-medium text-text-strong">
-                    {formatMessage(
-                      {
-                        id: "cockpit.garden.pool.funding.obligation.amount",
-                        defaultMessage: "{net} + {fee} fee buffer",
-                      },
-                      { net: amount(row.netAmount), fee: amount(row.feeBuffer) }
-                    )}
-                  </span>
-                </li>
+                  label={formatMessage({
+                    id: `hub.garden.pool.funding.obligation.${row.kind}`,
+                    defaultMessage:
+                      row.kind === "plan"
+                        ? "Finalized payout plan"
+                        : row.kind === "funding"
+                          ? "Member funding"
+                          : row.kind === "standalone"
+                            ? "Standalone disbursement"
+                            : "Expected commitment",
+                  })}
+                  value={formatMessage(
+                    {
+                      id: "hub.garden.pool.funding.obligation.amount",
+                      defaultMessage: "{net} + {fee} fee buffer",
+                    },
+                    { net: amount(row.netAmount), fee: amount(row.feeBuffer) }
+                  )}
+                />
               ))}
-            </ul>
+            </FactList>
           </div>
         ) : null}
       </section>
@@ -137,36 +117,36 @@ export function PoolFundingDialogFinancialSections({
       >
         <AdminCardTitle id="funding-transit-title">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.dialog.transit",
+            id: "hub.garden.pool.funding.dialog.transit",
             defaultMessage: "Funds in Transit",
           })}
         </AdminCardTitle>
-        <dl className="grid gap-3 sm:grid-cols-3">
-          <Fact
+        <FactList frame="inset">
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.transit.dispatched",
+              id: "hub.garden.pool.funding.transit.dispatched",
               defaultMessage: "Dispatched",
             })}
             value={amount(snapshot?.transit.dispatched ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.transit.executed",
+              id: "hub.garden.pool.funding.transit.executed",
               defaultMessage: "Executed, awaiting confirmation",
             })}
             value={amount(snapshot?.transit.executedAwaitingConfirmation ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.transit.incoming",
+              id: "hub.garden.pool.funding.transit.incoming",
               defaultMessage: "Expected incoming funding",
             })}
             value={amount(snapshot?.transit.incoming ?? null)}
           />
-        </dl>
-        <p className="body-xs text-text-soft">
+        </FactList>
+        <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.transit.note",
+            id: "hub.garden.pool.funding.transit.note",
             defaultMessage:
               "Transit is a breakdown of obligations, not an additional deduction. Incoming funding is excluded until it reaches the Safe.",
           })}
@@ -179,64 +159,60 @@ export function PoolFundingDialogFinancialSections({
       >
         <AdminCardTitle id="funding-fees-title">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.dialog.fees",
+            id: "hub.garden.pool.funding.dialog.fees",
             defaultMessage: "GoodDollar Fees",
           })}
         </AdminCardTitle>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <Fact
+        <FactList frame="inset">
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.quotedFees",
+              id: "hub.garden.pool.funding.quotedFees",
               defaultMessage: "Current quoted fees",
             })}
             value={amount(snapshot?.quotedFees ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.feeBuffer",
+              id: "hub.garden.pool.funding.feeBuffer",
               defaultMessage: "Conservative fee buffer",
             })}
             value={amount(snapshot?.feeBuffer ?? null)}
           />
-        </dl>
+        </FactList>
         {snapshot?.feeQuotes.length ? (
-          <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-bg-soft px-3">
+          <FactList frame="inset">
             {snapshot.feeQuotes.map((quote) => (
-              <li
+              <FactRow
                 key={quote.id}
-                className="flex flex-wrap items-center justify-between gap-2 py-2 body-sm"
-              >
-                <span className="text-text-sub">
-                  {quote.recipient ? shortAddress(quote.recipient) : "—"} · {amount(quote.amount)}
-                </span>
-                <span className="font-medium text-text-strong">
-                  {quote.fee === null || quote.senderPays === null
+                label={`${quote.recipient ? shortAddress(quote.recipient) : "—"} · ${amount(quote.amount)}`}
+                value={
+                  quote.fee === null || quote.senderPays === null
                     ? formatMessage({
-                        id: "cockpit.garden.pool.funding.fees.quoteUnavailable",
+                        id: "hub.garden.pool.funding.fees.quoteUnavailable",
                         defaultMessage: "Quote unavailable",
                       })
                     : formatMessage(
                         {
-                          id: "cockpit.garden.pool.funding.fees.quote",
+                          id: "hub.garden.pool.funding.fees.quote",
                           defaultMessage: "{fee} · {payer}",
                         },
                         {
                           fee: amount(quote.fee),
                           payer: quote.senderPays
                             ? formatMessage({
-                                id: "cockpit.garden.pool.funding.fees.senderPays",
+                                id: "hub.garden.pool.funding.fees.senderPays",
                                 defaultMessage: "sender pays",
                               })
                             : formatMessage({
-                                id: "cockpit.garden.pool.funding.fees.receiverPays",
+                                id: "hub.garden.pool.funding.fees.receiverPays",
                                 defaultMessage: "recipient pays",
                               }),
                         }
-                      )}
-                </span>
-              </li>
+                      )
+                }
+              />
             ))}
-          </ul>
+          </FactList>
         ) : null}
       </section>
 
@@ -246,50 +222,50 @@ export function PoolFundingDialogFinancialSections({
       >
         <AdminCardTitle id="funding-limits-title">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.dialog.limits",
+            id: "hub.garden.pool.funding.dialog.limits",
             defaultMessage: "Settlement Limits",
           })}
         </AdminCardTitle>
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Fact
+        <FactList frame="inset">
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.rolesAllowance",
+              id: "hub.garden.pool.funding.rolesAllowance",
               defaultMessage: "Safe allowance remaining",
             })}
             value={amount(snapshot?.limits.rolesAllowanceRemaining ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.periodAllowance",
+              id: "hub.garden.pool.funding.periodAllowance",
               defaultMessage: "Period allowance remaining",
             })}
             value={amount(snapshot?.limits.periodAllowanceRemaining ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.transferCap",
+              id: "hub.garden.pool.funding.transferCap",
               defaultMessage: "Per-transfer cap",
             })}
             value={amount(snapshot?.limits.maxTransferAmount ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.batchCap",
+              id: "hub.garden.pool.funding.batchCap",
               defaultMessage: "Batch amount cap",
             })}
             value={amount(snapshot?.limits.maxBatchAmount ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.batchSize",
+              id: "hub.garden.pool.funding.batchSize",
               defaultMessage: "Batch size limit",
             })}
             value={snapshot?.limits.batchSizeLimit?.toLocaleString(locale) ?? "—"}
           />
-        </dl>
-        <p className="body-xs text-text-soft">
+        </FactList>
+        <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.limits.note",
+            id: "hub.garden.pool.funding.limits.note",
             defaultMessage:
               "Limits constrain settlement execution. They are not subtracted from the Safe balance.",
           })}

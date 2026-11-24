@@ -318,8 +318,9 @@ export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: b
     return "http://localhost:3006/v1/graphql";
   }
 
-  // Production URL (update when deployed)
-  return "https://indexer.hyperindex.xyz/de3e5df/v1/graphql";
+  // Production reads the indexer from the environment only: env.schema requires the setting for
+  // production builds, and a missing one fails here instead of reaching a deployment that is gone.
+  throw new Error("VITE_ENVIO_INDEXER_URL is not set: set it to the hosted indexer URL.");
 }
 
 // True iff the GreenWill badge contract is deployed (non-zero) on the given chain.

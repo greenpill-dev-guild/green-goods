@@ -45,6 +45,7 @@ import {
 } from "../modules/auth/session";
 import { authMachine } from "./authMachine";
 import { authServices } from "./authServices";
+import { getActorSignOutRevision, getSignOutRevision } from "../modules/auth/sessionSignOut";
 
 // ============================================================================
 // CREATE ACTOR WITH SERVICES
@@ -65,11 +66,14 @@ function getChainId(): number {
  * Create the auth actor with proper services injected
  */
 export function createAuthActor(services: typeof authServices = authServices) {
+  const signOutRevision = typeof window !== "undefined" ? getSignOutRevision() : null;
   // Get chain ID at runtime
   const chainId = getChainId();
   const storedAuthMode = typeof window !== "undefined" ? getAuthMode() : null;
   const restoreAuthMode =
-    storedAuthMode === "wallet" || storedAuthMode === "embedded" ? storedAuthMode : null;
+    storedAuthMode === "wallet" || storedAuthMode === "embedded" || storedAuthMode === "openfort"
+      ? storedAuthMode
+      : null;
   const restoreAddress =
     restoreAuthMode === "wallet"
       ? getStoredWalletAddress()
@@ -84,6 +88,8 @@ export function createAuthActor(services: typeof authServices = authServices) {
         restoreSession: services.restoreSession,
         registerPasskey: services.registerPasskey,
         authenticatePasskey: services.authenticatePasskey,
+        authenticateOpenfort: services.authenticateOpenfort,
+        restoreOpenfort: services.restoreOpenfort,
       },
     }),
     {
@@ -95,6 +101,7 @@ export function createAuthActor(services: typeof authServices = authServices) {
     }
   );
 
+  getActorSignOutRevision(actor, signOutRevision);
   return actor;
 }
 
@@ -157,7 +164,10 @@ export const authSelectors = {
 
   // Computed - respects auth mode (single source of truth)
   activeAddress: (snapshot: AuthSnapshot) => {
-    if (snapshot.matches({ authenticated: "passkey" })) {
+    if (
+      snapshot.matches({ authenticated: "passkey" }) ||
+      snapshot.matches({ authenticated: "openfort" })
+    ) {
       return snapshot.context.smartAccountAddress;
     }
     if (snapshot.matches({ authenticated: "wallet" })) {
@@ -170,6 +180,9 @@ export const authSelectors = {
   authMode: (snapshot: AuthSnapshot) => {
     if (snapshot.matches({ authenticated: "passkey" })) {
       return "passkey" as const;
+    }
+    if (snapshot.matches({ authenticated: "openfort" })) {
+      return "openfort" as const;
     }
     if (snapshot.matches({ authenticated: "wallet" })) {
       return "wallet" as const;

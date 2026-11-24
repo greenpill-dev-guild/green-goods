@@ -69,6 +69,7 @@ describe("the owner's passkey as the SDK's owner validator", () => {
     ["another selector", request({ selectorData: `0xdeadbeef${"00".repeat(40)}ff` })],
     ["an action contract", request({ selectorData: `0xe9ae5c53${"11".repeat(20)}ff` })],
     ["another account", request({}, "0x00000000000000000000000000000000000000b2")],
+    ["another chain", { ...request(), domain: { ...request().domain, chainId: 100 } }],
     ["a request that is not an enable", { ...request(), primaryType: "Permit" }],
   ])("opens no prompt for %s", async (_, asked) => {
     const account = owner();
@@ -82,6 +83,10 @@ describe("the owner's passkey as the SDK's owner validator", () => {
     ["an ECDSA root", concatHex(["0x01", "0x845ADb2C711129d4f3966735eD98a9F09fC4cE57"])],
     ["a permission as root", concatHex(["0x02", PASSKEY_ROOT_VALIDATOR])],
     ["a root that is not 21 bytes", PASSKEY_ROOT_VALIDATOR],
+    [
+      "the patched passkey root before migration-aware owner support exists",
+      concatHex(["0x01", "0x7ab16Ff354AcB328452F1D445b3Ddee9a91e9e69"]),
+    ],
   ])("refuses %s", (_, root) => {
     expect(() => passkeyOwnerValidator(owner(), root as Hex, APPROVED)).toThrow(
       "unsupported_account"
@@ -102,5 +107,24 @@ describe("the owner's passkey as the SDK's owner validator", () => {
     await expect(validator.signUserOperation({} as never)).rejects.toThrow("signs nothing else");
     await expect(validator.getStubSignature({} as never)).rejects.toThrow("signs nothing else");
     expect(account.signMessage).not.toHaveBeenCalled();
+  });
+
+  it("preserves cancellation and allows retry only for the approved account and chain", async () => {
+    const account = owner();
+    const cancelled = new Error("Passkey request cancelled");
+    account.signMessage.mockRejectedValueOnce(cancelled);
+    const validator = passkeyOwnerValidator(account, ROOT, APPROVED);
+
+    await expect(validator.signTypedData(request())).rejects.toBe(cancelled);
+    await expect(
+      validator.signTypedData({ ...request(), domain: { ...request().domain, chainId: 100 } })
+    ).rejects.toThrow("unsupported_scope");
+    expect(account.signMessage).toHaveBeenCalledTimes(1);
+
+    await expect(validator.signTypedData(request())).resolves.toBe(VALIDATOR_SIGNATURE);
+    expect(account.signMessage).toHaveBeenCalledTimes(2);
+    expect(account.signMessage).toHaveBeenNthCalledWith(2, {
+      message: { raw: hashTypedData(request()) },
+    });
   });
 });

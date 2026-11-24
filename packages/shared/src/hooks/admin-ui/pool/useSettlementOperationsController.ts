@@ -31,7 +31,7 @@ export function useSettlementOperationsController(input: {
 }): SettlementOperationsController {
   const { chainId } = input;
   const viewer = usePrimaryAddress() ?? undefined;
-  const { isDeployer } = useRole();
+  const { isProtocolTeam } = useRole();
   const availability = useCommitmentPoolingAvailability({ chainId });
   const settlementModule = getNetworkContracts(chainId).settlementModule;
   const query = useQuery({
@@ -74,10 +74,12 @@ export function useSettlementOperationsController(input: {
       requestedDelivery.current = enabled;
       setLastAct({ kind: "set-gardener-delivery", phase: "signing" });
       try {
-        const hash = (await mutation.mutateAsync({
-          action: "setGardenerDeliveryEnabled",
-          enabled,
-        })) as HexString;
+        const hash = (
+          await mutation.mutateAsync({
+            action: "setGardenerDeliveryEnabled",
+            enabled,
+          })
+        ).hash as HexString;
         setLastAct({ kind: "set-gardener-delivery", phase: "submitted", hash });
         // The flag the card shows is the chain's answer, never the request.
         const result = await query.refetch();
@@ -101,9 +103,9 @@ export function useSettlementOperationsController(input: {
     sourcePaused: query.data ? query.data.sourcePaused : null,
     owner,
     isSettlementOwner,
-    isDeployer,
+    isProtocolTeam,
     canConfigureDelivery: isSettlementOwner && Boolean(viewer),
-    showControl: isSettlementOwner || isDeployer,
+    showControl: isSettlementOwner || isProtocolTeam,
     isLoading: query.isLoading,
     isError: query.isError,
     isPending: mutation.isPending,

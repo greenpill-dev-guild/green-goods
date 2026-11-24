@@ -281,7 +281,7 @@ export function RecordStats({
       key: "made",
       label: formatMessage({
         id: "public.pool.garden.record.made",
-        defaultMessage: "Commitments made",
+        defaultMessage: "Promises made",
       }),
       value: made === undefined ? undefined : formatNumber(made),
     },

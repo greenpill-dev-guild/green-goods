@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { SeedTrayRow } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { directionEdgeClass } from "../poolPresentation";
 
 export interface SeedTrayListProps {
@@ -25,9 +25,9 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
 
   return (
     <div className="space-y-1.5" data-testid="seed-tray">
-      <p className="label-xs text-text-soft">
+      <p className="type-label-sm text-text-soft">
         {formatMessage({
-          id: "cockpit.garden.pool.seed.tray.added",
+          id: "hub.garden.pool.seed.tray.added",
           defaultMessage: "Added so far",
         })}
       </p>
@@ -38,29 +38,29 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
           const facts = [
             formatMessage(
               {
-                id: "cockpit.garden.pool.seed.tray.count",
+                id: "hub.garden.pool.seed.tray.count",
                 defaultMessage: "{count, plural, one {1 promise} other {# promises}}",
               },
               { count: values.count ?? 1 }
             ),
             formatMessage(
-              { id: "cockpit.garden.pool.seed.tray.each", defaultMessage: "{amount} {unit} each" },
+              { id: "hub.garden.pool.seed.tray.each", defaultMessage: "{amount} {unit} each" },
               { amount: values.targetUnits, unit: values.unitLabel }
             ),
             formatMessage(
               {
-                id: "cockpit.garden.pool.seed.tray.due",
+                id: "hub.garden.pool.seed.tray.due",
                 defaultMessage: "due in {days, plural, one {# day} other {# days}}",
               },
               { days: values.dueInDays }
             ),
             values.claimMode === "APPROVAL_GATED"
               ? formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.gated",
+                  id: "hub.garden.pool.seed.claimMode.gated",
                   defaultMessage: "Steward-reviewed",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.open",
+                  id: "hub.garden.pool.seed.claimMode.open",
                   defaultMessage: "Open",
                 }),
           ].join(" · ");
@@ -72,23 +72,23 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
             >
               {/* The basis lets the actions drop below the words where a phone has no room for both. */}
               <div className="min-w-0 flex-1 basis-56">
-                <p className="truncate body-sm text-text-strong" title={values.title}>
+                <p className="truncate type-body text-text-strong" title={values.title}>
                   {values.title}
                 </p>
-                <p className="truncate body-xs text-text-soft" title={facts}>
+                <p className="truncate type-meta text-text-soft" title={facts}>
                   {facts}
                 </p>
               </div>
               {locked ? null : (
                 <span className="ml-auto flex items-center gap-1.5">
-                  <AdminButton
+                  <Button
                     type="button"
-                    variant="text"
-                    size="sm"
+                    emphasis="tertiary"
+                    size="compact"
                     disabled={busy}
                     aria-label={formatMessage(
                       {
-                        id: "cockpit.garden.pool.seed.tray.removeRow",
+                        id: "hub.garden.pool.seed.tray.removeRow",
                         defaultMessage: "Remove {title}",
                       },
                       { title: values.title }
@@ -96,15 +96,15 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
                     onClick={() => onRemove(row.clientCommitmentId)}
                   >
                     {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-                  </AdminButton>
-                  <AdminButton
+                  </Button>
+                  <Button
                     type="button"
-                    variant="outlined"
-                    size="sm"
+                    emphasis="secondary"
+                    size="compact"
                     disabled={busy}
                     aria-label={formatMessage(
                       {
-                        id: "cockpit.garden.pool.seed.tray.editRow",
+                        id: "hub.garden.pool.seed.tray.editRow",
                         defaultMessage: "Edit {title}",
                       },
                       { title: values.title }
@@ -112,7 +112,7 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
                     onClick={() => onEdit(row.clientCommitmentId)}
                   >
                     {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
-                  </AdminButton>
+                  </Button>
                 </span>
               )}
             </li>

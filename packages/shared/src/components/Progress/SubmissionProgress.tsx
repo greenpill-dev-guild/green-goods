@@ -150,10 +150,10 @@ function StageDot({
     textColor = "text-white";
     icon = "✓";
   } else if (isCurrent) {
-    bgColor = "bg-information-base";
+    bgColor = "bg-information-action";
     textColor = "text-white";
   } else if (isError) {
-    bgColor = "bg-error-base";
+    bgColor = "bg-error-action";
     textColor = "text-white";
     icon = "✕";
   }

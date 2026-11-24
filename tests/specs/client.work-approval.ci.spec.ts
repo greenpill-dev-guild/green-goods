@@ -183,9 +183,9 @@ test.describe("Work approval CI", () => {
     helper.backend.setUnavailable("eas: Attestations", true);
     helper.backend.setUnavailable("eas: WorkListPage", true);
     await page.goto(workPath);
-    await expect(
-      page.getByText("Couldn't load this work. Check your connection and try again.")
-    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText("Couldn't load this work", { exact: true })).toBeVisible({
+      timeout: 30000,
+    });
     // Keep the parallel list unavailable: otherwise its background retry can
     // recover the route and remove this button before the manual retry fires.
     helper.backend.setUnavailable("eas: Attestations", false);

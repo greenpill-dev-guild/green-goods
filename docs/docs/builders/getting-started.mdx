@@ -5,7 +5,7 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-15
 feature_status: Live
 goal: "Run Green Goods locally and see the app working before you change anything."
 difficulty: "standard"
@@ -33,9 +33,14 @@ import {OnboardingProcedure} from "@site/src/components/docs";
 
 # Getting Started
 
-By the end of this page you'll have Green Goods running on your machine: the public site and
-installed-app experience and the steward cockpit, with this docs site and Storybook beside them on
+By the end of this page you'll have Green Goods running on your machine: the Green Goods Website and
+App and the Green Goods Hub, with this docs site and Storybook beside them on
 the hosted path, and a clear check at each step so you know it worked.
+
+<figure className="gg-figure">
+     <img src="/img/builders/site-home.webp" alt="The Green Goods home page, with the headline From good intentions to green outcomes and an Explore Gardens button over a photo of a garden at sunset" loading="lazy" width="2000" height="1250" />
+     <figcaption>The client opens on the public website; the installed app has its own interface.</figcaption>
+   </figure>
 
 Green Goods is a [Bun](https://bun.sh) monorepo with seven packages spanning a React PWA, Solidity
 contracts, and an [Envio](https://envio.dev) indexer. You don't need to understand the whole
@@ -43,15 +48,15 @@ system to run it. When you're curious, the [Architecture](./architecture) page h
 
 ## Before you start
 
-- **Node.js 22.19 or later, on the 22 line** (CI runs 22.22.1; setup refuses another major), and
+- **Node.js 22.19 or later, on the 22 line** (CI runs 22.23.4; setup refuses another major), and
   **Git**.
-- **Bun 1.4.2**, the version `package.json` declares. Setup installs the current Bun when none is
+- **Bun 1.4.4**, the version `package.json` declares. Setup installs the current Bun when none is
   found; mise installs the exact one.
 - **Docker**, only for the team path below. [OrbStack](https://orbstack.dev) and Docker Desktop
   both work.
 - On Windows, work inside [WSL2](https://learn.microsoft.com/windows/wsl/install).
 - Optional: if you use [mise](https://mise.jdx.dev), `mise install` in the repo installs Node
-  22.22.1, Bun 1.4.2, and Foundry 1.7.1, the versions CI uses. They live in `.mise.toml`.
+  22.23.4, Bun 1.4.4, and Foundry 1.7.1, the versions CI uses. They live in `.mise.toml`.
 
 ## Choose your path
 
@@ -100,15 +105,12 @@ confirm is a real production transaction, so don't confirm one while you're expl
 
    | Surface | URL |
    |---|---|
-   | Client (public site + PWA) | [https://localhost:3001](https://localhost:3001) |
-   | Admin (steward cockpit) | [https://localhost:3002](https://localhost:3002) |
+   | Client (Green Goods Website + App) | [https://localhost:3001](https://localhost:3001) |
+   | Admin (Green Goods Hub) | [https://localhost:3002](https://localhost:3002) |
    | Docs (this site) | [http://localhost:3003](http://localhost:3003) |
    | Storybook | [http://localhost:3004](http://localhost:3004) |
 
-   <figure className="gg-figure">
-     <img src="/img/builders/site-home.webp" alt="The Green Goods home page, with the headline From good intentions to green outcomes and an Explore Gardens button over a photo of a garden at sunset" loading="lazy" width="2000" height="1250" />
-     <figcaption>The client opens on the public home page. If you see this at localhost:3001, you're up and running.</figcaption>
-   </figure>
+
 
    The client and admin run over HTTPS with a local certificate from
    [mkcert](https://github.com/FiloSottile/mkcert). The first time, you may be asked for your
@@ -117,13 +119,10 @@ confirm is a real production transaction, so don't confirm one while you're expl
    To see the installed-app experience without connecting a wallet, open
    [https://localhost:3001/?mockAuth=steward&presentation=pwa](https://localhost:3001/?mockAuth=steward&presentation=pwa).
    Mock auth signs you in as a test steward, in the PWA presentation. It works only on localhost,
-   and it never signs a transaction. The same `?mockAuth=steward` opens the admin at
+   and it never signs a transaction. The same `?mockAuth=steward` opens the Hub at
    [https://localhost:3002/?mockAuth=steward](https://localhost:3002/?mockAuth=steward).
 
-   <figure className="gg-figure">
-     <img src="/img/builders/admin-hub-work.webp" alt="The admin cockpit's Hub: the garden chip in the app bar, the Work tab listing approved submissions as cards, and the Hub, Garden, Community navigation dock" loading="lazy" width="2000" height="1250" />
-     <figcaption>The admin cockpit's Hub, the first screen a steward lands on. Mock auth shows it for a test steward's garden.</figcaption>
-   </figure>
+   The [Admin package guide](./packages/admin) shows the Review workspace you should see for the mock steward.
 
 6. Confirm the services respond. The launcher runs this smoke check itself once the services are
    up; rerun it by hand whenever you want. It submits no transactions:
@@ -259,7 +258,7 @@ uploads, or transactions work; each of those needs its own credentials and its o
 - **You need to stop or reset.** `Ctrl-C` stops the services a launcher started. `bun run dev -- stop`
   stops a detached launcher (it needs the same owner identity the launcher started with), and
   `bun run dev:clean` clears stale local state; its `--dry-run` flag shows what it would remove.
-- **Anything else.** [Ask us on Telegram or Discord](./how-to-contribute#stay-in-touch) if the
+- **Anything else.** Write to us through the [Contact page](https://greengoods.app/contact) if the
   health output doesn't get you unstuck.
 
 ## Next steps

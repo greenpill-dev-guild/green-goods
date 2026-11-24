@@ -9,6 +9,7 @@ import {
   settlementDisbursementFixture,
   settlementPlanFixture,
 } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { HexString } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Address } from "@green-goods/shared/types/domain";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -114,9 +115,29 @@ describe("CommitmentSettlement", () => {
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     await waitFor(() =>
       expect(mocks.toastSuccess).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Settlement step confirmed" })
+        expect.objectContaining({ title: "Settlement step sent" })
       )
     );
+  });
+
+  it("says a Safe proposal is waiting, not confirmed, and lets the steward read again", () => {
+    const refetch = vi.fn(async () => undefined);
+    renderWithProviders(
+      <CommitmentSettlement
+        settlement={commitmentSettlementControllerFixture({
+          refetch,
+          lastAct: { kind: "create-plan", phase: "proposed", hash: "0xsafe" as HexString },
+        })}
+        tone="garden"
+      />
+    );
+
+    expect(screen.getByTestId("settlement-act-status")).toHaveTextContent(
+      "Sent to your Safe. This step reopens once the chain shows it ran."
+    );
+    expect(screen.queryByText(/Confirmed on chain/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Read Again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it("resumes from an existing plan and never offers creation again", () => {
@@ -180,7 +201,7 @@ describe("CommitmentSettlement", () => {
     );
     expect(stepStatus("dispatch")).toBe("done");
     expect(stepStatus("acknowledgement")).toBe("current");
-    expect(screen.getByText("Awaiting acknowledgement")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting acknowledgment")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Resend…" })).toBeEnabled();
     second.unmount();
 
@@ -199,6 +220,48 @@ describe("CommitmentSettlement", () => {
     expect(screen.getByText("Payout complete")).toBeInTheDocument();
     expect(screen.getByText("Confirmed")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /…$/ })).not.toBeInTheDocument();
+  });
+
+  it("names what Celo would refuse before a dispatch or a resend can spend the fee", () => {
+    const queued = commitmentSettlementControllerFixture({
+      chain: settlementChainStateFixture({
+        payoutPlanId: 7n,
+        plan: preparedPlan(),
+        disbursements: [settlementDisbursementFixture()],
+      }),
+      transferBlock: () => "executor_paused",
+    });
+    const { unmount } = renderWithProviders(
+      <CommitmentSettlement settlement={queued} tone="garden" />
+    );
+    expect(
+      within(screen.getByTestId("settlement-blockers")).getByText(
+        "The Celo settlement executor is paused."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: "Dispatch…" })).toHaveLength(0);
+    unmount();
+
+    const dispatched = commitmentSettlementControllerFixture({
+      chain: settlementChainStateFixture({
+        payoutPlanId: 7n,
+        plan: preparedPlan(),
+        disbursements: [
+          settlementDisbursementFixture({
+            state: "DISPATCHED",
+            attempt: 1,
+            dispatchedAt: 1_756_000_000,
+            acknowledgmentPending: true,
+          }),
+        ],
+      }),
+      transferBlock: () => "fee_policy_breach",
+    });
+    renderWithProviders(<CommitmentSettlement settlement={dispatched} tone="garden" />);
+    expect(screen.getByTestId("settlement-resend-block")).toHaveTextContent(
+      "A current G$ fee quote exceeds the settlement policy."
+    );
+    expect(screen.queryByRole("button", { name: "Resend…" })).not.toBeInTheDocument();
   });
 
   it("blocks a garden → member payout while gardener delivery is disabled and names the gate", () => {
@@ -308,7 +371,7 @@ describe("CommitmentSettlement", () => {
       <CommitmentSettlement settlement={ineligible} tone="garden" />
     );
     expect(
-      screen.getByText("No Celo G$ consideration is declared on this commitment.")
+      screen.getByText("No Celo G$ consideration is declared on this promise.")
     ).toBeInTheDocument();
     expect(screen.queryByTestId("settlement-steps")).not.toBeInTheDocument();
     first.unmount();

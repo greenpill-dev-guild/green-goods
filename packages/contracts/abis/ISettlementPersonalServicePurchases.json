@@ -1,0 +1,820 @@
+[
+  {
+    "type": "function",
+    "name": "fundingOfPersonalServicePurchase",
+    "inputs": [
+      {
+        "name": "purchaseId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPersonalServicePurchase",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "purchase",
+        "type": "tuple",
+        "internalType": "struct ISettlementPersonalServicePurchases.PersonalServicePurchase",
+        "components": [
+          {
+            "name": "terms",
+            "type": "tuple",
+            "internalType": "struct ISettlementPersonalServicePurchases.PersonalPurchaseTerms",
+            "components": [
+              {
+                "name": "version",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "purchaseId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "sourceChainId",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "sourceModule",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "commitmentId",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "termsRevision",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "termsHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "claimHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "requestNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "buyer",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "recipient",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "buyerGarden",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "providerGarden",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "destinationChainId",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "price",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "custodySafe",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "authorizedDepositor",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "refundAccount",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "disclosedGrossAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "disclosedNetAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "deposit",
+            "type": "tuple",
+            "internalType": "struct ISettlementPersonalServicePurchases.VerifiedCeloDeposit",
+            "components": [
+              {
+                "name": "chainId",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "transactionHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "logIndex",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "blockNumber",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "blockHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "depositingAccount",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "custodySafe",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "grossDebit",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "receivedAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "outcome",
+            "type": "uint8",
+            "internalType": "enum ISettlementPersonalServicePurchases.PersonalPurchaseOutcome"
+          },
+          {
+            "name": "payoutPlanId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "personalServiceDepositFunding",
+    "inputs": [
+      {
+        "name": "chainId",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "transactionHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "logIndex",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pledgePersonalServicePurchase",
+    "inputs": [
+      {
+        "name": "consent",
+        "type": "tuple",
+        "internalType": "struct ISettlementPersonalServicePurchases.PersonalPurchaseConsent",
+        "components": [
+          {
+            "name": "commitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "expectedTermsRevision",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "expectedTermsHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "expectedClaimHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "expectedRequestNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "buyerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "expectedDestinationChainId",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "expectedToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "expectedCustodySafe",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "authorizedDepositor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "refundAccount",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "expectedPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "disclosedGrossAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "disclosedNetAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "purchaseId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "recordPersonalServiceDeposit",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deposit",
+        "type": "tuple",
+        "internalType": "struct ISettlementPersonalServicePurchases.VerifiedCeloDeposit",
+        "components": [
+          {
+            "name": "chainId",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "transactionHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "logIndex",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "blockNumber",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "blockHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "depositingAccount",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "custodySafe",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "grossDebit",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "receivedAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "PersonalServiceDepositVerified",
+    "inputs": [
+      {
+        "name": "receiptKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "purchaseId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "deposit",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct ISettlementPersonalServicePurchases.VerifiedCeloDeposit",
+        "components": [
+          {
+            "name": "chainId",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "transactionHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "logIndex",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "blockNumber",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "blockHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "depositingAccount",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "custodySafe",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "grossDebit",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "receivedAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "verifiedBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PersonalServicePurchaseOutcomeCompleted",
+    "inputs": [
+      {
+        "name": "purchaseId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcome",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ISettlementPersonalServicePurchases.PersonalPurchaseOutcome"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PersonalServicePurchaseOutcomeSelected",
+    "inputs": [
+      {
+        "name": "purchaseId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcome",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ISettlementPersonalServicePurchases.PersonalPurchaseOutcome"
+      },
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "refundDisbursementId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PersonalServicePurchasePledged",
+    "inputs": [
+      {
+        "name": "purchaseId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "terms",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct ISettlementPersonalServicePurchases.PersonalPurchaseTerms",
+        "components": [
+          {
+            "name": "version",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "purchaseId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "sourceChainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "sourceModule",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "commitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "termsRevision",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "termsHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "claimHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "requestNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "buyer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "buyerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "providerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "destinationChainId",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "price",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "custodySafe",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "authorizedDepositor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "refundAccount",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "disclosedGrossAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "disclosedNetAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceConsentMismatch",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceDepositProofRequired",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceExcessNotConsented",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceFundingRequired",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceModeRequired",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceOutcomeConflict",
+    "inputs": [
+      {
+        "name": "purchaseId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "outcome",
+        "type": "uint8",
+        "internalType": "enum ISettlementPersonalServicePurchases.PersonalPurchaseOutcome"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceReceiptMismatch",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceTermsChanged",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PersonalServiceUnsafeRecovery",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownPersonalServicePurchase",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  }
+]

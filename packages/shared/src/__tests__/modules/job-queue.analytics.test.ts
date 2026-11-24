@@ -34,10 +34,16 @@ vi.mock("../../utils/storage/quota", () => ({
 
 import {
   trackJobCreated,
+  trackJobDiscarded,
   trackJobPermanentlyFailed,
   trackJobProcessed,
   trackJobProcessingError,
+  trackJobSkipped,
+  trackJobStarted,
+  trackQueuedUploadFinished,
+  trackQueuedUploadStarted,
   trackStorageWarning,
+  trackUploadPreparation,
 } from "../../modules/job-queue/job-analytics";
 
 const userAddress = "0x1111111111111111111111111111111111111111";
@@ -88,8 +94,18 @@ describe("job queue analytics privacy", () => {
     await trackJobProcessingError(job, 50, 11155111, 5, new Error(`failed for ${gardenAddress}`));
     trackJobPermanentlyFailed(job);
     trackJobProcessed("work", 50, 2);
+    trackUploadPreparation({ type: "started", kind: "work", attempt: 1 });
+    trackUploadPreparation({
+      type: "finished",
+      kind: "work",
+      attempt: 1,
+      result: "blocked",
+      durationMs: 1_700,
+      reason: "NotGardenMember",
+    });
+    trackUploadPreparation({ type: "retry-scheduled", kind: "work", attempt: 1, delayMs: 30_000 });
 
-    expect(analyticsMocks.track).toHaveBeenCalledTimes(4);
+    expect(analyticsMocks.track).toHaveBeenCalledTimes(7);
     for (const [, properties, options] of analyticsMocks.track.mock.calls) {
       const propertyNames = collectPropertyNames(properties);
       expect(propertyNames.filter((key) => forbiddenPropertyNames.has(key))).toEqual([]);
@@ -114,6 +130,83 @@ describe("job queue analytics privacy", () => {
     expect(failed).toMatchObject({ parsed_error_family: "UserRejected" });
     expect(permanentlyFailed).toMatchObject({ parsed_error_family: "WalletSessionUnavailable" });
     expect(JSON.stringify(failed)).not.toContain(userAddress);
+  });
+
+  it("names background preparation's start, answer and retry, with the try and its timing", () => {
+    trackUploadPreparation({ type: "started", kind: "approval", attempt: 3 });
+    trackUploadPreparation({
+      type: "finished",
+      kind: "work",
+      attempt: 2,
+      result: "retry-later",
+      durationMs: 40_000,
+    });
+    trackUploadPreparation({ type: "retry-scheduled", kind: "work", attempt: 2, delayMs: 60_000 });
+
+    expect(
+      analyticsMocks.track.mock.calls.map(([event, properties]) => [event, properties])
+    ).toEqual([
+      ["upload_preparation_started", { job_kind: "approval", attempt: 3 }],
+      [
+        "upload_preparation_finished",
+        { job_kind: "work", attempt: 2, result: "retry-later", duration_ms: 40_000 },
+      ],
+      ["upload_preparation_retry_scheduled", { job_kind: "work", attempt: 2, delay_ms: 60_000 }],
+    ]);
+  });
+
+  it("names each send's start and every end that sent nothing by a code, never a message (PRD-1495)", () => {
+    trackJobStarted("work", 2, { explicit: true, confirming: false });
+    trackJobSkipped("work", "awaiting-confirmation", { explicit: false, started: true });
+    // A reason can come from an error: anything that is not a plain code is named `other`.
+    trackJobSkipped("approval", `failed for ${gardenAddress}`, { explicit: true, started: false });
+    trackJobSkipped("work", "backoff_12s", { explicit: false, started: false });
+    trackQueuedUploadStarted({ scope: "all", itemCount: 3, authMode: "passkey" });
+    trackQueuedUploadFinished({
+      scope: "selected",
+      status: "failed",
+      sent: 0,
+      flagged: 1,
+      durationMs: 9_000,
+      authMode: "wallet",
+      error: new Error(`User rejected the request.\n  from: ${userAddress}`),
+    });
+
+    expect(
+      analyticsMocks.track.mock.calls.map(([event, properties]) => [event, properties])
+    ).toEqual([
+      ["offline_job_started", { job_kind: "work", attempt: 2, explicit: true, confirming: false }],
+      [
+        "offline_job_skipped",
+        { job_kind: "work", reason: "awaiting-confirmation", explicit: false, started: true },
+      ],
+      [
+        "offline_job_skipped",
+        { job_kind: "approval", reason: "other", explicit: true, started: false },
+      ],
+      [
+        "offline_job_skipped",
+        { job_kind: "work", reason: "backoff", explicit: false, started: false },
+      ],
+      ["queued_upload_started", { scope: "all", item_count: 3, auth_mode: "passkey" }],
+      [
+        "queued_upload_finished",
+        {
+          scope: "selected",
+          status: "failed",
+          sent: 0,
+          flagged: 1,
+          duration_ms: 9_000,
+          auth_mode: "wallet",
+          parsed_error_family: "UserRejected",
+        },
+      ],
+    ]);
+    for (const [, properties, options] of analyticsMocks.track.mock.calls) {
+      expect(JSON.stringify(properties)).not.toContain(userAddress);
+      expect(JSON.stringify(properties)).not.toContain(gardenAddress);
+      expect(options).toEqual({ includeSessionId: false });
+    }
   });
 
   it("keeps queue breadcrumbs free of local job and address identifiers", () => {
@@ -144,6 +237,38 @@ describe("job queue analytics privacy", () => {
       "job_queue_storage_critical",
       expect.any(Object),
       { includeSessionId: false }
+    );
+  });
+
+  // PRD-1478: a thrown-away job says what it was and after what, never whose or which.
+  it("records a discarded job by its kind, tries and error family alone", () => {
+    trackJobDiscarded(
+      {
+        id: "job-secret",
+        kind: "commitment",
+        payload: { title: "a request" },
+        userAddress: "0x1111111111111111111111111111111111111111",
+        chainId: 42161,
+        createdAt: 1,
+        attempts: 1,
+        synced: false,
+        lastError: "TimeoutError: The request took too long to respond.",
+      } as Job,
+      "discarded"
+    );
+
+    const [event, properties, options] = analyticsMocks.track.mock.calls.at(-1)!;
+    expect(event).toBe("offline_job_discarded");
+    expect(options).toEqual({ includeSessionId: false });
+    expect(properties).toMatchObject({
+      job_kind: "commitment",
+      reason: "discarded",
+      attempts: 1,
+      chain_id: 42161,
+    });
+    expect(JSON.stringify(properties)).not.toMatch(/job-secret|0x1111|a request|too long/);
+    expect(typeof (properties as { parsed_error_family?: unknown }).parsed_error_family).toBe(
+      "string"
     );
   });
 });

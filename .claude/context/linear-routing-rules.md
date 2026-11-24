@@ -13,7 +13,9 @@ routine limits; this file owns interactive routing and issue execution.
    authorizes the write. An explicit request to create or update records is authorization;
    if it is absent, present the concrete records and ask before writing. A request to merge, or
    a reported merge, also authorizes the forward-only closeout in [After a merge](#after-a-merge)
-   and nothing beyond it.
+   and nothing beyond it. A request to open a pull request likewise authorizes finding or filing
+   the one issue it names, as [Every pull request names an issue](#every-pull-request-names-an-issue)
+   describes, and nothing beyond it.
 2. **Team routing.**
    - Accepted implementation, refactor, QA, maintenance, regression, bug-fix,
      or cleanup work (an accepted delivery outcome) → Linear **Issue**,
@@ -22,17 +24,50 @@ routine limits; this file owns interactive routing and issue execution.
      decision support that precedes accepted product scope → Linear **Issue**,
      **Research** team, using the *Accepted Research Task* structure.
    - Raw customer or telemetry signal → Linear **Customer Need** (Product
-     team), not a product Issue, until accepted.
+     team), not a product Issue, until accepted. Resolve the need's `customer` from Linear,
+     never from a list in this repository: slug the speaker's name (lowercase ASCII; every
+     run of other characters becomes one hyphen) and look the customer up by the external
+     ID `green-goods:speaker:<slug>` with `list_customers` and `externalIds`. Speaker
+     aliases live on the customer record, where the workspace can edit them. A name
+     identifies someone only where the source vouches for who spoke, such as the notes of
+     a call the team hosted. There, a speaker with no alias who is a non-guest workspace
+     member is internal and gets the Issue but no need, unless independent telemetry backs
+     the report, in which case the need quotes the telemetry summary rather than the
+     teammate and carries no `customer`. A display name chosen in Discord or Telegram is
+     not an identity: it never sets `customer` or makes anyone internal, and a match only
+     names the candidate on the need's `Customer: unresolved` line for a person to
+     confirm. A slug that matches more than one customer, or a customer and a workspace
+     member, stays unresolved. Anyone else gets the need without `customer` and a
+     `Customer: unresolved` line for a person to attach later. A duplicate from the same
+     customer, or from the same unresolved reporter, is a comment on the existing need;
+     any other duplicate gets a need of its own on the same Issue. A need that records a
+     partner's research ask (a next step one party owes another, from the notes of a call
+     the team hosted, captured by `research-synthesis`) links the Research issue it serves,
+     or the Product or Community issue that already tracks it; an ask no such issue serves
+     waits in that routine's thread until one exists, the routine never creates a Product or
+     Community issue, and it dedupes against every need on the customer by source and gist,
+     leaving a need another routine made unchanged.
    - Explicitly scoped community coordination → **Community**. Do not route
      engineering or product delivery there merely because a community reported it.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
    `.plans/**` item, include the `.plans` link in the body and label the
    record `source:plans`. Never use GitHub Issues for backlog work.
-4. **Project routing.** Attach to an active bounded project only when the
-   scope clearly matches. Never route new work into completed/staging umbrella
-   projects (e.g. `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`) or
-   any project whose status is Completed. Otherwise leave the issue
-   unprojected and correctly labeled.
+4. **Project routing.** Attach an issue to an active bounded project, meaning
+   one in any status except Completed or Canceled, when its scope clearly
+   matches. A Green Goods Product or Research issue that no such
+   project owns goes to the active release project: the started Product-team
+   project named `Green Goods vX.Y.Z QA & Release`, the one
+   [release-prep](../../docs/routines/release-prep.md) resolves. Look it up by
+   that name when writing, because each release opens a new one. Leave the
+   issue unprojected and correctly labeled only when no release project is
+   started. A release project includes the Research team as well as Product;
+   if it does not, a Research issue stays unprojected and the writer says so.
+   Whoever closes a release project moves its open issues to the next
+   one, or leaves them unprojected until it starts; whoever creates the next
+   one moves them in. release-prep's cut-day steps count them as a reminder.
+   Customer Needs stay unprojected. Never route new work into completed/staging
+   umbrella projects (e.g. `Green Goods`, `Coop`, `Network Website`,
+   `Cookie Jar`) or any project whose status is Completed.
 5. **Label namespaces.** Use only `protocol:*`, `package:*`, `activity:*`,
    `funding:*`, `source:*`, `ai:*`, `session:*`. Retired families (`area:*`,
    `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`) and the retired
@@ -134,14 +169,14 @@ Not this:
 ## Summary
 [tracking] Cancel is broken in the garden edit dialog.
 ## Surface
-Admin Dashboard (garden edit → image upload). `package:admin`.
+Green Goods Hub (garden edit → image upload). `package:admin`.
 ## Suggested fix
 Investigate the dialog dismiss path.
 ## Safe evidence
 PostHog (Admin 262122): no matching exception signature. A cancel button that
 fails to dismiss does not necessarily throw.
 ## Source
-qa-triage-pulse · auto-extracted · session:2026-07-29
+sync-triage-pulse · auto-extracted · session:2026-07-29
 ## Authoritative QA finding
 Cancel is broken in the garden edit dialog. [...repeats the whole defect...]
 ```
@@ -151,7 +186,7 @@ This:
 ```markdown
 Editing a garden and changing its image makes the edit impossible to cancel —
 the dialog stops responding and the operator has to reload. Leaving the image
-alone and cancelling works fine, so the image change is the trigger.
+alone and canceling works fine, so the image change is the trigger.
 
 **Done when**
 - Cancel dismisses the dialog after an image change, discarding the edit.
@@ -208,6 +243,24 @@ check before publication. An inherited nonconforming branch requires the user's 
 before renaming; never change it underneath concurrent sessions. Stay on the current branch
 otherwise, per [repository safety](../../AGENTS.md#multi-agent-repo-safety).
 
+## Every pull request names an issue
+
+Every pull request names exactly one Linear issue on its reference line, so every merge has a
+record to move. Before opening a PR, find the issue the work belongs to: the one that dispatched
+it, its Plan Hub's tracker, or an open issue whose outcome matches. When none exists, file one
+with the [issue structure](#issue-structure-accepted-product-work--accepted-research-task) in the
+team [rule 2](#invariant-rules) routes the work to, in the current cycle and the project rule 4
+selects, assigned to the person who asked for the PR (or to the reviewing maintainer when that
+person is not a workspace member), estimated on the team's scale, and `In Progress`. Small
+related PRs from one body of work, such as a run of dependency patches or the fixes from one
+review, share one issue whose body lists them rather than one issue each.
+
+Write the line as [Issue-dispatched implementation](#issue-dispatched-implementation) describes,
+with the identifier Linear gave the issue, whatever its team prefix (`PRD`, `RESR`, `COM`), and
+keep it whenever the PR description is edited later. A PR opened by a bot, such as Dependabot
+or PostHog, is exempt. For a PR from an outside contributor, the maintainer who reviews it adds
+the line.
+
 ## After a merge
 
 A merge does not finish the Linear record. Work that a pull request completes belongs in
@@ -232,8 +285,8 @@ nothing. Treat the table as what to expect, not as proof: the issue's state hist
 evidence of what happened.
 
 **Closeout.** After a merge the user asked for or reported, for the issue the reference line
-names and no other. A PR that names more than one issue, on one line or several, is outside this
-closeout: report it and ask.
+names and no other; step 4 covers a PR that names none. A PR that names more than one issue, on
+one line or several, is outside this closeout: report it and ask.
 
 1. Read the issue's `stateHistory`, not only its current status. The history records each state
    and its time but not who set it, and the integration can land after this first read, so treat
@@ -254,12 +307,20 @@ closeout: report it and ask.
    that PR, so a retried or repeated closeout never comments twice.
 4. Read the issue again before reporting. If the state is no longer what step 2 left, do not write
    again: the history cannot show whether the integration or a person changed it, so report the
-   change and ask. Report the issue, its last observed state, and whether your write set it. For
-   a PR that names no issue in any of these forms, report `no Linear issue linked`.
+   change and ask. Report the issue, its last observed state, and whether your write set it. A
+   PR that names no issue in any of these forms missed
+   [Every pull request names an issue](#every-pull-request-names-an-issue). First look for an
+   issue that already records the PR as an attachment or in its description, closed issues
+   included, and use it when one does. Otherwise find its issue as that section says, attach the
+   PR, and run steps 1 to 3 on it; when no issue exists, file one in `In Review` if the PR
+   completed the work, or `In Progress` if it did not, and add the step 3 comment. Then add
+   `Relates to <ID>` to the merged PR's description, so a repeated closeout finds the issue there
+   instead of filing another. Report that the record was linked or filed after the merge.
 
 **Authority.** This closeout is the only Linear write a merge implies. It covers moving the
-named issue forward to `In Review` when nothing has changed its state since the merge, and
-posting that one comment. `Done`, moving an issue backward, editing a description, and any write
+named issue forward to `In Review` when nothing has changed its state since the merge, posting
+that one comment, and, for a PR that named no issue, linking or filing the one issue step 4
+describes and adding its `Relates to` line to the merged PR. `Done`, moving an issue backward, editing a description, and any write
 to another issue, a parent or sibling included, are outside it and need their own authorization.
 If the issue moved to `Done` after the merge, leave it and report it: the team's merge setting
 may no longer match this rule. Cloud routines keep the limits in their own specs.

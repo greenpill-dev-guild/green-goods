@@ -259,7 +259,7 @@ export const MembersFillCanvas: Story = {
     await expect(
       await canvas.findByRole(
         "heading",
-        { name: "Member directory" },
+        { name: "Member Directory" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();

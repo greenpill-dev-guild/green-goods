@@ -1,10 +1,10 @@
-# Admin Interaction Patterns — the codified contract (2026-08-16)
+# Admin Interaction Patterns: the codified contract (2026-08-16)
 
 The interaction-design layer of the admin console, written down. Every rule cites the shipped
 code that proves it and the external principle behind it (sources: [admin-ux-brief.md](./admin-ux-brief.md)).
 The shipped console is the binding ground truth: when a prototype, AI-generated design, or new
 view disagrees with a rule here, the rule wins; when this file disagrees with shipped code, fix
-one of them in the same change — never let them drift silently.
+one of them in the same change, and never let them drift silently.
 
 Born from the 2026-08-16 admin prototype review, where a validator-green prototype round still
 violated half of these. Validators check structure; this contract is what "designed" means.
@@ -12,37 +12,60 @@ violated half of these. Validators check structure; this contract is what "desig
 ## 1. Action placement and alignment
 
 - **Action clusters are end-aligned. Always.** Header action rows, dialog footers, card actions,
-  row trailing acts, sheet footers — every group of action buttons sits at the end of its
-  container. Proof: `PageHeader.tsx` `route-header-actions` (`justify-end`); `AdminDialog.tsx`
-  footer (`sm:justify-end`, doc: "buttons right-aligned"); in-content clusters
+  row trailing acts, sheet footers: every group of action buttons sits at the end of its
+  container. Proof: `PageHeader.tsx` `route-header-actions` (`justify-end`); `AdminDialog.tsx`'s
+  footer, which draws the shared `SheetActions` bar (end-aligned from 640px in Shared's
+  `utilities.css`); in-content clusters
   `flex items-center justify-end gap-2` ([GardenWorkspaceContent.tsx:195](../../../packages/admin/src/views/Garden/components/GardenWorkspaceContent.tsx)).
   A left-aligned action cluster anywhere is a defect. (Jakob's Law; Refactoring UI alignment.)
 - **A view declares ONE stable action set, identical across its tabs.** The set never changes
   with the active tab; availability is expressed by disabling, not by removing. Proof:
-  [garden.utils.ts:103](../../../packages/shared/src/hooks/admin-ui/garden/garden.utils.ts) —
-  `buildGardenViewActions` accepts the active view and ignores it; `AdminViewActions.tsx:15`:
-  "ONE fixed primary action … stable across tabs." (NN/g consistency; recognition over recall.)
+  [garden.utils.ts](../../../packages/shared/src/hooks/admin-ui/garden/garden.utils.ts),
+  where `buildGardenViewActions` reads the active view only for the exception below;
+  `AdminViewActions.tsx:15`: "ONE fixed primary action … stable across tabs." (NN/g consistency;
+  recognition over recall.) One exception (DL-200): on the Garden workspace's Promises tab, Seed
+  Promises joins the set as its filled primary and Edit Garden steps back to secondary, so the
+  speed dial below 1024px reaches it first.
 - **The primary is rightmost; secondaries sit left of it in declaration order.** Destructive acts
-  never share a cluster with routine acts — they get their own row, region, or the confirm
+  never share a cluster with routine acts: they get their own row, region, or the confirm
   dialog's danger slot. (Brief: destructive separation; Fitts's Law.)
-- **A review surface renders its action set outlined.** The Hub exists to review work, so its
-  trio (Submit Work, Create Assessment, Create Hypercert) fills no button above the queue. The
-  declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
-  [hub.utils.ts](../../../packages/shared/src/hooks/admin-ui/hub/hub.utils.ts) —
-  `buildHubViewActions` declares every action `secondary` and keeps Submit Work `primary`.
-- **Tab-specific actions live in the tab's content**, end-aligned in the section they act on —
+- **A review surface renders its action set outlined.** Review, the `/review` workspace, exists to
+  review work, so its trio (Submit Work, Create Assessment, Create Hypercert) fills no button
+  above the queue. The declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
+  [review.utils.ts](../../../packages/shared/src/hooks/admin-ui/review/review.utils.ts),
+  where `buildReviewViewActions` declares every action `secondary` and keeps Submit Work `primary`.
+- **Tab-specific actions live in the tab's content**, end-aligned in the section they act on:
   a section-header trailing act, a right-rail quick-actions card, or a row's one trailing act.
-  Never in the view header.
+  Never in the view header, except Seed Promises on the Promises tab (DL-200).
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
-  trigger ([useViewActions.ts](../../../packages/shared/src/components/Canvas/useViewActions.ts) —
+  trigger ([useViewActions.ts](../../../packages/shared/src/components/Canvas/useViewActions.ts):
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.
+- **Empty-state Create repeats a hidden header action only.** Review's Assessments and
+  Hypercerts keep their Create button below 1024px, where the FAB carries the route actions,
+  and hide it from 1024px, where the header trio is visible (DL-138). Proof:
+  [ReviewRecordLists.tsx](../../../packages/admin/src/views/Review/components/ReviewRecordLists.tsx).
 - **The FAB always shows a plus.** Closed, every FAB shows "+" in the workspace tone it already
   wears, whether it fires one act or opens a dial: the tone says which tab this is, so the glyph
   stays one landmark across all of them. A dial swaps the plus for a close icon while open, and
   its rows say what each act does, each with its own icon and label (DL-078, which replaces
   DL-050's primary-action icon). Proof:
-  [FabButton.tsx](../../../packages/admin/src/components/Shell/FabButton.tsx) — `FabIcon` is
+  [FabButton.tsx](../../../packages/admin/src/components/Shell/FabButton.tsx), where `FabIcon` is
   `RiAddLine` unless a dial is open. (NN/g consistency and standards.)
+- **A button beside a field sits in the field's own row.** A button that acts on what a field
+  holds (Add, Max, Remove, Use) goes in the field's `action` slot: centered on the control at both
+  field heights, at its own size, with the message line under both. A button that acts on a list
+  (Select Visible, Clear) sits with the list's count, not beside its search field (DL-188). Proof:
+  [AdminTextField.tsx](../../../packages/admin/src/components/AdminTextField.tsx), where `action`
+  renders in the control's row; `.claude/rules/frontend-design.md` Rule 15 has the example.
+- **A dialog's or flow's footer actions are the shared action bar.** `SheetActions` draws them:
+  40px buttons 8px apart, the main action on top when they stack below 640px and rightmost from
+  it, Cancel outlined, Back beside the way on in one row, and the line that says how often the
+  wallet will ask, or a send's progress, in the bar's `note` slot (DL-189). `AdminDialog`'s
+  `actions` are the bar's props and the dialog draws the bar, so that slot cannot hold a
+  hand-built footer (DL-190); a flow's `footer` and a `SheetFooter` pinned in a dialog's body are
+  still held by review. Proof:
+  [SheetActions.tsx](../../../packages/shared/src/components/Dialog/SheetActions.tsx);
+  `AdminFieldActionAndFooter.guard` fails on a hand-stacked footer button.
 
 ## 2. Dialog taxonomy and continuity
 
@@ -59,11 +82,35 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 - **A flow opens in its final shell at step one and never changes shell or size mid-flow.**
   If step one is small, it is still the flow dialog with its rail. Entering "Start a season"
   through a small dialog that jumps to a large wizard is the canonical violation. (NN/g
-  consistency; Tesler's Law — the system absorbs the complexity, not the user.)
+  consistency; Tesler's Law: the system absorbs the complexity, not the user.)
 - **The step rail is declared once per flow and never changes** (validator-enforced in the
-  prototype build; detours render inside their step). Below 620px dialogs present as bottom
-  sheets — same content, same footer order.
-- **Action labels are specific**: "Pause pool", "Cancel season", "Approve work" — never "OK",
+  prototype build; detours render inside their step). Below 640px dialogs present as bottom
+  sheets with the same content and the same footer order, in the installed app's sheet
+  material with its grip; a flow keeps its own header under the grip (DL-104).
+- **A dialog hands focus back and holds its confirm while it works (DL-117).** Closing a
+  dialog by Close, Cancel, Escape or the scrim returns focus to the control that opened it
+  (`AdminDialog` remembers it; a caller's `finalFocusRef` names another), and a confirm opened
+  from a dialog hands it back one level at a time. A confirm that is sending stays focusable
+  but ignores activation (`SheetActions`' loading action), so a second press never sends
+  twice. Proof: [AdminDialog.test.tsx](../../../packages/admin/src/__tests__/components/AdminDialog.test.tsx)
+  and the dialog stories' play functions. (WAI-ARIA dialog pattern; NN/g user control.)
+- **A route-header action that opens a dialog opens it over the current tab (DL-140).** The press
+  adds the dialog's route item to the tab the steward is on and never changes the tab underneath.
+  Closing drops the item and leaves the tab alone, so the steward is back where they pressed; a
+  reload with the item in the URL reopens the dialog on that same tab, and a second press opens it
+  again. The dialog mounts at the workspace, not in one tab, and it says what it is waiting for or
+  why it cannot go on, because no tab behind it will. A choice inside the dialog may still lead
+  elsewhere: Fix Limit First goes to the jar's limit editor under Payouts, and Done after a send
+  lands on the result (DL-080, § 3), replacing the dialog's history entry. Every shipped case
+  follows this: Fund Cookie Jar, Add Member, Edit Garden, and Review's Submit Work, Create
+  Assessment and Create Hypercert, whose old paths now redirect to their items. Proof:
+  `buildCommunityViewActions`, `buildGardenViewActions` and `buildReviewViewActions` hand each press
+  the active tab; [useRouteItemClose](../../../packages/shared/src/hooks/navigation/useCanvasSearchParams.ts)
+  owns the close; [CommunitySheetDescriptor.test.tsx](../../../packages/admin/src/views/Community/components/CommunitySheetDescriptor.test.tsx),
+  [CommunityMembersDialogs.test.tsx](../../../packages/admin/src/views/Community/components/CommunityMembersDialogs.test.tsx)
+  and [EditGardenDialog.test.tsx](../../../packages/admin/src/views/Garden/components/EditGardenDialog.test.tsx)
+  walk every tab. (NN/g user control; Jakob's Law: a dialog sits over the page it was opened from.)
+- **Action labels are specific**: "Pause pool", "Cancel season", "Approve work", never "OK",
   "Confirm", "Submit". Confirmations name consequences before the act (ecosystem cascade rule).
 - **Dirty flows confirm before discarding** (`useDirtyClose` + `DiscardChangesDialog`);
   in-flight async hard-blocks close. Recoverable errors preserve input. (NN/g user control,
@@ -84,11 +131,11 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   pattern: start page → steps → confirmation.)
 - **Steps follow the client composer's grammar** where the same job exists on both surfaces:
   what → how much → proof/protection → sectioned review, with an Advanced detour for infrequent
-  options — admin gets denser fields, not different steps (DL-007: reuse shipping
+  options. Admin gets denser fields, not different steps (DL-007: reuse shipping
   rhythms, never parallel patterns).
 - **Completion lands somewhere real**: the workspace that owns the result, showing the result.
   Success is visible state change plus a quiet confirmation, never a dead end. (Brief: success
-  feedback; admin never celebrates — quiet checkmark rule.)
+  feedback; admin never celebrates: quiet checkmark rule.)
 - **A sending flow holds still (DL-072).** Its status row (`FlowStatusRow`) keeps one height
   through ready, approving, declined, created, sending, and partial, and the sections below it
   never move. A dialog that sends without steps (Add to This Group, Edit Reward) keeps one
@@ -103,55 +150,70 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   (~300–340px) carries container status, quick actions, and activity/updates. Decided
   2026-08-16 for what is now the Garden workspace's Promises tab (DL-008). That tab's rail is
   now 37.5% wide (at least 18rem) and holds Review Promises, then Pool Status, then Pool
-  Funding (DL-068; the names are DL-077's). Collapse to one column below ~900px — rail content
+  Funding (DL-068; the names are DL-077's). Collapse to one column below ~900px: rail content
   stacks after the left column, nothing disappears. (web.dev responsive; brief: no hidden
   critical data.)
-- **On phones, a tab's alert card leads.** Below 768px the rail stacks after the main column,
+- **On phones, a tab's alert card leads.** Below the 1024px desktop split the rail stacks after the main column,
   except the Attention Needed card, which leads above it, so the steward's next task is the first
   thing on screen (DL-051, amending DL-008's collapse order for that one card). Proof:
-  [OverviewTab.tsx](../../../packages/admin/src/views/Garden/components/OverviewTab.tsx) —
-  `alertsLead` places `GardenAlertsCard` by `useMediaQuery`, so the rail keeps its landmark.
+  [OverviewTab.tsx](../../../packages/admin/src/views/Garden/components/OverviewTab.tsx),
+  where `alertsLead` places `GardenAlertsCard` by `useMediaQuery`, so the rail keeps its landmark.
 - **Group by proximity, not by boxes.** Cards contain one coherent subject each; don't wrap
-  every list in nested containers. Information density is a feature on operational screens —
+  every list in nested containers. Information density is a feature on operational screens:
   organize it, don't dilute it. (Laws of UX proximity/common region; brief: no card-itis.)
+- **Garden Health keeps its own height.** The Health tab stacks Garden Health and the three-row
+  Activity Feed in the main column; Attention Needed and Karma Integration stay in the rail.
+  The phone alert-first rule still applies. A tab's lone directory card still fills the canvas
+  (DL-143). Proof: [OverviewTab.tsx](../../../packages/admin/src/views/Garden/components/OverviewTab.tsx).
+- **The Members rail carries role counts.** Its Members card shows counts per role and the
+  missing-coverage warning. The directory has no subtitle; its role chips have no counts and
+  omit empty roles, and become a select on a narrow card (DL-141). Proof:
+  [CommunityMembersTab.tsx](../../../packages/admin/src/views/Community/components/CommunityMembersTab.tsx).
 - No accidental horizontal page overflow at any supported viewport; wide tables scroll inside
   their own container deliberately.
 
 ## 5. Rows, cards, and status
 
 - **Two row variants, and only two.**
-  - **Record row** — a row you *look at*: title + kind/state chips on line one, calm meta on
+  - **Record row** (a row you *look at*): title + kind/state chips on line one, calm meta on
     line two, ONE trailing act or a chevron when the row simply opens.
-  - **Decision row** — a row you *answer*: same anatomy, TWO acts, affirmative rightmost. Used
+  - **Decision row** (a row you *answer*): same anatomy, TWO acts, affirmative rightmost. Used
     only where the acts are paired opposites (accept/decline, approve/reject); once decided,
     the pair is replaced by the outcome it produced, so a row never offers a decision twice.
+
+  Where a list's records are the shared item row (DL-102: work, and assessments and hypercerts,
+  DL-111), the row is that anatomy instead: one 88px height, the one pill under the title (the
+  row's status, or a state that replaces it; Your Work's Pending rows keep their kind there,
+  DL-061; a record that waits on no one has none), at most two details in the type's order on
+  one line, and the row's one act in its right slot. The chip and meta contract below
+  holds for decision rows and for rows not yet on the item row.
 
   Two lines are the default because a single-line row wraps its buttons as soon as the column
   narrows. State lives in the chip vocabulary (with text, never color alone). **The row's
   information contract is fixed**: chips = kind · lifecycle · at most one attention chip; meta =
   who · how much · when, always in that order. A row that says a different *kind* of thing each
-  time cannot be scanned — "recipient can't confirm" and "payment not planned" are states, so
+  time cannot be scanned: "recipient can't confirm" and "payment not planned" are states, so
   they are chips, not prose in the meta. (Hick's Law; brief: color never sole indicator.)
 - **Scopes, not sibling cards.** Past-due, lapsed, ongoing, and confirmed are *filters* of one
   list. Giving each its own card is how one promise list became six differently-designed queues
-  (2026-08-16). A queue earns a separate card only when it holds a different **object** —
+  (2026-08-16). A queue earns a separate card only when it holds a different **object**:
   asks to take up a promise are requests, not promises, so they get their own card; "past due"
   is the same promise under a filter.
 - **The review card is always there (DL-067).** While a pool is open, Review Promises sits at
   the top of the Promises tab's rail whether or not anyone is waiting, with one quiet "Nothing
-  to review." line when empty, so asks arriving and leaving never move Offers and Requests, the
-  list beside it (the names are DL-077's). Its rows are decision rows of one height (who and
+  to review." line when empty, so take-up requests arriving and leaving never move Offers and Asks, the
+  list beside it (the names are DL-077's, the list's as DL-175 amends it). Its rows are decision rows of one height (who and
   when, then what for, one line each; the name keeps its length and the age gives way first),
   with Decline… and Approve. A decided row keeps its place with its outcome until the steward
   leaves the tab, here and wherever a steward decides in a list (a commitment's waiting list,
-  the Hub's Confirm queue).
+  Review's Confirm queue).
 - **A card is titled by its subject.** When a card is about one object, that object heads the
-  card — title, chips, counts, and its one act in the header — rather than a generic title with
+  card (title, chips, counts, and its one act in the header) rather than a generic title with
   the object stacked beneath as a second header. Peers list below a quiet section divider whose
   own act creates more of them.
 - **No overflow menus on the admin surface.** If two acts are legal at the same moment and one
   is rare or destructive, offer the rare one *inside the flow of the common one*, where its
-  context is already on screen — the way cancelling a season is offered inside the close flow.
+  context is already on screen, the way canceling a season is offered inside the close flow.
   An overflow hides the act from anyone who doesn't know to look.
 - **New capability arrives as a row on an existing card, not a new tab** (uiux §5: "every
   screen is designed so a settlement row can be added without moving anything").
@@ -167,16 +229,22 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 - **Stacked action groups are equal width.** Buttons in a rail or sheet stack go full-bleed;
   three ragged widths read as three unrelated things.
 - **Title Case for titles AND action labels (DL-012/DL-013, en only).** Card titles, section
-  headings, dialog and flow titles, step-rail titles, and button/action labels — including
-  aria-only action labels on icon buttons — take Title Case ("Season & Campaigns", "Pool
+  headings, dialog and flow titles, step-rail titles, and button/action labels (including
+  aria-only action labels on icon buttons) take Title Case ("Season & Campaigns", "Pool
   Status", "Start a Campaign", "Close This Pool"). The boundary is *named things and named
   acts*: status and outcome copy ("Connection lost"), empty/connect-state titles, kickers,
   placeholders, banners, meta, field labels, helper text, and body copy stay sentence case even
   when a title-shaped i18n key holds them; es/pt keep their native casing throughout. A card
-  title also never repeats its container's name — the Promises tab's status card is "Pool
-  Status", not "Pool — the container".
+  title also never repeats its container's name: the Promises tab's status card is "Pool
+  Status", not "Pool" (the container).
+- **Profile explains steward access.** Its "Steward access" section says it asks to steward
+  another garden and names the act "Request Access to Another Garden". The picker excludes
+  gardens already owned or stewarded by the account; a pasted link to one says why it cannot
+  be requested (DL-139). Proof:
+  [AccountProfilePanel.tsx](../../../packages/admin/src/components/Layout/AccountProfilePanel.tsx)
+  and [useStewardAccessRequestController.ts](../../../packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts).
 - **Work age is metadata, never an alarm (DL-044).** A waiting card shows a neutral Pending chip
-  with its age ("submitted 6 months ago"), and the Hub header counts work waiting over a week in
+  with its age ("submitted 6 months ago"), and the Review header counts work waiting over a week in
   plain ink. A garden's health turns Critical only when work has waited 7 days or more *and* no
   review landed in the last 7 days; work waiting over a week while reviews still land reads Needs
   attention. An unknown review time (a decision only this device knows, a row restored from an
@@ -185,22 +253,37 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [garden-detail.ts](../../../packages/shared/src/utils/garden-detail.ts). An alarm on every card
   stops meaning anything. (Refactoring UI: emphasize by de-emphasizing.)
 - **Member counts mean people (DL-049).** Every member count counts distinct people, never
-  role seats: a person who owns, stewards, and gardens is one member. A roster lists each person
-  once, with one role chip per role, and each role carries its own remove, named for the role it
-  takes away ("Remove Gardener"), so taking one role leaves the others. Role counts live in one
-  place per surface, the role filter, which folds into a select on a narrow card rather than
-  pushing the people below the fold. Proof: `memberCount` in
+  role seats: a person who owns, stewards, and gardens is one member. Manage Roles lists each
+  person once, with a check chip for each role they hold; a checked chip picks that
+  person-and-role pair, so taking one role leaves the others (DL-173). Picks survive search and
+  filters, the footer counts them in roles and in people and says how many are out of view, and a
+  role the viewer may not remove is locked with the reason on its row. Review opens in the same
+  dialog, names the garden, reads every pair on chain again, and says what each person loses and
+  keeps; its confirm is the flow's only destructive button, and the result names what landed
+  before it offers anything again. Other lists of
+  people are person rows (DL-112): the person once, their highest role as its one chip, and how
+  many roles they hold when it is more than one. The lists DL-112 sets apart keep their own rows,
+  the Add Members queue among them: each of its rows shows the role the person is about to be
+  given beside any they hold, so a steward checks every grant before the wallet writes. The
+  Members tab's counts per role live in its rail card; its count-free role filter folds into a
+  select on a narrow card (DL-141, amending the role-filter clause). Proof: `memberCount` in
   [useGardenDerivedState.ts](../../../packages/shared/src/hooks/garden/useGardenDerivedState.ts)
-  and the rows of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
+  and the rows and review of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
-- **A commitment row's edge tells its direction (DL-052).** A 3px edge on the row's inline start
-  marks offers in the primary tone and requests in the information tone. The state chip is
-  unchanged, and the direction word stays where the chip does not already say it, so direction
-  never rests on colour alone. Markers such as "Needs you" sit at the 12px label size in sentence
-  case. Proof: `CommitmentRow` in
-  [CommitmentRow.tsx](../../../packages/client/src/components/Features/Commitments/CommitmentRow.tsx).
+- **A promise leads with its direction (DL-110).** Every promise in a list is the shared
+  commitment row, the item row of DL-102: the 56px tile carries an offer's seedling or an
+  ask's helping hand, named for screen readers, so direction never rests on color and no
+  detail repeats it. Its one pill is the state, or what takes the state's place: "Needs you"
+  when the row waits on the reader, "Past due" when a steward can expire it, and while a
+  queue or act state lasts, "Confirming…", "Not sent" or "Didn't send". The 2px edge follows
+  the pill, as on every row with a status edge. The detail line gives the due date, then the
+  other person (in a steward's list, whoever does it, else whoever asked); a queue or act
+  state's own words lead it instead. This replaces the record row's chips and meta for
+  promises: who is involved and how much live in the promise's dialog, except on a promise
+  still on the device, which has no dialog yet and keeps its units on its row. Proof: the
+  shared `CommitmentRow`, which Offers and Asks and the app's lists render.
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
-  lapsed) as info banners is a defect — encode them in chips + meta. Reserve banners for one-time
+  lapsed) as info banners is a defect: encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)
 - **Every screen/component accounts for the full state matrix**: default · hover · focus ·
   active/selected · disabled · loading · empty · error · success · long content ·
@@ -208,10 +291,10 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 
 ## 6. Component parity
 
-- **Compose only from the shipped palette** — the `Admin*` wrappers, shell components
+- **Compose only from the shipped palette**: the `Admin*` wrappers, shell components
   (`PageHeader`, `AdminTabRail`, `FabButton`, `ActionFlowShell`, `AdminSideSheet`,
   `CanvasLayout`/`AppBar`/`NavigationBar`), and shared primitives (`MetaStrip`, `StatusBadge`,
-  `AddressDisplay`, sheet primitives). One concept = one component, everywhere — including the
+  `AddressDisplay`, sheet primitives). One concept = one component, everywhere, including the
   protocol/Green Goods surfaces, which are the same console scoped to the protocol garden, never
   a parallel design.
 - Prototypes mirror this 1:1: every prototype component maps to a shipped component by name in
@@ -224,7 +307,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 Before publishing any admin design round (prototype or code): run this contract top-to-bottom as
 a checklist, plus [review-checklist.md](./review-checklist.md) Lens 4. Mechanical validators
 (prototype build: rail stability, entry surfaces, reason-field pairing, one-row bars) catch a
-subset. Of section 3, only **every flow shows its entry** is mechanically checked — step grammar and
+subset. Of section 3, only **every flow shows its entry** is mechanically checked. Step grammar and
 where completion lands are not, so a flow can pass the build while beginning inside its own dialog's
 grammar or ending nowhere real. Sections 1, 2, 4 and 5 have no mechanical cover at all. Every one of
 those is a judgment check a human-visible pass must cover explicitly. "The build is green" is

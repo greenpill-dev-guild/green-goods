@@ -67,6 +67,15 @@ const config: StorybookConfig = {
     "../../../packages/client/src/**/*.stories.@(ts|tsx)",
   ],
   addons,
+  // Ordinary previews need mocks before eager provider imports. Vitest owns its
+  // runtime; loading Storybook's runtime there would replace Vitest's mocker.
+  previewAnnotations: (entries = []) =>
+    process.env.VITEST
+      ? entries
+      : [
+          fileURLToPath(import.meta.resolve("storybook/internal/mocking-utils/mocker-runtime")),
+          ...entries,
+        ],
   docs: {
     autodocs: "tag",
   },

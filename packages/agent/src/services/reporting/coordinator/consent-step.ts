@@ -1,9 +1,13 @@
 import { grantConsent, withdrawConsent } from "../consent";
+import { forgetGoal } from "../dialogue-goal";
 import { enqueueJob } from "../jobs";
-import { releaseQuarantine } from "../inbox";
+import { readInboxPayload, releaseQuarantine } from "../inbox";
+import { settleFileBatch } from "../media-intake";
 import { endRecognition } from "../recognition";
+import { forgetLastReports } from "../suggestions";
 import { audit, ensureParticipant } from "../participants";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
+import { parseCommand } from "./commands";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import type { TurnWriter } from "./writer";
 
@@ -16,7 +20,7 @@ import type { TurnWriter } from "./writer";
  */
 export function sendConsentNotice(writer: TurnWriter): void {
   const { core, ctx } = writer;
-  const processors = ctx.modelEnabled ? writer.text("consent.processors") : "";
+  const processors = ctx.modelSwitchOn ? writer.text("consent.processors") : "";
   writer.ask(
     {
       subjectKind: "consent",
@@ -28,7 +32,13 @@ export function sendConsentNotice(writer: TurnWriter): void {
         { id: "decline", label: writer.text("consent.decline"), value: "decline" },
       ],
     },
-    () => writer.text("consent.notice", { processors })
+    () =>
+      writer.text("consent.notice", {
+        processors,
+        version: core.settings.noticeVersion,
+        // How long a message sent before the answer is held, as the notice states it (RESR-88).
+        hours: Math.round(core.settings.preConsentRetentionMs / (60 * 60 * 1000)),
+      })
   );
   core.db
     .query(
@@ -46,11 +56,29 @@ function purgeQuarantined(writer: TurnWriter): void {
     .run({ subject: writer.ctx.subjectId, current: writer.ctx.event.id });
 }
 
+/** The commands among the messages held for this person until they answered the notice. */
+function heldCommands(writer: TurnWriter): string[] {
+  const rows = writer.core.db
+    .query(
+      `SELECT id, payload_ciphertext FROM inbox_events
+       WHERE channel_subject_id = $subject AND state = 'quarantined' AND id <> $current`
+    )
+    .all({ subject: writer.ctx.subjectId, current: writer.ctx.event.id }) as Array<{
+    id: string;
+    payload_ciphertext: string | null;
+  }>;
+  return rows.flatMap((row) => {
+    const command = parseCommand(readInboxPayload(writer.core, row)?.text);
+    return command ? [command.kind] : [];
+  });
+}
+
 export function answerConsent(writer: TurnWriter, answer: "agree" | "decline"): void {
   const { core, ctx } = writer;
   if (ctx.prompt?.kind === "processing_consent") resolvePrompt(core, ctx.prompt.id);
   if (answer === "decline") {
     purgeQuarantined(writer);
+    forgetGoal(core, ctx.conversationId);
     writer.say("consent.declined");
     audit(core, "consent_declined", { kind: "channel_subject", id: ctx.subjectId });
     return;
@@ -62,10 +90,12 @@ export function answerConsent(writer: TurnWriter, answer: "agree" | "decline"): 
     purpose: "processing",
     sourceEventId: ctx.event.id,
   });
+  // Someone who came to review is not asked about work they did: the held REVIEW answers next.
+  const cameToReview = heldCommands(writer).includes("review");
   releaseQuarantine(core, ctx.subjectId);
   // Later replies in this turn address the newly consented participant.
   writer.ctx.binding = binding;
-  writer.say("consent.granted");
+  writer.say(cameToReview ? "consent.grantedPlain" : "consent.granted");
   audit(core, "consent_granted", { kind: "participant", id: binding.participantId });
 }
 
@@ -74,6 +104,7 @@ export function withdrawProcessing(writer: TurnWriter, mode: "stop" | "delete"):
   const { core, ctx } = writer;
   withdrawConsent(core, ctx.subjectId, ["processing", "voice"], `chat:${mode}`);
   closeConversationPrompt(core, ctx.conversationId);
+  forgetGoal(core, ctx.conversationId);
   const cancelled =
     ctx.draft && EDITABLE_STATES.has(lifecycleState(ctx.draft))
       ? commitLifecycle(core, ctx.draft, [{ type: "CANCEL" }], { participantAction: true }).refused
@@ -81,6 +112,7 @@ export function withdrawProcessing(writer: TurnWriter, mode: "stop" | "delete"):
       : false;
   if (ctx.binding) {
     endRecognition(core, ctx.binding.participantId);
+    forgetLastReports(core, ctx.binding.participantId);
     core.db
       .query(
         `UPDATE execution_grants SET state = 'paused', version = version + 1, updated_at = $now
@@ -132,6 +164,8 @@ export function answerVoiceConsent(writer: TurnWriter, answer: string): void {
       )
       .run({ participant: binding.participantId, now });
     writer.say("voice.declined");
+    // Files that waited with the notes are answered now: no job will reach the batch's end.
+    if (ctx.draft) settleFileBatch(core, writer, ctx.draft);
     audit(core, "voice_consent_declined", { kind: "participant", id: binding.participantId });
     return;
   }

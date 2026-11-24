@@ -112,16 +112,53 @@ describe("CookieJarTab", () => {
     });
   });
 
-  it("leads with the claimable-now amount using each jar's actual decimals", () => {
+  it("leads with the claimable-now amount using each jar's actual decimals", async () => {
     render(<CookieJarTab />);
 
-    // The card leads with what can be claimed right now: min(maxWithdrawal,
+    // The row leads with what can be claimed right now: min(maxWithdrawal,
     // balance) = min(100000, 123456) = 100000 / 10^6 → "0.1".
     expect(screen.getByText("0.1 USDC")).toBeInTheDocument();
-    // The label names the limit and the cooldown, so the number stops reading like a balance.
-    expect(screen.getByText("Up to 0.1 USDC per claim, once an hour")).toBeInTheDocument();
-    // The group header names the garden once; the card no longer restates it.
+    // Its caption and the per-claim limit beside it stop the number reading like a balance.
+    const row = screen.getByRole("button", { name: /0\.1 USDC/ });
+    expect(row).toHaveAccessibleName(/0\.1 USDC a claim.*0\.1 USDC.*Available now/);
+    // The group header names the garden once; the row does not restate it.
     expect(screen.getAllByText("Garden Alpha")).toHaveLength(1);
+
+    // The cooldown lives on the jar's page, which the row opens.
+    await userEvent.setup().click(row);
+    expect(screen.getByText("Up to 0.1 USDC per claim, once an hour")).toBeInTheDocument();
+  });
+
+  it("leads with the chip's garden and keeps the other gardens behind one row", async () => {
+    const elsewhere = "0x4444444444444444444444444444444444444444" as const;
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [
+        {
+          ...testJar,
+          jarAddress: "0x6666666666666666666666666666666666666666",
+          gardenAddress: elsewhere,
+        },
+        testJar,
+      ],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 2,
+      confirmedGardenCount: 2,
+      unconfirmedGardenCount: 0,
+      eligibilityErrorCount: 0,
+      hasEligibilityReadFailure: false,
+    });
+    render(<CookieJarTab activeGardenId={TEST_GARDEN} />);
+
+    // The active garden's jars show first; the other garden waits behind one row.
+    expect(screen.getByText("Garden Alpha")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /USDC a claim/ })).toHaveLength(1);
+    const others = screen.getByRole("button", { name: "Other Gardens (1)" });
+    expect(others).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.setup().click(others);
+    expect(others).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("button", { name: /USDC a claim/ })).toHaveLength(2);
   });
 
   it("caps the claimable-now figure at the jar's remaining balance", () => {
@@ -186,9 +223,10 @@ describe("CookieJarTab", () => {
 
     render(<CookieJarTab />);
 
-    expect(screen.getByText("Up to 0.01 DAI per claim, once a day")).toBeInTheDocument();
+    expect(screen.getByText("0.01 DAI a claim")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /0\.01 DAI/ }));
     await user.click(screen.getByRole("button", { name: /0\.1 USDC/ }));
+    expect(screen.getByText("Up to 0.01 DAI per claim, once a day")).toBeInTheDocument();
 
     // One message, on the low jar only; claiming the allowed amount still works.
     expect(
@@ -289,7 +327,7 @@ describe("CookieJarTab", () => {
 
     // Offline reads fail closed — an empty list proves nothing.
     expect(
-      screen.getByText("You're offline — cookie jars can't refresh right now.")
+      screen.getByText("You're offline, so cookie jars can't refresh right now.")
     ).toBeInTheDocument();
     expect(screen.queryByText("No cookie jars yet")).not.toBeInTheDocument();
   });
@@ -354,7 +392,7 @@ describe("CookieJarTab", () => {
     render(<CookieJarTab />);
 
     const warning = screen.getByText(
-      "Some Cookie Jar details could not be confirmed. Available balances are shown below."
+      "Some cookie jar details could not be confirmed. Available balances are shown below."
     );
     const jar = screen.getByText("0.1 USDC");
     expect(warning).toBeInTheDocument();
@@ -384,7 +422,7 @@ describe("CookieJarTab", () => {
     render(<CookieJarTab />);
 
     const warning = screen.getByText(
-      "Some Cookie Jar details could not be confirmed. Available balances are shown below."
+      "Some cookie jar details could not be confirmed. Available balances are shown below."
     );
     const emptyTitle = screen.getByText("No cookie jars yet");
     expect(warning).toBeInTheDocument();
@@ -411,6 +449,8 @@ describe("CookieJarTab", () => {
     const jarToggle = screen.getByRole("button", { name: /0\.1 USDC/i });
     expect(jarToggle).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText("Paused")).toBeInTheDocument();
+    // A paused jar pays nothing, so the row never says something is available now.
+    expect(jarToggle).toHaveAccessibleName(/0 USDC Available now/);
 
     await user.click(jarToggle);
 

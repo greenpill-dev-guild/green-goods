@@ -32,7 +32,7 @@ export function AdminLoadingScreen({ label, locale }: AdminLoadingScreenProps) {
         className="mt-5 h-5 w-5 animate-spin rounded-full border-2 border-stroke-sub border-t-primary-base motion-reduce:animate-none"
         aria-hidden="true"
       />
-      <p className="mt-3 text-body-sm text-text-sub">{label}</p>
+      <p className="mt-3 type-meta text-text-sub">{label}</p>
     </div>
   );
 }

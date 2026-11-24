@@ -4,6 +4,7 @@
  * so the row and the footer never read the same send two ways.
  */
 
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { FlowSendPhase, FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 
 type FormatMessage = (descriptor: { id: string; defaultMessage: string }) => string;
@@ -21,14 +22,8 @@ export function submitWorkSendStatus(input: {
       phase: "ready",
       tone: "info",
       busy: false,
-      title: formatMessage({
-        id: "app.work.awaitingConfirmation",
-        defaultMessage: "Awaiting confirmation",
-      }),
-      description: formatMessage({
-        id: "app.work.confirmationExplanation",
-        defaultMessage: "Your work was sent. We will check its status automatically when online.",
-      }),
+      title: formatMessage(SEND_STAGE_WORDS["still-confirming"].label),
+      description: formatMessage(SEND_STAGE_WORDS["still-confirming"].detail),
     };
   switch (phase) {
     case "ready":
@@ -87,7 +82,7 @@ export function submitWorkSendStatus(input: {
         description: formatMessage({
           id: "app.admin.work.submit.failureMessage",
           defaultMessage:
-            "The work submission didn't go through. Check your wallet connection — you may need to reconnect — then try again.",
+            "The work submission didn't go through. Check your wallet connection (you may need to reconnect), then try again.",
         }),
       };
   }

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Hex } from "viem";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { SETTLEMENT_ENABLED } from "../../config/app";
 import { CONSIDERATION_RAIL_ORDINAL } from "../../modules/commitment-pooling/job-types";
 
@@ -9,9 +10,12 @@ import type { DeclaredConsiderationInput } from "../../modules/commitment-poolin
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
+import { toastService } from "../../components/toast";
+import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
 import type { TransactionSendOptions } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
+import { CommitmentServiceOffersABI } from "../../utils/blockchain/contract-abis/commitment-service-offers";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -20,6 +24,7 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 
 export type CommitmentOnlineAction =
   | "acceptClaim"
+  | "acceptServiceClaim"
   | "declineClaim"
   | "acceptExchange"
   | "joinCommitment"
@@ -48,6 +53,8 @@ export type CommitmentOnlineAction =
  */
 export type CommitmentMutationCall =
   | { action: "acceptClaim"; commitmentId: bigint; claimant: Address }
+  /** A service offer's booking: the core refuses `acceptClaim` for it and needs the member's exact consent. */
+  | { action: "acceptServiceClaim"; commitmentId: bigint; buyer: Address; expectedClaimHash: Hex }
   | { action: "declineClaim"; commitmentId: bigint; claimant: Address; reasonCID: string }
   | { action: "acceptExchange"; commitmentId: bigint }
   | { action: "joinCommitment" | "leaveCommitment" | "expireCommitment"; commitmentId: bigint }
@@ -132,7 +139,16 @@ export type CommitmentMutationInput = CommitmentMutationCall | CommitmentReasone
  * sent without them runs exactly as before.
  */
 export type CommitmentMutationVariables = CommitmentMutationInput & {
-  send?: Pick<TransactionSendOptions, "onBeforeBroadcast" | "onBroadcast">;
+  send?: Pick<
+    TransactionSendOptions,
+    "onBeforeBroadcast" | "onBroadcast" | "onAwaiting" | "signal"
+  > & {
+    /**
+     * The wallet answered with no receipt to wait for and no Safe behind it (an opaque
+     * identifier): the act may still land, but nothing says it has. The act stays pending.
+     */
+    onUnconfirmed?: () => void;
+  };
 };
 
 /**
@@ -169,6 +185,8 @@ function argsFor(input: CommitmentMutationCall): readonly unknown[] {
   switch (input.action) {
     case "acceptClaim":
       return [input.commitmentId, input.claimant];
+    case "acceptServiceClaim":
+      return [input.commitmentId, input.buyer, input.expectedClaimHash];
     case "declineClaim":
       return [input.commitmentId, input.claimant, input.reasonCID];
     case "acceptExchange":
@@ -212,6 +230,12 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
   const currentChainId = useCurrentChain();
   const chainId = options.chainId ?? currentChainId;
   const sender = useTransactionSender();
+  const act = ({ action }: CommitmentMutationVariables): SendActContext => ({
+    act: "commitment",
+    operation: action,
+    authMode: sender?.authMode,
+    chainId,
+  });
   const queryClient = useQueryClient();
   const handleError = createMutationErrorHandler({
     source: "useCommitmentMutation",
@@ -219,7 +243,8 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
   });
 
   return useMutation({
-    mutationFn: async ({ send, ...input }: CommitmentMutationVariables) => {
+    mutationFn: recordedSendAct(act, async (variables: CommitmentMutationVariables) => {
+      const { send, ...input } = variables;
       if (
         !SETTLEMENT_ENABLED &&
         input.action === "setDeclaredConsideration" &&
@@ -245,17 +270,36 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
       const call = await resolveCall(input as CommitmentMutationInput);
       const contractCall = {
         address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
+        // The same module, through the interface that declares the function.
+        abi:
+          call.action === "acceptServiceClaim"
+            ? CommitmentServiceOffersABI
+            : CommitmentPoolingModuleABI,
         functionName: call.action,
         args: argsFor(call),
         chainId,
       };
       // Only an act that follows its own send hands the sender callbacks.
+      const { onUnconfirmed, ...callbacks } = send ?? {};
       const result = send
-        ? await sender.sendContractCall(contractCall, send)
+        ? await sender.sendContractCall(contractCall, callbacks)
         : await sender.sendContractCall(contractCall);
+      // A Safe proposal, or any answer with no receipt yet, has not run: it says what it waits
+      // for, never that it is done (PRD-1551). It still settles, so a dialog closes rather than
+      // offering a second send of the same act.
+      if (result.confirmation === "pending") {
+        if (result.awaiting !== "safe-signers") onUnconfirmed?.();
+        const words =
+          result.awaiting === "safe-signers"
+            ? SEND_STAGE_WORDS["safe-signers"]
+            : SEND_STAGE_WORDS["still-confirming"];
+        toastService.info({
+          title: words.label.defaultMessage,
+          message: words.detail!.defaultMessage,
+        });
+      }
       return result.hash;
-    },
+    }),
     onSuccess: async (_hash, input) => {
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       if ("commitmentId" in input) {

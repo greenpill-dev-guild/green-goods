@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -60,6 +60,23 @@ function renderStage() {
 }
 
 describe("PublicEditorialHero entrance animation", () => {
+  it("falls back from a failed portrait source to the provided image", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <PublicEditorialHero
+          imageSrc="/wide.avif"
+          portraitImageSrc="/portrait.avif"
+          imageFallbackSrc="/fallback.webp"
+          titleId="image-fallback-title"
+          title="Readable title"
+        />
+      </MemoryRouter>
+    );
+    const image = container.querySelector("img")!;
+    fireEvent.error(image);
+    expect(image).toHaveAttribute("src", "/fallback.webp");
+    expect(container.querySelector("source")).not.toHaveAttribute("srcset");
+  });
   it("animates on the arrival history entry", () => {
     const { container } = renderStage();
 

@@ -4,7 +4,11 @@ import type { ReportingCore } from "./runtime";
 
 /**
  * Independent operating switches, changed at runtime through the operator routes. Intake pause
- * stops new domain intake; model pause falls back to deterministic questions; the documents and
+ * stops new domain intake; model pause falls back to deterministic questions, as does a UTC day
+ * whose model spend has reached its cap (`modelProcessingOn` in model-spend.ts); the dialogue
+ * planner switch chooses which model path reads a message while models are on: off, routing and
+ * extraction as before; on, the single planner call that answers in actions (RESR-79 keeps it off
+ * until its evaluation passes and the owner turns it on); the documents and
  * voice switches decide whether PDFs, Word files and voice notes are read at all; each chat
  * channel takes reports only while its `channel_<name>` switch is on; publication pause fences
  * unsent reservations; message pause holds the outbox. Provider statuses, execution outcomes and
@@ -14,6 +18,7 @@ import type { ReportingCore } from "./runtime";
 export type ControlName =
   | "intake"
   | "model_processing"
+  | "dialogue_planner"
   | "documents"
   | "voice"
   | "publication"
@@ -23,6 +28,7 @@ export type ControlName =
 export const CONTROL_NAMES: readonly ControlName[] = [
   "intake",
   "model_processing",
+  "dialogue_planner",
   "documents",
   "voice",
   "publication",
@@ -34,6 +40,7 @@ export const CONTROL_NAMES: readonly ControlName[] = [
 export const INITIAL_CONTROLS: Readonly<Record<ControlName, boolean>> = {
   intake: true,
   model_processing: true,
+  dialogue_planner: false,
   documents: true,
   voice: false,
   publication: true,

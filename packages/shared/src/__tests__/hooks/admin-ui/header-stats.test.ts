@@ -15,7 +15,7 @@ import {
   selectAllocationSplits,
 } from "../../../hooks/admin-ui/community/community.utils";
 import { buildGardenHeaderStats } from "../../../hooks/admin-ui/garden/garden.utils";
-import { buildHubHeaderStats } from "../../../hooks/admin-ui/hub/hub.utils";
+import { buildReviewHeaderStats } from "../../../hooks/admin-ui/review/review.utils";
 
 function makeFormatMessage() {
   return vi.fn(
@@ -37,7 +37,7 @@ describe("buildGardenHeaderStats", () => {
     expect(items).toEqual([]);
   });
 
-  it("emits gardeners / impact items in that order (pending work lives on Hub)", () => {
+  it("emits gardeners / impact items in that order (pending work lives on Review)", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 5,
@@ -77,7 +77,7 @@ describe("buildGardenHeaderStats", () => {
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
-    expect(ids).toEqual(["cockpit.garden.stats.gardeners", "cockpit.garden.stats.impact"]);
+    expect(ids).toEqual(["hub.garden.stats.gardeners", "hub.garden.stats.impact"]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
     expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 1 });
   });
@@ -149,10 +149,7 @@ describe("buildCommunityHeaderStats", () => {
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
-    expect(ids).toEqual([
-      "cockpit.community.stats.treasury",
-      "cockpit.community.stats.distributed",
-    ]);
+    expect(ids).toEqual(["hub.community.stats.treasury", "hub.community.stats.distributed"]);
   });
 
   it("omits distributed totals when allocations span multiple assets", () => {
@@ -208,9 +205,9 @@ describe("selectAllocationSplits", () => {
   });
 });
 
-describe("buildHubHeaderStats", () => {
+describe("buildReviewHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
-    const items = buildHubHeaderStats({
+    const items = buildReviewHeaderStats({
       hasSelectedGarden: false,
       waitingOverWeekCount: 3,
       formatMessage: makeFormatMessage(),
@@ -219,14 +216,14 @@ describe("buildHubHeaderStats", () => {
   });
 
   it("counts work waiting over a week in plain ink (stage depth lives on the tabs)", () => {
-    const items = buildHubHeaderStats({
+    const items = buildReviewHeaderStats({
       hasSelectedGarden: true,
       waitingOverWeekCount: 3,
       formatMessage: makeFormatMessage(),
     });
     // No valueTone: work age never takes the critical pair.
     expect(items).toEqual([
-      { id: "waiting-over-week", value: "3", label: "cockpit.hub.stats.waitingOverWeek" },
+      { id: "waiting-over-week", value: "3", label: "hub.review.stats.waitingOverWeek" },
     ]);
   });
 });
@@ -242,12 +239,17 @@ describe("buildActionsHeaderStats", () => {
     expect(items.map((item) => item.value)).toEqual(["12", "3"]);
   });
 
+  it("says one domain's total alone when coverage is left out (DL-134)", () => {
+    const items = buildActionsHeaderStats({ totalCount: 5, formatMessage: makeFormatMessage() });
+    expect(items.map((item) => [item.id, item.value])).toEqual([["total", "5"]]);
+  });
+
   it("passes the count parameter through for pluralization", () => {
     const formatMessage = makeFormatMessage();
     buildActionsHeaderStats({ totalCount: 1, domainsCovered: 4, formatMessage });
     expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
-      "cockpit.actions.stats.total",
-      "cockpit.actions.stats.domains",
+      "hub.actions.stats.total",
+      "hub.actions.stats.domains",
     ]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
     expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 4 });

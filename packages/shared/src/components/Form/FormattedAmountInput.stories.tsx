@@ -118,8 +118,16 @@ export const SharedField: Story = {
   },
 };
 
-/** Error state supplied by the consumer (message selection stays with the flow). */
+/** A token's channel triple ("26 117 68") as the color the browser computes. */
+const channelColor = (scope: Element, token: string) =>
+  `rgb(${getComputedStyle(scope).getPropertyValue(token).trim().split(/\s+/).join(", ")})`;
+
+/**
+ * Error state supplied by the consumer (message selection stays with the flow). The
+ * error is a Tab stop after the field, so a keyboard reader can go back to it.
+ */
 export const WithError: Story = {
+  tags: ["storybook-ci"],
   args: {
     value: "abc",
     onValueChange: () => {},
@@ -130,10 +138,22 @@ export const WithError: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("alert")).toHaveTextContent("Enter a valid amount.");
+    const error = canvas.getByRole("alert");
+    await expect(error).toHaveTextContent("Enter a valid amount.");
     await expect(canvas.getByRole("textbox", { name: "Amount" })).toHaveAttribute(
       "aria-invalid",
       "true"
     );
+
+    // Keyboard focus rings the error in the surface's focus role: one solid 2px
+    // ring 2px off the line (DL-098), not the browser's own.
+    await userEvent.tab();
+    await userEvent.tab();
+    await expect(error).toHaveFocus();
+    const style = getComputedStyle(error);
+    await expect(style.outlineColor).toBe(channelColor(canvasElement, "--focus-ring"));
+    await expect(style.outlineStyle).toBe("solid");
+    await expect(style.outlineWidth).toBe("2px");
+    await expect(style.outlineOffset).toBe("2px");
   },
 };

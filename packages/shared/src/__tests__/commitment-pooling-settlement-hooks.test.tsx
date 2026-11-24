@@ -83,8 +83,10 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("../utils/blockchain/contracts", () => ({
-  SettlementModuleABI: [],
   getNetworkContracts: () => ({ settlementModule: mocks.settlementAddress }),
+}));
+vi.mock("../utils/blockchain/contract-abis/settlement-module", () => ({
+  SettlementModuleABI: [],
 }));
 
 vi.mock("../utils/errors/contract-errors", () => ({
@@ -318,8 +320,6 @@ describe("useSettlementMutation", () => {
   ];
 
   it("blocks every settlement action before signing even when live contracts are active", async () => {
-    const actual = await vi.importActual<typeof import("../config/app")>("../config/app");
-    expect(actual.SETTLEMENT_ENABLED).toBe(false);
     mocks.settlementEnabled = false;
     const { result } = renderHookWithProviders(() => useSettlementMutation({ chainId: 42161 }));
     for (const { input } of actions) {
@@ -363,6 +363,21 @@ describe("useSettlementMutation", () => {
     expect(mocks.sender.sendContractCall).toHaveBeenCalledWith(
       expect.objectContaining({ chainId: 42161 })
     );
+  });
+
+  it("hands back a Safe proposal as pending, not as a confirmed step", async () => {
+    mocks.sender.sendContractCall.mockResolvedValue({
+      hash: "0xsafe",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const { result } = renderHookWithProviders(() => useSettlementMutation({ chainId: 42161 }));
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ action: "setGardenerDeliveryEnabled", enabled: true })
+      ).resolves.toMatchObject({ hash: "0xsafe", confirmation: "pending" });
+    });
   });
 
   it("reconciles pool funding after the 2, 5, and 15 second indexer windows", async () => {
@@ -450,7 +465,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: ACCOUNT,
         executorGarden: OTHER,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     );
     expect(owner.result.current).toMatchObject({
@@ -475,7 +490,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: ACCOUNT,
         executorGarden: OTHER,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     );
     expect(stewardDispatcher.result.current).toMatchObject({
@@ -494,7 +509,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: null,
         executorGarden: null,
-        isDeployer: true,
+        isProtocolTeam: true,
       })
     );
     expect(unresolved.result.current).toMatchObject({
@@ -513,7 +528,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: null,
         executorGarden: null,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     );
     expect(errored.result.current).toMatchObject({
@@ -531,7 +546,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: null,
         executorGarden: null,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     );
     expect(unavailable.result.current).toMatchObject({

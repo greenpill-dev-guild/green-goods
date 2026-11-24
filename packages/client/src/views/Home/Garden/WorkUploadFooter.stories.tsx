@@ -20,7 +20,7 @@ const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
 /** The gardener's own work, saved on this device in the state preparation left it. */
-function queuedWork(submissionState: string, blockedReason?: string): Work {
+function queuedWork(submissionState: string, blockedReason?: string, sendStage?: string): Work {
   return {
     id: "job-planting",
     title: "Planting Event",
@@ -28,7 +28,7 @@ function queuedWork(submissionState: string, blockedReason?: string): Work {
     gardenerAddress: "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address,
     gardenAddress: "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address,
     feedback: "",
-    metadata: JSON.stringify({ submissionState, blockedReason }),
+    metadata: JSON.stringify({ submissionState, blockedReason, sendStage }),
     media: [],
     createdAt: hoursAgo(3),
     status: "offline",
@@ -47,8 +47,10 @@ const withLocale: Decorator = (Story, context) => {
 
 /**
  * The work detail footer for queued work at phone width: waiting work can upload directly,
+ * and while it sends the button says whether the wallet is asked or the chain is confirming;
  * work that needs attention can be tried again or discarded, a failed upload keeps Upload now,
- * and a sent work can be checked again.
+ * and a sent work can be checked again. Work being prepared spins only while preparation is on
+ * it; a failed try offers Try Again, and a wait on the connection leaves Discard.
  */
 const meta: Meta<typeof WorkUploadFooter> = {
   title: "Client/Work/WorkUploadFooter",
@@ -58,7 +60,7 @@ const meta: Meta<typeof WorkUploadFooter> = {
   decorators: [withLocale],
   args: {
     isOnline: true,
-    pausedForDataSaver: false,
+    preparation: "working",
     onPrepareNow: fn(),
     onRetry: fn(),
     isRetrying: false,
@@ -85,7 +87,17 @@ export const PhotoConverting: Story = {
 };
 
 export const PhotoPausedForDataSaver: Story = {
-  args: { work: queuedWork("photo-pending"), pausedForDataSaver: true },
+  args: { work: queuedWork("photo-pending"), preparation: "data-saver" },
+};
+
+/** A try failed and waits to be made again: Discard and Try Again instead of a spinner. */
+export const PreparationRetrying: Story = {
+  args: { work: queuedWork("preparing"), preparation: "retrying" },
+};
+
+/** Waiting on the connection or an app update: nothing to start here, and Discard stays. */
+export const PreparationWaitingForConnection: Story = {
+  args: { work: queuedWork("preparing"), preparation: "connection" },
 };
 
 /** The longest refusal, in the language where it runs longest. */
@@ -101,6 +113,21 @@ export const BlockedPortuguese: Story = {
 
 export const SendFailed: Story = {
   args: { work: queuedWork("retry-required") },
+};
+
+/** Upload now is waiting on the wallet: the button says so instead of "Uploading...". */
+export const SendingAtWallet: Story = {
+  args: { work: queuedWork("sending", undefined, "wallet"), isRetrying: true },
+};
+
+/** The wallet sent it and the network is confirming; past 120 seconds it is still confirming. */
+export const SendingConfirming: Story = {
+  args: { work: queuedWork("sending", undefined, "confirming"), isRetrying: true },
+};
+
+/** Upload all, or the background flush, is sending it: the page says the same stage (PRD-1552). */
+export const SendingFromUploadAll: Story = {
+  args: { work: queuedWork("sending", undefined, "confirming") },
 };
 
 export const Sent: Story = {

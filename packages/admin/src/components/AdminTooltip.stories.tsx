@@ -43,7 +43,7 @@ export const TextTrigger: Story = {
       <AdminTooltip content="This filter limits the queue to submissions assigned to you.">
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-[var(--m3-shape-sm)] px-2 py-1 text-body-md text-[rgb(var(--m3-primary))] underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+          className="inline-flex items-center gap-1 rounded-[var(--m3-shape-sm)] px-2 py-1 type-body text-[rgb(var(--m3-primary))] underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
         >
           <RiInformationLine className="h-4 w-4" /> Assignment filter
         </button>
@@ -83,7 +83,7 @@ export const StateCatalog: Story = {
       <AdminTooltip content="Explains the currently selected queue filter.">
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-[var(--m3-shape-sm)] px-2 py-1 text-body-md text-[rgb(var(--m3-primary))]"
+          className="inline-flex items-center gap-1 rounded-[var(--m3-shape-sm)] px-2 py-1 type-body text-[rgb(var(--m3-primary))]"
         >
           <RiInformationLine className="h-4 w-4" /> Help text
         </button>

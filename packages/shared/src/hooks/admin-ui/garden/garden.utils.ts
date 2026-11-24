@@ -1,7 +1,12 @@
 import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
-import { type AdminGardenRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
-import { RiExternalLinkLine, RiSettings3Line } from "@remixicon/react";
+import {
+  type AdminGardenRouteContext,
+  adminRoutes,
+  EDIT_GARDEN_ROUTE_ITEM,
+} from "../../../utils/navigation/admin-routes";
+import { pushRouteItem } from "../../navigation/useCanvasSearchParams";
+import { RiExternalLinkLine, RiSeedlingLine, RiSettings3Line } from "@remixicon/react";
 
 /**
  * Inputs for the Garden header stats slot. Pulled directly off the values the
@@ -21,7 +26,7 @@ export interface GardenHeaderStatsInput {
 /**
  * Build the inline MetaStrip items rendered in the Garden header. Pairs the
  * garden's roster (gardeners) with its own output (certified impact) — the
- * "who's here + what they've produced" of a garden. Pending work is the Hub's
+ * "who's here + what they've produced" of a garden. Pending work is Review's
  * concern (the review queue lives there) and treasury lives on Community, so
  * neither is restated here. Returns [] when no garden is selected so the
  * metadata slot stays clean during the workspace selection gate. Per audit §5.6
@@ -43,7 +48,7 @@ export function buildGardenHeaderStats({
       value: String(gardenerCount),
       label: formatMessage(
         {
-          id: "cockpit.garden.stats.gardeners",
+          id: "hub.garden.stats.gardeners",
           defaultMessage: "{count, plural, one {gardener} other {gardeners}}",
         },
         { count: gardenerCount }
@@ -57,7 +62,7 @@ export function buildGardenHeaderStats({
       value: String(impactCount),
       label: formatMessage(
         {
-          id: "cockpit.garden.stats.impact",
+          id: "hub.garden.stats.impact",
           defaultMessage: "{count, plural, one {impact} other {impacts}}",
         },
         { count: impactCount }
@@ -69,9 +74,8 @@ export function buildGardenHeaderStats({
 }
 
 /**
- * Garden is the internal readout surface. Settings remains route-backed for
- * deep links, but it opens as a dialog over the Health view rather than taking
- * a tab slot.
+ * Garden is the internal readout surface. Edit Garden is a route item that opens
+ * as a dialog over whichever tab the URL is on, rather than taking a tab slot.
  */
 export type GardenWorkspaceView = "health" | "impact" | "activity" | "pool";
 
@@ -84,10 +88,13 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
 }
 
 /**
- * Garden view-level actions — stable pair: the same set renders on every
- * view, in the same order, so positions never shift between tabs. Edit garden
- * is the fixed primary; View public stays ghost because it leaves the admin
- * context.
+ * Garden view-level actions. View public and Edit garden render on every view, in
+ * the same order, so their positions never shift between tabs; View public stays
+ * ghost because it leaves the admin context, and Edit garden opens over the active
+ * view (DL-140). The Promises tab adds Seed Promises as its filled action, last on
+ * the desktop row and first in the phone's dial, so the "+" there leads to adding a
+ * promise; Edit garden steps back to secondary on that tab only (PRD-1491). The
+ * seeding dialog explains a pool that is not open, so the action is not gated here.
  *
  * Membership actions live on the Community workspace (Manage Members →
  * Add members at /community/members) — the Garden header no longer carries
@@ -100,18 +107,19 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
  * redirect route, which resolves to the public garden page.
  */
 export function buildGardenViewActions(
-  _view: GardenWorkspaceView,
+  view: GardenWorkspaceView,
   canManage: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
   routeContext?: AdminGardenRouteContext
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
+  const onPromises = view === "pool";
   return [
     {
       id: "view-public",
       label: "View public",
-      labelId: "cockpit.garden.action.viewPublic",
+      labelId: "hub.garden.action.viewPublic",
       icon: RiExternalLinkLine,
       onClick: () => {
         if (!gardenAddress) return;
@@ -126,12 +134,35 @@ export function buildGardenViewActions(
     {
       id: "edit-garden",
       label: "Edit garden",
-      labelId: "cockpit.garden.action.editGarden",
+      labelId: "hub.garden.action.editGarden",
       icon: RiSettings3Line,
-      onClick: () => navigate(adminRoutes.gardenSettings(routeContext)),
-      variant: "primary",
+      onClick: () =>
+        pushRouteItem(
+          navigate,
+          adminRoutes.gardenMode(view, { ...routeContext, item: EDIT_GARDEN_ROUTE_ITEM })
+        ),
+      variant: onPromises ? "secondary" : "primary",
       visible: hasSelectedGarden && canManage,
-      primary: true,
+      primary: !onPromises,
     },
+    ...(onPromises
+      ? [
+          {
+            id: "seed-promises",
+            label: "Seed Promises",
+            labelId: "hub.garden.pool.act.seedPromises",
+            icon: RiSeedlingLine,
+            // The canonical id first: a caller that passes only gardenId must not open the
+            // seeding flow on the default garden.
+            onClick: () =>
+              navigate(
+                adminRoutes.gardenPoolSeed({ gardenId: routeContext?.gardenId ?? gardenAddress })
+              ),
+            variant: "primary" as const,
+            visible: hasSelectedGarden && canManage,
+            primary: true,
+          },
+        ]
+      : []),
   ];
 }

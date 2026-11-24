@@ -21,7 +21,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The installed app's control family: the shared Button (every emphasis × tone × size × state), IconButton, Chip, and the field primitives, rendered on the app surface and measured live against the app rules (16px corner, 12px pressed, with the 32px compact size at 12px and 8px; weight 400; 48 / 44 / 40 / 32 with a 48px hit area on the short sizes; 16px fields).",
+          "The installed app's control family: the shared Button (every emphasis × tone × size × state), IconButton, Chip, and the field primitives, rendered on the app surface and measured live against the app rules (16px corner, 12px pressed, with the 32px compact size at 12px and 8px; weight 500; 48 / 44 / 40 / 32 with a 48px hit area on the short sizes; 16px fields).",
       },
     },
   },
@@ -86,7 +86,7 @@ export const Buttons: Story = {
       await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(
         button.dataset.size === "compact" ? 12 : 16
       );
-      await expect(getComputedStyle(button).fontWeight).toBe("400");
+      await expect(getComputedStyle(button).fontWeight).toBe("500");
     }
     const compact = canvas.getAllByRole("button", { name: "Compact 32" })[0];
     await expect(compact.getBoundingClientRect().height).toBe(32);

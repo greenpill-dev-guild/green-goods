@@ -6,7 +6,7 @@ import { CommitmentPoolingExchangeLib } from "../../lib/CommitmentPooling/Exchan
 import { CommitmentPoolingRecognitionLib } from "../../lib/CommitmentPooling/RecognitionLib.sol";
 import { CommitmentPoolingSeriesLib } from "../../lib/CommitmentPooling/SeriesLib.sol";
 import { CommitmentPoolingViewsLib } from "../../lib/CommitmentPooling/ViewsLib.sol";
-import { CommitmentPoolingOperations } from "./Operations.sol";
+import { CommitmentPoolingVoucherAcceptance } from "./VoucherAcceptance.sol";
 
 /// @title CommitmentPoolingExtensions
 /// @notice The extension surfaces: atomic bilateral exchange, the canonical recognition
@@ -17,8 +17,8 @@ import { CommitmentPoolingOperations } from "./Operations.sol";
 ///      mapping slot constants it receives are compiler-derived via `.slot`, never
 ///      hand-maintained; each forwarding shell ends in an unreachable revert so the compiler
 ///      emits no phantom default-value return encoder. The series shell owns the series counter
-///      increment. ABI, events, and reverts are unchanged.
-abstract contract CommitmentPoolingExtensions is CommitmentPoolingOperations {
+///      increment. Existing selectors and legacy behavior are retained; opt-in voucher acceptance adds guards and receipts.
+abstract contract CommitmentPoolingExtensions is CommitmentPoolingVoucherAcceptance {
     // ═════════════════════════════ Exchange
     // ═════════════════════════════
 

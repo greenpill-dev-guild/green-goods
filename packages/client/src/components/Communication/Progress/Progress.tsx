@@ -1,5 +1,5 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCheckFill } from "@remixicon/react";
+import { RiCheckFill, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
@@ -7,6 +7,12 @@ interface FormProgressProps {
   currentStep: number;
   /** Each step's name, shown under its marker. */
   steps: string[];
+  /**
+   * Set when the current step waits on someone else, as a booking waits on its issuer: localized
+   * words a screen reader hears after the step's name. Its marker shows a clock on the neutral
+   * fill instead of the green number, so a green marker always means the step is the reader's.
+   */
+  waiting?: string;
 }
 
 /**
@@ -15,18 +21,19 @@ interface FormProgressProps {
  * compose share it, so every flow names its steps (D6).
  *
  * Compact 48px columns keep all four names centred on a 320px phone while
- * leaving the back button its own tap area. Connectors span the marker gaps.
+ * leaving the back button its own tap area (DL-132). Connectors span the marker gaps.
  */
-export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
+export const FormProgress = ({ currentStep, steps, waiting }: FormProgressProps) => {
   const { formatMessage } = useIntl();
   return (
     <ol
       aria-label={formatMessage({ id: "app.form.progress.label" })}
-      className="grid w-full grid-flow-col auto-cols-[minmax(0,3rem)] justify-center"
+      className="grid w-full auto-cols-[minmax(0,3rem)] grid-flow-col justify-center"
     >
       {steps.map((step, index) => {
         const isCurrentStep = currentStep === index + 1;
         const isCompletedStep = currentStep > index + 1;
+        const isWaitingStep = isCurrentStep && Boolean(waiting);
         return (
           <li
             key={step}
@@ -55,7 +62,11 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                   // A finished step steps back: a light marker and a tick, so the
                   // one filled marker is the step you are on.
                   isCompletedStep && cn(pwaStatusStyles.success.surface, "border-0"),
-                  isCurrentStep && cn(pwaStatusStyles.primary.badge, "border-0 font-semibold")
+                  isCurrentStep &&
+                    cn(
+                      isWaitingStep ? pwaStatusStyles.neutral.badge : pwaStatusStyles.primary.badge,
+                      "border-0 font-semibold"
+                    )
                 )}
               >
                 {isCompletedStep ? (
@@ -63,6 +74,8 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                     aria-hidden="true"
                     className={cn("w-3 h-3", pwaStatusStyles.success.text)}
                   />
+                ) : isWaitingStep ? (
+                  <RiTimeLine aria-hidden="true" className="h-3 w-3" />
                 ) : (
                   <span
                     aria-hidden="true"
@@ -82,6 +95,11 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
               )}
             >
               {step}
+              {/* The tick is hidden from a screen reader, so a done step says so here. */}
+              {isCompletedStep ? (
+                <span className="sr-only">, {formatMessage({ id: "app.form.progress.done" })}</span>
+              ) : null}
+              {isWaitingStep ? <span className="sr-only">, {waiting}</span> : null}
             </span>
           </li>
         );

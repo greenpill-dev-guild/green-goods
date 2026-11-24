@@ -4,6 +4,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { yieldKeys } from "../../config/query-keys/vault";
 import { getAllYieldAllocations } from "../../modules/data/yield-allocations";
+import type { PublicVaultYield } from "../../modules/data/public-vault-yield";
 import type { Address } from "../../types/domain";
 import type { YieldAllocation } from "../../types/gardens-community";
 import type { GardenVault } from "../../types/vaults";
@@ -13,12 +14,44 @@ import {
   getVaultAssetSymbol,
 } from "../../utils/blockchain/vaults";
 import { useGardenVaults } from "../vault/useGardenVaults";
-import type {
-  PublicGardenVaultSummary,
-  PublicVaultSummary,
-  PublicVaultSummaryAsset,
-  PublicVaultSummaryAssetSymbol,
-} from "./usePublicVaultSummary";
+
+export type PublicVaultSummaryAssetSymbol = "DAI" | "ETH";
+
+export interface PublicVaultSummaryAsset {
+  symbol: PublicVaultSummaryAssetSymbol;
+  asset: Address;
+  chainId: number;
+  decimals: number;
+  vaultCount: number;
+  depositorCount: number;
+  netDeposited: bigint;
+  accruingYield: bigint | undefined;
+  currentValue: bigint;
+  allocatedYield: bigint | undefined;
+  accruedYield: bigint | undefined;
+  apr: number | undefined;
+  apy: number | undefined;
+  isAprLoading: boolean;
+  isAprError: boolean;
+}
+
+export interface PublicGardenVaultSummary {
+  garden: Address;
+  hasVaults: boolean;
+  assets: PublicVaultSummaryAsset[];
+}
+
+export interface PublicVaultSummary {
+  hasVaults: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  isYieldLoading: boolean;
+  isYieldError: boolean;
+  isAllocationLoading: boolean;
+  isAllocationError: boolean;
+  assets: PublicVaultSummaryAsset[];
+  gardensByAddress: Record<string, PublicGardenVaultSummary>;
+}
 
 const ASSET_ORDER: PublicVaultSummaryAssetSymbol[] = ["DAI", "ETH"];
 
@@ -30,19 +63,34 @@ interface CatalogAccumulator {
   vaultCount: number;
   depositorCount: number;
   netDeposited: bigint;
+  accruingYield: bigint;
+  liveYieldComplete: boolean;
 }
 
 /**
  * Public, provider-free vault summary.
  *
- * This deliberately uses indexed records only, so editorial routes can render
- * useful balances and allocation totals without booting Wagmi or a wallet UI.
- * Live strategy APR and harvestable yield remain optional wallet-island data.
+ * Indexed balances render first; a lazy public-client read adds live yield and
+ * rates without booting Wagmi or a wallet UI.
  */
 export function usePublicVaultCatalogSummary(): PublicVaultSummary {
   const chainId = DEFAULT_CHAIN_ID;
   const vaultQuery = useGardenVaults(undefined, { chainId });
   const vaults = vaultQuery.vaults;
+  const liveVaults = useMemo(
+    () => vaults.filter((vault) => getPublicVaultAssetSymbol(vault.asset, vault.chainId)),
+    [vaults]
+  );
+  const liveQuery = useQuery({
+    queryKey: yieldKeys.publicVaultCatalog(chainId, liveVaults),
+    queryFn: async ({ signal }) => {
+      const { readPublicVaultYield } = await import("../../modules/data/public-vault-yield");
+      return readPublicVaultYield(liveVaults, chainId, signal);
+    },
+    enabled: liveVaults.length > 0,
+    staleTime: STALE_TIME_MEDIUM,
+  });
+  const liveYield = liveQuery.isError ? undefined : liveQuery.data;
   const allocationsQuery = useQuery({
     queryKey: yieldKeys.protocolSummary(chainId),
     queryFn: () => getAllYieldAllocations(chainId),
@@ -61,21 +109,30 @@ export function usePublicVaultCatalogSummary(): PublicVaultSummary {
     for (const vault of vaults) {
       const symbol = getPublicVaultAssetSymbol(vault.asset, vault.chainId);
       if (!symbol) continue;
-      upsertCatalogAccumulator(network, vault, symbol);
+      const yieldValue = liveYield?.yieldByVault[vault.vaultAddress.toLowerCase()];
+      upsertCatalogAccumulator(network, vault, symbol, yieldValue);
 
       const gardenKey = vault.garden.toLowerCase();
       const gardenAssets = byGarden.get(gardenKey) ?? new Map();
-      upsertCatalogAccumulator(gardenAssets, vault, symbol);
+      upsertCatalogAccumulator(gardenAssets, vault, symbol, yieldValue);
       byGarden.set(gardenKey, gardenAssets);
     }
 
-    const publicAssets = finalizeCatalogAssets(network, allocations?.network, hasAllocationData);
+    const publicAssets = finalizeCatalogAssets(
+      network,
+      allocations?.network,
+      hasAllocationData,
+      liveYield,
+      liveQuery.isLoading
+    );
     const publicGardens: Record<string, PublicGardenVaultSummary> = {};
     for (const [garden, gardenAssets] of byGarden) {
       const gardenPublicAssets = finalizeCatalogAssets(
         gardenAssets,
         allocations?.gardens.get(garden),
-        hasAllocationData
+        hasAllocationData,
+        liveYield,
+        liveQuery.isLoading
       );
       publicGardens[garden] = {
         garden: garden as Address,
@@ -85,14 +142,23 @@ export function usePublicVaultCatalogSummary(): PublicVaultSummary {
     }
 
     return { assets: publicAssets, gardensByAddress: publicGardens };
-  }, [allocationsQuery.data, allocationsQuery.isError, chainId, vaults]);
+  }, [
+    allocationsQuery.data,
+    allocationsQuery.isError,
+    chainId,
+    vaults,
+    liveYield,
+    liveQuery.isLoading,
+  ]);
 
   return {
     hasVaults: assets.length > 0,
     isLoading: vaultQuery.isLoading,
     isError: vaultQuery.isError,
-    isYieldLoading: false,
-    isYieldError: false,
+    isYieldLoading: liveQuery.isLoading,
+    isYieldError:
+      liveQuery.isError ||
+      Boolean(liveYield && assets.some((asset) => asset.accruingYield === undefined)),
     isAllocationLoading: allocationsQuery.isLoading,
     isAllocationError: allocationsQuery.isError,
     assets,
@@ -103,7 +169,8 @@ export function usePublicVaultCatalogSummary(): PublicVaultSummary {
 function upsertCatalogAccumulator(
   bySymbol: Map<PublicVaultSummaryAssetSymbol, CatalogAccumulator>,
   vault: GardenVault,
-  symbol: PublicVaultSummaryAssetSymbol
+  symbol: PublicVaultSummaryAssetSymbol,
+  liveYield: bigint | undefined
 ) {
   const current = bySymbol.get(symbol) ?? {
     symbol,
@@ -113,33 +180,45 @@ function upsertCatalogAccumulator(
     vaultCount: 0,
     depositorCount: 0,
     netDeposited: 0n,
+    accruingYield: 0n,
+    liveYieldComplete: true,
   };
   current.vaultCount += 1;
   current.depositorCount += vault.depositorCount;
   current.netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
+  if (liveYield === undefined) current.liveYieldComplete = false;
+  else current.accruingYield += liveYield;
   bySymbol.set(symbol, current);
 }
 
 function finalizeCatalogAssets(
   bySymbol: Map<PublicVaultSummaryAssetSymbol, CatalogAccumulator>,
   allocatedBySymbol: Map<PublicVaultSummaryAssetSymbol, bigint> | undefined,
-  hasAllocationData: boolean
+  hasAllocationData: boolean,
+  liveYield: PublicVaultYield | undefined,
+  isLoading: boolean
 ): PublicVaultSummaryAsset[] {
   return ASSET_ORDER.flatMap((symbol) => {
     const entry = bySymbol.get(symbol);
     if (!entry) return [];
     const allocatedYield = hasAllocationData ? (allocatedBySymbol?.get(symbol) ?? 0n) : undefined;
+    const accruingYield = entry.liveYieldComplete ? entry.accruingYield : undefined;
+    const rate = liveYield?.ratesByAsset[entry.asset.toLowerCase()];
+    const { liveYieldComplete: _complete, ...asset } = entry;
     return [
       {
-        ...entry,
-        currentValue: entry.netDeposited,
-        accruingYield: undefined,
+        ...asset,
+        currentValue: entry.netDeposited + (accruingYield ?? 0n),
+        accruingYield,
         allocatedYield,
-        accruedYield: allocatedYield,
-        apr: undefined,
-        apy: undefined,
-        isAprLoading: false,
-        isAprError: false,
+        accruedYield:
+          allocatedYield !== undefined && accruingYield !== undefined
+            ? allocatedYield + accruingYield
+            : undefined,
+        apr: rate?.apr,
+        apy: rate?.apy,
+        isAprLoading: isLoading,
+        isAprError: !isLoading && !rate,
       },
     ];
   });

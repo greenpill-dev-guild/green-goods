@@ -1,0 +1,1117 @@
+/**
+ * Home journal tests: the Highlights carousel, Recent Activity and Take Part in the active
+ * garden (DL-127, decisions 23, 27 and 32). The Shared journal reads are mocked; what each
+ * section draws from a read, and where each card, row and link goes, runs for real.
+ *
+ * @vitest-environment happy-dom
+ */
+
+import type { CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
+import type {
+  GardenOpenCycles,
+  GardenOpenPromises,
+  GardenRecentActivity,
+  JournalCycle,
+  TakePartEntry,
+} from "@green-goods/shared/hooks/garden/useGardenJournal";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import type { Address, Garden, Work } from "@green-goods/shared/types/domain";
+import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
+
+const GARDEN = "0x5000000000000000000000000000000000000001";
+const NEIGHBOUR = "0xb0b0000000000000000000000000000000000002" as Address;
+
+const mocks = vi.hoisted(() => ({
+  navigate: vi.fn(),
+  recent: vi.fn(),
+  cycles: vi.fn(),
+  promises: vi.fn(),
+  cycleNames: vi.fn(),
+  serviceLines: vi.fn(),
+  // A cycle's details read its own promises and its units (DL-169).
+  cyclePromises: vi.fn(),
+  cycleDetail: vi.fn(),
+  shareLink: vi.fn(),
+  // The edges of the About section's access predicate (`useGardenAccess`): who is signed in,
+  // the garden's vaults, the account's deposits, and the chain's answer on the evaluator role.
+  account: null as string | null,
+  vaults: [] as unknown[],
+  deposits: [] as Array<{ shares: bigint }>,
+  evaluatorOnChain: false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
+  useNavigateToTop: () => mocks.navigate,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenJournal", () => ({
+  useGardenRecentActivity: (gardenId: string) => mocks.recent(gardenId),
+  useGardenOpenCycles: (gardenId: string, options?: { shown?: boolean }) =>
+    mocks.cycles(gardenId, options),
+  useGardenOpenPromises: (gardenId: string) => mocks.promises(gardenId),
+}));
+
+// The details sheet names its cycle itself, from the cycle's metadata. A service offer's line
+// is read by the lists that show one (PRD-1299, decision 12).
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitmentCycleNames: () => mocks.cycleNames(),
+  useServiceOfferLines: (input: unknown) => mocks.serviceLines(input),
+  useCommitments: () => mocks.cyclePromises(),
+  useCommitmentCycle: () => mocks.cycleDetail(),
+}));
+
+// Needs Your Attention (step 19), Continue (step 8) and the Offer or Request + (DL-181), each with
+// its own tests, stand in as markers here.
+vi.mock("@green-goods/shared/hooks/garden/useStewardDuties", () => ({
+  useStewardDuties: () => ({ duties: [], isLoading: false, isError: false, refetch: () => {} }),
+}));
+vi.mock("../../views/Home/Journal/NeedsYourAttention", () => ({
+  NeedsYourAttention: () => <section data-component="HomeNeedsYourAttention" />,
+}));
+vi.mock("../../views/Home/Journal/Continue", () => ({
+  Continue: () => <section data-component="Continue" />,
+}));
+vi.mock("../../views/Home/Journal/OfferOrAsk", () => ({
+  OfferOrAsk: ({ gardenId }: { gardenId: string }) => (
+    <div data-component="OfferOrAsk" data-garden={gardenId} />
+  ),
+}));
+
+// The section sheets over Home wrap the garden page's own section component, which has its own
+// tests; a marker stands in for it, naming the section it was handed and whether the reader
+// manages join requests. The Endowment and governance sheets are the garden page's too.
+vi.mock("../../views/Home/Garden/GardenSection", () => ({
+  GardenSection: ({ tab, canManageRequests }: { tab: string; canManageRequests: boolean }) => (
+    <div data-testid="garden-section" data-tab={tab} data-requests={String(canManageRequests)} />
+  ),
+}));
+vi.mock("@/components/Sheets", () => ({
+  EndowmentSheet: ({ isOpen, gardenAddress }: { isOpen: boolean; gardenAddress: string }) =>
+    isOpen ? <div data-testid="endowment-sheet">{gardenAddress}</div> : null,
+  ConvictionSheet: () => null,
+}));
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
+  shareLink: (...args: unknown[]) => mocks.shareLink(...args),
+}));
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: mocks.account }),
+}));
+vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
+  useGardenVaults: () => ({ vaults: mocks.vaults }),
+}));
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposits", () => ({
+  useVaultDeposits: () => ({ deposits: mocks.deposits }),
+}));
+vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
+  useHasRole: () => ({ hasRole: mocks.evaluatorOnChain }),
+}));
+vi.mock("@green-goods/shared/hooks/conviction/useConvictionStrategies", () => ({
+  useConvictionStrategies: () => ({ strategies: [] }),
+}));
+// The Work sheet reads the garden's work as the Work tab does; the marker above draws it.
+vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
+  useWorks: () => ({
+    works: [],
+    isFetching: false,
+    isLoading: false,
+    isError: false,
+    isPaused: false,
+    availability: "empty",
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
+
+const { HighlightsCarousel } = await import("../../views/Home/Journal/HighlightsCarousel");
+const { RecentActivity } = await import("../../views/Home/Journal/RecentActivity");
+const { TakePart } = await import("../../views/Home/Journal/TakePart");
+const { HomeJournal } = await import("../../views/Home/Journal");
+const { TakePartSheet } = await import("../../views/Home/Journal/TakePartSheet");
+const { HomeShownContext } = await import("../../views/Home/Journal/homeShown");
+
+const render = (ui: ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
+/** The journal as Home holds it: shown, or out of sight under a page Home opened. */
+const asHomeHolds = (ui: ReactElement, shown: boolean) => (
+  <MemoryRouter>
+    <HomeShownContext value={shown}>{ui}</HomeShownContext>
+  </MemoryRouter>
+);
+
+function work(id: string, status: Work["status"], title: string, media: string[] = []): Work {
+  return {
+    id,
+    title,
+    actionUID: 1,
+    gardenerAddress: NEIGHBOUR,
+    gardenAddress: GARDEN,
+    feedback: "",
+    metadata: "bafy-work",
+    media,
+    createdAt: 1_790_000_000,
+    status,
+  };
+}
+
+const PENDING = work("0xwork3", "pending", "Compost turn", ["https://example.test/compost.jpg"]);
+const APPROVED = work("0xwork2", "approved", "Seed library sort");
+const REJECTED = work("0xwork1", "rejected", "Fence repair");
+
+function recent(overrides: Partial<GardenRecentActivity> = {}): GardenRecentActivity {
+  return {
+    state: { status: "ready", items: [PENDING, APPROVED, REJECTED], savedAt: null },
+    actionTitleOf: () => undefined,
+    refetch: vi.fn(),
+    ...overrides,
+  };
+}
+
+function journalCycle(
+  id: string,
+  cycleType: "SEASON" | "CAMPAIGN",
+  name: string,
+  daysLeft: number | null
+): JournalCycle {
+  return {
+    name,
+    daysLeft,
+    cycle: {
+      id,
+      chainId: 42161,
+      cycleId: BigInt(id.length),
+      seedSeen: true,
+      poolId: 7n,
+      poolEntityId: "42161-7",
+      garden: GARDEN as Address,
+      gardenId: GARDEN,
+      cycleType,
+      state: "OPEN",
+      startTime: null,
+      endTime: null,
+      metadataCID: null,
+      gardenersBps: 0,
+      treasuryBps: 0,
+      operatorBps: 0,
+      evaluatorBps: 0,
+      communityBps: 0,
+      funderBps: 0,
+      equalParticipationBps: 0,
+      verifiedContributionBps: 0,
+      liveCommitmentCount: 5n,
+      commitmentsAccepted: 4n,
+      commitmentsReadyForConfirmation: 0n,
+      commitmentsFulfilled: 3n,
+      commitmentsCancelled: 0n,
+      commitmentsExpired: 0n,
+      commitmentsDisputed: 0n,
+      commitmentsDue: 7n,
+      openCommitmentCount: 2n,
+      createdAt: null,
+      updatedAt: 1_790_000_000,
+    },
+  };
+}
+
+const SEASON = journalCycle("c-season", "SEASON", "Autumn Planting 2026", 36);
+const CAMPAIGN = journalCycle("c-camp", "CAMPAIGN", "Seed Swap Weekend", null);
+
+function cycles(overrides: Partial<GardenOpenCycles> = {}): GardenOpenCycles {
+  return {
+    state: { status: "ready", items: [SEASON, CAMPAIGN], savedAt: null },
+    ...overrides,
+  };
+}
+
+function promise(id: number, overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel {
+  return {
+    id: `42161-${id}`,
+    chainId: 42161,
+    commitmentId: BigInt(id),
+    creationSeen: true,
+    onchainState: "OFFERED",
+    derivedState: "OFFERED",
+    state: "OFFERED",
+    approvedUnits: 0n,
+    evidenceCount: 0,
+    cycleId: null,
+    declaredUnitValue: null,
+    declaredValueBasis: null,
+    targetUnits: 2n,
+    unitLabel: "hours",
+    poolId: 7n,
+    creator: NEIGHBOUR,
+    leadProvider: NEIGHBOUR,
+    counterparty: null,
+    direction: "OFFER",
+    confirmers: [],
+    contributorCount: 1,
+    contributorsFrozen: false,
+    metadataCID: `cid-${id}`,
+    ...overrides,
+  };
+}
+
+const single = (commitment: CommitmentReadModel): TakePartEntry => ({
+  kind: "single",
+  row: { commitment, seat: "bystander", needsYou: false },
+  copy: commitment,
+});
+
+const OFFER = single(promise(21));
+const ASK = single(
+  promise(20, { direction: "REQUEST", onchainState: "REQUESTED", derivedState: "REQUESTED" })
+);
+const TITLES: Record<string, string> = {
+  "cid-21": "Teach the composting basics workshop",
+  "cid-20": "Two hours sorting the seed library",
+  "cid-19": "Water the new beds",
+  "cid-18": "Mulch the orchard rows",
+};
+
+/** An ask open to take up, with its own title by metadata CID. */
+const openAsk = (id: number, overrides: Partial<CommitmentReadModel> = {}) =>
+  single(
+    promise(id, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      ...overrides,
+    })
+  );
+
+function promises(overrides: Partial<GardenOpenPromises> = {}): GardenOpenPromises {
+  return {
+    state: { status: "ready", items: [OFFER, ASK], savedAt: null },
+    all: { status: "ready", items: [OFFER, ASK], savedAt: null },
+    emptyReason: "none",
+    titleOf: (cid) => (cid ? (TITLES[cid] ?? null) : null),
+    refetch: vi.fn(),
+    ...overrides,
+  };
+}
+
+/** What held focus as the open promises' sheet opened: the opener it hands focus back to. */
+function recordPromisesOpener() {
+  const recorded: { opener: Element | null } = { opener: null };
+  const stop = useUIStore.subscribe((state, previous) => {
+    if (state.takePartSheet && !previous.takePartSheet) {
+      recorded.opener = document.activeElement;
+    }
+  });
+  return { recorded, stop };
+}
+
+const GARDEN_RECORD = { id: GARDEN, name: "Riverside Commons Garden" };
+
+/** The rows a sheet lists, by their titles. */
+const sheetRows = (sheet: HTMLElement) =>
+  within(sheet)
+    .getAllByRole("button")
+    .filter((button) => button.getAttribute("data-component") === "CommitmentRow")
+    .map((row) => Object.values(TITLES).find((title) => row.textContent?.includes(title)));
+
+describe("Home journal", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    useUIStore.setState({
+      isCommitmentsSheetOpen: false,
+      commitmentsSheetOpening: undefined,
+      takePartSheet: null,
+      gardenSheet: null,
+      isEndowmentSheetOpen: false,
+    });
+    mocks.account = null;
+    mocks.vaults = [];
+    mocks.deposits = [];
+    mocks.evaluatorOnChain = false;
+    mocks.shareLink.mockResolvedValue(undefined);
+    mocks.recent.mockReturnValue(recent());
+    mocks.cycles.mockReturnValue(cycles());
+    mocks.promises.mockReturnValue(promises());
+    mocks.cycleNames.mockReturnValue({ byCycleId: new Map(), isLoading: false });
+    mocks.serviceLines.mockReturnValue(new Map());
+    mocks.cyclePromises.mockReturnValue({ data: [], commitments: [], isLoading: false });
+    mocks.cycleDetail.mockReturnValue({ detail: null });
+  });
+
+  describe("Recent Activity", () => {
+    it("lists the garden's three newest works with their own status, the same for every role", () => {
+      render(<RecentActivity gardenId={GARDEN} />);
+
+      expect(screen.getByRole("heading", { level: 2, name: "Recent Activity" })).toBeVisible();
+      // PRD-1492: a new steward could not tell whether these were their own works or the garden's.
+      expect(screen.getByText("Everyone's work in this garden")).toBeVisible();
+      const rows = screen.getAllByRole("button", {
+        name: /Compost turn|Seed library|Fence repair/,
+      });
+      expect(rows.map((row) => within(row).getByRole("status").textContent)).toEqual([
+        "Pending",
+        "Approved",
+        "Rejected",
+      ]);
+      // A steward approves inside the work's page; the row carries no Review control.
+      expect(screen.queryByRole("button", { name: /review/i })).toBeNull();
+      expect(mocks.recent).toHaveBeenCalledWith(GARDEN);
+    });
+
+    it("opens a pending work's page, coming back to Home, and See All opens the Work sheet over Home", async () => {
+      const user = userEvent.setup();
+      render(<RecentActivity gardenId={GARDEN} />);
+
+      await user.click(screen.getByRole("button", { name: /Compost turn/ }));
+      expect(mocks.navigate).toHaveBeenCalledWith(
+        `/home/${GARDEN}/work/${PENDING.id}`,
+        expect.objectContaining({ state: { from: "home", returnTo: "/home" } })
+      );
+
+      // The garden's Work opens as a sheet over Home (DL-128), so Home keeps its place.
+      await user.click(screen.getByRole("button", { name: "See All" }));
+      expect(useUIStore.getState().gardenSheet).toBe("work");
+      expect(mocks.navigate).toHaveBeenCalledTimes(1);
+    });
+
+    it("takes focus as See All is pressed, before the Work sheet opens, so the sheet hands it back", () => {
+      render(<RecentActivity gardenId={GARDEN} />);
+      const seeAll = screen.getByRole("button", { name: "See All" });
+      let focusedAtOpen: Element | null = null;
+      const stop = useUIStore.subscribe((state, previous) => {
+        if (state.gardenSheet && !previous.gardenSheet) focusedAtOpen = document.activeElement;
+      });
+
+      // A tap presses and clicks a button, and in Safari it focuses nothing.
+      fireEvent.pointerDown(seeAll);
+      fireEvent.click(seeAll);
+      stop();
+
+      expect(focusedAtOpen).toBe(seeAll);
+    });
+
+    it("keeps its place while loading, and tells a failure, a wait and an empty garden apart", async () => {
+      const user = userEvent.setup();
+      const refetch = vi.fn();
+      mocks.recent.mockReturnValue(recent({ state: { status: "loading" } }));
+      const { rerender } = render(<RecentActivity gardenId={GARDEN} />);
+      expect(screen.getByRole("status")).toHaveTextContent("Gathering recent activity…");
+      expect(screen.getByRole("heading", { name: "Recent Activity" })).toBeVisible();
+
+      mocks.recent.mockReturnValue(recent({ state: { status: "error" }, refetch }));
+      rerender(
+        <MemoryRouter>
+          <RecentActivity gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.getByRole("alert")).toHaveTextContent("Couldn't load the work");
+      await user.click(screen.getByRole("button", { name: "Try Again" }));
+      expect(refetch).toHaveBeenCalled();
+
+      mocks.recent.mockReturnValue(recent({ state: { status: "offline" } }));
+      rerender(
+        <MemoryRouter>
+          <RecentActivity gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.getByText("Not saved on this phone yet")).toBeVisible();
+      expect(screen.queryByRole("alert")).toBeNull();
+
+      mocks.recent.mockReturnValue(recent({ state: { status: "empty" } }));
+      rerender(
+        <MemoryRouter>
+          <RecentActivity gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.getByText("No work yet")).toBeVisible();
+    });
+
+    it("says when an offline copy was saved", () => {
+      mocks.recent.mockReturnValue(
+        recent({ state: { status: "ready", items: [APPROVED], savedAt: Date.UTC(2026, 0, 2, 9) } })
+      );
+      render(<RecentActivity gardenId={GARDEN} />);
+
+      expect(screen.getByText(/^Offline · Saved /)).toBeVisible();
+      // Whose work it is still says so beside the saved copy's note.
+      expect(screen.getByText("Everyone's work in this garden")).toBeVisible();
+      expect(screen.getAllByRole("button", { name: /Seed library/ })).toHaveLength(1);
+    });
+  });
+
+  describe("Take Part", () => {
+    it("lists the open promises as commitment rows that open each promise's page", async () => {
+      const user = userEvent.setup();
+      render(<TakePart gardenId={GARDEN} />);
+
+      expect(screen.getByRole("heading", { level: 2, name: "Take Part" })).toBeVisible();
+      const ask = screen.getByRole("button", { name: /Two hours sorting the seed library/ });
+      expect(ask).toHaveAttribute("data-component", "CommitmentRow");
+      expect(within(ask).getByRole("img", { name: "Request" })).toBeInTheDocument();
+      expect(within(ask).getByRole("status")).toHaveTextContent("Request");
+
+      await user.click(ask);
+      expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/20`);
+    });
+
+    it("opens every promise the reader could take up from See All, not the reader's own", async () => {
+      const user = userEvent.setup();
+      // Take Part previews the first entries; the sheet lists the whole read.
+      mocks.promises.mockReturnValue(
+        promises({ all: { status: "ready", items: [OFFER, ASK, openAsk(19)], savedAt: null } })
+      );
+      render(
+        <>
+          <TakePart gardenId={GARDEN} />
+          <TakePartSheet garden={GARDEN_RECORD} />
+        </>
+      );
+
+      await user.click(screen.getByRole("button", { name: "See All" }));
+      const sheet = await screen.findByRole("dialog");
+      expect(within(sheet).getByText("In Riverside Commons Garden")).toBeVisible();
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Two hours sorting the seed library",
+        "Water the new beds",
+      ]);
+      expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
+
+      // A row opens its promise's page and puts the sheet away.
+      await user.click(within(sheet).getByRole("button", { name: /Water the new beds/ }));
+      expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/19`);
+      expect(useUIStore.getState().takePartSheet).toBeNull();
+    });
+
+    // The garden's list over Home says what booking a service takes first, then who promises it
+    // (PRD-1299, decision 12); Take Part on Home itself gains nothing voucher-specific.
+    it("draws a service offer's line in the open promises over Home, never on Home itself", async () => {
+      const user = userEvent.setup();
+      mocks.serviceLines.mockReturnValue(
+        new Map([
+          [
+            "21",
+            {
+              promisedBy: "Tech and Sun",
+              gender: "feminine",
+              takes: { units: 1_000_000n, decimals: 6 },
+              booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
+            },
+          ],
+        ])
+      );
+      render(
+        <>
+          <TakePart gardenId={GARDEN} />
+          <TakePartSheet garden={GARDEN_RECORD} />
+        </>
+      );
+      const onHome = screen.getByRole("button", { name: /Teach the composting basics workshop/ });
+      expect(onHome).not.toHaveAttribute("data-service");
+      expect(onHome).not.toHaveTextContent("You hold");
+
+      await user.click(screen.getByRole("button", { name: "See All" }));
+      const sheet = await screen.findByRole("dialog");
+      const inSheet = within(sheet).getByRole("button", {
+        name: /Teach the composting basics workshop/,
+      });
+      expect(inSheet).toHaveAttribute("data-service", "offer");
+      expect(inSheet).toHaveTextContent(/Takes 1 Tech and Sun voucher.*You hold 9/);
+      // Only the sheet asks for lines, with the garden's whole list.
+      expect(mocks.serviceLines).toHaveBeenCalledWith({
+        chainId: expect.any(Number),
+        offers: [OFFER.copy, ASK.copy],
+      });
+    });
+
+    it("closes the open promises when the journal turns to another garden or goes away", () => {
+      const membership = { roles: ["gardener" as const], pendingJoin: false };
+      const journal = (id: string) => (
+        <MemoryRouter>
+          <HomeJournal garden={{ ...GARDEN_RECORD, id } as Garden} membership={membership} />
+        </MemoryRouter>
+      );
+      const { rerender, unmount } = renderWithProviders(journal(GARDEN));
+
+      act(() => useUIStore.getState().openTakePartSheet());
+      rerender(journal("0x5000000000000000000000000000000000000002"));
+      expect(useUIStore.getState().takePartSheet).toBeNull();
+
+      act(() => useUIStore.getState().openTakePartSheet());
+      unmount();
+      expect(useUIStore.getState().takePartSheet).toBeNull();
+    });
+
+    it("opens the sheet at a season's promises from Show Its Promises, which its rail widens", async () => {
+      const user = userEvent.setup();
+      const inSeason = openAsk(18, { cycleId: SEASON.cycle.cycleId });
+      mocks.promises.mockReturnValue(
+        promises({ all: { status: "ready", items: [OFFER, inSeason], savedAt: null } })
+      );
+      // The rail names each cycle from its metadata, as the Promises sheet's does.
+      mocks.cycleNames.mockReturnValue({
+        byCycleId: new Map([
+          [SEASON.cycle.cycleId.toString(), { status: "resolved", name: "Autumn Planting 2026" }],
+          [CAMPAIGN.cycle.cycleId.toString(), { status: "resolved", name: "Seed Swap Weekend" }],
+        ]),
+        isLoading: false,
+      });
+      useUIStore.setState({ takePartSheet: { cycleId: SEASON.cycle.cycleId.toString() } });
+      render(<TakePartSheet garden={GARDEN_RECORD} />);
+
+      const sheet = await screen.findByRole("dialog");
+      expect(sheetRows(sheet)).toEqual(["Mulch the orchard rows"]);
+      const season = within(sheet).getByRole("button", { name: /Autumn Planting 2026/ });
+      expect(season).toHaveAttribute("aria-pressed", "true");
+
+      // Nothing in the campaign is open to take up, and the sheet says so for the campaign.
+      await user.click(within(sheet).getByRole("button", { name: /Seed Swap Weekend/ }));
+      expect(within(sheet).getByText("Nothing open in this campaign")).toBeVisible();
+
+      // Tapping the chosen cycle again lists them all.
+      await user.click(within(sheet).getByRole("button", { name: /Seed Swap Weekend/ }));
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Mulch the orchard rows",
+      ]);
+    });
+
+    // A cycle that closed on a refetch between the details and the sheet is no longer on the
+    // rail; Show Its Promises must not widen to the garden's whole list (Codex on #1331).
+    // A cycle can close on a refetch between its details and the sheet, or after it is chosen
+    // on the rail; Show Its Promises must not widen to the garden's list then (Codex on #1331),
+    // and the list must keep a way back to all of them (Codex on #1339) and its campaign's name
+    // (CodeRabbit on #1339).
+    it("keeps a cycle the rail no longer lists as the filter, named, with See All to widen it", async () => {
+      const user = userEvent.setup();
+      const inClosed = openAsk(19, { cycleId: 99n });
+      mocks.promises.mockReturnValue(
+        promises({ all: { status: "ready", items: [OFFER, inClosed], savedAt: null } })
+      );
+      mocks.cycleNames.mockReturnValue({
+        byCycleId: new Map([
+          [CAMPAIGN.cycle.cycleId.toString(), { status: "resolved", name: "Seed Swap Weekend" }],
+        ]),
+        isLoading: false,
+      });
+      useUIStore.setState({ takePartSheet: { cycleId: "99", cycleType: "CAMPAIGN" } });
+      const { rerender } = render(<TakePartSheet garden={GARDEN_RECORD} />);
+      const again = () =>
+        rerender(
+          <MemoryRouter>
+            <TakePartSheet garden={GARDEN_RECORD} />
+          </MemoryRouter>
+        );
+
+      // The cycle's own rows, with no card chosen on the rail: See All is the way back.
+      const sheet = await screen.findByRole("dialog");
+      expect(sheetRows(sheet)).toEqual(["Water the new beds"]);
+      expect(within(sheet).queryByRole("button", { pressed: true })).toBeNull();
+      await user.click(within(sheet).getByRole("button", { name: "See All" }));
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Water the new beds",
+      ]);
+
+      // A campaign chosen on the rail, with nothing open in it, then dropped by a refetch: the
+      // row still names a campaign, and See All stands in for the card that is gone.
+      await user.click(within(sheet).getByRole("button", { name: /Seed Swap Weekend/ }));
+      expect(within(sheet).getByText("Tap it again to see them all")).toBeVisible();
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
+      );
+      again();
+      expect(within(sheet).getByText("Nothing open in this campaign")).toBeVisible();
+      expect(within(sheet).queryByText("Tap it again to see them all")).toBeNull();
+      await user.click(within(sheet).getByRole("button", { name: "See All" }));
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Water the new beds",
+      ]);
+    });
+
+    it("tells a chain without promises, a failure, a wait, nothing open and only the reader's own apart", async () => {
+      const user = userEvent.setup();
+      const refetch = vi.fn();
+      mocks.promises.mockReturnValue(promises({ state: { status: "unavailable" } }));
+      const { rerender } = render(<TakePart gardenId={GARDEN} />);
+      expect(screen.getByText("Promises aren't available yet")).toBeVisible();
+
+      mocks.promises.mockReturnValue(promises({ state: { status: "error" }, refetch }));
+      rerender(
+        <MemoryRouter>
+          <TakePart gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.getByRole("alert")).toHaveTextContent("Couldn't load the list");
+      await user.click(screen.getByRole("button", { name: "Try Again" }));
+      expect(refetch).toHaveBeenCalled();
+
+      mocks.promises.mockReturnValue(promises({ state: { status: "offline" } }));
+      rerender(
+        <MemoryRouter>
+          <TakePart gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.getByText("Not saved on this phone yet")).toBeVisible();
+
+      mocks.promises.mockReturnValue(promises({ state: { status: "empty" } }));
+      rerender(
+        <MemoryRouter>
+          <TakePart gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.getByText("No open promises right now")).toBeVisible();
+
+      // A steward whose own promises are the only open ones hears that instead (DL-132).
+      mocks.promises.mockReturnValue(
+        promises({ state: { status: "empty" }, emptyReason: "yours" })
+      );
+      rerender(
+        <MemoryRouter>
+          <TakePart gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.getByText("Nothing new to take up")).toBeVisible();
+      expect(screen.getByText("Every open promise here is already yours")).toBeVisible();
+    });
+
+    it("stands each open cycle as one line when Home has no carousel, opening its details", async () => {
+      const user = userEvent.setup();
+      const { unmount } = render(<TakePart gardenId={GARDEN} />);
+      expect(screen.queryByRole("button", { name: /Autumn Planting 2026/ })).toBeNull();
+      unmount();
+
+      render(<TakePart gardenId={GARDEN} withCycleLines />);
+      expect(screen.getByRole("button", { name: /Seed Swap Weekend/ })).toBeInTheDocument();
+      const line = screen.getByRole("button", { name: /Autumn Planting 2026/ });
+      await user.click(line);
+      const sheet = await screen.findByRole("dialog");
+      const promises = recordPromisesOpener();
+      await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
+      await waitFor(() =>
+        expect(useUIStore.getState().takePartSheet).toEqual({
+          cycleId: SEASON.cycle.cycleId.toString(),
+          cycleType: "SEASON",
+        })
+      );
+      expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
+      promises.stop();
+      // The details close first and hand focus back to the line, so the open promises' sheet
+      // returns focus there rather than to the details' own button, which unmounts.
+      expect(promises.recorded.opener).toBe(line);
+    });
+  });
+
+  describe("What's Open", () => {
+    it("leads with the open season and campaigns, one card each, and nothing else (DL-133)", () => {
+      render(<HighlightsCarousel gardenId={GARDEN} />);
+
+      expect(screen.getByRole("heading", { level: 2, name: "What's Open" })).toBeVisible();
+      const list = screen.getByRole("list");
+      expect(list.className).toContain("snap-x");
+      const cards = within(list).getAllByRole("button");
+      expect(cards.map((card) => card.getAttribute("data-highlight"))).toEqual(["cycle", "cycle"]);
+      expect(cards[0]).toHaveTextContent("Autumn Planting 2026");
+      expect(cards[0]).toHaveTextContent("3 of 7 kept · 36 days left");
+      // A cycle with no end date says what it has kept, and no count of days.
+      expect(cards[1]).toHaveTextContent("Seed Swap Weekend");
+      expect(cards[1]).not.toHaveTextContent("left");
+    });
+
+    it("draws one open cycle as a card across the row rather than a one-card carousel", () => {
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
+      );
+
+      render(<HighlightsCarousel gardenId={GARDEN} />);
+
+      const list = screen.getByRole("list");
+      expect(list.className).not.toContain("snap-x");
+      const [card] = within(list).getAllByRole("button");
+      expect(card).toHaveClass("w-full");
+    });
+
+    it("opens a cycle's details, whose Show Its Promises opens the garden's open promises at it", async () => {
+      const user = userEvent.setup();
+      // One promise in each state the details count, kept ones and one still being set up too.
+      const states = [
+        ...["OFFERED", "REQUESTED", "ACCEPTED", "ACTIVE", "EVIDENCE_SUBMITTED"],
+        ...["PARTIALLY_APPROVED", "READY_FOR_CONFIRMATION", "DISPUTED", "CANCELLED", "EXPIRED"],
+        ...["FULFILLED", "RECONCILED", "DRAFT"],
+      ];
+      const seasonPromises = states.map((derivedState) => ({ derivedState }));
+      mocks.cyclePromises.mockReturnValue({
+        data: seasonPromises,
+        commitments: seasonPromises,
+        isLoading: false,
+      });
+      mocks.cycleDetail.mockReturnValue({
+        detail: {
+          unitSummaries: [
+            { id: "u-1", unitLabel: "hours", fulfilledUnits: 12n, expectedUnits: 40n },
+          ],
+        },
+      });
+      render(<HighlightsCarousel gardenId={GARDEN} />);
+
+      const card = screen.getByRole("button", { name: /Autumn Planting 2026/ });
+      await user.click(card);
+      const sheet = await screen.findByRole("dialog");
+      // Where its promises stand, counted from its own list in its rows' words, with Kept so far
+      // from its record; then what they add up to (DL-169).
+      const facts = (component: string) =>
+        [
+          ...sheet.querySelectorAll(`[data-component="${component}"] [data-component="FactRow"]`),
+        ].map((row) => [
+          row.querySelector(".gg-fact-label")?.textContent,
+          row.querySelector(".gg-fact-value")?.textContent,
+        ]);
+      expect(facts("CyclePromiseStanding")).toEqual([
+        ["Open to take up", "2"],
+        ["In progress", "4"],
+        ["Waiting to be confirmed", "2"],
+        ["Kept so far", "3 of 7 kept"],
+        ["Withdrawn or lapsed", "2"],
+      ]);
+      expect(facts("CycleUnits")).toEqual([["hours", "12 of 40"]]);
+      const promises = recordPromisesOpener();
+      await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
+      // The garden's open promises open at the season, not the reader's own, and once the
+      // details have closed, so the sheet returns focus to the card.
+      await waitFor(() =>
+        expect(useUIStore.getState().takePartSheet).toEqual({
+          cycleId: SEASON.cycle.cycleId.toString(),
+          cycleType: "SEASON",
+        })
+      );
+      expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
+      promises.stop();
+      expect(promises.recorded.opener).toBe(card);
+    });
+
+    it("says when a cycle's promises or units cannot be answered, offline included (DL-169)", async () => {
+      const user = userEvent.setup();
+      // Paused offline with nothing saved: no answer, no error, and nothing running.
+      mocks.cyclePromises.mockReturnValue({
+        data: undefined,
+        commitments: [],
+        isError: false,
+        fetchStatus: "paused",
+      });
+      mocks.cycleDetail.mockReturnValue({ detail: null, isError: false, fetchStatus: "paused" });
+      render(<HighlightsCarousel gardenId={GARDEN} />);
+
+      await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+      const sheet = await screen.findByRole("dialog");
+      // The record's own count stays, and neither section passes a missing read off as the whole.
+      expect(within(sheet).getByText("3 of 7 kept")).toBeVisible();
+      expect(within(sheet).queryByText("Open to take up")).toBeNull();
+      expect(
+        within(sheet).getByText("The rest of its promises couldn't be read just now.")
+      ).toBeVisible();
+      expect(within(sheet).getByRole("heading", { name: "What it adds up to" })).toBeVisible();
+      expect(within(sheet).getByText("Its units couldn't be read just now.")).toBeVisible();
+    });
+
+    // DL-162: the last open cycle leaves What's Open, and Take Part's lines, the second it ends;
+    // a details sheet open on it stays, and turns to Ended, rather than vanishing with its entry.
+    it.each([
+      ["What's Open", () => <HighlightsCarousel gardenId={GARDEN} />],
+      ["Take Part's cycle lines", () => <TakePart gardenId={GARDEN} withCycleLines />],
+    ])("keeps a cycle's open details in %s as that cycle ends and leaves", async (_view, view) => {
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
+      );
+      const user = userEvent.setup();
+      const { rerender } = render(view());
+      await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+      const sheet = await screen.findByRole("dialog");
+
+      mocks.cycles.mockReturnValue(cycles({ state: { status: "empty" } }));
+      rerender(<MemoryRouter>{view()}</MemoryRouter>);
+      expect(screen.queryByRole("button", { name: /Autumn Planting 2026/ })).toBeNull();
+      expect(screen.getByRole("dialog")).toBe(sheet);
+    });
+
+    it("holds its height while the cycles load, and is absent when their read failed or none is open", () => {
+      mocks.cycles.mockReturnValue(cycles({ state: { status: "loading" } }));
+      const { container, rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
+      const section = container.querySelector("[data-component='HighlightsCarousel']");
+      expect(section).toHaveAttribute("aria-busy", "true");
+      expect(section?.querySelector("li")).toHaveClass("h-28");
+
+      for (const status of ["error", "empty"] as const) {
+        mocks.cycles.mockReturnValue(cycles({ state: { status } }));
+        rerender(
+          <MemoryRouter>
+            <HighlightsCarousel gardenId={GARDEN} />
+          </MemoryRouter>
+        );
+        expect(container).toBeEmptyDOMElement();
+      }
+    });
+  });
+
+  it("mounts the journal's sections in DL-156's order, closing with About This Garden", () => {
+    const garden = { id: GARDEN, name: "Riverside Commons Garden" } as Garden;
+    const { container } = render(
+      <HomeJournal garden={garden} membership={{ roles: ["gardener"], pendingJoin: false }} />
+    );
+
+    const order = [...container.querySelectorAll("[data-component]")]
+      .map((node) => node.getAttribute("data-component"))
+      .filter((name) =>
+        [
+          "HomeNeedsYourAttention",
+          "HighlightsCarousel",
+          "RecentActivity",
+          "Continue",
+          "TakePart",
+          "AboutGarden",
+          "GardenPage",
+        ].includes(name ?? "")
+      );
+    expect(order).toEqual([
+      "HighlightsCarousel",
+      "HomeNeedsYourAttention",
+      "RecentActivity",
+      "Continue",
+      "TakePart",
+      "AboutGarden",
+    ]);
+    // The interim garden page that stood in About's slot (steps 8 and 19) is gone.
+    expect(screen.queryByTestId("home-garden-page")).toBeNull();
+    for (const read of [mocks.recent, mocks.promises]) {
+      expect(read).toHaveBeenCalledWith(GARDEN);
+    }
+    expect(mocks.cycles).toHaveBeenCalledWith(GARDEN, { shown: true });
+    // The Offer or Request + floats over the journal in the active garden (DL-181).
+    expect(container.querySelector("[data-component='OfferOrAsk']")).toHaveAttribute(
+      "data-garden",
+      GARDEN
+    );
+  });
+
+  describe("About This Garden", () => {
+    const ME = "0xa11ce00000000000000000000000000000000001";
+    const garden = (overrides: Partial<Garden> = {}) =>
+      ({
+        id: GARDEN,
+        name: "Riverside Commons Garden",
+        bannerImage: "https://example.test/riverside.jpg",
+        description: "Food for the block.",
+        gardeners: [NEIGHBOUR],
+        stewards: [],
+        owners: [],
+        evaluators: [],
+        ...overrides,
+      }) as Garden;
+    const renderAbout = (record: Garden, roles: Array<"gardener" | "steward" | "owner"> = []) =>
+      render(<HomeJournal garden={record} membership={{ roles, pendingJoin: false }} />);
+    const aboutRows = () =>
+      within(screen.getByRole("heading", { name: "About This Garden" }).closest("section")!)
+        .getAllByRole("button")
+        .map((row) => row.querySelector(".gg-item-row-title")?.textContent);
+
+    it.each([
+      "stewards",
+      "owners",
+    ] as const)("links the configured Hub from About for the selected garden's %s", (role) => {
+      vi.stubEnv("VITE_ADMIN_APP_URL", "  https://hub.example.test  ");
+      mocks.account = ME;
+      renderAbout(garden({ [role]: [ME] }));
+
+      const about = screen.getByRole("heading", { name: "About This Garden" }).closest("section")!;
+      const hub = within(about).getByRole("link", { name: /Green Goods Hub/ });
+      expect(hub).toHaveAttribute("href", "https://hub.example.test");
+      expect(hub).toHaveAttribute("target", "_blank");
+      expect(hub).toHaveAttribute("rel", "noopener noreferrer");
+    });
+
+    it("does not expose the Hub from another garden's stewardship or an evaluator role", () => {
+      vi.stubEnv("VITE_ADMIN_APP_URL", "https://hub.example.test");
+      mocks.account = ME;
+      mocks.evaluatorOnChain = true;
+      renderAbout(garden({ stewards: [NEIGHBOUR], gardeners: [ME] }), ["steward"]);
+
+      expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+    });
+
+    it.each(["", "   "])("omits the Hub when its build URL is %j", (hubUrl) => {
+      vi.stubEnv("VITE_ADMIN_APP_URL", hubUrl);
+      mocks.account = ME;
+      renderAbout(garden({ owners: [ME] }));
+
+      expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+    });
+
+    it("gives a gardener Insights, Gardeners and Share, and never Endowment", () => {
+      mocks.account = NEIGHBOUR;
+      mocks.vaults = [{}];
+      renderAbout(garden(), ["gardener"]);
+
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden"]);
+      expect(screen.getByText("1 member")).toBeInTheDocument();
+    });
+
+    it("opens Insights as a full sheet named for the garden, with its banner, and hands focus back to the row", async () => {
+      const user = userEvent.setup();
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden(), ["gardener"]);
+
+      const row = screen.getByRole("button", { name: /Insights/ });
+      await user.click(row);
+      const sheet = await screen.findByRole("dialog", { name: "Insights" });
+      expect(sheet).toHaveAttribute("data-sheet-size", "full");
+      expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
+      // The banner is decorative: the title names the garden's section, the chip the garden.
+      expect(within(sheet).getByTestId("garden-sheet-banner").querySelector("img")).toHaveAttribute(
+        "src",
+        "https://example.test/riverside.jpg"
+      );
+      expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-tab", "insights");
+
+      await user.click(within(sheet).getByRole("button", { name: "Close" }));
+      expect(useUIStore.getState().gardenSheet).toBeNull();
+      expect(document.activeElement).toBe(row);
+    });
+
+    it("opens Insights without a banner for a garden that has none", async () => {
+      const user = userEvent.setup();
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden({ bannerImage: "" }), ["gardener"]);
+
+      await user.click(screen.getByRole("button", { name: /Insights/ }));
+      const sheet = await screen.findByRole("dialog", { name: "Insights" });
+      expect(within(sheet).queryByTestId("garden-sheet-banner")).toBeNull();
+      expect(within(sheet).getByTestId("garden-section")).toBeInTheDocument();
+    });
+
+    it("hands a steward the Gardeners sheet with the requests queue, and a gardener without it", async () => {
+      const user = userEvent.setup();
+      mocks.account = ME;
+      const { unmount } = renderAbout(garden({ stewards: [ME] }), ["steward"]);
+
+      await user.click(screen.getByRole("button", { name: /Gardeners/ }));
+      let sheet = await screen.findByRole("dialog", { name: "Gardeners" });
+      expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-requests", "true");
+      // Check Who's Asking is the queue's own control; no count stands beside the row (every read
+      // of the queue needs a signed proof, so no count exists).
+      expect(
+        within(sheet).queryByText(/\d+\s+(?:(?:people|person)\s+)?(?:asking|requests?)\b/i)
+      ).toBeNull();
+      unmount();
+      useUIStore.getState().closeGardenSheet();
+
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden(), ["gardener"]);
+      await user.click(screen.getByRole("button", { name: /Gardeners/ }));
+      sheet = await screen.findByRole("dialog", { name: "Gardeners" });
+      expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-requests", "false");
+    });
+
+    it("opens the garden's Work as a sheet from the store, so See All and a duty row land there", async () => {
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden(), ["gardener"]);
+
+      useUIStore.getState().openGardenSheet("work");
+      const sheet = await screen.findByRole("dialog", { name: "Work" });
+      expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
+      expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-tab", "work");
+    });
+
+    it("shows Endowment to a steward of a garden with a vault, and opens the Endowment sheet", async () => {
+      const user = userEvent.setup();
+      mocks.account = ME;
+      mocks.vaults = [{}];
+      renderAbout(garden({ stewards: [ME] }), ["steward"]);
+
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden", "Endowment"]);
+      await user.click(screen.getByRole("button", { name: /Endowment/ }));
+      expect(await screen.findByTestId("endowment-sheet")).toHaveTextContent(GARDEN);
+      // Its own state, not the app-wide flag the garden's page reads: a sheet left open on Home
+      // can never open itself on a garden's page the member goes back to.
+      expect(useUIStore.getState().isEndowmentSheetOpen).toBe(false);
+    });
+
+    it("shows Endowment to a depositor who holds no role, naming their deposit", () => {
+      mocks.account = ME;
+      mocks.vaults = [{}];
+      mocks.deposits = [{ shares: 3n }];
+      renderAbout(garden());
+
+      const endowment = screen.getByRole("button", { name: /Endowment/ });
+      expect(endowment).toHaveTextContent("Your deposit");
+      expect(screen.queryByText("Needs Your Attention")).toBeNull();
+    });
+
+    it("keeps Endowment out while the garden has no vault, and Governance out while its flag is off", () => {
+      mocks.account = ME;
+      renderAbout(garden({ stewards: [ME] }), ["steward"]);
+
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden"]);
+    });
+
+    it("shares the garden's own link from the Share row", async () => {
+      const user = userEvent.setup();
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden(), ["gardener"]);
+
+      await user.click(screen.getByRole("button", { name: /Share Garden/ }));
+      await waitFor(() =>
+        expect(mocks.shareLink).toHaveBeenCalledWith({
+          title: "Riverside Commons Garden",
+          url: `${window.location.origin}/home/${GARDEN}`,
+        })
+      );
+    });
+
+    // Its sheets portal past Home's hidden wrapper, so leaving Home closes them with Home's own
+    // drawers instead of leaving them over the page Home opened (Codex P2 on #1333).
+    it("closes Endowment when Home opens a page, and it stays closed on return", async () => {
+      const user = userEvent.setup();
+      mocks.account = ME;
+      mocks.vaults = [{}];
+      const journal = (
+        <HomeJournal
+          garden={garden({ stewards: [ME] })}
+          membership={{ roles: ["steward"], pendingJoin: false }}
+        />
+      );
+      const { rerender } = renderWithProviders(asHomeHolds(journal, true));
+      await user.click(screen.getByRole("button", { name: /Endowment/ }));
+      expect(await screen.findByTestId("endowment-sheet")).toBeInTheDocument();
+
+      rerender(asHomeHolds(journal, false));
+      expect(screen.queryByTestId("endowment-sheet")).not.toBeInTheDocument();
+      rerender(asHomeHolds(journal, true));
+      expect(screen.queryByTestId("endowment-sheet")).not.toBeInTheDocument();
+    });
+  });
+
+  // The cycle details portal past Home's hidden wrapper too (Codex P2 on #1333), and the cycles'
+  // clock is read again as Home shows, so days left never stand stale under a page.
+  it.each([
+    ["the carousel's", <HighlightsCarousel key="carousel" gardenId={GARDEN} />],
+    ["Take Part's", <TakePart key="take-part" gardenId={GARDEN} withCycleLines />],
+  ])("closes %s cycle details when Home opens a page, and tells its cycles whether Home shows", async (_host, host) => {
+    const user = userEvent.setup();
+    const { rerender } = renderWithProviders(asHomeHolds(host, true));
+    expect(mocks.cycles).toHaveBeenLastCalledWith(GARDEN, { shown: true });
+    await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    rerender(asHomeHolds(host, false));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(mocks.cycles).toHaveBeenLastCalledWith(GARDEN, { shown: false });
+  });
+});

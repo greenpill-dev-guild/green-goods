@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "green-goods-os",
+    "title": "Green Goods OS Research and Proposal",
+    "kind": "feature",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p2",
+    "created_at": "2026-10-08T16:08:51Z",
+    "updated_at": "2026-10-10T09:51:54Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "research": "research.md",
+    "strategy": "strategy.md",
+    "evidence": "evidence-register.md",
+    "architecture": "architecture.md",
+    "sensors": "sensor-kit-research.md",
+    "capture": "capture-and-device-flows.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "environmental-data",
+    "tracks": ["docs"],
+    "work_types": ["research", "review"],
+    "surfaces": [".plans/ideas/green-goods-os/"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User authorized research and planning artifacts only; no implementation, license changes or external writes.",
+    "Implementation lanes are n/a for this research task, not certified or canceled product work.",
+    "Research recommendations remain proposals until explicitly accepted.",
+    "User accepted Accessibility, Sovereignty, Trust and Reciprocity and the overall narrative sequence on 8 October 2026 Pacific. Privacy, Interoperability and Verifiability remain essential.",
+    "Current narrative is pitch-revision.md: Green Goods leads with global access; prior decks remain rejected drafts. Next: human review of the three representative compositions before full deck production.",
+    "Prior commercial figures are withdrawn from the next core pitch; first cohort, buyer, geography, costs and ask remain unresolved. No partner interest is established.",
+    "Revised three-slide checkpoint in artifacts/visual-direction-v2: short cover, knowledge silos, no generated faces or heads, right-side imagery and concrete browser-workspace explanation. Further alignment remains pending before full-deck expansion.",
+    "9 October technical discussion is consolidated in architecture.md. User requires participation without a dedicated computer node; extension-first active coordination and local setup remain untested proposals.",
+    "Sensor-kit-research.md records purchasable hardware, primary-source prices, local APIs, logging and configuration gates. Purchasing comparison covers the user-selected United States, Nigeria, Brazil and South Africa. Exact regional kit, first site and budget remain unresolved; no purchase, hardware access, firmware change or Green Goods adapter is authorized.",
+    "DIY/OEM research adds component cores, regional stock corrections, browser-flashing and firmware boundaries, documented supplier customization capabilities and setup-fee allocation. DIY versus assembled remains a proposal; no supplier outreach, agreement or branded order is authorized.",
+    "User identified California for the physical prototype, macOS/Brave on laptop and Brave/Chrome on Android. The recommended expansion-board kit and fully Green Goods commissioning workflow are documented proposals. Brave API availability, Android USB behavior, firmware and hardware remain untested. No purchase, browser-setting change, implementation or device operation is authorized.",
+    "User authorized preserving the eight data-capture areas in notes. Capture-and-device-flows.md records domain views, cultural/wellbeing consent, Coop source patterns and limits, local sensor history with proposed BLE/USB collection, optional Seeed add-ons and versioned browser defaults. Edge/macOS plus Chrome/Android is a proposed test combination, not accepted implementation scope or compatibility proof.",
+    "User requested saving the passive-networking discussion. The capture supplement now distinguishes measurement, collection and sharing; records unmeasured Bluetooth range and a proposed ten-metre test; compares receiver, MQTT and WebRTC roles; and separates IWA/native/hardware raw-socket routes from ordinary extensions and production PDS hosting. These remain research recommendations, not approved implementation or device tests.",
+    "Latest user feedback rejects the italic cover title and requests fuller subtext. Typography/copy discussion must precede further slide edits. Dedicated research/green-goods-pitch-handoff branch preserves the work; see handoffs/pitch-restart-prompt.md.",
+    "User explicitly authorized committing and pushing the research notes to the existing research/green-goods-pitch-handoff branch through draft PR #1055. This publication scope includes only research Markdown/JSON; product implementation and hardware tests remain unapproved.",
+    "9 October 2026 Pacific / 10 October UTC: cover typography and copy decided (Fraunces upright, no italic or green accent; 18-word land-stewards subtitle over three lines at 20 pt; composition C1). artifacts/visual-direction-v3 holds Regular 400 and Medium 500 cover variants; the weight choice is open. Fraunces Medium static fetched from Google Fonts into the bundle with approval; nothing installed. Renders are browser replicas, not native PPTX output.",
+    "9 October 2026 Pacific / 10 October UTC: title weight Medium 500 and the website accent green on the second title line chosen; the v3 checkpoint is the agreed one-slide cover. User authorized committing and pushing this work to the existing research/green-goods-pitch-handoff branch (draft PR #1055). Next: the solution-slide sample.",
+    "10 October 2026 UTC: solution-slide sample built from the v2 composition on the agreed rules (Fraunces Medium headings, one green accent on the title, status labels from the capability ledger, spec-driven PPTX and render); awaiting review before full-deck expansion.",
+    "10 October 2026 UTC: sixteen-slide core deck built from the agreed narrative with the spec-driven build (Fraunces Medium headings, one green accent, status labels, website imagery on two slides, no withdrawn figures); renders, PDF preview, notes and receipt in artifacts/visual-direction-v3; awaiting review before appendices and tailored asks.",
+    "10 October 2026 UTC: rejected decks and the v1 checkpoint removed from the branch tree so the push gate's 64 MiB binary-patch buffer holds the branch; files remain in history at dc6d62d68. Core deck pushed to research/green-goods-pitch-handoff for review."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    },
+    "qa_pass_1": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    }
+  }
+}

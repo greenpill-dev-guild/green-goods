@@ -1,3 +1,5 @@
+import { Domain } from "../../types/domain";
+import { DOMAIN_ACTION_DOMAIN } from "../../utils/domain";
 import {
   getPublicGardenImpactChainConfig,
   isPublicGardenImpactChainSupported,
@@ -6,14 +8,8 @@ import { getChain } from "../../config/chains";
 import type { Address } from "../../public-contracts/core";
 import type { PublicGardenImpactDomain } from "../../public-contracts/garden-impact";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
-import {
-  ContractFunctionExecutionError,
-  ContractFunctionRevertedError,
-  ContractFunctionZeroDataError,
-  createPublicClient,
-  getAddress,
-  http,
-} from "viem";
+import { isUnansweredContractRead } from "../../utils/blockchain/contract-reads";
+import { createPublicClient, getAddress, http } from "viem";
 import { createEasClient, greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 import { createPublicGardenImpactEasReaders } from "./public-garden-impact-eas-readers";
 import {
@@ -46,7 +42,7 @@ export {
 interface ReaderDependencies {
   indexerReader?: GraphQLReader;
   createEasReader?: (chainId: number) => GraphQLReader;
-  createChainReader?: (chainId: number) => PublicGardenImpactChainReader;
+  createChainReader?: (chainId: number, signal?: AbortSignal) => PublicGardenImpactChainReader;
 }
 
 interface PublicGardenImpactChainReader {
@@ -86,6 +82,16 @@ const GARDEN_ACCOUNT_IDENTITY_ABI = [
   },
 ] as const;
 
+const GARDEN_TOKEN_MEMBERSHIP_ABI = [
+  {
+    type: "function",
+    name: "isGardenAccount",
+    stateMutability: "view",
+    inputs: [{ name: "gardenAccount", type: "address" }],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
 const TOKENBOUND_REGISTRY_ABI = [
   {
     type: "function",
@@ -105,34 +111,16 @@ const TOKENBOUND_REGISTRY_ABI = [
 const GARDEN_ACCOUNT_SALT =
   "0x6551655165516551655165516551655165516551655165516551655165516551" as const;
 
-function defaultChainReader(chainId: number): PublicGardenImpactChainReader {
+function defaultChainReader(chainId: number, signal?: AbortSignal): PublicGardenImpactChainReader {
   return createPublicClient({
     chain: getChain(chainId),
-    transport: http(getRpcUrl(chainId)),
+    transport: http(getRpcUrl(chainId), { fetchOptions: { signal } }),
   }) as unknown as PublicGardenImpactChainReader;
 }
 
-function isMissingGardenContract(error: unknown): boolean {
-  return (
-    error instanceof ContractFunctionExecutionError &&
-    (error.cause instanceof ContractFunctionZeroDataError ||
-      error.cause instanceof ContractFunctionRevertedError)
-  );
-}
-
-function toDomain(domain: unknown): PublicGardenImpactDomain | null {
-  switch (domain) {
-    case "SOLAR":
-      return "solar";
-    case "AGRO":
-      return "agroforestry";
-    case "EDU":
-      return "education";
-    case "WASTE":
-      return "waste";
-    default:
-      return null;
-  }
+function toDomain(value: unknown): PublicGardenImpactDomain | null {
+  const domain = typeof value === "string" ? Domain[value as keyof typeof Domain] : undefined;
+  return typeof domain === "number" ? (DOMAIN_ACTION_DOMAIN[domain] ?? null) : null;
 }
 
 export function createPublicGardenImpactReaders(
@@ -144,14 +132,20 @@ export function createPublicGardenImpactReaders(
   return {
     ...easReaders,
 
-    async readGarden(chainId, gardenAddress): Promise<PublicGardenImpactGardenRecord | null> {
+    async readGarden(
+      chainId,
+      gardenAddress,
+      signal
+    ): Promise<PublicGardenImpactGardenRecord | null> {
       assertPublicGardenImpactChain(chainId, "works");
       const config = getPublicGardenImpactChainConfig(chainId);
       if (!config || !isPublicGardenImpactChainSupported(chainId)) {
         throw new PublicGardenImpactSourceError("works", "unsupported_chain");
       }
       try {
-        const chainReader = deps.createChainReader?.(chainId) ?? defaultChainReader(chainId);
+        signal?.throwIfAborted();
+        const chainReader =
+          deps.createChainReader?.(chainId, signal) ?? defaultChainReader(chainId, signal);
         let token: unknown;
         try {
           token = await chainReader.readContract({
@@ -160,7 +154,7 @@ export function createPublicGardenImpactReaders(
             functionName: "token",
           });
         } catch (error) {
-          if (isMissingGardenContract(error)) return null;
+          if (isUnansweredContractRead(error)) return null;
           throw error;
         }
         if (!Array.isArray(token) || token.length !== 3)
@@ -174,21 +168,34 @@ export function createPublicGardenImpactReaders(
         ) {
           return null;
         }
-        const expectedAccount = await chainReader.readContract({
-          address: getAddress(config.tokenboundRegistry) as Address,
-          abi: TOKENBOUND_REGISTRY_ABI,
-          functionName: "account",
-          args: [
-            getAddress(config.gardenAccountImpl),
-            GARDEN_ACCOUNT_SALT,
-            tokenChainId,
-            tokenContract,
-            tokenId,
-          ],
-        });
-        if (getAddress(String(expectedAccount)).toLowerCase() !== gardenAddress.toLowerCase()) {
-          return null;
+        let isGarden: boolean;
+        try {
+          isGarden = (await chainReader.readContract({
+            address: tokenContract as Address,
+            abi: GARDEN_TOKEN_MEMBERSHIP_ABI,
+            functionName: "isGardenAccount",
+            args: [gardenAddress],
+          })) as boolean;
+        } catch (error) {
+          if (!isUnansweredContractRead(error)) throw error;
+          // A token from before upgradeable accounts has no such read, and all its gardens derive
+          // from the one implementation.
+          const expectedAccount = await chainReader.readContract({
+            address: getAddress(config.tokenboundRegistry) as Address,
+            abi: TOKENBOUND_REGISTRY_ABI,
+            functionName: "account",
+            args: [
+              getAddress(config.gardenAccountImpl),
+              GARDEN_ACCOUNT_SALT,
+              tokenChainId,
+              tokenContract,
+              tokenId,
+            ],
+          });
+          isGarden =
+            getAddress(String(expectedAccount)).toLowerCase() === gardenAddress.toLowerCase();
         }
+        if (!isGarden) return null;
         const [name, location] = await Promise.all([
           chainReader.readContract({
             address: gardenAddress,
@@ -211,7 +218,7 @@ export function createPublicGardenImpactReaders(
       }
     },
 
-    async readActions(chainId): Promise<PublicGardenImpactActionRecord[]> {
+    async readActions(chainId, signal): Promise<PublicGardenImpactActionRecord[]> {
       assertPublicGardenImpactChain(chainId, "actions");
       const query = /* GraphQL */ `
         query PublicGardenImpactActions($chainId: Int!, $limit: Int!, $offset: Int!) {
@@ -233,6 +240,7 @@ export function createPublicGardenImpactReaders(
           (limit, offset) =>
             queryPublicGardenImpactRows({
               reader: indexer,
+              signal,
               document: query,
               variables: { chainId, limit, offset },
               operationName: "readPublicGardenImpactActions",
@@ -250,7 +258,11 @@ export function createPublicGardenImpactReaders(
       }
     },
 
-    async readCertificates(chainId, gardenAddress): Promise<PublicGardenImpactCertificateRecord[]> {
+    async readCertificates(
+      chainId,
+      gardenAddress,
+      signal
+    ): Promise<PublicGardenImpactCertificateRecord[]> {
       assertPublicGardenImpactChain(chainId, "certificates");
       const query = /* GraphQL */ `
         query PublicGardenImpactCertificates(
@@ -281,6 +293,7 @@ export function createPublicGardenImpactReaders(
           (limit, offset) =>
             queryPublicGardenImpactRows({
               reader: indexer,
+              signal,
               document: query,
               variables: { chainId, gardenAddress, limit, offset },
               operationName: "readPublicGardenImpactCertificates",

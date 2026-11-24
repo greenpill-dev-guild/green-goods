@@ -23,7 +23,7 @@ function FabContextPreview({ hidden = false }: { hidden?: boolean }) {
 
   return (
     <div className="space-y-4 rounded-xl border border-stroke-soft-200 bg-bg-white p-4">
-      <div className="text-label-md text-text-strong-950">Declared FAB config</div>
+      <div className="type-label text-text-strong-950">Declared FAB config</div>
       <pre className="overflow-x-auto rounded-lg bg-bg-weak p-3 text-xs text-text-sub-600">
         {JSON.stringify(
           config

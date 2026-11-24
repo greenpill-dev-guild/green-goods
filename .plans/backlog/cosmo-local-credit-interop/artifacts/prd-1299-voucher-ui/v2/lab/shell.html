@@ -1,0 +1,1819 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cosmo-Local Voucher Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: contents on the left, the screens in a fixed stage that always fits, every control in a side panel on the right. */
+:root {
+  --bg: #ECE7DF; --panel: #FFFFFF; --panel-2: #F5F1EA; --ink: #1F1B17; --muted: #625C55; --line: #DCD5CA;
+  --accent: #1A7544; --accent-ink: #FFFFFF; --accent-soft: #DCF1E3; --steward: #1E40AF; --steward-soft: #DBEAFE;
+  --danger: #B91C1C; --scrim: rgba(31, 27, 23, .38); --shadow: 0 1px 2px rgba(31, 27, 23, .06), 0 10px 28px rgba(31, 27, 23, .10);
+  --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13100C; --panel: #211B15; --panel-2: #2B241D; --ink: #EEE8E0; --muted: #ADA59C; --line: #3B3229;
+    --accent: #8BE0B2; --accent-ink: #0C0A09; --accent-soft: rgba(139, 224, 178, .16); --steward: #93C5FD; --steward-soft: rgba(147, 197, 253, .16);
+    --danger: #FCA5A5; --scrim: rgba(0, 0, 0, .6); --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #13100C; --panel: #211B15; --panel-2: #2B241D; --ink: #EEE8E0; --muted: #ADA59C; --line: #3B3229;
+  --accent: #8BE0B2; --accent-ink: #0C0A09; --accent-soft: rgba(139, 224, 178, .16); --steward: #93C5FD; --steward-soft: rgba(147, 197, 253, .16);
+  --danger: #FCA5A5; --scrim: rgba(0, 0, 0, .6); --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .4); color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+
+.lab { height: 100%; display: grid; grid-template-columns: 256px minmax(0, 1fr) 360px; gap: 20px; box-sizing: border-box;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px; }
+.lab *, .lab *::before, .lab *::after { box-sizing: border-box; }
+.lab :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lab-card, .lab-nav, .lab-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
+
+/* Contents */
+.lab-nav { height: 100%; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+.lab-brand { display: flex; align-items: center; gap: 12px; }
+.lab-mark { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: 0 0 40px; }
+.lab-brand b { display: block; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.lab-brand span { display: block; font-size: 12px; color: var(--muted); }
+.lab-group { display: flex; flex-direction: column; gap: 2px; }
+.lab-group h2, .lab-group summary { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lab-group summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+.lab-group summary::-webkit-details-marker { display: none; }
+.lab-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; width: 100%; text-align: left; border: 0; background: none;
+  color: var(--ink); font: inherit; padding: 8px 10px; border-radius: 12px; cursor: pointer; min-height: 44px; }
+.lab-item:hover { background: var(--panel-2); }
+.lab-item[aria-current="true"] { background: var(--accent-soft); }
+.lab-item .t { font-size: 13.5px; font-weight: 600; line-height: 18px; }
+.lab-item .m { grid-column: 1; font-size: 12px; color: var(--muted); }
+.lab-badge { grid-row: 1 / span 2; grid-column: 2; font-size: 12px; font-weight: 700; min-width: 26px; height: 24px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center;
+  border: 1px dashed var(--line); color: var(--muted); }
+.lab-badge.on { border: 0; background: var(--accent); color: var(--accent-ink); }
+.lab-navfoot { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+.lab-count, .lab-status { font-size: 12.5px; color: var(--muted); }
+.lab-copybox { width: 100%; min-height: 120px; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); padding: 8px; }
+.lab-scrim { display: none; position: fixed; inset: 0; background: var(--scrim); z-index: 39; border: 0; padding: 0; }
+
+/* Stage: a fixed box; screens scale to fit it, so nothing is cut off or moves around */
+.lab-stagewrap { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; gap: 8px; }
+/* The journey narration sits under the frame at a fixed height, so the frame never moves between steps */
+.lab-say { flex: 0 0 auto; min-height: 44px; display: flex; gap: 10px; align-items: flex-start; justify-content: center; padding: 0 8px; }
+.lab-say p { margin: 0; max-width: 56ch; font-size: 13.5px; line-height: 20px; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lab-say .lab-who { flex: 0 0 auto; margin-top: 1px; }
+.lab-say .lab-who.dial { background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
+.lab-say.hint p { color: var(--muted); }
+.lab-say.hint p b { color: var(--ink); }
+.lab-stage { flex: 1; min-width: 0; min-height: 0; display: grid; place-content: center; justify-items: center; align-items: start; gap: 20px; overflow: hidden; }
+.lab-stage.is-doc { display: block; overflow-y: auto; }
+.lab-frame { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.lab-cap { height: 26px; max-width: 100%; display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; font-size: 13px; font-weight: 700; }
+.lab-cap span { overflow: hidden; text-overflow: ellipsis; }
+.lab-letter { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+.lab-side { display: inline-flex; align-items: center; flex: 0 0 auto; height: 24px; padding: 0 9px; border-radius: 7px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.lab-side.now { background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
+.lab-side.next { background: var(--accent); color: var(--accent-ink); }
+.lab-capsub { font-weight: 600; color: var(--muted); }
+.lab-tick { color: var(--accent); display: inline-flex; }
+.lab-scale { position: relative; overflow: hidden; background: var(--panel-2); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.lab-host { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.lab-err { padding: 16px; color: var(--danger); font-size: 14px; }
+
+/* Side panel */
+.lab-panel { height: 100%; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.lab-ptop { display: flex; gap: 8px; flex-wrap: wrap; }
+.lab-ptop:empty { display: none; }
+@media (min-width: 1200px) { .lab-ptop:not(:has(> :not(.lab-contents))) { display: none; } }
+.lab-ptop .lab-contents { display: none; }
+.lab-head { display: flex; flex-direction: column; gap: 4px; }
+.lab-eyebrow { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lab-head h1 { margin: 0; font-size: 19px; line-height: 24px; font-weight: 800; letter-spacing: -0.015em; min-height: 0; text-wrap: balance;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lab-flownav { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.lab-flownav .count { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; }
+.lab-controls { display: flex; flex-direction: column; gap: 8px; }
+.lab-ctl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lab-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lab-seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--panel-2); border-radius: 13px; padding: 4px; }
+.lab-seg button { flex: 1 1 auto; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 0 12px; min-height: 40px; border-radius: 10px; cursor: pointer; }
+.lab-seg button:hover { color: var(--ink); }
+.lab-seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+.lab-seg button.lab-cmp[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.lab-stepper { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 6px; align-items: center; }
+.lab-stepper select { height: 40px; min-width: 0; width: 100%; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 600; padding: 0 10px; }
+.lab-stepn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lab-icon { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.lab-icon:hover { background: var(--panel-2); }
+.lab-switch { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.lab-switch input { width: 18px; height: 18px; accent-color: var(--accent); }
+.lab-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--accent);
+  background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.lab-btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.lab-btn.ghost:hover { background: var(--panel-2); }
+.lab-btn:disabled { opacity: .4; cursor: not-allowed; }
+.lab-about { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: var(--panel-2); }
+.lab-about p { margin: 0; font-size: 14.5px; line-height: 22px; }
+.lab-who { align-self: flex-start; display: inline-block; padding: 4px 11px; border-radius: 12px; font-size: 12.5px; line-height: 18px; font-weight: 700; background: var(--accent-soft); color: var(--accent); }
+.lab-who.steward { background: var(--steward-soft); color: var(--steward); }
+.lab-stats { display: flex; flex-wrap: wrap; gap: 6px; }
+.lab-stat { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; }
+.lab-stat b { font-weight: 600; color: var(--muted); }
+.lab-stat .from { text-decoration: line-through; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lab-stat .to { font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.lab-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.lab-steps button { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 8px; align-items: center; text-align: left; padding: 7px 8px; border-radius: 10px; border: 0; background: none; color: var(--ink); font: inherit; cursor: pointer; }
+.lab-steps button:hover { background: var(--panel-2); }
+.lab-steps button[aria-current="step"] { background: var(--accent-soft); }
+.lab-steps .k { grid-row: 1 / span 2; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; background: var(--panel-2); color: var(--muted); font-variant-numeric: tabular-nums; }
+.lab-steps button[aria-current="step"] .k { background: var(--accent); color: var(--accent-ink); }
+.lab-steps .t { font-size: 13px; font-weight: 600; line-height: 17px; }
+.lab-steps .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab-sec { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+.lab-h2 { margin: 0; font-size: 15px; font-weight: 800; }
+.lab-picks { display: flex; flex-direction: column; gap: 6px; }
+.lab-pick { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-align: left; }
+.lab-pick[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.lab-p { margin: 0; font-size: 13.5px; line-height: 20px; color: var(--muted); }
+.lab-p b { color: var(--ink); }
+.lab-ta { width: 100%; min-height: 84px; resize: vertical; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: inherit; font-size: 14px; line-height: 20px; padding: 10px 12px; }
+.lab-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lab-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lab-notes li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; padding: 10px 12px; border-radius: 12px; background: var(--panel-2); }
+.lab-notes li p { margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lab-notes li span { grid-column: 1; font-size: 12px; color: var(--muted); }
+.lab-notes li button { grid-row: 1 / span 2; grid-column: 2; width: 36px; height: 36px; border-radius: 10px; border: 0; background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.lab-notes li button:hover { color: var(--danger); background: var(--panel); }
+.lab-notes li.lab-empty { display: block; color: var(--muted); font-size: 13px; }
+
+/* Dials: a label and a small segment on one row; the pilot's pick carries a dot */
+.lab-dial { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px; align-items: center; min-height: 32px; }
+.lab-dlabel { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); line-height: 14px; }
+.lab-dlabel b { color: var(--ink); font-weight: 800; }
+.lab-seg.sm { padding: 3px; border-radius: 11px; gap: 3px; flex-wrap: nowrap; }
+.lab-seg.sm button { min-height: 28px; padding: 0 6px; font-size: 12px; border-radius: 8px; position: relative; white-space: nowrap; }
+.lab-seg.sm button.rec::after { content: ""; position: absolute; top: 4px; right: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.lab-stepper { grid-template-columns: 34px minmax(0, 1fr) 34px; gap: 4px; }
+.lab-stepper select { height: 34px; font-size: 13px; }
+.lab-icon { width: 34px; height: 34px; }
+.lab-dhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; }
+.lab-dacts { display: flex; gap: 12px; }
+.lab-lnk { border: 0; background: none; padding: 0; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--accent); cursor: pointer; }
+.lab-lnk:disabled { color: var(--muted); cursor: default; }
+.lab-more { border-top: 1px solid var(--line); padding-top: 6px; display: flex; flex-direction: column; gap: 8px; }
+.lab-more .lab-label { margin-top: 4px; }
+.lab-more > summary { cursor: pointer; list-style: none; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: center; min-height: 24px; }
+.lab-more > summary::-webkit-details-marker { display: none; }
+.lab-more > summary::after { content: "\25BE"; }
+.lab-more[open] > summary::after { content: "\25B4"; }
+.lab-lookrow { display: flex; gap: 6px; }
+.lab-lookrow .lab-seg { flex: 1 1 0; }
+/* Journey steps as a strip of numbered dots under Back and Next; dashed dots are steward steps */
+.lab-strip { display: flex; flex-wrap: wrap; gap: 2px; }
+.lab-strip button { width: 19px; height: 19px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; display: grid; place-items: center; font-variant-numeric: tabular-nums; padding: 0; }
+.lab-strip button.steward { border-style: dashed; }
+.lab-strip button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.lab-strip button.steward[aria-current="step"] { background: var(--steward); border-color: var(--steward); border-style: solid; }
+/* Focus crop for cockpit steps: a thumbnail of the whole screen marks where the crop sits */
+.lab-thumb { position: absolute; right: 8px; bottom: 8px; width: 128px; overflow: hidden; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); pointer-events: none; }
+.lab-thumb .mark { position: absolute; border: 2px solid var(--accent); border-radius: 3px; box-shadow: 0 0 0 999px rgba(31, 27, 23, .28); }
+.lab-capbtn { margin-left: auto; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: 11.5px; font-weight: 700; height: 24px; padding: 0 8px; border-radius: 7px; cursor: pointer; flex: 0 0 auto; }
+.lab-capbtn:hover { background: var(--panel-2); }
+@media (prefers-reduced-motion: no-preference) { .lab-stage.is-flash .lab-scale { animation: labflash .4s ease; } }
+@keyframes labflash { from { box-shadow: 0 0 0 5px var(--accent-soft), var(--shadow); } to { box-shadow: var(--shadow); } }
+
+/* Written pages */
+.lab-doc { max-width: 820px; margin: 0 auto; padding: 22px 24px 40px; display: flex; flex-direction: column; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
+.lab-doc h2 { margin: 14px 0 0; font-size: 19px; font-weight: 800; text-wrap: balance; }
+.lab-doc h3 { margin: 6px 0 0; font-size: 16px; font-weight: 800; }
+.lab-doc p, .lab-doc li { margin: 0; font-size: 15px; line-height: 23px; max-width: 70ch; }
+.lab-doc ol, .lab-doc ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
+.lab-doc b { font-weight: 700; }
+.lab-doc code { padding: 1px 5px; border-radius: 6px; background: var(--accent-soft); font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.lab-doc .rm { display: block; color: var(--muted); font-size: 14px; line-height: 21px; margin-top: 2px; }
+.lab-doc blockquote { margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--accent-soft); font-size: 16px; line-height: 24px; max-width: 70ch; }
+.lab-doc .lab-btn { align-self: flex-start; }
+.lab-scen { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 16px; background: var(--panel-2); }
+.lab-scen ol { gap: 6px; }
+.lab-doc.wide { max-width: 1200px; }
+/* A document never grows past the stage; wide tables scroll inside their own frame */
+.lab-doc { min-width: 0; width: 100%; box-sizing: border-box; }
+.lab-tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; min-width: 0; max-width: 100%; }
+.lab-table { border-collapse: collapse; width: 100%; min-width: 880px; font-size: 13px; line-height: 19px; }
+.lab-table th, .lab-table td { text-align: left; vertical-align: top; padding: 10px 12px; border-top: 1px solid var(--line); }
+.lab-table thead th { border-top: 0; background: var(--panel-2); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lab-table tbody th { font-weight: 700; width: 17%; }
+.lab-table td:nth-child(2) { width: 31%; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .lab-item, .lab-seg button, .lab-pick, .lab-btn, .lab-icon, .lab-steps button { transition: background-color .15s, color .15s, box-shadow .15s; }
+  .lab-nav { transition: transform .2s ease; }
+}
+@media (max-width: 1199px) {
+  .lab { grid-template-columns: minmax(0, 1fr) 340px; }
+  .lab-nav { position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; width: min(320px, 88vw); height: auto; border-radius: 0 20px 20px 0; transform: translateX(-105%);
+    padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .lab-nav.is-open { transform: none; }
+  .lab-scrim.is-open { display: block; }
+  .lab-ptop .lab-contents { display: inline-flex; }
+}
+@media (max-width: 859px) {
+  .lab { height: auto; min-height: 100%; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  /* The preview stays pinned above the controls while the controls scroll */
+  .lab-stagewrap { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; height: min(64vh, 620px); background: var(--bg); }
+  .lab-panel { height: auto; overflow: visible; }
+}
+
+/* Green Goods screen kit, as used in the app */
+/*__GG_CSS__*/
+
+/* Screen kit additions for the pilot screens */
+.gg .st.warn .dot { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+.gg .lessons { display: flex; gap: 4px; margin-top: 6px; }
+.gg .lessons span { flex: 1; height: 8px; border-radius: 999px; background: var(--neu-bg); border: 1px solid var(--line2); }
+.gg .lessons span.d { background: var(--edge-ok); border-color: transparent; }
+.gg details.tech summary { color: var(--strong); }
+</style>
+</head>
+<body>
+
+<!--__SPRITE__-->
+<div class="lab">
+  <button type="button" class="lab-scrim" id="scrim" aria-label="Close contents"></button>
+  <aside class="lab-nav" id="nav" aria-label="Lab contents">
+    <div class="lab-brand">
+      <span class="lab-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8a2 2 0 0 0 2-2h12a2 2 0 0 0 2 2v2.5a1.5 1.5 0 0 0 0 3V16a2 2 0 0 0-2 2H6a2 2 0 0 0-2-2v-2.5a1.5 1.5 0 0 0 0-3z"/><path d="M12 15v-4"/><path d="M12 11c0-2 1.2-3.2 3.2-3.2 0 2-1.2 3.2-3.2 3.2zM12 11c0-2-1.2-3.2-3.2-3.2 0 2 1.2 3.2 3.2 3.2z"/></svg></span>
+      <div><b>Voucher Lab</b><span>Cosmo-Local · PRD-1299, approved 25 Oct 2026</span></div>
+    </div>
+    <div class="lab-group"><h2>Pilot design</h2><div id="nav-simple"></div></div>
+    <div class="lab-group"><h2>What changed from v1</h2><div id="nav-p"></div></div>
+    <div class="lab-group"><details id="nav-v1-box"><summary>v1 reference <span aria-hidden="true">▾</span></summary>
+      <p class="lab-p" style="margin: 4px 0 8px">v1 as Afo reviewed it, with the directions Afo picked. Superseded wherever it differs from the pilot design.</p>
+      <div id="nav-q"></div><div id="nav-f"></div></details></div>
+    <div class="lab-group"><details id="nav-s-box"><summary>Every screen <span aria-hidden="true">▾</span></summary><div id="nav-s"></div></details></div>
+    <div class="lab-navfoot">
+      <span class="lab-count" id="count"></span>
+      <button type="button" class="lab-btn ghost" id="copy-all">Copy All Feedback</button>
+      <span class="lab-status" id="store-status"></span>
+      <textarea class="lab-copybox" id="copy-fallback" readonly hidden aria-label="Feedback to copy"></textarea>
+    </div>
+  </aside>
+
+  <main class="lab-stagewrap" id="main">
+    <section class="lab-stage" id="stage" aria-label="Screens"></section>
+    <div class="lab-say" id="say" hidden></div>
+  </main>
+
+  <aside class="lab-panel" id="panel" aria-label="Controls and notes">
+    <div class="lab-ptop" id="ptop"></div>
+    <header class="lab-head">
+      <p class="lab-eyebrow" id="eyebrow"></p>
+      <h1 id="title"></h1>
+    </header>
+    <div class="lab-flownav" id="flownav" hidden></div>
+    <div class="lab-strip" id="steps" role="group" aria-label="Steps" hidden></div>
+    <div class="lab-controls" id="controls"></div>
+    <div class="lab-controls" id="tweaks" hidden></div>
+    <div class="lab-about" id="about"></div>
+    <section class="lab-sec" id="feedback" aria-label="Your feedback"></section>
+  </aside>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var SOURCES = /*__SOURCES__*/;
+  /* Pilot copy: every key is an aligned [EN, ES, PT] triple. Screens read it through window.GGT. */
+  var GG_COPY = /*__COPY__*/;
+  var CROSSWALK = /*__CROSSWALK__*/;
+  var LANGS = ['EN', 'ES', 'PT'];
+  var LOCALES = { en: 'en-US', es: 'es', pt: 'pt-BR' };
+  var copyMissing = [];
+  window.GGT = function (lang) {
+    var code = String(lang || 'EN').toLowerCase(), col = code === 'es' ? 1 : code === 'pt' ? 2 : 0;
+    if (!col) code = 'en';
+    var loc = LOCALES[code];
+    var nf2 = new Intl.NumberFormat(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var nf0 = new Intl.NumberFormat(loc, { maximumFractionDigits: 0 });
+    var df = new Intl.DateTimeFormat(loc, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    var nfv = new Intl.NumberFormat(loc, { maximumFractionDigits: 2 });
+    function t(key, vars) {
+      var row = GG_COPY[key];
+      if (!row) { copyMissing.push(key); return '\u27E6' + key + '\u27E7'; }
+      var out = row[col];
+      if (vars) out = out.replace(/\{(\w+)\}/g, function (m, n) { return vars[n] != null ? String(vars[n]) : m; });
+      /* English possessive of a name that reads as plural, as the app writes it: Green Goods' reserve */
+      if (!col) out = out.replace(/Goods(['’])s\b/g, 'Goods$1');
+      /* A number never wraps apart from the word after it: 450.00 G$, 10 vouchers, 3 lessons */
+      return out.replace(/(\d) (?=[^\s\d\u00B7])/g, '$1\u00A0');
+    }
+    t.code = code;
+    t.g = function (x) { return nf2.format(x); };
+    t.n = function (x) { return nf0.format(x); };
+    /* Voucher amounts: whole when whole, otherwise up to two decimals (0.5 Teo vouchers) */
+    t.v = function (x) { return nfv.format(x); };
+    t.d = function (iso) { return df.format(new Date(iso + 'T12:00:00Z')); };
+    return t;
+  };
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var LETTERS = ['A', 'B', 'C', 'D'];
+  var ICON = {
+    left: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+    right: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
+    check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+    x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+  };
+
+  /* ---------- The screens' own runtime: holes, sc-if, sc-for, events ---------- */
+  function DCLogic(props) { this.props = props; this.state = null; this.__render = null; }
+  DCLogic.prototype.setState = function (patch) {
+    var p = typeof patch === 'function' ? patch(this.state, this.props) : patch;
+    this.state = Object.assign({}, this.state || {}, p || {});
+    if (this.__render) this.__render();
+  };
+  DCLogic.prototype.forceUpdate = function () { if (this.__render) this.__render(); };
+
+  var errorsLog = [];
+  function report(where, e) { errorsLog.push(where + ': ' + (e && e.message ? e.message : String(e))); }
+
+  var SCREENS = {};
+  Object.keys(SOURCES).forEach(function (id) {
+    var src = SOURCES[id];
+    var tpl = document.createElement('template');
+    tpl.innerHTML = src.tpl;
+    var Comp = null, compileError = null;
+    try { Comp = new Function('DCLogic', src.js + '\nreturn Component;')(DCLogic); } catch (e) { compileError = e; report(id + ' (compile)', e); }
+    var meta = src.props || {};
+    var pv = meta.$preview || { width: 390, height: 844 };
+    SCREENS[id] = { id: id, title: src.title, tpl: tpl, Comp: Comp, meta: meta, w: pv.width, h: pv.height, desk: pv.width > 600 };
+  });
+
+  var HOLE = /\{\{\s*([^{}]+?)\s*\}\}/g;
+  var WHOLE = /^\s*\{\{\s*([^{}]+?)\s*\}\}\s*$/;
+  function look(scope, path) {
+    path = path.trim();
+    if (path === 'true') return true;
+    if (path === 'false') return false;
+    if (path === 'null') return null;
+    if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+    var parts = path.split('.'), v = scope;
+    for (var i = 0; i < parts.length; i++) { if (v == null) return undefined; v = v[parts[i]]; }
+    return v;
+  }
+  function interp(str, scope) {
+    if (str.indexOf('{{') < 0) return str;
+    return str.replace(HOLE, function (m, p) { var v = look(scope, p); return v == null ? '' : String(v); });
+  }
+  function raw(str, scope) { var m = WHOLE.exec(str || ''); return m ? look(scope, m[1]) : interp(str || '', scope); }
+  function build(node, scope, out) {
+    if (node.nodeType === 3) { out.appendChild(document.createTextNode(interp(node.nodeValue, scope))); return; }
+    if (node.nodeType !== 1) return;
+    var tag = node.localName;
+    if (tag === 'sc-if') {
+      if (raw(node.getAttribute('value'), scope)) node.childNodes.forEach(function (c) { build(c, scope, out); });
+      return;
+    }
+    if (tag === 'sc-for') {
+      var list = raw(node.getAttribute('list'), scope), as = node.getAttribute('as') || 'item';
+      if (Array.isArray(list)) list.forEach(function (item, i) {
+        var s = Object.create(scope); s[as] = item; s.$index = i;
+        node.childNodes.forEach(function (c) { build(c, s, out); });
+      });
+      return;
+    }
+    var el = node.namespaceURI === SVGNS ? document.createElementNS(SVGNS, tag) : document.createElement(tag);
+    Array.prototype.forEach.call(node.attributes, function (a) {
+      var name = a.name;
+      if (name.indexOf('hint-') === 0) return;
+      if (/^on[a-z]+$/.test(name)) { var fn = raw(a.value, scope); if (typeof fn === 'function') el.addEventListener(name.slice(2), fn); return; }
+      /* inert is boolean: inert="{{x}}" applies only when x is neither empty nor 'false' */
+      if (name === 'inert') { var iv = interp(a.value, scope); if (iv && iv !== 'false') el.setAttribute('inert', ''); return; }
+      el.setAttribute(name, interp(a.value, scope));
+    });
+    node.childNodes.forEach(function (c) { build(c, scope, el); });
+    out.appendChild(el);
+  }
+  function errorBox(msg) { var d = document.createElement('div'); d.className = 'lab-err'; d.textContent = msg; return d; }
+  function mountScreen(id, props, host) {
+    var S = SCREENS[id];
+    host.textContent = '';
+    if (!S || !S.Comp) { host.appendChild(errorBox('This screen failed to load.')); return null; }
+    var inst;
+    try { inst = new S.Comp(Object.assign({}, props)); } catch (e) { report(id, e); host.appendChild(errorBox('This screen failed to start: ' + e.message)); return null; }
+    var render = function () {
+      var keep = Array.prototype.map.call(host.querySelectorAll('.scr,.sbody,.c-route,.db'), function (e) { return e.scrollTop; });
+      var vals;
+      try { vals = inst.renderVals() || {}; } catch (e) { report(id, e); host.replaceChildren(errorBox('This screen failed to draw: ' + e.message)); return; }
+      var frag = document.createDocumentFragment();
+      try { S.tpl.content.childNodes.forEach(function (c) { build(c, vals, frag); }); } catch (e) { report(id, e); host.replaceChildren(errorBox('This screen failed to draw: ' + e.message)); return; }
+      host.replaceChildren(frag);
+      Array.prototype.forEach.call(host.querySelectorAll('.scr,.sbody,.c-route,.db'), function (e, i) { if (keep[i]) e.scrollTop = keep[i]; });
+    };
+    inst.__render = render;
+    host.onclick = function (e) {
+      var a = e.target.closest ? e.target.closest('a') : null;
+      if (!a || !host.contains(a)) return;
+      var href = a.getAttribute('href') || '';
+      /* A link names a screen and may carry the row's own props as a query (SOffer.dc.html?kind=Hub%20day) */
+      var m = href.match(/(?:^|\/)(\w+)\.dc\.html(?:\?(.*))?$/);
+      if (m) {
+        e.preventDefault();
+        var preset = null;
+        if (m[2]) { preset = {}; new URLSearchParams(m[2]).forEach(function (v, k) { preset[k] = v; }); }
+        followLink(m[1], preset);
+      }
+      else if (href === '' || href.charAt(0) === '#') e.preventDefault();
+    };
+    render();
+    return inst;
+  }
+
+  /* ---------- What the lab covers ---------- */
+  var SHORT = {
+    Main: 'Home', Visit: 'Visiting a garden', Offer: 'Offer', Pay: 'Agree to terms', Send: 'Send G$', Status: 'Purchase status',
+    ProviderReview: 'Approve a request', BuyerDeposits: 'Member deposits', Inspector: 'Purchase record', VOffer: 'Voucher offer',
+    VSetup: 'Voucher setup', Holder: 'Voucher promise', Split: 'Final split', IssuerDesk: 'Issuer requests', EscrowInspector: 'Escrow record',
+    Wallet: 'Wallet vouchers', Exchange: 'Voucher exchange', Rewards: 'Rewards', RewardsDesk: 'Reward receipts', IssuersDesk: 'Voucher issuers',
+    SOffer: 'Promise page: offer', SPay: 'Booking sheet', SPurchase: 'Promise page: G$ purchase', SRedeem: 'Promise page: voucher booking', SReward: 'Promise page: request',
+    SExchange: 'Exchange sheet', SWallet: 'Wallet: Vouchers tab', SFunds: 'Promises console: home garden', SRequests: 'Promises console: provider', SIssuer: 'Promises console: issuer',
+    SServices: 'Garden Promises tab', SOnboard: 'Service Assets: draft', SMyService: 'Service Assets', SBrief: 'Campaign: project brief', SIssuers: 'Community: Voucher Issuers'
+  };
+  var SIMPLE = { SOffer: 1, SPay: 1, SPurchase: 1, SRedeem: 1, SReward: 1, SExchange: 1, SWallet: 1, SFunds: 1, SRequests: 1, SIssuer: 1, SServices: 1, SOnboard: 1, SMyService: 1, SBrief: 1, SIssuers: 1 };
+  var PROP_LABEL = { variant: 'Direction', state: 'State', dialog: 'Dialog', step: 'Step', issue: 'Problem', open: 'Sheet open', kind: 'Offer type', tab: 'Tab', pair: 'Pair' };
+
+  var QUESTIONS = [
+    { id: 'offer', title: 'How an offer shows its payment', screen: 'Offer', preset: { state: 'Open' },
+      note: 'Which reads fastest: the price, that Lina pays with her own G$, that her own garden holds it, and that the provider approves first?',
+      suggest: 'Route card', why: 'It shows whose money it is, who holds it and when it moves, in three lines.' },
+    { id: 'pay', title: 'Agreeing to a purchase', screen: 'Pay', preset: { state: 'Ready' },
+      note: 'Consent before anything is signed: which garden holds the payment, who gets the service, where refunds go, the top-up that is off by default, then the exact terms. The steps work.',
+      suggest: 'Stepped sheet', why: 'The garden choice and the top-up each get their own step before the signature.' },
+    { id: 'status', title: 'Purchase status after paying', screen: 'Status', preset: { state: 'Accepted' },
+      note: 'Payment sent, deposit checked, accepted, applied, access, kept and paid out are separate facts. Step through State to see the whole lifecycle and the refund paths.',
+      suggest: 'Timeline', why: 'Every fact in order. Pick Two tracks if “accepted but not paid” is the bigger worry.' },
+    { id: 'home', title: 'Where personal purchases live', screen: 'Main', preset: { open: true, state: 'Waiting for a check' },
+      note: 'Lina’s own purchases can be in any garden, so they can’t live inside one garden’s pages. Wallet tab, a Home section, or Profile? Tap the wallet icon to open the sheet.',
+      suggest: 'Wallet tabs', why: 'They sit beside her own tokens. Watch that four tabs still fit at phone width.' },
+    { id: 'holder', title: 'The holder’s voucher promise', screen: 'Holder', preset: { state: 'Waiting for Sunroot' },
+      note: 'Vouchers wait in escrow before activation, and acceptance and cancellation resolve to one outcome. Step through State: proof in transit, revised terms, the cancellation race, the two transfers.',
+      suggest: 'Escrow card', why: 'It makes the vouchers held in escrow the thing on screen.' },
+    { id: 'split', title: 'Freezing the final split', screen: 'Split', preset: { state: 'Partial' },
+      note: 'Fictional example: 3 of 10 lessons, 40 vouchers to Sunroot’s reserve, 60 back. Two confirmations, then one freeze that can’t be undone. The checkboxes work.',
+      suggest: 'Split bar', why: 'It shows the proportion at a glance, with the exact numbers under it.' },
+    { id: 'wallet', title: 'Vouchers in the wallet', screen: 'Wallet', preset: { state: 'Holdings' },
+      note: 'Holdings named by issuer and unit, with vouchers in escrow shown apart from the balance.',
+      suggest: 'Rows', why: 'It keeps the app’s standard 88px row. Ticket cards are more distinctive.' },
+    { id: 'approve', title: 'Approving a G$ purchase (steward)', screen: 'ProviderReview', preset: { state: 'Ready' },
+      note: 'Kaya, a steward at Green Goods Community Garden, approves Lina’s request. Approve stays off until the terms are current and her deposit is recorded.',
+      suggest: 'Dialog with checks', why: 'It matches the cockpit’s existing confirm dialog and the protocol pool warning.' },
+    { id: 'deposits', title: 'Where a buyer garden checks deposits (steward)', screen: 'BuyerDeposits', preset: { dialog: 'None' },
+      note: 'Tomás, a Riverside Commons steward, records members’ own G$ that arrived in the garden’s Safe. The row buttons open their dialogs.',
+      suggest: 'Funds page card', why: 'Members’ money sits next to the garden’s money but visibly apart. Pick Hub queue if stewards work from the Hub.' }
+  ];
+  var L = 'Lina · member', T = 'Tomás · Riverside Commons steward', K = 'Kaya · Green Goods Community Garden steward', A = 'Ade · Tech and Sun steward', AV1 = 'Ade · Sunroot Skills Hub steward';
+  var TE = 'Teo · member issuer', MA = 'Maya · member', NO = 'Noor · member';
+  function s(screen, props, who, say) { return { screen: screen, props: props || {}, who: who, say: say }; }
+  var FLOWS = [
+    { id: 'gflow', title: 'G$ purchase, start to finish', note: 'Lina, a gardener at Riverside Commons, buys a month of an AI assistant from Green Goods Community Garden with her own G$. Both gardens’ stewards appear where they act.', steps: [
+      s('Main', {}, L, 'Lina opens “What other gardens offer” from Home. Visiting another garden doesn’t change her own.'),
+      s('Visit', {}, L, 'She visits Green Goods Community Garden and opens the AI assistant membership.'),
+      s('Offer', { state: 'Open' }, L, 'The offer shows the price, that she pays with her own G$, and that her own garden holds it until the service starts.'),
+      s('Pay', { state: 'Ready' }, L, 'She picks Riverside Commons to hold her payment, checks the details and agrees to version 3 of the terms. Continue walks the sheet.'),
+      s('Send', { state: 'Ready' }, L, 'She sends her own G$ on Celo to Riverside Commons’ Safe. Green Goods covers the network fee.'),
+      s('Send', { state: 'Sent' }, L, 'Sent isn’t done. A steward still has to check that it arrived.'),
+      s('Status', { state: 'Waiting for check' }, L, 'Her purchase page keeps each step separate.'),
+      s('BuyerDeposits', { dialog: 'Check' }, T, 'Tomás records what arrived in the Safe. It’s Lina’s money, not the garden’s, and nothing leaves the Safe.'),
+      s('ProviderReview', { state: 'Ready' }, K, 'Kaya approves only when Lina’s terms are current and her deposit is recorded.'),
+      s('Status', { state: 'Accepted' }, L, 'Accepted isn’t paid. The service starts once Riverside Commons applies her deposit.'),
+      s('Status', { state: 'Access active' }, L, 'Access is set up outside the app and reported here. After her month, Lina confirms it was kept.'),
+      s('Inspector', { state: 'Payout' }, T, 'Riverside Commons’ Safe pays the provider’s team, split by recognition, not as one sum.'),
+      s('Status', { state: 'Done' }, L, 'Kept and paid. If it had been declined, the full recorded amount would have come back to her.')
+    ] },
+    { id: 'gwrong', title: 'G$ purchase, when it goes wrong', note: 'The same purchase through missing gardens, short balances, uncertain sends, short deposits, changed terms, declines and refunds.', steps: [
+      s('Offer', { state: 'No home garden' }, L, 'Without a home garden nothing can hold her payment, so Ask to Take Up stays off.'),
+      s('Offer', { state: 'Route off' }, L, 'This provider hasn’t opened the offer to personal G$. Her stewards can still buy it for the garden.'),
+      s('Send', { state: 'Not enough' }, L, 'Her balance doesn’t cover the payment plus the token fee.'),
+      s('Send', { state: 'Uncertain' }, L, 'Her account returned no result. She checks before sending again, so she can’t pay twice.'),
+      s('Send', { state: 'Sponsor failed' }, L, 'Green Goods couldn’t cover the network fee. Nothing was sent.'),
+      s('Status', { state: 'Underpaid' }, L, 'A steward found 10.00 G$ less than the price.'),
+      s('BuyerDeposits', { dialog: 'Underpaid' }, T, 'The record can’t take less than the price. Tomás asks for the rest or returns what arrived.'),
+      s('ProviderReview', { state: 'No deposit' }, K, 'Approve stays off until a deposit is recorded.'),
+      s('Status', { state: 'Terms changed' }, L, 'The offer moved to version 4. She agrees again, or withdraws and gets all 450.00 G$ back.'),
+      s('Status', { state: 'Declined' }, L, 'Declined. The full recorded amount comes back.'),
+      s('Inspector', { state: 'Refund failed' }, T, 'The refund failed on Celo. Retrying queues the same refund again; it can’t pay twice.'),
+      s('Status', { state: 'Refund failed' }, L, 'She sees the delay, and that she doesn’t need to do anything.'),
+      s('Status', { state: 'Refunded' }, L, 'Refunded to the account she paid from.'),
+      s('BuyerDeposits', { dialog: 'Late' }, T, 'A payment arrived after a member withdrew. Tomás records it and queues the refund in one go.')
+    ] },
+    { id: 'vflow', title: 'Voucher course, start to finish', note: 'Lina takes Sunroot Skills Hub’s 10-lesson solar course for 100 Sunroot vouchers. Three lessons happen, then the course ends early: 40 vouchers to Sunroot’s reserve, 60 back to her.', steps: [
+      s('Visit', {}, L, 'In a garden she visits, Lina finds a solar course paid with Sunroot vouchers.'),
+      s('VOffer', { state: 'Open' }, L, 'The course takes 100 Sunroot vouchers. She holds 120 in her Gnosis wallet.'),
+      s('VSetup', { step: 'Terms', issue: 'None' }, L, 'She agrees to the exact terms: escrow first, a 3-day acceptance window, and what happens if lessons are missed.'),
+      s('VSetup', { step: 'Accounts', issue: 'None' }, L, 'Two accounts take part: her Green Goods account agrees; her Gnosis wallet holds and deposits the vouchers.'),
+      s('VSetup', { step: 'Approval', issue: 'None' }, L, 'Sunroot approves each setup before the escrow takes vouchers.'),
+      s('IssuerDesk', { dialog: 'Approve setup' }, AV1, 'Approving the setup lets Lina deposit. It isn’t accepting her request.'),
+      s('VSetup', { step: 'Deposit', issue: 'None' }, L, 'She deposits 100 vouchers into the escrow for this promise.'),
+      s('VSetup', { step: 'Wait', issue: 'None' }, L, 'Her vouchers are in escrow. Sunroot can’t accept until Green Goods receives the escrow’s proof.'),
+      s('IssuerDesk', { dialog: 'Accept' }, AV1, 'With the proof in and the window open, Ade accepts. The promise starts, on Gnosis too.'),
+      s('Holder', { state: 'Under way' }, L, 'Lessons are reported as they happen.'),
+      s('IssuerDesk', { dialog: 'Propose split' }, AV1, 'After 3 of 10 lessons Sunroot ends early and proposes 40 to its reserve, 60 back to Lina.'),
+      s('Holder', { state: 'Split to review' }, L, 'Nothing moves until she reviews it.'),
+      s('Split', { state: 'Partial' }, L, 'She confirms the lessons she received and freezes the split. Nobody can change it after that.'),
+      s('Holder', { state: 'Moving' }, L, 'Two transfers run on their own: 40 to Sunroot’s reserve, 60 back to her.'),
+      s('EscrowInspector', { state: 'In flight' }, AV1, 'Sunroot sees each transfer separately.'),
+      s('Holder', { state: 'Settled' }, L, 'Both transfers are done. The vouchers are settled.')
+    ] },
+    { id: 'vwrong', title: 'Voucher course, when it goes wrong', note: 'Short balances, the wrong wallet, missing proof, revised terms, a closed window, the cancellation race, a bad proposal and a failed transfer.', steps: [
+      s('VOffer', { state: 'Not enough' }, L, 'She holds 80; the course takes 100.'),
+      s('VOffer', { state: 'No wallet' }, L, 'No Gnosis wallet is connected yet.'),
+      s('VSetup', { step: 'Accounts', issue: 'Wrong wallet' }, L, 'The connected wallet holds only 80.'),
+      s('VSetup', { step: 'Deposit', issue: 'Uncertain deposit' }, L, 'Her wallet returned no result. She checks the escrow before depositing again.'),
+      s('IssuerDesk', { dialog: '1 of 2 signatures' }, AV1, 'Sunroot’s Safe needs a second signer.'),
+      s('IssuerDesk', { dialog: 'No proof' }, AV1, 'The escrow’s proof hasn’t arrived, so Accept stays off.'),
+      s('Holder', { state: 'Terms revised' }, L, 'Sunroot changed the terms. Nothing continues until she agrees again or cancels.'),
+      s('Holder', { state: 'Window passed' }, L, 'Sunroot didn’t accept in time. Running out of time doesn’t return the vouchers; she cancels to get them back.'),
+      s('IssuerDesk', { dialog: 'Race' }, AV1, 'Lina asked to cancel just as Ade was about to accept. Only one can count.'),
+      s('Holder', { state: 'Canceling' }, L, 'Her cancellation is on its way.'),
+      s('Holder', { state: 'Accepted first' }, L, 'Sunroot’s acceptance landed first, so the promise started instead.'),
+      s('Holder', { state: 'Canceled' }, L, 'Had her cancellation landed first: all 100 back.'),
+      s('IssuerDesk', { dialog: 'Above authorization' }, AV1, 'A proposal that returns more than Sunroot authorized can’t be sent.'),
+      s('Split', { state: 'Outside remedy' }, L, 'If one reached her anyway, Freeze stays off.'),
+      s('Holder', { state: 'Retry' }, L, 'One transfer failed. A retry sends exactly the same 60.'),
+      s('EscrowInspector', { state: 'Refund failed' }, AV1, 'Sunroot can retry the same transfer; it can’t change the amount.'),
+      s('EscrowInspector', { state: 'Setup refunded' }, AV1, 'A setup canceled before acceptance: nothing released.')
+    ] },
+    { id: 'hold', title: 'Holding and buying vouchers', note: 'Lina’s vouchers in her wallet, and buying more at Sunroot’s exchange. The exchange is a WXDAI rehearsal; G$ is never swapped for vouchers.', steps: [
+      s('Wallet', { state: 'Holdings' }, L, 'Vouchers have their own wallet tab, named by issuer, with the ones in escrow shown apart.'),
+      s('Exchange', { state: 'Quote' }, L, 'Sunroot runs a voucher exchange. In this rehearsal it takes WXDAI.'),
+      s('Exchange', { state: 'Pay with' }, L, 'She can only pick what this exchange accepts.'),
+      s('Exchange', { state: 'Review' }, L, 'Exact amounts, the minimum she receives, the deadline and the network, before she signs.'),
+      s('Exchange', { state: 'Allowed' }, L, 'The second prompt is the swap itself.'),
+      s('Exchange', { state: 'Bought' }, L, 'Bought vouchers aren’t an earned reward and don’t book a service.'),
+      s('Exchange', { state: 'Uncertain' }, L, 'No result came back. She checks the receipt before buying again.')
+    ] },
+    { id: 'rewards', title: 'Rewards and issuer policy', note: 'A garden request that pays both G$ and vouchers, and how a garden records which voucher issuers it admits.', steps: [
+      s('Rewards', { state: 'Open' }, L, 'A Riverside Commons request pays 120 G$ and 20 Sunroot vouchers, tracked separately.'),
+      s('Rewards', { state: 'Consent' }, L, 'She agrees to both rewards and where each one goes.'),
+      s('Rewards', { state: 'No Gnosis wallet' }, L, 'Without a Gnosis wallet she can’t agree to a voucher reward.'),
+      s('Rewards', { state: 'Kept, vouchers on the way' }, L, 'After her work is confirmed, the G$ has arrived and the vouchers are on the way.'),
+      s('RewardsDesk', { state: 'One done' }, T, 'Stewards see each reward’s own receipt. One done and one pending is normal.'),
+      s('RewardsDesk', { state: 'Failed' }, T, 'A failed voucher delivery is retried from the same record.'),
+      s('Rewards', { state: 'Both received' }, L, 'Both received.'),
+      s('IssuersDesk', { state: 'Issuers' }, T, 'Riverside Commons lists the voucher issuers its members use. Caps and pauses are garden policy; the contracts don’t enforce them yet.'),
+      s('IssuersDesk', { state: 'Admit identity' }, T, 'Admitting Mara’s seed library as an issuer starts with who issues.'),
+      s('IssuersDesk', { state: 'Admit terms' }, T, 'Then what one voucher buys.'),
+      s('IssuersDesk', { state: 'Admit cap' }, T, 'Then its published cap.'),
+      s('IssuersDesk', { state: 'Record pause' }, T, 'Recording a pause is a garden decision, not enforcement.')
+    ] }
+  ];
+  var REMAP = { Offer: 'SOffer', VOffer: 'SOffer', Pay: 'SPay', Send: 'SPay', VSetup: 'SPay', Status: 'SPurchase', Holder: 'SRedeem', Split: 'SRedeem',
+    Wallet: 'SWallet', ProviderReview: 'SRequests', IssuerDesk: 'SIssuer', BuyerDeposits: 'SFunds', Exchange: 'SExchange', Rewards: 'SReward', RewardsDesk: 'SFunds' };
+  var GP = 'G$ purchase', VSN = 'Hub day', VCR = 'Claude access';
+  var PILOT_FLOWS = [
+    { id: 's-earn', simple: true, remap: REMAP, title: 'Earn vouchers, with optional G$', note: 'A Request names a voucher reward and can add G$. Each reward is delivered on its own, with its own receipt, and a short reserve waits for the issuer instead of failing silently.', steps: [
+      s('SReward', { kind: 'Vouchers + G$', state: 'Open' }, L, 'A Riverside Commons request pays 2 Tech and Sun vouchers, two hub days, and 120 G$. Each is a separate reward with its own receipt.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'Agree' }, L, 'Lina agrees to the exact rewards before being accepted. Nothing is set aside yet.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'In progress' }, L, 'Accepted. Lina runs the workshops and adds the work through the usual flow.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'Both on the way' }, L, 'The work is confirmed. Both rewards start, and neither waits for the other.'),
+      s('SFunds', { state: 'Overview' }, T, 'Tomás sees the vouchers arrived while the G$ payout is still running.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'Vouchers in, G$ on the way' }, L, 'Lina’s page shows the same: vouchers received, G$ on the way.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'Received' }, L, 'Both received, each with its own receipt.'),
+      s('SWallet', { tab: 'Vouchers' }, L, 'The vouchers sit in Lina’s wallet under the issuer’s name, ready to redeem.'),
+      s('SReward', { kind: 'Vouchers only', state: 'Reserve short' }, L, 'Another request pays 2 Tech and Sun vouchers only. Tech and Sun’s allowance for Riverside is used up, so the reward waits. It is not lost and not delivered twice.'),
+      s('SIssuer', { state: 'Reserve short' }, A, 'Ade sees the waiting reward next to Tech and Sun’s reserve and allowances.'),
+      s('SIssuer', { state: 'Raise allowance' }, A, 'Raising the allowance needs Tech and Sun’s Safe, which has one signer until two of its stewards join it. It creates no vouchers.'),
+      s('SReward', { kind: 'Vouchers only', state: 'Received' }, L, 'The reward arrives once.')
+    ] },
+    { id: 's-redeem', simple: true, remap: REMAP, title: 'Redeem a voucher you hold', note: 'Lina holds Tech and Sun vouchers and books a hub day directly: agree, Tech and Sun approves, deposit, Tech and Sun accepts, then the visit, the final split and the confirmation, each with its own approval.', steps: [
+      s('SWallet', { tab: 'Vouchers' }, L, 'Lina holds 9 Tech and Sun vouchers, at 1 voucher per hub day: a reserved visit of up to four hours.'),
+      s('SOffer', { kind: VSN, state: 'Open' }, L, 'The offer opens as a promise page. Its Service Access section answers what you get, what you give, who holds it, who acts next and what can come back.'),
+      s('SPay', { kind: VSN, state: 'Agree' }, L, 'Step 1 is Lina’s: agree to the exact terms, including the acceptance deadline, seven days out. The voucher doesn’t move yet.'),
+      s('SPay', { kind: VSN, state: 'Waiting for issuer' }, L, 'Step 2 is Tech and Sun’s: approve the booking. Lina can close the sheet and come back.'),
+      s('SIssuer', { state: 'Approve booking' }, A, 'Ade approves. Tech and Sun’s Safe needs one signature until two of its stewards join it. Approving isn’t accepting.'),
+      s('SPay', { kind: VSN, state: 'Pay or deposit' }, L, 'Step 3 is Lina’s again: deposit her voucher into the escrow. There may be two prompts.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Confirming deposit' }, L, 'The deposit is confirmed on Green Goods before Tech and Sun can accept.'),
+      s('SWallet', { tab: 'Vouchers, booked' }, L, 'Lina’s wallet shows the voucher the booking holds, and its row opens the booking. Promises shows only her own garden, Riverside Commons, so the wallet is her way back.'),
+      s('SIssuer', { state: 'Accept' }, A, 'With consent, approval, deposit and deadline checked, Ade accepts.'),
+      s('SRedeem', { kind: 'Hub day', state: 'In progress' }, L, 'Booked for Oct 30, 10:00 to 14:00. Starting fixes the terms; it doesn’t mean the visit happened.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Ready to close' }, L, 'Tech and Sun reported the hub day. Lina closes the booking.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Approve split' }, L, 'First approval: the final split, her voucher to Tech and Sun’s reserve and nothing back. It moves nothing by itself.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Confirm kept' }, L, 'Second approval: the promise was kept. It is separate from the voucher.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Transfers pending' }, L, 'The transfer shows as pending until it arrives.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Closed' }, L, 'Kept, and the voucher reached Tech and Sun’s reserve.')
+    ] },
+    { id: 's-exchange', simple: true, remap: REMAP, title: 'Exchange, then redeem', note: 'Claude access takes Green Goods vouchers and Lina holds Tech and Sun’s, so she exchanges in the one shared pool first, at the pilot’s 1:1. The quote shows its fees, minimum, deadline and recipient, and a swap books nothing.', steps: [
+      s('SOffer', { kind: VCR, state: 'Not enough' }, L, 'Claude access takes 10 Green Goods vouchers and Lina holds 2. Under the status band, one sentence and one door: Exchange Vouchers.'),
+      s('SExchange', { state: 'Quote' }, L, 'The exchange opens as a sheet over the offer. Lina spends 8.01 Tech and Sun vouchers for 8 Green Goods vouchers; the pool fee is zero, and the protocol fee comes out of the amount received.'),
+      s('SExchange', { state: 'Review' }, L, 'Lina reviews the exact amounts and the minimum. There may be two prompts.'),
+      s('SExchange', { state: 'Waiting for result' }, L, 'No result yet, so Lina can’t exchange again until the receipt is resolved.'),
+      s('SExchange', { state: 'Done' }, L, 'Exchanged. The receipt says it booked nothing.'),
+      s('SOffer', { kind: VCR, state: 'Open' }, L, 'Now Lina holds 10 and can redeem them for Claude access.'),
+      s('SPay', { kind: VCR, state: 'Agree' }, L, 'The same steps as any booking: agree, Green Goods approves with 2 of 5 signatures, deposit, Green Goods accepts.'),
+      s('SRedeem', { kind: 'Claude access', state: 'In progress' }, L, 'Access is active. The 30 days run from the day Lina could sign in.')
+    ] },
+    { id: 's-partial', simple: true, remap: REMAP, title: 'Claude access that ends early', note: 'Lina’s Claude seat stops working after 12 of 30 days. Green Goods proposes a return by days of access, Lina approves one final split, and each transfer is tracked until it arrives.', steps: [
+      s('SRedeem', { kind: 'Claude access', state: 'In progress' }, L, 'Day 12 of 30.'),
+      s('SIssuer', { state: 'Propose return' }, K, 'The seat stopped working. Kaya proposes 6 back, the most Green Goods’ terms allow after 12 days. Proposing moves nothing.'),
+      s('SRedeem', { kind: 'Claude access', state: 'Return proposed' }, L, 'Lina sees the proposal and decides.'),
+      s('SRedeem', { kind: 'Claude access', state: 'Approve split' }, L, 'Lina confirms 12 days of access and approves 4 to Green Goods, 6 back. The split is final; it moves nothing yet.'),
+      s('SRedeem', { kind: 'Claude access', state: 'Transfers pending' }, L, 'Two transfers, each with its own status. The 6 coming back show as pending, not as returned.'),
+      s('SRedeem', { kind: 'Claude access', state: 'Return failed' }, L, 'The return didn’t go through. Anyone can retry the same 6.'),
+      s('SIssuer', { state: 'Transfer failed' }, K, 'Kaya can retry it too. It can’t send more or go anywhere else.'),
+      s('SRedeem', { kind: 'Claude access', state: 'Closed' }, L, 'Settled. Green Goods’ stewards close the promise as ended early; it isn’t marked kept.')
+    ] },
+    { id: 's-issue', simple: true, remap: REMAP, title: 'Offer your own service', note: 'Teo, a Tech and Sun gardener, offers a 60-minute integration lesson. Kaya, a Green Goods steward, prepares the draft with him and Ade in Community’s Voucher Issuers card. Teo approves the exact obligation in his own Service Assets, the Green Goods Safe registers and admits the token, and Teo keeps the reserve and approves each booking.', steps: [
+      s('SIssuers', { state: 'Prepare draft' }, K, 'Kaya prepares the draft with Teo and Ade in Community’s Voucher Issuers card: unit, capacity, issuance, inventory, allowance, rate, fees, pool limit and remedies. She can’t approve or issue for Teo.'),
+      s('SOnboard', { state: 'Draft to review' }, TE, 'In his Profile, under Service Assets, Teo reads what he’d promise and what stays his: the token, the reserve, each booking approval, and upgrades and recovery.'),
+      s('SOnboard', { state: 'Approve' }, TE, 'Teo signs his approval of the exact terms from his own account. It records his promise; nothing is issued yet.'),
+      s('SIssuers', { state: 'Awaiting Teo' }, K, 'Until Teo approves, Kaya can only remind him or change the draft. Membership or stewardship doesn’t substitute for his signature.'),
+      s('SOnboard', { state: 'Approved, setup pending' }, TE, 'Approved. Next the token is created with Teo as owner, registered during a paused window, and admitted to the pool.'),
+      s('SIssuers', { state: 'Owner Safe drafts' }, K, 'Kaya prepares the four owner Safe calls: source authority on Arbitrum, admission, holding limit and price index on Gnosis. Copying sends nothing.'),
+      s('SIssuers', { state: 'Admitted' }, K, 'Registered and admitted. The next step is Teo’s.'),
+      s('SOnboard', { state: 'Your setup' }, TE, 'Teo enables his reserve, approves 1 lesson for rewards and places 2 in the pool. Each is its own approval.'),
+      s('SOnboard', { state: 'Listed' }, TE, 'Listed: 2 in the pool, 4 in Teo’s reserve.'),
+      s('SServices', { state: 'Browse' }, L, 'In Tech and Sun’s Promises tab, Lina sees the lesson as an offer from Teo himself, and that she holds the voucher for it.'),
+      s('SMyService', { state: 'Overview' }, TE, 'Teo’s Service Assets keep four numbers apart: lessons promised, booked, delivered and left. Vouchers out there don’t change them.'),
+      s('SMyService', { state: 'Approve booking' }, TE, 'Maya booked. Teo approves the exact booking from his account; then Maya deposits and Tech and Sun’s stewards accept.'),
+      s('SMyService', { state: 'Propose return' }, TE, 'A lesson stopped at 30 minutes. Teo proposes the most that can come back; the holder approves the split.'),
+      s('SMyService', { state: 'Paused' }, TE, 'Teo pauses new bookings. Booked lessons go ahead and every voucher keeps its terms.'),
+      s('SIssuers', { state: 'Delist' }, K, 'Delisting Maya’s coaching stops new exchanges only: holders keep their vouchers and her bookings go ahead.')
+    ] },
+    { id: 's-project', simple: true, remap: REMAP, title: 'A project with three promises', note: 'Tech and Sun’s impact website: one brief, three separate requests for Noor, Maya and Teo, each with its own reward and outcome. Maya exchanges her own coaching vouchers for Teo’s lesson, books it, and half is delivered.', steps: [
+      s('SBrief', { state: 'Open' }, NO, 'The brief is a campaign in Tech and Sun’s Promises tab with three separate requests. Each is accepted, reviewed and rewarded on its own; nothing pays out as a team.'),
+      s('SReward', { kind: 'Member voucher', state: 'Open' }, NO, 'Noor’s design pays 1 Teo voucher from Teo’s reserve, within the allowance Teo approved.'),
+      s('SReward', { kind: 'Member voucher', state: 'Agree' }, NO, 'Noor agrees to the exact reward. The agreement is recorded on the source network; a later booking approval doesn’t replace it.'),
+      s('SReward', { kind: 'Member voucher', state: 'Received' }, NO, 'Her design is confirmed and the voucher arrives from Teo’s reserve.'),
+      s('SExchange', { pair: 'Maya to Teo', state: 'Quote' }, MA, 'Maya needs Teo’s help. She exchanges 2 of her own coaching vouchers for 1 Teo voucher, at the rate each approved. Spending them promises her coaching; it isn’t project work.'),
+      s('SExchange', { pair: 'Maya to Teo', state: 'Done' }, MA, 'Exchanged, with zero fees proposed. The receipt says it booked nothing.'),
+      s('SOffer', { kind: 'Member lesson', state: 'Open' }, MA, 'Teo’s lesson, promised by Teo. Maya holds the voucher, so she redeems directly.'),
+      s('SPay', { kind: 'Member lesson', state: 'Agree' }, MA, 'Maya agrees to the exact terms. Teo approves next, then she deposits, then Tech and Sun’s stewards accept.'),
+      s('SMyService', { state: 'Approve booking' }, TE, 'Teo approves Maya’s booking from his own account.'),
+      s('SPay', { kind: 'Member lesson', state: 'Pay or deposit' }, MA, 'Maya deposits her one voucher into the escrow.'),
+      s('SIssuer', { state: 'Accept member booking' }, A, 'Ade accepts as the pool’s steward. Teo’s approval was required first; Ade couldn’t give it for him.'),
+      s('SRedeem', { kind: 'Lesson', state: 'In progress' }, MA, 'Booked. Starting fixes the terms; it doesn’t mean the lesson happened.'),
+      s('SMyService', { state: 'Propose return' }, TE, 'The lesson stops after 30 minutes. Teo proposes half back, by minutes, within his terms.'),
+      s('SRedeem', { kind: 'Lesson', state: 'Return proposed' }, MA, 'Maya sees the proposal and decides.'),
+      s('SRedeem', { kind: 'Lesson', state: 'Approve split' }, MA, 'Maya approves one final split: 0.5 to Teo’s reserve, 0.5 back to her. It moves nothing by itself.'),
+      s('SRedeem', { kind: 'Lesson', state: 'Closed' }, MA, 'Settled. Her exchange isn’t reversed and Teo’s capacity isn’t restored; the stewards close the promise as ended early.'),
+      s('SBrief', { state: 'One kept' }, NO, 'The campaign shows each promise’s own outcome, and the peer help kept apart from the project work.')
+    ] },
+    { id: 's-gd', simple: true, remap: REMAP, title: 'Buy with your own G$', note: 'Lina buys a month of the AI assistant from another garden with personal G$. The home garden’s Safe holds the payment and its stewards check it; the provider accepts; Lina confirms it was kept before anyone is paid. The working pilot terms offer no G$ purchases, so Afo hid this journey from pilot members on 24 October. It stays designed and locally proven for later, and its service is fictional.', steps: [
+      s('SOffer', { kind: GP, state: 'Open' }, L, 'The offer says Lina’s own garden’s Safe holds the payment, what comes back if it doesn’t go ahead, and that the token fee isn’t refunded.'),
+      s('SPay', { kind: GP, state: 'Agree' }, L, 'Step 1: agree to the exact terms. The gross, the token fee and the refund are on screen.'),
+      s('SPay', { kind: GP, state: 'Pay or deposit' }, L, 'Step 2: send 450.45 G$ to Riverside Commons’ Safe.'),
+      s('SPay', { kind: GP, state: 'Sent or deposited' }, L, 'Sent isn’t checked. The strip shows who acts next.'),
+      s('SPurchase', { state: 'Waiting for check' }, L, 'The purchase is a promise page; its status band names who acts next: Lina’s home garden.'),
+      s('SFunds', { state: 'Check payment' }, T, 'Tomás checks the transfer and records it. Recording moves no G$.'),
+      s('SRequests', { state: 'Accept' }, K, 'Kaya accepts once the payment is checked. In this design Accept waits for that check; the contract doesn’t.'),
+      s('SFunds', { state: 'Assign payment' }, T, 'Tomás assigns the payment to the accepted purchase.'),
+      s('SPurchase', { state: 'Access active' }, L, 'The month runs. The provider’s report is not the same as kept.'),
+      s('SRequests', { state: 'Mark ready' }, K, 'When a month ends, Kaya marks it ready to confirm (shown here for Kofi).'),
+      s('SPurchase', { state: 'Ready to confirm' }, L, 'Only Lina can confirm it was kept, or report a problem.'),
+      s('SPurchase', { state: 'Kept, paying out' }, L, 'Kept. The payout runs from Lina’s garden’s Safe to the provider’s team.'),
+      s('SPurchase', { state: 'Paid out' }, L, 'Paid.')
+    ] },
+    { id: 's-wrong', simple: true, remap: REMAP, title: 'When something goes wrong', note: 'Pending approvals, changed terms, stale quotes, short inventory, uncertain transactions, failed transfers and disputes, each with a truthful next step.', steps: [
+      s('SOffer', { kind: GP, state: 'Not a gardener' }, 'Ama · not in a garden yet', 'Paying for yourself needs a home garden with a Safe. One sentence and one door sit under the status band: Find a Garden.'),
+      s('SPay', { kind: GP, state: 'No result' }, L, 'No result came back, so Lina checks before sending again.'),
+      s('SPurchase', { state: 'Terms changed' }, L, 'The price changed before Lina was accepted: a fresh agreement and a new payment, with the first one refunded. No top-up.'),
+      s('SRequests', { state: 'Review' }, K, 'Ama’s payment isn’t checked yet, and the reason sits beside the disabled Accept.'),
+      s('SPurchase', { state: 'Declined' }, L, 'Declined. Lina’s garden’s stewards queue the refund; nothing is automatic.'),
+      s('SFunds', { state: 'Refund failed' }, T, 'A refund failed. Tomás retries the same refund; it can’t pay twice.'),
+      s('SPurchase', { state: 'Refunded' }, L, 'Refunded. The sending fee isn’t returned.'),
+      s('SPurchase', { state: 'Problem reported' }, L, 'A dispute stops any new payout or refund until the stewards decide.'),
+      s('SRequests', { state: 'Dispute' }, K, 'Kaya decides the outcome for Green Goods’ stewards. The money follows the payout or the refund that comes after.'),
+      s('SPay', { kind: VSN, state: 'Signing not available' }, L, 'An account that can’t sign on Gnosis yet keeps depositing off, with the reason on screen.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Canceling' }, L, 'Before acceptance Lina can cancel. Her voucher comes back once the cancellation reaches the escrow.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Accepted first' }, L, 'If Tech and Sun’s acceptance lands first, the booking starts instead.'),
+      s('SRedeem', { kind: 'Hub day', state: 'Terms changed' }, L, 'Tech and Sun changed the terms before accepting, so Lina cancels and books again.'),
+      s('SExchange', { state: 'Quote expired' }, L, 'A stale quote can’t be used. Nothing moved.'),
+      s('SExchange', { state: 'Pool short' }, L, 'The pool holds only 6 Green Goods vouchers, fewer than Lina asked for. Nothing moved.'),
+      s('SIssuer', { state: 'Above terms' }, K, 'A return above Green Goods’ terms can’t be proposed.'),
+      s('SRedeem', { kind: 'Claude access', state: 'Problem reported' }, L, 'A dispute doesn’t move Lina’s vouchers. Only the split Lina approves can.'),
+      s('SReward', { kind: 'Vouchers only', state: 'Agreement unavailable' }, L, 'The voucher agreement on the source network can’t be signed from the app yet, and a steward can’t sign it for Lina. An operator helps; a booking approval doesn’t replace it.'),
+      s('SOnboard', { state: 'Draft changed' }, TE, 'Ade changed the draft after Teo approved. Nothing continues until Teo approves the new one or declines.'),
+      s('SOnboard', { state: 'Signing not available' }, TE, 'Teo’s account can’t sign on the voucher network yet, so the draft waits. A steward can’t approve it for him.'),
+      s('SMyService', { state: 'Capacity full' }, TE, 'Issuing more would promise lessons Teo can’t deliver. Returned vouchers don’t count as new lessons.'),
+      s('SMyService', { state: 'Pending transaction' }, TE, 'An approval was sent but not confirmed. Teo checks its status; he doesn’t send it again.'),
+      s('SMyService', { state: 'Reserve short' }, TE, 'A reward is waiting on Teo’s allowance. Approving more creates nothing new.'),
+      s('SServices', { state: 'Issuer paused' }, L, 'Teo paused new bookings. Lina’s voucher keeps its terms; booked lessons go ahead.'),
+      s('SOffer', { kind: 'Member lesson', state: 'Paused' }, L, 'The bar stays, with the reason above the disabled action.'),
+      s('SExchange', { pair: 'Maya to Teo', state: 'Limit reached' }, MA, 'The pool is at its holding limit for Maya’s vouchers. Nothing moved.'),
+      s('SMyService', { state: 'Delisted' }, TE, 'Delisted from the pool: holders keep their vouchers and their terms, and the 2 booked lessons go ahead. Nothing was erased.')
+    ] }
+  ];
+  PILOT_FLOWS.reverse().forEach(function (f) { FLOWS.unshift(f); });
+  var PAIRS = [
+    { id: 'p-pay', title: 'Paying with your own G$', note: 'v1 asked Lina to pick a garden, check details, agree, then send in a second sheet. The pilot keeps the same two approvals and the home-garden Safe, in one stepped sheet that shows who acts next.',
+      stats: [['Sheets', '2', '1'], ['Approvals', '2', '2'], ['Steps shown ahead', 'none', '4']],
+      now: { screen: 'Pay', props: { state: 'Ready' }, variant: 'Stepped sheet', label: 'v1: step 1 of 3, then a separate send' },
+      next: { screen: 'SPay', props: { kind: GP, state: 'Agree' }, label: 'Pilot: agree, then send, in one sheet' } },
+    { id: 'p-after', title: 'After paying', note: 'The same facts in four phases, each naming who acts, with one status message at the top instead of a chip, a stepper and an alert saying the same thing.',
+      stats: [['Status messages', '3', '1'], ['Who acts next', 'implied', 'named']],
+      now: { screen: 'Status', props: { state: 'Accepted' }, variant: 'Timeline', label: 'v1: accepted, not yet applied' },
+      next: { screen: 'SPurchase', props: { state: 'Waiting for acceptance' }, label: 'Pilot: who acts next, then the phases' } },
+    { id: 'p-vstart', title: 'Starting a voucher booking', note: 'v1 used a separate Gnosis wallet. The pilot shows one account: a patched passkey account, or a connected wallet the member owns. Depositing stays off until that account can sign on Gnosis.',
+      stats: [['Accounts', '2', '1'], ['Approvals', '3', '2 or 3']],
+      now: { screen: 'VSetup', props: { step: 'Accounts', issue: 'None' }, label: 'v1: two accounts' },
+      next: { screen: 'SPay', props: { kind: VSN, state: 'Agree' }, label: 'Pilot: agree, approve, deposit, accept' } },
+    { id: 'p-split', title: 'Approving the final split', note: 'v1 had two confirmations and a separate freeze. The pilot asks once: what you received and the split. Then each transfer shows as pending until it arrives.',
+      stats: [['Confirmations', '3', '1'], ['Transfers shown', '2', '2']],
+      now: { screen: 'Split', props: { state: 'Partial' }, variant: 'Split bar', label: 'v1: two confirmations and a freeze' },
+      next: { screen: 'SRedeem', props: { kind: 'Claude access', state: 'Approve split' }, label: 'Pilot: one approval, transfers after' } },
+    { id: 'p-buyer', title: 'The home garden’s stewards', note: 'The steward still checks each member payment and later assigns it. The pilot shows the transfer’s facts, the checks, and what recording does and doesn’t do.',
+      stats: [['Steward steps per purchase', '2', '2']],
+      now: { screen: 'BuyerDeposits', props: { dialog: 'Check' }, variant: 'Funds page card', label: 'v1: record a deposit' },
+      next: { screen: 'SFunds', props: { state: 'Check payment' }, label: 'Pilot: check, then record' } },
+    { id: 'p-issuer', title: 'The issuer’s work', note: 'Still one approval per booking and one acceptance after the deposit, now with the reserve and allowances beside the bookings.',
+      stats: [['Issuer steps per booking', '2', '2']],
+      now: { screen: 'IssuerDesk', props: { dialog: 'Approve setup' }, label: 'v1: approve each setup' },
+      next: { screen: 'SIssuer', props: { state: 'Approve booking' }, label: 'Pilot: approve each booking' } }
+  ];
+  var QMAP = {}, FMAP = {}, PMAP = {}, SCREEN_Q = {};
+  QUESTIONS.forEach(function (q) { QMAP[q.id] = q; SCREEN_Q[q.screen] = q.id; });
+  FLOWS.forEach(function (f) { FMAP[f.id] = f; });
+  PAIRS.forEach(function (p) { PMAP[p.id] = p; });
+  function variantOptions(id) { var v = SCREENS[id] && SCREENS[id].meta.variant; return v && v.options ? v.options : null; }
+  function defaultsFor(id) {
+    var m = SCREENS[id].meta, p = {};
+    Object.keys(m).forEach(function (k) { if (k.charAt(0) !== '$' && m[k] && 'default' in m[k]) p[k] = m[k].default; });
+    delete p.variant; delete p.dark;
+    return p;
+  }
+
+  /* ---------- Picks and notes ---------- */
+  function lsGet(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+  var store = {
+    db: null, shared: false, error: '',
+    picks: lsGet('vlab.picks', {}) || {}, notes: lsGet('vlab.notes', []) || [],
+    saveLocal: function () { lsSet('vlab.picks', this.picks); lsSet('vlab.notes', this.notes); },
+    connect: function () {
+      var self = this;
+      if (!window.claude || typeof window.claude.use !== 'function') return;
+      window.claude.use('db').then(function (db) {
+        if (!db) return;
+        self.db = db; self.shared = true;
+        var localPicks = self.picks, localNotes = self.notes.slice();
+        var pickIds = Object.keys(localPicks).filter(function (q) { return QMAP[q]; });
+        var writes = pickIds.map(function (q) { return db.doc('picks/' + q).set({ pick: localPicks[q], question: QMAP[q].title, at: new Date().toISOString() }); })
+          .concat(localNotes.map(function (n) { var c = Object.assign({}, n); delete c.id; return db.collection('notes').add(c); }));
+        /* Clear only what reached the shared store. Anything that failed stays in this browser and moves on the next visit. */
+        Promise.allSettled(writes).then(function (results) {
+          var leftPicks = {}, leftNotes = [], firstError = null;
+          results.forEach(function (r, i) {
+            if (r.status === 'fulfilled') return;
+            firstError = firstError || r.reason;
+            if (i < pickIds.length) leftPicks[pickIds[i]] = localPicks[pickIds[i]];
+            else leftNotes.push(localNotes[i - pickIds.length]);
+          });
+          lsSet('vlab.picks', leftPicks); lsSet('vlab.notes', leftNotes);
+          if (firstError) self.fail(firstError);
+        });
+        db.collection('picks').onSnapshot(function (snap) {
+          var p = {};
+          snap.docs.forEach(function (d) { var x = d.data(); if (x && typeof x.pick === 'string') p[d.id] = x.pick; });
+          self.picks = p; changed();
+        }, function (e) { self.fail(e); });
+        db.collection('notes').orderBy('at', 'desc').limit(500).onSnapshot(function (snap) {
+          self.notes = snap.docs.map(function (d) { return Object.assign({}, d.data(), { id: d.id }); });
+          changed();
+        }, function (e) { self.fail(e); });
+        changed();
+      }).catch(function () { /* stays local */ });
+    },
+    setPick: function (qid, value) {
+      var q = QMAP[qid];
+      this.picks = Object.assign({}, this.picks); this.picks[qid] = value; this.error = '';
+      if (this.db) { var self = this; this.db.doc('picks/' + qid).set({ pick: value, question: q.title, at: new Date().toISOString() }).catch(function (e) { self.fail(e); }); }
+      else this.saveLocal();
+      changed();
+    },
+    addNote: function (n) {
+      var self = this;
+      n.at = new Date().toISOString(); this.error = '';
+      if (this.db) return this.db.collection('notes').add(n).then(function () { return true; }, function (e) { self.fail(e); return false; });
+      n.id = 'local-' + Date.now();
+      this.notes = [n].concat(this.notes); this.saveLocal(); changed();
+      return Promise.resolve(true);
+    },
+    deleteNote: function (id) {
+      var self = this;
+      if (this.db) { this.db.doc('notes/' + id).delete().catch(function (e) { self.fail(e); }); return; }
+      this.notes = this.notes.filter(function (n) { return n.id !== id; }); this.saveLocal(); changed();
+    },
+    fail: function (e) {
+      var code = e && e.code;
+      this.error = code === 'quota_exceeded' ? 'The notes store is full. Delete some notes, then save again.'
+        : (code === 'revoked' || code === 'not_granted') ? 'Saving is off in this view. Use Copy All Feedback instead.'
+        : 'That didn’t save. Try again.';
+      changed();
+    }
+  };
+
+  /* ---------- View state ---------- */
+  var view = { mode: 'question', id: 'offer', step: 0, variant: null, compare: lsGet('vlab.compare', true) !== false, props: {}, back: null, whole: false };
+  var screenDark = lsGet('vlab.dark', false) === true;
+  var screenLang = LANGS.indexOf(lsGet('vlab.lang', 'EN')) >= 0 ? lsGet('vlab.lang', 'EN') : 'EN';
+
+  /* ---------- Dials: what the lab lets you vary, with the pilot's picks as the defaults ---------- */
+  var TWEAKS = [
+    { group: 'Patterns', key: 'steps', code: 'V1', label: 'Sheet steps', screens: ['SPay', 'SRedeem', 'SOnboard'], rec: 'strip', options: [
+      ['strip', 'Strip', 'A bar per step. The current step is dark; another person’s step is dashed.'],
+      ['list', 'List', 'Every step on its own line, numbered, with who acts.'],
+      ['count', 'Counter', 'One line: “Step 2 of 4: Deposit”, then what comes next. The least space.']] },
+    { group: 'Patterns', key: 'progress', code: 'V2', label: 'Progress', screens: ['SRedeem', 'SPurchase', 'SOnboard'], rec: 'phases', options: [
+      ['phases', 'Phases', 'Steps grouped into phases, each naming who acts.'],
+      ['flat', 'Flat', 'Every step in one list, in order, with its phase as a small label.'],
+      ['summary', 'Summary', 'A count of steps done and a bar, with the list behind a tap.']] },
+    { group: 'Patterns', key: 'split', code: 'V3', label: 'Final split', screens: ['SRedeem'], rec: 'bar', options: [
+      ['bar', 'Bar', 'The proportion as a bar, the exact figures under it, one checkbox.'],
+      ['steps', 'Two steps', 'First confirm what you received; the split appears once you have.'],
+      ['numbers', 'Figures', 'The three figures and the checkbox, no bar.']] },
+    { group: 'Patterns', key: 'transfers', code: 'V4', label: 'Transfers', screens: ['SRedeem'], rec: 'rows', options: [
+      ['rows', 'Rows', 'One row per transfer with its own pill: pending, arrived or didn’t go through.'],
+      ['bar', 'Bar', 'The split bar again, with each leg’s state under its share.'],
+      ['band', 'In the band', 'No card: each transfer’s state as a line in the summary band at the top.']] },
+    { group: 'Patterns', key: 'confirm', code: 'V5', label: 'Confirm', screens: ['SIssuer', 'SRequests', 'SFunds', 'SIssuers'], rec: 'dialog', options: [
+      ['dialog', 'Dialog', 'The cockpit’s confirm dialog with its checks and flow status.'],
+      ['inline', 'In the row', 'The row opens in place with the same checks and the action; nothing covers the page.']] },
+    { group: 'Copy', key: 'density', code: 'D1', label: 'Copy', screens: ['SOffer', 'SReward', 'SPay', 'SRedeem', 'SPurchase', 'SWallet', 'SExchange', 'SIssuer', 'SRequests', 'SFunds', 'SServices', 'SOnboard', 'SMyService', 'SBrief', 'SIssuers'], rec: 'full', options: [
+      ['full', 'Full', 'Every answer with its line of detail.'],
+      ['compact', 'Compact', 'Answers only; the detail lines go.'],
+      ['minimal', 'Minimal', 'Three facts on an offer (get, give, back); the other facts drop.']] },
+    { group: 'Copy', key: 'chain', code: 'D2', label: 'Chain words', screens: ['SRedeem', 'SPurchase'], rec: 'details', options: [
+      ['details', 'Details', 'Chains, Safes and record numbers only under Transaction details.'],
+      ['line', 'One line', 'One quiet line under the summary saying where the vouchers are held.'],
+      ['hidden', 'None', 'No chain words on member screens at all.']] },
+    { group: 'System', key: 'font', code: 'S1', label: 'Typeface', rec: 'jakarta', options: [
+      ['jakarta', 'Jakarta', 'Plus Jakarta Sans on both surfaces. Locked 18 October.'],
+      ['inter', 'Inter', 'Inter, the app’s typeface before the unification picks.']] },
+    { group: 'System', key: 'ground', code: 'S2', label: 'Ground', rec: 'linen', options: [
+      ['linen', 'Linen', 'Linen canvas with white cards. Locked 18 October.'],
+      ['white', 'White', 'White canvas; cards sit on faint hairlines.']] },
+    { group: 'System', key: 'corners', code: 'S3', label: 'Cards', rec: '24', options: [
+      ['24', '24px', 'Bordered 24px cards with a faint shadow over 16px rows. Locked 18 October.'],
+      ['16', '16px', 'Every card and row at 16px.']] },
+    { group: 'System', key: 'gap', code: 'S4', label: 'List gap', rec: '12', options: [
+      ['12', '12px', '12px between rows. Locked 18 October.'],
+      ['8', '8px', '8px between rows, the cockpit’s denser rhythm.']] },
+    { group: 'System', key: 'darkcards', code: 'S5', label: 'Dark cards', rec: 'lighter', options: [
+      ['lighter', 'Lighter', 'Dark cards one step lighter than the canvas. Locked 18 October.'],
+      ['flat', 'Flat', 'Cards share the canvas colour and keep only a hairline.']] }
+  ];
+  var TMAP = {}; TWEAKS.forEach(function (t) { TMAP[t.key] = t; });
+  function recTweaks() { var o = {}; TWEAKS.forEach(function (t) { o[t.key] = t.rec; }); return o; }
+  var tweaks = Object.assign(recTweaks(), lsGet('vlab.tweaks', {}) || {});
+  TWEAKS.forEach(function (t) { if (!t.options.some(function (o) { return o[0] === tweaks[t.key]; })) tweaks[t.key] = t.rec; });
+  function saveTweaks() { lsSet('vlab.tweaks', tweaks); }
+  function tweakProps() { return Object.assign({}, tweaks); }
+  function optionLabel(t, v) { var o = t.options.filter(function (x) { return x[0] === v; })[0]; return o ? o[1] : v; }
+  function tweaksLine() { return TWEAKS.map(function (t) { return t.code + ' ' + t.label + ': ' + optionLabel(t, tweaks[t.key]) + (tweaks[t.key] === t.rec ? '' : ' (changed)'); }).join('; '); }
+  /* Every pilot screen merges these into its values, so its root carries the dials as data attributes. */
+  window.GGTW = function (props) { var o = {}; TWEAKS.forEach(function (t) { o[t.key] = props && props[t.key] != null ? props[t.key] : t.rec; }); return o; };
+  var drafts = {};
+  var frames = [];
+  var $ = function (q) { return document.querySelector(q); };
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function button(cls, html, onClick) { var b = document.createElement('button'); b.type = 'button'; if (cls) b.className = cls; b.innerHTML = html; if (onClick) b.addEventListener('click', onClick); return b; }
+  function letterOf(screenId, v) { var o = variantOptions(screenId); var i = o ? o.indexOf(v) : -1; return i >= 0 ? LETTERS[i] : ''; }
+
+  function currentScreen() {
+    if (view.mode === 'question') return QMAP[view.id].screen;
+    if (view.mode === 'flow') return FMAP[view.id].steps[view.step].screen;
+    if (view.mode === 'pair') return PMAP[view.id].next.screen;
+    if (view.mode === 'doc') return null;
+    return view.id;
+  }
+  function openPair(id) {
+    if (!PMAP[id]) return;
+    view.mode = 'pair'; view.id = id; view.step = 0; view.back = null; view.props = {}; view.variant = null;
+    renderAll(true);
+  }
+  function openDoc(id) {
+    view.mode = 'doc'; view.id = DOCS[id] ? id : 'scenarios'; view.step = 0; view.back = null; view.props = {}; view.variant = null;
+    renderAll(true);
+  }
+  function pickedVariant(id) {
+    var o = variantOptions(id); if (!o) return null;
+    var q = SCREEN_Q[id], v = q ? (store.picks[q] || QMAP[q].suggest) : null;
+    return o.indexOf(v) >= 0 ? v : o[0];
+  }
+  function snapshotView() { return { mode: view.mode, id: view.id, step: view.step, variant: view.variant, compare: view.compare, props: Object.assign({}, view.props) }; }
+  function openQuestion(id) {
+    var q = QMAP[id]; if (!q) return;
+    view.mode = 'question'; view.id = id; view.step = 0; view.back = null;
+    view.props = Object.assign(defaultsFor(q.screen), q.preset || {});
+    view.variant = pickedVariant(q.screen);
+    renderAll(true);
+  }
+  function openFlow(id, step, keepScroll) {
+    var f = FMAP[id]; if (!f) return;
+    view.mode = 'flow'; view.id = id; view.back = null;
+    view.step = Math.max(0, Math.min(f.steps.length - 1, step || 0));
+    var st = f.steps[view.step];
+    view.props = Object.assign(defaultsFor(st.screen), st.props || {});
+    view.variant = pickedVariant(st.screen);
+    renderAll(!keepScroll);
+  }
+  function openScreen(id, back, preset) {
+    if (!SCREENS[id]) return;
+    view.mode = 'screen'; view.id = id; view.step = 0; view.back = back || null;
+    view.props = Object.assign(defaultsFor(id), preset || {}); view.variant = pickedVariant(id);
+    renderAll(true);
+  }
+  function restore(snap) {
+    view.mode = snap.mode; view.id = snap.id; view.step = snap.step; view.variant = snap.variant; view.compare = snap.compare; view.props = snap.props; view.back = null;
+    renderAll(true);
+  }
+  function followLink(target, preset) {
+    if (!SCREENS[target]) return;
+    if (view.mode === 'flow' && FMAP[view.id].simple && REMAP[target]) target = REMAP[target];
+    if (view.mode === 'flow') {
+      /* Inside a journey, go to the nearest step showing that screen, and the link's own record when it names one */
+      var f = FMAP[view.id], j = -1, i;
+      var fits = function (st) {
+        if (st.screen !== target) return false;
+        if (!preset) return true;
+        var p = Object.assign(defaultsFor(st.screen), st.props || {});
+        return Object.keys(preset).every(function (k) { return p[k] === preset[k]; });
+      };
+      for (i = view.step + 1; i < f.steps.length; i++) if (fits(f.steps[i])) { j = i; break; }
+      if (j < 0) for (i = view.step - 1; i >= 0; i--) if (fits(f.steps[i])) { j = i; break; }
+      if (j >= 0) { openFlow(f.id, j, true); return; }
+    }
+    openScreen(target, snapshotView(), preset);
+  }
+  function viewTitle(snap) {
+    if (snap.mode === 'question') return QMAP[snap.id].title;
+    if (snap.mode === 'flow') return FMAP[snap.id].title + ', step ' + (snap.step + 1);
+    if (snap.mode === 'pair') return PMAP[snap.id].title;
+    if (snap.mode === 'doc') return DOCS[snap.id].title;
+    return SHORT[snap.id];
+  }
+
+  /* ---------- Written pages ---------- */
+  var DOCS = {
+    scenarios: { title: 'How it works, in plain words', meta: 'The pilot journeys',
+      note: 'What promises, G$, vouchers and purchases are, who holds what, and the pilot journeys, each linked to its walkthrough. The voucher services, prices and issuers are the working pilot terms, which the issuers haven’t accepted yet; the people, the members’ services and the G$ purchase are fictional.',
+      blocks: [
+        ['h', 'Four things that can look alike'],
+        ['ul', [
+          '**Promise**: something someone says they will do, kept in a garden’s pool. It is an offer (“I can teach a compost workshop”) or a request (“We need someone to teach one”).',
+          '**Voucher**: a claim on a specific service from a specific issuer, like “1 Tech and Sun voucher books one hub day”. You redeem it with that issuer. Vouchers are the main reward in this pilot.',
+          '**G$**: GoodDollar, money that works in every garden. A request can add G$ as a separate reward.',
+          '**Purchase**: paying for an offer yourself, with your own G$ or with vouchers. Each agreement uses one way to pay.'
+        ]],
+        ['h', 'Who holds what'],
+        ['ul', [
+          '**Your own G$ for a purchase** goes to your home garden’s Safe. Its stewards check it arrived, keep it for the purchase, and refund it if the purchase doesn’t go ahead. It is earmarked in the Safe, not locked.',
+          '**Vouchers for a booking** go into an escrow for that booking. Only the split you approve can move them, within the issuer’s terms.',
+          '**Rewards** come from the issuer’s reserve and the garden’s pool after the work is confirmed. Nothing is set aside before that, so a short reserve makes a reward wait.',
+          '**Exchanging** happens in one shared pool. It swaps one issuer’s vouchers for another’s and books nothing.',
+          '**A member’s own service** is a voucher that member issues and keeps the reserve for. A steward prepares and publishes it, and the Green Goods Safe admits it to the pool; only the member approves the exact terms and each booking.'
+        ]],
+        ['h', 'Who promises delivery'],
+        ['p', 'Every service names who promises it: a person, or a garden. A person’s name means that person delivers, keeps the reserve and approves each booking from their own account. A garden’s name means its stewards do. A member delivering a garden’s service doesn’t become its issuer, and a garden doesn’t answer for a member’s promise. Token addresses and chain names stay under Transaction details.'],
+        ['h', 'The journeys'],
+        ['scen', 'Lina earns vouchers, with optional G$', [
+          'A Riverside Commons request pays 2 Tech and Sun vouchers and 120 G$. Lina agrees to the exact rewards before being accepted.',
+          'Lina does the work and the stewards confirm it.',
+          'The vouchers come from Tech and Sun’s reserve and the G$ from Riverside’s pool, each on its own with its own receipt.',
+          'If Tech and Sun’s allowance for Riverside runs out, the reward waits until Tech and Sun raises it. It is never delivered twice.'
+        ], 's-earn'],
+        ['scen', 'Lina books a hub day with a voucher she holds', [
+          'Lina holds 9 Tech and Sun vouchers. One books a hub day: a reserved visit of up to four hours, with workspace, power and connectivity.',
+          'Lina agrees to the exact terms, Tech and Sun approves the booking, Lina deposits her voucher into escrow, and Tech and Sun accepts the booking within seven days.',
+          'While the booking holds her voucher, her wallet shows it as its own row, which opens the booking. Her Promises sheet shows only her own garden.',
+          'After the visit Lina approves the final split and, separately, confirms the promise was kept. The transfer shows as pending until it arrives.'
+        ], 's-redeem'],
+        ['scen', 'Lina exchanges, then books Claude access', [
+          'Claude access, thirty days of a named Claude Team seat, takes 10 Green Goods vouchers, and Lina holds 2.',
+          'Lina swaps 8.01 Tech and Sun vouchers for 8 Green Goods vouchers in the shared pool, at the pilot’s 1:1, after checking the fees, the minimum and the deadline.',
+          'Then Lina books Claude access with the vouchers actually received.'
+        ], 's-exchange'],
+        ['scen', 'Claude access ends early', [
+          'Lina’s seat stops working after 12 of 30 days. Green Goods proposes 6 back, the most its terms allow by days of access.',
+          'Lina approves one final split: 4 to Green Goods’ reserve and 6 back to Lina. Approving moves nothing by itself.',
+          'Each transfer is tracked until it arrives, and a failed one can be retried without sending more.'
+        ], 's-partial'],
+        ['scen', 'Teo offers his own service', [
+          'Kaya, a Green Goods steward, drafts Teo’s 60-minute integration lesson with him and Ade, his garden’s steward: one voucher per lesson, six lessons over four weeks, two vouchers in the pool and four in reserve, one at a time for rewards, a rate agreed for this offer, zero pool fee proposed, and returns by minutes delivered.',
+          'Teo signs his approval of the exact terms from his own account, in his Profile under Service Assets, and the issuer record points to it. Only he can; stewards prepare and publish, never approve or issue.',
+          'The token is created with Teo as owner, the Green Goods Safe registers and admits it, and Teo enables his reserve, approves one lesson for rewards and places two in the pool.',
+          'Teo’s page keeps lessons promised, booked, delivered and left apart from where the vouchers are. He approves each booking, proposes any return, and can pause new bookings without touching anyone’s vouchers.'
+        ], 's-issue'],
+        ['scen', 'A project with three promises', [
+          'Tech and Sun posts one brief, the impact website, as three separate requests: Noor designs it for 1 Teo voucher, Maya writes the impact summary for 1 Tech and Sun voucher, Teo builds it for 1 Green Goods voucher. Each is accepted, reviewed and rewarded on its own.',
+          'Maya needs Teo’s help with the integration. She exchanges 2 of her own coaching vouchers for 1 Teo voucher in the shared pool, books the lesson, and Teo approves it before Tech and Sun’s stewards accept.',
+          'The lesson stops after 30 minutes. Teo proposes half back; Maya approves 0.5 to Teo’s reserve and 0.5 back to her. Her exchange isn’t reversed and Teo’s capacity isn’t restored.'
+        ], 's-project'],
+        ['scen', 'Lina buys a month of the AI assistant with personal G$', [
+          'Lina agrees to the exact terms, then sends 450.45 G$ (450.00 plus a token fee) to the home garden’s Safe.',
+          'A Riverside Commons steward checks it arrived. Green Goods Community Garden accepts Lina. The home garden’s stewards assign the payment to the purchase.',
+          'When the month ends Lina confirms it was kept, and the provider’s team is paid. If it had been declined, the home garden’s stewards would refund the 450.00 G$ they recorded.',
+          'The working pilot terms offer no G$ purchases, so this journey and its service are designed and locally proven, not offered in the pilot.'
+        ], 's-gd'],
+        ['scen', 'When something goes wrong', [
+          'Uncertain transactions are checked before anything is sent again. Changed terms need a fresh agreement. Stale quotes are replaced.',
+          'Short reserves, failed refunds and failed transfers stay visible and are retried once, by the people allowed to.',
+          'A reported problem stops new payouts and refunds for a G$ purchase until the stewards decide; it never moves escrowed vouchers.'
+        ], 's-wrong'],
+        ['scen', 'A garden buys for itself', [
+          'Riverside Commons’ stewards take up an offer for the whole garden, paid from the garden’s pool.',
+          'That is an ordinary garden promise, not a personal purchase, and it uses today’s garden promise flow.'
+        ], null]
+      ] },
+    crosswalk: { title: 'Screens and states', meta: 'What is built, proved and blocked',
+      note: 'Each pilot screen and state, the implemented behavior it shows and its source, the recorded local proof and its evidence class, what remains unproven or blocked, and ideas kept outside the pilot. The same table is in crosswalk.md.',
+      blocks: [['crosswalk']] },
+    answers: { title: 'Decisions and gaps', meta: 'Recommendations and what Afo decided',
+      note: 'What the pilot design follows, the recommendations it makes inside that architecture, what is settled, what Afo decided and approved, the gaps it found in the implementation, and the live blockers.',
+      blocks: [
+        ['h', 'What the design follows'],
+        ['ul', [
+          '**Rewards:** vouchers first, with optional G$ on Celo. Separate statuses and receipts; nothing is reserved at acceptance.',
+          '**Exchange:** one shared curated pool on Gnosis, one direct exchange at a time, with fees, minimum, deadline, recipient and receipt. A swap books nothing.',
+          '**Redemption:** exact consent, then issuer approval and an escrow deposit, then acceptance, activation, service evidence, one holder-approved split and independent transfers.',
+          '**Personal G$:** the buyer’s home-garden Safe holds the payment, a steward checks it, the provider accepts, and refunds are the recorded deposit.',
+          'Not selected for this pilot: a Celo purchase escrow, payment replacing consent, standing approvals and automatic completion. They are listed under Future ideas.'
+        ]],
+        ['h', 'Recommendations'],
+        ['ul', [
+          '**Build on what ships.** Each piece extends a surface the app or the cockpit already has, drawn with that surface’s components: the promise page’s Service Access section and its sheets, the garden’s list of promises (the Promises sheet over Home for its members once the Home redesign lands, the garden page for visitors), a Vouchers tab in the wallet, Service Assets in Profile, the Promises console and the Voucher Issuers card. None of them replaces the status band, What was promised, Team, Progress and proof, History or the page’s one action bar. The cockpit’s dialogs, buttons, fields and filter chips are the shared family `develop` moved them onto on 24 October (DL-115 to DL-119).',
+          '**Show every approval, grouped in one sheet.** Don’t promise one prompt or sponsored network fees until a route is proven. The sheet’s strip shows whose step comes next.',
+          '**Show money exactly.** Gross debit, token fee, recorded deposit and eligible refund, from the offer to the receipt. Refunds return the recorded deposit, so the sending fee isn’t returned, and the home garden’s Safe pays the refund transfer’s fee. 450.00 G$ and the 0.1% fee are fictional.',
+          '**Accept after the check.** The provider’s Accept waits for the home garden’s recorded deposit. This is a design rule; the contract keeps acceptance and funding separate. It ships with the G$ purchase, which pilot members don’t see.',
+          '**Acceptance deadline:** seven days from agreeing, set in the issuer’s terms and shown as a date before the member agrees. That leaves room for the issuer’s reply, the deposit and the stewards’ acceptance. The contract takes whatever deadline the setup chooses.',
+          '**Disputes:** for G$ purchases, suggest a 7-day response and escalation after 14 days, labeled as policy. For vouchers, the working terms propose a help acknowledgment within two business days and a remedy proposal within five. The pool’s stewards resolve the promise; they can’t move a holder’s vouchers.',
+          '**Kept** only after the member confirms. Provider reports, payouts and transfers have their own words.',
+          '**Redeem** for vouchers and **Withdraw** for vaults, so each verb keeps one meaning. In Spanish and Portuguese the Redeem verbs (canjear, resgatar) collide with today’s vault strings until the vault verb changes.',
+          '**Name who promises delivery.** A person’s name on a service means that person delivers and keeps the reserve; a garden’s name means its stewards do. The offer leads with the service, its unit, availability and terms.',
+          '**Member defaults as proposals.** The onboarding draft carries the recommended starting points (one service unit per voucher, six units at most, two in the pool, a one-unit allowance, a per-offer rate, zero pool fee, a two-business-day reply) labeled as proposals the member approves or changes, never as accepted terms.',
+          '**What stays the member’s.** Token owner, reserve, each booking approval, and upgrades and recovery are shown as separate facts before the member approves. A steward’s role is prepare and publish.',
+          '**Four numbers, kept apart.** A member’s service page shows lessons promised, booked, delivered and left, and separately where the vouchers are: issued, in the pool, in the reserve, in escrow, approved for rewards. Token balances never stand in for capacity.',
+          '**Pause and delist without erasing.** Pausing stops new bookings and reward pulls; delisting stops new exchanges. Neither touches holdings, accepted bookings or their returns.'
+        ]],
+        ['h', 'The working pilot services on these screens'],
+        ['ul', [
+          'The terms (`pilot-issuer-terms.md`, draft 3) are a business baseline the release owner accepted on 22 October. Each issuer accepts them, and confirms its capacity and addresses, at onboarding; on 24 October Afo took those out of the blockers and chose to show the services now, so every voucher service here is a real offer under terms still to be accepted.',
+          '**Tech and Sun hub day** (1 Tech and Sun voucher: one named person’s visit of up to four hours, with workspace, power and connectivity) is “Redeem a voucher you hold”. Tech and Sun’s Safe starts with one signer and moves to two of its stewards, and a short visit returns by usable time out of 240 minutes.',
+          '**Claude access** (10 Green Goods vouchers: 30 days of a named Claude Team seat from working access) is the exchange and the early-end journeys. Green Goods’ Safe signs 2 of 5, and a short month returns by available days out of 30.',
+          '**Green Goods assisted session** (2 Green Goods vouchers, 30 minutes) shows in Green Goods’ console and the wallet; it books the same way as a hub day.',
+          '**Ceilings:** 20 vouchers per issuer, 10 in the shared pool and 10 in reserve, at most 10 per participant, a 20-voucher pool holding limit, ten participants, and first bookings on 25 and 26 October with the calendar open to 30 November.',
+          '**Exchange** runs at the accepted 1:1 gross ratio with zero pool fees proposed. A protocol fee may still apply, so the screen keeps its fee, minimum, deadline and recipient rows; its 0.01 protocol fee is a placeholder until it is read from the pool.',
+          '**Kept fictional:** the people, Riverside Commons, Teo’s and Maya’s services and the project fixture, and the G$ purchase, which the working terms don’t offer. Tech and Sun’s address is shown as shared before booking, because the lab doesn’t know it.'
+        ]],
+        ['h', 'Settled since the last revision'],
+        ['p', 'From the spec and the contract branch, so no longer asked:'],
+        ['ul', [
+          '**Who accepts a member’s booking:** the garden’s stewards, after the member approves it.',
+          '**The control model:** the member’s own account owns the token and reserve and administers upgrades, accepted by each member at onboarding.',
+          '**Pool inventory:** the member deposits it from their reserve.',
+          '**Activation and the transfers after a split:** the holder’s app runs them, and anyone can call them.',
+          '**Who prepares a member’s draft:** a Green Goods steward, in Community’s Voucher Issuers card.',
+          '**A reward retry** after a reserve or allowance repair reuses the same request, through the same budget, pause and replay guards; the issuer’s Safe may retry only one that was already authorized.',
+          '**Onboarding inputs:** participant accounts and each issuer’s accepted terms, capacity and addresses are collected at onboarding. Afo ruled on 24 October that they don’t block implementation or deployment.',
+          '**Placement:** each piece lives on the shipped surface the contract branch extends.'
+        ]],
+        ['h', 'Decided by Afo on 24 October'],
+        ['p', 'Ten that day, and two more that evening once the Home redesign was cleared to build. All but the tenth follow the lab’s recommendation.'],
+        ['ol', [
+          '**The member’s approval of a draft** is a signed approval in the app, bound to the terms digest, which the issuer metadata then references.',
+          '**Partial delivery:** after the holder approves the split, the stewards close the promise as canceled with the reason, and the app shows it as “Ended early”, never “Kept”.',
+          '**The acceptance deadline** defaults to seven days from agreeing, set in the issuer’s terms and shown as a date before the member agrees.',
+          '**The vault verb is Withdraw**, so Redeem belongs to vouchers alone.',
+          '**G$ purchase disputes in the protocol pool:** Green Goods’ stewards decide, under a seven-day response policy shown as policy.',
+          '**The refund fee:** the home garden’s Safe keeps paying the refund transfer’s token fee.',
+          '**Accept after the payment check** stays a cockpit rule for the pilot.',
+          '**Personal G$ purchases are hidden from pilot members.** The working terms don’t offer them; the designed journey stays for later.',
+          '**English first.** The first cohort gets English; Spanish and Portuguese follow once native reviewers sign off.',
+          '**The working pilot services now:** the lab shows the real services before the issuers accept their terms.',
+          '**A booking at another garden is reached from the wallet.** Home’s Promises sheet will show the active garden only, so the wallet’s Vouchers tab shows a voucher a booking holds as its own row, which opens the booking.',
+          '**Services show wherever the garden’s promises are listed:** the Promises sheet over Home for its members, the garden page for visitors, on the same rows. The lab draws the visitor’s view.'
+        ]],
+        ['h', 'Approved by Afo on 25 October'],
+        ['p', '**The direction.** Afo approved the rebuilt screens, the eight journeys and the build brief that opens the handoff, which PRD-1297 builds from.'],
+        ['h', 'For PRD-1297 to choose'],
+        ['ul', [
+          '**Delisting’s mechanism.** The lab recommends a zero pool holding limit, prepared as an owner Safe draft beside the onboarding drafts, which keeps every balance.'
+        ]],
+        ['h', 'Gaps in the implementation'],
+        ['p', 'Found by building on the shipped surfaces. The lab records them for PRD-1297 rather than redesigning the code.'],
+        ['ol', [
+          '`ServiceAccessStatus` and `ServiceIssuerPanel` draw their own label and value pairs; the shipped pattern is the fact list.',
+          '`ServiceAccessPanel` sits under a rule with its own buttons. Its siblings are section cards, and the page’s acts belong in its one action bar.',
+          'The cockpit has no surface for voucher bookings. Approving a claim in Review Promises calls `acceptClaim` without the consent, approval, deposit and deadline checks.',
+          'Only the protocol garden shows the Voucher Issuers card, and only protocol stewards can prepare from it. A garden steward drafting from their own garden isn’t built.',
+          'The wallet has no Vouchers tab, a member’s own G$ for purchases elsewhere has no cockpit home, and finding every service that takes a voucher you hold isn’t designed.'
+        ]],
+        ['h', 'Live state and blockers'],
+        ['ul', [
+          'As the implementation lane recorded them in its deployment handoff, last on the evening of 24 October UTC, and the member-issuer proof; not rerun here. The Hats upgrade and the Arbitrum source upgrade are live; no voucher, pool or member-issuer transaction has been broadcast.',
+          '**Done: the Arbitrum source upgrade.** The original 2-of-5 Safe’s batch executed (Safe nonce 33), leaving Pooling and Settlement paused on their new implementations.',
+          '**Next: the downstream deployment.** One operator command sends 23 deployments, the Hats observer registration and five transport fuel transfers, after rehearsing both chains. Two runs stopped before sending anything, and both causes are fixed. Then three owner packets: the Green Goods Safe’s on Gnosis (14 calls) and on Arbitrum (8 calls), and Tech and Sun’s on Gnosis (5 calls).',
+          '**Tech and Sun’s Safe** on Gnosis starts with one approved bootstrap signer and moves to two signatures once two source-verified steward owners exist, so the app reads the threshold instead of stating one.',
+          '**Member tokens come later.** The downstream deployment creates the two collective issuers only. The member extension is prepared and rehearsed on owned forks with fictional members, and a real member’s token goes live only after that member’s onboarding.',
+          '**Accounts.** The pilot cohort uses new patched passkey accounts that keep one new address on all three networks, with a member-owned connected wallet as fallback; keeping each member’s original address was dropped on 23 October. The selected pilot account completed an authenticated, sponsored Gnosis proof. That proves one account, not every member issuer’s signing.',
+          '**Routes and data.** The app’s issuer and service routes are empty and Gnosis indexing is unbound until the deployment is adopted, so every member-issuer screen here is a design, not a read.',
+          '**Earned consent.** Agreeing to a voucher reward on the source network stays operator-assisted; approving a booking on Gnosis doesn’t replace it.',
+          '**Not blockers:** participant accounts and each issuer’s accepted terms, capacity and addresses. They are onboarding inputs, and the recommended member defaults stay proposals until a member accepts them.',
+          '**Proof.** The member-issuer rehearsal passed 21 cases on owned forks with fictional accounts, plus Shared, Client and Admin focused tests and a Storybook rehearsal. No live issuance, exchange or redemption.',
+          'This design authorizes no deployment, broadcast, production auth activation or live financial action, and claims no readiness.'
+        ]],
+        ['h', 'Text owners'],
+        ['ul', [
+          'The first cohort gets English. Gui reviews the Portuguese, and a native speaker the Spanish, before either ships.',
+          'Develop’s copy of the hub spec still says “Redeem” keeps its vault meaning. The accepted spec on the contract branch no longer says so, so the line goes when that branch’s hub merges.',
+          'The contract branch’s brief keeps a member’s G$ in the buyer garden’s Safe. The pilot design now follows that rule, so v2’s earlier request to change it is withdrawn.'
+        ]]
+      ] },
+    changes: { title: 'Future ideas', meta: 'Outside this pilot',
+      note: 'Ideas the first v2 draft proposed, and others the pilot leaves out. Each needs its own scope, authority rules and cross-chain proof before it can replace the implemented model.',
+      blocks: [
+        ['changes', [
+          ['A Celo purchase escrow.', 'A contract would hold each G$ purchase and report its arrival, instead of the home garden’s Safe and a steward’s check.', 'The steward check, manual refunds and the home-garden requirement.', 'A new Celo contract, its audit, authenticated messages back to Arbitrum and new failure handling.'],
+          ['Paying is agreeing.', 'The payment would carry the exact terms version, so one approval agrees and pays.', 'One approval per purchase.', 'Changes to the pooling and settlement modules, and proof that consent still precedes acceptance on every path.'],
+          ['Standing approvals and automatic acceptance.', 'An issuer would approve an offer once with a place limit; a garden could accept routine requests automatically.', 'Waiting for each booking approval and each acceptance.', 'Offer-level settings, an on-chain place limit, and a change to acceptance, which only a pool steward can call today.'],
+          ['Automatic completion after a review window.', 'A purchase would pay out after a set number of days unless the member reported a problem.', 'The member’s explicit confirmation and split approval.', 'Timed release in settlement and escrow, and a problem flag that reliably pauses every cross-chain payment.'],
+          ['On-the-spot redemption.', 'A voucher handed over in person, with a bounded receipt the issuer can check.', 'The booking steps for small immediate services.', 'A supported consent, acceptance and delivery path, and a receipt that can’t be replayed or faked with a screenshot.'],
+          ['A fee reserve.', 'Members would pre-pay the payout fee so refunds and payouts are always the full price.', 'Refunds that are a little less than what was sent.', 'A funding rule for the reserve and proof it is never spent twice.'],
+          ['Other currencies and multi-pool routes.', 'Paying in other assets, and exchanges that cross pools.', 'Exchanging first.', 'Explicit asset, payer, recipient and settlement evidence; executable routing. G$ to voucher swaps, cash-out guarantees and mixed checkouts stay excluded.'],
+          ['Self-service issuer setup.', 'A member would deploy and configure their own token without a steward’s draft or the owner Safe’s admission calls.', 'The steward’s draft and the owner Safe step.', 'An issuer factory or registry, member-side authority proof, and pool admission rules.'],
+          ['A project token or team payout.', 'One token or one payout for a whole project, split among its participants.', 'Three separate requests under one brief.', 'One accountable issuer, accepted team obligations, replacement rules and project-wide remedies.']
+        ]]
+      ] }
+  };
+  var DOC_ORDER = ['scenarios', 'crosswalk', 'answers', 'changes'];
+
+  /* ---------- Rendering ---------- */
+  function renderAll(switched) {
+    var focusId = document.activeElement && document.activeElement.id;
+    renderNav(); renderPanel(); renderStage();
+    lsSet('vlab.view3', { mode: view.mode, id: view.id, step: view.step });
+    if (focusId && document.getElementById(focusId) && focusId !== 'note-text') document.getElementById(focusId).focus({ preventScroll: true });
+    if (switched) {
+      closeNav();
+      $('#panel').scrollTop = 0;
+    }
+  }
+  /* Below 1200px the contents are a drawer. Closed, it is inert and hidden from assistive technology; open, it takes
+     focus, the page behind it goes inert, and closing it hands focus back to the control that opened it. */
+  var narrowNav = window.matchMedia('(max-width: 1199px)');
+  var navOpener = null;
+  function syncNav() {
+    var nav = $('#nav'), open = nav.classList.contains('is-open'), hide = narrowNav.matches && !open;
+    nav.inert = hide;
+    if (hide) nav.setAttribute('aria-hidden', 'true'); else nav.removeAttribute('aria-hidden');
+    $('#main').inert = $('#panel').inert = narrowNav.matches && open;
+  }
+  function openNav() {
+    navOpener = document.activeElement;
+    $('#nav').classList.add('is-open'); $('#scrim').classList.add('is-open'); syncNav();
+    var first = $('#nav').querySelector('button, a[href], summary');
+    if (first) first.focus();
+  }
+  function closeNav() {
+    var wasOpen = $('#nav').classList.contains('is-open');
+    $('#nav').classList.remove('is-open'); $('#scrim').classList.remove('is-open'); syncNav();
+    if (!wasOpen) return;
+    /* The panel redraws its Contents button when a pick switches the view, so find the opener again by its id */
+    var back = navOpener && navOpener.isConnected ? navOpener : navOpener && navOpener.id ? document.getElementById(navOpener.id) : null;
+    navOpener = null;
+    if (back) back.focus({ preventScroll: true });
+  }
+  narrowNav.addEventListener('change', syncNav);
+
+  function navItem(active, title, meta, badge, onClick) {
+    var b = el('button', 'lab-item'); b.type = 'button';
+    b.setAttribute('aria-current', active ? 'true' : 'false');
+    b.append(el('span', 't', title), el('span', 'm', meta));
+    if (badge) b.append(badge);
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  function renderNav() {
+    var nsim = $('#nav-simple'); nsim.textContent = '';
+    DOC_ORDER.forEach(function (d) { nsim.append(navItem(view.mode === 'doc' && view.id === d, DOCS[d].title, DOCS[d].meta, null, function () { openDoc(d); })); });
+    var nf = $('#nav-f'); nf.textContent = '';
+    FLOWS.forEach(function (f) {
+      var item = navItem(view.mode === 'flow' && view.id === f.id, f.title, f.steps.length + ' steps', null, function () { openFlow(f.id, 0); });
+      (f.simple ? nsim : nf).append(item);
+    });
+    var np = $('#nav-p'); np.textContent = '';
+    PAIRS.forEach(function (p) {
+      np.append(navItem(view.mode === 'pair' && view.id === p.id, p.title, p.stats[0][1] + ' → ' + p.stats[0][2] + ' ' + p.stats[0][0].toLowerCase(), null, function () { openPair(p.id); }));
+    });
+    var nq = $('#nav-q'); nq.textContent = '';
+    QUESTIONS.forEach(function (q) {
+      var p = store.picks[q.id], letter = p ? letterOf(q.screen, p) : '';
+      var badge = el('span', 'lab-badge' + (p ? ' on' : ''), p ? letter : '?');
+      badge.setAttribute('aria-label', p ? 'Your pick: ' + letter : 'Not picked yet');
+      nq.append(navItem(view.mode === 'question' && view.id === q.id, q.title, p ? letter + ' · ' + p : 'Not picked yet', badge, function () { openQuestion(q.id); }));
+    });
+    var ns = $('#nav-s'); ns.textContent = '';
+    Object.keys(SCREENS).forEach(function (id) {
+      var meta = (SIMPLE[id] ? 'Pilot · ' : 'v1 · ') + (SCREENS[id].desk ? 'steward cockpit' : 'member app');
+      ns.append(navItem(view.mode === 'screen' && view.id === id, SHORT[id] || id, meta, null, function () { openScreen(id); }));
+    });
+    if (view.mode === 'screen') $('#nav-s-box').open = true;
+    var picked = Object.keys(store.picks).filter(function (k) { return QMAP[k]; }).length;
+    $('#count').textContent = picked + ' of ' + QUESTIONS.length + ' picked · ' + store.notes.length + (store.notes.length === 1 ? ' note' : ' notes');
+    $('#store-status').textContent = store.error || (store.shared ? 'Picks and notes save with this page, where Claude can read them.' : 'Picks and notes save in this browser only. Copy them to send to Claude.');
+  }
+
+  function renderPanel() {
+    var top = $('#ptop'); top.textContent = '';
+    var contents = button('lab-btn ghost lab-contents', 'Contents', openNav); contents.id = 'contents-btn';
+    top.append(contents);
+    if (view.back) {
+      var snap = view.back;
+      var back = button('lab-btn ghost', ICON.left + '<span></span>', function () { restore(snap); });
+      back.querySelector('span').textContent = 'Back to ' + viewTitle(snap);
+      top.append(back);
+    }
+    var eyebrow, title;
+    if (view.mode === 'question') {
+      var qi = QUESTIONS.findIndex(function (q) { return q.id === view.id; });
+      eyebrow = 'v1 reference · direction ' + (qi + 1) + ' of ' + QUESTIONS.length; title = QMAP[view.id].title;
+    } else if (view.mode === 'flow') {
+      eyebrow = FMAP[view.id].simple ? 'Pilot journey' : 'v1 flow, for reference'; title = FMAP[view.id].title;
+    } else if (view.mode === 'pair') {
+      var pi = PAIRS.findIndex(function (p) { return p.id === view.id; });
+      eyebrow = 'v1 → pilot · ' + (pi + 1) + ' of ' + PAIRS.length; title = PMAP[view.id].title;
+    } else if (view.mode === 'doc') {
+      eyebrow = 'Pilot design'; title = DOCS[view.id].title;
+    } else {
+      eyebrow = (SIMPLE[view.id] ? 'Pilot · ' : 'v1 · ') + (SCREENS[view.id].desk ? 'steward cockpit' : 'member app'); title = SHORT[view.id];
+    }
+    $('#eyebrow').textContent = eyebrow; $('#title').textContent = title;
+    renderFlownav(); renderSteps(); renderControls(); renderTweaks(); renderAbout(); renderFeedback();
+  }
+
+  function renderFlownav() {
+    var bar = $('#flownav'); bar.textContent = '';
+    bar.hidden = view.mode !== 'flow';
+    if (view.mode !== 'flow') return;
+    var f = FMAP[view.id];
+    var back = button('lab-btn ghost', ICON.left + '<span>Back</span>', function () { openFlow(f.id, view.step - 1, true); });
+    back.disabled = view.step === 0; back.id = 'flow-back';
+    var next = button('lab-btn', '<span>Next</span>' + ICON.right, function () { openFlow(f.id, view.step + 1, true); });
+    next.disabled = view.step === f.steps.length - 1; next.id = 'flow-next';
+    bar.append(back, el('span', 'count', 'Step ' + (view.step + 1) + ' of ' + f.steps.length), next);
+  }
+
+  function ctl(label, forId) { var g = el('div', 'lab-ctl'); var l = el(forId ? 'label' : 'span', 'lab-label', label); if (forId) l.htmlFor = forId; g.append(l); return g; }
+  function lookRow(withLang) {
+    var g = el('div', 'lab-dial'), lab = el('span', 'lab-dlabel', 'Look'), wrap = el('div', 'lab-lookrow');
+    var ts = el('div', 'lab-seg sm'); ts.setAttribute('role', 'group'); ts.setAttribute('aria-label', 'Screen theme');
+    [['Light', false], ['Dark', true]].forEach(function (pair) {
+      var b = button('', '', function () { screenDark = pair[1]; lsSet('vlab.dark', screenDark); renderAll(); flashStage(); });
+      b.textContent = pair[0]; b.id = 'theme-' + pair[0].toLowerCase(); b.setAttribute('aria-pressed', screenDark === pair[1] ? 'true' : 'false');
+      ts.append(b);
+    });
+    wrap.append(ts);
+    if (withLang) {
+      var ls = el('div', 'lab-seg sm'); ls.setAttribute('role', 'group'); ls.setAttribute('aria-label', 'Screen language');
+      LANGS.forEach(function (l) {
+        var b = button('', '', function () { screenLang = l; lsSet('vlab.lang', l); renderAll(); flashStage(); });
+        b.textContent = l; b.id = 'lang-' + l.toLowerCase(); b.setAttribute('aria-pressed', screenLang === l ? 'true' : 'false');
+        ls.append(b);
+      });
+      wrap.append(ls);
+    }
+    g.append(lab, wrap); return g;
+  }
+  function renderControls() {
+    var box = $('#controls'); box.textContent = '';
+    box.hidden = view.mode === 'doc';
+    if (view.mode === 'doc') return;
+    if (view.mode === 'pair') { box.append(lookRow(true)); return; }
+    var sid = currentScreen(), meta = SCREENS[sid].meta, opts = variantOptions(sid);
+    if (opts) {
+      var g = ctl('Direction'), seg = el('div', 'lab-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Direction');
+      if (view.mode === 'question') {
+        var c = button('lab-cmp', 'Side by Side', function () { view.compare = true; lsSet('vlab.compare', true); renderAll(); });
+        c.setAttribute('aria-pressed', view.compare ? 'true' : 'false'); c.id = 'dir-cmp';
+        seg.append(c);
+      }
+      opts.forEach(function (o, i) {
+        var on = !(view.mode === 'question' && view.compare) && view.variant === o;
+        var b = button('', '', function () { view.variant = o; if (view.mode === 'question') { view.compare = false; lsSet('vlab.compare', false); } renderAll(); });
+        b.textContent = LETTERS[i] + ' · ' + o; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.id = 'dir-' + i;
+        seg.append(b);
+      });
+      g.append(seg); box.append(g);
+    }
+    Object.keys(meta).forEach(function (k) {
+      if (k === 'variant' || k === 'dark' || k.charAt(0) === '$') return;
+      var m = meta[k];
+      if (m && m.editor === 'enum') box.append(enumControl(k, m));
+      if (m && m.editor === 'boolean') box.append(boolControl(k, m));
+    });
+    box.append(lookRow(!!SIMPLE[sid]));
+    if (SIMPLE[sid] && screenLang === 'PT') box.append(el('p', 'lab-stepn', 'Portuguese awaits Gui’s review (PRD-1312).'));
+    if (SIMPLE[sid] && screenLang === 'ES') box.append(el('p', 'lab-stepn', 'Spanish awaits a native speaker’s review.'));
+  }
+  function enumControl(k, m) {
+    var label = PROP_LABEL[k] || k, id = 'ctl-' + k, g = el('div', 'lab-dial'), lab = el('label', 'lab-dlabel'); lab.htmlFor = id;
+    var cur = view.props[k] != null ? view.props[k] : m.default, idx = Math.max(0, m.options.indexOf(cur));
+    lab.append(document.createTextNode(label + ' '), el('span', 'lab-stepn', (idx + 1) + '/' + m.options.length));
+    var row = el('div', 'lab-stepper');
+    var move = function (d) { view.props[k] = m.options[(idx + d + m.options.length) % m.options.length]; renderAll(); flashStage(); };
+    var prev = button('lab-icon', ICON.left, function () { move(-1); }); prev.setAttribute('aria-label', 'Previous ' + label.toLowerCase()); prev.id = id + '-prev';
+    var next = button('lab-icon', ICON.right, function () { move(1); }); next.setAttribute('aria-label', 'Next ' + label.toLowerCase()); next.id = id + '-next';
+    var sel = document.createElement('select'); sel.id = id;
+    m.options.forEach(function (o) { sel.append(new Option(o, o)); });
+    sel.value = m.options[idx];
+    sel.addEventListener('change', function () { view.props[k] = sel.value; renderAll(); flashStage(); });
+    row.append(prev, sel, next);
+    g.append(lab, row); return g;
+  }
+
+  /* ---------- Dials in the panel ---------- */
+  function setHint(t, o) {
+    var say = $('#say'); say.hidden = false; say.classList.add('hint'); say.textContent = '';
+    var p = el('p'); p.append(el('b', null, t.code + ' ' + t.label + ' · ' + o[1] + (o[0] === t.rec ? ', the pilot’s pick. ' : '. ')), document.createTextNode(o[2]));
+    say.append(el('span', 'lab-who dial', 'Dial'), p);
+  }
+  function clearHint() { $('#say').classList.remove('hint'); renderAbout(); }
+  function tweakDial(t) {
+    var g = el('div', 'lab-dial'); g.dataset.key = t.key;
+    var lab = el('span', 'lab-dlabel'); lab.append(el('b', null, t.code), document.createTextNode(' ' + t.label));
+    var seg = el('div', 'lab-seg sm'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', t.code + ' ' + t.label);
+    t.options.forEach(function (o) {
+      var b = button('', '', function () { tweaks[t.key] = o[0]; saveTweaks(); renderAll(); flashStage(); });
+      b.textContent = o[1]; b.id = 'tw-' + t.key + '-' + o[0]; b.setAttribute('aria-pressed', tweaks[t.key] === o[0] ? 'true' : 'false'); b.title = o[2];
+      if (o[0] === t.rec) { b.classList.add('rec'); b.setAttribute('aria-label', o[1] + ', the pilot’s pick'); }
+      b.addEventListener('mouseenter', function () { setHint(t, o); }); b.addEventListener('focus', function () { setHint(t, o); });
+      b.addEventListener('mouseleave', clearHint); b.addEventListener('blur', clearHint);
+      seg.append(b);
+    });
+    g.append(lab, seg); return g;
+  }
+  function renderTweaks() {
+    var box = $('#tweaks'); box.textContent = '';
+    var sid = view.mode === 'pair' ? PMAP[view.id].next.screen : currentScreen();
+    var show = view.mode !== 'doc' && view.mode !== 'question' && !!SIMPLE[sid];
+    box.hidden = !show; if (!show) return;
+    var changed = TWEAKS.filter(function (t) { return tweaks[t.key] !== t.rec; }).length;
+    var head = el('div', 'lab-dhead'), acts = el('span', 'lab-dacts');
+    head.append(el('span', 'lab-label', 'Tweaks' + (changed ? ' · ' + changed + ' changed' : '')));
+    var reset = button('lab-lnk', 'Reset', function () { tweaks = recTweaks(); saveTweaks(); renderAll(); flashStage(); }); reset.id = 'tw-reset'; reset.disabled = !changed;
+    var copy = button('lab-lnk', 'Copy picks', function () { copyText('Voucher lab tweaks: ' + tweaksLine(), copy, 'Copy picks'); }); copy.id = 'tw-copy';
+    acts.append(reset, copy); head.append(acts); box.append(head);
+    var applies = function (t) { return !t.screens || t.screens.indexOf(sid) >= 0; };
+    var here = TWEAKS.filter(function (t) { return t.group === 'Patterns' && applies(t); });
+    var elsewhere = TWEAKS.filter(function (t) { return t.group === 'Patterns'; }).length - here.length;
+    here.forEach(function (t) { box.append(tweakDial(t)); });
+    if (!here.length) box.append(el('p', 'lab-stepn', 'No pattern dials on this screen; ' + elsewhere + ' apply elsewhere.'));
+    // Copy and design-system dials share one fold; the design-system defaults are the forks locked on 18 October
+    var copyD = TWEAKS.filter(function (t) { return t.group === 'Copy' && applies(t); });
+    var sys = TWEAKS.filter(function (t) { return t.group === 'System'; });
+    var moreChanged = copyD.concat(sys).filter(function (t) { return tweaks[t.key] !== t.rec; }).length;
+    var d = el('details', 'lab-more'); d.id = 'tw-more'; d.open = lsGet('vlab.moreOpen', false) === true;
+    d.append(el('summary', null, 'More dials · copy, design system' + (moreChanged ? ' · ' + moreChanged + ' changed' : '')));
+    if (copyD.length) { d.append(el('span', 'lab-label', 'Copy')); copyD.forEach(function (t) { d.append(tweakDial(t)); }); }
+    d.append(el('span', 'lab-label', 'Design system · locked 18 Oct'));
+    sys.forEach(function (t) { d.append(tweakDial(t)); });
+    d.addEventListener('toggle', function () { lsSet('vlab.moreOpen', d.open); });
+    box.append(d);
+  }
+  function flashStage() { var st = $('#stage'); st.classList.remove('is-flash'); void st.offsetWidth; st.classList.add('is-flash'); }
+  function boolControl(k, m) {
+    var g = ctl(PROP_LABEL[k] || k), lab = el('label', 'lab-switch'), cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.id = 'ctl-' + k; cb.checked = view.props[k] != null ? !!view.props[k] : !!m.default;
+    cb.addEventListener('change', function () { view.props[k] = cb.checked; renderAll(); });
+    lab.append(cb, document.createTextNode(cb.checked ? 'On' : 'Off'));
+    g.append(lab); return g;
+  }
+
+  /* **bold** and `code` spans; any other text stays plain */
+  function richText(parent, text) {
+    String(text).split('**').forEach(function (part, i) {
+      var host = i % 2 ? parent.appendChild(el('b')) : parent;
+      part.split('`').forEach(function (seg, j) { if (seg) host.append(j % 2 ? el('code', null, seg) : document.createTextNode(seg)); });
+    });
+    return parent;
+  }
+  function renderAbout() {
+    var box = $('#about'); box.textContent = '';
+    var say = $('#say'); say.textContent = ''; say.classList.remove('hint');
+    say.hidden = view.mode !== 'flow' && view.mode !== 'pair'; box.hidden = view.mode === 'flow';
+    if (view.mode === 'flow') {
+      var st = FMAP[view.id].steps[view.step];
+      say.append(el('span', 'lab-who' + (/steward/.test(st.who) ? ' steward' : ''), st.who), el('p', null, st.say));
+      return;
+    }
+    var note = view.mode === 'question' ? QMAP[view.id].note : view.mode === 'pair' ? PMAP[view.id].note : view.mode === 'doc' ? DOCS[view.id].note
+      : 'Every state of this screen. Links inside it move to the next screen.';
+    if (view.mode === 'pair') say.append(el('p', null, note)); else box.append(el('p', null, note));
+    if (view.mode === 'pair') {
+      var stats = el('div', 'lab-stats');
+      PMAP[view.id].stats.forEach(function (x) {
+        var c = el('span', 'lab-stat');
+        c.append(el('b', null, x[0]), el('span', 'from', x[1]), document.createTextNode('→'), el('span', 'to', x[2]));
+        c.setAttribute('aria-label', x[0] + ': ' + x[1] + ' in v1, ' + x[2] + ' in the pilot');
+        stats.append(c);
+      });
+      box.append(stats);
+    }
+  }
+  function renderSteps() {
+    var box = $('#steps'); box.textContent = '';
+    box.hidden = view.mode !== 'flow';
+    if (view.mode !== 'flow') return;
+    var f = FMAP[view.id];
+    f.steps.forEach(function (x, i) {
+      var b = el('button', /steward/.test(x.who) ? 'steward' : ''); b.type = 'button'; b.textContent = String(i + 1);
+      var detail = x.props.state || x.props.dialog || x.props.step || x.props.tab || x.props.pair || '';
+      b.title = (i + 1) + '. ' + x.who.split(' · ')[0] + ': ' + SHORT[x.screen] + (detail ? ' · ' + detail : '');
+      b.setAttribute('aria-label', 'Step ' + b.title);
+      if (i === view.step) b.setAttribute('aria-current', 'step');
+      b.addEventListener('click', function () { openFlow(f.id, i, true); });
+      box.append(b);
+    });
+  }
+
+  function pickButton(qid, screenId, v) {
+    var b = button('lab-pick', '', function () { store.setPick(qid, v); });
+    b.dataset.q = qid; b.dataset.v = v; b.dataset.l = letterOf(screenId, v);
+    paintPick(b); return b;
+  }
+  function paintPick(b) {
+    var on = store.picks[b.dataset.q] === b.dataset.v;
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.innerHTML = (on ? ICON.check : '') + '<span></span>';
+    b.querySelector('span').textContent = b.dataset.l + ' · ' + b.dataset.v + (on ? ' (your pick)' : '');
+  }
+
+  function renderDoc(stage) {
+    var D = DOCS[view.id], d = el('article', 'lab-doc' + (view.id === 'crosswalk' ? ' wide' : ''));
+    D.blocks.forEach(function (b) {
+      if (b[0] === 'h') d.append(el('h2', null, b[1]));
+      else if (b[0] === 'p') d.append(richText(el('p'), b[1]));
+      else if (b[0] === 'q') d.append(el('blockquote', null, b[1]));
+      else if (b[0] === 'ul' || b[0] === 'ol') { var l = el(b[0]); b[1].forEach(function (t) { l.append(richText(el('li'), t)); }); d.append(l); }
+      else if (b[0] === 'go') { var fid = b[2]; d.append(button('lab-btn', '', function () { openFlow(fid, 0); })); d.lastChild.textContent = b[1]; }
+      else if (b[0] === 'changes') {
+        var ol = el('ol');
+        b[1].forEach(function (c) {
+          var li = el('li'); li.append(el('b', null, c[0] + ' '), document.createTextNode(c[1]));
+          li.append(el('span', 'rm', 'Would remove: ' + c[2]), el('span', 'rm', 'Would need: ' + c[3]));
+          ol.append(li);
+        });
+        d.append(ol);
+      } else if (b[0] === 'crosswalk') {
+        var intro = el('ul'); CROSSWALK.intro.forEach(function (t) { intro.append(richText(el('li'), t.replace(/`/g, ''))); }); d.append(intro);
+        CROSSWALK.journeys.forEach(function (j) {
+          d.append(el('h2', null, j.title));
+          var wrap = el('div', 'lab-tablewrap'), tb = el('table', 'lab-table'), hd = el('tr');
+          ['Screen and state', 'Implemented behavior and source', 'Local proof', 'Gaps and live blockers', 'Future ideas'].forEach(function (h) { var th = el('th', null, h); th.scope = 'col'; hd.append(th); });
+          var thead = el('thead'); thead.append(hd); tb.append(thead);
+          var tbody = el('tbody');
+          j.rows.forEach(function (r) {
+            var tr = el('tr');
+            [r.state, r.behavior, r.proof, r.gaps || '', r.future || ''].forEach(function (c, i) { var td = el(i ? 'td' : 'th'); if (!i) td.scope = 'row'; richText(td, c.replace(/`/g, '')); tr.append(td); });
+            tbody.append(tr);
+          });
+          tb.append(tbody); wrap.append(tb); d.append(wrap);
+        });
+      } else if (b[0] === 'scen') {
+        var box = el('section', 'lab-scen'); box.append(el('h3', null, b[1]));
+        var steps = el('ol'); b[2].forEach(function (t) { steps.append(el('li', null, t)); }); box.append(steps);
+        if (b[3] && FMAP[b[3]]) { var flowId = b[3]; var go = button('lab-btn ghost', '', function () { openFlow(flowId, 0); }); go.textContent = 'Walk It: ' + FMAP[flowId].title; box.append(go); }
+        d.append(box);
+      }
+    });
+    stage.append(d);
+  }
+  function addFrame(stage, sid, props, caption, single) {
+    var S = SCREENS[sid], fr = el('figure', 'lab-frame'), cap = el('figcaption', 'lab-cap');
+    caption.forEach(function (c) { cap.append(c); });
+    var box = el('div', 'lab-scale'), host = el('div', 'lab-host');
+    host.style.width = S.w + 'px'; host.style.height = S.h + 'px';
+    box.append(host); fr.append(cap, box); stage.append(fr);
+    mountScreen(sid, props, host);
+    var f = { fr: fr, box: box, host: host, w: S.w, h: S.h };
+    // A cockpit step on its own shows a readable crop of the dialog or card in play, at the phone frame's height
+    if (single && S.desk && SIMPLE[sid]) {
+      var fe = host.querySelector('[role="dialog"][data-focus="1"]') || host.querySelector('[data-focus="1"]');
+      if (fe && !view.whole) {
+        var hr = host.getBoundingClientRect(), r = fe.getBoundingClientRect(), pad = 24, thumbRoom = 96;
+        var x = Math.max(0, Math.round(r.left - hr.left) - pad), y = Math.max(0, Math.round(r.top - hr.top) - pad);
+        // The thumbnail sits under the target, over the dimmed page, so it never covers a control
+        f.crop = { x: x, y: y, w: Math.min(S.w - x, Math.round(r.width) + pad * 2), h: Math.min(S.h - y, Math.round(r.height) + pad * 2 + thumbRoom) };
+        var th = el('div', 'lab-thumb'), clone = host.cloneNode(true), mark = el('div', 'mark');
+        clone.setAttribute('aria-hidden', 'true'); clone.setAttribute('inert', '');
+        Array.prototype.forEach.call(clone.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+        th.append(clone, mark); box.append(th); f.thumb = { el: th, clone: clone, mark: mark };
+        var whole = button('lab-capbtn', 'Whole screen', function () { view.whole = true; renderStage(); }); whole.id = 'cap-whole'; cap.append(whole);
+      } else if (fe) {
+        var focus = button('lab-capbtn', 'Focus', function () { view.whole = false; renderStage(); }); focus.id = 'cap-focus'; cap.append(focus);
+      }
+    }
+    frames.push(f);
+  }
+  function renderStage() {
+    var stage = $('#stage'); stage.textContent = ''; frames = [];
+    stage.classList.toggle('is-doc', view.mode === 'doc');
+    stage.style.gridTemplateColumns = '';
+    if (view.mode === 'doc') { renderDoc(stage); stage.scrollTop = 0; return; }
+    if (view.mode === 'pair') {
+      var P = PMAP[view.id];
+      [[P.now, 'now', 'v1'], [P.next, 'next', 'Pilot']].forEach(function (side) {
+        var sd = side[0], props = Object.assign(defaultsFor(sd.screen), sd.props, { dark: screenDark, lang: screenLang }, SIMPLE[sd.screen] ? tweakProps() : {});
+        if (variantOptions(sd.screen)) props.variant = sd.variant || pickedVariant(sd.screen);
+        addFrame(stage, sd.screen, props, [el('span', 'lab-side ' + side[1], side[2]), el('span', 'lab-capsub', sd.label)], false);
+      });
+      layoutStage();
+      return;
+    }
+    var sid = currentScreen(), opts = variantOptions(sid);
+    var list = (view.mode === 'question' && view.compare && opts) ? opts : [opts ? view.variant : null];
+    var qid = SCREEN_Q[sid];
+    list.forEach(function (v) {
+      var cap = [];
+      if (v) {
+        cap.push(el('span', 'lab-letter', letterOf(sid, v)), el('span', null, v));
+        if (qid && store.picks[qid] === v) { var t = el('span', 'lab-tick'); t.innerHTML = ICON.check; t.setAttribute('aria-label', 'Your pick'); cap.push(t); }
+      } else cap.push(el('span', null, SHORT[sid]));
+      var props = Object.assign({}, view.props, { dark: screenDark, lang: screenLang }, SIMPLE[sid] ? tweakProps() : {});
+      if (v) props.variant = v;
+      addFrame(stage, sid, props, cap, list.length === 1);
+    });
+    layoutStage();
+  }
+  function place(f, sc) {
+    var cw = f.crop ? f.crop.w : f.w, ch = f.crop ? f.crop.h : f.h;
+    var fw = Math.floor(cw * sc), fh = Math.floor(ch * sc);
+    f.fr.style.width = fw + 'px';
+    f.box.style.width = fw + 'px'; f.box.style.height = fh + 'px';
+    f.box.style.borderRadius = ((f.crop ? 12 : (f.w < 600 ? 34 : 14)) * sc) + 'px';
+    f.host.style.transform = f.crop ? 'translate(' + (-f.crop.x * sc) + 'px, ' + (-f.crop.y * sc) + 'px) scale(' + sc + ')' : 'scale(' + sc + ')';
+    if (f.thumb) {
+      var ts = 128 / f.w;
+      f.thumb.el.style.height = Math.round(f.h * ts) + 'px';
+      f.thumb.clone.style.transform = 'scale(' + ts + ')';
+      f.thumb.mark.style.left = (f.crop.x * ts) + 'px'; f.thumb.mark.style.top = (f.crop.y * ts) + 'px';
+      f.thumb.mark.style.width = (f.crop.w * ts) + 'px'; f.thumb.mark.style.height = (f.crop.h * ts) + 'px';
+    }
+  }
+  function layoutStage() {
+    var stage = $('#stage');
+    if (!frames.length) return;
+    var W = stage.clientWidth, H = stage.clientHeight;
+    if (!W || !H) return;
+    var gap = 20, cap = 34, n = frames.length;
+    if (n === 1) {
+      // One frame: a phone fits the stage; a cockpit crop takes the height a phone would, so steps don't jump
+      var f = frames[0], sPhone = Math.min(1, (H - cap) / 844, W / 390), s;
+      if (f.crop) s = Math.min(844 * sPhone / f.crop.h, W / f.crop.w, 1.1);
+      else s = Math.min(1, (H - cap) / f.h, W / f.w);
+      stage.style.gridTemplateColumns = 'auto';
+      place(f, Math.max(0.1, s));
+      return;
+    }
+    var w = frames[0].w, h = frames[0].h, best = { s: 0, cols: 1 };
+    for (var cols = 1; cols <= n; cols++) {
+      var rows = Math.ceil(n / cols);
+      var sc0 = Math.min((W - gap * (cols - 1)) / (cols * w), (H - rows * cap - gap * (rows - 1)) / (rows * h));
+      if (sc0 > best.s + 0.0001) best = { s: sc0, cols: cols };
+    }
+    var sc = Math.max(0.1, Math.min(1, best.s));
+    stage.style.gridTemplateColumns = 'repeat(' + best.cols + ', auto)';
+    frames.forEach(function (f) { place(f, sc); });
+  }
+
+  function topicKey() {
+    if (view.mode === 'question') return 'q:' + view.id;
+    if (view.mode === 'flow') return 'f:' + view.id + ':' + view.step;
+    if (view.mode === 'pair') return 'p:' + view.id;
+    if (view.mode === 'doc') return 'd:' + view.id;
+    return 's:' + view.id;
+  }
+  function topicTitle() {
+    if (view.mode === 'flow') return FMAP[view.id].title + ', step ' + (view.step + 1);
+    if (view.mode === 'screen') return SHORT[view.id] + (SIMPLE[view.id] ? ' (pilot)' : ' (v1)');
+    return viewTitle(view);
+  }
+  function contextLabel() {
+    if (view.mode === 'pair') return 'v1 and pilot' + (screenDark ? ' · dark' : '') + (screenLang !== 'EN' ? ' · ' + screenLang : '');
+    if (view.mode === 'doc') return '';
+    var sid = currentScreen(), parts = [], o = variantOptions(sid);
+    if (o) parts.push(view.mode === 'question' && view.compare ? 'side by side' : letterOf(sid, view.variant) + ' · ' + view.variant);
+    ['state', 'dialog', 'step', 'issue', 'kind', 'tab', 'pair'].forEach(function (k) { if (SCREENS[sid].meta[k] && view.props[k] != null) parts.push(view.props[k]); });
+    if (screenDark) parts.push('dark');
+    if (SIMPLE[sid] && screenLang !== 'EN') parts.push(screenLang);
+    if (SIMPLE[sid]) TWEAKS.forEach(function (t) { if (tweaks[t.key] !== t.rec) parts.push(t.code + ' ' + optionLabel(t, tweaks[t.key])); });
+    return parts.join(' · ');
+  }
+  function renderFeedback() {
+    var box = $('#feedback'); box.textContent = '';
+    var sid = currentScreen();
+    if (view.mode === 'question') {
+      var q = QMAP[view.id], opts = variantOptions(q.screen);
+      box.append(el('h2', 'lab-h2', 'Your pick'));
+      var row = el('div', 'lab-picks');
+      opts.forEach(function (o) { row.append(pickButton(q.id, q.screen, o)); });
+      box.append(row);
+      box.append(richText(el('p', 'lab-p'), '**Claude suggests ' + letterOf(q.screen, q.suggest) + ' · ' + q.suggest + '.** ' + q.why));
+    } else if (view.mode === 'flow' || view.mode === 'screen') {
+      var qid = SCREEN_Q[sid];
+      if (qid) {
+        var v = pickedVariant(sid), mine = store.picks[qid] === v;
+        box.append(el('p', 'lab-p', (mine ? 'Shows your pick for “' : 'Shows Claude’s suggestion for “') + QMAP[qid].title + '”: ' + letterOf(sid, v) + ' · ' + v + '.'));
+      }
+    }
+    var key = topicKey();
+    var det = el('details', 'lab-more'); det.id = 'notes-box'; det.open = lsGet('vlab.notesOpen', false) === true;
+    var mine = store.notes.filter(function (n) { return n.topic === key; }).length;
+    det.append(el('summary', null, 'Notes' + (mine ? ' · ' + mine : '')));
+    var lab = el('label', 'lab-label', 'On ' + topicTitle()); lab.htmlFor = 'note-text';
+    var ta = document.createElement('textarea'); ta.id = 'note-text'; ta.className = 'lab-ta'; ta.rows = 3;
+    ta.placeholder = 'What works, what doesn’t, what to change'; ta.value = drafts[key] || '';
+    ta.addEventListener('input', function () { drafts[key] = ta.value; });
+    var row2 = el('div', 'lab-row'), status = el('span', 'lab-status'); status.id = 'fb-status'; status.setAttribute('role', 'status');
+    var save = button('lab-btn', 'Save Note', function () {
+      var text = ta.value.trim();
+      if (!text) { status.textContent = 'Write a note first.'; ta.focus(); return; }
+      save.disabled = true;
+      store.addNote({ topic: key, topicTitle: topicTitle(), screen: sid, context: contextLabel(), text: text }).then(function (ok) {
+        save.disabled = false;
+        if (ok) { ta.value = ''; drafts[key] = ''; status.textContent = store.shared ? 'Saved.' : 'Saved in this browser.'; }
+        else status.textContent = store.error;
+      });
+    });
+    save.id = 'note-save';
+    row2.append(save, status);
+    var ul = el('ul', 'lab-notes'); ul.id = 'note-list';
+    det.append(lab, ta, row2, ul);
+    det.addEventListener('toggle', function () { lsSet('vlab.notesOpen', det.open); });
+    box.append(det);
+    renderNotes();
+  }
+  function renderNotes() {
+    var ul = $('#note-list'); if (!ul) return;
+    ul.textContent = '';
+    var key = topicKey();
+    var mine = store.notes.filter(function (n) { return n.topic === key; }).sort(function (a, b) { return (a.at || '') < (b.at || '') ? 1 : -1; });
+    if (!mine.length) { ul.append(el('li', 'lab-empty', 'No notes here yet.')); return; }
+    mine.forEach(function (n) {
+      var li = el('li'), when = '';
+      try { when = new Date(n.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { when = ''; }
+      li.append(el('p', null, n.text), el('span', null, [n.context, when].filter(Boolean).join(' · ')));
+      var del = button('', ICON.x, function () { store.deleteNote(n.id); });
+      del.setAttribute('aria-label', 'Delete note');
+      li.append(del); ul.append(li);
+    });
+  }
+  function changed() {
+    renderNav();
+    Array.prototype.forEach.call(document.querySelectorAll('.lab-pick'), paintPick);
+    renderNotes();
+  }
+
+  function feedbackText() {
+    var lines = ['Cosmo-Local Voucher Lab feedback', '', 'Picks'];
+    QUESTIONS.forEach(function (q) {
+      var p = store.picks[q.id];
+      lines.push('- ' + q.title + ': ' + (p ? letterOf(q.screen, p) + ' · ' + p : 'not picked'));
+    });
+    lines.push('', 'Tweaks');
+    tweaksLine().split('; ').forEach(function (l) { lines.push('- ' + l); });
+    lines.push('', 'Notes');
+    var notes = store.notes.slice().sort(function (a, b) { return (a.at || '') < (b.at || '') ? -1 : 1; });
+    if (!notes.length) lines.push('- none');
+    notes.forEach(function (n) { lines.push('- [' + (n.topicTitle || n.topic) + (n.context ? ' · ' + n.context : '') + '] ' + n.text); });
+    return lines.join('\n');
+  }
+  function copyText(text, btn, label) {
+    var box = $('#copy-fallback');
+    var showBox = function () { box.hidden = false; box.value = text; box.focus(); box.select(); btn.textContent = 'Select and Copy Below'; setTimeout(function () { btn.textContent = label; }, 2500); };
+    try {
+      navigator.clipboard.writeText(text).then(function () { box.hidden = true; btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = label; }, 1800); }, showBox);
+    } catch (e) { showBox(); }
+  }
+  $('#copy-all').addEventListener('click', function () { copyText(feedbackText(), this, 'Copy All Feedback'); });
+  $('#scrim').addEventListener('click', closeNav);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('#nav').classList.contains('is-open')) closeNav(); });
+
+  var raf = 0;
+  if (window.ResizeObserver) new ResizeObserver(function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(layoutStage); }).observe($('#stage'));
+  window.addEventListener('resize', function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(layoutStage); });
+
+  /* Checks every screen in every state draws; used before publishing. */
+  window.__labSelfTest = function () {
+    var errs = [], box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-20000px;top:0;width:1400px';
+    document.body.append(box);
+    var before = errorsLog.length;
+    Object.keys(SCREENS).forEach(function (id) {
+      var S = SCREENS[id]; if (!S.Comp) { errs.push(id + ': did not compile'); return; }
+      var m = S.meta, base = defaultsFor(id), combos = [Object.assign({}, base, { dark: true })];
+      var vo = variantOptions(id) || [null];
+      var sk = m.state ? 'state' : m.dialog ? 'dialog' : m.step ? 'step' : null;
+      vo.forEach(function (v) {
+        (sk ? m[sk].options : [null]).forEach(function (o) { var p = Object.assign({}, base); if (v) p.variant = v; if (sk) p[sk] = o; combos.push(p); });
+      });
+      Object.keys(m).forEach(function (k) {
+        if (k === 'variant' || k === sk || k.charAt(0) === '$') return;
+        if (m[k].editor === 'enum') m[k].options.forEach(function (o) { var p = Object.assign({}, base); p[k] = o; combos.push(p); });
+        if (m[k].editor === 'boolean') { var p = Object.assign({}, base); p[k] = !m[k].default; combos.push(p); }
+      });
+      if (SIMPLE[id]) {
+        // Pilot screens: every combination of their enum props, in every language, plus dark.
+        combos = [Object.assign({}, base, { dark: true })];
+        var dims = Object.keys(m).filter(function (k) { return k.charAt(0) !== '$' && m[k] && m[k].editor === 'enum'; });
+        var grid = [{}];
+        dims.forEach(function (k) { var next = []; grid.forEach(function (g) { m[k].options.forEach(function (o) { var q = Object.assign({}, g); q[k] = o; next.push(q); }); }); grid = next; });
+        LANGS.forEach(function (l) { grid.forEach(function (g) { combos.push(Object.assign({}, base, g, { lang: l })); }); });
+      }
+      combos.forEach(function (p) {
+        var host = document.createElement('div'); box.append(host);
+        mountScreen(id, p, host);
+        var html = host.innerHTML, t = host.textContent;
+        if (!host.querySelector('.gg')) errs.push(id + ' ' + JSON.stringify(p) + ': nothing drawn');
+        if (html.indexOf('{{') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': unfilled hole');
+        if (/\bundefined\b|\bNaN\b|\[object Object\]/.test(t)) errs.push(id + ' ' + JSON.stringify(p) + ': bad text');
+        if (t.indexOf('\u27E6') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': missing copy ' + (t.match(/\u27E6[^\u27E7]*\u27E7/) || [''])[0]);
+        if (SIMPLE[id] && t.indexOf('\u2014') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': em dash in copy');
+        if (SIMPLE[id] && /\{\w+\}/.test(t)) errs.push(id + ' ' + JSON.stringify(p) + ': unfilled placeholder ' + (t.match(/\{\w+\}/) || [''])[0]);
+      });
+    });
+    TWEAKS.forEach(function (t) {
+      t.options.forEach(function (o) {
+        if (o[0] === t.rec) return;
+        (t.screens || Object.keys(SIMPLE)).forEach(function (id) {
+          var p = Object.assign({}, defaultsFor(id), { lang: 'EN', dark: t.key === 'darkcards' }); p[t.key] = o[0];
+          var host = document.createElement('div'); box.append(host);
+          mountScreen(id, p, host);
+          var html = host.innerHTML, tx = host.textContent;
+          if (!host.querySelector('.gg')) errs.push(id + ' ' + t.code + '=' + o[0] + ': nothing drawn');
+          if (html.indexOf('{{') >= 0) errs.push(id + ' ' + t.code + '=' + o[0] + ': unfilled hole');
+          if (/\bundefined\b|\bNaN\b|\[object Object\]/.test(tx) || tx.indexOf('\u27E6') >= 0 || /\{\w+\}/.test(tx)) errs.push(id + ' ' + t.code + '=' + o[0] + ': bad text');
+          if (host.querySelector('.gg').getAttribute('data-' + t.key.toLowerCase()) !== o[0] && ['density', 'chain', 'font', 'ground', 'corners', 'gap', 'darkcards'].indexOf(t.key) >= 0) errs.push(id + ' ' + t.code + '=' + o[0] + ': dial not on the root');
+        });
+      });
+    });
+    FLOWS.forEach(function (f) {
+      f.steps.forEach(function (st, i) {
+        var S = SCREENS[st.screen]; if (!S) { errs.push(f.id + ' step ' + (i + 1) + ': no screen ' + st.screen); return; }
+        Object.keys(st.props).forEach(function (k) { var m = S.meta[k]; if (!m || (m.options && m.options.indexOf(st.props[k]) < 0)) errs.push(f.id + ' step ' + (i + 1) + ': bad ' + k + '=' + st.props[k]); });
+      });
+    });
+    PAIRS.forEach(function (p) {
+      [p.now, p.next].forEach(function (sd) {
+        var S = SCREENS[sd.screen]; if (!S) { errs.push(p.id + ': no screen ' + sd.screen); return; }
+        Object.keys(sd.props).forEach(function (k) { var m = S.meta[k]; if (!m || (m.options && m.options.indexOf(sd.props[k]) < 0)) errs.push(p.id + ': bad ' + k + '=' + sd.props[k]); });
+        if (sd.variant && (variantOptions(sd.screen) || []).indexOf(sd.variant) < 0) errs.push(p.id + ': bad variant ' + sd.variant);
+      });
+    });
+    Object.keys(DOCS).forEach(function (d) { DOCS[d].blocks.forEach(function (bl) { var fid = bl[0] === 'go' ? bl[2] : bl[0] === 'scen' ? bl[3] : undefined; if (fid && !FMAP[fid]) errs.push(d + ': no flow ' + fid); }); });
+    Object.keys(REMAP).forEach(function (k) { if (!SCREENS[k] || !SCREENS[REMAP[k]]) errs.push('remap ' + k); });
+    Object.keys(SCREENS).forEach(function (id) { if (!SHORT[id]) errs.push(id + ': no short name'); });
+    QUESTIONS.forEach(function (q) {
+      var o = variantOptions(q.screen); if (!o || o.indexOf(q.suggest) < 0) errs.push(q.id + ': suggestion not an option');
+      Object.keys(q.preset || {}).forEach(function (k) { var m = SCREENS[q.screen].meta[k]; if (!m || (m.options && m.options.indexOf(q.preset[k]) < 0)) errs.push(q.id + ': bad preset ' + k); });
+    });
+    errorsLog.slice(before).forEach(function (e) { errs.push(e); });
+    box.remove();
+    return errs;
+  };
+
+  /* ---------- Start ---------- */
+  var start = location.hash.replace('#', '');
+  var last = lsGet('vlab.view3', null);
+  if (QMAP[start]) openQuestion(start);
+  else if (FMAP[start]) openFlow(start, 0);
+  else if (PMAP[start]) openPair(start);
+  else if (DOCS[start]) openDoc(start);
+  else if (last && last.mode === 'question' && QMAP[last.id]) openQuestion(last.id);
+  else if (last && last.mode === 'flow' && FMAP[last.id]) openFlow(last.id, last.step || 0);
+  else if (last && last.mode === 'pair' && PMAP[last.id]) openPair(last.id);
+  else if (last && last.mode === 'doc' && DOCS[last.id]) openDoc(last.id);
+  else if (last && last.mode === 'screen' && SCREENS[last.id]) openScreen(last.id);
+  else openPair('p-pay');
+  window.__lab = { openPair: openPair, openQuestion: openQuestion, openFlow: openFlow, openScreen: openScreen, openDoc: openDoc,
+    setLang: function (l) { if (LANGS.indexOf(l) >= 0) { screenLang = l; renderAll(); } },
+    setDark: function (d) { screenDark = !!d; renderAll(); },
+    tweaks: function () { return TWEAKS.map(function (t) { return { key: t.key, code: t.code, label: t.label, rec: t.rec, screens: t.screens || null, options: t.options.map(function (o) { return o[0]; }) }; }); },
+    setTweak: function (k, v) { if (TMAP[k]) { tweaks[k] = v; renderAll(); } },
+    resetTweaks: function () { tweaks = recTweaks(); renderAll(); },
+    setWhole: function (w) { view.whole = !!w; renderStage(); },
+    mount: function (id, props, host) { return mountScreen(id, props, host); },
+    pilotScreens: function () { return Object.keys(SIMPLE); },
+    screenMeta: function (id) { return SCREENS[id] ? { meta: SCREENS[id].meta, w: SCREENS[id].w, h: SCREENS[id].h } : null; },
+    flows: function () { return FLOWS.map(function (f) { return { id: f.id, pilot: !!f.simple, steps: f.steps.map(function (x) { return { screen: x.screen, props: x.props }; }) }; }); } };
+  store.connect();
+})();
+</script>
+</body>
+</html>

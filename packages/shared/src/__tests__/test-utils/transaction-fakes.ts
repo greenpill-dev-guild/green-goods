@@ -8,6 +8,8 @@ import type { EmbeddedSenderDeps } from "../../modules/transactions/embedded-sen
 import type { ContractCall, TransactionSender, TxResult } from "../../modules/transactions/types";
 import type { WalletSender, WalletSenderDeps } from "../../modules/transactions/wallet-sender";
 import type { Address } from "../../types/domain";
+import { withBatchRecovery } from "../../modules/transactions/batch-service";
+import type { BatchBudget, BatchExecution } from "../../modules/transactions/batch-types";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "./mock-factories";
 
 export const MOCK_CONTRACT_ABI = [
@@ -51,7 +53,6 @@ export function createMockTransactionSender(
     supportsBatching = false,
     supportsSponsorship = authMode === "passkey",
     sendContractCall: sendContractCallOverride,
-    sendBatch,
     result = { hash: MOCK_TX_HASH, sponsored: supportsSponsorship },
     fail,
   } = options;
@@ -68,7 +69,6 @@ export function createMockTransactionSender(
     supportsBatching,
     supportsSponsorship,
     sendContractCall,
-    ...(sendBatch ? { sendBatch: vi.fn(sendBatch) } : {}),
   };
 }
 
@@ -80,6 +80,7 @@ export type FakeSmartAccountClient = SmartAccountClient & {
   waitForUserOperationReceipt: ReturnType<
     typeof vi.fn<SmartAccountClient["waitForUserOperationReceipt"]>
   >;
+  getUserOperationReceipt: ReturnType<typeof vi.fn<SmartAccountClient["getUserOperationReceipt"]>>;
 };
 
 export interface FakeSmartAccountClientOptions {
@@ -142,12 +143,14 @@ export function createFakeSmartAccountClient(
       userOpHash: hash,
       sender: accountAddress,
       success: true,
+      logs: [],
       receipt: { status: "success", transactionHash: hash },
     })),
     getUserOperationReceipt: vi.fn(async ({ hash }: { hash: Hex }) => ({
       userOpHash: hash,
       sender: accountAddress,
       success: true,
+      logs: [],
       receipt: { status: "success", transactionHash: hash },
     })),
   };
@@ -162,10 +165,11 @@ export interface FakeWagmiDeps extends WalletSenderDeps, EmbeddedSenderDeps {
   writeContractAsync: ReturnType<typeof vi.fn<WalletWriteContract>>;
   writeContract: ReturnType<typeof vi.fn<EmbeddedSenderDeps["writeContract"]>>;
   waitForTransactionReceipt: ReturnType<
-    typeof vi.fn<WalletSenderDeps["waitForTransactionReceipt"]>
+    typeof vi.fn<NonNullable<WalletSenderDeps["waitForTransactionReceipt"]>>
   >;
   assertWriteSafety: ReturnType<typeof vi.fn<NonNullable<WalletSenderDeps["assertWriteSafety"]>>>;
   ensureWalletChain: ReturnType<typeof vi.fn<NonNullable<WalletSenderDeps["ensureWalletChain"]>>>;
+  readWalletAnswer: ReturnType<typeof vi.fn<NonNullable<WalletSenderDeps["readWalletAnswer"]>>>;
 }
 
 export interface FakeWagmiDepsOptions {
@@ -191,7 +195,7 @@ export function createFakeWagmiDeps(options: FakeWagmiDepsOptions = {}): FakeWag
     writeContractAsync,
     writeContract,
     waitForTransactionReceipt: vi
-      .fn<WalletSenderDeps["waitForTransactionReceipt"]>()
+      .fn<NonNullable<WalletSenderDeps["waitForTransactionReceipt"]>>()
       .mockResolvedValue({ status: receiptStatus }),
     // A wallet is connected, unless a test says otherwise: a send needs one.
     getAccount: () => ({ address: MOCK_ADDRESSES.deployer }),
@@ -201,5 +205,64 @@ export function createFakeWagmiDeps(options: FakeWagmiDepsOptions = {}): FakeWag
     ensureWalletChain: vi
       .fn<NonNullable<WalletSenderDeps["ensureWalletChain"]>>()
       .mockResolvedValue(),
+    // A plain account answers with a transaction; a test of a Safe says otherwise.
+    readWalletAnswer: vi
+      .fn<NonNullable<WalletSenderDeps["readWalletAnswer"]>>()
+      .mockResolvedValue("transaction"),
   };
+}
+
+export function createMockBatchBudget(overrides: Partial<BatchBudget> = {}): BatchBudget {
+  return {
+    maxCalls: 10,
+    maxCalldataBytes: 65536,
+    maxGas: "5000000",
+    maxFeePerGas: "1000000000",
+    maxFee: "5000000000000000",
+    sponsorship: "wallet",
+    ...overrides,
+  };
+}
+
+/**
+ * A passkey sender over the real batch engine and a real journal, whose send ends with `execution`.
+ * The journal outlives each test, so give every test its own account.
+ */
+export function createFakeBatchingSender(
+  account: Address,
+  execution: Partial<BatchExecution> = {}
+) {
+  const hash = `0x${"ab".repeat(32)}` as const;
+  const reference = { kind: "user-operation", hash, account, chainId: 42161 } as const;
+  const outcome = { status: "unresolved", reference, receipts: [], sponsored: true, ...execution };
+  return withBatchRecovery({
+    authMode: "passkey",
+    supportsSponsorship: true,
+    supportsBatching: true,
+    // The path a `single-call` batch takes.
+    sendContractCall: vi.fn(async (_call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash });
+      return {
+        hash,
+        sponsored: true,
+        broadcastReference: { kind: "user-operation", hash },
+        ...(outcome.status === "confirmed" ? {} : { confirmation: "pending" }),
+      } as TxResult;
+    }),
+    getBatchCapability: vi.fn(async (scope) => ({ ...scope, atomic: "supported" })),
+    preflightBatch: async () => ({
+      gas: "1600000",
+      maxFeePerGas: "30000000",
+      maxFee: "48000000000000",
+      sponsored: true,
+      authority: "user-operation",
+    }),
+    submitAtomicBatch: vi.fn(async (_calls, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash });
+      await options?.onBatchReference?.(reference);
+      return outcome as BatchExecution;
+    }),
+    reconcileBatch: vi.fn(async () => outcome as BatchExecution),
+  } as TransactionSender);
 }

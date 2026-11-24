@@ -198,7 +198,7 @@ const SILENT_CONTROLS = '[role="combobox"], [data-pressable="scrim"]';
  * `data-pressable`), so a new control answers without asking and never calls
  * a haptic itself. Text fields, dropdowns, backdrops, disabled controls, and
  * clicks the app makes itself stay silent. A surface opts in by installing
- * this (the installed PWA does; the admin cockpit and the public website stay
+ * this (the installed PWA does; the Hub and the public website stay
  * silent). Returns the function that removes it.
  *
  * Outcome haptics (success, error, warning) stay with the code that knows the

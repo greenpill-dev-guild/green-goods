@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer paid with vouchers</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: 130px">
+    <div class="topnav">
+      <a class="close" href="Visit.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <span class="mid">Sunroot Skills Hub</span>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>Offer · Sunroot Skills Hub</span>
+      <h1>Solar basics course, 10 lessons</h1>
+      <p class="para">Hands-on lessons on small solar setups for garden sheds and pumps. Weekly, in person at Sunroot.</p>
+    </div>
+
+    <div class="mx16" style="margin-top: 16px">
+      <div class="ticket sun">
+        <span class="tk"><span>Pay with vouchers</span><span>On Gnosis</span></span>
+        <span class="ta">100</span>
+        <span class="tu">Sunroot vouchers, issued by Sunroot Skills Hub</span>
+        <span class="tline"></span>
+        <span style="display: flex; justify-content: space-between; font-size: 13px"><span>You hold</span><b>{{held}}</b></span>
+      </div>
+    </div>
+
+    <div class="stack" style="margin-top: 12px">
+      <sc-if value="{{short}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>You need 20 more Sunroot vouchers</span><p>Buy them at Sunroot's voucher exchange or earn them through promises.</p></div></sc-if>
+      <sc-if value="{{noWallet}}" hint-placeholder-val="{{false}}"><div class="notice info"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-wallet-3-line"/></svg>Connect the wallet that holds your vouchers</span><p>Your vouchers live on Gnosis. Your Green Goods passkey can't sign there yet, so a separate wallet holds them.</p></div></sc-if>
+      <sc-if value="{{paused}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-pause-circle-line"/></svg>Sunroot isn't taking new voucher promises right now</span><p>Vouchers you already placed in escrow are not affected.</p></div></sc-if>
+    </div>
+
+    <div class="sec"><h2>How it works</h2></div>
+    <div class="mx16 card">
+      <div class="facts">
+        <div class="fact"><span class="k">Sunroot accepts within</span><span class="v">3 days after your vouchers are in escrow</span></div>
+        <div class="fact"><span class="k">Starts</span><span class="v">Within 2 weeks of acceptance</span></div>
+        <div class="fact"><span class="k">If lessons are missed</span><span class="v">The final split returns vouchers to you, up to all 100, as Sunroot authorizes</span></div>
+      </div>
+    </div>
+    <p class="small mx16" style="margin-top: 10px">Lessons and vouchers are counted separately. The split isn't a price per lesson.</p>
+  </div>
+  <div class="fbar">
+    <sc-if value="{{canGo}}" hint-placeholder-val="{{true}}"><a class="btn" href="VSetup.dc.html">Take Up with Vouchers</a></sc-if>
+    <sc-if value="{{short}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>Take Up with Vouchers</button><a class="btn sec" href="Exchange.dc.html">Get Sunroot Vouchers</a></sc-if>
+    <sc-if value="{{noWallet}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Connect Gnosis Wallet</button></sc-if>
+    <sc-if value="{{paused}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>Paused</button></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Open","Not enough","No wallet","Paused"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var st = this.props.state ?? 'Open';
+    var dark = this.props.dark ?? false;
+    var held = { 'Open': '120 in your Gnosis wallet', 'Not enough': '80 in your Gnosis wallet', 'No wallet': 'Wallet not connected', 'Paused': '120 in your Gnosis wallet' };
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      held: held[st], canGo: st === 'Open', short: st === 'Not enough', noWallet: st === 'No wallet', paused: st === 'Paused',
+    };
+  }
+}
+</script>
+</body>
+</html>

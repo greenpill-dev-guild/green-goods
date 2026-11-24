@@ -1,0 +1,201 @@
+{
+  "chromium": "148.0.7778.96",
+  "A_related_origins": {
+    "passkeysOnDevice": [
+      {
+        "rpId": "beta.greengoods.app",
+        "resident": true
+      }
+    ],
+    "signInOnBeta": {
+      "failed": false,
+      "value": {
+        "id": "ap7Vbj2CxfoUesrPKblP658e3UXHCceJWchoOVHmE8Q",
+        "signingId": "ap7Vbj2CxfoUesrPKblP658e3UXHCceJWchoOVHmE8Q",
+        "publicKey": "0x412ef047e1ddf3b1914a331ee2872e8ee3b9efa77d769d8881493536fe64d25b08757903b0561abb56cdb24a3912606bebacf0b6d08024ce0c1f9c79e54594b7",
+        "rpId": "beta.greengoods.app"
+      }
+    },
+    "signInOnBetaWithHexStoredId": {
+      "failed": true,
+      "name": "NotAllowedError",
+      "message": "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client."
+    },
+    "signInOnWww": {
+      "failed": false,
+      "value": {
+        "id": "ap7Vbj2CxfoUesrPKblP658e3UXHCceJWchoOVHmE8Q",
+        "signingId": "ap7Vbj2CxfoUesrPKblP658e3UXHCceJWchoOVHmE8Q",
+        "publicKey": "0x412ef047e1ddf3b1914a331ee2872e8ee3b9efa77d769d8881493536fe64d25b08757903b0561abb56cdb24a3912606bebacf0b6d08024ce0c1f9c79e54594b7",
+        "rpId": "beta.greengoods.app"
+      }
+    },
+    "signInOnWwwWithHexStoredId": {
+      "failed": true,
+      "name": "NotAllowedError",
+      "message": "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client."
+    },
+    "signInOnAdmin": {
+      "failed": false,
+      "value": {
+        "id": "ap7Vbj2CxfoUesrPKblP658e3UXHCceJWchoOVHmE8Q",
+        "signingId": "ap7Vbj2CxfoUesrPKblP658e3UXHCceJWchoOVHmE8Q",
+        "publicKey": "0x412ef047e1ddf3b1914a331ee2872e8ee3b9efa77d769d8881493536fe64d25b08757903b0561abb56cdb24a3912606bebacf0b6d08024ce0c1f9c79e54594b7",
+        "rpId": "beta.greengoods.app"
+      }
+    },
+    "adoptionAttemptFromWww": {
+      "failed": false,
+      "value": {
+        "ok": false,
+        "code": "wrong_site"
+      }
+    },
+    "wellKnownFetches": [
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      }
+    ]
+  },
+  "A_control_off": {
+    "signInOnWww": {
+      "failed": true,
+      "name": "SecurityError",
+      "message": "The relying party ID is not a registrable domain suffix of, nor equal to the current domain. Subsequently, an attempt to fetch the .well-known/webauthn resource of the claimed RP ID failed."
+    }
+  },
+  "A_control_admin-only": {
+    "signInOnWww": {
+      "failed": true,
+      "name": "SecurityError",
+      "message": "The relying party ID is not a registrable domain suffix of, nor equal to the current domain. Subsequently, fetching the .well-known/webauthn resource of the claimed RP ID was successful, but no listed origin matched the caller."
+    }
+  },
+  "C_adoption": {
+    "passkeysOnDevice": [
+      {
+        "rpId": "greengoods.app",
+        "resident": true
+      }
+    ],
+    "legacyStoredRpId": "greengoods.app",
+    "adoption": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target",
+          "entry": {
+            "userName": "legacy-gardener",
+            "id": "Ty-A3M7niueooej6vmLi9tU_z1kWlhv5Ot8liwoZWkw",
+            "signingId": "Ty-A3M7niueooej6vmLi9tU_z1kWlhv5Ot8liwoZWkw",
+            "rpId": "greengoods.app",
+            "origin": "https://www.greengoods.app"
+          }
+        },
+        "replay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "adoptionWithWrongKey": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": false,
+          "code": "verification_failed",
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target"
+        },
+        "replay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "adoptionOfTakenName": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": false,
+          "code": "name_taken"
+        },
+        "replay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "rememberedOnAdmin": {
+      "credential": null,
+      "rpId": null
+    },
+    "signInOnAdmin": {
+      "failed": false,
+      "value": {
+        "id": "Ty-A3M7niueooej6vmLi9tU_z1kWlhv5Ot8liwoZWkw",
+        "signingId": "Ty-A3M7niueooej6vmLi9tU_z1kWlhv5Ot8liwoZWkw",
+        "publicKey": "0x75d133058c932d5dbc8be79da12a2b166bcce94f7ff0d50f7a474ea7398b26f9c2bd5b6c9d91724ab9c250cd05f30fd89cab45ec6a5dcb7df147a476097111c9",
+        "rpId": "greengoods.app"
+      }
+    },
+    "signInOnBeta": {
+      "failed": false,
+      "value": {
+        "id": "Ty-A3M7niueooej6vmLi9tU_z1kWlhv5Ot8liwoZWkw",
+        "signingId": "Ty-A3M7niueooej6vmLi9tU_z1kWlhv5Ot8liwoZWkw",
+        "publicKey": "0x75d133058c932d5dbc8be79da12a2b166bcce94f7ff0d50f7a474ea7398b26f9c2bd5b6c9d91724ab9c250cd05f30fd89cab45ec6a5dcb7df147a476097111c9",
+        "rpId": "greengoods.app"
+      }
+    }
+  },
+  "D_same_account": {
+    "rpc": "arb1.arbitrum.io",
+    "fromStoredCredential": "0xa966A9232c4173ed7f3a6C2e3DACDfF4f332cd5a",
+    "fromAdoptedEntry": "0xa966A9232c4173ed7f3a6C2e3DACDfF4f332cd5a",
+    "equal": true
+  },
+  "E_validator": {
+    "rpc": "arb1.arbitrum.io",
+    "magicValue": "0x1626ba7e",
+    "rows": [
+      {
+        "label": "beta passkey, signed on beta",
+        "result": "0x1626ba7e",
+        "tamperedHash": "0xffffffff"
+      },
+      {
+        "label": "beta passkey, signed on www through related origins",
+        "result": "0x1626ba7e",
+        "tamperedHash": "0xffffffff"
+      },
+      {
+        "label": "adopted apex passkey, signed on admin",
+        "result": "0x1626ba7e",
+        "tamperedHash": "0xffffffff"
+      }
+    ]
+  }
+}

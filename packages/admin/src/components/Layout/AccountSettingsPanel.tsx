@@ -1,21 +1,29 @@
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { SheetDivider } from "@green-goods/shared/components/Canvas/SheetDivider";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { getChainName } from "@green-goods/shared/config/chains";
 import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import { isStandaloneMode } from "@green-goods/shared/utils/app/pwa";
 import { getBlockExplorer } from "@green-goods/shared/utils/blockchain/chain-registry";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
-import type { ReactNode } from "react";
+import {
+  RiComputerLine,
+  RiExternalLinkLine,
+  RiMoonLine,
+  RiRefreshLine,
+  RiSunLine,
+} from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
 import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
 
 const THEME_OPTIONS = [
-  { value: "light" as const, icon: RiSunLine, labelId: "cockpit.settings.lightMode" },
-  { value: "dark" as const, icon: RiMoonLine, labelId: "cockpit.settings.darkMode" },
-  { value: "system" as const, icon: RiComputerLine, labelId: "cockpit.settings.systemMode" },
+  { value: "light" as const, icon: RiSunLine, labelId: "hub.settings.lightMode" },
+  { value: "dark" as const, icon: RiMoonLine, labelId: "hub.settings.darkMode" },
+  { value: "system" as const, icon: RiComputerLine, labelId: "hub.settings.systemMode" },
 ];
 
 /** Native-name labels — a language is its own proper noun, never translated. */
@@ -26,19 +34,26 @@ const LOCALE_LABELS: Record<string, string> = {
 };
 
 const DOCS_URL = "https://docs.greengoods.app";
-const SUPPORT_TELEGRAM_URL = "https://t.me/+N3o3_43iRec1Y2Jh";
+/** The website's Contact page: the support route since the Discord invite was retired (PRD-1614). */
+const SUPPORT_URL = "https://greengoods.app/contact";
 
 interface AccountSettingsPanelProps {
   /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
   layout?: AccountPanelLayout;
   className?: string;
+  /**
+   * Whether the Hub runs as an installed app, read from the display mode by default. An
+   * installed app has no reload control of its own, and iOS gives it no pull to refresh,
+   * so About offers a Refresh there (PRD-1534).
+   */
+  installed?: boolean;
 }
 
 function SettingsSectionHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div>
-      <h2 className="body-sm font-semibold text-text-strong">{title}</h2>
-      {description ? <p className="mt-1 body-sm text-text-sub">{description}</p> : null}
+      <h2 className="type-body font-semibold text-text-strong">{title}</h2>
+      {description ? <p className="mt-1 type-body text-text-sub">{description}</p> : null}
     </div>
   );
 }
@@ -51,22 +66,13 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
       rel="noopener noreferrer"
       className={cn(
         "flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2",
-        "body-sm font-medium text-text-strong transition-colors hover:bg-bg-soft",
+        "type-body font-medium text-text-strong transition-colors hover:bg-bg-soft",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
       )}
     >
       <span>{label}</span>
       <RiExternalLinkLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden="true" />
     </a>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2">
-      <span className="body-sm font-medium text-text-strong">{label}</span>
-      <span className="body-sm tabular-nums text-text-sub">{value}</span>
-    </div>
   );
 }
 
@@ -78,22 +84,30 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }) {
  * About. Identity actions (Disconnect) live in the Account panel — settings
  * hold preferences, not who-you-are.
  */
-export function AccountSettingsPanel({ layout = "sheet", className }: AccountSettingsPanelProps) {
+export function AccountSettingsPanel({
+  layout = "sheet",
+  className,
+  installed = isStandaloneMode(),
+}: AccountSettingsPanelProps) {
   const { formatMessage } = useIntl();
   const { theme, setTheme } = useTheme();
   const { locale, availableLocales, switchLanguage } = useApp();
   const appVersion = import.meta.env.VITE_APP_VERSION || "dev";
   const chainName = getChainName(DEFAULT_CHAIN_ID);
+  const refreshLabel = formatMessage({
+    id: "hub.settings.refreshAction",
+    defaultMessage: "Refresh the Hub",
+  });
 
   return (
     <SheetBody {...accountPanelBodyProps(layout, className)}>
       {/* Appearance */}
       <section className="space-y-3">
         <SettingsSectionHeader
-          title={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
+          title={formatMessage({ id: "hub.settings.theme", defaultMessage: "Theme" })}
         />
         <AdminChoiceGroup
-          ariaLabel={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
+          ariaLabel={formatMessage({ id: "hub.settings.theme", defaultMessage: "Theme" })}
           value={theme}
           onChange={(nextTheme) => setTheme(nextTheme as typeof theme)}
           columns={3}
@@ -110,14 +124,14 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
       {/* Language */}
       <section className="space-y-3">
         <SettingsSectionHeader
-          title={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
+          title={formatMessage({ id: "hub.settings.language", defaultMessage: "Language" })}
           description={formatMessage({
-            id: "cockpit.settings.languageDescription",
-            defaultMessage: "Choose the language for the steward canvas.",
+            id: "hub.settings.languageDescription",
+            defaultMessage: "Choose the language for the Green Goods Hub.",
           })}
         />
         <AdminChoiceGroup
-          ariaLabel={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
+          ariaLabel={formatMessage({ id: "hub.settings.language", defaultMessage: "Language" })}
           value={locale}
           onChange={(nextLocale) => switchLanguage(nextLocale as Locale)}
           columns={3}
@@ -134,13 +148,18 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
       {/* Network — build-time chain truth with an explorer escape hatch. */}
       <section className="space-y-3">
         <SettingsSectionHeader
-          title={formatMessage({ id: "cockpit.settings.chainInfo", defaultMessage: "Network" })}
+          title={formatMessage({ id: "hub.settings.chainInfo", defaultMessage: "Network" })}
         />
-        <InfoRow label={chainName} value={`Chain ID ${DEFAULT_CHAIN_ID}`} />
+        <FactList frame="inset">
+          <FactRow
+            label={chainName}
+            value={<span className="tabular-nums">{`Chain ID ${DEFAULT_CHAIN_ID}`}</span>}
+          />
+        </FactList>
         <ExternalLinkRow
           href={getBlockExplorer(DEFAULT_CHAIN_ID)}
           label={formatMessage({
-            id: "cockpit.account.viewOnExplorer",
+            id: "hub.account.viewOnExplorer",
             defaultMessage: "View on Explorer",
           })}
         />
@@ -151,19 +170,43 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
       {/* About */}
       <section className="space-y-3">
         <SettingsSectionHeader
-          title={formatMessage({ id: "cockpit.settings.about", defaultMessage: "About" })}
+          title={formatMessage({ id: "hub.settings.about", defaultMessage: "About" })}
         />
-        <InfoRow
-          label={formatMessage({ id: "cockpit.settings.version", defaultMessage: "Version" })}
-          value={appVersion}
-        />
+        <FactList frame="inset">
+          <FactRow
+            label={formatMessage({ id: "hub.settings.version", defaultMessage: "Version" })}
+            value={<span className="tabular-nums">{appVersion}</span>}
+          />
+          {installed ? (
+            <FactRow
+              label={formatMessage({ id: "hub.settings.refresh", defaultMessage: "Refresh" })}
+              description={formatMessage({
+                id: "hub.settings.refreshDescription",
+                defaultMessage: "Reload the Hub. You stay signed in.",
+              })}
+              action={
+                <IconButton
+                  type="button"
+                  emphasis="secondary"
+                  size="sm"
+                  icon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
+                  aria-label={refreshLabel}
+                  title={refreshLabel}
+                  // A plain reload keeps the session, drafts and the query cache: no
+                  // cache clearing and no service-worker reset (PRD-1534).
+                  onClick={() => window.location.reload()}
+                />
+              }
+            />
+          ) : null}
+        </FactList>
         <ExternalLinkRow
           href={DOCS_URL}
-          label={formatMessage({ id: "cockpit.settings.docs", defaultMessage: "Documentation" })}
+          label={formatMessage({ id: "hub.settings.docs", defaultMessage: "Documentation" })}
         />
         <ExternalLinkRow
-          href={SUPPORT_TELEGRAM_URL}
-          label={formatMessage({ id: "cockpit.settings.support", defaultMessage: "Support" })}
+          href={SUPPORT_URL}
+          label={formatMessage({ id: "hub.settings.support", defaultMessage: "Support" })}
         />
       </section>
     </SheetBody>

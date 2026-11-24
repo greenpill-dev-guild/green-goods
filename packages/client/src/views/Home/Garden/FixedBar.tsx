@@ -14,7 +14,7 @@ export function FixedBar({ children }: { children: React.ReactNode }) {
       <div
         aria-hidden="true"
         data-component="FixedBarSpacer"
-        className={barHeight === null ? "h-[calc(112px+env(safe-area-inset-bottom))]" : undefined}
+        className={barHeight === null ? "h-[calc(112px+var(--safe-area-bottom))]" : undefined}
         style={barHeight === null ? undefined : { height: barHeight }}
       />
       <div

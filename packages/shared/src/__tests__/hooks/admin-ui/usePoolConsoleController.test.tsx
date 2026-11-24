@@ -1,11 +1,23 @@
 /** @vitest-environment happy-dom */
 
-import { focusManager, onlineManager, QueryClient } from "@tanstack/react-query";
+import {
+  focusManager,
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
+import { type Config, WagmiContext } from "wagmi";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "../../../config/query-keys";
-import { usePoolConsoleController } from "../../../hooks/admin-ui/pool/usePoolConsoleController";
+import {
+  usePoolConsoleController,
+  useVoucherConsole,
+  VOUCHER_START_IDLE,
+} from "../../../hooks/admin-ui/pool/usePoolConsoleController";
 import type { CommitmentMutationInput } from "../../../hooks/commitment-pooling/useCommitmentMutations";
 import type { CommitmentPoolMutationInput } from "../../../hooks/commitment-pooling/useCommitmentPoolMutations";
 import type { CommitmentQueueState } from "../../../hooks/commitment-pooling/useCommitmentQueueState";
@@ -24,12 +36,20 @@ import {
 } from "../../../modules/commitment-pooling/demo/demo-builders";
 import type { HexString } from "../../../modules/commitment-pooling/types";
 import {
+  selectVoucherAskStage,
+  type VoucherAsk,
+  type VoucherBooking,
+  type VoucherConsoleSnapshot,
+} from "../../../modules/commitment-pooling/voucher-console";
+import { claimActKey } from "../../../modules/transactions/act-phase";
+import {
   availableCapability,
   commitmentFixture,
   cycleFixture,
   poolClaimRowFixture,
   poolFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
+import esMessages from "../../../i18n/es.json";
 import { createTestWrapper } from "../../test-utils/render-helpers";
 
 type PoolMutate = (input: CommitmentPoolMutationInput) => Promise<HexString>;
@@ -60,9 +80,12 @@ const mocks = vi.hoisted(() => ({
   poolPending: false,
   commitmentPending: false,
   fundingRefetch: vi.fn(),
-  sender: { authMode: "wallet" },
+  sender: { authMode: "wallet", sendContractCall: vi.fn() },
+  prepareStart: vi.fn(),
   retryQueuedCommitmentJob: vi.fn(),
   discardJob: vi.fn(),
+  getBlock: vi.fn(),
+  handlerConfigs: [] as Array<{ source: string } & Record<string, unknown>>,
   reportError: vi.fn(),
 }));
 
@@ -108,12 +131,29 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", async (importOrig
   retryQueuedCommitmentJob: mocks.retryQueuedCommitmentJob,
 }));
 
+// Each start send reads the booking from the chain; here the read hands the next send directly.
+vi.mock("../../../modules/commitment-pooling/voucher-console-live", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("../../../modules/commitment-pooling/voucher-console-live")
+  >()),
+  prepareVoucherStartSend: mocks.prepareStart,
+}));
+
 vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: { discardJob: mocks.discardJob },
 }));
 
 vi.mock("../../../utils/errors/mutation-error-handler", () => ({
-  createMutationErrorHandler: () => mocks.reportError,
+  createMutationErrorHandler: (config: { source: string } & Record<string, unknown>) => {
+    mocks.handlerConfigs.push(config);
+    return mocks.reportError;
+  },
+}));
+
+// The chain's latest block is the edge an acceptance reads its time from.
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
+  getBlock: mocks.getBlock,
 }));
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
@@ -177,6 +217,27 @@ const COMMITMENT = commitmentFixture({
 });
 const CLAIM = poolClaimRowFixture({ commitment: COMMITMENT });
 
+/** A booking asked on the console's promise, ready to accept unless `setup` says otherwise. */
+function voucherAsk(at: number, setup: Partial<NonNullable<VoucherAsk["setup"]>> = {}): VoucherAsk {
+  return {
+    commitmentId: COMMITMENT.commitmentId,
+    buyer: CLAIMANT,
+    claimHash: `0x${"c1".repeat(32)}`,
+    agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
+    current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
+    agreedAt: at - 172_800,
+    issuer: { kind: "collective", name: "Tech and Sun", chainId: 100, safe: GARDEN, decimals: 6 },
+    setup: {
+      voucherUnits: 1_000_000n,
+      approvedAt: at - 86_400,
+      depositedUnits: 1_000_000n,
+      depositConfirmed: true,
+      acceptBy: at + 432_000,
+      ...setup,
+    },
+  };
+}
+
 const poolsKey = queryKeys.commitmentPooling.pools(CHAIN_ID, GARDEN);
 const cyclesKey = queryKeys.commitmentPooling.cycles(CHAIN_ID, POOL_ID);
 const commitmentsKey = queryKeys.commitmentPooling.commitments(CHAIN_ID, {
@@ -196,7 +257,11 @@ function queueState(overrides: Partial<CommitmentQueueState> = {}): CommitmentQu
     pendingCreates: [],
     proofJobs: [],
     linkedWorkIds: new Set<string>(),
+    takeUpIds: new Set<string>(),
+    failedLinkWorkIds: new Set<string>(),
     isUnavailable: false,
+    isLoading: false,
+    isFetching: false,
     refresh: vi.fn(),
     ...overrides,
   };
@@ -238,8 +303,22 @@ function renderController(queryClient: QueryClient) {
   });
 }
 
+/** The console where the app's wallet runtime mounts, so an act can read the chain's time. */
+function renderControllerOnChain(queryClient: QueryClient) {
+  const Base = createTestWrapper(queryClient);
+  return renderHook(() => usePoolConsoleController({ chainId: CHAIN_ID, garden: GARDEN }), {
+    wrapper: ({ children }: { children: ReactNode }) =>
+      createElement(
+        Base,
+        null,
+        createElement(WagmiContext.Provider, { value: {} as Config }, children)
+      ),
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.handlerConfigs.length = 0;
   mocks.viewer = TUNDE;
   mocks.isOnline = true;
   mocks.poolPending = false;
@@ -273,6 +352,14 @@ afterEach(() => {
   focusManager.setFocused(true);
   onlineManager.setOnline(true);
 });
+
+/** The callbacks a tracked act forwards to its send: the line's broadcast, a Safe's answer, and Cancel (PRD-1551). */
+const ACT_SEND = {
+  onBroadcast: expect.any(Function),
+  onAwaiting: expect.any(Function),
+  onUnconfirmed: expect.any(Function),
+  signal: expect.any(AbortSignal),
+};
 
 describe("usePoolConsoleController", () => {
   it("projects the seeded reads and filters pending creates to the active pool", async () => {
@@ -437,17 +524,19 @@ describe("usePoolConsoleController", () => {
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
 
     const { result } = renderController(queryClient);
-    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === 2_147_483_647)).toBe(true);
+    const cappedTimer = setTimeoutSpy.mock.calls.find(([, delay]) => delay === 2_147_483_647)?.[0];
+    expect(cappedTimer).toEqual(expect.any(Function));
     expect(result.current.model.dueLive).toEqual([]);
 
     dateNow.mockReturnValue(NOW * 1000 + 2_147_483_647);
-    act(() => vi.runOnlyPendingTimers());
+    act(() => (cappedTimer as () => void)());
     expect(result.current.model.dueLive).toEqual([]);
     const remaining = (farDue + 1) * 1000 - (NOW * 1000 + 2_147_483_647);
-    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === remaining)).toBe(true);
+    const rearmedTimer = setTimeoutSpy.mock.calls.find(([, delay]) => delay === remaining)?.[0];
+    expect(rearmedTimer).toEqual(expect.any(Function));
 
     dateNow.mockReturnValue((farDue + 1) * 1000);
-    act(() => vi.runOnlyPendingTimers());
+    act(() => (rearmedTimer as () => void)());
     expect(result.current.model.dueLive).toEqual([due]);
   });
 
@@ -555,7 +644,7 @@ describe("usePoolConsoleController", () => {
     expect(mocks.poolMutate.mock.calls.map(([input]) => input)).toEqual([
       { action: "pausePool", poolId: POOL_ID, reason: "Maintenance", gardenAddress: GARDEN },
       // Resume follows its own send, so the status card can say where it stands.
-      { action: "resumePool", poolId: POOL_ID, send: { onBroadcast: expect.any(Function) } },
+      { action: "resumePool", poolId: POOL_ID, send: ACT_SEND },
       { action: "closePool", poolId: POOL_ID },
       { action: "compostPool", poolId: POOL_ID },
       { action: "reopenPool", poolId: POOL_ID, toOpen: false },
@@ -575,7 +664,7 @@ describe("usePoolConsoleController", () => {
         action: "acceptClaim",
         commitmentId: 31n,
         claimant: CLAIMANT,
-        send: { onBroadcast: expect.any(Function) },
+        send: ACT_SEND,
       },
       {
         action: "declineClaim",
@@ -585,6 +674,269 @@ describe("usePoolConsoleController", () => {
         gardenAddress: GARDEN,
       },
     ]);
+  });
+
+  it("accepts a voucher booking through acceptServiceClaim, refusing before the wallet while a check fails", async () => {
+    const at = 1_761_600_000;
+    vi.spyOn(Date, "now").mockReturnValue(at * 1000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(at) });
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient);
+    const { result } = renderControllerOnChain(queryClient);
+    const booking = voucherAsk(at, { depositConfirmed: false });
+
+    // The deposit hasn't reached Green Goods: the contract would refuse, so the wallet never asks.
+    await expect(result.current.acts.acceptServiceClaim(booking, at)).rejects.toThrow(
+      "This booking isn't ready to accept"
+    );
+    expect(mocks.commitmentMutate).not.toHaveBeenCalled();
+
+    const ready = { ...booking, setup: { ...booking.setup!, depositConfirmed: true } };
+    await act(async () => {
+      await result.current.acts.acceptServiceClaim(ready, at);
+    });
+    expect(mocks.commitmentMutate.mock.calls.map(([input]) => input)).toEqual([
+      {
+        action: "acceptServiceClaim",
+        commitmentId: COMMITMENT.commitmentId,
+        buyer: CLAIMANT,
+        expectedClaimHash: ready.claimHash,
+        send: ACT_SEND,
+      },
+    ]);
+    // It is the ask's decision, on the same line Approve uses, so its row keeps the outcome.
+    expect(
+      result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
+    ).toMatchObject({ kind: "approved", commitmentId: COMMITMENT.commitmentId.toString() });
+  });
+
+  // A tab left open across the deadline hands the act the time its dialog last drew, and a clock
+  // whose calibration is still pending stands in with the device's own (Codex on #1320 and on
+  // #1352): the act reads the chain's latest block as it starts.
+  it("judges an acceptance on the chain's latest block as the act starts, not on a slow device", async () => {
+    const at = 1_761_600_000;
+    const ready = voucherAsk(at);
+    const acceptBy = ready.setup!.acceptBy;
+    // The device runs ten minutes slow; the chain is half a minute past the deadline.
+    vi.spyOn(Date, "now").mockReturnValue((acceptBy - 600) * 1000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(acceptBy + 30) });
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient);
+    const { result } = renderControllerOnChain(queryClient);
+
+    await expect(result.current.acts.acceptServiceClaim(ready, acceptBy - 600)).rejects.toThrow(
+      "This booking isn't ready to accept"
+    );
+    expect(mocks.commitmentMutate).not.toHaveBeenCalled();
+  });
+
+  it("refuses an acceptance while the chain's time can't be read", async () => {
+    const at = 1_761_600_000;
+    vi.spyOn(Date, "now").mockReturnValue(at * 1000);
+    mocks.getBlock.mockRejectedValue(new Error("RPC unavailable"));
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient);
+    const { result } = renderControllerOnChain(queryClient);
+
+    await expect(result.current.acts.acceptServiceClaim(voucherAsk(at), at)).rejects.toThrow(
+      "The chain's time can't be read right now, so nothing was accepted"
+    );
+    expect(mocks.commitmentMutate).not.toHaveBeenCalled();
+  });
+
+  describe("Accept and Start (DL-193)", () => {
+    const SETUP_ID = `0x${"5e".repeat(32)}` as const;
+    const at = 1_761_600_000;
+    const call = (functionName: string) => ({ functionName, account: TUNDE });
+    const sends = [
+      {
+        state: { kind: "send", act: { action: "finalizeVoucherActivation" } },
+        call: call("finalizeActivation"),
+      },
+      {
+        state: {
+          kind: "send",
+          act: { action: "dispatchVoucherSetupCommand", kind: "decision", reviewedNativeFee: 9n },
+        },
+        call: call("dispatchSetupCommand"),
+      },
+    ];
+    const ready = () => voucherAsk(at, { setupId: SETUP_ID });
+    const render = () => {
+      vi.spyOn(Date, "now").mockReturnValue(at * 1000);
+      mocks.getBlock.mockResolvedValue({ timestamp: BigInt(at) });
+      const queryClient = testQueryClient();
+      seedControllerQueries(queryClient);
+      return renderControllerOnChain(queryClient);
+    };
+
+    it("accepts, then sends the start from the steward's own wallet, one send after the other", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]).mockResolvedValueOnce(sends[1]);
+      mocks.sender.sendContractCall
+        .mockResolvedValueOnce({ hash: "0x01", sponsored: false })
+        .mockResolvedValueOnce({ hash: "0x02", sponsored: false });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("started");
+      expect(mocks.commitmentMutate.mock.calls[0]![0]).toMatchObject({
+        action: "acceptServiceClaim",
+      });
+      // Each send reads the accepted booking again, as the steward who sends it.
+      expect(mocks.prepareStart).toHaveBeenCalledWith(
+        { chainId: CHAIN_ID, garden: GARDEN },
+        { commitmentId: COMMITMENT.commitmentId, buyer: CLAIMANT, setupId: SETUP_ID },
+        TUNDE
+      );
+      expect(mocks.sender.sendContractCall.mock.calls.map(([sent]) => sent.functionName)).toEqual([
+        "finalizeActivation",
+        "dispatchSetupCommand",
+      ]);
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toMatchObject({
+        record: "done",
+        send: "done",
+        fee: 9n,
+        hashes: { record: "0x01", send: "0x02" },
+      });
+    });
+
+    it("starts nothing behind an acceptance its Safe's signers still have to approve", async () => {
+      mocks.commitmentMutate.mockImplementation(async (input) => {
+        if ("send" in input)
+          (input.send as { onAwaiting?: (a: string) => void }).onAwaiting?.("safe-signers");
+        return "0x5afe";
+      });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("acceptanceWaiting");
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    });
+
+    // PRD-1574: a wallet's opaque answer is no acceptance yet, so no start follows it and the
+    // Hub says the acceptance is still being confirmed, not that the start wasn't sent.
+    it("starts nothing behind an acceptance that is still being confirmed", async () => {
+      mocks.commitmentMutate.mockImplementation(async (input) => {
+        if ("send" in input) (input.send as { onUnconfirmed?: () => void }).onUnconfirmed?.();
+        return "0x1234";
+      });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("acceptanceConfirming");
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+      // Nor does the ask read as approved: its row holds the acceptance as still confirming.
+      expect(
+        result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
+      ).toBeUndefined();
+    });
+
+    it("keeps the acceptance when its start fails, and says the start wasn't sent", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]);
+      mocks.sender.sendContractCall.mockRejectedValueOnce(new Error("insufficient funds"));
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("notSent");
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT).record).toBe(
+        "failed"
+      );
+      expect(
+        result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
+      ).toMatchObject({ kind: "approved" });
+    });
+
+    it("throws when the acceptance itself fails, before any start", async () => {
+      mocks.commitmentMutate.mockRejectedValue(new Error("reverted"));
+      const { result } = render();
+
+      await expect(result.current.acts.acceptAndStartBooking(ready(), at)).rejects.toThrow(
+        "reverted"
+      );
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+    });
+
+    // Through the real send record (PRD-1561): it records the send as still confirming and
+    // rethrows, and the start must not then call it failed (Codex on #1748).
+    it("says a start send past its receipt limit is still confirming, not failed", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]);
+      mocks.sender.sendContractCall.mockRejectedValueOnce(
+        Object.assign(new Error("Receipt wait limit reached"), { name: "ReceiptWaitLimitError" })
+      );
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("unconfirmed");
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT).record).toBe(
+        "confirming"
+      );
+    });
+
+    // One booking's start rows never show on another's dialog (Codex and CodeRabbit on #1748).
+    it("keeps each booking's start progress to that booking, and starts each acceptance clean", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]).mockResolvedValueOnce(sends[1]);
+      mocks.sender.sendContractCall
+        .mockResolvedValueOnce({ hash: "0x01", sponsored: false })
+        .mockResolvedValueOnce({ hash: "0x02", sponsored: false });
+      const { result } = render();
+
+      await act(async () => {
+        await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toMatchObject({
+        record: "done",
+        send: "done",
+      });
+      // Another member's ask on the same promise opens with nothing sent.
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, TUNDE)).toEqual(
+        VOUCHER_START_IDLE
+      );
+
+      // Accepting again starts clean, before its first send is asked for.
+      let release!: (hash: HexString) => void;
+      mocks.commitmentMutate.mockImplementationOnce(
+        () => new Promise<HexString>((resolve) => (release = resolve))
+      );
+      let pending!: Promise<unknown>;
+      act(() => {
+        pending = result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+      await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toEqual(
+        VOUCHER_START_IDLE
+      );
+      mocks.prepareStart.mockResolvedValueOnce({ state: { kind: "started" }, call: null });
+      await act(async () => {
+        release("0xacce");
+        await pending;
+      });
+    });
   });
 
   it("sends or drops a queued creation and re-reads the row either way", async () => {
@@ -618,6 +970,49 @@ describe("usePoolConsoleController", () => {
     expect(mocks.reportError).toHaveBeenCalledTimes(1);
     expect(mocks.discardJob).toHaveBeenCalledWith("job-2");
     expect(refresh).toHaveBeenCalledTimes(3);
+  });
+
+  // Retry Transfer is one tap from its row: a failure used to reach only the logger, so the
+  // steward never learned that nothing changed (Codex on #1320).
+  it("reports a failed transfer retry through the shared toast and leaves the row to try again", async () => {
+    const { result } = renderHook(() => useVoucherConsole({ chainId: CHAIN_ID, garden: GARDEN }), {
+      wrapper: createTestWrapper(testQueryClient()),
+    });
+    const booking: VoucherBooking = {
+      commitmentId: 51n,
+      holder: CLAIMANT,
+      setupId: `0x${"b5".repeat(32)}`,
+      issuer: { kind: "collective", name: "Green Goods", chainId: 100, safe: GARDEN, decimals: 6 },
+      voucherUnits: 10_000_000n,
+      service: { kind: "access", daysUsed: 12, daysOf: 30 },
+      stage: { kind: "return-failed", units: 6_000_000n },
+    };
+
+    await expect(result.current.acts.retryTransfer(booking)).resolves.toBeUndefined();
+
+    expect(mocks.reportError).toHaveBeenCalledExactlyOnceWith(expect.any(Error), {
+      gardenAddress: GARDEN,
+      metadata: { act: "retryTransfer", commitmentId: "51" },
+    });
+  });
+
+  // The toast fell back to English under Spanish or Portuguese (Codex on #1352).
+  it("words a failed transfer retry's toast in the steward's language", () => {
+    const client = testQueryClient();
+    renderHook(() => useVoucherConsole({ chainId: CHAIN_ID, garden: GARDEN }), {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(
+          QueryClientProvider,
+          { client },
+          createElement(IntlProvider, { locale: "es", messages: esMessages }, children)
+        ),
+    });
+    const retry = mocks.handlerConfigs.find((config) => config.source === "useVoucherConsole");
+    expect(retry).toMatchObject({ formatMessage: expect.any(Function) });
+    expect((retry!.getFallbackTitle as () => string)()).toBe("No se reintentó la transferencia");
+    expect((retry!.getFallbackMessage as () => string)()).toBe(
+      "No cambió nada. Puedes reintentar la misma transferencia."
+    );
   });
 
   it("composes pending state from either mutation hook", () => {
@@ -718,5 +1113,38 @@ describe("usePoolConsoleController", () => {
       poolId: POOL_ID,
       state: "PENDING",
     });
+  });
+});
+
+describe("useVoucherConsole", () => {
+  const voucherKey = queryKeys.commitmentPooling.voucherConsole(CHAIN_ID, GARDEN);
+  const renderVouchers = (queryClient: QueryClient) =>
+    renderHook(() => useVoucherConsole({ chainId: CHAIN_ID, garden: GARDEN }), {
+      wrapper: createTestWrapper(queryClient),
+    });
+  const snapshot = (asks: VoucherAsk[]): VoucherConsoleSnapshot => ({
+    status: "observed",
+    observedAt: NOW,
+    asks,
+    bookings: [],
+    issuer: null,
+    reserve: null,
+  });
+
+  // The clock used to be read only when the tab drew, so a console left open across a deadline
+  // kept offering Accept (Codex on #1320).
+  it("ticks past an ask's acceptance deadline while the console stays open", () => {
+    vi.useFakeTimers();
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(NOW * 1000);
+    const ask = voucherAsk(NOW, { acceptBy: NOW + 1 });
+    const queryClient = testQueryClient();
+    queryClient.setQueryData(voucherKey, snapshot([ask]));
+    const { result } = renderVouchers(queryClient);
+    expect(selectVoucherAskStage(ask, result.current.now)).toBe("ready");
+
+    dateNow.mockReturnValue((NOW + 2) * 1000);
+    act(() => vi.advanceTimersByTime(2_000));
+
+    expect(selectVoucherAskStage(ask, result.current.now)).toBe("past-deadline");
   });
 });

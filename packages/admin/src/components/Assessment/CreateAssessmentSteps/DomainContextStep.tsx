@@ -1,3 +1,4 @@
+import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { Domain } from "@green-goods/shared/types/domain";
 import { expandDomainMask } from "@green-goods/shared/utils/domain";
@@ -8,7 +9,6 @@ import { AdminChoiceGroup } from "../../AdminChoiceGroup";
 import { AdminTextArea, AdminTextField } from "../../AdminTextField";
 import {
   ALL_DOMAINS,
-  DOMAIN_ICON_CONFIG,
   formatDomainGuidance,
   knownDomain,
   resolveDomainLabel,
@@ -130,13 +130,16 @@ export function DomainContextStep({
             value: String(domain),
             label: resolveDomainLabel(intl, domain),
             leadingVisual: (
-              <i className={cn(DOMAIN_ICON_CONFIG[domain].icon, "body-md")} aria-hidden="true" />
+              <i
+                className={cn(DOMAIN_CONFIG[domain].iconClass, "type-title-md font-normal")}
+                aria-hidden="true"
+              />
             ),
             disabled: isSubmitting,
           }))}
         />
         {showValidation && fieldErrors.domain ? (
-          <p role="alert" className="body-sm text-error-dark">
+          <p role="alert" className="type-body text-error-dark">
             {fieldErrors.domain}
           </p>
         ) : null}
@@ -172,7 +175,7 @@ export function DomainContextStep({
             error={(showValidation && fieldErrors.title) || undefined}
             helperText={formatMessage({
               id: "app.admin.assessment.strategyKernel.titleHelp",
-              defaultMessage: "Summarise this assessment in a few words.",
+              defaultMessage: "Summarize this assessment in a few words.",
             })}
           />
           <AdminTextField

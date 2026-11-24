@@ -10,6 +10,7 @@ on:
       - "packages/contracts/**"
       - "scripts/contracts/**"
       - "scripts/lib/git-guardrails.mjs"
+      - "scripts/data/solhint-baseline.json"
       - "scripts/quality/check-source-structure.js"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/contracts.yml"
@@ -21,6 +22,7 @@ on:
       - "packages/contracts/**"
       - "scripts/contracts/**"
       - "scripts/lib/git-guardrails.mjs"
+      - "scripts/data/solhint-baseline.json"
       - "scripts/quality/check-source-structure.js"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/contracts.yml"
@@ -51,7 +53,7 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
+        uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf
         with:
           version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
@@ -118,7 +120,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
+        uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf
         with:
           version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
@@ -146,16 +148,31 @@ jobs:
           SOLIDITY_TEST_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check --only solidity-test-names
 
-      - name: Run Solidity naming guardrail tests
-        run: node --test scripts/contracts/check-solidity-test-names.test.mjs
+      - name: Run Solidity guardrail tests
+        run: node --test scripts/contracts/check-solidity-test-names.test.mjs scripts/contracts/check-solhint-baseline.test.mjs scripts/contracts/coverage-policy.test.mjs
 
       - name: Run contract lint
         working-directory: packages/contracts
+        env:
+          SOLHINT_BASELINE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run lint --check
 
       - name: Build contracts
         working-directory: packages/contracts
         run: bun run build
+
+      # Consumers import the committed ABIs, so a contract change that alters an ABI must commit it.
+      # Regenerating from the build just made, the authoritative list in script/build-abis.ts, must
+      # leave abis/ exactly as committed, with nothing new.
+      - name: Check committed ABIs are current
+        working-directory: packages/contracts
+        run: |
+          bun run build:abis
+          if [ -n "$(git status --porcelain -- abis)" ]; then
+            git status --short -- abis
+            echo "::error::Committed ABIs are stale. Run 'bun run build && bun run build:abis' in packages/contracts and commit abis/."
+            exit 1
+          fi
 
       - name: Check deployed bytecode sizes (EIP-170)
         working-directory: packages/contracts
@@ -172,9 +189,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          node-version: "22.22.1"
+          node-version: "22.23.4"
 
       - name: Resolve realism gate phase
         id: realism-phase
@@ -216,7 +233,7 @@ jobs:
           REALISM_REVERT_THRESHOLD: ${{ steps.realism-phase.outputs.revert_threshold }}
 
       - name: Upload realism audit artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: contracts-test-realism-audit
@@ -236,6 +253,12 @@ jobs:
             label: Sepolia
           - shard: ethereum
             label: Ethereum ENS
+          - shard: garden-account-release
+            label: Celo Garden Account Release
+          - shard: garden-roles
+            label: Celo Garden Roles and Personal Service
+          - shard: gnosis-vouchers
+            label: Gnosis Vouchers
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -243,7 +266,7 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
+        uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf
         with:
           version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
@@ -317,6 +340,21 @@ jobs:
           echo "MAINNET_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "::notice::Fork shard=${{ matrix.shard }} blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
 
+      # The Gnosis voucher and Celo release suites pin their own blocks; the public nodes serve
+      # that history, so a dedicated secret is optional.
+      - name: Resolve Gnosis and Celo fork RPCs
+        env:
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+          CELO_RPC_URL: ${{ secrets.CELO_RPC_URL }}
+        run: |
+          set -euo pipefail
+          GNOSIS_RPC_URL="${GNOSIS_RPC_URL:-https://rpc.gnosischain.com}"
+          CELO_RPC_URL="${CELO_RPC_URL:-https://forno.celo.org}"
+          echo "::add-mask::$GNOSIS_RPC_URL"
+          echo "::add-mask::$CELO_RPC_URL"
+          echo "GNOSIS_RPC_URL=$GNOSIS_RPC_URL" >> "$GITHUB_ENV"
+          echo "CELO_RPC_URL=$CELO_RPC_URL" >> "$GITHUB_ENV"
+
       # Also cache Foundry's RPC response cache: fork tests pin block numbers,
       # so remote chain state is fully reusable across runs.
       - name: Cache Foundry build
@@ -349,7 +387,7 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
+        uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf
         with:
           version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays

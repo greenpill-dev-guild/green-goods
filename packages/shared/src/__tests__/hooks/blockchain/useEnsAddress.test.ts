@@ -59,7 +59,7 @@ describe("useEnsAddress", () => {
       const expectedAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
       mockResolveEnsAddress.mockResolvedValue(expectedAddress);
 
-      const { result } = renderHookWithQueryClient(() => useEnsAddress("vitalik.eth"), {
+      const { result } = renderHookWithQueryClient(() => useEnsAddress("  Vitalik.ETH  "), {
         queryClient,
       });
 
@@ -69,30 +69,6 @@ describe("useEnsAddress", () => {
 
       expect(result.current.data).toBe(expectedAddress);
       expect(mockResolveEnsAddress).toHaveBeenCalledWith("vitalik.eth", {});
-    });
-
-    it("normalizes the ENS name to lowercase before resolving", async () => {
-      mockResolveEnsAddress.mockResolvedValue("0xaddr");
-
-      renderHookWithQueryClient(() => useEnsAddress("Vitalik.ETH"), {
-        queryClient,
-      });
-
-      await waitFor(() => {
-        expect(mockResolveEnsAddress).toHaveBeenCalledWith("vitalik.eth", {});
-      });
-    });
-
-    it("trims whitespace from the ENS name", async () => {
-      mockResolveEnsAddress.mockResolvedValue("0xaddr");
-
-      renderHookWithQueryClient(() => useEnsAddress("  vitalik.eth  "), {
-        queryClient,
-      });
-
-      await waitFor(() => {
-        expect(mockResolveEnsAddress).toHaveBeenCalledWith("vitalik.eth", {});
-      });
     });
   });
 
@@ -195,7 +171,7 @@ describe("useEnsAddress", () => {
     it("uses query key based on lowercased name", async () => {
       mockResolveEnsAddress.mockResolvedValue("0xaddr");
 
-      renderHookWithQueryClient(() => useEnsAddress("Vitalik.ETH"), {
+      renderHookWithQueryClient(() => useEnsAddress("  Vitalik.ETH  "), {
         queryClient,
       });
 

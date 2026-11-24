@@ -92,7 +92,7 @@ describe("buildCommandPaletteResults", () => {
     const groups = groupCommandPaletteResults(
       [
         { id: "action-1", label: "Action", href: "/actions/1", category: "actions" },
-        { id: "page-hub", label: "Hub", href: "/hub/work", category: "pages" },
+        { id: "page-review", label: "Review", href: "/review/work", category: "pages" },
         {
           id: "garden-1",
           label: "Garden",
@@ -105,17 +105,17 @@ describe("buildCommandPaletteResults", () => {
 
     expect(groups.map((group) => group.category)).toEqual(["pages", "gardens", "actions"]);
     expect(groups.map((group) => group.items.map((item) => item.id))).toEqual([
-      ["page-hub"],
+      ["page-review"],
       ["garden-1"],
       ["action-1"],
     ]);
   });
 
-  it("hides action records from non-deployer command palettes", () => {
+  it("hides action records from anyone outside the team, garden creators included", () => {
     const results = buildCommandPaletteResults({
       query: "mulch",
-      role: "steward",
-      permissions: allWorkspaces,
+      role: "deployer",
+      permissions: { ...allWorkspaces, showActions: false },
       formatMessage,
       staticRoutes: [],
       eligibleGardens: [eligibleGarden],
@@ -140,32 +140,42 @@ describe("buildCommandPaletteResults", () => {
     expect(results.some((result) => result.category === "actions")).toBe(false);
   });
 
-  it("keeps team-only static routes deployer-only", () => {
+  it("keeps team-only static routes to the team, not to garden creators", () => {
     const staticRoutes = [
       {
         id: "page-community",
-        labelId: "cockpit.nav.community",
+        labelId: "hub.nav.community",
         defaultLabel: "Community",
         href: "/community",
       },
       {
         id: "page-cookies",
-        labelId: "cockpit.community.cookies.title",
+        labelId: "hub.community.cookies.title",
         defaultLabel: "Campaign cookie jars",
         href: "/cookies",
-        roles: ["deployer" as const],
+        permission: "showActions" as const,
       },
       {
         id: "page-actions",
         labelId: "app.admin.nav.actions",
         defaultLabel: "Actions",
         href: "/actions",
-        roles: ["deployer" as const],
+        permission: "showActions" as const,
       },
     ];
 
-    const stewardResults = buildCommandPaletteResults({
+    const creatorResults = buildCommandPaletteResults({
       query: "co",
+      role: "deployer",
+      permissions: { ...allWorkspaces, showActions: false },
+      formatMessage,
+      staticRoutes,
+      eligibleGardens: [],
+      actions: [],
+      assessments: [],
+    });
+    const teamResults = buildCommandPaletteResults({
+      query: "cookie",
       role: "steward",
       permissions: allWorkspaces,
       formatMessage,
@@ -174,19 +184,9 @@ describe("buildCommandPaletteResults", () => {
       actions: [],
       assessments: [],
     });
-    const deployerResults = buildCommandPaletteResults({
-      query: "cookie",
-      role: "deployer",
-      permissions: allWorkspaces,
-      formatMessage,
-      staticRoutes,
-      eligibleGardens: [],
-      actions: [],
-      assessments: [],
-    });
 
-    expect(stewardResults).toEqual([expect.objectContaining({ id: "page-community" })]);
-    expect(deployerResults).toEqual([
+    expect(creatorResults).toEqual([expect.objectContaining({ id: "page-community" })]);
+    expect(teamResults).toEqual([
       expect.objectContaining({ id: "page-cookies", href: "/cookies" }),
     ]);
   });
@@ -195,14 +195,14 @@ describe("buildCommandPaletteResults", () => {
     const staticRoutes = [
       {
         id: "page-garden",
-        labelId: "cockpit.nav.garden",
+        labelId: "hub.nav.garden",
         defaultLabel: "Garden",
         href: "/garden",
         permission: "showGarden" as const,
       },
       {
         id: "page-community",
-        labelId: "cockpit.nav.community",
+        labelId: "hub.nav.community",
         defaultLabel: "Community",
         href: "/community",
         permission: "showCommunity" as const,

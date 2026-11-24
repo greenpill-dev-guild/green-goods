@@ -1,6 +1,18 @@
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
-import { sb } from "storybook/test";
+import { mocked, sb } from "storybook/test";
+import { useQueryClient } from "@tanstack/react-query";
+import { roleKeys } from "../src/config/query-keys/identity";
+import { usePrimaryAddress } from "../src/hooks/auth/usePrimaryAddress";
+import { useCurrentChain } from "../src/hooks/blockchain/useChainConfig";
+import { useProtocolRoles } from "../src/hooks/roles/useProtocolRoles";
+import {
+  useServiceAccess,
+  useServiceAccessMutation,
+  useServiceAccessReads,
+} from "../src/hooks/commitment-pooling/useServiceAccess";
+import { useServiceOfferLines } from "../src/hooks/commitment-pooling/useServiceOfferLines";
+import { unavailableServiceAccess } from "../src/modules/commitment-pooling/data-service-access";
 import {
   withAdminStoryIsolation,
   withI18n,
@@ -14,14 +26,28 @@ import {
 // for every story that does not override it. Storybook only clears a module mock's call history
 // between stories, so a story that overrides hooks returns `resetHookMocks(...)` (./moduleMocks)
 // from `beforeEach`.
+sb.mock(import("../src/hooks/app/useArrivalState.ts"), { spy: true });
+sb.mock(import("../src/hooks/assessment/useGardenAssessmentRecords.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOffline.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOnlineStatus.ts"), { spy: true });
+// The voucher journeys drive the real pool console from seeded reads; these leaves carry its
+// acts. (usePoolConsoleController.ts itself re-exports a type inline, which the module mock turns
+// into a runtime export that does not exist, so it is never mocked.)
+sb.mock(import("../src/hooks/admin-ui/pool/useVoucherConsole.ts"), { spy: true });
+sb.mock(import("../src/hooks/admin-ui/pool/useVoucherStart.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMutations.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useExpiryClock.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useSettlementOperationsController.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/usePrimaryAddress.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/useUser.ts"), { spy: true });
+sb.mock(import("../src/hooks/blockchain/useEthUsdPrice.ts"), { spy: true });
+sb.mock(import("../src/hooks/cookie-jar/useCookieJarDeposit.ts"), { spy: true });
+sb.mock(import("../src/hooks/public/usePublicEndowmentPositions.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/useWalletModalOpen.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useBaseLists.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useGardenMemberHistory.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useGardenMemberContributions.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useChainConfig.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useSendToken.ts"), { spy: true });
@@ -39,12 +65,19 @@ sb.mock(import("../src/hooks/client-ui/work/useWorkSubmissionFlowController.ts")
 });
 sb.mock(import("../src/hooks/client-ui/work/useWorkDetailController.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useQueuedWorkActions.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useReviewBatch.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useWorkUploads.ts"), { spy: true });
 sb.mock(import("../src/hooks/client-ui/wallet/useSendFlowController.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentCycleNames.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentJobs.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMetadata.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useServiceAccess.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useServiceIssuerOperations.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useVoucherWallet.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useVoucherAwards.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useServiceOfferLines.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useAllocateHypercertSupport.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useConvictionStrategies.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useGardenCommunity.ts"), { spy: true });
@@ -53,18 +86,21 @@ sb.mock(import("../src/hooks/conviction/useMemberVotingPower.ts"), { spy: true }
 sb.mock(import("../src/hooks/cookie-jar/useAccessibleCookieJars.ts"), { spy: true });
 sb.mock(import("../src/hooks/cookie-jar/useCookieJarWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/cookie-jar/useGardenCookieJars.ts"), { spy: true });
-sb.mock(import("../src/hooks/ens/useENSClaim.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useENSRegistrationStatus.ts"), { spy: true });
-sb.mock(import("../src/hooks/ens/useENSReleaseName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useGreenGoodsEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useProtocolMemberStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useSlugAvailability.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useActiveGarden.ts"), { spy: true });
 sb.mock(import("../src/hooks/garden/useGardenJoinRequests.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useGardenJournal.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useGardenNotifications.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useLeaveGarden.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useClaimGreenWillBadge.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useGreenWillBadges.ts"), { spy: true });
 sb.mock(import("../src/hooks/profile/useProfileAvatar.ts"), { spy: true });
 sb.mock(import("../src/hooks/public/usePublicGardens.ts"), { spy: true });
 sb.mock(import("../src/hooks/roles/useHasRole.ts"), { spy: true });
+sb.mock(import("../src/hooks/roles/useProtocolRoles.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useGardenVaults.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useMyVaultDeposits.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useOctantVaultPositions.ts"), { spy: true });
@@ -75,13 +111,65 @@ sb.mock(import("../src/hooks/vault/useVaultPreview.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useVaultWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useDrafts.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useMyWorks.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/gardenWorkListQuery.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useWorks.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useYourWorkCount.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useYourWorkOnPhone.ts"), { spy: true });
 sb.mock(import("../src/hooks/yield/useYieldAllocations.ts"), { spy: true });
 // The public vault panel mounts the wallet runtime itself; its stories render the panel without it.
+sb.mock(import("../src/providers/AppKitProvider.tsx"), { spy: true });
 sb.mock(import("../../client/src/routes/WalletRuntimeProviders.tsx"), { spy: true });
+// AdminWorkspace stories replace the route entry and analytics only while their own story runs.
+sb.mock(import("../../admin/src/App.tsx"), { spy: true });
+sb.mock(import("../src/modules/app/posthog-browser.ts"), { spy: true });
 
 const preview: Preview = {
+  beforeEach: () => {
+    // Role facts are explicit story seeds. Previewing a shell never calls a live Hats RPC.
+    mocked(useProtocolRoles).mockImplementation(() => {
+      const client = useQueryClient();
+      const account = usePrimaryAddress();
+      const chain = useCurrentChain();
+      return client.getQueryData<ReturnType<typeof useProtocolRoles>>(
+        roleKeys.protocolRoles(account ?? undefined, chain)
+      ) ?? {
+        team: false, productLead: false, agents: false, deployer: false,
+        isLoading: false, isError: false,
+      };
+    });
+    // Every story starts without service RPC/signing. Individual stories may replace these facts.
+    mocked(useServiceAccess).mockImplementation((key) => ({
+      data: key ? unavailableServiceAccess(key) : undefined,
+      isLoading: false, isError: false, error: null,
+      refetch: async () => ({ data: key ? unavailableServiceAccess(key) : undefined }),
+    }) as ReturnType<typeof useServiceAccess>);
+    // A list's booking reads answer the same way, one per promise it lists.
+    mocked(useServiceAccessReads).mockImplementation((keys) =>
+      keys.map((key) => ({ data: unavailableServiceAccess(key) })) as unknown as ReturnType<
+        typeof useServiceAccessReads
+      >
+    );
+    mocked(useServiceAccessMutation).mockReturnValue({
+      isPending: false, error: null,
+      mutateAsync: async () => { throw new Error("Service signing unavailable in Storybook"); },
+    } as unknown as ReturnType<typeof useServiceAccessMutation>);
+    // A garden's list reads no services until a story names its own offers' lines.
+    mocked(useServiceOfferLines).mockReturnValue(new Map());
+  },
   globalTypes: {
+    locale: {
+      description: "The language every story reads in",
+      toolbar: {
+        title: "Language",
+        icon: "globe",
+        items: [
+          { value: "en", title: "English" },
+          { value: "es", title: "Español" },
+          { value: "pt", title: "Português" },
+        ],
+        dynamicTitle: true,
+      },
+    },
     theme: {
       description: "Global theme for components",
       toolbar: {
@@ -96,6 +184,7 @@ const preview: Preview = {
     },
   },
   initialGlobals: {
+    locale: "en",
     theme: "light",
   },
   parameters: {

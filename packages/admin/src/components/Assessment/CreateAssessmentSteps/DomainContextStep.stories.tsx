@@ -1,3 +1,4 @@
+import { DOCUMENTATION_ASSESSMENT } from "../../../../../shared/.storybook/documentationAssessment";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
@@ -112,6 +113,16 @@ export const SingleDomain: Story = {
   decorators: [
     (Story) => (
       <WithAssessmentStore seed={{}}>
+        <Story />
+      </WithAssessmentStore>
+    ),
+  ],
+};
+
+export const Documentation: Story = {
+  decorators: [
+    (Story) => (
+      <WithAssessmentStore seed={{ ...DOCUMENTATION_ASSESSMENT, domain: Domain.AGRO }}>
         <Story />
       </WithAssessmentStore>
     ),

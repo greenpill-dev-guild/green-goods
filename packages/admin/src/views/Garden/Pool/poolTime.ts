@@ -8,6 +8,7 @@
  * date, time and zone.
  */
 
+import type { ItemRowDetail } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { IntlShape } from "react-intl";
 
 type TimeIntl = Pick<
@@ -92,13 +93,13 @@ export function timelineTime(intl: TimeIntl, ms: number, nowMs: number): string 
   const time = clockTime(intl, ms);
   if (offset === 0) {
     return intl.formatMessage(
-      { id: "cockpit.garden.pool.time.today", defaultMessage: "Today, {time}" },
+      { id: "hub.garden.pool.time.today", defaultMessage: "Today, {time}" },
       { time }
     );
   }
   if (offset === -1) {
     return intl.formatMessage(
-      { id: "cockpit.garden.pool.time.yesterday", defaultMessage: "Yesterday, {time}" },
+      { id: "hub.garden.pool.time.yesterday", defaultMessage: "Yesterday, {time}" },
       { time }
     );
   }
@@ -123,13 +124,13 @@ export function dueDateText(intl: TimeIntl, ms: number, nowMs: number): string {
     const time = clockTime(intl, ms);
     if (offset === 0) {
       return intl.formatMessage(
-        { id: "cockpit.garden.pool.time.dueToday", defaultMessage: "today, {time}" },
+        { id: "hub.garden.pool.time.dueToday", defaultMessage: "today, {time}" },
         { time }
       );
     }
     if (offset === 1) {
       return intl.formatMessage(
-        { id: "cockpit.garden.pool.time.dueTomorrow", defaultMessage: "tomorrow, {time}" },
+        { id: "hub.garden.pool.time.dueTomorrow", defaultMessage: "tomorrow, {time}" },
         { time }
       );
     }
@@ -141,4 +142,26 @@ export function dueDateText(intl: TimeIntl, ms: number, nowMs: number): string {
     });
   }
   return dayText(intl, ms, nowMs);
+}
+
+/**
+ * A row's due date as its detail: "due tomorrow, 3:42 PM" within 48 hours, its date
+ * otherwise, with the exact moment behind it (DL-069). Null when there is none.
+ */
+export function rowDueDetail(
+  intl: TimeIntl,
+  dueDate: bigint | number | null | undefined,
+  nowMs: number
+): ItemRowDetail | null {
+  if (dueDate === null || dueDate === undefined) return null;
+  const ms = Number(dueDate) * 1000;
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+  return {
+    text: intl.formatMessage(
+      { id: "hub.garden.pool.row.due", defaultMessage: "due {date}" },
+      { date: dueDateText(intl, ms, nowMs) }
+    ),
+    dateTime: isoTime(ms),
+    title: exactTime(intl, ms),
+  };
 }

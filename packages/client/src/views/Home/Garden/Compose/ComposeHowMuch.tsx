@@ -25,6 +25,8 @@ export interface ComposeHowMuchProps {
   openActions: Action[];
   /** Chosen actions whose window has ended since they were chosen. */
   closedActionUIDs: readonly string[];
+  /** Chosen actions whose window isn't known yet. */
+  uncheckedActionUIDs: readonly string[];
 }
 
 /**
@@ -46,6 +48,7 @@ export function ComposeHowMuch({
   actions,
   openActions,
   closedActionUIDs,
+  uncheckedActionUIDs,
 }: ComposeHowMuchProps) {
   const { formatMessage } = useIntl();
   const direction = useWatch({ control: form.control, name: "direction" });
@@ -177,6 +180,7 @@ export function ComposeHowMuch({
           actions={actions}
           openActions={openActions}
           closedActionUIDs={closedActionUIDs}
+          uncheckedActionUIDs={uncheckedActionUIDs}
         />
       ) : null}
 

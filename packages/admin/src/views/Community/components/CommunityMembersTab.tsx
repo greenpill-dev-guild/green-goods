@@ -1,34 +1,50 @@
+import { gardenContributionDetail } from "@green-goods/shared/components/GardenContributionDate";
+import {
+  useGardenMemberContributions,
+  useGardenMemberReadiness,
+} from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiGroupLine, RiUserSettingsLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { isAddress } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSelect } from "@/components/AdminTextField";
-import { EnsAddressText } from "@/components/EnsAddressText";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
+import { MemberNameReaders, withMemberName } from "@/components/Garden/MemberNames";
+import { memberMatchesSearch } from "@/components/Garden/manageRoles";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
-import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
+import {
+  CommunityReadinessCard,
+  READINESS_STAGES,
+  type ReadinessStage,
+  readinessRowParts,
+  readinessStageLabel,
+  readinessStageOf,
+} from "./CommunityMembersReadiness";
 import { communityRoleIcons } from "./communityRoleIcons";
 
 export type CommunityMembersTabProps = Pick<
   CommunityWorkspace,
   | "canManage"
-  | "closeMembersModal"
+  | "keepJoinRequestCountGrant"
   | "memberCount"
   | "memberSearch"
-  | "roleMembers"
+  | "noteJoinRequestsRead"
   | "roleSummary"
-  | "scheduleBackgroundRefetch"
-  | "selectedItem"
   | "setMemberSearch"
   | "visibleDirectory"
 > & {
@@ -38,28 +54,91 @@ export type CommunityMembersTabProps = Pick<
 export function CommunityMembersTab({
   garden,
   canManage,
-  closeMembersModal,
+  keepJoinRequestCountGrant,
   memberCount,
   memberSearch,
-  roleMembers,
+  noteJoinRequestsRead,
   roleSummary,
-  scheduleBackgroundRefetch,
-  selectedItem,
   setMemberSearch,
   visibleDirectory,
 }: CommunityMembersTabProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage, formatDate } = intl;
+  const contributions = useGardenMemberContributions({
+    garden,
+    accounts: visibleDirectory.map((entry) => entry.address),
+  });
+  const history = useGardenMemberHistory({
+    garden: isAddress(garden.id) ? garden.id : undefined,
+    chainId: garden.chainId,
+  });
+  const historyByAccount = new Map(
+    history.isError ? [] : history.members.map((member) => [member.account.toLowerCase(), member])
+  );
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
+  // Readiness is a mode of this list, for those who may read the members' records (PRD-1537).
+  const [view, setView] = useState<"roles" | "readiness">("roles");
+  const [stageFilter, setStageFilter] = useState<ReadinessStage | "all">("all");
+  const readiness = useGardenMemberReadiness({
+    garden,
+    accounts: visibleDirectory.map((entry) => entry.address),
+    enabled: view === "readiness",
+  });
+  const showsReadiness = view === "readiness" && readiness.canView;
+  // While a member's records are still read, every row is "Not known": no stage filters yet.
+  const readingStages = Object.values(readiness.byAccount).some(
+    (entry) => entry.status === "loading"
+  );
+  const filtersStage = showsReadiness && stageFilter !== "all" && !readingStages;
+  const stageOf = useCallback(
+    (address: Address) => readinessStageOf(readiness.byAccount[address.toLowerCase()]),
+    [readiness.byAccount]
+  );
+  const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const onName = useCallback(
+    (address: Address, name: string | null) =>
+      setNames((current) => withMemberName(current, address, name)),
+    []
+  );
   const gardenAddress = garden.id;
   const hasValidGardenAddress = isAddress(gardenAddress);
   const gardenRouteContext = { gardenId: garden.id };
+  const availableRoles = roleSummary.filter((entry) => entry.count > 0);
+  const activeRole = availableRoles.some((entry) => entry.role === roleFilter) ? roleFilter : "all";
+  // Search matches the names the rows show, as Manage Roles does, so a person found here is
+  // found there.
   const filteredDirectory = useMemo(
     () =>
-      roleFilter === "all"
-        ? visibleDirectory
-        : visibleDirectory.filter((entry) => entry.roles.includes(roleFilter)),
-    [roleFilter, visibleDirectory]
+      visibleDirectory.filter(
+        (entry) =>
+          (activeRole === "all" || entry.roles.includes(activeRole)) &&
+          (!filtersStage || stageOf(entry.address) === stageFilter) &&
+          memberMatchesSearch(
+            entry,
+            memberSearch,
+            names.get(entry.address.toLowerCase()),
+            formatMessage
+          )
+      ),
+    [
+      activeRole,
+      formatMessage,
+      memberSearch,
+      names,
+      filtersStage,
+      stageFilter,
+      stageOf,
+      visibleDirectory,
+    ]
   );
+  const stageCounts = useMemo(() => {
+    const counts = Object.fromEntries(READINESS_STAGES.map((stage) => [stage, 0])) as Record<
+      ReadinessStage,
+      number
+    >;
+    for (const entry of visibleDirectory) counts[stageOf(entry.address)] += 1;
+    return counts;
+  }, [stageOf, visibleDirectory]);
   const missingCriticalRoles = useMemo(
     () =>
       roleSummary.filter(
@@ -75,13 +154,29 @@ export function CommunityMembersTab({
       <div className="garden-tab-layout">
         <div className="garden-tab-main min-w-0">
           <AdminCard variant="elevated" className="@container space-y-4">
-            <div>
-              <AdminCardTitle>
-                {formatMessage({ id: "cockpit.community.members.directory" })}
-              </AdminCardTitle>
-              <p className="mt-1 text-body-sm text-text-sub">
-                {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
-              </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <AdminCardTitle>
+                  {formatMessage({ id: "hub.community.members.directory" })}
+                </AdminCardTitle>
+                <span className="type-meta text-text-sub">
+                  {formatMessage({ id: "app.admin.garden.members.count" }, { count: memberCount })}
+                </span>
+              </div>
+              {/* Manage Roles for everyone; a row's button opens it for that person (DL-112). */}
+              {canManage ? (
+                <Button asChild emphasis="secondary" size="sm">
+                  <Link
+                    to={adminRoutes.communityMembers({
+                      ...gardenRouteContext,
+                      item: "manage-members",
+                    })}
+                  >
+                    <RiUserSettingsLine className="h-[18px] w-[18px]" aria-hidden="true" />
+                    {formatMessage({ id: "hub.community.members.manageRoles" })}
+                  </Link>
+                </Button>
+              ) : null}
             </div>
 
             <AdminSearchToolbar
@@ -90,126 +185,222 @@ export function CommunityMembersTab({
               placeholder={formatMessage({ id: "app.garden.detail.community.memberSearch" })}
             />
 
-            {/* The chips are the one place role counts show (D15); on a narrow card
-                they fold into a select so the members stay above the fold. */}
+            {readiness.canView ? (
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label={formatMessage({ id: "hub.community.readiness.view" })}
+              >
+                {(["roles", "readiness"] as const).map((option) => (
+                  <AdminFilterChip
+                    key={option}
+                    label={formatMessage({ id: `hub.community.readiness.view.${option}` })}
+                    selected={view === option}
+                    onToggle={() => setView(option)}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {/* Counts live in the Members rail; these controls only filter (DL-141). */}
             <AdminSelect
               className="@[480px]:hidden"
-              label={formatMessage({ id: "cockpit.community.members.filterAria" })}
-              value={roleFilter}
+              label={formatMessage({ id: "hub.community.members.filterAria" })}
+              value={activeRole}
               onChange={(event) => setRoleFilter(event.target.value as GardenRole | "all")}
             >
               <option value="all">
-                {formatMessage({ id: "cockpit.community.members.filterAll" })}
+                {formatMessage({ id: "hub.community.members.filterAll" })}
               </option>
-              {roleSummary.map((entry) => (
+              {availableRoles.map((entry) => (
                 <option key={entry.role} value={entry.role}>
-                  {`${getRoleLabel(entry.role, formatMessage).plural} (${entry.count})`}
+                  {getRoleLabel(entry.role, formatMessage).plural}
                 </option>
               ))}
             </AdminSelect>
             <div
               className="hidden flex-wrap gap-2 @[480px]:flex"
               role="group"
-              aria-label={formatMessage({ id: "cockpit.community.members.filterAria" })}
+              aria-label={formatMessage({ id: "hub.community.members.filterAria" })}
             >
               <AdminFilterChip
-                label={formatMessage({ id: "cockpit.community.members.filterAll" })}
-                selected={roleFilter === "all"}
+                label={formatMessage({ id: "hub.community.members.filterAll" })}
+                selected={activeRole === "all"}
                 onToggle={() => setRoleFilter("all")}
               />
-              {roleSummary.map((entry) => {
+              {availableRoles.map((entry) => {
                 const roleLabel = getRoleLabel(entry.role, formatMessage);
                 const Icon = communityRoleIcons[entry.role];
                 return (
                   <AdminFilterChip
                     key={entry.role}
-                    label={`${roleLabel.plural} (${entry.count})`}
-                    selected={roleFilter === entry.role}
+                    label={roleLabel.plural}
+                    selected={activeRole === entry.role}
                     leadingIcon={Icon}
                     onToggle={() => setRoleFilter(entry.role)}
                   />
                 );
               })}
             </div>
+            {showsReadiness ? (
+              <AdminSelect
+                label={formatMessage({ id: "hub.community.readiness.filterAria" })}
+                value={stageFilter}
+                onChange={(event) => setStageFilter(event.target.value as ReadinessStage | "all")}
+              >
+                <option value="all">
+                  {formatMessage({ id: "hub.community.readiness.filterAll" })}
+                </option>
+                {READINESS_STAGES.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {readinessStageLabel(stage, intl)}
+                  </option>
+                ))}
+              </AdminSelect>
+            ) : null}
 
             {filteredDirectory.length === 0 ? (
               <EmptyState
                 icon={<RiGroupLine className="h-6 w-6" />}
                 title={
-                  memberSearch.trim() || roleFilter !== "all"
+                  memberSearch.trim() || activeRole !== "all" || filtersStage
                     ? formatMessage({ id: "app.garden.detail.community.membersEmpty" })
                     : formatMessage({ id: "app.admin.garden.members.empty" })
                 }
                 description={
-                  roleFilter !== "all"
-                    ? formatMessage({ id: "cockpit.community.members.emptyFiltered" })
-                    : undefined
+                  filtersStage
+                    ? formatMessage({ id: "hub.community.readiness.emptyFiltered" })
+                    : activeRole !== "all"
+                      ? formatMessage({ id: "hub.community.members.emptyFiltered" })
+                      : undefined
                 }
               />
             ) : (
-              <AdminCard variant="outlined" density="none" className="divide-y divide-stroke-soft">
-                {filteredDirectory.map((entry) => (
-                  <div
-                    key={entry.address}
-                    className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0 space-y-2">
-                      <EnsAddressText address={entry.address} />
-                      <div className="flex flex-wrap gap-1.5">
-                        {entry.roles.map((role) => (
-                          <span
-                            key={`${entry.address}-${role}`}
-                            className="rounded-full bg-bg-sub px-2 py-0.5 text-label-sm font-medium text-text-sub"
-                          >
-                            {getRoleLabel(role, formatMessage).singular}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    {canManage ? (
-                      <AdminButton
-                        asChild
-                        variant="text"
-                        size="sm"
-                        className="self-start sm:self-center"
-                      >
-                        <Link
-                          to={adminRoutes.communityMembers({
-                            ...gardenRouteContext,
-                            item: "manage-members",
-                            member: entry.address,
-                          })}
-                        >
-                          <RiUserSettingsLine className="h-4 w-4" />
-                          {formatMessage({ id: "cockpit.community.members.manageRoles" })}
-                        </Link>
-                      </AdminButton>
-                    ) : null}
-                  </div>
-                ))}
-              </AdminCard>
+              // One person row each: the highest role is the row's chip, and the count
+              // says how many roles they hold when it is more than that one (DL-112).
+              <ul className="flex flex-col gap-(--gg-list-gap)">
+                {filteredDirectory.map((entry) => {
+                  const contribution = contributions.canView
+                    ? gardenContributionDetail(
+                        contributions.byAccount[entry.address.toLowerCase()],
+                        intl
+                      )
+                    : undefined;
+                  const joinedAt = historyByAccount.get(entry.address.toLowerCase())?.joinedAt;
+                  const joined = joinedAt
+                    ? {
+                        text: formatMessage(
+                          { id: "app.garden.membership.joinedOn" },
+                          {
+                            date: formatDate(joinedAt, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            }),
+                          }
+                        ),
+                        dateTime: new Date(joinedAt).toISOString(),
+                      }
+                    : undefined;
+                  // In readiness mode the stage is the row's pill and its evidence and hint the
+                  // details; the role filter still narrows the list.
+                  const ready = showsReadiness
+                    ? readinessRowParts(
+                        readiness.byAccount[entry.address.toLowerCase()],
+                        joinedAt,
+                        intl
+                      )
+                    : undefined;
+                  const count =
+                    entry.roles.length > 1
+                      ? formatMessage(
+                          { id: "hub.community.members.roleCount" },
+                          { count: entry.roles.length }
+                        )
+                      : undefined;
+                  return (
+                    <li key={entry.address}>
+                      <PersonRow
+                        address={entry.address}
+                        roles={entry.roles}
+                        chainId={garden.chainId}
+                        status={ready?.status}
+                        details={
+                          ready
+                            ? ready.details
+                            : contribution
+                              ? count
+                                ? [contribution, count]
+                                : [contribution]
+                              : joined
+                                ? count
+                                  ? [joined, count]
+                                  : [joined]
+                                : count
+                                  ? [count]
+                                  : undefined
+                        }
+                        // Readiness rows give the line its width; the header still opens Manage Roles.
+                        action={
+                          canManage && !ready ? (
+                            <IconButton
+                              asChild
+                              emphasis="tertiary"
+                              size="sm"
+                              aria-label={formatMessage({
+                                id: "hub.community.members.manageRoles",
+                              })}
+                              title={formatMessage({ id: "hub.community.members.manageRoles" })}
+                            >
+                              <Link
+                                to={adminRoutes.communityMembers({
+                                  ...gardenRouteContext,
+                                  item: "manage-members",
+                                  member: entry.address,
+                                })}
+                              >
+                                <RiUserSettingsLine />
+                              </Link>
+                            </IconButton>
+                          ) : undefined
+                        }
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
             )}
+            <MemberNameReaders
+              addresses={visibleDirectory.map((entry) => entry.address)}
+              onName={onName}
+            />
           </AdminCard>
         </div>
 
         <aside className="garden-tab-rail flex flex-col gap-section">
           {canManage && hasValidGardenAddress ? (
-            <CommunityJoinRequests gardenAddress={gardenAddress} />
+            <CommunityJoinRequests
+              gardenAddress={gardenAddress}
+              onRead={noteJoinRequestsRead}
+              onCountGrant={keepJoinRequestCountGrant}
+            />
           ) : null}
+          {showsReadiness ? <CommunityReadinessCard counts={stageCounts} /> : null}
           <AdminCard variant="elevated" className="space-y-3">
-            <AdminCardTitle>
-              {formatMessage({ id: "cockpit.community.members.coverage" })}
-            </AdminCardTitle>
-            <div className="garden-stat-row">
-              <span className="garden-stat-row-label">
-                {formatMessage({ id: "cockpit.community.members.total" })}
-              </span>
-              <span className="garden-stat-row-value">{memberCount}</span>
-            </div>
+            <AdminCardTitle>{formatMessage({ id: "hub.community.members.title" })}</AdminCardTitle>
+            <FactList frame="inset">
+              {roleSummary.map((entry) => (
+                <FactRow
+                  key={entry.role}
+                  label={getRoleLabel(entry.role, formatMessage).plural}
+                  value={entry.count}
+                />
+              ))}
+            </FactList>
             {missingCriticalRoles.length > 0 ? (
               <Alert variant="warning" className="p-3">
                 {formatMessage(
-                  { id: "cockpit.community.members.missingCritical" },
+                  { id: "hub.community.members.missingCritical" },
                   {
                     roles: missingCriticalRoles
                       .map((entry) => getRoleLabel(entry.role, formatMessage).plural)
@@ -221,14 +412,6 @@ export function CommunityMembersTab({
           </AdminCard>
         </aside>
       </div>
-      <CommunityMembersDialogs
-        garden={garden}
-        canManage={canManage}
-        closeMembersModal={closeMembersModal}
-        roleMembers={roleMembers}
-        scheduleBackgroundRefetch={scheduleBackgroundRefetch}
-        selectedItem={selectedItem}
-      />
     </div>
   );
 }

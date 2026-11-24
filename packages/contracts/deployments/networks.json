@@ -143,6 +143,11 @@
         "ccipRouter": "0xfB48f15480926A4ADf9116Dca468bDd2EE6C5F62"
       },
       "ccipChainSelector": "1346049177634351622"
+    },
+    "gnosis": {
+      "chainId": 100,
+      "name": "Gnosis",
+      "rpcUrl": "${GNOSIS_RPC_URL}"
     }
   },
   "deploymentDefaults": {

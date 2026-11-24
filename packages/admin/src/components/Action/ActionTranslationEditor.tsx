@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { browserTranslator } from "@green-goods/shared/modules/translation/browser-translator";
 import type {
   ActionInstructionConfig,
@@ -21,7 +22,6 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckboxCircleLine, RiRefreshLine, RiTranslate2 } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
@@ -362,8 +362,8 @@ export function ActionTranslationEditor({
         className={cn("space-y-3 border-l border-stroke-soft pl-3", depth > 0 && "ml-3")}
       >
         <div>
-          <p className="text-label-md font-semibold text-text-strong">{input.title}</p>
-          <p className="text-body-sm text-text-sub">
+          <p className="type-label-sm font-semibold text-text-strong">{input.title}</p>
+          <p className="type-meta text-text-sub">
             {input.key} / {input.type}
           </p>
         </div>
@@ -457,7 +457,7 @@ export function ActionTranslationEditor({
               })}
             </AdminCardTitle>
           </div>
-          <p className="mt-1 text-body-sm text-text-sub">
+          <p className="mt-1 type-meta text-text-sub">
             {formatMessage({
               id: "app.admin.actions.translations.description",
               defaultMessage:
@@ -481,7 +481,7 @@ export function ActionTranslationEditor({
       </div>
 
       {hasUnreviewedTranslations ? (
-        <p className="rounded-[var(--m3-shape-xs)] bg-warning-lighter px-3 py-2 text-body-sm text-warning-dark">
+        <p className="rounded-[var(--m3-shape-xs)] bg-warning-lighter px-3 py-2 type-meta text-warning-dark">
           {formatMessage({
             id: "app.admin.actions.translations.publishWarning",
             defaultMessage:
@@ -491,7 +491,7 @@ export function ActionTranslationEditor({
       ) : null}
 
       {activeRecord?.status === "stale" ? (
-        <p className="rounded-[var(--m3-shape-xs)] bg-error-lighter px-3 py-2 text-body-sm text-error-dark">
+        <p className="rounded-[var(--m3-shape-xs)] bg-error-lighter px-3 py-2 type-meta text-error-dark">
           {formatMessage({
             id: "app.admin.actions.translations.sourceChanged",
             defaultMessage:
@@ -501,12 +501,12 @@ export function ActionTranslationEditor({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <AdminButton
+        <Button
           type="button"
-          variant="outlined"
-          size="sm"
+          emphasis="secondary"
+          size="compact"
           loading={generatingLocale === activeLocale}
-          leadingIcon={<RiRefreshLine />}
+          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
           onClick={() => {
             void handleGenerateDraft();
           }}
@@ -515,28 +515,28 @@ export function ActionTranslationEditor({
             id: "app.admin.actions.translations.generateDraft",
             defaultMessage: "Generate Draft",
           })}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="tonal"
-          size="sm"
-          leadingIcon={<RiCheckboxCircleLine />}
+          emphasis="secondary"
+          size="compact"
+          leadingIcon={<RiCheckboxCircleLine className="h-4 w-4" aria-hidden="true" />}
           onClick={markReviewed}
         >
           {formatMessage({
             id: "app.admin.actions.translations.markReviewed",
             defaultMessage: "Mark Reviewed",
           })}
-        </AdminButton>
-        <AdminButton type="button" variant="text" size="sm" onClick={markDraft}>
+        </Button>
+        <Button type="button" emphasis="tertiary" size="compact" onClick={markDraft}>
           {formatMessage({
             id: "app.admin.actions.translations.markDraft",
             defaultMessage: "Mark Draft",
           })}
-        </AdminButton>
+        </Button>
       </div>
 
-      {message ? <p className="text-body-sm text-text-sub">{message}</p> : null}
+      {message ? <p className="type-meta text-text-sub">{message}</p> : null}
 
       <div className="space-y-5">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

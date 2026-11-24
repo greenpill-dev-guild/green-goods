@@ -1,10 +1,52 @@
 import type { Address } from "viem";
-import type { AttestationFilters, HypercertAttestation } from "../../types/hypercerts";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import type { EASWork } from "../../types/eas-responses";
+import type {
+  ActionDomain,
+  AttestationFilters,
+  HypercertAttestation,
+} from "../../types/hypercerts";
 import { logger } from "../app/logger";
 import { getWorkApprovals, getWorkApprovalsByUIDs, getWorks, getWorksByUIDs } from "./eas";
-import { applyAttestationFilters } from "./hypercerts-filters";
+import { getActionDomains } from "./greengoods";
+import { applyAttestationFilters, domainToActionDomain } from "./hypercerts-filters";
 import { extractWorkMetadata } from "./hypercerts-metadata";
 import { getGardenHypercerts } from "./hypercerts-fetch";
+
+// =============================================================================
+// Work Domains
+// =============================================================================
+
+/**
+ * The domain of each work's action, keyed by action UID. A work attestation names its action but
+ * no domain, and an action's domain is fixed when it is registered, so it is the work's domain.
+ * When the indexer cannot be read, every domain stays unknown and the work is still listed.
+ */
+export async function getWorkActionDomains(
+  works: readonly Pick<EASWork, "actionUID">[],
+  chainId: number
+): Promise<Map<number, ActionDomain>> {
+  const workDomains = new Map<number, ActionDomain>();
+  try {
+    const actionDomains = await getActionDomains(
+      works.map((work) => work.actionUID),
+      chainId
+    );
+    for (const [actionUID, domain] of actionDomains) {
+      const workDomain = domainToActionDomain(domain);
+      if (workDomain) workDomains.set(actionUID, workDomain);
+    }
+  } catch (error) {
+    logger.warn(
+      "[getWorkActionDomains] Action domains could not be read; work domains stay unknown",
+      {
+        chainId,
+        error: error instanceof Error ? error.message : String(error),
+      }
+    );
+  }
+  return workDomains;
+}
 
 // =============================================================================
 // EAS Attestation Fetching
@@ -43,6 +85,7 @@ export async function getApprovedAttestations(
     for (const approval of approvedApprovals) {
       approvalsByWorkUID.set(approval.workUID, approval);
     }
+    const workDomains = await getWorkActionDomains(works, DEFAULT_CHAIN_ID);
 
     // Join works with their approvals
     const attestations: HypercertAttestation[] = [];
@@ -60,7 +103,7 @@ export async function getApprovedAttestations(
         gardenId: work.gardenAddress,
         title: work.title || "Untitled work",
         actionType: metadata.actionType,
-        domain: metadata.domain,
+        domain: workDomains.get(work.actionUID),
         workScope: metadata.workScope ?? [],
         gardenerAddress: work.gardenerAddress as Address,
         gardenerName: null, // ENS lookup would need separate query
@@ -113,6 +156,7 @@ export async function getAttestationsByUIDs(uids: string[]): Promise<HypercertAt
 
     // Create lookup map
     const worksByUID = new Map(works.map((w) => [w.id, w]));
+    const workDomains = await getWorkActionDomains(works, DEFAULT_CHAIN_ID);
 
     // Build attestations
     const attestations: HypercertAttestation[] = [];
@@ -128,7 +172,7 @@ export async function getAttestationsByUIDs(uids: string[]): Promise<HypercertAt
         gardenId: work.gardenAddress,
         title: work.title || "Untitled work",
         actionType: metadata.actionType,
-        domain: metadata.domain,
+        domain: workDomains.get(work.actionUID),
         workScope: metadata.workScope ?? [],
         gardenerAddress: work.gardenerAddress as Address,
         gardenerName: null, // ENS lookup would need separate query

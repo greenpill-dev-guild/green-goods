@@ -12,7 +12,11 @@ import { checkRateLimit } from "../http/public";
 import { jsonNoStore, safeError } from "../http/responses";
 import type { ServerDeps } from "../http/server.types";
 
-const SUCCESS_CACHE_CONTROL = "public, max-age=60, s-maxage=300, stale-while-revalidate=86400";
+const SUCCESS_CACHE_CONTROL = "public, max-age=60, s-maxage=300, must-revalidate";
+const PARTIAL_CACHE_CONTROL = "public, max-age=0, s-maxage=30, must-revalidate";
+const REFRESH_RETRY_MS = 30_000;
+const MAX_SNAPSHOT_AGE_MS = 60 * 60 * 1000;
+const SNAPSHOT_TIMEOUT_MS = 20_000;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX_GARDENS = 100;
 
@@ -20,6 +24,8 @@ interface CacheEntry {
   expiresAt: number;
   value?: PublicGardenImpactResponseV1;
   pending?: Promise<PublicGardenImpactResponseV1>;
+  complete?: PublicGardenImpactResponseV1;
+  staleUntil?: number;
 }
 
 export class PublicGardenImpactCache {
@@ -43,26 +49,69 @@ export class PublicGardenImpactCache {
       this.touch(key, existing);
       return existing.pending;
     }
-    if (existing?.value && existing.expiresAt > this.now()) {
+    if (
+      existing?.value &&
+      existing.expiresAt > this.now() &&
+      (!existing.value.provenance.stale || (existing.staleUntil ?? 0) > this.now())
+    ) {
       this.touch(key, existing);
       return existing.value;
     }
-    if (existing) this.entries.delete(key);
 
-    const pending = load();
-    this.entries.set(key, { expiresAt: Number.POSITIVE_INFINITY, pending });
+    const entry: CacheEntry = {
+      expiresAt: 0,
+      complete: existing?.complete,
+      staleUntil: existing?.staleUntil,
+    };
+    const pending = Promise.resolve().then(load);
+    // Cache the complete refresh operation so every coalesced caller sees the same fallback.
+    entry.pending = pending
+      .then(
+        (value) => {
+          if (value.provenance.partialData) {
+            entry.value = this.staleSnapshot(entry) ?? value;
+            entry.expiresAt = this.now() + REFRESH_RETRY_MS;
+          } else {
+            entry.value = value;
+            entry.complete = value;
+            entry.staleUntil = this.now() + MAX_SNAPSHOT_AGE_MS;
+            entry.expiresAt = this.now() + this.ttlMs;
+          }
+          return entry.value;
+        },
+        (error: unknown) => {
+          // A definitive visibility rejection always wins over retained public data.
+          const stale = hasErrorName(error, "PublicGardenImpactNotFoundError")
+            ? undefined
+            : this.staleSnapshot(entry);
+          if (!stale) {
+            if (this.entries.get(key) === entry) this.entries.delete(key);
+            throw error;
+          }
+          entry.value = stale;
+          entry.expiresAt = this.now() + REFRESH_RETRY_MS;
+          return stale;
+        }
+      )
+      .finally(() => {
+        entry.pending = undefined;
+        if (this.entries.get(key) === entry) this.touch(key, entry);
+      });
+    this.entries.set(key, entry);
     this.trim();
-    try {
-      const value = await pending;
-      const current = this.entries.get(key);
-      if (current?.pending === pending) {
-        this.touch(key, { value, expiresAt: this.now() + this.ttlMs });
-      }
-      return value;
-    } catch (error) {
-      if (this.entries.get(key)?.pending === pending) this.entries.delete(key);
-      throw error;
-    }
+    return entry.pending;
+  }
+
+  private staleSnapshot(entry: CacheEntry): PublicGardenImpactResponseV1 | undefined {
+    if (!entry.complete || (entry.staleUntil ?? 0) <= this.now()) return undefined;
+    return {
+      ...entry.complete,
+      provenance: {
+        ...entry.complete.provenance,
+        stale: true,
+        refreshFailedAt: new Date(this.now()).toISOString(),
+      },
+    };
   }
 
   private touch(key: string, entry: CacheEntry): void {
@@ -145,10 +194,35 @@ function defaultLoader(input: {
   chainId: number;
   gardenAddress: Address;
   recentLimit: number;
+  signal?: AbortSignal;
 }): Promise<PublicGardenImpactResponseV1> {
   return import("@green-goods/shared/modules").then(({ readPublicGardenImpactSnapshot }) =>
     readPublicGardenImpactSnapshot(input)
   );
+}
+
+async function loadWithinDeadline(
+  loader: NonNullable<ServerDeps["publicGardenImpactLoader"]>,
+  target: Parameters<NonNullable<ServerDeps["publicGardenImpactLoader"]>>[0]
+): Promise<PublicGardenImpactResponseV1> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => loader({ ...target, signal: controller.signal })),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const error = new DOMException("Garden impact snapshot deadline exceeded", "AbortError");
+          controller.abort(error);
+          reject(error);
+        }, SNAPSHOT_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+    // A failed parallel read can leave sibling transports running after the loader settles.
+    controller.abort(new DOMException("Garden impact snapshot finished", "AbortError"));
+  }
 }
 
 function hasErrorName(error: unknown, name: string): boolean {
@@ -193,7 +267,7 @@ export function registerPublicGardenImpactRoutes(
     const loader = ctx.deps.publicGardenImpactLoader ?? defaultLoader;
     try {
       const snapshot = await cache.get(material, () =>
-        loader({
+        loadWithinDeadline(loader, {
           chainId: target.chainId,
           gardenAddress: target.gardenAddress,
           recentLimit: PUBLIC_GARDEN_IMPACT_MAX_RECENT_LIMIT,
@@ -201,7 +275,11 @@ export function registerPublicGardenImpactRoutes(
       );
       setCors(c);
       return c.json(sliceRecentWork(snapshot, target.recentLimit), 200, {
-        "Cache-Control": SUCCESS_CACHE_CONTROL,
+        "Cache-Control": snapshot.provenance.stale
+          ? "no-store"
+          : snapshot.provenance.partialData
+            ? PARTIAL_CACHE_CONTROL
+            : SUCCESS_CACHE_CONTROL,
       });
     } catch (error) {
       if (hasErrorName(error, "PublicGardenImpactNotFoundError")) {

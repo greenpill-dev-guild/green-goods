@@ -4,7 +4,7 @@ sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-15
 feature_status: Live
 source_of_truth:
   - packages/agent/AGENTS.md
@@ -21,6 +21,16 @@ keywords:
 them through handlers, and serves the public HTTP API. It's how people interact with Green Goods
 from messaging platforms without installing anything, and how external systems read public garden
 data.
+
+```mermaid
+flowchart TB
+  accTitle: Agent runtime boundaries
+  accDescr: Messages enter platform adapters and handlers; HTTP routes and handlers share service dependencies.
+  messages["Platform messages"] --> adapters["Platform adapters"]
+  adapters --> handlers["Message handlers"]
+  handlers --> services["Service dependencies"]
+  api["HTTP API routes"] --> services
+```
 
 ## Inside `src`
 

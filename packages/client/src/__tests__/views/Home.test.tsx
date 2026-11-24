@@ -1,331 +1,1109 @@
 /**
- * Home View Smoke Tests
- *
- * Tests that the Home view renders without crashing.
+ * Home in the member's active garden (DL-123 to DL-125, DL-155): the header's chip, the five
+ * states of `useActiveGarden`, the first-login page and the switcher. The active garden is the
+ * edge: its store and resolver have their own tests, so here a pick calls `selectGarden` and
+ * nothing else does, and a join stands in for its write by changing what the hook returns.
  */
 
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import type { ArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
+import messages from "@green-goods/shared/i18n/en.json";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import type { Garden } from "@green-goods/shared/types/domain";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const filterState = vi.hoisted(() => ({ sort: "" }));
-const arrivalState = vi.hoisted(() => ({ kind: "none" as "none" | "draft" }));
+const ACCOUNT = "0x1234567890abcdef1234567890abcdef12345678";
+const OTHER_ACCOUNT = "0xabcdef1234567890abcdef1234567890abcdef12";
 
-// Mock the shared barrel — Home imports all hooks/stores/utils from @green-goods/shared
-vi.mock("@green-goods/shared/utils/styles/cn", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+const garden = (suffix: string, name: string, overrides: Partial<Garden> = {}) =>
+  ({
+    id: `0x60000000000000000000000000000000000000${suffix}`,
+    name,
+    location: `${name} place`,
+    bannerImage: "",
+    openJoining: false,
+    gardeners: [],
+    stewards: [],
+    owners: [],
+    evaluators: [],
+    ...overrides,
+  }) as unknown as Garden;
+
+const TAS = garden("01", "TAS HUB");
+const AIYELOJA = garden("02", "Aiyeloja Family Garden");
+const VIDA = garden("03", "Vida Verde");
+const COMMUNITY = garden("04", "Green Goods Community Garden", { openJoining: true });
+
+const state = vi.hoisted(() => ({
+  active: {} as Record<string, unknown>,
+  account: "",
+  listed: [] as unknown[],
+  awaiting: new Set<string>(),
+  arrival: { kind: "none" } as ArrivalState,
+  /** Every render of the bell's launcher: which account and garden it read, and whether open. */
+  launcherRenders: [] as Array<{ account: string; gardenId: string; open: boolean }>,
 }));
 
-vi.mock("@green-goods/shared/config/query-keys/registry", () => ({
-  queryKeys: { gardens: { all: ["gardens"] } },
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => state.active,
 }));
-
-vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
-  toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({ data: state.listed, isPending: false, isError: false, refetch: vi.fn() }),
 }));
-
+vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
+  useAwaitingJoinRequests: () => state.awaiting,
+}));
+const joinGarden = vi.hoisted(() => vi.fn());
+vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", () => ({
+  useJoinGarden: () => ({ joinGarden, isJoining: false }),
+}));
 vi.mock("@green-goods/shared/hooks/app/useArrivalState", () => ({
-  useArrivalState: () => ({ kind: arrivalState.kind, myGardenIds: [], needsReviewCount: 0 }),
+  useArrivalState: () => state.arrival,
 }));
-
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
-  useAuthState: () => ({
-    isAuthenticated: true,
-  }),
+  useAuthState: () => ({ isAuthenticated: true }),
 }));
-
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => state.account,
+}));
 vi.mock("@green-goods/shared/hooks/app/useBrowserNavigation", () => ({
   useBrowserNavigation: vi.fn(),
 }));
-
-vi.mock("@green-goods/shared/config/default-chain", () => ({
-  DEFAULT_CHAIN_ID: 42161,
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn(), dismiss: vi.fn() },
 }));
 
-vi.mock("@green-goods/shared/hooks/garden/useFilteredGardens", () => ({
-  useFilteredGardens: (gardens: unknown[], filters: { sort: string }) => {
-    filterState.sort = filters.sort;
-    return {
-      filteredGardens: gardens,
-      myGardensCount: 1,
-      openGardensCount: 0,
-      isFilterActive: false,
-      activeFilterCount: 0,
-    };
+// The launchers and their sheets have their own tests.
+vi.mock("../../views/Home/WalletSheet/Icon", () => ({
+  WalletSheetIcon: () => createElement("button", { type: "button" }, "Wallet"),
+}));
+vi.mock("../../views/Home/CommitmentsSheet/Icon", () => ({
+  CommitmentsSheetIcon: () => createElement("button", { type: "button" }, "Promises"),
+}));
+vi.mock("../../views/Home/WorkDashboard/Icon", () => ({
+  WorkDashboardIcon: () =>
+    createElement("button", { type: "button", "data-testid": "work-dashboard-icon" }, "Your Work"),
+}));
+vi.mock("../../views/Home/Notifications/Icon", () => ({
+  NotificationsIcon: ({ onClick, disabled }: { onClick?: () => void; disabled?: boolean }) =>
+    createElement("button", { type: "button", onClick, disabled }, "Notifications"),
+}));
+vi.mock("../../views/Home/Notifications/Launcher", () => ({
+  NotificationsLauncher: ({
+    gardenId,
+    open,
+    onOpen,
+  }: {
+    gardenId: string;
+    open: boolean;
+    onOpen: () => void;
+  }) => {
+    state.launcherRenders.push({ account: state.account, gardenId, open });
+    return createElement(
+      "div",
+      { "data-testid": "notifications-launcher" },
+      createElement("button", { type: "button", onClick: onOpen }, "Notifications"),
+      open ? createElement("div", { "data-testid": "notifications-sheet" }) : null
+    );
   },
 }));
-
-vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useGardens: () => ({
-    data: [
-      {
-        id: "garden-1",
-        name: "Test Garden",
-        location: "Test Location",
-        bannerImage: "",
-        gardeners: ["0x1234567890abcdef1234567890abcdef12345678"],
-        stewards: [],
-        createdAt: Date.now(),
-      },
-    ],
-    isFetching: false,
-    isPending: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
+vi.mock("../../views/Home/CommitmentsSheet", () => ({ CommitmentsSheet: () => null }));
+// The Promises launcher loads once Home is idle, reading the inbox through the query cache; a
+// test that renders after its chunk resolved would draw the real one without a query client.
+vi.mock("../../views/Home/CommitmentsSheet/Launcher", () => ({
+  CommitmentsSheetLauncher: () => createElement("button", { type: "button" }, "Promises"),
 }));
-
-vi.mock("@green-goods/shared/hooks/app/useLoadingWithMinDuration", () => ({
-  useLoadingWithMinDuration: () => ({
-    showSkeleton: false,
-    timedOut: false,
-    reset: vi.fn(),
-  }),
-}));
-
-vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
-  useNavigateToTop: () => vi.fn(),
-}));
-
-vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
-  useOnlineStatus: () => true,
-}));
-
-vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
-  usePrimaryAddress: () => "0x1234567890abcdef1234567890abcdef12345678",
-}));
-
-vi.mock("@green-goods/shared/stores/useUIStore", () => ({
-  useUIStore: (selector: (s: any) => any) => {
-    const state = {
-      isGardenFilterOpen: false,
-      openGardenFilter: vi.fn(),
-      closeGardenFilter: vi.fn(),
-      closeWalletSheet: vi.fn(),
-      openWorkDashboard: vi.fn(),
-      // Home reads its filters from the store so they outlive the view.
-      gardenFilters: { scope: "all", sort: "recent" },
-      setGardenFilters: vi.fn(),
-      resetGardenFilters: vi.fn(),
-    };
-    return selector(state);
-  },
-}));
-
-vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
-  useCommitmentsInbox: () => ({
-    live: [],
-    settled: [],
-    liveActCount: 0,
-    settledActCount: 0,
-    totalActCount: 0,
-    availability: { status: "unknown-chain" },
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
-  useCommitmentsToConfirm: () => ({
-    groups: [],
-    count: 0,
-    isSteward: false,
-    availability: { status: "unknown-chain" },
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
-}));
-
-// Mock @tanstack/react-query
-vi.mock("@tanstack/react-query", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
-  return {
-    ...actual,
-    useQueryClient: () => ({
-      invalidateQueries: vi.fn(),
+// The wallet sheet shows only what Home hands it: whether it's open and the tab it starts on.
+vi.mock("../../views/Home/WalletSheet", () => ({
+  WalletSheet: ({ isOpen, startTab }: { isOpen: boolean; startTab?: string }) =>
+    createElement("output", {
+      "data-testid": "wallet-sheet",
+      "data-open": String(isOpen),
+      "data-start": startTab ?? "",
     }),
+}));
+// The journal is the seam the journal steps fill; Home only mounts it. Its row opens a page under
+// Home, as a Recent Activity or Take Part row does.
+vi.mock("../../views/Home/Journal", async () => {
+  const { useNavigate } = await import("react-router-dom");
+  const { useContext } = await import("react");
+  const { HomeShownContext } = await import("../../views/Home/Journal/homeShown");
+  return {
+    HomeJournal: ({ garden }: { garden: Garden }) => {
+      const navigate = useNavigate();
+      // Whether Home tells its sections that it shows: they close their own sheets when not.
+      const shown = useContext(HomeShownContext);
+      return createElement(
+        "section",
+        { "data-testid": "home-journal", "data-shown": String(shown) },
+        garden.name,
+        createElement(
+          "button",
+          { type: "button", onClick: () => navigate(`/home/${garden.id}`) },
+          "Open Its Page"
+        )
+      );
+    },
   };
 });
 
-// Mock @remixicon/react
-vi.mock("@remixicon/react", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@remixicon/react")>()),
-  RiFilterLine: (props: any) => createElement("span", { "data-testid": "filter-icon", ...props }),
-}));
-
-// Mock local components
-vi.mock("../../views/Home/GardenList", () => ({
-  GardenList: ({ gardens, onCardClick }: { gardens: any[]; onCardClick: (id: string) => void }) =>
-    createElement(
-      "div",
-      { "data-testid": "garden-list" },
-      gardens.map((g: any) =>
-        createElement(
-          "button",
-          {
-            key: g.id,
-            "data-testid": "garden-card",
-            type: "button",
-            onClick: () => onCardClick(g.id),
-          },
-          g.name
-        )
-      )
-    ),
-}));
-
-vi.mock("../../views/Home/GardenFilters", () => ({
-  GardenFilterScope: {},
-  GardenSortOrder: {},
-  GardensFilterSheet: () => null,
-}));
-
-vi.mock("../../views/Home/WalletSheet/Icon", () => ({
-  WalletSheetIcon: () => createElement("button", { "data-testid": "wallet-drawer-icon" }),
-}));
-
-vi.mock("../../views/Home/CommitmentsSheet/Icon", () => ({
-  CommitmentsSheetIcon: () => createElement("button", { "data-testid": "commitments-sheet-icon" }),
-}));
-
-vi.mock("../../views/Home/CommitmentsSheet", () => ({
-  CommitmentsSheet: () => null,
-}));
-
-vi.mock("../../views/Home/WalletSheet", () => ({
-  WalletSheet: () => null,
-}));
-
-vi.mock("../../views/Home/WorkDashboard/Icon", () => ({
-  WorkDashboardIcon: () => createElement("button", { "data-testid": "work-dashboard-icon" }),
-}));
-
-// Import after mocks
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { JoinGardenButton } from "@/components/Features/Garden/JoinGardenButton";
+// Home and the button load these with their first opening. A slow first import is not what these
+// tests prove, and a sheet that opened by itself would show at once.
+import "@/components/Features/Garden/JoinGardenConfirmDialog";
+import "../../views/Home/GardenSwitcher";
 import Home from "../../views/Home";
-import { markArrivalPassed } from "../../views/Home/arrivalToast";
+import { hasArrivalPassed, markArrivalPassed } from "../../views/Home/arrivalToast";
 
-const messages = {
-  "app.home": "Home",
-  "app.home.filters.button": "Filters",
-  "app.home.messages.noGardensFound": "No gardens found",
-  "app.home.arrival.draft.title": "You have a draft saved",
-  "app.home.arrival.draft.message": "Pick up where you left off.",
-  "app.home.arrival.draft.action": "Resume",
-};
+type Status = "loading" | "error" | "none" | "choose" | "ready";
+type Role = "owner" | "steward" | "evaluator" | "gardener";
 
-const renderWithProviders = (initialRoute = "/home") => {
-  return render(
+const selectGarden = vi.fn();
+const acknowledgeAddedGardens = vi.fn();
+const refetch = vi.fn();
+
+function setActive(
+  status: Status,
+  mine: Array<[Garden, Role[]]> = [],
+  activeId: string | null = null,
+  /** Gardens the account was added to that this device has not announced yet. */
+  added: Garden[] = []
+) {
+  state.active = {
+    status,
+    gardenId: activeId,
+    garden: status === "ready" ? (mine.find(([g]) => g.id === activeId)?.[0] ?? null) : null,
+    myGardens: {
+      gardens: mine.map(([g, roles]) => ({ garden: g, membership: { roles, pendingJoin: false } })),
+      isLoaded: status !== "loading" && status !== "error",
+      isError: status === "error",
+      isStale: false,
+      refetch,
+    },
+    selectGarden,
+    addedGardens: added,
+    acknowledgeAddedGardens,
+  };
+}
+
+let location = "";
+let locationSearch = "";
+let locationState: unknown;
+function LocationProbe() {
+  const current = useLocation();
+  location = current.pathname;
+  locationSearch = current.search;
+  locationState = current.state;
+  return null;
+}
+/** A page under Home; its Back opens Home again, as a work page's `returnTo` does. */
+function VisitedGarden() {
+  const navigate = useNavigate();
+  const id = useParams().id ?? "";
+  return createElement(
+    "div",
+    null,
+    createElement("p", null, `Visiting ${id}`),
+    createElement("button", { type: "button", onClick: () => navigate("/home") }, "Back"),
+    createElement(JoinGardenButton, { gardenId: id, gardenName: "This Garden" })
+  );
+}
+
+function homeTree(entry = "/home") {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: [entry] },
     createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
+      IntlProvider,
+      { locale: "en", messages },
+      createElement(LocationProbe),
       createElement(
-        IntlProvider,
-        { locale: "en", messages },
+        Routes,
+        null,
         createElement(
-          Routes,
-          null,
-          createElement(Route, { path: "/home/*", element: createElement(Home) })
+          Route,
+          { path: "/home", element: createElement(Home) },
+          createElement(Route, { path: "explore", element: createElement("p", null, "Explore") }),
+          createElement(Route, { path: ":id", element: createElement(VisitedGarden) })
         )
       )
     )
   );
-};
+}
 
-describe("Home View", () => {
+/** Renders Home; `rerender` draws it again in place, as a change to a read it holds would. */
+function renderHome(entry = "/home") {
+  const view = render(homeTree(entry));
+  return { ...view, rerender: (tree = homeTree(entry)) => view.rerender(tree) };
+}
+
+/** Home in the app's scroller, whose offset each test moves as a browser would. */
+async function inAppScroller(
+  run: (scroller: HTMLElement, redraw: () => void) => Promise<void> | void
+) {
+  const offsets = new WeakMap<Element, number>();
+  const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+  Object.defineProperty(Element.prototype, "scrollTop", {
+    configurable: true,
+    get() {
+      return offsets.get(this) ?? 0;
+    },
+    set(value: number) {
+      offsets.set(this, value);
+    },
+  });
+  const scroller = document.body.appendChild(document.createElement("div"));
+  scroller.id = "app-scroll";
+  // The test DOM's scrollTo does not move the stubbed offset.
+  scroller.scrollTo = ((options: ScrollToOptions) => {
+    scroller.scrollTop = options.top ?? 0;
+  }) as HTMLElement["scrollTo"];
+  try {
+    const view = render(homeTree(), { container: scroller });
+    await run(scroller, () => view.rerender(homeTree()));
+  } finally {
+    scroller.remove();
+    if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+    else Reflect.deleteProperty(Element.prototype, "scrollTop");
+  }
+}
+
+/** Lets a closing sheet finish its exit. */
+const finishSheetMotion = () => act(() => vi.runAllTimers());
+/** Lets the launchers Home defers to an idle moment load. */
+const passIdle = () => act(() => vi.advanceTimersByTime(1_000));
+
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.clearAllMocks();
+  sessionStorage.clear();
+  state.account = ACCOUNT;
+  state.launcherRenders = [];
+  state.listed = [TAS, AIYELOJA, VIDA, COMMUNITY];
+  state.awaiting = new Set();
+  state.arrival = { kind: "none" };
+  useUIStore.getState().resetForAccountChange();
+  setActive("ready", [[TAS, ["steward"]]], TAS.id);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("Home's header", () => {
+  it("starts with the active garden's chip in the title's place, then Wallet, Promises, Your Work and the bell", () => {
+    renderHome();
+
+    const chip = screen.getByRole("button", { name: /TAS HUB/ });
+    expect(chip).toHaveAttribute("data-component", "GardenChip");
+    const header = chip.closest("[data-component='HomeHeader']") as HTMLElement;
+    expect(
+      within(header)
+        .getAllByRole("button")
+        .map((button) => button.textContent)
+    ).toEqual(["TAS HUB", "Wallet", "Promises", "Your Work", "Notifications"]);
+    // Filters moved to Explore's top bar.
+    expect(screen.queryByRole("button", { name: "Filters" })).not.toBeInTheDocument();
+  });
+
+  it("keeps only Profile before a garden is entered, and the page its title for assistive tech", () => {
+    setActive("none");
+    renderHome();
+
+    expect(screen.getByRole("heading", { level: 1, name: "Home" })).toHaveClass("sr-only");
+    expect(document.querySelector("[data-component='GardenChip']")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Notifications" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Wallet" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+    expect(location).toBe("/home/profile");
+  });
+
+  it("shows no control that could turn out wrong while the gardens load with none remembered", () => {
+    setActive("loading");
+    renderHome();
+
+    expect(screen.queryByRole("button", { name: "Profile" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Notifications" })).not.toBeInTheDocument();
+  });
+
+  it("titles the page Choose a Garden, with no chip to cut it off", () => {
+    setActive("choose", [
+      [TAS, ["steward"]],
+      [AIYELOJA, ["gardener"]],
+    ]);
+    renderHome();
+
+    expect(screen.getByRole("heading", { level: 1, name: "Choose a Garden" })).toBeVisible();
+    expect(document.querySelector("[data-component='GardenChip']")).toBeNull();
+  });
+
+  it("mounts the bell's read with a remembered garden while the account's gardens still load", async () => {
+    setActive("loading", [], TAS.id);
+    renderHome();
+    passIdle();
+
+    expect(await screen.findByTestId("notifications-launcher")).toBeInTheDocument();
+  });
+});
+
+describe("Home's states", () => {
+  it("opens the active garden's journal when ready", () => {
+    renderHome();
+
+    expect(screen.getByTestId("home-journal")).toHaveTextContent("TAS HUB");
+  });
+
+  it("goes straight into a remembered garden while the account's gardens load", () => {
+    setActive("loading", [], TAS.id);
+    renderHome();
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading garden...");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Explore Gardens/ })).not.toBeInTheDocument();
+  });
+
+  // A remembered garden does not hide a failed read behind "Loading garden..." (QA finding 2).
+  it.each([
+    ["with nothing remembered", null],
+    ["with a remembered garden", TAS.id],
+  ])("says a failed read lost nothing and tries again, %s", (_case, remembered) => {
+    setActive("error", [], remembered);
+    renderHome();
+
+    expect(screen.queryByText("Loading garden...")).not.toBeInTheDocument();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Couldn't load your gardens");
+    expect(alert).toHaveTextContent("Nothing was lost");
+    fireEvent.click(within(alert).getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+});
+
+describe("the first-login page", () => {
+  const SEVERAL: Array<[Garden, Role[]]> = [
+    [TAS, ["steward"]],
+    [AIYELOJA, ["gardener"]],
+  ];
+  const yourGardens = () => screen.getByRole("region", { name: "Your Gardens" });
+
+  it("gives a member of none the Find Your Garden block: the Community Garden's door stays gone", () => {
+    setActive("none");
+    renderHome();
+
+    expect(screen.getByText("Find Your Garden")).toBeVisible();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+    expect(screen.queryByText(COMMUNITY.name)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join Garden" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Explore Gardens/ }));
+    expect(location).toBe("/home/explore");
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+
+  it("lists a member's gardens with their role, Explore last, and opens no sheet by itself", async () => {
+    setActive("choose", SEVERAL);
+    renderHome();
+    await act(() => vi.advanceTimersByTimeAsync(1_000));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const explore = screen.getByRole("button", { name: /Explore Gardens/ });
+    expect(explore.compareDocumentPosition(yourGardens())).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+    expect(
+      within(yourGardens())
+        .getAllByRole("button")
+        .map((row) => row.textContent)
+    ).toEqual(["TAS HUBSteward", "Aiyeloja Family GardenGardener"]);
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+
+  it("makes a picked garden active, and the chip that then names it takes focus", () => {
+    setActive("choose", SEVERAL);
+    const { rerender } = renderHome();
+
+    fireEvent.click(within(yourGardens()).getByRole("button", { name: /Aiyeloja Family Garden/ }));
+    expect(selectGarden).toHaveBeenCalledExactlyOnceWith(AIYELOJA.id);
+    expect(location).toBe("/home");
+
+    setActive("ready", SEVERAL, AIYELOJA.id);
+    rerender();
+    expect(document.querySelector("[data-component='GardenChip']")).toHaveFocus();
+  });
+
+  it.each([
+    ["a member of none", "none" as const, []],
+    ["a member of several", "choose" as const, SEVERAL],
+  ])("marks %s's requests as waiting for approval, and a request's row visits", (_who, status, mine) => {
+    setActive(status, mine);
+    state.awaiting = new Set([VIDA.id.toLowerCase()]);
+    renderHome();
+
+    const requests = screen.getByRole("region", { name: "Waiting to Join" });
+    expect(requests).toHaveTextContent("Waiting for approval");
+    fireEvent.click(within(requests).getByRole("button", { name: /Vida Verde/ }));
+
+    expect(location).toBe(`/home/${VIDA.id}`);
+    expect(locationState).toEqual({ returnTo: "/home" });
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+});
+
+describe("a garden change", () => {
+  it("opens the new garden at its top on Home too", async () => {
+    const mine: Array<[Garden, Role[]]> = [
+      [TAS, ["steward"]],
+      [AIYELOJA, ["gardener"]],
+    ];
+    setActive("ready", mine, TAS.id);
+
+    await inAppScroller((scroller, redraw) => {
+      scroller.scrollTop = 567;
+      fireEvent.scroll(scroller);
+
+      setActive("ready", mine, AIYELOJA.id);
+      redraw();
+
+      expect(scroller.scrollTop).toBe(0);
+    });
+  });
+});
+
+describe("joining an open garden from its page", () => {
+  it("opens Home in the joined garden at its top, whatever garden was active before", async () => {
+    const mine: Array<[Garden, Role[]]> = [[TAS, ["steward"]]];
+    setActive("ready", mine, TAS.id);
+    joinGarden.mockImplementation(async () => {
+      // What `useJoinGarden` writes; its own tests prove the write.
+      setActive("ready", [...mine, [VIDA, []]], VIDA.id);
+      return "0xhash";
+    });
+
+    await inAppScroller(async (scroller) => {
+      scroller.scrollTop = 567;
+      fireEvent.scroll(scroller);
+      fireEvent.click(screen.getByRole("button", { name: "Open Its Page" }));
+      fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Join" }));
+
+      await waitFor(() => expect(location).toBe("/home"));
+      expect(screen.getByTestId("home-journal")).toHaveTextContent(VIDA.name);
+      // The shell resets the scroller as Home shows again; the old garden's place must not return.
+      scroller.scrollTop = 0;
+      fireEvent.scroll(scroller);
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      expect(scroller.scrollTop).toBe(0);
+    });
+  });
+});
+
+describe("the switcher", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    arrivalState.kind = "none";
-    sessionStorage.clear();
+    setActive(
+      "ready",
+      [
+        [TAS, ["owner", "steward"]],
+        [AIYELOJA, ["gardener"]],
+      ],
+      TAS.id
+    );
+    state.awaiting = new Set([VIDA.id.toLowerCase()]);
   });
 
-  describe("arrival toast", () => {
-    // Home waits 700 ms after an arrival resolves before it shows the toast.
-    const passArrivalDelay = () => act(() => vi.advanceTimersByTime(700));
+  // The switcher's code loads with its first opening.
+  const openSwitcher = () => {
+    fireEvent.click(screen.getByRole("button", { name: /TAS HUB/ }));
+    return screen.findByRole("dialog", { name: "Your Gardens" });
+  };
 
-    beforeEach(() => {
-      vi.useFakeTimers();
-      arrivalState.kind = "draft";
-    });
+  it("lists the member's gardens with their place and role, the active one marked, and Explore last", async () => {
+    renderHome();
+    const switcher = await openSwitcher();
 
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it("shows the arrival toast to a session that opens on Home", () => {
-      renderWithProviders();
-      passArrivalDelay();
-
-      expect(toastService.info).toHaveBeenCalledTimes(1);
-      expect(toastService.info).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "You have a draft saved" })
-      );
-    });
-
-    it("stays quiet on Home once the session has arrived on another screen", () => {
-      // e.g. the app reopened into the garden flow, where the user already declined a draft.
-      markArrivalPassed("0x1234567890abcdef1234567890abcdef12345678");
-
-      renderWithProviders();
-      passArrivalDelay();
-
-      expect(toastService.info).not.toHaveBeenCalled();
-    });
-
-    it("drops a pending arrival toast when a garden opens before it shows", () => {
-      renderWithProviders();
-      // The garden is a child route, so Home stays mounted underneath it.
-      fireEvent.click(screen.getByTestId("garden-card"));
-      passArrivalDelay();
-
-      expect(toastService.info).not.toHaveBeenCalled();
-    });
+    const rows = within(switcher).getAllByRole("button", { name: /./ }).slice(1);
+    expect(rows.map((row) => row.textContent)).toEqual([
+      "TAS HUBTAS HUB placeOwner",
+      "Aiyeloja Family GardenAiyeloja Family Garden placeGardener",
+      "Vida VerdeVida Verde placeWaiting for approval",
+      "Explore GardensFind a garden to join",
+    ]);
+    expect(rows[0]).toHaveAttribute("aria-current", "true");
+    expect(rows[1]).not.toHaveAttribute("aria-current");
   });
 
-  it("renders without crashing", () => {
-    renderWithProviders();
+  it("opens with one garden too", async () => {
+    setActive("ready", [[TAS, ["gardener"]]], TAS.id);
+    renderHome();
 
-    expect(screen.getByRole("article")).toBeInTheDocument();
+    expect(await openSwitcher()).toBeInTheDocument();
   });
 
-  it("keeps the dashboard host mounted beneath a child record", () => {
-    renderWithProviders();
+  it("switches on a pick and stays on Home", async () => {
+    renderHome();
+    fireEvent.click(
+      within(await openSwitcher()).getByRole("button", { name: /Aiyeloja Family Garden/ })
+    );
+
+    expect(selectGarden).toHaveBeenCalledExactlyOnceWith(AIYELOJA.id);
+    expect(location).toBe("/home");
+  });
+
+  it("visits a garden waiting for approval without switching to it", async () => {
+    renderHome();
+    fireEvent.click(within(await openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
+
+    expect(location).toBe(`/home/${VIDA.id}`);
+    // Home names itself as where the visit came from, so the garden's Back steps back here.
+    expect(locationState).toEqual({ returnTo: "/home" });
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+
+  it("opens Explore from its last row", async () => {
+    renderHome();
+    fireEvent.click(within(await openSwitcher()).getByRole("button", { name: /Explore Gardens/ }));
+
+    expect(location).toBe("/home/explore");
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+});
+
+describe("Home under its child routes", () => {
+  it("keeps the dashboard host mounted beneath Explore", () => {
+    renderHome();
     const host = screen.getByTestId("work-dashboard-icon");
-    fireEvent.click(screen.getByTestId("garden-card"));
+
+    fireEvent.click(screen.getByRole("button", { name: /TAS HUB/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Explore Gardens/ }));
+    finishSheetMotion();
+
+    expect(screen.getByText("Explore")).toBeInTheDocument();
     expect(screen.getByTestId("work-dashboard-icon")).toBe(host);
     expect(host).not.toBeVisible();
   });
 
-  it.each(["/home", "/home/"])("displays Home at the compatible entry %s", (entry) => {
-    renderWithProviders(entry);
+  // The journal's own sheets open from their own state, never from the Endowment flag a garden
+  // page reads (HomeJournal.test), so it can stay mounted, out of sight, and keep its place.
+  it("keeps the journal mounted, out of sight, while a page under Home shows", () => {
+    renderHome(`/home/${AIYELOJA.id}`);
 
-    expect(screen.getByText("Home")).toBeInTheDocument();
+    expect(screen.getByText(`Visiting ${AIYELOJA.id}`)).toBeInTheDocument();
+    expect(screen.getByTestId("home-journal")).not.toBeVisible();
   });
 
-  it("renders garden cards when data is available", () => {
-    renderWithProviders();
+  // The open promises are held in the store, which outlives Home's visit to the page.
+  it("closes the journal's open promises while a page under Home shows, so they stay closed on return", () => {
+    act(() => useUIStore.getState().openTakePartSheet());
+    renderHome(`/home/${AIYELOJA.id}`);
 
-    expect(screen.getByTestId("garden-card")).toBeInTheDocument();
-    expect(screen.getByText("Test Garden")).toBeInTheDocument();
+    expect(useUIStore.getState().takePartSheet).toBeNull();
   });
 
-  it("starts with newest gardens first", () => {
-    renderWithProviders();
+  // QA finding 3: Back from a page Home opened came back at the top with focus on the page.
+  it("comes back from a page it opened where it was, with focus on the row that opened it", async () => {
+    await inAppScroller(async (scroller) => {
+      scroller.scrollTop = 567;
+      fireEvent.scroll(scroller);
 
-    expect(filterState.sort).toBe("recent");
+      fireEvent.click(screen.getByRole("button", { name: "Open Its Page" }));
+      expect(screen.getByText(`Visiting ${TAS.id}`)).toBeInTheDocument();
+      // The shell scrolls every new route to the top, and the member scrolls the page.
+      scroller.scrollTop = 0;
+      fireEvent.scroll(scroller);
+      scroller.scrollTop = 300;
+      fireEvent.scroll(scroller);
+
+      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+      // Home shows again before the shell resets the scroller, so that reset's scroll event
+      // arrives while Home shows; it must not replace the place (Codex P1 on #1333).
+      scroller.scrollTop = 0;
+      fireEvent.scroll(scroller);
+      await waitFor(() => expect(scroller.scrollTop).toBe(567));
+      expect(screen.getByRole("button", { name: "Open Its Page" })).toHaveFocus();
+    });
   });
 
-  it("shows filter button", () => {
-    renderWithProviders();
+  // A failed upload's toast floats over any sheet, and its Review opens Your Work over Home: the
+  // sheet under it closes, as when Home opens a page (Codex on #1339).
+  it("closes its other sheets as Your Work opens over Home, and tells the journal it is covered", async () => {
+    renderHome();
+    passIdle();
+    const launcher = await screen.findByTestId("notifications-launcher");
+    fireEvent.click(within(launcher).getByRole("button", { name: "Notifications" }));
+    act(() => {
+      useUIStore.getState().openWalletSheet();
+      useUIStore.getState().openTakePartSheet();
+    });
+    expect(screen.getByTestId("notifications-sheet")).toBeInTheDocument();
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "true");
 
-    expect(screen.getByRole("button", { name: /filters/i })).toBeInTheDocument();
+    act(() => useUIStore.getState().openWorkDashboard("pending", "all"));
+
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
+    expect(useUIStore.getState()).toMatchObject({ isWalletSheetOpen: false, takePartSheet: null });
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "false");
+
+    act(() => useUIStore.getState().closeWorkDashboard());
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "true");
   });
 
-  it("shows work dashboard icon", () => {
-    renderWithProviders();
+  // The header stays mounted under a child screen, so a sheet it opened would stay drawn over
+  // that screen; Home closes the bell's sheet with its other drawers.
+  it("closes the bell's sheet when Home opens a child screen", async () => {
+    renderHome();
+    passIdle();
+    const launcher = await screen.findByTestId("notifications-launcher");
 
-    expect(screen.getByTestId("work-dashboard-icon")).toBeInTheDocument();
+    fireEvent.click(within(launcher).getByRole("button", { name: "Notifications" }));
+    expect(screen.getByTestId("notifications-sheet")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /TAS HUB/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Explore Gardens/ }));
+    finishSheetMotion();
+
+    expect(screen.getByText("Explore")).toBeInTheDocument();
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
+  });
+
+  // Its sheet marks the events it shows as seen, so a sheet that opened for another account or
+  // garden would clear that scope's badge without anyone opening its bell.
+  it.each([
+    [
+      "garden",
+      () =>
+        setActive(
+          "ready",
+          [
+            [TAS, ["steward"]],
+            [AIYELOJA, ["gardener"]],
+          ],
+          AIYELOJA.id
+        ),
+      () =>
+        setActive(
+          "ready",
+          [
+            [TAS, ["steward"]],
+            [AIYELOJA, ["gardener"]],
+          ],
+          TAS.id
+        ),
+    ],
+    [
+      "account",
+      () => {
+        state.account = OTHER_ACCOUNT;
+      },
+      () => {
+        state.account = ACCOUNT;
+      },
+    ],
+  ])("never opens the bell's sheet for a changed %s, nor again when it changes back", async (_scope, change, changeBack) => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [AIYELOJA, ["gardener"]],
+      ],
+      TAS.id
+    );
+    const view = renderHome();
+    passIdle();
+    const launcher = await screen.findByTestId("notifications-launcher");
+    fireEvent.click(within(launcher).getByRole("button", { name: "Notifications" }));
+    expect(screen.getByTestId("notifications-sheet")).toBeInTheDocument();
+
+    state.launcherRenders = [];
+    change();
+    view.rerender(homeTree());
+    finishSheetMotion();
+
+    expect(state.launcherRenders.length).toBeGreaterThan(0);
+    expect(state.launcherRenders.filter(({ open }) => open)).toEqual([]);
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
+
+    changeBack();
+    view.rerender(homeTree());
+
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
+  });
+
+  it.each(["/home", "/home/"])("shows Home at the compatible entry %s", (entry) => {
+    renderHome(entry);
+
+    expect(screen.getByTestId("home-journal")).toBeVisible();
+  });
+});
+
+// PRD-1492: a new steward was added to a second garden and the App said nothing, leaving them in
+// the community garden.
+describe("a garden the member was added to", () => {
+  const shownToast = () => vi.mocked(toastService.info).mock.calls.at(-1)?.[0];
+
+  it("says so once, in a toast that waits, and Switch opens Home there", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    renderHome();
+
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(shownToast()).toMatchObject({
+      title: "You're now part of Vida Verde",
+      message: "Switch now, or anytime from Your Gardens.",
+      persistent: true,
+      action: { label: "Switch" },
+    });
+    // Being added moves nothing until the member chooses, and only an answer marks it told, so
+    // a reload before one shows the news again (Codex on #1610).
+    expect(selectGarden).not.toHaveBeenCalled();
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /TAS HUB/ })).toBeVisible();
+
+    act(() => shownToast()?.action?.onClick());
+    expect(selectGarden).toHaveBeenCalledExactlyOnceWith(VIDA.id);
+    expect(acknowledgeAddedGardens).toHaveBeenCalledExactlyOnceWith([VIDA.id]);
+  });
+
+  it("marks the news told when the member closes the toast", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    renderHome();
+
+    act(() => shownToast()?.onDismiss?.());
+    expect(acknowledgeAddedGardens).toHaveBeenCalledExactlyOnceWith([VIDA.id]);
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+
+  it("names how many gardens when there are several, and opens Your Gardens to choose", async () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["gardener"]],
+        [AIYELOJA, ["gardener"]],
+      ],
+      TAS.id,
+      [VIDA, AIYELOJA]
+    );
+    renderHome();
+
+    expect(shownToast()).toMatchObject({
+      title: "You're now part of 2 more gardens",
+      action: { label: "See Your Gardens" },
+    });
+    act(() => shownToast()?.action?.onClick());
+    expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeVisible();
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+
+  // Codex on #1610: the first-login page marked new gardens told without saying so, so a reload
+  // there lost the news. The page lists them; the toast waits until a garden is chosen.
+  it("keeps the news through the first-login page, and tells it once a garden is chosen", () => {
+    const mine: Array<[Garden, Role[]]> = [
+      [TAS, ["steward"]],
+      [VIDA, ["gardener"]],
+      [AIYELOJA, ["gardener"]],
+    ];
+    setActive("choose", mine, null, [VIDA, AIYELOJA]);
+    const view = renderHome();
+
+    expect(toastService.info).not.toHaveBeenCalled();
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+
+    // Picking one new garden opens Home there; the other is still news.
+    setActive("ready", mine, VIDA.id, [AIYELOJA]);
+    view.rerender();
+    expect(shownToast()).toMatchObject({ title: "You're now part of Aiyeloja Family Garden" });
+  });
+
+  // PRD-1505: the toast covered Home's chip and launchers until answered, and stayed over a garden
+  // page Home opened, where its Switch acted on the Home underneath.
+  it("waits under Home's top bar, and goes unanswered while a page Home opened shows", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    renderHome();
+    expect(shownToast()).toMatchObject({ belowTopBar: true });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Its Page" }));
+    expect(screen.getByText(`Visiting ${TAS.id}`)).toBeInTheDocument();
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+
+    // Still news: Home says it again once it shows.
+    vi.mocked(toastService.info).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(shownToast()).toMatchObject({ title: "You're now part of Vida Verde" });
+  });
+
+  // Codex on #1720: once the launchers were usable, a sheet they opened sat under the toast, whose
+  // Switch still acted on the Home underneath.
+  it("steps aside while a sheet or dialog covers Home, and comes back once it closes", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    renderHome();
+    expect(toastService.info).toHaveBeenCalledOnce();
+
+    let release = () => {};
+    act(() => {
+      release = useUIStore.getState().registerOpenSheet();
+    });
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+
+    vi.mocked(toastService.info).mockClear();
+    act(() => release());
+    expect(shownToast()).toMatchObject({ title: "You're now part of Vida Verde" });
+  });
+
+  // PRD-1505: a garden the member was removed from before answering kept its toast and Switch.
+  it("goes unanswered when its garden is no longer the member's", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    const view = renderHome();
+    expect(toastService.info).toHaveBeenCalledOnce();
+
+    setActive("ready", [[TAS, ["steward"]]], TAS.id);
+    view.rerender();
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+  });
+
+  // Codex on #1610: the toast outlived its account, so the next account to sign in on this
+  // device could read the previous account's garden and press its action.
+  it("takes the toast away, unanswered, when another account signs in or the account leaves", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    const view = renderHome();
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(toastService.dismiss).not.toHaveBeenCalled();
+
+    state.account = OTHER_ACCOUNT;
+    setActive("ready", [[TAS, ["steward"]]], TAS.id);
+    view.rerender();
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+    // Still the first account's news: it shows again when that account comes back.
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+
+    vi.mocked(toastService.dismiss).mockClear();
+    view.unmount();
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+  });
+});
+
+describe("arrival toast", () => {
+  // Home waits 700 ms after an arrival resolves before it shows the toast.
+  const passArrivalDelay = () => act(() => vi.advanceTimersByTime(700));
+  const shownToast = () => vi.mocked(toastService.info).mock.calls.at(-1)?.[0];
+
+  beforeEach(() => {
+    state.arrival = { kind: "queue", orientation: { target: "yourWork" } };
+  });
+
+  it("tells a session that opens on Home about its uploads, and Review opens Your Work on Pending", () => {
+    renderHome();
+    passArrivalDelay();
+
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(shownToast()).toMatchObject({
+      title: "Work is waiting to sync",
+      message: "Some of your work hasn't uploaded yet.",
+      action: { label: "Review" },
+    });
+    act(() => shownToast()?.action?.onClick());
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: true,
+      workDashboardInitialTab: "pending",
+    });
+  });
+
+  it("names the other garden its uploads wait in, and opens the switcher there without switching", async () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["gardener"]],
+      ],
+      TAS.id
+    );
+    state.arrival = {
+      kind: "queue",
+      orientation: { target: "switcher", gardenId: VIDA.id, gardenName: VIDA.name },
+    };
+
+    renderHome();
+    passArrivalDelay();
+
+    expect(shownToast()).toMatchObject({
+      title: "Work is waiting to sync",
+      message: "Some of your work in Vida Verde hasn't uploaded yet.",
+      action: { label: "See Your Gardens" },
+    });
+    act(() => shownToast()?.action?.onClick());
+    expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeInTheDocument();
+    expect(selectGarden).not.toHaveBeenCalled();
+    expect(useUIStore.getState().gardenSwitcherRequested).toBe(false);
+  });
+
+  it("names where the uploads wait as the toast shows, after a garden switch during its delay", () => {
+    const mine: Array<[Garden, Role[]]> = [
+      [TAS, ["steward"]],
+      [VIDA, ["gardener"]],
+    ];
+    setActive("ready", mine, TAS.id);
+    const home = renderHome();
+
+    // The member switches to Vida Verde first, so the uploads wait in another garden now.
+    setActive("ready", mine, VIDA.id);
+    state.arrival = {
+      kind: "queue",
+      orientation: { target: "switcher", gardenId: TAS.id, gardenName: TAS.name },
+    };
+    home.rerender();
+    passArrivalDelay();
+
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(shownToast()).toMatchObject({
+      message: "Some of your work in TAS HUB hasn't uploaded yet.",
+      action: { label: "See Your Gardens" },
+    });
+  });
+
+  it("waits while the queue is unread, and lets an arrival with nothing waiting pass", () => {
+    state.arrival = { kind: "pending" };
+    const home = renderHome();
+    passArrivalDelay();
+    expect(hasArrivalPassed(ACCOUNT)).toBe(false);
+
+    state.arrival = { kind: "none" };
+    home.rerender();
+    expect(hasArrivalPassed(ACCOUNT)).toBe(true);
+
+    // Work queued later in the session raises no arrival toast.
+    state.arrival = { kind: "queue", orientation: { target: "yourWork" } };
+    home.rerender();
+    passArrivalDelay();
+    expect(toastService.info).not.toHaveBeenCalled();
+  });
+
+  it("announces unplaced uploads once without sending the member to an unverified garden", () => {
+    state.arrival = { kind: "queue", orientation: null };
+    const home = renderHome();
+    passArrivalDelay();
+
+    expect(shownToast()).toMatchObject({
+      title: "Work is waiting to sync",
+      message: "Some of your work hasn't uploaded yet.",
+    });
+    expect(shownToast()?.action).toBeUndefined();
+    expect(hasArrivalPassed(ACCOUNT)).toBe(true);
+    home.rerender();
+    passArrivalDelay();
+    expect(toastService.info).toHaveBeenCalledOnce();
+  });
+
+  it("stays quiet on Home once the session has arrived on another screen", () => {
+    markArrivalPassed(ACCOUNT);
+
+    renderHome();
+    passArrivalDelay();
+
+    expect(toastService.info).not.toHaveBeenCalled();
+  });
+
+  it("drops a pending arrival toast when Home opens a child screen before it shows", () => {
+    setActive("none");
+    renderHome();
+    fireEvent.click(screen.getByRole("button", { name: /Explore Gardens/ }));
+    passArrivalDelay();
+
+    expect(toastService.info).not.toHaveBeenCalled();
+  });
+});
+
+describe("the switcher a toast asked for", () => {
+  it("opens once Home shows, and not over a garden page Home holds open", async () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["gardener"]],
+      ],
+      TAS.id
+    );
+    act(() => useUIStore.getState().requestGardenSwitcher());
+
+    const visit = renderHome(`/home/${VIDA.id}`);
+    expect(screen.queryByRole("dialog", { name: "Your Gardens" })).not.toBeInTheDocument();
+    expect(useUIStore.getState().gardenSwitcherRequested).toBe(true);
+    visit.unmount();
+
+    renderHome();
+    expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeInTheDocument();
+    expect(useUIStore.getState().gardenSwitcherRequested).toBe(false);
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+});
+
+describe("a link to the wallet's Vouchers tab", () => {
+  it("opens the wallet on Vouchers and drops the link's ask from the address", async () => {
+    renderHome("/home?wallet=vouchers");
+    const sheet = await screen.findByTestId("wallet-sheet");
+    expect(sheet).toHaveAttribute("data-open", "true");
+    expect(sheet).toHaveAttribute("data-start", "vouchers");
+    expect(useUIStore.getState().isWalletSheetOpen).toBe(true);
+    expect(location).toBe("/home");
+    expect(locationSearch).toBe("");
+  });
+
+  it("opens the wallet where it was left otherwise, once the linked one closes", async () => {
+    renderHome("/home?wallet=vouchers");
+    await screen.findByTestId("wallet-sheet");
+    act(() => useUIStore.getState().closeWalletSheet());
+    act(() => useUIStore.getState().openWalletSheet());
+    expect(await screen.findByTestId("wallet-sheet")).toHaveAttribute("data-start", "");
   });
 });

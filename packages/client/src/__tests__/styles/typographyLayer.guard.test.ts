@@ -27,8 +27,10 @@ const declares = (body: string, property: string) =>
 
 const SOURCE_ROOT = resolve(__dirname, "../..");
 const SIZE_CLASS = /(?:^|[\s"'`:])!?text-(?:xs|sm|base|lg|xl|[2-9]xl|\[[^\]\s]+\])(?=[\s"'`]|$)/;
-// Theme type utilities carry a size and a weight together.
-const TYPE_UTILITY = /(?:^|[\s"'`:])!?text-(?:title|label|paragraph)-[a-z0-9]+(?=[\s"'`]|$)/;
+// Theme type utilities and the shared type roles (`type-*`, theme.css) carry a size and a
+// weight together.
+const TYPE_UTILITY =
+  /(?:^|[\s"'`:])!?(?:text-(?:title|label|paragraph)-[a-z0-9]+|type-(?:title-(?:lg|md|sm)|body|label(?:-sm)?|meta(?:-sm)?|field|card-title))(?=[\s"'`]|$)/;
 const WEIGHT_CLASS =
   /(?:^|[\s"'`:])!?font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)(?=[\s"'`]|$)/;
 

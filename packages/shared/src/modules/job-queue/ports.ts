@@ -5,13 +5,15 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../../types/job-queue";
+import type { BatchBudget } from "../transactions/batch-types";
+import type { LiveSendStageReport } from "../transactions/send-stage";
 import type { TransactionSender } from "../transactions/types";
 
 /**
- * Where one send stands while the person who asked for it watches: the wallet
- * is being asked, or the send is broadcast and the chain is confirming it.
+ * Where one send stands while the person who asked for it watches, in the shared stage model:
+ * the wallet is being asked, or the send is broadcast and the network is confirming it.
  */
-export type JobSendPhase = { stage: "wallet" } | { stage: "confirming"; txHash: string };
+export type JobSendPhase = LiveSendStageReport;
 
 export interface ProcessJobContext {
   transactionSender: TransactionSender | null;
@@ -23,9 +25,9 @@ export interface ProcessJobContext {
    */
   explicit?: boolean;
   /**
-   * Told when the wallet is asked and when the send is broadcast, so a view can
-   * say where one row stands. Report-only: it is never stored, never awaited,
-   * and a throw inside it never reaches the send.
+   * Told when the wallet is asked and when the send is broadcast, as the queue's
+   * `job:stage` event tells every screen. Report-only: it is never stored, never
+   * awaited, and a throw inside it never reaches the send.
    */
   onPhase?: (phase: JobSendPhase) => void;
 }
@@ -35,12 +37,28 @@ export interface ProcessJobResult {
   txHash?: string;
   error?: string;
   skipped?: boolean;
+  /** What the job would do was already done elsewhere, so the queue cleared it unsent. */
+  alreadyDone?: boolean;
 }
 
 export interface FlushContext extends ProcessJobContext {
   userAddress: string;
   /** Send only these job kinds; every kind when omitted. */
   kinds?: readonly string[];
+  /**
+   * The ceilings a job and the one waiting on it in this pass go out under as
+   * one atomic request, when the sender sends them that way (Add and Send's
+   * proof and send). Null, or absent, sends them one after the other.
+   */
+  sendsWith?: (lead: Job, follower: Job) => Promise<BatchBudget | null>;
+}
+
+export interface AddJobOptions {
+  /**
+   * False leaves the background flush asleep, for a caller that admits another
+   * job with this one and wakes it once both are in (`requestSync`).
+   */
+  wake?: boolean;
 }
 
 export interface FlushResult {
@@ -54,6 +72,11 @@ export interface JobQueueEventMap {
   "job:processing": { jobId: string; job: Job };
   "job:completed": { jobId: string; job: Job; txHash: string };
   "job:failed": { jobId: string; job: Job; error: string };
+  /**
+   * Where a send of this job stands while it runs, for any screen that shows the job, however
+   * the send was started (PRD-1552). Null once that send stopped; the other events say how.
+   */
+  "job:stage": { jobId: string; job: Job; stage: JobSendPhase["stage"] | null };
   "queue:sync-completed": { result: FlushResult };
   "offline:status-changed": { isOnline: boolean };
   "background:sync-requested": { source: "service-worker"; timestamp: number };
@@ -119,7 +142,35 @@ export interface JobQueueAnalytics {
   ): Promise<void>;
   storageWarning(kind: string, quota: StorageQuotaSnapshot, isOnline: boolean): void;
   privateEvent(event: string, properties: Record<string, unknown>): void;
-  processingStarted(kind: string, attempt: number): void;
+  /**
+   * A try starts: a send, or the check of a send already on record (`confirming`).
+   * `explicit` when a person's tap asked for it rather than a background pass.
+   */
+  processingStarted(
+    kind: string,
+    attempt: number,
+    context: { explicit: boolean; confirming: boolean }
+  ): void;
+  /**
+   * A try ended with nothing sent and no answer yet: every such end of a try that `started`,
+   * and a tap's refusal before one. A background pass that never starts records nothing.
+   */
+  jobSkipped(kind: string, reason: string, context: { explicit: boolean; started: boolean }): void;
+  /**
+   * A send went out and its receipt did not come within the queue's limit. The job stays on
+   * record as still confirming; this says how long it waited and who it waited for.
+   */
+  receiptWaitLimitReached(
+    kind: string,
+    context: { limitMs: number; explicit: boolean; authMode: string }
+  ): void;
+  /**
+   * A job left the queue unsent because it was thrown away: `discarded` for the job a discard was
+   * called on, by a person's tap or by the app rolling back an act that didn't go (a take-up, a
+   * proof's send, a creation, a draft), and `with-another` for a job that went with it. Without
+   * this, a job could leave with no record of landing, failing or being dropped (PRD-1478).
+   */
+  jobDiscarded(job: Job, reason: "discarded" | "with-another"): void;
 }
 
 export interface JobQueueLogger {
@@ -158,7 +209,12 @@ export type JobExecution =
   | { status: "submitted"; txHash: string }
   | { status: "waiting"; reason: string }
   | { status: "identity-conflict"; reason: string }
-  | { status: "unavailable"; reason: string };
+  | { status: "unavailable"; reason: string }
+  /**
+   * What the job would do is already done elsewhere, so nothing is left to send or retry: the
+   * queue clears the job instead of keeping it as failed, and still says why.
+   */
+  | { status: "already-done"; reason: string };
 
 export interface JobExecutorRegistry {
   execute(
@@ -186,6 +242,11 @@ export interface JobQueueConfig {
   defaultChainId: number;
   maxRetries: number;
   storageQuotaCacheTTL: number;
+  /**
+   * How long a send the queue keeps a record of waits for its receipt. Past it the
+   * send reads as still confirming, and a later pass confirms it from that record.
+   */
+  receiptWaitLimitMs: number;
 }
 
 /**
@@ -219,10 +280,25 @@ export interface JobQueueHandle {
     kind: K,
     payload: JobKindMap[K],
     userAddress: string,
-    meta?: Record<string, unknown>
+    meta?: Record<string, unknown>,
+    options?: AddJobOptions
   ): Promise<string>;
   processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult>;
+  /**
+   * Send a job and the one that waits on it as one atomic request, the lead's
+   * call first (Add and Send's proof and send). Each runs through its own
+   * `processJob`, with its claim and send record; the request goes only with
+   * both calls in it.
+   */
+  processTogether(
+    leadJobId: string,
+    followerJobId: string,
+    context: ProcessJobContext,
+    batchBudget: BatchBudget
+  ): Promise<{ lead: ProcessJobResult; follower: ProcessJobResult }>;
   flush(context: FlushContext): Promise<FlushResult>;
+  /** Wake the background flush, after admitting jobs that did not (`AddJobOptions.wake`). */
+  requestSync(): void;
   retryJob(jobId: string): Promise<void>;
   /**
    * Resolves whether the job was removed. `beforeDelete` runs once the job is

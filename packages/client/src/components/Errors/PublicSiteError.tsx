@@ -47,9 +47,12 @@ export function PublicSiteError({
               <div className="mt-4 max-w-prose">
                 <EditorialLede>{offline ? copy.siteOfflineBody : copy.siteBody}</EditorialLede>
               </div>
-              <div className="mt-6">
+              <div className="mt-6 flex flex-wrap gap-3">
                 <Button type="button" onClick={onReload}>
                   {copy.reload}
+                </Button>
+                <Button asChild emphasis="secondary">
+                  <a href="/">{copy.homepage}</a>
                 </Button>
               </div>
             </div>

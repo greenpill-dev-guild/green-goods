@@ -69,7 +69,10 @@ export function checkRateLimitWithPolicy(
     route === "join_request_create" ||
     route === "join_request_read" ||
     route === "join_request_resolve";
-  const isPasskeyRoute = route === "passkey_registration" || route === "passkey_lookup";
+  const isPasskeyRoute =
+    route === "passkey_registration" ||
+    route === "passkey_lookup" ||
+    route === "passkey_display_names";
   const usesOriginIndependentKeys =
     isJoinRequestRoute ||
     isPasskeyRoute ||

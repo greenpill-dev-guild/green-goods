@@ -93,7 +93,9 @@ export function FocusedShell({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg-white-0">
+    // The reporting pages are the website's (DL-121): data-site gives shared buttons the website
+    // corner and weight, and keeps the website's white ground and Inter inside an installed app.
+    <div className="flex min-h-screen flex-col bg-bg-white-0" data-site="website">
       <FocusedSiteHeader
         middleRef={setMiddle}
         accountRef={setAccount}

@@ -28,6 +28,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
+import { recordedSendAct, type SendActContext } from "../../../modules/app/sendActAnalytics";
+import { copiesActEnding } from "../../../modules/commitment-pooling/send-act-outcome";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
 import {
@@ -180,12 +182,15 @@ export function useSeedTray(input: {
   const setsRef = useRef(sets);
   const [isSending, setIsSending] = useState(false);
   const [passIds, setPassIds] = useState<readonly string[] | null>(null);
-  const [mode, setMode] = useState<CreationSendMode | null>(null);
+  const [probed, setProbed] = useState<CreationSendMode | null>(null);
+  // A bundle past a passkey's ceilings sent nothing; the rest of the sitting asks once per copy.
+  const [pastCeilings, setPastCeilings] = useState(false);
+  const mode = probed === "bundle" && pastCeilings ? "one-by-one" : probed;
 
   useAsyncEffect(
     async ({ isMounted }) => {
       const next = await creationSendMode(sender, chainId);
-      if (isMounted()) setMode(next);
+      if (isMounted()) setProbed(next);
     },
     [sender, chainId]
   );
@@ -295,6 +300,7 @@ export function useSeedTray(input: {
       setTray(startSeedTray(crypto.randomUUID()));
       replaceSets(new Map());
       setPassIds(null);
+      setPastCeilings(false);
     },
     addAnother: async () => {
       const values = await readAnswers();
@@ -358,7 +364,12 @@ export function useSeedTray(input: {
       setPassIds([...sentThisPass]);
       setIsSending(true);
       try {
-        await sendCreationCopies({
+        const act: SendActContext = { act: "pool_seed", authMode: sender?.authMode, chainId };
+        const ended = await recordedSendAct(
+          act,
+          sendCreationCopies,
+          copiesActEnding
+        )({
           copies: toSend,
           queue: jobQueue,
           sender,
@@ -369,7 +380,9 @@ export function useSeedTray(input: {
             const set = next.get(setId);
             return set ? seedSetClearableAfter(set.progress, sentThisPass) : false;
           },
+          oneByOne: pastCeilings,
         });
+        if (ended.some((copy) => copy.miss === "over-ceilings")) setPastCeilings(true);
       } finally {
         setIsSending(false);
         await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });

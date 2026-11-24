@@ -9,17 +9,8 @@
  */
 
 import { readFileSync } from "node:fs";
-import {
-  type Abi,
-  encodeAbiParameters,
-  getContract,
-  type Log,
-  parseEventLogs,
-  type PublicClient,
-  parseAbiParameters,
-  type WalletClient,
-} from "viem";
-import type { AnvilForkContext, DeploymentArtifact, TestAccountWithSigner } from "./anvil-fork";
+import { type Abi, encodeAbiParameters, type Log, parseEventLogs, parseAbiParameters } from "viem";
+import type { AnvilForkContext, TestAccountWithSigner } from "./anvil-fork";
 
 function loadAbi(relativePath: string): Abi {
   return JSON.parse(readFileSync(new URL(relativePath, import.meta.url), "utf8")) as Abi;
@@ -28,16 +19,8 @@ function loadAbi(relativePath: string): Abi {
 const GardenAccountABI = loadAbi("../../packages/contracts/abis/GardenAccount.json");
 const GardenTokenABI = loadAbi("../../packages/contracts/abis/GardenToken.json");
 
-// Type helper for log with topics
 type LogWithTopics = Log & { topics: readonly `0x${string}`[] };
 
-// ============================================================================
-// ABI DEFINITIONS (Minimal ABIs for testing)
-// ============================================================================
-
-/**
- * Minimal ActionRegistry ABI for registering actions
- */
 const ActionRegistryABI = [
   {
     name: "registerAction",
@@ -81,9 +64,6 @@ const ActionRegistryABI = [
   },
 ] as const;
 
-/**
- * Minimal EAS ABI for attestations
- */
 const EASABI = [
   {
     name: "attest",
@@ -136,10 +116,6 @@ const EASABI = [
     ],
   },
 ] as const;
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 /**
  * Capital types matching the Solidity enum
@@ -246,14 +222,6 @@ export interface ApprovalResult {
   txHash: `0x${string}`;
 }
 
-// ============================================================================
-// CONTRACT GETTERS
-// ============================================================================
-
-// ============================================================================
-// HIGH-LEVEL OPERATIONS
-// ============================================================================
-
 /**
  * Create a new garden
  *
@@ -269,8 +237,7 @@ export async function createGarden(
 ): Promise<GardenResult> {
   const account = signerAccount ?? context.accounts.deployer;
 
-  // First, impersonate the account if it's not one of our test accounts
-  // (needed for forked state where we need to act as a different address)
+  // Anvil sends from an address it holds no key for only while impersonating it.
   await context.testClient.impersonateAccount({ address: account.address });
 
   try {
@@ -376,24 +343,6 @@ export async function isGardener(
 }
 
 /**
- * Check if an address is a steward
- */
-export async function isSteward(
-  context: AnvilForkContext,
-  gardenAddress: `0x${string}`,
-  address: `0x${string}`
-): Promise<boolean> {
-  const result = await context.publicClient.readContract({
-    address: gardenAddress,
-    abi: GardenAccountABI,
-    // Deployed access function name — the role reads as Steward everywhere else.
-    functionName: "isOperator",
-    args: [address],
-  });
-  return result as boolean;
-}
-
-/**
  * Register a new action (requires impersonating ActionRegistry owner)
  *
  * @param context - Anvil fork context
@@ -404,7 +353,6 @@ export async function registerAction(
   context: AnvilForkContext,
   params: CreateActionParams
 ): Promise<ActionResult> {
-  // Get the ActionRegistry owner
   const owner = (await context.publicClient.readContract({
     address: context.deployment.actionRegistry,
     abi: ActionRegistryABI,
@@ -412,13 +360,11 @@ export async function registerAction(
     args: [],
   })) as `0x${string}`;
 
-  // Impersonate the owner to register actions
   await context.testClient.impersonateAccount({ address: owner });
 
-  // Fund the owner if needed
   await context.testClient.setBalance({
     address: owner,
-    value: BigInt(10) ** BigInt(18), // 1 ETH
+    value: BigInt(10) ** BigInt(18),
   });
 
   const txHash = await context.walletClient.writeContract({
@@ -466,8 +412,8 @@ export async function submitWork(
 
   await context.testClient.impersonateAccount({ address: account.address });
 
-  // Encode work data according to the schema:
-  // "uint256 actionUID,string title,string feedback,string metadata,string[] media"
+  // Work schema: uint256 actionUID, string title, string feedback, string metadata,
+  // string[] media
   const workData = encodeAbiParameters(
     parseAbiParameters("uint256, string, string, string, string[]"),
     [params.actionUID, params.title, params.feedback, params.metadata ?? "", params.media ?? []]
@@ -526,8 +472,7 @@ export async function approveWork(
 
   await context.testClient.impersonateAccount({ address: account.address });
 
-  // Encode approval data according to the schema:
-  // "uint256 actionUID,bytes32 workUID,bool approved,string feedback"
+  // Approval schema: uint256 actionUID, bytes32 workUID, bool approved, string feedback
   const approvalData = encodeAbiParameters(parseAbiParameters("uint256, bytes32, bool, string"), [
     params.actionUID,
     params.workUID,
@@ -571,13 +516,6 @@ export async function approveWork(
   };
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Get the current block timestamp
- */
 async function getBlockTimestamp(context: AnvilForkContext): Promise<bigint> {
   const block = await context.publicClient.getBlock();
   return block.timestamp;
@@ -594,7 +532,7 @@ export async function createActionTimestamps(
   const oneDay = BigInt(86400);
 
   return {
-    startTime: currentTimestamp - oneDay, // Started yesterday
+    startTime: currentTimestamp - oneDay,
     endTime: currentTimestamp + BigInt(durationDays) * oneDay,
   };
 }

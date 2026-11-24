@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
 import { SettlementLifecycleLib } from "../../lib/Settlement/LifecycleLib.sol";
+import { SettlementFundingLib } from "../../lib/Settlement/FundingLib.sol";
 import { SettlementModuleStorage } from "./Storage.sol";
 
 /// @title SettlementBase
@@ -74,6 +75,8 @@ abstract contract SettlementBase is SettlementModuleStorage {
             feeReserveMinimum: feeReserveMinimum,
             batchSizeLimit: batchSizeLimit,
             protocolGarden: protocolGarden,
+            poolingModule: commitmentPoolingModule,
+            gDollarToken: gDollarToken,
             route: _ccipRoute
         });
     }
@@ -132,5 +135,15 @@ abstract contract SettlementBase is SettlementModuleStorage {
     function _knownBatch(uint256 batchId) internal view returns (Batch storage batch) {
         batch = _batches[batchId];
         if (batch.state == DisbursementState.None) revert UnknownBatch(batchId);
+    }
+
+    function _fundingConfig() internal view returns (SettlementFundingLib.RuntimeConfig memory) {
+        return SettlementFundingLib.RuntimeConfig({
+            hatsModule: hatsModule,
+            poolingModule: commitmentPoolingModule,
+            gDollarToken: gDollarToken,
+            destinationEvmChainId: DESTINATION_EVM_CHAIN_ID,
+            paused: paused
+        });
     }
 }

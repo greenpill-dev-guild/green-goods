@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   useCommitment,
@@ -66,14 +67,12 @@ export function WorkForSheet({ open, onClose, intent, onUnlink }: WorkForSheetPr
             {formatMessage({ id: "app.garden.workFor.body" })}
           </p>
         </section>
-        <dl className="divide-y divide-stroke-soft-200 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 text-sm">
-          <div className="flex justify-between gap-3 py-3">
-            <dt className="text-text-sub-600">
-              {formatMessage({ id: "app.garden.workFor.needs" })}
-            </dt>
-            <dd className="text-right text-text-strong-950">{intent.requirementLabel}</dd>
-          </div>
-        </dl>
+        <FactList>
+          <FactRow
+            label={formatMessage({ id: "app.garden.workFor.needs" })}
+            value={intent.requirementLabel}
+          />
+        </FactList>
       </div>
     </AppSheet>
   );

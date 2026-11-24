@@ -1,32 +1,65 @@
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
-import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import {
+  useAddMembersBatch,
+  useGardenOperations,
+  useRemoveMemberRoles,
+  useSubRoleCheck,
+} from "@green-goods/shared/hooks/garden/useGardenOperations";
+import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
-import { useEffect, useMemo, useState } from "react";
+import { ADD_MEMBER_ROUTE_ITEM } from "@green-goods/shared/utils/navigation/admin-routes";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
+import { runAddMembers } from "@/components/Garden/addMembersRun";
 import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
+import { grantableRoles } from "@/components/Garden/manageRoles";
 
 export type CommunityMembersDialogsProps = Pick<
   CommunityWorkspace,
-  "canManage" | "closeMembersModal" | "roleMembers" | "scheduleBackgroundRefetch" | "selectedItem"
+  | "canManage"
+  | "canManageStewards"
+  | "closeMembersModal"
+  | "isOwner"
+  | "roleMembers"
+  | "scheduleBackgroundRefetch"
+  | "selectedItem"
 > & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
 
+/**
+ * The Community workspace's member dialogs. They mount at the workspace because
+ * Add Member opens over any tab (DL-140); Manage Roles opens from Members, for
+ * everyone from the directory's header or for one person from their row, and it
+ * closes back there.
+ */
 export function CommunityMembersDialogs({
   garden,
   canManage,
+  canManageStewards,
   closeMembersModal,
+  isOwner,
   roleMembers,
   scheduleBackgroundRefetch,
   selectedItem,
 }: CommunityMembersDialogsProps) {
-  const [manageMembersOpen, setManageMembersOpen] = useState(selectedItem === "manage-members");
-  const [addMembersOpen, setAddMembersOpen] = useState(selectedItem === "add-member");
+  const manageMembersOpen = selectedItem === "manage-members";
+  const addMemberItemOpen = selectedItem === ADD_MEMBER_ROUTE_ITEM;
+  const closeAddMemberItem = useRouteItemClose(addMemberItemOpen);
+  // Add Members also opens over Manage Members, with no route item of its own.
+  const [addingFromManage, setAddingFromManage] = useState(false);
   // The person Manage Members was showing when Add Members opened over it.
+  const [roleTarget, setRoleTarget] = useState<Address | undefined>();
+  if (addMemberItemOpen && roleTarget) setRoleTarget(undefined);
   const [addMembersPrefill, setAddMembersPrefill] = useState<Address | undefined>();
+  // It leaves with Manage Members, by browser Back as well as by a close.
+  if (addingFromManage && !manageMembersOpen) {
+    setAddingFromManage(false);
+    setAddMembersPrefill(undefined);
+  }
   const [searchParams] = useSearchParams();
   const memberParam = searchParams.get("member");
   const initialMemberAddress =
@@ -34,12 +67,15 @@ export function CommunityMembersDialogs({
       ? memberParam
       : undefined;
   const operations = useGardenOperations(garden.id);
+  const addMembersBatch = useAddMembersBatch(garden.id);
+  const removal = useRemoveMemberRoles(garden.id);
   const gardenAddress = garden.id;
-
-  useEffect(() => {
-    if (selectedItem === "manage-members") setManageMembersOpen(true);
-    if (selectedItem === "add-member") setAddMembersOpen(true);
-  }, [selectedItem]);
+  const checkSubRoles = useSubRoleCheck(
+    isAddress(gardenAddress) ? gardenAddress : undefined,
+    garden.chainId
+  );
+  const canManageMembers = canManage || canManageStewards;
+  const allowedRoles = grantableRoles({ isOwner, canManage, canManageStewards });
 
   const addByRole = useMemo<
     Record<GardenRole, (address: Address) => Promise<{ success: boolean }>>
@@ -54,64 +90,96 @@ export function CommunityMembersDialogs({
     }),
     [operations]
   );
-  const removeByRole = useMemo<
-    Record<GardenRole, (address: Address) => Promise<{ success: boolean }>>
-  >(
-    () => ({
-      gardener: operations.removeGardener,
-      steward: operations.removeSteward,
-      evaluator: operations.removeEvaluator,
-      owner: operations.removeOwner,
-      funder: operations.removeFunder,
-      community: operations.removeCommunity,
-    }),
-    [operations]
-  );
-
-  const closeManageMembers = () => {
-    setManageMembersOpen(false);
-    if (selectedItem === "manage-members") closeMembersModal();
+  // Restoring a missing sub-role is an add: one grantRoles signature where the rail can batch.
+  const restoreSubRoles = async (
+    address: Address,
+    roles: readonly GardenRole[],
+    live: () => boolean
+  ) => {
+    const run = await runAddMembers({
+      rows: roles.map((role) => ({ address, role })),
+      addOne: (role, member) => addByRole[role](member),
+      addBatch: addMembersBatch.available ? addMembersBatch.add : undefined,
+      onLanded: scheduleBackgroundRefetch,
+      live,
+    });
+    return run.remaining.length === 0 && run.thrown === undefined;
   };
+  const restoreSignatures = (count: number) =>
+    addMembersBatch.available ? addMembersBatch.signaturesFor(count) : count;
   const openAddMembers = (prefill?: Address) => {
+    setRoleTarget(undefined);
     setAddMembersPrefill(prefill);
-    setAddMembersOpen(true);
+    setAddingFromManage(true);
+  };
+  const openAddRole = (address: Address) => {
+    setRoleTarget(address);
+    setAddMembersPrefill(address);
+    setAddingFromManage(true);
   };
   const closeAddMembers = () => {
-    setAddMembersOpen(false);
+    setAddingFromManage(false);
     setAddMembersPrefill(undefined);
-    if (selectedItem === "add-member") closeMembersModal();
-  };
-  const handleRemoveMember = async (address: Address, role: GardenRole) => {
-    const result = await removeByRole[role](address);
-    if (!result.success) scheduleBackgroundRefetch();
-    return result;
+    scheduleBackgroundRefetch();
+    closeAddMemberItem();
   };
 
   return (
     <>
+      {/* Each restarts when the garden changes; sibling keys must still differ. */}
       <ManageMembersDialog
-        key={garden.id}
+        key={`manage-members:${garden.id}`}
         open={manageMembersOpen}
-        initialSearch={initialMemberAddress}
-        onClose={closeManageMembers}
+        gardenAddress={isAddress(gardenAddress) ? gardenAddress : undefined}
+        onAddRole={openAddRole}
+        initialMember={initialMemberAddress}
+        onClose={closeMembersModal}
+        closesByRoute
         tone="community"
         roleMembers={roleMembers}
-        canManage={canManage}
+        canManage={canManageMembers}
+        viewerIsOwner={isOwner}
+        viewerCanManageStewards={canManageStewards}
+        allowedRoles={allowedRoles}
+        viewerAddress={removal.account}
+        gardenName={garden.name}
+        chainId={garden.chainId}
         isLoading={operations.isLoading}
-        onRemoveMember={handleRemoveMember}
+        removal={removal}
+        onRosterStale={scheduleBackgroundRefetch}
         onAddMembers={openAddMembers}
+        restoreRoles={
+          canManageMembers
+            ? { check: checkSubRoles, restore: restoreSubRoles, signaturesFor: restoreSignatures }
+            : undefined
+        }
       />
       {isAddress(gardenAddress) ? (
         <AddMembersDialog
-          key={garden.id}
-          open={addMembersOpen}
+          key={`add-members:${garden.id}:${roleTarget ?? "new"}`}
+          open={canManageMembers && (addMemberItemOpen || addingFromManage)}
+          closesByRoute={addMemberItemOpen}
           onClose={closeAddMembers}
           tone="community"
           gardenAddress={gardenAddress}
           roleMembers={roleMembers}
+          allowedRoles={allowedRoles}
+          memberAddress={roleTarget}
           initialAddress={addMembersPrefill}
           isLoading={operations.isLoading}
-          onAdd={(role, address) => addByRole[role](address)}
+          onAdd={async (role, address) => {
+            const result = await addByRole[role](address);
+            if (result.success) scheduleBackgroundRefetch();
+            return result;
+          }}
+          batch={{
+            ...addMembersBatch,
+            add: (rows, onLanded) =>
+              addMembersBatch.add(rows, (landed) => {
+                scheduleBackgroundRefetch();
+                onLanded?.(landed);
+              }),
+          }}
         />
       ) : null}
     </>

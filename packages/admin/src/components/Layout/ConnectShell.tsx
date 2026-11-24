@@ -1,7 +1,8 @@
-import { RiLockLine, RiSeedlingLine } from "@remixicon/react";
+import { RiLockLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { ConnectButton } from "@/components/ConnectButton";
+import { ConnectPrompt } from "./ConnectPrompt";
 
 interface ConnectShellProps {
   titleId?: string;
@@ -14,10 +15,10 @@ interface ConnectShellProps {
 }
 
 export function ConnectShell({
-  titleId = "cockpit.auth.connectWalletTitle",
+  titleId = "hub.auth.connectWalletTitle",
   defaultTitle = "Connect your wallet to continue",
-  descriptionId = "cockpit.auth.connectWalletDescription",
-  defaultDescription = "Sign in to access the admin canvas",
+  descriptionId = "hub.auth.connectWalletDescription",
+  defaultDescription = "Sign in to open the Green Goods Hub",
   action,
   icon,
   testId = "connect-shell",
@@ -25,27 +26,19 @@ export function ConnectShell({
   const { formatMessage } = useIntl();
 
   return (
-    <div
-      className="flex min-h-screen flex-col items-center justify-center bg-bg-weak px-6 text-center"
-      data-testid={testId}
-    >
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-white shadow-[var(--edge-rest),_var(--m3-elevation-1)]">
-        {icon ?? <RiSeedlingLine className="h-7 w-7 text-primary-base" />}
-      </div>
-      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
-        {formatMessage({
-          id: titleId,
-          defaultMessage: defaultTitle,
-        })}
-      </h1>
-      <p className="mb-6 mt-2 max-w-sm body-sm text-text-sub">
-        {formatMessage({
-          id: descriptionId,
-          defaultMessage: defaultDescription,
-        })}
-      </p>
-      {action ?? <ConnectButton size="lg" />}
-    </div>
+    <ConnectPrompt
+      title={formatMessage({
+        id: titleId,
+        defaultMessage: defaultTitle,
+      })}
+      description={formatMessage({
+        id: descriptionId,
+        defaultMessage: defaultDescription,
+      })}
+      icon={icon}
+      testId={testId}
+      action={action ?? <ConnectButton size="lg" />}
+    />
   );
 }
 
@@ -53,9 +46,9 @@ export function WalletRequiredConnectShell(props: { action: ReactNode }) {
   return (
     <ConnectShell
       titleId="app.admin.auth.walletRequired"
-      defaultTitle="Wallet required"
+      defaultTitle="Wallet or passkey required"
       descriptionId="app.admin.auth.walletRequiredPrompt"
-      defaultDescription="The admin panel requires a wallet connection. Email and social logins are not supported here."
+      defaultDescription="The Green Goods Hub needs a wallet or a passkey. Email and social logins are not supported here."
       icon={<RiLockLine className="h-7 w-7 text-warning-dark" />}
       action={props.action}
       testId="wallet-required-shell"

@@ -5,7 +5,7 @@ import {
   useCommitmentCycle,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, mocked, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
@@ -19,23 +19,28 @@ import {
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import {
   SEEDLING_COMMITMENT,
+  START_PROMISE_ONE_ACTION,
+  START_PROMISE_THREE_ACTIONS,
+  startStepFixture,
   submitWorkControllerFixture,
 } from "../../../../shared/.storybook/submitWorkFixtures";
 import Work from ".";
+import { stagedWorkPhotos, stagedWorkVideo } from "../../../../shared/.storybook/workPhotoFixtures";
+
+const exitFlow = fn();
 
 /** Submit Work on one step, for the east-beds promise unless `linked` is off. */
 const onStep =
   (
-    step: "media" | "review",
-    {
-      linked = true,
-      documentationPhoto = false,
-    }: { linked?: boolean; documentationPhoto?: boolean } = {}
+    step: "start" | "media" | "review",
+    options: Parameters<typeof submitWorkControllerFixture>[1] = {}
   ) =>
   () => {
-    mocked(useWorkSubmissionFlowController).mockReturnValue(
-      submitWorkControllerFixture(step, { linked, documentationPhoto })
-    );
+    exitFlow.mockClear();
+    mocked(useWorkSubmissionFlowController).mockReturnValue({
+      ...submitWorkControllerFixture(step, options),
+      exit: exitFlow,
+    });
     mocked(useCommitment).mockReturnValue({
       commitment: SEEDLING_COMMITMENT,
     } as unknown as ReturnType<typeof useCommitment>);
@@ -72,10 +77,93 @@ const meta: Meta<typeof Work> = {
 export default meta;
 type Story = StoryObj<typeof Work>;
 
-/** Frame `submit-media`: the Media heading, the promise, and the photo rule met. */
+/** The step markers, centered in the bar and clear of Back (DL-132). */
+const markersCenteredInBar = (canvasElement: HTMLElement) => {
+  const canvas = within(canvasElement);
+  const back = canvas.getByRole("button", { name: "Go back" }).getBoundingClientRect();
+  const steps = within(canvas.getByRole("list", { name: "Steps" })).getAllByRole("listitem");
+  const first = steps[0].getBoundingClientRect();
+  const last = steps.at(-1)?.getBoundingClientRect() as DOMRect;
+  return {
+    steps,
+    clearOfBack: first.left >= back.right,
+    // How far the markers' middle sits from the bar's; the bar spans the viewport.
+    offCenter: (first.left + last.right) / 2 - window.innerWidth / 2,
+  };
+};
+
+/**
+ * Frame `submit-start`: Start on the garden's actions, with no Start button and no bar at all,
+ * the markers centered in the bar (DL-132).
+ */
+export const StartOnTheGardensActions: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: onStep("start"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByRole("button", { name: "Start Gardening" })).toBeNull();
+    await expect(
+      canvasElement.ownerDocument.querySelector('[data-component="FlowBar"]')
+    ).toBeNull();
+    const { steps, clearOfBack, offCenter } = markersCenteredInBar(canvasElement);
+    await expect(steps).toHaveLength(4);
+    await expect(steps[0]).toHaveAttribute("aria-current", "step");
+    await expect(clearOfBack).toBe(true);
+    await expect(offCenter).toBeCloseTo(0, 0);
+    // Back on Start leaves the flow.
+    await userEvent.click(canvas.getByRole("button", { name: "Go back" }));
+    await expect(exitFlow).toHaveBeenCalledTimes(1);
+  },
+};
+
+/** Start on the member's promises: compact cards with Log Work on Its Own last. */
+export const StartOnPromises: Story = {
+  beforeEach: onStep("start", {
+    start: startStepFixture({
+      screen: { kind: "promises" },
+      promises: [START_PROMISE_ONE_ACTION, START_PROMISE_THREE_ACTIONS],
+    }),
+  }),
+};
+
+/**
+ * A resumed draft whose garden is not the active one: Start in the draft's garden, which one
+ * line under Start's info card names (decision 28).
+ */
+export const StartForAResumedDraft: Story = {
+  beforeEach: onStep("start", {
+    namedGarden: { ...JOURNEY_GARDEN_RECORD, name: "Hilltop Market Garden" },
+  }),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByTestId("submission-garden")).toHaveTextContent(
+      "Hilltop Market Garden"
+    );
+  },
+};
+
+/**
+ * A garden with one action and nothing owed skips Start (decision 17): Media opens with that
+ * action, the first marker done, and Back leaves, since the path never went through Start.
+ */
+export const StartSkippedForOneAction: Story = {
+  beforeEach: onStep("media", { linked: false, start: startStepFixture({ skipped: true }) }),
+  play: async ({ canvasElement }) => {
+    const { steps } = markersCenteredInBar(canvasElement);
+    // The shape adding proof shows too: four markers, Start already checked (DL-153).
+    await expect(steps).toHaveLength(4);
+    await expect(steps[1]).toHaveAttribute("aria-current", "step");
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Go back" }));
+    await expect(exitFlow).toHaveBeenCalledTimes(1);
+  },
+};
+
+/**
+ * Frame `submit-media`: from a promise's page the link skips Start, so Media opens with the
+ * heading, the garden line under it, the promise pinned, and the photo rule met.
+ */
 export const MediaForAPromise: Story = {
   tags: ["storybook-ci"],
-  beforeEach: onStep("media"),
+  beforeEach: onStep("media", { start: startStepFixture({ skipped: true }) }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const heading = canvas.getByText("Upload Media");
@@ -84,13 +172,44 @@ export const MediaForAPromise: Story = {
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    await expect(canvas.getByText("1 photo added")).toBeVisible();
+    // Media is the first step here, so the garden line sits right under its info card and
+    // leads the pinned promise (PRD-1522).
+    const line = canvas.getByTestId("submission-garden");
+    await expect(line.previousElementSibling).toHaveAttribute("data-component", "FormInfo");
+    await expect(line.nextElementSibling).toBe(pinned);
+    await expect(canvas.getByText("1 media item added")).toBeVisible();
   },
 };
 
 /** Frame `submit-review`: Review's sections, the promise pinned, and where the work waits. */
 export const ReviewForAPromise: Story = {
   beforeEach: onStep("review"),
+};
+
+/**
+ * A resumed draft for the hub's Open ask at Review (Rule 20). It skipped Start, whose asks say
+ * what taking one up asks for, so the bar says it above Upload Work, before the first prompt.
+ */
+export const ReviewForAnOpenAsk: Story = {
+  beforeEach: onStep("review", { takesUp: true }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const note = canvas.getByText(/^Uploading takes up the request first\./);
+    await expect(note).toHaveTextContent("It opens 3 wallet or passkey prompts");
+    await expect(canvas.getByRole("button", { name: "Upload Work" })).toHaveAccessibleDescription(
+      note.textContent ?? ""
+    );
+  },
+};
+
+export const ReviewForAnOpenAskSpanish: Story = {
+  beforeEach: onStep("review", { takesUp: true }),
+  globals: { locale: "es", viewport: { value: "mobileSmall" } },
+};
+
+export const ReviewForAnOpenAskPortuguese: Story = {
+  beforeEach: onStep("review", { takesUp: true }),
+  globals: { locale: "pt", viewport: { value: "mobileSmall" } },
 };
 
 /** Frame `submit-for-sheet`: the promise in a half sheet, with Not for This Promise. */
@@ -108,6 +227,27 @@ export const PromiseSheet: Story = {
 /** Work that isn't for a promise pins nothing. */
 export const MediaWithoutAPromise: Story = {
   beforeEach: onStep("media", { linked: false }),
+};
+
+/** Two required media items, met by a photo and a video, in the toolbar language. */
+export const MediaWithVideo: Story = {
+  beforeEach: () => {
+    const cleanup = onStep("media", { linked: false })();
+    const controller = submitWorkControllerFixture("media", { linked: false });
+    mocked(useWorkSubmissionFlowController).mockReturnValue({
+      ...controller,
+      images: [...stagedWorkPhotos(1), stagedWorkVideo("walkthrough.mp4")],
+      mediaConfig: {
+        ...controller.mediaConfig,
+        title: "",
+        description: "",
+        required: true,
+        minImageCount: 2,
+      },
+      minRequired: 2,
+    });
+    return cleanup;
+  },
 };
 
 /** Real photo, fictional data, no promise: the documentation's evidence example. */

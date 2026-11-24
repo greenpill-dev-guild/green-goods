@@ -1,4 +1,5 @@
 import {
+  type CommitmentActInput,
   type CommitmentActKind,
   type CommitmentReadModel,
   type CommitmentSeat,
@@ -17,10 +18,17 @@ export { canJoinTeam } from "@green-goods/shared/commitment-pooling";
  * work link above optional proof when required work remains.
  */
 export interface CommitmentAct {
-  kind: CommitmentActKind | "linkWork";
+  /** `service` is a voucher booking's act; its words come with values, already formatted. */
+  kind: CommitmentActKind | "linkWork" | "service";
   labelId: string;
+  /** The label already in words, where the act's copy takes values ("Deposit 10 Vouchers"). */
+  label?: string;
   /** Destructive acts read as such and confirm before they run. */
   destructive?: boolean;
+  /** An act that writes straight to the chain, so it waits for a connection. */
+  needsNetwork?: boolean;
+  /** A booking whose only act is a step back ("Cancel Booking") draws it outlined. */
+  emphasis?: "secondary";
 }
 
 const LABELS: Record<CommitmentActKind, { labelId: string; destructive?: boolean }> = {
@@ -39,6 +47,35 @@ export function commitmentActForKind(kind: CommitmentActKind | null): Commitment
   return { kind, ...LABELS[kind] };
 }
 
+/** How a take-up goes: at once on an open request, or by asking its creator on a reviewed one. */
+export function takeUpMode(
+  act: CommitmentAct | null,
+  queued?: { kind: string; waitingReason: string | null } | null,
+  claimMode?: CommitmentReadModel["claimMode"]
+): "open" | "reviewed" | null {
+  if (act?.kind === "takeUp") return "open";
+  if (act?.kind === "askToTakeUp") return "reviewed";
+  // The existing queued claim still needs its owner's agreement, rather than another take-up.
+  if (!act && queued?.kind === "claim" && queued.waitingReason === "reward-agreement-required")
+    return claimMode === "OPEN" ? "open" : claimMode === "APPROVAL_GATED" ? "reviewed" : null;
+  return null;
+}
+
+/**
+ * When the reader can add proof, which is what the page says while none is on the promise
+ * (DL-151). Pass the act the page's bar offers, or null if another bar stands in for it. The chain
+ * takes no proof before someone takes the promise up, and until then only an offer's creator reads
+ * as its provider, so they are the one told it comes later, for as long as someone still can.
+ */
+export function addProofReach(
+  act: CommitmentAct | null,
+  seat: CommitmentSeat | null,
+  takeUpOpen: boolean
+): "now" | "afterTakeUp" | "no" {
+  if (act?.kind === "addProof") return "now";
+  return seat === "provider" && takeUpOpen ? "afterTakeUp" : "no";
+}
+
 export function selectCommitmentAct(input: {
   commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode"> &
     Partial<Pick<CommitmentReadModel, "direction">>;
@@ -46,6 +83,8 @@ export function selectCommitmentAct(input: {
   hasPendingJob?: boolean;
   isCreator?: boolean;
   isMember?: boolean;
+  /** The chain's clock and cycle ends: take-up is offered only until the promise is past due. */
+  clock?: CommitmentActInput["clock"];
 }): CommitmentAct | null {
   const kind = selectCommitmentActKind(input);
   return commitmentActForKind(kind);

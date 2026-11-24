@@ -26,8 +26,8 @@ const NAV_ITEMS = [
  * Visual contract: transparent over the page top on every public route
  * (no background, no border, no blur). It fades out as the visitor scrolls
  * past the hero rather than turning into a solid sticky bar — the editorial
- * surfaces below own their own chrome, and footer nav covers wayfinding once
- * the hero leaves the viewport. The mobile drawer pins the header to its
+ * surfaces below own their own chrome. Keyboard focus returns the reader to
+ * the top. The mobile drawer pins the header to its
  * fully-visible state regardless of scroll.
  *
  * Wallet connect is intentionally NOT a header CTA — it appears only at the
@@ -136,7 +136,13 @@ export const SiteHeader = () => {
                   className="flex items-center"
                   aria-label={APP_NAME}
                 >
-                  <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
+                  <img
+                    src="/images/brand-mark-small.webp"
+                    alt={APP_NAME}
+                    width={56}
+                    height={32}
+                    className="h-8 w-auto"
+                  />
                 </Link>
 
                 {/* Desktop nav — hidden on mobile. Slightly larger than the body to
@@ -151,7 +157,7 @@ export const SiteHeader = () => {
                         to={path}
                         viewTransition
                         className={cn(
-                          "rounded-lg px-3 py-2 text-xl font-medium transition-colors",
+                          "rounded-lg px-2 py-2 text-base font-medium transition-colors lg:px-3 lg:text-xl",
                           isActive
                             ? "text-static-white"
                             : "text-static-white/90 hover:text-static-white"
@@ -225,7 +231,13 @@ export const SiteHeader = () => {
                     aria-label={APP_NAME}
                     onClick={() => setIsDrawerOpen(false)}
                   >
-                    <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
+                    <img
+                      src="/images/brand-mark-small.webp"
+                      alt={APP_NAME}
+                      width={56}
+                      height={32}
+                      className="h-8 w-auto"
+                    />
                   </Link>
                   <Dialog.Close asChild>
                     <IconButton

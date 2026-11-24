@@ -8,14 +8,18 @@ import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
 import { queryInvalidation } from "../config/query-keys/invalidation";
+import { refreshApprovalReads } from "../modules/work/approval-read-refresh";
 import { draftsKeys, queueKeys } from "../config/query-keys/misc";
-import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
+import { worksKeys } from "../config/query-keys/work";
 import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
+import { useUploadFailureToast } from "../hooks/work/useUploadFailureToast";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
 import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
+import { sendsWithProof, sendWithItsPartner } from "../modules/commitment-pooling/proof-and-send";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
-import { JOB_DISCARDED } from "../modules/job-queue/queue-policy";
+import { gaveUpAfter, JOB_DISCARDED } from "../modules/job-queue/queue-policy";
+import { isTakeUpOf } from "../modules/job-queue/take-up-hold";
 import { logger } from "../modules/app/logger";
 import { deleteDraftOfQueuedWork } from "../modules/work/draft-lifecycle";
 import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
@@ -27,7 +31,9 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
+import { isSmartAccountAuthMode } from "../types/auth";
 import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
+import { WALLET_RECONNECT_REQUIRED } from "../utils/errors/unsent-failures";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -63,6 +69,13 @@ export const useQueueStats = () => {
 interface JobQueueProviderProps {
   children: React.ReactNode;
   queue?: JobQueueHandle;
+  /**
+   * Where a failed upload's toast sends the member (PWA Home step 12): Your Work on Pending, which
+   * lists the active garden's uploads, or Home's garden switcher for an upload that waits in
+   * another of their gardens, which the toast names. Without them the toast carries no action.
+   */
+  onOpenYourWork?: () => void;
+  onOpenGardenSwitcher?: () => void;
 }
 
 const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
@@ -80,7 +93,14 @@ interface Work {
   [key: string]: unknown;
 }
 
-const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
+const SOURCE_WORK_TERMINAL = "identity_conflict:source-work-terminal";
+
+const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
+  children,
+  queue = jobQueue,
+  onOpenYourWork,
+  onOpenGardenSwitcher,
+}) => {
   const { formatMessage } = useIntl();
   // One object per intl instance: the effects below list it as a dependency, so
   // a fresh one on every render would resubscribe the queue on every render.
@@ -90,6 +110,15 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
   // Use single source of truth for primary address
   const currentUserAddress = usePrimaryAddress();
+
+  // A failed upload's toast points where the upload is listed. The event handlers below subscribe
+  // once, so they take this stable function, which reads the latest active garden.
+  const toastFailure = useUploadFailureToast(
+    currentUserAddress,
+    queueToasts.jobFailed,
+    onOpenGardenSwitcher,
+    onOpenYourWork
+  );
 
   const [stats, setStats] = useState<QueueStats>(EMPTY_QUEUE_STATS);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -201,17 +230,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;
-
-        // Invalidate work approvals to show the new approval
-        if (currentUserAddress) {
-          queryClient.invalidateQueries({
-            queryKey: workApprovalsKeys.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
-          });
-        }
-        queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
+        const { gardenAddress, workUID } = approvalPayload;
+        // A queued decision lands only now, so reread what it changes as an online one does:
+        // approvals, readiness and the calendar's days, with the indexer-lag follow-ups.
+        const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
+        refreshApprovalReads(queryClient, chainId, { gardenId: gardenAddress, workUID }, true);
 
         // Update work status in cache if available
-        const workUID = approvalPayload.workUID;
         queryClient.setQueriesData<Work[]>({ queryKey: worksKeys.all }, (oldWorks) => {
           // Defensive shape check: cached values can be undefined or
           // (rarely) a non-array if a hook stuffed something unexpected
@@ -236,14 +261,31 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         // A discard is the person's own act, which its screen confirms: not a failed sync.
         // The discard removed the work's draft before the work, so the drafts are read again.
         if (event.error === JOB_DISCARDED) void rereadDrafts();
-        else queueToasts.jobFailed("work", event.error);
+        else toastFailure({ kind: "work", detail: event.error, job: event.job });
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
         queryClient.invalidateQueries({ queryKey: worksKeys.offline(gardenId) });
         queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
-        queueToasts.jobFailed("approval", event.error);
+        toastFailure({ kind: "approval", detail: event.error, job: event.job });
+      } else if (event.error !== JOB_DISCARDED && gaveUpAfter(event.error, event.job)) {
+        void nameFailedChainStage(event.job, event.error);
+      }
+    };
+
+    // A take-up or a link that gave up names its stage (decision 18). A take-up says so only
+    // while a work waits on it; a link stopped because its work went away is no failure of its own.
+    const nameFailedChainStage = async (job: Job, error: string | undefined) => {
+      if (job.kind === "workLink" && error !== SOURCE_WORK_TERMINAL) queueToasts.linkFailed();
+      if (job.kind !== "claim" || !currentUserAddress) return;
+      try {
+        const works = await queue.getJobs(currentUserAddress, { kind: "work", synced: false });
+        if (works.some((work) => isTakeUpOf(job, work))) queueToasts.takeUpFailed();
+      } catch (readError) {
+        logger.warn("[JobQueueProvider] Could not read the work behind a failed take-up", {
+          error: readError,
+        });
       }
     };
 
@@ -303,7 +345,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, queue, queueToasts, refreshStats]);
+  }, [currentUserAddress, queue, queueToasts, refreshStats, toastFailure]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -330,6 +372,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
           // Work and decisions always wait for an explicit Upload action. Only
           // commitment acts keep their established background send behavior.
           kinds: COMMITMENT_JOB_KINDS,
+          // Add and Send's proof and send go as one request where the rail can do it.
+          sendsWith: sendsWithProof(sender),
         });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
@@ -356,7 +400,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
     // Auto-flush only once the origin has confirmed the connection: "online"
     // is also the boot state and the state while a probe is still pending, and
     // an unstable connection never sends.
-    const autoSends = authMode === "passkey" || authMode === "embedded";
+    const autoSends = isSmartAccountAuthMode(authMode) || authMode === "embedded";
     if (autoSends && connectivityStore.isConfirmedOnline()) {
       void attemptFlush();
     }
@@ -405,15 +449,19 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
           return;
         }
         try {
-          await queue.retryJob(jobId);
-          // The person asked for this one job, so nothing else in the queue is sent.
+          // Only this job is sent, with its Add and Send half where the two go as one.
           const context = { transactionSender: sender ?? null, explicit: true };
-          let result = await queue.processJob(jobId, context);
-          // A creation's first pass only submits it; a second reads the new
-          // commitment back and completes the job. A wallet has no background
-          // flush to make that pass, so it is made here, in the same tap.
-          if (!result.success && result.skipped && result.txHash) {
+          const owner = currentUserAddress;
+          let result = await sendWithItsPartner(queue, { owner, jobId, context });
+          if (!result) {
+            await queue.retryJob(jobId);
             result = await queue.processJob(jobId, context);
+            // A creation's first pass only submits it; a second reads the new
+            // commitment back and completes the job. A wallet has no background
+            // flush to make that pass, so it is made here, in the same tap.
+            if (!result.success && result.skipped && result.txHash) {
+              result = await queue.processJob(jobId, context);
+            }
           }
           await refreshStats();
           if (result.success) {
@@ -423,7 +471,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
             // Not syncError: one act, and a non-skipped failure is one the
             // queue gave up on rather than rescheduled.
             queueToasts.retryFailed();
-          } else {
+          } else if (result.error !== WALLET_RECONNECT_REQUIRED) {
             queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
           }
         } catch (error) {
@@ -445,6 +493,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;
 };
 
-export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children, queue }) => {
-  return <JobQueueProviderInner queue={queue ?? jobQueue}>{children}</JobQueueProviderInner>;
-};
+export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ queue, ...props }) => (
+  <JobQueueProviderInner queue={queue ?? jobQueue} {...props} />
+);

@@ -206,7 +206,7 @@ function VaultManagePositionsContent({
                 {formatMessage({
                   id: "public.vaults.manage.lede",
                   defaultMessage:
-                    "Review the endowments connected to your wallet and redeem what's available.",
+                    "Review the endowments connected to your wallet and withdraw what's available.",
                 })}
               </Dialog.Description>
             </div>
@@ -392,7 +392,7 @@ export function PositionsList({
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
           {formatMessage({
             id: "public.vaults.manage.empty.body",
-            defaultMessage: "When you endow a campaign, it appears here for review or redemption.",
+            defaultMessage: "When you endow a campaign, it appears here for review or withdrawal.",
           })}
         </p>
         {onEndow ? (
@@ -585,7 +585,7 @@ export function VaultPositionRowView({
           {
             id: "public.vaults.manage.withdraw.success",
             defaultMessage:
-              "Redemption submitted. Estimated return: {assets}. Balances may take a moment to update.",
+              "Withdrawal submitted. Estimated return: {assets}. Balances may take a moment to update.",
           },
           { assets: assetsLabel }
         )
@@ -631,7 +631,7 @@ export function VaultPositionRowView({
               <dt className="inline">
                 {formatMessage({
                   id: "public.vaults.manage.position.withdrawable",
-                  defaultMessage: "Redeemable now",
+                  defaultMessage: "Withdrawable now",
                 })}
                 {": "}
               </dt>
@@ -666,7 +666,7 @@ export function VaultPositionRowView({
           >
             {formatMessage({
               id: "public.vaults.manage.position.withdraw",
-              defaultMessage: "Redeem",
+              defaultMessage: "Withdraw",
             })}
           </EditorialGhostButton>
         )}
@@ -769,14 +769,14 @@ export function VaultPositionRowView({
           className="mt-3 rounded-none bg-warning-lighter/30 p-3"
           title={formatMessage({
             id: "public.vaults.manage.redeem.unavailableTitle",
-            defaultMessage: "Redemption unavailable right now",
+            defaultMessage: "Withdrawal unavailable right now",
           })}
         >
           <p className="mt-1 text-xs leading-[1.5] text-text-sub-600">
             {formatMessage({
               id: "public.vaults.manage.redeem.unavailableBody",
               defaultMessage:
-                "This endowment is visible, but nothing is redeemable right now. Try again later or leave it in place.",
+                "This endowment is visible, but nothing can be withdrawn right now. Try again later or leave it in place.",
             })}
           </p>
         </Alert>
@@ -795,7 +795,7 @@ export function VaultPositionRowView({
             {formatMessage({
               id: "public.vaults.manage.redeem.previewUnavailableBody",
               defaultMessage:
-                "We can see a redeemable amount, but the return estimate is unavailable. Refresh before redeeming.",
+                "We can see an amount you can withdraw, but the return estimate is unavailable. Refresh before withdrawing.",
             })}
           </p>
         </Alert>
@@ -812,7 +812,7 @@ export function VaultPositionRowView({
           >
             {formatMessage({
               id: "public.vaults.manage.withdraw.amount",
-              defaultMessage: "Amount to redeem",
+              defaultMessage: "Amount to withdraw",
             })}
           </label>
           <div className="mt-2 flex items-center gap-2">
@@ -855,7 +855,7 @@ export function VaultPositionRowView({
             <p id={feedbackId} className="mt-2 text-xs text-error-dark" role="alert">
               {formatMessage({
                 id: "public.vaults.manage.withdraw.exceeds",
-                defaultMessage: "Enter an amount no higher than what is redeemable now.",
+                defaultMessage: "Enter an amount no higher than what you can withdraw now.",
               })}
             </p>
           ) : (
@@ -863,7 +863,7 @@ export function VaultPositionRowView({
               {formatMessage(
                 {
                   id: "public.vaults.manage.withdraw.available",
-                  defaultMessage: "Available to redeem: {shares}. Funds return to {destination}.",
+                  defaultMessage: "Available to withdraw: {shares}. Funds return to {destination}.",
                 },
                 { shares: displayShares(redeemableShares), destination: destinationLabel }
               )}
@@ -880,19 +880,19 @@ export function VaultPositionRowView({
             {isRedeeming
               ? formatMessage({
                   id: "public.vaults.manage.withdraw.pending",
-                  defaultMessage: "Redeeming…",
+                  defaultMessage: "Withdrawing…",
                 })
               : parsedShares > 0n && !inputError && estimatedAssets !== null
                 ? formatMessage(
                     {
                       id: "public.vaults.manage.withdraw.submitAmount",
-                      defaultMessage: "Redeem {assets}",
+                      defaultMessage: "Withdraw {assets}",
                     },
                     { assets: estimatedAssetsLabel }
                   )
                 : formatMessage({
                     id: "public.vaults.manage.withdraw.submit",
-                    defaultMessage: "Redeem",
+                    defaultMessage: "Withdraw",
                   })}
           </EditorialGhostButton>
 

@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import {
   type CommitmentContributorRecord,
@@ -5,8 +6,10 @@ import {
   type CommitmentSeat,
   selectOrdinaryConfirmer,
 } from "@green-goods/shared/commitment-pooling";
-import type { Address } from "@green-goods/shared/types/domain";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+
 import {
+  RiCoupon3Line,
   RiGroupLine,
   RiHandHeartLine,
   RiQuestionAnswerLine,
@@ -17,7 +20,17 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { Fact } from "@/components/Display";
+import { PromiseRewardRow } from "@/components/Features/Commitments";
+
+/** A confirmer's steward role belongs to the promise's pool garden, even on another garden's route. */
+export function stewardsForPromiseGarden(
+  poolGarden: Address | null | undefined,
+  garden: Pick<Garden, "id" | "stewards"> | null | undefined
+): readonly Address[] {
+  return poolGarden && garden && garden.id.toLowerCase() === poolGarden.toLowerCase()
+    ? garden.stewards
+    : [];
+}
 
 export interface CommitmentPeopleProps {
   commitment: CommitmentReadModel;
@@ -25,6 +38,12 @@ export interface CommitmentPeopleProps {
   seat: CommitmentSeat | null;
   /** The count and unit, already in words, or null when the record has none. */
   units: string | null;
+  /** What a booking of the reader's own voucher offer takes, in words. */
+  takes?: string | null;
+  /** The reward it carries, in words, or null when it carries none or the page doesn't say. */
+  reward?: string | null;
+  /** The reward's parts, one row each, when it pays in more than one token. */
+  rewardParts?: React.ReactNode;
   /** Who is reading, so the team can say "You" rather than their name. */
   viewer: Address | null;
   /** The stewards of the promise's garden, so whoever confirms it carries the role. */
@@ -57,7 +76,7 @@ export function confirmerOf(
 
 /**
  * What was promised and who is on it, as labelled facts: what and how much, by
- * when, who is doing it, the team, and who confirms it.
+ * when, what keeping it earns, who is doing it, the team, and who confirms it.
  *
  * One accountable lead is named, then everyone else. Presence is never
  * presented as equal credit: a contributor's approved work and proof are what
@@ -68,6 +87,9 @@ export function CommitmentPeople({
   commitment,
   contributors,
   units,
+  takes = null,
+  reward = null,
+  rewardParts = null,
   viewer,
   stewards,
 }: CommitmentPeopleProps) {
@@ -109,88 +131,104 @@ export function CommitmentPeople({
   const namedHelper = helpers.find((entry) => !same(entry.contributor, viewer));
 
   return (
-    <dl className="mt-1 divide-y divide-stroke-soft-200">
-      {units ? (
-        <Fact
-          icon={isRequest ? <RiHandHeartLine /> : <RiSeedlingLine />}
-          label={formatMessage({
-            id: isRequest ? "app.commitments.direction.request" : "app.commitments.direction.offer",
-          })}
-          value={units}
-        />
-      ) : null}
+    <>
+      <FactList frame="inset" className="mt-1">
+        {units ? (
+          <FactRow
+            icon={isRequest ? <RiHandHeartLine /> : <RiSeedlingLine />}
+            label={formatMessage({
+              id: isRequest
+                ? "app.commitments.direction.request"
+                : "app.commitments.direction.offer",
+            })}
+            value={units}
+          />
+        ) : null}
 
-      {commitment.dueDate ? (
-        <Fact
-          icon={<RiTimeLine />}
-          label={formatMessage({ id: "app.commitment.people.due" })}
-          value={formatDate(new Date(Number(commitment.dueDate) * 1000), {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        />
-      ) : null}
+        {takes ? (
+          <FactRow
+            icon={<RiCoupon3Line />}
+            label={formatMessage({ id: "app.commitment.people.takes" })}
+            value={takes}
+          />
+        ) : null}
 
-      {commitment.leadProvider ? (
-        <Fact
-          icon={<RiUserLine />}
-          label={formatMessage({ id: "app.commitment.people.provider" })}
-          value={identity(commitment.leadProvider)}
-        />
-      ) : null}
+        {commitment.dueDate ? (
+          <FactRow
+            icon={<RiTimeLine />}
+            label={formatMessage({ id: "app.commitment.people.due" })}
+            value={formatDate(new Date(Number(commitment.dueDate) * 1000), {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          />
+        ) : null}
 
-      {asker && askerRow ? (
-        <Fact
-          icon={<RiQuestionAnswerLine />}
-          label={formatMessage({ id: "app.commitment.people.askedBy" })}
-          value={identity(asker)}
-        />
-      ) : null}
+        {reward ? <PromiseRewardRow text={reward} /> : null}
+        {rewardParts}
 
-      {helpers.length > 0 ? (
-        <Fact
-          icon={<RiGroupLine />}
-          label={formatMessage({ id: "app.commitment.people.team" })}
-          value={formatMessage(
-            { id: "app.commitment.people.helping" },
-            {
-              who: youHelp ? "you" : "other",
-              name: namedHelper ? (
-                <AddressDisplay
-                  key="helper"
-                  address={namedHelper.contributor}
-                  interactive={false}
-                  className="inline"
-                />
-              ) : null,
-              others: helpers.length - 1,
+        {commitment.leadProvider ? (
+          <FactRow
+            icon={<RiUserLine />}
+            label={formatMessage({ id: "app.commitment.people.provider" })}
+            value={identity(commitment.leadProvider)}
+          />
+        ) : null}
+
+        {asker && askerRow ? (
+          <FactRow
+            icon={<RiQuestionAnswerLine />}
+            label={formatMessage({ id: "app.commitment.people.askedBy" })}
+            value={identity(asker)}
+          />
+        ) : null}
+
+        {helpers.length > 0 ? (
+          <FactRow
+            icon={<RiGroupLine />}
+            label={formatMessage({ id: "app.commitment.people.team" })}
+            value={formatMessage(
+              { id: "app.commitment.people.helping" },
+              {
+                who: youHelp ? "you" : "other",
+                name: namedHelper ? (
+                  <AddressDisplay
+                    key="helper"
+                    address={namedHelper.contributor}
+                    interactive={false}
+                    className="inline"
+                  />
+                ) : null,
+                others: helpers.length - 1,
+              }
+            )}
+          />
+        ) : null}
+
+        {confirmer || confirmingGarden ? (
+          <FactRow
+            icon={<RiShieldCheckLine />}
+            label={formatMessage({ id: "app.commitment.people.confirmer" })}
+            value={
+              <span className="inline-flex flex-wrap items-center gap-1">
+                {identity((confirmer ?? confirmingGarden) as Address)}
+                {confirmerIsSteward ? (
+                  <span className="ms-1 inline-flex shrink-0 items-center gap-1 rounded-full bg-bg-weak-50 px-2 py-0.5 text-[10px] font-medium text-text-sub-600">
+                    <RiShieldCheckLine className="h-3 w-3" aria-hidden="true" />
+                    {formatMessage({ id: "app.roles.steward" })}
+                  </span>
+                ) : null}
+              </span>
             }
-          )}
-        />
-      ) : null}
-
-      {confirmer || confirmingGarden ? (
-        <Fact
-          icon={<RiShieldCheckLine />}
-          label={formatMessage({ id: "app.commitment.people.confirmer" })}
-          value={identity((confirmer ?? confirmingGarden) as Address)}
-          tag={
-            confirmerIsSteward ? (
-              <>
-                <RiShieldCheckLine className="h-3 w-3" aria-hidden="true" />
-                {formatMessage({ id: "app.roles.steward" })}
-              </>
-            ) : null
-          }
-        />
-      ) : null}
-
+          />
+        ) : null}
+      </FactList>
       {lead === undefined && commitment.contributorsFrozen ? (
-        <p className="py-2.5 text-xs text-text-soft-400">
+        <p className="border-t border-stroke-soft-200 py-2.5 text-xs text-text-soft-400">
           {formatMessage({ id: "app.commitment.people.frozen" })}
         </p>
       ) : null}
-    </dl>
+    </>
   );
 }

@@ -8,7 +8,7 @@ import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiShieldKeyholeLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication";
+import { PublicStatement } from "@/components/Public/PublicStatement";
 import { AccountEntry, type EntryScreen } from "./AccountEntry";
 import { PageAccount } from "./CeremonyActs";
 import { CeremonyFrame, type CeremonyHeading } from "./CeremonyFrame";
@@ -165,10 +165,9 @@ export function PermissionsView(props: PermissionsViewProps) {
           }
         />
       ) : props.stage === "ready" ? (
-        <EmptyState
+        <PublicStatement
           titleAs="h2"
-          placement="list"
-          icon={<RiShieldKeyholeLine />}
+          className="py-2"
           title={text({
             id: "public.reporting.permissions.emptyTitle",
             defaultMessage: "No permissions found",
@@ -210,6 +209,7 @@ export function PermissionsView(props: PermissionsViewProps) {
               rows={4}
               maxLength={65536}
               required
+              surface="editorial"
               invalid={importError !== null}
               aria-invalid={importError !== null || undefined}
               aria-describedby={`${importId}-helper-text`}
@@ -258,6 +258,7 @@ export function PermissionsView(props: PermissionsViewProps) {
                   value={exported}
                   readOnly
                   rows={5}
+                  surface="editorial"
                   aria-describedby={`${exportId}-helper-text`}
                   onFocus={(event) => event.target.select()}
                   className="text-base [overflow-wrap:anywhere]"

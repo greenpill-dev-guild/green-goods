@@ -351,6 +351,12 @@ test("API index lists every public path the Agent API and its route contracts wr
     rendered,
     /^\| `\/public\/saved-offers\/:savedOfferId` \| `DELETE`, `GET`, `OPTIONS`, `PUT` \| none \| `routes\/saved-offer-records\.ts` \|$/m,
   );
+  for (const [route, constant, source] of [
+    ["service-issuer-desk", "SERVICE_ISSUER_DESK_ROUTE", "service-issuer-desk"],
+    ["voucher-awards", "VOUCHER_AWARDS_ROUTE", "voucher-awards"],
+  ]) {
+    assert.ok(rendered.includes(`| \`/public/${route}\` | \`OPTIONS\`, \`POST\` | \`${constant}\` | \`routes/${source}.ts\` |`));
+  }
 });
 
 test("a field recorded on another network counts for the network that depends on it", () => {
@@ -604,6 +610,39 @@ test("every projection source is routed to the Docs workflow", () => {
   }
 });
 
+test("offline storage edits make the generated glossary stale", (t) => {
+  const projection = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/docs/reference/glossary.generated.mdx",
+  );
+  const storageSources = [
+    "packages/shared/src/modules/job-queue/db.ts",
+    "packages/shared/src/modules/job-queue/db-schema.ts",
+    "packages/shared/src/modules/job-queue/draft-connection.ts",
+    "packages/shared/src/modules/job-queue/draft-db.ts",
+    "packages/shared/src/modules/job-queue/draft-snapshot.ts",
+  ];
+  for (const source of storageSources) {
+    assert.ok(projection.sources.includes(source), `${source} must invalidate the installed-app definition`);
+  }
+  const root = fixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const source of projection.sources) {
+    const target = path.join(root, source);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(path.join(REPO_ROOT, source)));
+  }
+  syncProjections({ root, projections: [projection] });
+  assert.deepEqual(syncProjections({ root, projections: [projection], check: true }), []);
+  for (const source of storageSources) {
+    const original = readFileSync(path.join(root, source), "utf8");
+    writeFileSync(path.join(root, source), `${original}\n// Storage behavior changed.\n`);
+    assert.deepEqual(syncProjections({ root, projections: [projection], check: true }), [
+      `stale: ${projection.output}`,
+    ], source);
+    writeFileSync(path.join(root, source), original);
+  }
+});
+
 test("personas page gives each persona a section, its journey, and the surfaces it works in", () => {
   const projection = createProjections(REPO_ROOT).find(
     (item) => item.output === "docs/docs/builders/architecture/personas.mdx",
@@ -621,7 +660,7 @@ test("personas page gives each persona a section, its journey, and the surfaces 
     assert.ok(rendered.includes(`| [${persona.display}](#${persona.id}) |`), persona.id);
   }
   // "Works in" is the union of the surfaces the persona's own interactions name, not a naming rule.
-  assert.match(rendered, /^\| \[Gardener\]\(#gardener\) \| [^|]+ \| Client app, Messaging agent \|$/m);
+  assert.match(rendered, /^\| \[Gardener\]\(#gardener\) \| [^|]+ \| Green Goods App, Messaging agent \|$/m);
   // Every interaction in the projection data is on the page.
   for (const journey of readJson(REPO_ROOT, projectionData).persona_journeys) {
     for (const engagement of journey.engagements) {
@@ -629,7 +668,7 @@ test("personas page gives each persona a section, its journey, and the surfaces 
     }
   }
   // One that relies on a term people cannot use yet says so, and names no surface it does not have.
-  assert.match(rendered, /Name a community need[^|]*\*Planned, not built yet\.\* \| — \|/);
+  assert.match(rendered, /Name a community need[^|]*\*Planned, not built yet\.\* \| None \|/);
 });
 
 test("glossary leads with plain entries for the everyday terms and keeps every anchor people link to", () => {
@@ -648,11 +687,18 @@ test("glossary leads with plain entries for the everyday terms and keeps every a
   assert.doesNotMatch(rendered, /\| Term \| Type \|/);
   assert.doesNotMatch(rendered, /^## Domain Entities$/m);
   assert.match(rendered, /\/reference\/ontology#entities/);
+  assert.doesNotMatch(rendered, /## Builder reference|#### \[Domain entities/);
+  assert.match(everyday.text, /### Promise \{#promise\}/);
+  assert.match(rendered, /### Campaign \{#campaign\}/);
+  assert.match(rendered, /### Confirmer \{#confirmer\}/);
   // The anchors packages/client/src/views/Public/Glossary.tsx deep-links land on plain entries.
   const appAnchors = ["action", "assessment", "cookie-jar", "evaluator", "garden", "gardener", "impact-certificate", "steward", "vault", "work"];
   for (const anchor of appAnchors) {
     assert.match(everyday.text, new RegExp(`^### .+ \\{#${anchor}\\}$`, "m"), anchor);
   }
+  // Secondary published fragments must land on a definition, not an empty footer anchor.
+  assert.match(rendered, /<a id="pwa-progressive-web-app"><\/a>\s+### Green Goods App \{#pwa\}/);
+  assert.match(rendered, /<TermAnchor id="smart-account-account-abstraction" to="\/reference\/ontology#smart-account" \/>/);
   // An entry is the term's plain-language record. Its formal definition stays in the tables.
   const sidecar = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
   const projectionData = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-projections.json");
@@ -664,7 +710,7 @@ test("glossary leads with plain entries for the everyday terms and keeps every a
   assert.ok(!rendered.includes(garden.definition));
   // A term has one heading on the page, so no anchor is defined twice.
   assert.equal((rendered.match(/^### Garden \{#garden\}$/gm) ?? []).length, 1);
-  const anchors = [...rendered.matchAll(/\{#([a-z0-9-]+)\}|<a id="([a-z0-9-]+)"><\/a>|<TermAnchor id="([a-z0-9-]+)" \/>/g)].map((match) => match[1] ?? match[2] ?? match[3]);
+  const anchors = [...rendered.matchAll(/\{#([a-z0-9-]+)\}|<a id="([a-z0-9-]+)"><\/a>|<TermAnchor id="([a-z0-9-]+)"(?: to="[^"]+")? \/>/g)].map((match) => match[1] ?? match[2] ?? match[3]);
   assert.equal(new Set(anchors).size, anchors.length, "duplicate anchor on the glossary page");
   // Every term keeps an anchor: canonical entities, personas, supporting terms, and the old aliases.
   const expected = [
@@ -710,6 +756,13 @@ test("an everyday glossary entry needs a plain-language record and a name the on
     () => glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", heading: "Plot", guide: ["Join", "/join"] }]),
     /"Plot" is neither the display name nor a declared alias of entity:garden/,
   );
+  // An entry can word its other names, as long as each opens with one the ontology declares.
+  const [worded] = glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", alsoCalled: ["community garden, on the sign"], guide: ["Join", "/join"] }]);
+  assert.deepEqual(worded.alsoCalled, ["community garden, on the sign"]);
+  assert.throws(
+    () => glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", alsoCalled: ["allotment, on the sign"], guide: ["Join", "/join"] }]),
+    /"allotment, on the sign" does not open with a declared name of entity:garden/,
+  );
 });
 
 test("data model projects layered diagrams, every relationship, and all lifecycles", () => {
@@ -722,7 +775,7 @@ test("data model projects layered diagrams, every relationship, and all lifecycl
   const ontology = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
   const flowcharts = blocks.filter((block) => block.startsWith("flowchart"));
   const machines = blocks.filter((block) => block.startsWith("stateDiagram-v2"));
-  assert.equal(flowcharts.length, 3);
+  assert.equal(flowcharts.length, 4);
   assert.equal(machines.length, ontology.state_machines.length);
   assert.match(rendered, /## Lifecycles/);
   const memberCount = (blocks.join("\n").match(/\]:::member/g) ?? []).length;
@@ -735,7 +788,8 @@ test("data model projects layered diagrams, every relationship, and all lifecycl
   assert.equal(renderedEdges, expectedEdges);
   assert.match(flowcharts[0], /garden\[[^\]]*\]:::member/);
   assert.doesNotMatch(flowcharts[0], /commitment_pool\[[^\]]*\]:::member/);
-  assert.match(flowcharts[2], /commitment_pool\[[^\]]*\]:::member/);
+  assert.match(flowcharts[2], /voucher_exchange_pool\[[^\]]*\]:::member/);
+  assert.match(flowcharts[3], /commitment_pool\[[^\]]*\]:::member/);
   // Mermaid ends a state-diagram label at `;` or `:`; a long label is unreadable on the arrow.
   const arrowLines = machines.flatMap((block) => block.split("\n").filter((line) => line.includes("-->")));
   const expectedArrows = ontology.state_machines.reduce(
@@ -912,6 +966,14 @@ test("guided journeys keep each handoff and known gate beside its Test ID", () =
   }
 });
 
+test("QA projection distinguishes rollout readiness from shipped release coverage", () => {
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/quality/test-cases.mdx");
+  const rendered = renderProjection(REPO_ROOT, projection);
+  assert.match(rendered, /An active case is available to test; it does not mean the feature is deployed or the case has passed/);
+  assert.match(rendered, /## Rollout Readiness\n\nThese checks apply only to the scoped rollout build/);
+  assert.match(rendered, /### In progress: /);
+});
+
 test("task routing projects public ownership and one-way synchronization", () => {
   const projection = createProjections(REPO_ROOT).find(
     (item) => item.output === "docs/docs/builders/agentic/task-routing.mdx",
@@ -1065,6 +1127,9 @@ test("workflow catalog covers every workflow file, only CI Gate is required, and
     assert.match(section(heading), /Required status:\*\* no, and the CI Gate never waits for it/, heading);
   }
   assert.match(section("CI Gate"), /Required status:\*\* yes, branch protection waits for it\./);
+  assert.match(section("Dependabot Sync"), /CI Gate waits for same-repository pull requests authored by `dependabot\[bot\]`/);
+  assert.match(section("Dependabot Sync Publish"), /Runs on:\*\* completion of another workflow/);
+  assert.match(section("Merge Gate"), /Runs on:\*\* the start and completion of another workflow; comments on issues and pull requests; pushes to `develop`/);
 });
 
 test("workflow inventory reads display name, sorted jobs, and triggers from the YAML", (t) => {
@@ -1177,6 +1242,11 @@ test("community glossary follows human concepts, rejects stale output, and canno
       writeFileSync(target, readFileSync(path.join(REPO_ROOT, source)));
     }
     assert.deepEqual(syncProjections({root, projections: [projection], check: false}), []);
+    const glossary = renderProjection(root, projection);
+    assert.match(glossary, /Team membership, contributions and contributor payouts are available/);
+    const seasonEntry = glossary.split("### Season {#season}")[1]?.split("\n### ")[0];
+    assert.ok(seasonEntry, "the released season needs a community glossary entry");
+    assert.doesNotMatch(seasonEntry, /Still being built|no separate record|Availability:/);
     const file = path.join(root, "packages/shared/src/ontology/green-goods-projections.json");
     const data = JSON.parse(readFileSync(file, "utf8"));
     data.human_concepts.find(concept => concept.ref === "entity:garden").example = "A new plain-language example.";

@@ -7,7 +7,7 @@
  */
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { jobToWork } from "../../hooks/work/useWorks";
+import { jobToWork } from "../../modules/work/queued-work";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import type { Address, Work } from "../../types/domain";

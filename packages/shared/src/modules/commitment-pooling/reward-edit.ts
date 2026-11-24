@@ -8,13 +8,18 @@
  * reward it was agreed at, and the group stays one row because its grouping
  * leaves the amount out.
  *
- * It is a direct act, like any other term edit: nothing is queued. A wallet
- * that runs several calls as one transaction is asked once; any other wallet
- * is asked once per copy, and declining one leaves only that one as it was.
+ * It is a direct act, like any other term edit: nothing is queued. The
+ * contract checks only that the sender stewards the pool, so a passkey changes
+ * a reward as a wallet does. A wallet that runs several calls as one
+ * transaction is asked once, and so is a passkey where the enablement list
+ * names its rail for reward edits; anyone else is asked once per copy, and
+ * declining one leaves only that one as it was. A group past a passkey's
+ * ceilings sends nothing and comes back `over-ceilings`, and the caller's next
+ * try asks once per copy (`oneByOne`).
+ *
  * Setting a reward to the amount it already has changes nothing, so trying
- * again is always safe. A Safe-style wallet can hand back an id with no
- * receipt to check: the change may still run, or never, so it reads as not
- * confirmed, never as changed.
+ * again is always safe. The sending itself is `copy-edit-send`'s, which Edit
+ * Confirmers shares.
  *
  * @module modules/commitment-pooling/reward-edit
  */
@@ -22,12 +27,11 @@
 import { zeroAddress } from "viem";
 import type { Address } from "../../types/domain";
 import { CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
-import { classifyTxError } from "../../utils/errors/tx-error-classifier";
-import { logger } from "../app/logger";
+import type { BatchBudget } from "../transactions/batch-types";
 import type { ContractCall, TransactionSender } from "../transactions/types";
-import { creationSendMode } from "./creation-send";
+import { type CopyEditProgress, type CopyEditStatus, sendCopyEdits } from "./copy-edit-send";
+import { type CreationSendMode, copiesSendMode } from "./creation-send";
 import { CONSIDERATION_RAIL_ORDINAL, type DeclaredConsiderationInput } from "./job-types";
-import { chunkCopies, type SeedCopyMiss } from "./seed-sets";
 
 /**
  * Copies changed per wallet approval. A term edit writes one struct where a
@@ -36,15 +40,39 @@ import { chunkCopies, type SeedCopyMiss } from "./seed-sets";
  */
 const REWARD_EDIT_BUNDLE_SIZE = 50;
 
-export type RewardEditStatus = "waiting" | "wallet" | "confirming" | "changed" | "not-changed";
+/**
+ * A passkey's ceilings for one bundle of reward edits, on the chains they were measured on. On a
+ * fork of Arbitrum (block 520,827,637, 2026-11-03), fifty edits took 3.8M gas from the steward's
+ * own address and 17.8 KB of Kernel calldata, and a Green Goods passkey UserOperation adds about
+ * 730k for validation and sponsorship. The first live bundle confirms them before the rail is
+ * listed. A wallet sets its own limits.
+ */
+const REWARD_EDIT_BUDGETS: Partial<Record<number, BatchBudget>> = {
+  42161: {
+    maxCalls: REWARD_EDIT_BUNDLE_SIZE,
+    maxCalldataBytes: 20_480,
+    maxGas: "8000000",
+    maxFeePerGas: "1000000000",
+    maxFee: "2000000000000000",
+    sponsorship: "required",
+  },
+};
 
-export interface RewardEditProgress {
-  commitmentId: bigint;
-  status: RewardEditStatus;
-  /** Why it wasn't changed: declined and refused left it as it was; failed may not have. */
-  miss?: SeedCopyMiss;
-  txHash: string | null;
+export function rewardEditBudget(chainId: number): BatchBudget | null {
+  return REWARD_EDIT_BUDGETS[chainId] ?? null;
 }
+
+/** How Edit Reward asks: once per group where the sender can, otherwise once per copy. */
+export function rewardEditSendMode(
+  sender: TransactionSender | null,
+  chainId: number
+): Promise<CreationSendMode> {
+  return copiesSendMode(sender, chainId, "reward-edits", rewardEditBudget(chainId));
+}
+
+/** Where one copy of a reward edit stands; the same shape every term edit reports. */
+export type RewardEditStatus = CopyEditStatus;
+export type RewardEditProgress = CopyEditProgress;
 
 /** A reward in G$ on the Celo settlement rail, or no reward at all for zero. */
 export function goodDollarConsideration(amount: bigint): DeclaredConsiderationInput {
@@ -52,16 +80,6 @@ export function goodDollarConsideration(amount: bigint): DeclaredConsiderationIn
   return amount > 0n
     ? { rail: CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT, source: zero, token: zero, amount }
     : { rail: CONSIDERATION_RAIL_ORDINAL.NONE, source: zero, token: zero, amount: 0n };
-}
-
-/** A send the wallet took but nobody can confirm yet: not changed, and possibly changed later. */
-const UNCONFIRMED = { status: "not-changed", miss: "failed" } as const;
-
-function missOf(error: unknown): SeedCopyMiss {
-  const { kind } = classifyTxError(error);
-  if (kind === "cancelled") return "declined";
-  if (kind === "reverted") return "refused";
-  return "failed";
 }
 
 export async function sendRewardEdit(input: {
@@ -73,76 +91,27 @@ export async function sendRewardEdit(input: {
   consideration: DeclaredConsiderationInput;
   /** Told each time a copy moves. Report-only: a throw here never reaches a send. */
   onCopy?: (progress: RewardEditProgress) => void;
+  /**
+   * Ask once per copy even where the wallet could take the group: an earlier
+   * group was past its ceilings, and the count said up front follows that.
+   */
+  oneByOne?: boolean;
 }): Promise<RewardEditProgress[]> {
   const { sender, chainId, moduleAddress, consideration } = input;
-  const progress = new Map<bigint, RewardEditProgress>(
-    input.commitmentIds.map((commitmentId) => [
-      commitmentId,
-      { commitmentId, status: "waiting", txHash: null },
-    ])
-  );
-  const tell = (commitmentId: bigint, patch: Partial<RewardEditProgress>) => {
-    const next = { ...(progress.get(commitmentId) as RewardEditProgress), ...patch };
-    progress.set(commitmentId, next);
-    try {
-      input.onCopy?.(next);
-    } catch (error) {
-      logger.warn("[reward-edit] a progress report threw", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  };
-  const callFor = (commitmentId: bigint): ContractCall => ({
-    address: moduleAddress,
-    abi: CommitmentPoolingModuleABI,
-    functionName: "setDeclaredConsideration",
-    args: [commitmentId, consideration],
-    chainId,
+  const probed = await rewardEditSendMode(sender, chainId);
+  return sendCopyEdits({
+    sender,
+    mode: probed === "bundle" && input.oneByOne ? "one-by-one" : probed,
+    commitmentIds: input.commitmentIds,
+    callFor: (commitmentId: bigint): ContractCall => ({
+      address: moduleAddress,
+      abi: CommitmentPoolingModuleABI,
+      functionName: "setDeclaredConsideration",
+      args: [commitmentId, consideration],
+      chainId,
+    }),
+    bundleSize: REWARD_EDIT_BUNDLE_SIZE,
+    batchBudget: rewardEditBudget(chainId),
+    onCopy: input.onCopy,
   });
-
-  const mode = await creationSendMode(sender, chainId);
-  if (!sender || mode === "background") {
-    // The steward cockpit signs with a wallet; anything else can't change terms from here.
-    for (const commitmentId of input.commitmentIds) {
-      tell(commitmentId, { status: "not-changed", miss: "refused" });
-    }
-  } else if (mode === "bundle" && sender.sendAtomicBatch) {
-    for (const ids of chunkCopies(input.commitmentIds, REWARD_EDIT_BUNDLE_SIZE)) {
-      for (const commitmentId of ids) tell(commitmentId, { status: "wallet" });
-      try {
-        const result = await sender.sendAtomicBatch(ids.map(callFor), {
-          onAccepted: async () => {
-            for (const commitmentId of ids) tell(commitmentId, { status: "confirming" });
-          },
-        });
-        for (const commitmentId of ids) {
-          tell(commitmentId, {
-            ...(result.confirmation === "pending" ? UNCONFIRMED : { status: "changed" }),
-            txHash: result.hash,
-          });
-        }
-      } catch (error) {
-        const miss = missOf(error);
-        for (const commitmentId of ids) tell(commitmentId, { status: "not-changed", miss });
-      }
-    }
-  } else {
-    for (const commitmentId of input.commitmentIds) {
-      tell(commitmentId, { status: "wallet" });
-      try {
-        const result = await sender.sendContractCall(callFor(commitmentId), {
-          onBroadcast: async (hash) => tell(commitmentId, { status: "confirming", txHash: hash }),
-        });
-        tell(commitmentId, {
-          ...(result.confirmation === "pending" ? UNCONFIRMED : { status: "changed" }),
-          txHash: result.hash,
-        });
-      } catch (error) {
-        tell(commitmentId, { status: "not-changed", miss: missOf(error) });
-      }
-    }
-  }
-  return input.commitmentIds.map(
-    (commitmentId) => progress.get(commitmentId) as RewardEditProgress
-  );
 }

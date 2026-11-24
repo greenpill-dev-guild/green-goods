@@ -17,9 +17,25 @@ export interface CommitmentProgressProps {
    * what it carries in words, or still on the phone under the notice above.
    */
   onPhone?: { kind: "sending"; summary: string } | { kind: "local" } | null;
+  /**
+   * A voucher booking's delivery, counted once the issuer reports it, in the proof-only line's
+   * place. Until then it is pending, and a booking has no progress or proof to show yet.
+   */
+  delivery?: { label: string; done: number; of: number } | "pending" | null;
+  /**
+   * When the reader can add proof. Only a reader who can now is told proof moves this forward;
+   * the chain takes none before take-up, so an offer's creator hears when they can (DL-151).
+   */
+  addProof?: "now" | "afterTakeUp" | "no";
   /** The proof itself, shown under the progress in the same section. */
   children?: ReactNode;
 }
+
+const EMPTY_PROOF_LINE = {
+  now: "app.commitment.progress.proofOnly",
+  afterTakeUp: "app.commitment.progress.proofAfterTakeUp",
+  no: "app.commitment.progress.proofCount",
+} as const;
 
 /**
  * Progress and proof: what has actually been done toward this promise, and the
@@ -37,6 +53,8 @@ export function CommitmentProgress({
   commitment,
   requirements,
   onPhone = null,
+  delivery = null,
+  addProof = "no",
   children,
 }: CommitmentProgressProps) {
   const { formatMessage } = useIntl();
@@ -76,10 +94,14 @@ export function CommitmentProgress({
       { index: requirement.requirementIndex + 1 }
     );
 
+  if (delivery === "pending") return null;
+
   if (requirements.length === 0) {
     // A service commitment names no garden actions, so proof is what moves it —
     // but a settled record has stopped moving, so its copy just counts.
-    const settled = isTerminalCommitmentState(commitment.derivedState);
+    const emptyLineId = isTerminalCommitmentState(commitment.derivedState)
+      ? "app.commitment.progress.proofOnlySettled"
+      : EMPTY_PROOF_LINE[addProof];
     return (
       <section
         className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
@@ -87,17 +109,40 @@ export function CommitmentProgress({
         data-component="CommitmentProgress"
       >
         {heading}
+        {delivery ? (
+          <div className="mt-3" data-component="ServiceDeliveryProgress">
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate text-text-sub-600" title={delivery.label}>
+                {delivery.label}
+              </span>
+              <span className="shrink-0 text-text-strong-950">
+                {formatMessage(
+                  { id: "app.commitment.progress.count" },
+                  { done: Math.min(delivery.done, delivery.of), of: delivery.of }
+                )}
+              </span>
+            </div>
+            <div
+              className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bg-weak-50"
+              role="progressbar"
+              aria-label={delivery.label}
+              aria-valuenow={Math.min(delivery.done, delivery.of)}
+              aria-valuemin={0}
+              aria-valuemax={delivery.of}
+            >
+              <div
+                className="h-full rounded-full bg-primary-action"
+                style={{
+                  width: `${delivery.of > 0 ? Math.round((Math.min(delivery.done, delivery.of) / delivery.of) * 100) : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
         {/* Once proof is on the promise, the proof itself says so. */}
-        {hasProof || onPhone ? null : (
+        {delivery || hasProof || onPhone ? null : (
           <p className="mt-2 text-sm text-text-sub-600">
-            {formatMessage(
-              {
-                id: settled
-                  ? "app.commitment.progress.proofOnlySettled"
-                  : "app.commitment.progress.proofOnly",
-              },
-              { count: 0 }
-            )}
+            {formatMessage({ id: emptyLineId }, { count: 0 })}
           </p>
         )}
         {children}

@@ -276,7 +276,12 @@ test("fork keeps its local indexer even when a hosted indexer is configured", ()
 const launchClient = (env, group = "local") => [applyGroupEnvironment({ name: "client", env }, group)];
 
 test("the startup notice reports the connections the apps received", () => {
-  assert.deepEqual(productionModeNotice("prod").slice(1, 4), [
+  const configured = process.env.VITE_ENVIO_INDEXER_URL;
+  process.env.VITE_ENVIO_INDEXER_URL = "https://hosted.example/v1/graphql";
+  const prodNotice = productionModeNotice("prod");
+  if (configured === undefined) delete process.env.VITE_ENVIO_INDEXER_URL;
+  else process.env.VITE_ENVIO_INDEXER_URL = configured;
+  assert.deepEqual(prodNotice.slice(1, 4), [
     "[stack] Production-backed Green Goods dev mode is active.",
     "[stack] Chain: Arbitrum One (42161); indexer: hosted production indexer.",
     "[stack] Agent API: https://agent.greengoods.app.",

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { Domain } from "../../../types/domain";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import { Domain, type WorkMetadataV1 } from "../../../types/domain";
 import { buildWorkMetadataPayload } from "../../../utils/eas/work-metadata";
 
 const base = {
@@ -14,7 +14,18 @@ const base = {
   clientWorkId: "cw-1",
 };
 
+// Legacy attestations may omit timing and identity while retaining the old planting fields.
 describe("buildWorkMetadataPayload", () => {
+  it("retains the compile-time contract for legacy work metadata", () => {
+    expectTypeOf<{
+      plantCount: number;
+      plantSelection: string[];
+    }>().toExtend<WorkMetadataV1>();
+    expectTypeOf<WorkMetadataV1["plantCount"]>().toEqualTypeOf<number>();
+    expectTypeOf<WorkMetadataV1["plantSelection"]>().toEqualTypeOf<string[]>();
+    expectTypeOf<WorkMetadataV1["timeSpentMinutes"]>().toEqualTypeOf<number | undefined>();
+  });
+
   it("writes the legacy shape with identity, in the key order uploaders hash", () => {
     const { payload, version } = buildWorkMetadataPayload(base);
     expect(version).toBe("work_metadata");
@@ -30,6 +41,16 @@ describe("buildWorkMetadataPayload", () => {
         attachments: [{ cid: "bafkreiphoto", type: "image/jpeg" }],
       })
     );
+  });
+
+  it("lists documents last, and only when there are some, so earlier payloads hash the same", () => {
+    expect(buildWorkMetadataPayload(base).payload).not.toHaveProperty("documents");
+    const documents = [
+      { cid: "bafkreicert", type: "application/pdf", name: "Certificate.pdf", size: 1200 },
+    ];
+    const { payload } = buildWorkMetadataPayload({ ...base, documents });
+    expect(Object.keys(payload).at(-1)).toBe("documents");
+    expect(payload.documents).toEqual(documents);
   });
 
   it.each([

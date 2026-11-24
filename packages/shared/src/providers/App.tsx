@@ -11,6 +11,9 @@ import {
   type Locale,
   loadLocaleCatalogue,
   type LocaleCatalogue,
+  readStoredLanguage,
+  resolveRequestedLocale,
+  storeLanguage,
   supportedLanguages,
 } from "../modules/app/locale-messages";
 import { track } from "../modules/app/posthog";
@@ -64,20 +67,13 @@ export interface AppDataProps {
   switchLanguage: (lang: Locale) => void;
 }
 
-function getBrowserLocale(available: readonly string[], fallback: string): string {
-  if (typeof navigator === "undefined") return fallback;
-
-  const browserLocales = navigator.languages || [navigator.language];
-
-  for (const locale of browserLocales) {
-    const lang = locale.split("-")[0]; // "en-US" -> "en"
-    if (available.includes(lang)) {
-      return lang;
-    }
-  }
-
-  return fallback;
+function readRequestedLocale(): Locale {
+  const browserLanguages = navigator.languages?.length ? navigator.languages : [navigator.language];
+  return resolveRequestedLocale(readStoredLanguage(), browserLanguages);
 }
+
+/** What the page shows until a catalogue lands, or when none can: each component's English copy. */
+const ENGLISH_FALLBACK: LocaleCatalogue = { locale: "en", messages: {} };
 
 export const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
@@ -106,22 +102,26 @@ interface AppProviderProps {
   children: React.ReactNode;
   posthogKey?: string;
   allowPosthogKeyFallback?: boolean;
+  /** A surface can wait for useful content before scheduling optional analytics. */
+  scheduleTelemetry?: (start: () => void) => () => void;
+  /** Public websites can load a smaller catalogue with the same fallback rules. */
+  importCatalogue?: (locale: Locale) => Promise<LocaleCatalogue>;
 }
 
 export const AppProvider = ({
   children,
   posthogKey,
   allowPosthogKeyFallback = true,
+  scheduleTelemetry,
+  importCatalogue,
 }: AppProviderProps) => {
   // Use provided key or fall back to default client key
   const apiKey = posthogKey || (allowPosthogKeyFallback ? import.meta.env.VITE_POSTHOG_KEY : "");
-  const defaultLocale = localStorage.getItem("gg-language")
-    ? (localStorage.getItem("gg-language") as Locale)
-    : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
-  const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
-  // Until a catalogue lands, components show their English fallback copy.
-  const [catalogue, setCatalogue] = useState<LocaleCatalogue>({ locale: "en", messages: {} });
-  const localeMessages = catalogue.messages;
+  const [locale, setLocale] = useState<Locale>(readRequestedLocale);
+  // Null until the first catalogue lands; components show their English fallback copy meanwhile.
+  const [catalogue, setCatalogue] = useState<LocaleCatalogue | null>(null);
+  const shownCatalogue = catalogue ?? ENGLISH_FALLBACK;
+  const localeMessages = shownCatalogue.messages;
   const [deferredPrompt, setDeferredPrompt] = useState<InstallPromptEvent | null>(null);
   // Chromium fires `beforeinstallprompt` only while the app is not installed, so
   // observing it is a verified negative that outlives the prompt itself: consuming
@@ -174,39 +174,52 @@ export const AppProvider = ({
       else idleHandle = window.setTimeout(initialize, 1_000);
     };
 
-    if (document.readyState === "complete") schedule();
-    else window.addEventListener("load", schedule, { once: true });
+    const afterLoad = () => {
+      if (document.readyState === "complete") schedule();
+      else window.addEventListener("load", schedule, { once: true });
+    };
+    const cancelContentWait = scheduleTelemetry?.(afterLoad);
+    if (!scheduleTelemetry) afterLoad();
 
     return () => {
       cancelled = true;
+      cancelContentWait?.();
       window.removeEventListener("load", schedule);
       if (idleHandle !== null) {
         if (window.cancelIdleCallback) window.cancelIdleCallback(idleHandle);
         else window.clearTimeout(idleHandle);
       }
     };
-  }, [apiKey]);
+  }, [apiKey, scheduleTelemetry]);
 
   useEffect(() => {
     let cancelled = false;
-    void loadLocaleCatalogue(locale).then(
+    void loadLocaleCatalogue(locale, importCatalogue).then(
       (nextCatalogue) => {
         if (!cancelled) setCatalogue(nextCatalogue);
       },
       (error: unknown) => {
         logger.error("[App] Locale messages could not be loaded", { locale, error });
+        // With no catalogue at all, the English fallback copy on screen is what stays. A switch
+        // that fails keeps the catalogue already showing.
+        if (!cancelled) setCatalogue((current) => current ?? ENGLISH_FALLBACK);
       }
     );
     return () => {
       cancelled = true;
     };
-  }, [locale]);
+  }, [locale, importCatalogue]);
 
   // The page declares the language of the copy on screen, so assistive technology reads it in
-  // that language. It is English until a reader's own catalogue lands.
+  // that language, and a switch changes it once the new copy is showing. Until the first
+  // catalogue lands, it declares the reader's language instead, as index.html did before the app
+  // loaded: the browser judges a page's language while it loads, and a page that says English
+  // gets a Portuguese or Spanish reader offered, or auto-run, a translation that rewrites text
+  // React still owns. A reader whose catalogue cannot load is corrected to English.
+  const pageLanguage = catalogue?.locale ?? locale;
   useEffect(() => {
-    document.documentElement.lang = catalogue.locale;
-  }, [catalogue.locale]);
+    document.documentElement.lang = pageLanguage;
+  }, [pageLanguage]);
 
   const isStandalone = React.useMemo(() => isStandaloneMode(), []);
 
@@ -323,11 +336,13 @@ export const AppProvider = ({
             // the app is installed and usable but not yet offline-capable,
             // which is what the plain install message already says.
             showInstallToast(status === "ready" ? "offlineReady" : "installed");
+            track("pwa_install_offline_readiness", { status });
           });
         })
         .catch((error: unknown) => {
           logger.warn("[App] Offline-ready shell tier could not be requested", { error });
           showInstallToast("installed");
+          track("pwa_install_offline_readiness", { status: "failed" });
         });
       track("App Installed", {
         platform,
@@ -354,7 +369,7 @@ export const AppProvider = ({
 
   const switchLanguage = useCallback((lang: Locale) => {
     setLocale(lang);
-    localStorage.setItem("gg-language", lang);
+    storeLanguage(lang);
   }, []);
 
   const promptInstall = useCallback(() => {
@@ -444,7 +459,7 @@ export const AppProvider = ({
     <AppContext.Provider value={contextValue}>
       {/* The locale here is the language of the catalogue on screen, not the one requested:
           react-intl formats the copy with it, and display code reads it as the language to show. */}
-      <IntlProvider locale={catalogue.locale} messages={localeMessages}>
+      <IntlProvider locale={shownCatalogue.locale} messages={localeMessages}>
         {children}
       </IntlProvider>
     </AppContext.Provider>

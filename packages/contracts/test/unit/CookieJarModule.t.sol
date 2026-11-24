@@ -80,6 +80,8 @@ contract MockHatsModuleForCookieJar is IHatsModule {
     function revokeRole(address, address, GardenRole) external { }
     function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
     function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
+
+    function leaveGarden(address) external { }
     function setConvictionStrategies(address, address[] calldata) external { }
 
     function getConvictionStrategies(address) external pure returns (address[] memory) {
@@ -687,17 +689,6 @@ contract CookieJarModuleTest is Test {
         vm.prank(owner);
         cookieJarModule.upgradeTo(address(newImpl));
         // If we reach here without revert, upgrade succeeded
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Storage Gap
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    function test_storageGap_totalSlots() public {
-        // CookieJarModule has 12 explicit vars + 38 gap = 50 total slots
-        // This test just verifies the contract compiles with the gap annotation
-        // The actual gap is verified by StorageLayout.t.sol
-        assertTrue(true, "Storage gap compiles correctly");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

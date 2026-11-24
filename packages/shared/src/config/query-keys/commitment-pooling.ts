@@ -25,9 +25,28 @@ function stableFilters(filters: CommitmentFilters = {}): string {
 }
 
 export const commitmentPoolingKeys = {
+  issuerDesk: (account?: Address | null, selection?: { routeId: string; poolId: string } | null) =>
+    [
+      "greengoods",
+      "service-issuer-desk",
+      100,
+      account?.toLowerCase(),
+      selection?.routeId ?? "member",
+      selection?.poolId ?? "own",
+    ] as const,
+  voucherAwards: (account?: Address | null, reserve?: Address | null) =>
+    [
+      "greengoods",
+      "voucher-awards",
+      100,
+      account?.toLowerCase(),
+      reserve?.toLowerCase() ?? "received",
+    ] as const,
   all: (chainId: number) => ["greengoods", "commitment-pooling", chainId] as const,
   availability: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "availability"] as const,
+  /** How far the chain's clock runs from this device's, which due dates are read on. */
+  chainClock: (chainId: number) => [...commitmentPoolingKeys.all(chainId), "chain-clock"] as const,
   pools: (chainId: number, garden?: Address | string) =>
     [...commitmentPoolingKeys.all(chainId), "pools", normalizeAddress(garden)] as const,
   pool: (chainId: number, poolId: bigint | string | number) =>
@@ -45,6 +64,87 @@ export const commitmentPoolingKeys = {
     [...commitmentPoolingKeys.all(chainId), "commitments", stableFilters(filters)] as const,
   commitment: (chainId: number, commitmentId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "commitment", String(commitmentId)] as const,
+  serviceAccess: (
+    chainId: number,
+    module: Address,
+    commitmentId: bigint,
+    buyer: Address,
+    rehearsal: boolean
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "service-access",
+      module.toLowerCase(),
+      String(commitmentId),
+      buyer.toLowerCase(),
+      rehearsal ? "local-rehearsal" : "indexed",
+    ] as const,
+  /** Every account's voucher wallet on a source chain, so a service act refreshes them all. */
+  voucherWallets: (chainId: number) =>
+    [...commitmentPoolingKeys.all(chainId), "voucher-wallet"] as const,
+  voucherWallet: (chainId: number, module: Address, account: Address, rehearsal: boolean) =>
+    [
+      ...commitmentPoolingKeys.voucherWallets(chainId),
+      module.toLowerCase(),
+      account.toLowerCase(),
+      rehearsal ? "local-rehearsal" : "onchain",
+    ] as const,
+  /**
+   * Keyed by the issuer's own chain, where a collective's threshold is read from its Safe, and by
+   * its authority: the same account as a member approves from itself, with no Safe read.
+   */
+  issuerApproval: (
+    chainId: number,
+    issuer: Address,
+    kind: "collective" | "individual",
+    rehearsal: boolean
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "issuer-approval",
+      issuer.toLowerCase(),
+      kind,
+      rehearsal ? "local-rehearsal" : "onchain",
+    ] as const,
+  /** An issuer Safe's signature rule on the voucher network; the DEV rehearsal keeps its own. */
+  issuerSafeThreshold: (chainId: number, safe?: Address | string, rehearsal = false) =>
+    rehearsal
+      ? ([
+          ...commitmentPoolingKeys.all(chainId),
+          "issuer-safe-threshold",
+          normalizeAddress(safe),
+          "local-rehearsal",
+        ] as const)
+      : ([
+          ...commitmentPoolingKeys.all(chainId),
+          "issuer-safe-threshold",
+          normalizeAddress(safe),
+        ] as const),
+  /** A garden pool's voucher bookings, its voucher issuer and that issuer's reserve. */
+  voucherConsole: (chainId: number, garden: Address | string) =>
+    [...commitmentPoolingKeys.all(chainId), "voucher-console", normalizeAddress(garden)] as const,
+  issuerOperations: (
+    account?: Address | null,
+    routeId?: string,
+    assetId?: string,
+    poolId?: string
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(100),
+      "issuer-operations",
+      normalizeAddress(account ?? undefined),
+      routeId,
+      assetId,
+      poolId,
+    ] as const,
+  /** Member issuer drafts, every member's for the stewards' card or one member's own. */
+  issuerDrafts: (member?: Address | null) =>
+    member
+      ? ([...commitmentPoolingKeys.all(100), "issuer-drafts", normalizeAddress(member)] as const)
+      : ([...commitmentPoolingKeys.all(100), "issuer-drafts"] as const),
+  /** Each issuer token's admission and holding limit in the shared pool. */
+  issuerListings: (routeIds: readonly string[]) =>
+    [...commitmentPoolingKeys.all(100), "issuer-listings", [...routeIds].sort().join(",")] as const,
   /**
    * Chain-free on purpose: content at a CID is the same bytes everywhere, so a
    * title resolved on one chain is the same title on another.
@@ -71,20 +171,19 @@ export const commitmentPoolingKeys = {
       commitmentId === null ? null : String(commitmentId),
       workUIDs.join(","),
     ] as const,
-  workLinkChoices: (
+  /** The account's promises it can work on in a garden: the Start step's list and the link check. */
+  workablePromises: (
     chainId: number,
     account: Address | string | undefined,
     workGarden: Address | string | undefined,
-    returnGarden: Address | string | undefined,
-    actionUID: number | null
+    returnGarden: Address | string | undefined
   ) =>
     [
       ...commitmentPoolingKeys.all(chainId),
-      "work-link-choices",
+      "workable-promises",
       normalizeAddress(account),
       normalizeAddress(workGarden),
       normalizeAddress(returnGarden),
-      actionUID,
     ] as const,
   linkedWorks: (chainId: number, workUIDs: readonly string[]) =>
     [...commitmentPoolingKeys.all(chainId), "linked-works", workUIDs.join(",")] as const,
@@ -174,6 +273,41 @@ export const commitmentPoolingKeys = {
    */
   settlementChain: (chainId: number, commitmentId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-chain", String(commitmentId)] as const,
+  /** Whether a wallet has run one settlement proposal, by the identifier it returned for it. */
+  settlementProposal: (chainId: number, proposal: string) =>
+    [...commitmentPoolingKeys.all(chainId), "settlement-proposal", proposal] as const,
+  /** Who paid each wallet-paid reward share of one commitment, read from the reward payer. */
+  rewardShares: (chainId: number, commitmentId: bigint | string | number, shareIds: string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "reward-shares",
+      String(commitmentId),
+      shareIds,
+    ] as const,
+  /** Who one commitment's G$ payout plan pays, for splitting its wallet-paid parts the same way. */
+  rewardShareRecipients: (chainId: number, commitmentId: bigint | string | number) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "reward-share-recipients",
+      String(commitmentId),
+    ] as const,
+  /** The transaction that paid one wallet-paid reward share. */
+  rewardShareTransaction: (chainId: number, shareId: string) =>
+    [...commitmentPoolingKeys.all(chainId), "reward-share-transaction", shareId] as const,
+  /** A garden Safe's payment of a promise's owed shares: the transaction and its approvals so far. */
+  rewardSafePayment: (
+    chainId: number,
+    commitmentId: bigint | string | number,
+    safe: string,
+    shareIds: string
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "reward-safe-payment",
+      String(commitmentId),
+      safe.toLowerCase(),
+      shareIds,
+    ] as const,
   /** Owner, pause flag and gardener-delivery gate of the settlement module. */
   settlementOperations: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-operations"] as const,

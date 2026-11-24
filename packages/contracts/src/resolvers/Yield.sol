@@ -12,6 +12,7 @@ import { ICVStrategy } from "../interfaces/ICVStrategy.sol";
 import { IOctantVault } from "../interfaces/IOctantFactory.sol";
 import { IJBMultiTerminal } from "../interfaces/IJuicebox.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { ICookieJar } from "../interfaces/ICookieJar.sol";
 import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
 import { IAccountant } from "@octant/interfaces/IAccountant.sol";
 import { ZeroAddress, UnauthorizedCaller } from "../CommonErrors.sol";
@@ -288,10 +289,10 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         uint256 fractionsAmount = (totalYield * split.fractionsBps) / BPS_DENOMINATOR;
         uint256 juiceboxAmount = totalYield - cookieJarAmount - fractionsAmount; // remainder to avoid rounding dust
 
-        // Step 5: Route each portion to its destination
-        _routePortions(garden, asset, vault, cookieJarAmount, fractionsAmount, juiceboxAmount);
+        // Step 5: Route each portion. A portion the jar refused is reported with the remainder, not as the jar's.
+        uint256 inJar = _routePortions(garden, asset, vault, cookieJarAmount, fractionsAmount, juiceboxAmount);
 
-        emit YieldSplit(garden, asset, cookieJarAmount, fractionsAmount, juiceboxAmount, totalYield);
+        emit YieldSplit(garden, asset, inJar, fractionsAmount, totalYield - inJar - fractionsAmount, totalYield);
     }
 
     /// @dev Redeem this garden's vault shares and return total yield (redeemed + pending)
@@ -324,7 +325,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         return redeemed + pendingYield[garden][asset];
     }
 
-    /// @dev Route split portions to Cookie Jar, Fractions, and Juicebox
+    /// @dev Route split portions to Cookie Jar, Fractions, and Juicebox, returning what the jar actually took
     function _routePortions(
         address garden,
         address asset,
@@ -334,9 +335,10 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         uint256 juiceboxAmount
     )
         private
+        returns (uint256 inJar)
     {
         if (cookieJarAmount > 0) {
-            _routeToCookieJar(garden, asset, cookieJarAmount);
+            inJar = _routeToCookieJar(garden, asset, cookieJarAmount);
         }
         if (fractionsAmount > 0) {
             _routeToFractions(garden, asset, fractionsAmount, vault);
@@ -383,6 +385,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Set Cookie Jar address for a garden
+    /// @dev The address must take yield through deposit(); anything else sends that portion to the treasury.
     function setCookieJar(address garden, address jar) external onlyOwner {
         gardenCookieJars[garden] = jar;
     }
@@ -571,15 +574,11 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     // Internal — Route to Cookie Jar
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Deposit yield into the garden's Cookie Jar (ERC-20 transfer)
-    /// @dev Uses raw ERC-20 safeTransfer rather than ICookieJar.deposit() since Cookie Jars
-    ///      may be plain multisigs, Safes, or future contract implementations. The raw transfer
-    ///      is universally compatible. If a Cookie Jar contract with a deposit() function is
-    ///      adopted, this should be updated to call that interface.
-    ///
-    ///      If neither gardenCookieJars[garden] nor gardenTreasuries[garden] is configured,
-    ///      the garden TBA receives the fallback transfer.
-    function _routeToCookieJar(address garden, address asset, uint256 amount) internal {
+    /// @notice Deposit yield into the garden's Cookie Jar (decision 28: WETH/DAI, not native ETH)
+    /// @dev Jars pay out only from the ledger deposit() maintains, so tokens sent by plain transfer
+    ///      can never leave one. A jar that refuses the deposit (paused, or below its minimum) costs
+    ///      the garden nothing: the amount takes the treasury fallback instead.
+    function _routeToCookieJar(address garden, address asset, uint256 amount) internal returns (uint256 deposited) {
         // Try per-asset jar from CookieJarModule first, fall back to legacy mapping
         address jar = address(0);
         if (address(cookieJarModule) != address(0)) {
@@ -588,21 +587,24 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
                 jar = _jar;
             } catch { }
         }
-        if (jar == address(0)) {
-            jar = gardenCookieJars[garden];
-        }
-        if (jar == address(0)) {
-            // No Cookie Jar configured — send to garden treasury as fallback
-            address treasury = gardenTreasuries[garden];
-            if (treasury == address(0)) treasury = garden;
-            IERC20(asset).safeTransfer(treasury, amount);
-            emit YieldToTreasury(garden, asset, amount, treasury, "cookieJar");
-            return;
-        }
+        if (jar == address(0)) jar = gardenCookieJars[garden];
 
-        // Transfer ERC-20 to Cookie Jar (decision 28: WETH/DAI, not native ETH)
-        IERC20(asset).safeTransfer(jar, amount);
-        emit YieldToCookieJar(garden, asset, amount, jar);
+        deposited = _depositIntoJar(jar, asset, amount);
+        if (deposited > 0) emit YieldToCookieJar(garden, asset, deposited, jar);
+        if (deposited < amount) _sendToTreasury(garden, asset, amount - deposited, "cookieJar");
+    }
+
+    /// @dev Returns what the jar actually pulled: a contract's fallback can accept the call and take little or nothing.
+    function _depositIntoJar(address jar, address asset, uint256 amount) private returns (uint256 pulled) {
+        // try/catch cannot catch a call to an address with no code, which also covers no jar at all
+        if (jar.code.length == 0) return 0;
+
+        uint256 balanceBefore = IERC20(asset).balanceOf(address(this));
+        IERC20(asset).forceApprove(jar, amount);
+        // solhint-disable-next-line no-empty-blocks
+        try ICookieJar(jar).deposit(amount) { } catch { }
+        IERC20(asset).forceApprove(jar, 0);
+        pulled = balanceBefore - IERC20(asset).balanceOf(address(this));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -786,8 +788,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
             // Reset dangling allowance from the failed purchase
             IERC20(asset).forceApprove(address(hypercertMarketplace), 0);
             // Purchase failed — escrow funds back for retry (NOT pendingYield to avoid decay)
-            escrowedFractions[garden][asset] += amount;
-            emit YieldAccumulated(garden, asset, amount, escrowedFractions[garden][asset]);
+            _escrowFractions(garden, asset, amount);
         }
     }
 
@@ -798,11 +799,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @notice Pay into Juicebox project to grow GOODS treasury backing
     function _routeToJuicebox(address garden, address asset, uint256 amount) internal {
         if (address(jbMultiTerminal) == address(0) || juiceboxProjectId == 0) {
-            // No Juicebox configured — send to garden treasury as fallback
-            address treasury = gardenTreasuries[garden];
-            if (treasury == address(0)) treasury = garden;
-            IERC20(asset).safeTransfer(treasury, amount);
-            emit YieldToTreasury(garden, asset, amount, treasury, "juicebox");
+            _sendToTreasury(garden, asset, amount, "juicebox");
             return;
         }
 
@@ -824,12 +821,16 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         } catch {
             // Reset dangling allowance from the failed JB payment
             IERC20(asset).forceApprove(address(jbMultiTerminal), 0);
-            // JB payment failed — send to treasury as fallback
-            address treasury = gardenTreasuries[garden];
-            if (treasury == address(0)) treasury = garden;
-            IERC20(asset).safeTransfer(treasury, amount);
-            emit YieldToTreasury(garden, asset, amount, treasury, "juicebox");
+            _sendToTreasury(garden, asset, amount, "juicebox");
         }
+    }
+
+    /// @dev The fallback for a portion its destination could not take. The garden TBA stands in for an unset treasury.
+    function _sendToTreasury(address garden, address asset, uint256 amount, string memory source) private {
+        address treasury = gardenTreasuries[garden];
+        if (treasury == address(0)) treasury = garden;
+        IERC20(asset).safeTransfer(treasury, amount);
+        emit YieldToTreasury(garden, asset, amount, treasury, source);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

@@ -1,4 +1,5 @@
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
 import type {
   Garden,
   Work,
@@ -6,6 +7,8 @@ import type {
   WorkMetadata,
   WorkMetadataV1,
 } from "@green-goods/shared/types/domain";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
+import { readPublishedWorkDocuments } from "@green-goods/shared/modules/work/media-processing";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import {
   RiCheckDoubleFill,
@@ -70,6 +73,17 @@ function isV1Metadata(
   return "plantCount" in metadata || "plantSelection" in metadata;
 }
 
+/**
+ * The work's own details map, time spent and tags, which v2 metadata publishes. A queued work
+ * carries the details saved with it in the same keys (`jobToWork`), as the legacy published
+ * shape does, without a schema version.
+ */
+function carriesWorkDetails(metadata: WorkMetadata | WorkMetadataV1): boolean {
+  if (typeof metadata !== "object") return false;
+  if ("schemaVersion" in metadata && metadata.schemaVersion === "work_metadata_v2") return true;
+  return !isV1Metadata(metadata) && ("details" in metadata || "timeSpentMinutes" in metadata);
+}
+
 /** Build details list from metadata, supporting both v1 and v2 shapes */
 function buildMetadataDetails(
   rawMetadata: WorkMetadata | null,
@@ -77,8 +91,8 @@ function buildMetadataDetails(
   intl: ReturnType<typeof useIntl>
 ) {
   const metadata = resolveMetadata(rawMetadata);
-  // v2 metadata: generic details map
-  if (metadata && "schemaVersion" in metadata && metadata.schemaVersion === "work_metadata_v2") {
+  // v2 metadata, or a queued work's saved details: a generic details map
+  if (metadata && carriesWorkDetails(metadata)) {
     const items: Array<{
       label: string;
       value: string;
@@ -103,7 +117,8 @@ function buildMetadataDetails(
     // Dynamic details
     if (metadata.details) {
       for (const [key, value] of Object.entries(metadata.details)) {
-        if (value === undefined || value === null) continue;
+        // A job queued by an older build may still carry its raw location, which never shows.
+        if (value === undefined || value === null || key === "_location") continue;
         let display: string;
         if (Array.isArray(value)) {
           display = value.join(", ");
@@ -198,6 +213,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   const { submissionState } = queuedState;
 
   const { feedback: workFeedback, media, reviewFeedback } = work;
+  // Who sent the work, named as the app names people, for the steward who decides on it.
+  const sender = useAddressDisplayName(work.gardenerAddress);
 
   const isOfflineStatus =
     effectiveStatus === "syncing" ||
@@ -215,10 +232,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     if (isOfflineStatus) {
       if (submissionState === "awaiting-confirmation")
-        return intl.formatMessage({
-          id: "app.work.awaitingConfirmation",
-          defaultMessage: "Awaiting confirmation",
-        });
+        return intl.formatMessage(
+          SEND_STAGE_WORDS[queuedState.awaiting ?? "still-confirming"].label
+        );
       if (submissionState === "checking-submission")
         return intl.formatMessage({
           id: "app.work.checkingSubmission",
@@ -227,7 +243,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailed",
-          defaultMessage: "Upload didn't work",
+          defaultMessage: "Your work didn't send",
         });
       }
       return intl.formatMessage({
@@ -236,24 +252,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
 
-    if (viewingMode === "steward") {
-      if (effectiveStatus === "approved") {
-        return intl.formatMessage({
-          id: "app.home.workApproval.workApproved",
-          defaultMessage: "Work approved",
-        });
-      }
-      if (effectiveStatus === "rejected") {
-        return intl.formatMessage({
-          id: "app.home.workApproval.workRejected",
-          defaultMessage: "Work rejected",
-        });
-      }
-      return intl.formatMessage({
-        id: "app.home.workApproval.evaluateWork",
-        defaultMessage: "Evaluate Work",
-      });
-    }
+    // A steward reads the work by its own name; the bar below says what was decided.
+    if (viewingMode === "steward") return actionTitle;
 
     if (viewingMode === "gardener") {
       if (effectiveStatus === "approved") {
@@ -285,23 +285,15 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
         })
       );
 
+    // Who sent it and when, which the steward weighs before deciding.
     if (viewingMode === "steward") {
-      if (effectiveStatus === "approved") {
-        return intl.formatMessage({
-          id: "app.home.workApproval.workHasBeenApproved",
-          defaultMessage: "This work has been approved",
-        });
-      }
-      if (effectiveStatus === "rejected") {
-        return intl.formatMessage({
-          id: "app.home.workApproval.workHasBeenRejected",
-          defaultMessage: "This work has been rejected",
-        });
-      }
-      return intl.formatMessage({
-        id: "app.home.workApproval.verifyIfTheWorkIsAcceptable",
-        defaultMessage: "Verify if the work is acceptable",
-      });
+      return intl.formatMessage(
+        { id: "app.home.workApproval.sentBy", defaultMessage: "{name} sent this on {date}." },
+        {
+          name: sender.display,
+          date: intl.formatDate(work.createdAt * 1000, { dateStyle: "medium" }),
+        }
+      );
     }
 
     if (viewingMode === "gardener") {
@@ -429,6 +421,11 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     }
     return undefined;
   }, [workMetadata]);
+  // Documents publish beside the media list, so only the metadata names them.
+  const documents = useMemo(
+    () => readPublishedWorkDocuments(resolveMetadata(workMetadata)?.documents),
+    [workMetadata]
+  );
 
   return (
     <WorkView
@@ -436,8 +433,10 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       info={getInfo()}
       garden={garden}
       actionTitle={actionTitle}
+      actionInTitle={viewingMode === "steward" && !notice && !isOfflineStatus}
       media={media}
       audioNoteCids={audioNoteCids}
+      documents={documents}
       mediaTypes={resolveMetadata(workMetadata)?.attachments?.map((attachment) => attachment.type)}
       details={allDetails}
       afterHeading={notice}

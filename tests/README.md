@@ -1,6 +1,6 @@
 # Green Goods E2E Tests
 
-The root Playwright suite covers the client PWA and admin cockpit. The source of truth is
+The root Playwright suite covers the client PWA and Hub. The source of truth is
 [`playwright.config.ts`](../playwright.config.ts); the root scripts in [`package.json`](../package.json)
 are the supported entrypoints. `scripts/dev/test-e2e.js` owns E2E preset dispatch and qualification.
 
@@ -29,7 +29,6 @@ when you deliberately want interactive checks against services you already start
 tests/
   fixtures/                 # Anvil, contract, and Playwright service helpers
   helpers/                  # Shared browser helpers and test configuration
-  mocks/                    # Pimlico bundler/paymaster handlers
   specs/                    # Client, admin, fork, passkey, and diagnostic specs
   global-setup.ts           # Optional health checks and environment setup
   global-teardown.ts        # Test cleanup
@@ -41,16 +40,18 @@ Useful references:
 - `tests/fixtures/anvil-fork.ts` owns the local fork lifecycle.
 - `tests/fixtures/contract-helpers.ts` loads deployment artifacts for browser tests.
 - `tests/helpers/test-utils.ts` exports `ClientTestHelper` and `AdminTestHelper`.
-- `tests/helpers/test-config.ts` centralizes test URLs and chain defaults.
+- `tests/helpers/test-config.ts` owns shared visibility deadlines; `test-utils.ts` owns app/indexer URLs.
 - `tests/helpers/reporting-ceremony.ts` stands in for the chat, the passkey directory, the hosted
   passkey server and the chain behind the reporting ceremony's Account step.
-- `tests/mocks/pimlico-handlers.ts` keeps the legacy bundler/paymaster response fixture, tested directly without network calls. The qualified passkey rejection spec owns its strict server substitute.
+- `tests/specs/client.passkey.spec.ts` owns its strict rejection server substitute and virtual
+  authenticator; the reporting ceremony owns its own fixture.
 
 ## Projects and focused runs
 
 The config keeps CI lanes and optional manual projects separate:
 
-- `client-ci` and `admin-ci` run deterministic smoke and CI specs.
+- `client-ci` runs deterministic smoke, mock-auth session, navigation and CI specs.
+- `admin-ci` runs deterministic authentication, smoke and production-flow specs.
 - `client-full`, `chromium`, and `performance` are the default desktop wrapper projects.
 - `mobile-chrome`, `mobile-safari`, and `iphone-16-pro` are explicit device/diagnostic projects.
 - `anvil-fork`, `passkey-mock`, and `testnet` are explicit integration projects.
@@ -60,7 +61,7 @@ Use Bun to launch the checked-in Playwright CLI:
 ```bash
 bun x playwright test --project=client-ci
 bun x playwright test --project=admin-ci
-bun x playwright test tests/specs/client.navigation.spec.ts
+bun x playwright test tests/specs/client.session-navigation.ci.spec.ts
 
 bun run browser e2e --preset fork
 bun run browser e2e --preset passkey
@@ -108,8 +109,10 @@ substitutes; it never signs or submits a decision. External font and telemetry r
 local substitutes, so this is not font-fidelity proof.
 
 The PWA preset builds production assets before previewing them. It verifies an anonymous login
-shell, blocks page and worker network requests offline, and then removes the navigation cache to
-prove the reload depends on it. Production auth restrictions remain active. This does not certify
+shell, blocks page and worker network requests offline, decodes fresh font responses supplied by
+the worker, and removes font and navigation entries to prove they are required. It also blocks the
+homepage's built evidence chunk and checks that the local fallback retains the page. Production
+auth restrictions remain active. This does not certify
 an installed or authenticated Brave session, queued uploads, or the worker-update lifecycle.
 
 The named browser checks in `scripts/data/validation-policy.json` select these proofs for relevant
@@ -125,9 +128,13 @@ cases do not prove browser-to-fork-to-indexer integration or authenticated-sessi
 
 ## Authentication
 
-- Client specs use the helpers appropriate to the project: wallet/session injection for smoke
-  coverage and virtual WebAuthn for the `passkey-mock` project.
-- Admin cockpit specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
+- Client CI, navigation and deterministic mobile smoke use `setupAuthenticatedClient` with dev
+  mock auth and the mocked backend. The legacy-wallet smoke case verifies that an explicitly
+  disconnected mock session stays signed out despite stored wallet data. It does not prove real
+  connector restoration. The `passkey-mock` project owns real
+  virtual-WebAuthn ceremonies against strict local substitutes. Mock logout proves the profile
+  control and test-session transition, not a real wallet disconnect.
+- Hub specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
   Mock both `**/api/graphql` and `**/v1/graphql` when the test can traverse the Vite proxy.
 - Browser automation here is clean-room test evidence. Label it as such; root
   `AGENTS.md § Browser Evidence` names the wallet, passkey, session, and installed-PWA surfaces that
@@ -143,9 +150,10 @@ managed services.
 The `passkey-mock` project also starts the Agent's loopback reporting driver on port 3016
 (`packages/agent/src/__tests__/reporting/driver`) and points the Client's `/api/messaging` proxy at
 it. The driver serves the Client's origin only, and the test profile ignores a
-`REPORTING_AGENT_URL` from the root `.env`, so a running Agent is never behind a test. The Client
-workflow does not run on Agent-only changes, so a driver or ceremony API change that breaks these
-journeys shows on the next Client or Shared pull request.
+`REPORTING_AGENT_URL` from the root `.env`, so a running Agent is never behind a test. Agent source
+changes also select the passkey browser check and start the Client workflow. This includes the
+driver's transitive runtime and API dependencies, so an Agent-only change gets browser integration
+proof on its own pull request.
 
 The deterministic browser-test chain is Sepolia (`VITE_CHAIN_ID=11155111`). Local URLs are HTTPS
 outside CI and HTTP in CI.

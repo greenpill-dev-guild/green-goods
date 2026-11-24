@@ -31,6 +31,13 @@ export const DesktopNavigation: Story = {
   globals: { viewport: { value: "desktop" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // The runner resizes the frame before rendering, but its media queries can
+    // still read the previous story's width when the play starts. Wait for the
+    // desktop breakpoint, then for the nav it shows.
+    const view = canvasElement.ownerDocument.defaultView ?? window;
+    await waitFor(() => expect(view.matchMedia("(min-width: 48rem)").matches).toBe(true), {
+      timeout: 5000,
+    });
     await waitFor(() =>
       expect(canvas.getByRole("navigation", { name: "Main navigation" })).toBeVisible()
     );

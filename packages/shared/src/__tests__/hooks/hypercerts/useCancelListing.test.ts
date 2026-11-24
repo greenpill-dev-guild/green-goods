@@ -16,12 +16,11 @@ const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}
 const TEST_SIGNER = "0x2222222222222222222222222222222222222222" as `0x${string}`;
 const TEST_MODULE = "0x3333333333333333333333333333333333333333" as `0x${string}`;
 const mockAssertMarketplaceReady = vi.fn();
-const mockEncodeFunctionData = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
 const mockReconcile = vi.fn();
 let authMode: "wallet" | "passkey" = "wallet";
-let signer = TEST_SIGNER;
+let signer: typeof TEST_SIGNER | null = TEST_SIGNER;
 const mockOwnership = vi.fn();
 const mockSender = () => ({
   authMode,
@@ -90,10 +89,6 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   };
 });
 
-vi.mock("viem", () => ({
-  encodeFunctionData: (...args: unknown[]) => mockEncodeFunctionData(...args),
-}));
-
 import { useCancelListing } from "../../../hooks/hypercerts/useCancelListing";
 import { useListingSubmissionStore } from "../../../stores/useListingSubmissionStore";
 
@@ -120,7 +115,6 @@ describe.each(["wallet", "passkey"] as const)("useCancelListing with %s", (mode)
         hypercertsModule: TEST_MODULE,
       },
     });
-    mockEncodeFunctionData.mockReturnValue("0xencoded");
     mockSendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
     mockWaitForTransactionReceipt.mockResolvedValue({});
   });
@@ -219,14 +213,6 @@ describe.each(["wallet", "passkey"] as const)("useCancelListing with %s", (mode)
     expect(result.current.error).toBeNull();
   });
 
-  it("provides cancelListing function", () => {
-    const { result } = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), {
-      queryClient,
-    });
-
-    expect(typeof result.current.cancelListing).toBe("function");
-  });
-
   it("rejects when garden address is missing", async () => {
     const { result } = renderHookWithQueryClient(() => useCancelListing(undefined), {
       queryClient,
@@ -244,26 +230,20 @@ describe.each(["wallet", "passkey"] as const)("useCancelListing with %s", (mode)
     expect(thrownError?.message).toBe("Garden address required");
   });
 
-  it("rejects when no wallet is connected", async () => {
-    // Override useAuth to return no signer
-    vi.doMock("../../../hooks/auth/useAuth", () => ({
-      useAuth: () => ({
-        smartAccountClient: null,
-        smartAccountAddress: null,
-        eoaAddress: null,
-      }),
-    }));
-
-    // This test validates the error path conceptually - the mock setup
-    // above would need dynamic import to take effect, so we test the interface
+  it("rejects a missing signer before ownership, readiness or sending", async () => {
+    signer = null;
     const { result } = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), {
       queryClient,
     });
-
-    expect(result.current.isCancelling).toBe(false);
+    await act(async () => {
+      await expect(result.current.cancelListing(42)).rejects.toThrow("Sign in");
+    });
+    expect(mockOwnership).not.toHaveBeenCalled();
+    expect(mockAssertMarketplaceReady).not.toHaveBeenCalled();
+    expect(mockSendTransaction).not.toHaveBeenCalled();
   });
 
-  it("refuses incomplete marketplace config before encoding or writing", async () => {
+  it("refuses incomplete marketplace config after ownership and before sending", async () => {
     mockAssertMarketplaceReady.mockImplementation(() => {
       throw new Error("Marketplace configuration incomplete: transferManager");
     });
@@ -282,7 +262,7 @@ describe.each(["wallet", "passkey"] as const)("useCancelListing with %s", (mode)
     });
 
     expect(thrownError?.message ?? "").toContain("Marketplace configuration incomplete");
-    expect(mockEncodeFunctionData).not.toHaveBeenCalled();
+    expect(mockOwnership).toHaveBeenCalledWith(TEST_SIGNER, TEST_CHAIN_ID);
     expect(mockSendTransaction).not.toHaveBeenCalled();
   });
 

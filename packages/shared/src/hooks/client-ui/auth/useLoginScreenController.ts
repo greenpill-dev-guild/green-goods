@@ -8,15 +8,26 @@ import {
   normalizePasskeyAccountIdentifier,
 } from "../../../config/passkeyServer";
 import { trackAuthError } from "../../../modules/app/error-categories";
-import { getStoredUsername } from "../../../modules/auth/session";
+import { getStoredOriginalAccountAddress, getStoredUsername } from "../../../modules/auth/session";
+import { isKernel033PasskeyProfile } from "../../../modules/auth/account-profile";
+import {
+  PilotAccountProofError,
+  type PilotAccountPreview,
+  type PilotAccountQuote,
+} from "../../../modules/auth/pilot-account-enrollment";
+import { logger } from "../../../modules/app/logger";
 import { useApp } from "../../../providers/App";
+import { displayablePasskeyName } from "../../../public-contracts/passkey-directory";
 import { copyToClipboard } from "../../../utils/app/clipboard";
 import { debugError } from "../../../utils/debug";
+import { PasskeyNotFoundError } from "../../../workflows/auth-passkey-errors";
 import { useInstallGuidance } from "../../app/useInstallGuidance";
 import { useAuth } from "../../auth/useAuth";
+import { useCodeSignIn } from "../../auth/useCodeSignIn";
 import { getBrowserGuidanceLabel, getFriendlyLoginErrorMessage } from "./login-screen-messages";
 
-export type LoginScreen = "entry" | "create" | "recover";
+/** `otherWays` offers email and a wallet; `code` is the email code flow. */
+export type LoginScreen = "entry" | "username" | "confirmNewAccount" | "otherWays" | "code";
 
 export function useLoginScreenController(routes: { login: string; home: string }) {
   const intl = useIntl();
@@ -36,15 +47,104 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const [loadingMessage, setLoadingMessage] = useState<string>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
-  const [recoveryUsername, setRecoveryUsername] = useState("");
   const [screen, setScreen] = useState<LoginScreen>("entry");
+  const codeSignIn = useCodeSignIn(auth);
+  const pilotInvitation = new URLSearchParams(location.search).get("pilot") === "1";
+  let originalAccountAddress: string | null = null;
+  try {
+    if (!auth.isAuthenticated && auth.loginWithOriginalPasskey)
+      originalAccountAddress = getStoredOriginalAccountAddress();
+  } catch {
+    /* Malformed profile metadata never selects a different account. */
+  }
+  const [pilotPreview, setPilotPreview] = useState<PilotAccountPreview | null>(null);
+  const [pilotQuote, setPilotQuote] = useState<PilotAccountQuote | null>(null);
+  const [pilotBusy, setPilotBusy] = useState(false);
+  const [pilotError, setPilotError] = useState<string | null>(null);
+  const [pilotSkipped, setPilotSkipped] = useState(false);
+  const pilotMounted = useRef(true);
+  const cancelPilotEnrollment = auth.cancelPilotAccountEnrollment;
+  useEffect(() => {
+    pilotMounted.current = true;
+    return () => {
+      pilotMounted.current = false;
+      cancelPilotEnrollment?.();
+    };
+  }, [cancelPilotEnrollment]);
+  const canDiscoverPilot =
+    pilotInvitation &&
+    auth.isAuthenticated &&
+    auth.authMode === "passkey" &&
+    !isKernel033PasskeyProfile(auth.passkeyAccountProfile) &&
+    Boolean(auth.preparePilotAccount);
+
+  const runPilotAction = async (operation: () => Promise<void>) => {
+    setPilotBusy(true);
+    setPilotError(null);
+    try {
+      await operation();
+    } catch (error) {
+      if (!pilotMounted.current) return;
+      logger.warn("[Auth] Pilot account review failed", { error });
+      const message = error instanceof Error ? error.message.toLowerCase() : "";
+      const errorKey =
+        error instanceof PilotAccountProofError && error.pending
+          ? "pending"
+          : message.includes("sponsor") || message.includes("fee ceiling")
+            ? "sponsorshipUnavailable"
+            : message.includes("quote")
+              ? "quoteChanged"
+              : "operationFailed";
+      setPilotError(intl.formatMessage({ id: `app.login.pilot.${errorKey}` }));
+      setPilotQuote(null);
+      if (error instanceof PilotAccountProofError)
+        setPilotPreview((previous) =>
+          previous ? { ...previous, pending: error.pending } : previous
+        );
+    } finally {
+      if (pilotMounted.current) setPilotBusy(false);
+    }
+  };
+  const reviewPilotAccount = () =>
+    runPilotAction(async () => {
+      if (!auth.preparePilotAccount) throw new Error("Pilot account preparation is unavailable");
+      setPilotPreview(await auth.preparePilotAccount());
+      setPilotQuote(null);
+    });
+  const quotePilotProof = () =>
+    runPilotAction(async () => {
+      if (!auth.quotePilotAccount) throw new Error("Pilot proof quotation is unavailable");
+      setPilotQuote(await auth.quotePilotAccount());
+    });
+  const confirmPilotAccount = () =>
+    runPilotAction(async () => {
+      if (!auth.confirmPilotAccount) throw new Error("Pilot account selection is unavailable");
+      await auth.confirmPilotAccount(pilotQuote?.operationHash);
+    });
+  const reconcilePilotProof = () =>
+    runPilotAction(async () => {
+      if (!auth.reconcilePilotAccount) throw new Error("Pilot proof reconciliation is unavailable");
+      await auth.reconcilePilotAccount();
+    });
+  const keepOriginalAccount = () => {
+    auth.cancelPilotAccountEnrollment?.();
+    setPilotSkipped(true);
+    setPilotPreview(null);
+    setPilotQuote(null);
+  };
   const recoveryAttemptNameRef = useRef<string | null>(null);
+  // The name being tried as a sign-in only, because another account is saved on this phone.
+  const signInOnlyNameRef = useRef<string | null>(null);
+  // The not-found error the new-account question answers. The machine keeps holding it, so a
+  // re-run of the error effect (a language change) must leave the question, not show the error.
+  const askedAboutErrorRef = useRef<unknown>(null);
   // Whether the attempt in flight creates an account: a prompt that closes then made none.
   const creatingRef = useRef(false);
   const passkeyServerEnabled = isPasskeyServerEnabled();
 
   useEffect(() => {
     if (!auth.isAuthenticated) return;
+    signInOnlyNameRef.current = null;
     const attempted = recoveryAttemptNameRef.current;
     recoveryAttemptNameRef.current = null;
     if (
@@ -73,14 +173,52 @@ export function useLoginScreenController(routes: { login: string; home: string }
   }, [auth.isAuthenticated, auth.userName, intl]);
 
   useEffect(() => {
+    // An email failure is worded by the code flow, never as a passkey failure.
+    if (auth.openfortMethod) return;
     if (auth.error && !auth.isAuthenticating) {
+      if (auth.error === askedAboutErrorRef.current) return;
       setLoadingState(null);
       setLoadingMessage(undefined);
+      const triedSignInOnly = signInOnlyNameRef.current !== null;
+      signInOnlyNameRef.current = null;
+      // Nobody holds the typed name. On a phone that already has an account, a typo must not
+      // quietly become a second account: ask first.
+      if (
+        triedSignInOnly &&
+        auth.error instanceof PasskeyNotFoundError &&
+        auth.error.scope === "name"
+      ) {
+        askedAboutErrorRef.current = auth.error;
+        setLoginError(null);
+        setScreen("confirmNewAccount");
+        return;
+      }
+      // A create the question confirmed failed or was cancelled: back to the form with the name,
+      // so trying again asks again rather than leaving the error over the question.
+      setScreen((current) => (current === "confirmNewAccount" ? "username" : current));
       setLoginError(
         getFriendlyLoginErrorMessage(auth.error, intl, { creating: creatingRef.current })
       );
     }
-  }, [auth.error, auth.isAuthenticating, intl]);
+  }, [auth.error, auth.isAuthenticating, auth.openfortMethod, intl]);
+
+  // A failed wallet sign-in points the member to a passkey. Declared after the effect
+  // above, so a passkey error the machine still holds does not cover the newer failure.
+  useEffect(() => {
+    if (!auth.walletConnectFailure || auth.isAuthenticating) return;
+    setLoginError(
+      auth.walletConnectFailure === "timeout"
+        ? intl.formatMessage({
+            id: "app.login.error.walletNotOpened",
+            defaultMessage: "Your wallet app didn't open. Try again, or sign in with a passkey.",
+          })
+        : intl.formatMessage({
+            id: "app.login.error.walletConnectFailed",
+            defaultMessage:
+              "We couldn't connect your wallet. Try again, or sign in with a passkey.",
+          })
+    );
+  }, [auth.walletConnectFailure, auth.isAuthenticating, intl]);
 
   const unsupportedPasskeyContext =
     isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser");
@@ -126,6 +264,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
 
   const begin = (message: string, { creating = false } = {}) => {
     creatingRef.current = creating;
+    signInOnlyNameRef.current = null;
     setLoginError(null);
     setLoadingMessage(message);
     setLoadingState("welcome");
@@ -145,32 +284,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
       handleAuthError(error, "login");
     }
   };
-  const recoverWithPasskey = async () => {
-    if (blockUnsupportedPasskeyCeremony()) return;
-    const name = recoveryUsername.trim();
-    if (name.length < 3) {
-      setLoginError(
-        intl.formatMessage({
-          id: "app.login.error.usernameTooShort",
-          defaultMessage: "Display name must be at least 3 characters.",
-        })
-      );
-      return;
-    }
-    recoveryAttemptNameRef.current = name;
-    begin(
-      intl.formatMessage({
-        id: "app.login.loading.recovering",
-        defaultMessage: "Looking up your passkey...",
-      })
-    );
-    try {
-      await auth.loginWithPasskey?.(name);
-    } catch (error) {
-      handleAuthError(error, "recover");
-    }
-  };
-  const createAccount = async () => {
+  const continueWithUsername = async () => {
     if (blockUnsupportedPasskeyCeremony()) return;
     const name = username.trim();
     if (name.length < 3) {
@@ -182,18 +296,70 @@ export function useLoginScreenController(routes: { login: string; home: string }
       );
       return;
     }
+    if (anotherAccountIsSaved(name)) {
+      // Without the directory there is nothing to ask whether the name exists.
+      if (!passkeyServerEnabled) {
+        goTo("confirmNewAccount");
+        return;
+      }
+      recoveryAttemptNameRef.current = name;
+      begin(
+        intl.formatMessage({
+          id: "app.login.loading.continuing",
+          defaultMessage: "Continuing...",
+        })
+      );
+      signInOnlyNameRef.current = name;
+      try {
+        await auth.loginWithPasskey(name);
+      } catch (error) {
+        signInOnlyNameRef.current = null;
+        handleAuthError(error, "login");
+      }
+      return;
+    }
+    await signInOrCreate(name, !passkeyServerEnabled);
+  };
+  /** Whether this phone already holds an account under a name other than the one typed. */
+  const anotherAccountIsSaved = (name: string) => {
+    if (!auth.hasStoredCredential) return false;
+    const saved = getStoredUsername() ?? "";
+    return normalizePasskeyAccountIdentifier(saved) !== normalizePasskeyAccountIdentifier(name);
+  };
+  const signInOrCreate = async (name: string, creating: boolean) => {
+    recoveryAttemptNameRef.current = passkeyServerEnabled ? name : null;
+    begin(
+      intl.formatMessage({
+        id: "app.login.loading.continuing",
+        defaultMessage: "Continuing...",
+      }),
+      { creating }
+    );
+    try {
+      if (passkeyServerEnabled) await auth.loginWithPasskey(name, { createIfMissing: true });
+      else await auth.createAccount(name);
+    } catch (error) {
+      handleAuthError(error, creating ? "create" : "login");
+    }
+  };
+  /** The person confirmed that the typed name is a new account, not a misspelled one. */
+  const createNamedAccount = async () => {
+    if (blockUnsupportedPasskeyCeremony()) return;
+    await signInOrCreate(username.trim(), true);
+  };
+  const loginWithOriginalAccount = async () => {
+    if (!originalAccountAddress || blockUnsupportedPasskeyCeremony()) return;
     recoveryAttemptNameRef.current = null;
     begin(
       intl.formatMessage({
-        id: "app.login.loading.creatingWallet",
-        defaultMessage: "Setting up your account...",
-      }),
-      { creating: true }
+        id: "app.login.loading.authenticating",
+        defaultMessage: "Signing you in...",
+      })
     );
     try {
-      await auth.createAccount?.(name);
+      await auth.loginWithOriginalPasskey?.();
     } catch (error) {
-      handleAuthError(error, "create");
+      handleAuthError(error, "login");
     }
   };
   const walletLogin = () => {
@@ -203,6 +369,8 @@ export function useLoginScreenController(routes: { login: string; home: string }
   };
   const goTo = (next: LoginScreen) => {
     setLoginError(null);
+    // Leaving the code flow forgets what was typed, so the next person starts from nothing.
+    if (next !== "code") codeSignIn.reset();
     setScreen(next);
   };
   const switchBrowser = useCallback(async () => {
@@ -242,18 +410,38 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const storedName = auth.hasStoredCredential ? getStoredUsername()?.trim() : undefined;
   return {
     auth,
+    pilotInvitation,
+    originalAccountAddress,
+    loginWithOriginalAccount,
+    pilotPreview,
+    pilotQuote,
+    pilotBusy,
+    pilotError,
+    showPilotEnrollment: canDiscoverPilot && !pilotSkipped,
+    reviewPilotAccount,
+    quotePilotProof,
+    confirmPilotAccount,
+    reconcilePilotProof,
+    keepOriginalAccount,
+    codeSignIn,
     browserGuidanceAction: unsupportedPasskeyContext
       ? { label: getBrowserGuidanceLabel(guidance, platform, intl), onClick: switchBrowser }
       : undefined,
-    createAccount,
+    continueWithUsername,
+    createNamedAccount,
     goTo,
     intl,
     isNestedRoute: location.pathname !== routes.login,
-    isRecoveryUsernameValid: recoveryUsername.trim().length >= 3,
     isUsernameValid: username.trim().length >= 3,
     loadingMessage,
     loadingState,
-    loginError,
+    loginError: auth.walletReleaseStalled
+      ? intl.formatMessage({
+          id: "app.login.walletStalled",
+          defaultMessage:
+            "The previous wallet request has not ended. Reload to retry, or sign in with a passkey.",
+        })
+      : loginError,
     loginWithPasskey,
     passkeyServerEnabled,
     personalizedLabel: storedName
@@ -262,13 +450,12 @@ export function useLoginScreenController(routes: { login: string; home: string }
           { name: storedName }
         )
       : undefined,
-    recoverWithPasskey,
-    recoveryUsername,
+    /** The account already saved on this phone, when it has a name a person chose. */
+    savedAccountName: displayablePasskeyName(storedName) ?? undefined,
     redirectTo: fromLogout
       ? routes.home
       : new URLSearchParams(location.search).get("redirectTo") || routes.home,
     screen,
-    setRecoveryUsername,
     setUsername,
     username,
     walletLogin,

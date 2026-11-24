@@ -37,6 +37,7 @@ CONTRACTS=(
   "WorkApprovalResolver:src/resolvers/WorkApproval.sol"
   "AssessmentResolver:src/resolvers/Assessment.sol"
   "TestimonyResolver:src/resolvers/Testimony.sol"
+  "YieldResolver:src/resolvers/Yield.sol"
   "Deployment:src/registries/Deployment.sol"
 )
 
@@ -77,7 +78,8 @@ mkdir -p "$BASELINE_DIR"
 
 # Build first (forge inspect needs compiled contracts)
 echo "Compiling contracts..."
-build_args=(build --quiet --extra-output storageLayout --force --skip test --skip script)
+# --skip is variadic; terminate options before the source path so it remains positional.
+build_args=(build --quiet --extra-output storageLayout --force --skip test --skip script --)
 if [[ -n "$contract_filter" ]]; then
   selected_contract_path=""
   for entry in "${CONTRACTS[@]}"; do
@@ -97,7 +99,7 @@ else
   build_args+=(src)
 fi
 
-forge "${build_args[@]}" 2>/dev/null || {
+forge "${build_args[@]}" || {
   echo -e "${RED}Compilation failed. Fix build errors first.${NC}"
   exit 1
 }

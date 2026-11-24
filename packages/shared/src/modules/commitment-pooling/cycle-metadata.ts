@@ -8,11 +8,17 @@ export const CYCLE_METADATA_VERSION = 1;
 export interface CycleMetadataV1 {
   version: 1;
   name: string;
+  /**
+   * A campaign's brief note (PRD-1299, SBrief): how its separate promises fit together, in its
+   * stewards' words. Presentation only: the core has no brief object, nothing pays out as a
+   * team, and no promise waits on another because of it.
+   */
+  brief?: string;
 }
 
 export type CycleMetadataNameResolution =
   | { status: "missing"; name: null }
-  | { status: "resolved"; name: string }
+  | { status: "resolved"; name: string; brief?: string }
   | { status: "unavailable"; name: null };
 
 /**
@@ -21,6 +27,19 @@ export type CycleMetadataNameResolution =
  * anything longer rather than cutting it.
  */
 export const CYCLE_NAME_MAX_LENGTH = 120;
+
+/** The longest brief note a campaign reads, in characters; a longer one reads cut to it. */
+const CYCLE_BRIEF_MAX_LENGTH = 1000;
+
+/** Each line's whitespace collapsed and trimmed, blank lines dropped; null when nothing is left. */
+function collapseCycleBrief(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const lines = value
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  return lines.length > 0 ? lines.join("\n").slice(0, CYCLE_BRIEF_MAX_LENGTH) : null;
+}
 
 /** Whitespace collapsed to single spaces, then trimmed; null when nothing is left. */
 function collapseCycleName(value: unknown): string | null {
@@ -37,8 +56,9 @@ export function parseCycleMetadata(raw: unknown): CycleMetadataV1 | null {
   if (!raw || typeof raw !== "object") return null;
   const record = raw as Record<string, unknown>;
   const name = collapseCycleName(record.name)?.slice(0, CYCLE_NAME_MAX_LENGTH);
+  const brief = collapseCycleBrief(record.brief);
   return record.version === CYCLE_METADATA_VERSION && name
-    ? { version: CYCLE_METADATA_VERSION, name }
+    ? { version: CYCLE_METADATA_VERSION, name, ...(brief ? { brief } : {}) }
     : null;
 }
 
@@ -96,7 +116,11 @@ export async function resolveCycleMetadataName(
   try {
     const metadata = parseCycleMetadata(await store.readJson(metadataCID));
     return metadata
-      ? { status: "resolved", name: metadata.name }
+      ? {
+          status: "resolved",
+          name: metadata.name,
+          ...(metadata.brief ? { brief: metadata.brief } : {}),
+        }
       : { status: "unavailable", name: null };
   } catch (error) {
     logger.warn("[resolveCycleMetadataName] IPFS read failed", { metadataCID, error });

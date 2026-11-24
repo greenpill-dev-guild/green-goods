@@ -1,6 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
-import type { Address, Garden } from "@green-goods/shared/types/domain";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   buildCampaignCookieJarMetadata,
   getCampaignCookieJarPayoutAssets,
@@ -41,7 +41,7 @@ const panelViewFormatMessage = ((
   descriptor: { id: string; defaultMessage?: string },
   values?: { count?: number }
 ) => {
-  if (descriptor.id === "cockpit.community.cookies.listDescription") {
+  if (descriptor.id === "hub.community.cookies.listDescription") {
     const count = typeof values?.count === "number" ? values.count : 0;
     return `${count} campaign ${count === 1 ? "jar" : "jars"} on this network.`;
   }
@@ -54,7 +54,7 @@ const payoutAssets = getCampaignCookieJarPayoutAssets(DEFAULT_CHAIN_ID);
 export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps = {
   formatMessage,
   moduleConfigured: true,
-  isDeployer: true,
+  isProtocolTeam: true,
   roleLoading: false,
   createPending: false,
   gardensLoading: false,
@@ -133,7 +133,7 @@ export const storybookCampaign: CampaignCookieJarCampaign = {
 export const campaignCookieJarPanelViewProps: CampaignCookieJarPanelViewProps = {
   formatMessage: panelViewFormatMessage,
   moduleConfigured: true,
-  isDeployer: true,
+  isProtocolTeam: true,
   roleLoading: false,
   campaigns: [storybookCampaign],
   campaignsLoading: false,
@@ -141,15 +141,14 @@ export const campaignCookieJarPanelViewProps: CampaignCookieJarPanelViewProps = 
   campaignSearch: "",
   setCampaignSearch: () => undefined,
   visibleCampaigns: [storybookCampaign],
-  gardensByAddress: new Map<string, Garden>(
-    STORYBOOK_ADMIN_GARDENS.map((garden) => [garden.id.toLowerCase(), garden])
-  ),
   setSelectedCampaign: () => undefined,
   selectedCampaign: null,
   selectedCampaignTitle: storybookCampaign.title,
   selectedCampaignPublicUrl: "https://greengoods.app/cookies?campaign=earth-week",
-  syncAllowlist: { isPending: false },
-  updateMetadata: { isPending: false },
+  syncPending: false,
+  syncSignatureLine: null,
+  syncHold: null,
+  syncError: null,
   canSync: false,
   handleSync: () => undefined,
   syncCampaignDescription: "",

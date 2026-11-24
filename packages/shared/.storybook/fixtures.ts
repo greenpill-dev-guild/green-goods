@@ -6,6 +6,12 @@
  * Changing a value here should regenerate every dependent story in the
  * same way every run.
  */
+import AGROFORESTRY_JPEG from "./fixture-art/agroforestry-coffee.jpg?inline";
+import COMMUNITY_GARDEN_JPEG from "./fixture-art/community-garden.jpg?inline";
+import COMPOST_JPEG from "./fixture-art/compost-bins.jpg?inline";
+import OUTDOOR_CLASSROOM_JPEG from "./fixture-art/outdoor-classroom.jpg?inline";
+import SOLAR_JPEG from "./fixture-art/solar-array.jpg?inline";
+import SUNFLOWER_JPEG from "./fixture-art/sunflower.jpg?inline";
 
 /**
  * Fixed "now" for every Storybook render. Picked so relative-time
@@ -40,26 +46,16 @@ export function daysFromNow(days: number): number {
 }
 
 /**
- * Earth-tone square SVG encoded as a data URL. Used for Story image
- * fixtures so everything is offline, deterministic, and small.
+ * Deterministic fixture images: small public-domain and CC0 photos, inlined
+ * as data URLs so stories stay offline and draw the same every run. Sources
+ * and licenses are in `fixture-art/LICENSES.md`.
  */
-function makeDataUrl(fill: string, accent: string, label: string): string {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'>
-  <rect width='120' height='120' fill='${fill}' />
-  <circle cx='60' cy='52' r='22' fill='${accent}' />
-  <path d='M20 100 Q60 70 100 100 L100 120 L20 120 Z' fill='${accent}' fill-opacity='0.75' />
-  <text x='60' y='112' text-anchor='middle' font-family='sans-serif' font-size='9' fill='#ffffff' font-weight='600'>${label}</text>
-</svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
-/** Deterministic fixture images. */
-export const FIXTURE_IMAGE_AGROFORESTRY = makeDataUrl("#d9ead3", "#6aaa64", "Agroforestry");
-export const FIXTURE_IMAGE_SOLAR = makeDataUrl("#fff2cc", "#e6a700", "Solar");
-export const FIXTURE_IMAGE_EDU = makeDataUrl("#d0e6ff", "#3d7abf", "Education");
-export const FIXTURE_IMAGE_WASTE = makeDataUrl("#f3d1c7", "#c04a1e", "Waste");
-export const FIXTURE_IMAGE_BANNER = makeDataUrl("#f1ead2", "#7a8a6b", "Garden");
-export const FIXTURE_IMAGE_PROFILE = FIXTURE_IMAGE_EDU.replace("Education", "Profile");
+export const FIXTURE_IMAGE_AGROFORESTRY = AGROFORESTRY_JPEG;
+export const FIXTURE_IMAGE_SOLAR = SOLAR_JPEG;
+export const FIXTURE_IMAGE_EDU = OUTDOOR_CLASSROOM_JPEG;
+export const FIXTURE_IMAGE_WASTE = COMPOST_JPEG;
+export const FIXTURE_IMAGE_BANNER = COMMUNITY_GARDEN_JPEG;
+export const FIXTURE_IMAGE_PROFILE = SUNFLOWER_JPEG;
 
 /** Fixed media URLs array, keyed by index for stable `key` props. */
 export const FIXTURE_WORK_MEDIA = [

@@ -1,10 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiRefreshLine } from "@remixicon/react";
+import { RiErrorWarningLine, RiRefreshLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminCardTitle } from "@/components/AdminCard";
 
 /** The panel while the commitment, its detail and its timeline are still in flight. */
 export function CommitmentDialogLoading() {
@@ -15,8 +15,8 @@ export function CommitmentDialogLoading() {
       className="space-y-3 p-4"
       role="status"
       aria-label={formatMessage({
-        id: "cockpit.garden.pool.commitment.loading",
-        defaultMessage: "Loading the commitment",
+        id: "hub.garden.pool.commitment.loading",
+        defaultMessage: "Loading the promise",
       })}
     >
       <div className="h-8 w-2/3 rounded-[var(--m3-shape-sm)] skeleton-shimmer" aria-hidden />
@@ -42,49 +42,47 @@ export function CommitmentDialogNotFound({
   const navigate = useNavigate();
 
   return (
-    <div
-      className="flex min-h-56 flex-col items-center justify-center gap-3 p-4 text-center"
-      data-component="CommitmentDialogPanel"
-      data-state="not-found"
-    >
-      <AdminCardTitle>
-        {formatMessage({
-          id: "cockpit.garden.pool.commitment.notFound.title",
-          defaultMessage: "This commitment couldn’t be loaded",
+    <div className="p-4" data-component="CommitmentDialogPanel" data-state="not-found">
+      <EmptyState
+        tone="error"
+        icon={<RiErrorWarningLine />}
+        title={formatMessage({
+          id: "hub.garden.pool.commitment.notFound.title",
+          defaultMessage: "This promise couldn’t be loaded",
         })}
-      </AdminCardTitle>
-      <p className="max-w-sm body-sm text-text-soft">
-        {formatMessage({
-          id: "cockpit.garden.pool.commitment.notFound.body",
+        description={formatMessage({
+          id: "hub.garden.pool.commitment.notFound.body",
           defaultMessage:
             "It may be mid-sync, or the link is stale. Retry, or return to the pool to pick it again.",
         })}
-      </p>
-      <div className="flex gap-2">
-        <AdminButton
-          type="button"
-          variant="outlined"
-          size="sm"
-          leadingIcon={<RiRefreshLine className="h-4 w-4" />}
-          onClick={() => onRetry()}
-        >
-          {formatMessage({
-            id: "cockpit.garden.pool.commitment.notFound.retry",
-            defaultMessage: "Retry",
-          })}
-        </AdminButton>
-        <AdminButton
-          type="button"
-          variant="text"
-          size="sm"
-          onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
-        >
-          {formatMessage({
-            id: "cockpit.garden.pool.commitment.notFound.back",
-            defaultMessage: "Back to Pool",
-          })}
-        </AdminButton>
-      </div>
+        action={
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => onRetry()}
+            >
+              {formatMessage({
+                id: "hub.garden.pool.commitment.notFound.retry",
+                defaultMessage: "Retry",
+              })}
+            </Button>
+            <Button
+              type="button"
+              emphasis="tertiary"
+              size="compact"
+              onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
+            >
+              {formatMessage({
+                id: "hub.garden.pool.commitment.notFound.back",
+                defaultMessage: "Back to Pool",
+              })}
+            </Button>
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -98,34 +96,31 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
   const navigate = useNavigate();
 
   return (
-    <div
-      className="flex min-h-56 flex-col items-center justify-center gap-3 p-4 text-center"
-      data-component="CommitmentDialogPanel"
-      data-state="unavailable"
-    >
-      <AdminCardTitle>
-        {formatMessage({
-          id: "cockpit.garden.pool.unavailable.title",
-          defaultMessage: "Commitment pooling isn't switched on in this app yet",
+    <div className="p-4" data-component="CommitmentDialogPanel" data-state="unavailable">
+      <EmptyState
+        icon={<RiTimeLine />}
+        title={formatMessage({
+          id: "hub.garden.pool.unavailable.title",
+          defaultMessage: "Commitment pooling isn't switched on in the Hub yet",
         })}
-      </AdminCardTitle>
-      <p className="max-w-sm body-sm text-text-soft">
-        {formatMessage({
-          id: "cockpit.garden.pool.unavailable.body",
+        description={formatMessage({
+          id: "hub.garden.pool.unavailable.body",
           defaultMessage: "The pool console switches on with the release that serves pooling here.",
         })}
-      </p>
-      <AdminButton
-        type="button"
-        variant="text"
-        size="sm"
-        onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
-      >
-        {formatMessage({
-          id: "cockpit.garden.pool.commitment.notFound.back",
-          defaultMessage: "Back to Pool",
-        })}
-      </AdminButton>
+        action={
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="compact"
+            onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
+          >
+            {formatMessage({
+              id: "hub.garden.pool.commitment.notFound.back",
+              defaultMessage: "Back to Pool",
+            })}
+          </Button>
+        }
+      />
     </div>
   );
 }

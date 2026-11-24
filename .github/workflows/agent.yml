@@ -17,6 +17,7 @@ on:
       - "!packages/shared/**/*.stories.*"
       - "!packages/shared/.storybook/**"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/data/banned-vocabulary.json"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/agent.yml"
   pull_request:
@@ -34,6 +35,7 @@ on:
       - "!packages/shared/**/*.stories.*"
       - "!packages/shared/.storybook/**"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/data/banned-vocabulary.json"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/agent.yml"
 
@@ -88,6 +90,9 @@ jobs:
         env:
           SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || github.event.before }}
         run: node scripts/quality/check-source-structure.js
+
+      - name: Check em dashes
+        run: bun run check --only em-dashes
 
       - name: Run agent lint
         working-directory: packages/agent

@@ -6,7 +6,7 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 
 - `bun run build`
 - `bun run test`
-- `bun run lint`
+- `bun run lint` (solhint's warnings are held to the shrink-only `scripts/data/solhint-baseline.json`; `node ../../scripts/contracts/check-solhint-baseline.mjs --baseline-shrink` records a lower count or a renamed file)
 - `bun run test:audit full`
 
 ## Validation
@@ -65,7 +65,7 @@ src/
 
 ### DRY (Don't Repeat Yourself)
 
-- Shared libraries in `src/lib/` (EAS.sol, StringUtils.sol, TBA.sol)
+- Shared libraries in `src/lib/` (for example StringUtils.sol and TBA.sol)
 - Common patterns extracted to base contracts
 - Reuse OpenZeppelin implementations
 
@@ -236,18 +236,9 @@ function invariant_totalSupplyMatchesBalance() public {
 }
 ```
 
-### Static Analysis (CI/CD)
+### Static Analysis
 
-**Integrate Slither in CI pipeline:**
-
-```yaml
-# .github/workflows/security.yml
-- name: Run Slither
-  uses: crytic/slither-action@v0.3.0
-  with:
-    target: 'packages/contracts/'
-    fail-on: medium
-```
+No CI job runs Slither (there is no `security.yml`); run it by hand when a change warrants it.
 
 ### Open/Closed (SOLID)
 
@@ -507,13 +498,12 @@ test/
 │   ├── ActionRegistry.t.sol
 │   ├── GardenToken.t.sol
 │   ├── WorkResolver.t.sol
+│   ├── GAPJsonBuilder.t.sol   # Production GAP JSON schema and escaping
 │   └── ...
 ├── integration/             # Multi-contract flows
 │   ├── GardenAccessControl.t.sol
 │   ├── GreenWillWorkflow.t.sol
 │   └── HatsModule.t.sol
-├── schema/                  # Schema validation
-│   └── KarmaGAPSchemaValidation.t.sol
 ├── helpers/                 # Test utilities
 ├── E2EWorkflow.t.sol        # End-to-end workflow
 ├── FuzzTests.t.sol          # Fuzz testing

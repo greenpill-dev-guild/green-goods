@@ -166,7 +166,7 @@ export const DateRangePicker = forwardRef<HTMLDivElement, DateRangePickerProps>(
     return (
       <div ref={ref} className={cn("flex flex-col gap-1", className)}>
         {label && (
-          <label className="font-semibold text-text-strong-950 text-label-sm">
+          <label className="type-label-sm font-semibold text-text-strong-950">
             {label}
             {required && (
               <>

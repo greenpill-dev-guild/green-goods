@@ -6,7 +6,7 @@
 
 :root {
   /* --------------------------------------------------------------------------
-   * M3 Elevation Scale — the ONE ladder (Cockpit M3 1a).
+   * M3 Elevation Scale — the ONE ladder (Hub M3 1a).
    * Levels 1 and 2 only: cards and filled buttons rest at level 1 and step to
    * level 2 on hover. Dialogs/sheets sit at level 2 over their scrim. The only
    * other sanctioned shadow is the warm ambient chrome shadow on the floating
@@ -122,7 +122,7 @@
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
   /* Focus-ring convergence (PRD-644 round 2): the generic input focus rule in
    * index.css reads --focus-ring, which theme.css points at blue. In the
-   * cockpit it rides the single focus role instead; --tone-focus-ring flips
+   * Hub it rides the single focus role instead; --tone-focus-ring flips
    * per theme on its own, so one theme-agnostic line covers light and dark. */
   --focus-ring: var(--tone-focus-ring, var(--m3-primary));
 }
@@ -135,16 +135,33 @@
  * surfaces (`variant="flow"`) portal to <body> — OUTSIDE `.admin-m3` — and only
  * re-establish `[data-tone]` (via the dialog's `tone` prop). So in-portal,
  * `--m3-primary` fell back to the no-tone green and every consumer that reads it
- * (AdminButton focus ring, AdminLinearProgress bar, AdminCheckbox, …) rendered
+ * (AdminLinearProgress bar, AdminCheckbox, AdminFilterChip, …) rendered
  * green inside a blue/red/amber flow — while `--tone-action` consumers toned
- * correctly. This bare `[data-tone]` rule re-derives the primary roles from the
- * tone the portal DOES carry. It is a NO-OP in-canvas (those elements carry both
- * `.admin-m3` and `[data-tone]`, and both resolve to `var(--tone-primary)`); the
+ * correctly. This rule re-derives the primary roles from the tone the portal
+ * DOES carry. It is a NO-OP in-canvas (those elements carry both `.admin-m3` and
+ * `[data-tone]`, and both resolve to `var(--tone-primary)`); the
  * `:is(...[data-theme="dark"]...)` block below keeps higher specificity in dark.
  * Theme is handled by `--tone-primary` itself (light/dark variants on the
  * `[data-tone]` scopes), so one rule covers both modes.
+ *
+ * It names the workspaces (`AdminWorkspaceId`) rather than every `[data-tone]`:
+ * the shared Button, IconButton and state block carry a tone of their own
+ * (danger, warning, neutral) that is not a workspace. Matched here, such a piece
+ * re-derived these roles on itself from the green fallback, so where no
+ * workspace tone was set (every app story) a danger button rang the light green
+ * in dark instead of the ring its surface sets. The focus-ring role further down
+ * still matches every `[data-tone]`: it reads only tone roles a piece inherits,
+ * so a piece resolves the same ring as its scope.
  * -------------------------------------------------------------------------- */
-[data-tone] {
+:is(
+  [data-tone="home"],
+  [data-tone="review"],
+  [data-tone="garden"],
+  [data-tone="community"],
+  [data-tone="cookies"],
+  [data-tone="actions"],
+  [data-tone="profile"]
+) {
   --m3-primary: var(--tone-primary, var(--green-800));
   --m3-on-primary: var(--tone-on-primary, 255 255 255);
   --m3-primary-container: var(--tone-primary-container, var(--green-100));
@@ -159,22 +176,20 @@
  * Overrides for [data-theme="dark"] adaptive dark palette
  * -------------------------------------------------------------------------- */
 [data-theme="dark"] {
-  /* Deliberate warm-dark surface ladder (Warm Earth — constant warm hue ~65,
-   * raised chroma so surfaces read warm even at low lightness). OKLCH is the
-   * authoritative intent (in comments); the shipped value is the computed RGB
-   * triplet because every consumer reads `rgb(var(--m3-surface…))`.
-   * M3-dark convention: HIGHER elevation = LIGHTER. The default card
-   * (`--m3-surface-container`) sits ~6 L* above the canvas (`--m3-surface`), so
-   * card↔canvas separation comes from a lightness STEP, not a (black, invisible)
-   * drop shadow. This replaces the previous cold blue-slate derivation. */
-  --m3-surface: 17 12 8;                 /* oklch(16% .012 65) — canvas floor */
-  --m3-surface-dim: 17 12 8;             /* oklch(16% .012 65) — = surface in dark */
-  --m3-surface-bright: 57 49 41;         /* oklch(32% .018 65) — ladder top */
-  --m3-surface-container-lowest: 10 7 4; /* oklch(13% .010 65) — sunken wells */
-  --m3-surface-container-low: 24 19 13;  /* oklch(19% .014 65) — quiet grouping */
-  --m3-surface-container: 32 25 19;      /* oklch(22% .015 65) — DEFAULT CARD */
-  --m3-surface-container-high: 42 35 28; /* oklch(26% .016 65) — sheet/dialog inner */
-  --m3-surface-container-highest: 52 44 36; /* oklch(30% .018 65) — active/hover, chips */
+  /* The warm dark ladder is the shared Earth ramp in theme.css (one ladder for
+   * the Hub and the installed app, F2). M3-dark convention: HIGHER
+   * elevation = LIGHTER. The default card (`--m3-surface-container`) sits ten
+   * points of OKLCH lightness above the canvas (`--m3-surface`, 26% against
+   * 16%), so card↔canvas separation comes from a lightness STEP, not a (black,
+   * invisible) drop shadow; the chips and fills on a card move up with it (F13). */
+  --m3-surface: var(--earth-950);                  /* oklch(16%): canvas floor */
+  --m3-surface-dim: var(--earth-950);              /* = surface in dark */
+  --m3-surface-bright: var(--earth-750);           /* ladder top */
+  --m3-surface-container-lowest: var(--earth-975); /* oklch(13%): sunken wells */
+  --m3-surface-container-low: var(--earth-925);    /* oklch(19%): quiet grouping */
+  --m3-surface-container: var(--earth-850);        /* oklch(26%): DEFAULT CARD */
+  --m3-surface-container-high: var(--earth-800);   /* oklch(30%): sheet/dialog inner */
+  --m3-surface-container-highest: var(--earth-750); /* oklch(34%): active/hover, chips */
 
   /* M3 elevation — DARK override (the `:root` ladder above is light-only: pure
    * black drop shadows that are invisible on near-black). In M3-dark, depth is a
@@ -183,7 +198,7 @@
    * the lightness STEP in the surface ladder, this restores card separation.
    * Level 0 stays a transparent zero shadow, never `none` (see the light ladder). */
   --m3-elevation-0: 0 0 transparent;
-  --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.06);
+  --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.08);
   --m3-elevation-2: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--neutral-50) / 0.09);
 
   --m3-on-surface: var(--text-strong-950);
@@ -195,10 +210,16 @@
    * remapped stroke-sub-300 (neutral-700) measured 1.89:1. */
   --m3-outline: var(--neutral-400);
   --m3-outline-variant: var(--stroke-soft-200);
-  /* Dark error flips strategy (M3-dark convention): lighter red fill
-   * (admin remap 248 113 113) with ink text = 6.2; the old red-600 fill with
-   * ink text measured 4.09, and as icon/text on the canvas 4.03. */
-  --m3-error: var(--red-500);
+  /* Dark error flips strategy (M3-dark convention): a lighter red fill with
+   * ink text. red-400 holds 5.5:1 as text on the lifted card and 7.1:1 under
+   * ink; red-500 fell to 4.2:1 on the card once it moved up a step (F13). */
+  --m3-error: var(--red-400);
+  /* The shared text roles that would fall below AA on the lifted card take
+   * one lighter step here too (the installed app sets the same in theme.css);
+   * a fill that carries white takes an action role, which keeps its deep step. */
+  --error-base: var(--red-400);
+  --feature-dark: var(--purple-300);
+  --information-base: var(--blue-400);
   /* Must live HERE, not only in theme.css's dark block: this file's :root
    * declaration is unlayered and beats theme's @layer dark override, so
    * without this line dark on-error resolves to the light-mode white. */
@@ -279,8 +300,21 @@
     opacity: 0;
   }
 
+  /* A filled control paints its layer beneath its content: the layer deepens
+   * or lifts the fill alone, so the label keeps its color and its contrast at
+   * rest. Painted over the label as well, the layer pulls fill and label toward
+   * one ink, and Community's dark pair (4.58:1 at rest) falls to 3.66:1 when
+   * pressed. */
+  .m3-state-layer-beneath {
+    isolation: isolate;
+  }
+
+  .m3-state-layer-beneath::after {
+    z-index: -1;
+  }
+
   /* M3 expanded touch target: a ≥44px effective hit area around the 32px-visual
-   * compact controls (AdminButton sm, AdminFilterChip). The block margin
+   * compact controls (AdminFilterChip, AdminInputChip). The block margin
    * reserves the pseudo-element's 6px reach above and below, so wrapped rows
    * cannot paint overlapping hit regions. The state layer's overlay clip is
    * released — its rounded shape comes from border-radius: inherit, not the
@@ -385,14 +419,14 @@
 
 /* ============================================================================
  * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
- * hub=blue, garden=green, community=orange, actions=red.
+ * review=blue, garden=green, community=orange, actions=red.
  *
  * Route color is environmental: canvas tint, focus, hairlines, and one filled
  * action role. Dense surfaces remain solid and readable.
  * ============================================================================ */
 
-/* Hub — Blue. `--tone-action` stays deep so filled actions keep white text. */
-[data-tone="hub"] {
+/* Review — Blue. `--tone-action` stays deep so filled actions keep white text. */
+[data-tone="review"] {
   --tone-primary: var(--blue-600);
   --tone-on-primary: 255 255 255;
   --tone-action: var(--blue-700);
@@ -408,7 +442,7 @@
   --tone-surface-tint-color: rgb(var(--blue-500) / 5%);
 }
 
-/* Garden — Green. Uses a forest action tone for the cockpit's strongest CTA. */
+/* Garden — Green. Uses a forest action tone for the Hub's strongest CTA. */
 [data-tone="garden"] {
   /* Dual-safe forest green (light applies the dark block's dual-use rule):
    * green-600 failed as white-text fill (2.85) and as link text (2.85); the
@@ -433,7 +467,9 @@
    FAB, date-picker selected day) — those need AA contrast, and orange-600 is
    the lightest white-safe step in the ramp. The yellow separation therefore
    comes from the canvas wash, surface tint, secondary, and containers, not the
-   primary accent. */
+   primary accent. The ramp is the Hub's amber one (index.css), which covers
+   the canvas and its portals: orange-600 and -700 are #B45309 there, white at
+   5.02:1, and the orange-800 hover 7.09:1. */
 [data-tone="community"] {
   --tone-primary: var(--orange-600);
   --tone-on-primary: 255 255 255;
@@ -443,7 +479,8 @@
   --tone-primary-container: var(--yellow-100);
   --tone-on-primary-container: var(--yellow-900);
   /* orange-800 (not -700) so tone-colored TEXT on the light community surface
-     clears AA — orange-700 measured 4.01:1 on the 14px current-step rail label. */
+     keeps a margin: orange-700 measured 4.01:1 on the 14px current-step rail
+     label while flow dialogs drew the shared orange ramp. */
   --tone-on-surface-accent: var(--orange-800);
   --tone-surface-tint-color: rgb(var(--yellow-500) / 5%);
 }
@@ -504,13 +541,13 @@
  * text — NOT in the primary fill, which would break the text usages above.
  * Every block keeps --tone-on-surface-accent (gate; the bright tone-TEXT role).
  * All ratios verified against the warm card surface (32 25 19). */
-[data-theme="dark"][data-tone="hub"],
+[data-theme="dark"][data-tone="review"],
 /* DL-009 (2026-08-29): dark filled actions are TONAL — the −200 fill with −900
  * ink, hover one step LIGHTER (−100), per the M3-dark convention (filled
  * surfaces go light, text goes deep; higher = lighter). The pre-DL-009 deep
  * fill + white text pair is retired in dark. Measured fill/hover ratios noted
  * per tone; community is the tightest at 4.58 and still clears AA. */
-[data-theme="dark"] [data-tone="hub"] {
+[data-theme="dark"] [data-tone="review"] {
   --tone-primary: var(--blue-200);
   --tone-on-primary: var(--blue-900);
   /* DL-009 tonal: fill 7.81:1 · hover 8.88:1 */
@@ -537,11 +574,10 @@
   --tone-surface-tint-color: rgb(var(--green-200) / 10%);
 }
 
-/* Community = amber/gold. Filled action is a DEEP amber (orange-700, white-safe
- * 5.0:1) — a brighter amber is not white-safe, so the gold identity comes from
- * the wash, accent text, secondary and containers (the yellow family), matching
- * the light-mode strategy. Same orange-700 fill value as light mode → no hue
- * flip between modes. */
+/* Community = amber/gold. Dark filled actions are tonal (DL-009), so the gold
+ * identity reads in the fill itself: yellow-200 with yellow-900 ink, the
+ * tightest of the five tones, beside the wash, accent text and containers of
+ * the same yellow family. */
 [data-theme="dark"][data-tone="community"],
 [data-theme="dark"] [data-tone="community"] {
   --tone-primary: var(--yellow-200);
@@ -587,4 +623,13 @@
 /* Workspace color cross-dissolve when switching views */
 [data-tone] {
   transition: --tone-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
+}
+
+/* Provider-free startup keeps its surface before workspace styles arrive. */
+.admin-loading-screen {
+  background: rgb(var(--m3-surface-container-low));
+}
+
+[data-theme="dark"] .admin-loading-screen {
+  background: rgb(var(--m3-surface));
 }

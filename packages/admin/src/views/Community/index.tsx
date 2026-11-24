@@ -24,8 +24,8 @@ export default function CommunityView() {
   });
   const showCoordination = Boolean(community.selectedGardenAddress) && isProtocolGarden;
 
-  // Paid-out magnitudes by asset. The Payouts tab badge is a count, but the
-  // header cannot add base units across WETH/USDC/etc. as one token total.
+  // Paid-out magnitudes by asset: the header cannot add base units across
+  // WETH/USDC/etc. as one token total.
   const distributedAmountsByAsset = useMemo(
     () =>
       Array.from(
@@ -51,13 +51,18 @@ export default function CommunityView() {
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
         endowmentByAsset: community.endowmentByAsset,
-        distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
+        // An unread history has no total to state, as while it loads.
+        distributedAmounts:
+          community.allocationsLoading || community.allocationsUnread
+            ? null
+            : distributedAmountsByAsset,
         locale,
         formatMessage,
       }),
     [
       community.selectedGarden,
       community.allocationsLoading,
+      community.allocationsUnread,
       community.endowmentByAsset,
       distributedAmountsByAsset,
       locale,
@@ -76,11 +81,12 @@ export default function CommunityView() {
         isSignalPoolRoute={community.isSignalPoolRoute}
         vaultAction={community.vaultAction}
         poolType={community.poolType}
+        selectedItem={community.selectedItem}
         gardenAddress={community.selectedGardenAddress}
       />
 
       <CanvasRouteHeader
-        title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
+        title={formatMessage({ id: "hub.community.title", defaultMessage: "Community" })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
@@ -94,7 +100,7 @@ export default function CommunityView() {
       >
         <AdminTabRail
           ariaLabel={formatMessage({
-            id: "cockpit.community.viewSwitcher",
+            id: "hub.community.viewSwitcher",
             defaultMessage: "Community views",
           })}
           activeId={community.mode}
@@ -103,17 +109,19 @@ export default function CommunityView() {
             {
               id: "members",
               label: formatMessage({
-                id: "cockpit.community.members",
+                id: "hub.community.members",
                 defaultMessage: "Members",
               }),
-              count: community.derived.directoryEntries.length || undefined,
+              // Only join requests wait on the steward on this rail (DL-134), and only
+              // someone who can open their queue sees the last check's number.
+              count: community.canManage ? community.joinRequestsWaiting : undefined,
             },
             ...(showCoordination
               ? [
                   {
                     id: "coordination",
                     label: formatMessage({
-                      id: "cockpit.community.coordination",
+                      id: "hub.community.coordination",
                       defaultMessage: "Coordination",
                     }),
                   },
@@ -122,18 +130,16 @@ export default function CommunityView() {
             {
               id: "endowment",
               label: formatMessage({
-                id: "cockpit.community.endowment",
+                id: "hub.community.endowment",
                 defaultMessage: "Endowment",
               }),
-              count: community.hasVaults ? 1 : undefined,
             },
             {
               id: "payouts",
               label: formatMessage({
-                id: "cockpit.community.payouts",
+                id: "hub.community.payouts",
                 defaultMessage: "Payouts",
               }),
-              count: community.allocations.length || undefined,
             },
           ]}
         />

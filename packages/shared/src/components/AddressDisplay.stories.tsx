@@ -1,6 +1,12 @@
 import type { Address } from "../types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { expect, mocked, userEvent, within } from "storybook/test";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
+import { ensKeys } from "../config/query-keys/identity";
+import { useEnsName } from "../hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "../hooks/ens/useGreenGoodsEnsName";
+import { AuthStateContext, type AuthStateValue } from "../providers/authContext";
 import { AddressDisplay } from "./AddressDisplay";
 
 const SAMPLE_ADDRESSES = {
@@ -8,6 +14,7 @@ const SAMPLE_ADDRESSES = {
   zero: "0x0000000000000000000000000000000000000000" as Address,
   short: "0xAbCdEf0123456789AbCdEf0123456789AbCdEf01" as Address,
   deployer: "0x1234567890123456789012345678901234567890" as Address,
+  directoryMember: "0x7777777777777777777777777777777777777777" as Address,
 };
 
 const meta: Meta<typeof AddressDisplay> = {
@@ -43,6 +50,47 @@ export const WithoutCopyButton: Story = {
   args: {
     address: SAMPLE_ADDRESSES.vitalik,
     showCopyButton: false,
+  },
+};
+
+export const ChosenPasskeyName: Story = {
+  beforeEach: () => {
+    mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
+    mocked(useGreenGoodsEnsName).mockReturnValue({ data: null } as ReturnType<
+      typeof useGreenGoodsEnsName
+    >);
+    return () => {
+      mocked(useEnsName).mockReset();
+      mocked(useGreenGoodsEnsName).mockReset();
+    };
+  },
+  render: () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(
+      ensKeys.passkeyName(DEFAULT_CHAIN_ID, SAMPLE_ADDRESSES.directoryMember),
+      "river"
+    );
+    queryClient.setQueryData(ensKeys.passkeyName(DEFAULT_CHAIN_ID, SAMPLE_ADDRESSES.vitalik), null);
+    return (
+      <QueryClientProvider client={queryClient}>
+        <AuthStateContext.Provider
+          value={
+            {
+              authMode: "passkey",
+              isAuthenticated: true,
+              smartAccountAddress: SAMPLE_ADDRESSES.deployer,
+              userName: "maya",
+            } as AuthStateValue
+          }
+        >
+          <div className="space-y-3">
+            <AddressDisplay address={SAMPLE_ADDRESSES.deployer} interactive={false} />
+            <AddressDisplay address={SAMPLE_ADDRESSES.directoryMember} interactive={false} />
+            <AddressDisplay address={SAMPLE_ADDRESSES.vitalik} interactive={false} />
+          </div>
+        </AuthStateContext.Provider>
+      </QueryClientProvider>
+    );
   },
 };
 

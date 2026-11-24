@@ -12,7 +12,6 @@ const SHELL_MODULE_MARKERS = [
   "/src/routes/Root.tsx",
   "/src/routes/SessionGate.tsx",
   "/src/routes/AppShell.tsx",
-  "/src/routes/ENSClaimReminder.tsx",
   "/src/hooks/blockchain/prefetch.ts",
   "/src/i18n/en.json",
 ] as const;

@@ -173,8 +173,9 @@ const CLIENT_ENTRIES: Entry[] = [
   {
     id: "card", title: "Card", family: "cards", covers: ["card"],
     kit: `card(inner, {cls})`,
-    ship: "packages/shared/src/components/Cards/CardBase.tsx:5",
-    shipNote: "rounded-2xl base surface",
+    ship: "packages/shared/src/styles/theme.css:1984",
+    shipNote: ".gg-card, the one card surface (DL-102): the card fill, a 1px edge and a faint shadow on a 24px corner; Surface draws it at its raised level",
+    drift: "Shipping has no 20px surface step: cards take the 24px corner, and list items take the shared item row's 16px corner (packages/shared/src/components/Cards/ItemRow/ItemRow.tsx).",
     rule: "The base surface for everything on the canvas; radius steps down by role (24 list, 20 surface, 16 inset). Direction is carried by the Offer/Request chip in text, never by a coloured edge (retired 2026-08-16).",
     usedIn: /class="card[\s"]/,
     specs: [
@@ -489,9 +490,9 @@ const CLIENT_ENTRIES: Entry[] = [
   {
     id: "selection-rail", title: "Selection rail", family: "rails", covers: ["selRail", "selCard"],
     kit: `selRail(cards) · selCard({tint, media, title, line, selected})`,
-    ship: "packages/client/src/components/Cards/Action/ActionCard.tsx:32",
-    shipNote: "ActionCard/GardenCard height=selection inside Carousel (packages/client/src/components/Display/Carousel/Carousel.tsx:10)",
-    drift: "Shipping selection cards are ~full-width slides, 212px tall with 96–160px media (packages/client/src/components/Display/Carousel/Carousel.tsx:185). These are 200px two-up compacts.",
+    ship: "packages/shared/src/components/Cards/ActionPicker.tsx:59",
+    shipNote: "ActionPicker and GardenPicker (packages/shared/src/components/Cards/GardenCard/GardenCard.tsx:111): media cards with a 104px banner strip in one listbox (DL-111)",
+    drift: "Shipping picker cards are 90% of the row wide and scroll sideways in the row layout (packages/shared/src/components/Cards/MediaCardPicker.tsx:62), or sit one column, two from 36rem, in the grid layout. These are 200px two-up compacts.",
     rule: "The intro's action and garden pickers: tinted media strip, title + line, accent ring on the selected card.",
     usedIn: /class="selrail/,
     specs: [

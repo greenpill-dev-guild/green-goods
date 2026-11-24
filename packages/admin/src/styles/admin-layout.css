@@ -2,7 +2,7 @@
  * ADMIN LAYOUT — the layout and surface classes admin components render
  *
  * The canvas route frame, the Garden and Community tab layouts and stat rows,
- * the Hub shells, workbench grid, and workbench row and card states, the Hub
+ * the Review shells, workbench grid, and workbench card states, the Review
  * card's media tiles, the account avatar tile, the surface primitives, and the
  * spacing rhythm. index.css imports this file, and so does the shared
  * Storybook (packages/shared/.storybook/storybook.css), so stories lay out
@@ -37,6 +37,14 @@
 }
 
 .garden-tab-rail {
+  min-width: 0;
+}
+
+/* What waits on the steward, ahead of the main column below two columns (the Promises tab's
+ * Review Promises, decision 4 of the 18 November 2026 hub-day review), and a notice about what
+ * it shows, ahead of it. */
+.garden-tab-notice,
+.garden-tab-lead {
   min-width: 0;
 }
 
@@ -103,22 +111,89 @@ button.garden-stat-row:hover {
     gap: 1.5rem;
   }
 
+  /* From two columns the lead cell tops the rail, and main spans both rows beside them. */
+  .garden-tab-layout:has(> .garden-tab-lead) {
+    grid-template-areas:
+      "main lead"
+      "main rail";
+    grid-template-rows: auto 1fr;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-lead) > .garden-tab-main {
+    grid-area: main;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-lead) > .garden-tab-lead {
+    grid-area: lead;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-lead) > .garden-tab-rail {
+    grid-area: rail;
+  }
+
+  /* A notice tops the main column. The lead spans the notice's row and the next: the notice's
+   * row keeps the notice's height, so main starts right under it, and the rail starts right
+   * under the lead in the flexible last row, which main shares. The notice and the lead carry
+   * the gap under them as a margin instead of a row gap, so a lead no taller than the notice
+   * leaves no second gap above the rail. */
+  .garden-tab-layout:has(> .garden-tab-lead):has(> .garden-tab-notice) {
+    grid-template-areas:
+      "notice lead"
+      "main   lead"
+      "main   rail";
+    grid-template-rows: auto auto 1fr;
+    row-gap: 0;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-lead):has(> .garden-tab-notice) > .garden-tab-notice,
+  .garden-tab-layout:has(> .garden-tab-lead):has(> .garden-tab-notice) > .garden-tab-lead {
+    margin-block-end: 1.5rem;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-notice):not(:has(> .garden-tab-lead)) {
+    grid-template-areas:
+      "notice rail"
+      "main   rail";
+    grid-template-rows: auto 1fr;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-notice) > .garden-tab-notice {
+    grid-area: notice;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-notice) > .garden-tab-main {
+    grid-area: main;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-notice) > .garden-tab-rail {
+    grid-area: rail;
+  }
+
+  /* A tab's lone main card fills the column, as the member directory does
+   * (the MembersFillCanvas story). */
   .garden-tab-main > :only-child {
     flex: 1 1 auto;
   }
 
+  /* Garden Health opts out and keeps its own height (DL-143): the fill wrapped
+   * its 347px of content in a 667px card at every desktop width, because the
+   * grid stretches the main column to the taller rail (qa-session 2026-10-30
+   * OBS-05). */
+  .garden-tab-main > .garden-tab-main-own-height:only-child {
+    flex: 0 0 auto;
+  }
 }
 
 @layer utilities {
   /* ── Surface Primitives ── */
 
   /**
-   * Canvas route frame — the region that wraps a workspace view (Hub, Garden,
-   * Community, Actions, Cookies, etc.). Cockpit M3 1a: the linen canvas IS the
+   * Canvas route frame — the region that wraps a workspace view (Review, Garden,
+   * Community, Actions, Cookies, etc.). Hub M3 1a: the linen canvas IS the
    * page ground, so this frame is transparent — route header, tab rail, and
    * card grids sit directly on the canvas and its tone wash. Cards (white,
    * elevation level 1) provide the raised surfaces. Padding follows the 1a
-   * Hub spec: 12px top, 32px sides at desktop and 24px on a tablet. Below
+   * Review spec: 12px top, 32px sides at desktop and 24px on a tablet. Below
    * 600px the frame adds no side padding: the shell's phone gutter
    * (--admin-main-inline-gutter-mobile in index.css) is the one inset there.
    */
@@ -183,20 +258,12 @@ button.garden-stat-row:hover {
     box-shadow: var(--m3-elevation-1);
   }
 
-  [data-theme="dark"] .workbench-row-clickable:hover {
-    background: rgb(var(--bg-sub-300) / 0.6);
-  }
-
-  [data-theme="dark"] .workbench-row-clickable:active {
-    background: rgb(var(--bg-sub-300));
-  }
-
-  /* ── Workbench surfaces (Hub WorkbenchRow + Actions WorkbenchCard) ──────────
-     These shared Canvas components render only in the cockpit, so their edge,
-     elevation, hover and selected treatment lives here with the cockpit's
-     other surface rules, as named classes the components carry. Base layout
-     and colour utilities stay in the components. */
-  .hub-workbench-grid {
+  /* ── Workbench surfaces (Review's workbench grid + Actions WorkbenchCard) ──
+     WorkbenchCard, a shared Canvas component, renders only in the Hub, so
+     its elevation, hover and selected treatment lives here with the Hub's
+     other surface rules, as named classes the card carries. Its fill, edge and
+     corner are the shared card surface (.gg-card). */
+  .review-workbench-grid {
     display: grid;
     width: 100%;
     /* auto-FILL (not auto-fit): empty tracks are kept, so a single result —
@@ -205,75 +272,63 @@ button.garden-stat-row:hover {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
     justify-content: stretch;
     align-items: stretch;
-    gap: 0.875rem;
+    /* One list gap on both surfaces (F11). */
+    gap: var(--gg-list-gap);
     list-style: none;
     margin: 0;
     padding: 0;
   }
 
-  .hub-workbench-grid > li {
+  .review-workbench-grid > li {
     min-width: 0;
     width: 100%;
   }
 
+  /* DL-135: two wide work cards at most; a lone search result keeps one track. */
+  .review-workbench-grid[data-card-layout="wide"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .review-work-card[data-layout="wide"] {
+    --gg-media-wide-width: 12rem;
+    --gg-media-wide-height: 10rem;
+    --gg-media-title-size: var(--gg-type-title-sm-size);
+    --gg-media-title-line: var(--gg-type-title-sm-line);
+    --gg-media-details-size: var(--gg-type-meta-size);
+  }
+
   /* Hover feedback is a pure elevation step (1 → 2) with box-shadow 150ms —
-     no translate lift, no hue shift (Cockpit M3 1a interaction contract). */
-  .workbench-row,
-  .workbench-card,
-  .hub-work-card {
+     no translate lift, no hue shift (Hub M3 1a interaction contract). */
+  .workbench-card {
     transition-property: background-color, box-shadow;
     transition-duration: var(--spring-effects-fast-duration);
     transition-timing-function: var(--spring-effects-fast-easing);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .workbench-row,
-    .workbench-card,
-    .hub-work-card {
+    .workbench-card {
       transition: none;
     }
   }
 
-  /* Selected row gains a neutral ink state layer; the focus ring ships via
-     Tailwind. Selection is a state, not a workspace-tone surface. */
-  .workbench-row[data-selected="true"] {
-    background-color: rgb(var(--m3-on-surface) / 0.08);
-  }
-
-  .workbench-card[data-selected="true"],
-  .hub-work-card[data-selected="true"] {
+  /* A selected card takes the older 2px focus edge over its elevation; the
+     focus ring ships via Tailwind. Selection is a state, not a workspace-tone
+     surface. */
+  .workbench-card[data-selected="true"] {
     box-shadow: var(--edge-focus), var(--m3-elevation-2);
   }
 
-  .workbench-row-clickable:hover {
-    box-shadow: var(--m3-elevation-1);
-  }
-
-  .workbench-card-clickable:hover,
-  .hub-work-card:hover {
+  .workbench-card-clickable:hover {
     box-shadow: var(--m3-elevation-2);
   }
 
-  .workbench-row-clickable:active,
-  .workbench-card-clickable:active,
-  .hub-work-card:active {
+  .workbench-card-clickable:active {
     box-shadow: var(--m3-elevation-1);
   }
 
   /* Raised inner tiles (thumbnail / icon) — edge ring + elevation. */
   .workbench-raised {
     box-shadow: var(--edge-rest), var(--m3-elevation-1);
-  }
-
-  /* Row trailing affordance hides on the <600px two-column layout. */
-  .workbench-row-trailing {
-    display: inline-flex;
-  }
-
-  @media (max-width: 599px) {
-    .workbench-row-trailing {
-      display: none;
-    }
   }
 
   @media (min-width: 600px) {
@@ -334,15 +389,15 @@ button.garden-stat-row:hover {
     .gap-content { gap: 1.25rem; }
   }
 
-  .hub-route-shell {
+  .review-route-shell {
     /* Padding is owned by `.canvas-route-card` (applied by CanvasRouteFrame). */
   }
 
-  .hub-route-stack {
+  .review-route-stack {
     width: 100%;
   }
 
-  .hub-route-content {
+  .review-route-content {
     width: 100%;
   }
 
@@ -351,10 +406,10 @@ button.garden-stat-row:hover {
    * Sheet → Section → Card chain only carries one padding tier. Adding
    * padding/background here on top of `surface-section` produced visible
    * compounding (~2rem effective horizontal inset) at desktop and clipped
-   * Hub queue rows on mobile. The mobile gutter (margin-inline) stays here
+   * Review queue rows on mobile. The mobile gutter (margin-inline) stays here
    * so the results section keeps its inset without forcing the same shift
    * onto PageHeader. */
-  .hub-results-shell {
+  .review-results-shell {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -362,7 +417,12 @@ button.garden-stat-row:hover {
     min-height: 0;
   }
 
-  .hub-results-pane {
+  /* Every stage's empty, loading and failed state keeps the shell's own 24rem
+   * minimum. A child-only override to 100% reached the Work and record tabs,
+   * which render the shell directly, but not Confirm, which renders it inside
+   * its own region, so the four stages sat at different heights (qa-session
+   * 2026-10-30 OBS-02). */
+  .review-results-pane {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -370,7 +430,22 @@ button.garden-stat-row:hover {
     min-height: 0;
   }
 
-  .hub-results-pane > [data-component="EmptyStateShell"] {
-    --canvas-empty-state-min-height: 100%;
+  /* Follows the last row, and stays in reach down a long queue. A sticky box stops
+   * at its scroller's padding, and the canvas pads itself clear of the nav and, on
+   * a phone, the FAB. */
+  .review-batch-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+  }
+
+  /* From 600px the canvas clears only the nav, and until 1024px the FAB floats
+   * above it. Reserve the same space after the bar so the final row can scroll
+   * above its raised position. */
+  @media (min-width: 600px) and (max-width: 1023px) {
+    .review-batch-bar {
+      bottom: 3.75rem;
+      margin-bottom: 3.75rem;
+    }
   }
 }

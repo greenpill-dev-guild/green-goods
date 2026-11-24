@@ -1,0 +1,230 @@
+{
+  "assets": [
+    {
+      "file": "docs/static/img/community/guide-make.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Make a Promise",
+      "scene_prompt": "A prepared seedling-care station: one terracotta seedling tray, watering can, gardening gloves lying empty and a closed blank notebook on a wooden bench beside healthy seedlings. A clear invitation to a small practical task.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "2307863d63005ac29857a08d1ebdc75db5139bc57c31af88b0652a3b3652da8a"
+    },
+    {
+      "file": "docs/static/img/community/guide-keep.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Keep a Promise",
+      "scene_prompt": "A newly repaired low wooden fence beside a growing bed. Fresh fitted rails, a small tool bag and wood shavings show finished hands-on work. No person present.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "d57da71c5773898d38836cdb4e0814c990a46b0972c7f0f1fd3b6e3ea6152cac"
+    },
+    {
+      "file": "docs/static/img/community/guide-confirm.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Confirm a Promise",
+      "scene_prompt": "Close view of repaired garden tools on a clean workbench: carefully refitted wooden handles, a measuring rule, pencil and open blank inspection notebook. Tools are the sole subject.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "baa7158706577664bfd42d285ac829bfa020b7effe0cf098a5cc483d0c07082e"
+    },
+    {
+      "file": "docs/static/img/community/guide-open.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Open a Pool",
+      "scene_prompt": "An empty shared planning table under a garden shelter, arranged with a blank grid of small coloured cards, seasonal seed packets without lettering, a watering can and neatly prepared tools. Beginning a shared season.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "4e1994a1cf57cb6bc59f5633ef6652ffa08a290e209cd5351c56edc3cb9caab8"
+    },
+    {
+      "file": "docs/static/img/community/guide-seed.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Seed Promises",
+      "scene_prompt": "A potting bench with several distinct prepared task kits: a seed tray, a wooden tool repair kit and a bicycle repair kit. Each beside a plain blank card, arranged clearly with space between kits. Nobody present.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "220301ff1c17510bae95ba82802d04e3623c3b8ea67eb7076c6971521c0ad568"
+    },
+    {
+      "file": "docs/static/img/community/guide-review.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Review Promises",
+      "scene_prompt": "On a garden workbench, a healthy planted herb tray beside a closed evidence folder, a blank notebook and a pencil. A careful pause to examine completed practical work. Different overhead-oblique composition.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "18630b80c424f7f67ffc211cb551c52650c49309b1729d456d00f39a314abb0a"
+    },
+    {
+      "file": "docs/static/img/community/guide-end.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "End a Season",
+      "scene_prompt": "Harvest baskets of seasonal vegetables beside clean tools returned to wall racks in an empty garden shelter. Folded blank papers neatly filed on the bench. A sense of finishing and putting records away.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "f9e0796a45814aedf144b6c3d9555d0eed1509167c40ce1abf787f514cb09ede"
+    },
+    {
+      "file": "docs/static/img/community/guide-gardener.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Gardener Guide",
+      "scene_prompt": "An open compost bay beside a wheelbarrow and a pitchfork resting safely against the wall. Freshly turned compost and tidy path show regenerative work. Soft garden landscape, no people.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "18f828c6342eeb8cb772dac164f731df7054c44902f3653e87a0cc8932b807f1"
+    },
+    {
+      "file": "docs/static/img/community/guide-steward.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Steward Guide",
+      "scene_prompt": "An empty welcoming community workshop with neatly stored shared tools, a clean central workbench, a blank task board and several empty chairs. Open doorway onto a growing space, practical and cared for.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "897fea01eaa66128cf9654b13cff09a4ebe51880dc1edc7722cd68478df56269"
+    },
+    {
+      "file": "docs/static/img/community/guide-evaluator.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Evaluator Guide",
+      "scene_prompt": "A soil sampling kit laid out beside a marked growing plot: soil core, sample jars, measuring tape, unmarked wooden stakes and a blank field notebook. Ground-level close composition, baseline conditions before work.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "6fb76e178d99198eadb40216415c95ff5cc3e38591da95450f21f23237fb0db7"
+    },
+    {
+      "file": "docs/static/img/community/guide-funder.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Funder Guide",
+      "scene_prompt": "A maintained small solar installation beside productive garden beds and rainwater storage. A simple timber bench in foreground with closed blank planning folder. Focus on useful community infrastructure, no money.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 940,
+      "sha256": "3e67c4d0ce9b23b692b0c5be07dbf52c387885eaa0b52c08dda037c5849f8163"
+    },
+    {
+      "file": "docs/static/img/community/guide-submit.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Submit Work",
+      "scene_prompt": "A finished compost-turning task: neatly aerated compost in an open wooden bay with fork resting alongside, a camera on a low nearby bench pointed toward the work and blank evidence notebook. No humans or visible screen.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "32beb59e43ff5346b071aa8906d86eeab89f3823c63f0e5acf11394f4e0f63a4",
+      "edit_prompt": "Remove both signs; preserve compost, camera, notebook, garden and composition. No people, faces, text, logos or watermarks."
+    },
+    {
+      "file": "docs/static/img/community/guide-donate.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Donate to a Garden",
+      "scene_prompt": "A practical community supply station with stacked compost bags without labels, a watering can, small seedling tray and repair materials on a wooden pallet. Clearly useful shared supplies, no symbolic money or hands.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "8b70e231446734951cba2aa470c325df7aa2371428f7f6c1bb24a2f044451777"
+    },
+    {
+      "file": "docs/static/img/community/guide-endow.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Endow a Garden",
+      "scene_prompt": "A young orchard with mulched fruit trees, a water tank and carefully maintained paths, warm long-term growing scene. One tree in foreground supported by wooden stakes, no people or text.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "f40de64532e12685ad6838b3dc0b356232838c86fc02472c4ff1a3ec474a26a2"
+    },
+    {
+      "file": "docs/static/img/community/guide-recover.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Recover Unsent Work",
+      "scene_prompt": "A rugged phone lying face down on an indoor timber bench beside a dry bag, muddy boots and a closed field notebook, with the open doorway showing a rainy garden outside. Returning from field work, no screens visible.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "c7623b9ccc519e0b87449620fd16d647221761357c783f1565ca764cfb3a54dd"
+    },
+    {
+      "file": "docs/static/img/community/guide-track.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Track Your Work",
+      "scene_prompt": "An overhead arrangement of several printed landscape photographs showing different completed tasks: planting bed, repaired fence, compost bay and cleaned waterway. Blank notebook and pencil alongside. All photographs contain no people, faces or lettering.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "25f84264b0b6b83b5931a3bddec320edda2d933f6cd5c775edcd5db925d5db7a"
+    },
+    {
+      "file": "docs/static/img/community/guide-withdraw.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Remove an Endowment",
+      "scene_prompt": "A simple closed personal notebook and small canvas bag on the end of an empty workshop meeting table, empty chairs and a maintained garden visible through the doorway. Quiet leaving-a-meeting scene, no money imagery.",
+      "shared_prompt": "Use case: photorealistic-natural. Asset type: wide landscape opener for Green Goods community documentation. Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Landscape 16:9, central subject inside middle 60% for mobile cropping. Strict constraints: NO PEOPLE OR HUMAN BODY PARTS anywhere; no human faces, heads, hands, silhouettes, portraits, reflections of people, background figures, statues or human images. No text, logos, screens, badges, currency or collage. ",
+      "width": 1672,
+      "height": 941,
+      "sha256": "2902c8a4271756b548a8896813e486a8364f03c1f2633c6682f78e4c2abfd0ce",
+      "edit_prompt": "Remove upper-right camera-like symbol; preserve all other objects and composition. No people, faces, text, logos or watermarks."
+    },
+    {
+      "file": "packages/shared/.storybook/fixture-art/documentation-seedlings-generated.jpg",
+      "created_at": "2026-10-17",
+      "method": "built-in image_gen; JPEG format conversion and size normalization only",
+      "page": "Fictional work and promise evidence in the community guides",
+      "scene_prompt": "Documentary phone photograph of freshly transplanted vegetable seedlings in moist garden soil, with natural imperfections and no text or overlays.",
+      "shared_prompt": "Realistic documentary task evidence. No people, human faces, heads, body parts, reflections, background figures, portraits, logos, readable text, UI or watermarks. These images illustrate fictional records and do not prove actual work.",
+      "width": 960,
+      "height": 720,
+      "sha256": "9a9e75271841bfc6ed156f20c9568b0d0d2d678a8a8b3c2b283b954f73b0f744"
+    },
+    {
+      "file": "packages/shared/.storybook/fixture-art/documentation-fence-after.jpg",
+      "created_at": "2026-10-17",
+      "method": "built-in image_gen; JPEG format conversion and size normalization only",
+      "page": "Fictional work and promise evidence in the community guides",
+      "scene_prompt": "Documentary phone photograph of a weathered garden fence with two fresh central replacement slats, neat screws and empty work gloves beside a tool on the ground.",
+      "shared_prompt": "Realistic documentary task evidence. No people, human faces, heads, body parts, reflections, background figures, portraits, logos, readable text, UI or watermarks. These images illustrate fictional records and do not prove actual work.",
+      "width": 960,
+      "height": 720,
+      "sha256": "5168878f12ad4a3bff9c3140de0b381af664ab4c39f19c031a94e6a2902576a0"
+    },
+    {
+      "file": "packages/shared/.storybook/fixture-art/documentation-fence-before.jpg",
+      "created_at": "2026-10-17",
+      "method": "built-in image_gen; JPEG format conversion and size normalization only",
+      "page": "Fictional work and promise evidence in the community guides",
+      "scene_prompt": "Before variant of the same fictional fence, same camera and daylight: two weathered split loose central slats, no new wood, no gloves or tool.",
+      "shared_prompt": "Realistic documentary task evidence. No people, human faces, heads, body parts, reflections, background figures, portraits, logos, readable text, UI or watermarks. These images illustrate fictional records and do not prove actual work.",
+      "width": 960,
+      "height": 720,
+      "sha256": "ddc909ddfabd41a8ac42b2bd876845520e453efdd1a398ce5d7e459c164143d7"
+    }
+  ],
+  "visual_constraints": {
+    "generated_artwork": "Do not show human faces, including background figures, reflections or portraits. New guide illustrations use objects and places without people.",
+    "review": "Visually inspect the entire composition and the opening crop before publication."
+  }
+}

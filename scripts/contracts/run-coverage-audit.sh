@@ -17,6 +17,10 @@ run_with_timeout() {
     local timeout_seconds="$1"
     local log_file="$2"
     shift 2
+    # Only the watchdog writes this marker, so another kill (such as out of memory) is not a timeout.
+    # Each note below starts on a new line, in case forge died mid-line.
+    local timeout_marker="$log_file.timed-out"
+    rm -f "$timeout_marker"
 
     "$@" >"$log_file" 2>&1 &
     local cmd_pid=$!
@@ -24,6 +28,7 @@ run_with_timeout() {
     (
         sleep "$timeout_seconds"
         if kill -0 "$cmd_pid" 2>/dev/null; then
+            : >"$timeout_marker"
             kill "$cmd_pid" 2>/dev/null || true
         fi
     ) &
@@ -34,9 +39,14 @@ run_with_timeout() {
     kill "$killer_pid" 2>/dev/null || true
     wait "$killer_pid" 2>/dev/null || true
 
-    if [[ "$cmd_exit" -eq 143 || "$cmd_exit" -eq 137 ]]; then
-        echo "TIMEOUT after ${timeout_seconds}s" >>"$log_file"
+    if [[ -f "$timeout_marker" ]]; then
+        rm -f "$timeout_marker"
+        printf '\nTIMEOUT after %ss\n' "$timeout_seconds" >>"$log_file"
         return 124
+    fi
+
+    if [[ "$cmd_exit" -eq 143 || "$cmd_exit" -eq 137 ]]; then
+        printf '\nKILLED by signal (exit %s) before the %ss timeout\n' "$cmd_exit" "$timeout_seconds" >>"$log_file"
     fi
 
     return "$cmd_exit"
@@ -46,12 +56,14 @@ pushd "$CONTRACTS_DIR" >/dev/null
 
 localCoverageOk=true
 localError=""
+failedCommandLog=""
 
 echo "[coverage] Running all local non-fork, non-E2E Solidity coverage..."
 if ! run_with_timeout "$COVERAGE_TIMEOUT_SECONDS" "$LOCAL_LOG" forge coverage --ir-minimum --report lcov \
     --no-match-contract 'E2E' --no-match-path 'test/fork/**'; then
     localCoverageOk=false
     localError="Local coverage command failed or timed out. See $LOCAL_LOG"
+    failedCommandLog="$LOCAL_LOG"
 else
     if [[ ! -f lcov.info ]]; then
         localCoverageOk=false
@@ -65,6 +77,7 @@ popd >/dev/null
 
 node "$ROOT_DIR/scripts/contracts/coverage-policy.mjs" \
     --local-lcov "$LOCAL_LCOV" \
+    --failed-command-log "$failedCommandLog" \
     --summary-md "$SUMMARY_MD" \
     --summary-json "$SUMMARY_JSON" \
     --local-ok "$localCoverageOk" \

@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/GoogleChrome/lighthouse-ci/main/docs/configuration.schema.json",
   "ci": {
     "collect": {
       "numberOfRuns": 3,

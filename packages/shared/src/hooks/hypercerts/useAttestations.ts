@@ -1,10 +1,16 @@
+import { isWorkVisible } from "../../modules/work/work-visibility";
+import { useWorkVisibility } from "../work/useWorkVisibility";
 import { useQuery } from "@tanstack/react-query";
 
 import type { Address } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
-import { applyAttestationFilters, extractWorkMetadata } from "../../modules/data/hypercerts";
+import {
+  applyAttestationFilters,
+  extractWorkMetadata,
+  getWorkActionDomains,
+} from "../../modules/data/hypercerts";
 import type { AttestationFilters, HypercertAttestation } from "../../types/hypercerts";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { hypercertsKeys } from "../../config/query-keys/hypercert";
@@ -31,6 +37,7 @@ export function useAttestations(
   filters?: AttestationFilters
 ): UseAttestationsResult {
   const chainId = DEFAULT_CHAIN_ID;
+  const visibility = useWorkVisibility(chainId);
 
   const query = useQuery({
     queryKey: hypercertsKeys.attestations(gardenId, filters),
@@ -45,6 +52,7 @@ export function useAttestations(
 
       // Build approval map by workUID - same join logic as useWorks
       const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
+      const workDomains = await getWorkActionDomains(works, chainId);
 
       // Join works with approvals and filter for approved
       const attestations: HypercertAttestation[] = [];
@@ -66,7 +74,7 @@ export function useAttestations(
           gardenId: work.gardenAddress,
           title: work.title || "Untitled work",
           actionType: metadata.actionType,
-          domain: metadata.domain,
+          domain: workDomains.get(work.actionUID),
           workScope: metadata.workScope ?? [],
           gardenerAddress: work.gardenerAddress as Address,
           gardenerName: null,
@@ -89,14 +97,21 @@ export function useAttestations(
   });
 
   return {
-    attestations: query.data ?? [],
-    isLoading: query.isLoading,
-    error: (query.error as Error) ?? null,
-    hasError: Boolean(query.error),
+    attestations: (query.data ?? []).filter((attestation) =>
+      visibility.isVisible(attestation.workUid)
+    ),
+    isLoading: query.isLoading || (!visibility.isReady && visibility.isLoading),
+    error: visibility.error ?? (query.error as Error) ?? null,
+    hasError: Boolean(query.error) || (!visibility.isReady && !visibility.isLoading),
     refetch: async () => {
       try {
+        const refreshed = await visibility.refetch();
+        const snapshot = refreshed.data ?? visibility.snapshot;
+        if (!snapshot) throw refreshed.error ?? new Error("Work visibility could not be read");
         const result = await query.refetch();
-        return result.data ?? [];
+        return (result.data ?? []).filter((attestation) =>
+          isWorkVisible(attestation.workUid, snapshot)
+        );
       } catch (error) {
         logger.error("[useAttestations] Refetch failed", {
           gardenId,

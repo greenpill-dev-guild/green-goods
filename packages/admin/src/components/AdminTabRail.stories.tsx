@@ -14,12 +14,14 @@ const meta: Meta<typeof AdminTabRail> = {
     docs: {
       description: {
         component: [
-          "**AdminTabRail** — underline tabs (Cockpit M3, finished — 1a).",
+          "**AdminTabRail** — the installed app's equal-width tabs at the Hub's 36px height (F8).",
           "",
           "Anatomy:",
-          "- Rail: flex row, 4px gap, hairline bottom rule on the warm stone border step",
-          "- Tab: 10px 16px padding, 14px text; active weight 600 in the workspace accent + 2px underline (tone use 1 of 3); inactive weight 500 sub ink, hover darkens text only",
-          "- Count badge: 1px 8px pill, 12px/600 — active `tone-primary-container` / `on-primary-container`, inactive the neutral chip pair",
+          "- Row: equal cells on a hairline rule in the warm stone border step. Below 640px the row fills the width; from 640px each cell stops at 180px and the row keeps to the left",
+          "- Cell: an equal share of the row, never narrower than its icon, label and count on one line, so a label never clips; a row that cannot hold its cells scrolls (D18)",
+          "- Label: 12px with 4px gaps and 6px sides on a phone, 14px with 8px gaps and 12px sides from 640px, weight 500 in both states",
+          "- Active: a 10% tint of the workspace accent fills the cell, and the label and a 2px underline take the accent itself (the tone's active-tab use); inactive sub ink, hover darkens text only",
+          "- Count badge: the shared `CountBadge`, 16px with 11px/600 numerals on the workspace tone's accent, only where something waits on the steward (DL-134); a total goes in the panel's own header line and a flag shows nothing",
           "- Hovers never shift hue or background — text darken only",
           "",
           "**Accessibility**:",
@@ -49,9 +51,41 @@ type Story = StoryObj<typeof AdminTabRail>;
 
 // --- helpers ----------------------------------------------------------------
 
+const SM_BREAKPOINT_PX = 640;
+const DESKTOP_CELL_MAX_PX = 180;
+const ADMIN_MOBILE_390_VIEWPORT = {
+  adminMobile390x844: {
+    name: "Admin mobile 390 x 844",
+    styles: { width: "390px", height: "844px" },
+    type: "mobile",
+  },
+} as const;
+
+function cellRects(rail: HTMLElement): DOMRect[] {
+  return Array.from(rail.querySelectorAll<HTMLElement>('[role="tab"]')).map((tab) =>
+    tab.getBoundingClientRect()
+  );
+}
+
+/** A selected cell carries the accent tint; an unselected one paints nothing. */
+function isTinted(tab: HTMLElement): boolean {
+  // The computed fill's channels; a fourth is its alpha, absent when opaque.
+  const channels = getComputedStyle(tab).backgroundColor.match(/[\d.]+/g) ?? [];
+  return channels.length >= 3 && Number(channels[3] ?? 1) > 0;
+}
+
+/** The label's own text, laid out whole inside its cell. */
+function labelFits(tab: HTMLElement, label: string): boolean {
+  const span = Array.from(tab.querySelectorAll("span")).find((node) => node.textContent === label);
+  if (!span) return false;
+  const text = span.getBoundingClientRect();
+  const cell = tab.getBoundingClientRect();
+  return text.left >= cell.left && text.right <= cell.right && span.scrollWidth <= span.clientWidth;
+}
+
 function StagesDemo({
   ariaLabel = "Sections",
-  initial = "review",
+  initial = "work",
 }: {
   ariaLabel?: string;
   initial?: string;
@@ -63,10 +97,10 @@ function StagesDemo({
       activeId={active}
       onChange={setActive}
       tabs={[
-        { id: "review", label: "Review", icon: RiTimeLine, count: 12 },
-        { id: "assess", label: "Assess", icon: RiCheckboxCircleLine, count: 5 },
-        { id: "certify", label: "Certify", icon: RiLeafLine, count: 3 },
-        { id: "history", label: "History", icon: RiListCheck2 },
+        { id: "work", label: "Work", icon: RiTimeLine, count: 12 },
+        { id: "confirm", label: "Confirm", icon: RiCheckboxCircleLine, count: 3 },
+        { id: "assess", label: "Assessments", icon: RiListCheck2 },
+        { id: "certify", label: "Hypercerts", icon: RiLeafLine },
       ]}
     />
   );
@@ -132,40 +166,40 @@ export const WithIconsAndCounts: Story = {
     const tablist = await canvas.findByRole("tablist", { name: /sections/i });
     await expect(tablist).toBeVisible();
 
-    const reviewTab = await canvas.findByRole("tab", { name: /Review/ });
-    const assessTab = await canvas.findByRole("tab", { name: /Assess/ });
-    const certifyTab = await canvas.findByRole("tab", { name: /Certify/ });
-    const historyTab = await canvas.findByRole("tab", { name: /History/ });
+    const workTab = await canvas.findByRole("tab", { name: /Work/ });
+    const confirmTab = await canvas.findByRole("tab", { name: /Confirm/ });
+    const assessTab = await canvas.findByRole("tab", { name: /Assessments/ });
+    const certifyTab = await canvas.findByRole("tab", { name: /Hypercerts/ });
 
-    // Initial: review is active and tabbable; others are not in the tab order.
-    await expect(reviewTab).toHaveAttribute("aria-selected", "true");
-    await expect(reviewTab).toHaveAttribute("tabindex", "0");
-    await expect(assessTab).toHaveAttribute("tabindex", "-1");
+    // Initial: work is active and tabbable; others are not in the tab order.
+    await expect(workTab).toHaveAttribute("aria-selected", "true");
+    await expect(workTab).toHaveAttribute("tabindex", "0");
+    await expect(confirmTab).toHaveAttribute("tabindex", "-1");
 
-    // ArrowRight from review → assess.
-    reviewTab.focus();
+    // ArrowRight from work → confirm.
+    workTab.focus();
     await userEvent.keyboard("{ArrowRight}");
-    await expect(assessTab).toHaveAttribute("aria-selected", "true");
-    await expect(assessTab).toHaveAttribute("tabindex", "0");
+    await expect(confirmTab).toHaveAttribute("aria-selected", "true");
+    await expect(confirmTab).toHaveAttribute("tabindex", "0");
 
-    // End jumps to History.
+    // End jumps to Hypercerts.
     await userEvent.keyboard("{End}");
-    await expect(historyTab).toHaveAttribute("aria-selected", "true");
+    await expect(certifyTab).toHaveAttribute("aria-selected", "true");
 
-    // Home jumps back to Review. The handler moves focus via rAF, so
+    // Home jumps back to Work. The handler moves focus via rAF, so
     // explicitly refocus the just-selected tab before the next keypress
     // to avoid races in headless test runners.
     await userEvent.keyboard("{Home}");
-    await expect(reviewTab).toHaveAttribute("aria-selected", "true");
-    reviewTab.focus();
+    await expect(workTab).toHaveAttribute("aria-selected", "true");
+    workTab.focus();
 
-    // ArrowLeft from Review wraps to History.
+    // ArrowLeft from Work wraps to Hypercerts.
     await userEvent.keyboard("{ArrowLeft}");
-    await expect(historyTab).toHaveAttribute("aria-selected", "true");
+    await expect(certifyTab).toHaveAttribute("aria-selected", "true");
 
     // Click still works alongside the keyboard handler.
-    await userEvent.click(certifyTab);
-    await expect(certifyTab).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(assessTab);
+    await expect(assessTab).toHaveAttribute("aria-selected", "true");
   },
 };
 
@@ -180,10 +214,10 @@ export const NarrowActionsLifecycle: Story = {
             activeId={active}
             onChange={setActive}
             tabs={[
-              { id: "all", label: "All", count: 22 },
-              { id: "active", label: "Active", count: 8 },
-              { id: "upcoming", label: "Upcoming", count: 10 },
-              { id: "completed", label: "Completed", count: 4 },
+              { id: "all", label: "All" },
+              { id: "active", label: "Active" },
+              { id: "upcoming", label: "Upcoming" },
+              { id: "completed", label: "Completed" },
             ]}
           />
         </div>
@@ -194,8 +228,9 @@ export const NarrowActionsLifecycle: Story = {
 };
 
 /**
- * On a 375px phone the Hub's four tabs are wider than its 283px rail. The
- * clipped edge fades so the rail reads as scrollable, and tabs snap as it
+ * Review's four cells, each with an icon, a label and a count, need more than
+ * a phone's rail even at 12px, so the row scrolls instead of clipping a label.
+ * The clipped edge fades so the rail reads as scrollable, and tabs snap as it
  * scrolls (D18).
  */
 export const OverflowOnAPhone: Story = {
@@ -206,7 +241,7 @@ export const OverflowOnAPhone: Story = {
       return (
         <div style={{ width: 283 }}>
           <AdminTabRail
-            ariaLabel="Hub stages"
+            ariaLabel="Review stages"
             activeId={active}
             onChange={setActive}
             tabs={[
@@ -222,7 +257,7 @@ export const OverflowOnAPhone: Story = {
     return <Demo />;
   },
   play: async ({ canvasElement }) => {
-    const rail = await within(canvasElement).findByRole("tablist", { name: "Hub stages" });
+    const rail = await within(canvasElement).findByRole("tablist", { name: "Review stages" });
     const fades = () => {
       const style = getComputedStyle(rail);
       return (style.maskImage || style.getPropertyValue("-webkit-mask-image")) !== "none";
@@ -234,6 +269,125 @@ export const OverflowOnAPhone: Story = {
     rail.scrollLeft = rail.scrollWidth;
     await waitFor(() => expect(rail).toHaveAttribute("data-overflow", "start"));
     await expect(fades()).toBe(true);
+  },
+};
+
+/**
+ * From 640px each cell takes an equal share of the row up to 180px and the row
+ * keeps to the left. The Portuguese Community row carries the Hub's longest
+ * route label, "Coordenação"; its four cells make a 720px row. The tint and the
+ * underline follow the selected tab.
+ */
+export const EqualCellsOnDesktop: Story = {
+  tags: ["storybook-ci"],
+  render: () => {
+    const Demo = () => {
+      const [active, setActive] = useState("members");
+      return (
+        <div style={{ width: "100%" }}>
+          <AdminTabRail
+            ariaLabel="Visualizações da comunidade"
+            activeId={active}
+            onChange={setActive}
+            tabs={[
+              { id: "members", label: "Membros", count: 3 },
+              { id: "coordination", label: "Coordenação" },
+              { id: "endowment", label: "Provisão" },
+              { id: "payouts", label: "Pagamentos" },
+            ]}
+          />
+        </div>
+      );
+    };
+    return <Demo />;
+  },
+  play: async ({ canvasElement }) => {
+    // The cap applies from the `sm` breakpoint; fail loud if the runner's
+    // viewport drops below it, or leaves less room than four full cells.
+    await expect(window.innerWidth).toBeGreaterThanOrEqual(SM_BREAKPOINT_PX);
+    const canvas = within(canvasElement);
+    const rail = await canvas.findByRole("tablist", { name: "Visualizações da comunidade" });
+    const room = rail.parentElement?.getBoundingClientRect();
+    await expect(room?.width ?? 0).toBeGreaterThan(4 * DESKTOP_CELL_MAX_PX);
+
+    // The row, rule included, ends with its fourth 180px cell at the left.
+    const railBox = rail.getBoundingClientRect();
+    await expect(Math.abs(railBox.width - 4 * DESKTOP_CELL_MAX_PX)).toBeLessThan(0.5);
+    await expect(Math.abs(railBox.left - (room?.left ?? 0))).toBeLessThan(0.5);
+    for (const cell of cellRects(rail)) {
+      await expect(Math.abs(cell.width - DESKTOP_CELL_MAX_PX)).toBeLessThan(0.5);
+    }
+    // The flag follows the rail's resize observer, which reports a frame after
+    // the layout read above, so a first render at another width can leave it
+    // stale for that frame.
+    await waitFor(() => expect(rail).toHaveAttribute("data-overflow", "none"));
+    await expect(labelFits(canvas.getByRole("tab", { name: "Coordenação" }), "Coordenação")).toBe(
+      true
+    );
+
+    const members = canvas.getByRole("tab", { name: /Membros/ });
+    const payouts = canvas.getByRole("tab", { name: /Pagamentos/ });
+    await expect(members).toHaveAttribute("aria-selected", "true");
+    await expect(isTinted(members)).toBe(true);
+    await expect(isTinted(payouts)).toBe(false);
+
+    await userEvent.click(payouts);
+    await expect(payouts).toHaveAttribute("aria-selected", "true");
+    // The fill eases between the two cells; wait for it to settle.
+    await waitFor(() => expect(isTinted(members)).toBe(false));
+    await expect(isTinted(payouts)).toBe(true);
+  },
+};
+
+/**
+ * Below 640px the row fills the phone's width. The Portuguese Garden row at a
+ * 320px phone's 296px rail: every label sits whole in its cell at 12px, so the
+ * row needs no scroll. A cell whose label needs more than an equal share takes
+ * only that much more.
+ */
+export const FullWidthOnAPhone: Story = {
+  tags: ["storybook-ci"],
+  parameters: { viewport: { options: ADMIN_MOBILE_390_VIEWPORT } },
+  globals: { viewport: { value: "adminMobile390x844" } },
+  render: () => {
+    const Demo = () => {
+      const [active, setActive] = useState("health");
+      return (
+        <div style={{ width: 296 }}>
+          <AdminTabRail
+            ariaLabel="Visualizações do jardim"
+            activeId={active}
+            onChange={setActive}
+            tabs={[
+              { id: "health", label: "Saúde", count: 2 },
+              { id: "impact", label: "Impacto" },
+              { id: "activity", label: "Atividade" },
+              { id: "pool", label: "Promessas" },
+            ]}
+          />
+        </div>
+      );
+    };
+    return <Demo />;
+  },
+  play: async ({ canvasElement }) => {
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+    const canvas = within(canvasElement);
+    const rail = await canvas.findByRole("tablist", { name: "Visualizações do jardim" });
+    const railBox = rail.getBoundingClientRect();
+    const cells = cellRects(rail);
+
+    // The cells span the rail edge to edge, and nothing scrolls.
+    await expect(Math.abs(cells[0].left - railBox.left)).toBeLessThan(0.5);
+    await expect(Math.abs(cells[cells.length - 1].right - railBox.right)).toBeLessThan(0.5);
+    // The flag follows the rail's resize observer, a frame behind the layout.
+    await waitFor(() => expect(rail).toHaveAttribute("data-overflow", "none"));
+
+    for (const label of ["Saúde", "Impacto", "Atividade", "Promessas"]) {
+      const tab = canvas.getByRole("tab", { name: new RegExp(label) });
+      await expect(labelFits(tab, label)).toBe(true);
+      await expect(getComputedStyle(tab).fontSize).toBe("12px");
+    }
   },
 };
 
@@ -250,7 +404,7 @@ export const StateCatalog: Story = {
             { id: "overview", label: "Overview", count: 2 },
             { id: "impact", label: "Impact", icon: RiLeafLine },
             { id: "treasury", label: "Treasury", disabled: true },
-            { id: "history", label: "History", count: 128 },
+            { id: "history", label: "History" },
           ]}
         />
       );
@@ -292,10 +446,10 @@ export const CountStates: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await expect(canvas.getByRole("tab", { name: "Single 1 item" })).toBeVisible();
-    await expect(canvas.getByRole("tab", { name: "Many 99 items" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Single 1 waiting" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Many 99 waiting" })).toBeVisible();
     // Visible badge reads "99+"; the accessible name keeps the real number.
-    await expect(canvas.getByRole("tab", { name: "Overflow 1,234 items" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Overflow 1,234 waiting" })).toBeVisible();
     // A zero count renders no badge at all.
     await expect(canvas.getByRole("tab", { name: "None" })).toBeVisible();
   },
@@ -307,12 +461,12 @@ function ToneFrame({
   tone,
   children,
 }: {
-  tone: "hub" | "garden" | "community" | "actions";
+  tone: "review" | "garden" | "community" | "actions";
   children: React.ReactNode;
 }) {
   return (
     <div data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
-      <div className="mb-2 text-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
+      <div className="mb-2 type-meta-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
         [data-tone=&quot;{tone}&quot;]
       </div>
       {children}
@@ -321,14 +475,14 @@ function ToneFrame({
 }
 
 /**
- * Hub tone — `[data-tone="hub"]`, blue accent on the active underline + count
- * chip. Visual weight stays neutral; tone reads as "context", not "content"
- * per `DESIGN_NOTES § Tone system`.
+ * Review tone — `[data-tone="review"]`, blue accent on the active cell's tint, label
+ * and underline, and on every count badge. Visual weight stays neutral; tone
+ * reads as "context", not "content" per `DESIGN_NOTES § Tone system`.
  */
-export const HubTone: Story = {
+export const ReviewTone: Story = {
   render: () => (
-    <ToneFrame tone="hub">
-      <StagesDemo ariaLabel="Hub stages" />
+    <ToneFrame tone="review">
+      <StagesDemo ariaLabel="Review stages" />
     </ToneFrame>
   ),
 };

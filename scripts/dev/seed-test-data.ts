@@ -9,7 +9,7 @@
  * - Sample work submissions (pending and approved)
  *
  * Usage:
- *   bun scripts/seed-test-data.ts
+ *   bun scripts/dev/seed-test-data.ts
  *
  * Prerequisites:
  *   - Anvil running on the configured fork URL and port

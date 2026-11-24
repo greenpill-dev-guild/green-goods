@@ -1,19 +1,23 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AdminSignInContainer } from "@/components/AdminSignIn";
+import {
+  clearPasskeyRequestAtBoot,
+  isEmailSignInOfferedAtBoot,
+} from "@/components/Boot/bootPasskeyRequest";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
 import { AdminAccessHomeShell } from "./CanvasLayout";
+import { ConnectPrompt } from "./ConnectPrompt";
 import { WalletRequiredConnectShell } from "./ConnectShell";
-import { SeedlingIllustration } from "./SeedlingIllustration";
 import { StewardAccessRequestContainer } from "./StewardAccessRequest";
 
 interface AdminAccessStateRendererProps {
@@ -26,6 +30,15 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
+  // Every state but these two has a session: ready, no access, an embedded wallet, or an
+  // indexer that failed after sign-in.
+  const signedIn = state.status !== "checking" && state.status !== "disconnected";
+  // A passkey chosen at boot is for the sign-in that follows. A session that opens without
+  // that sign-in (another tab signed in meanwhile) lets it go, so a later sign-out starts at
+  // the entry.
+  useEffect(() => {
+    if (signedIn) clearPasskeyRequestAtBoot();
+  }, [signedIn]);
 
   if (state.status === "ready") {
     return <>{ready}</>;
@@ -47,7 +60,8 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
     return (
       <WalletRequiredConnectShell
         action={
-          <AdminButton
+          <Button
+            size="sm"
             type="button"
             onClick={() => {
               void state.signOut();
@@ -55,41 +69,41 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           >
             {intl.formatMessage({
               id: "app.admin.auth.signOutAndReconnect",
-              defaultMessage: "Sign Out & Connect Wallet",
+              defaultMessage: "Sign Out & Sign In Again",
             })}
-          </AdminButton>
+          </Button>
         }
       />
     );
   }
 
   if (state.status === "disconnected") {
+    // The same connect surface as the boot screen, so a steward sees one sign-in
+    // whichever route, reload or sign-out brought them here.
     return (
-      <AdminAccessHomeShell key="signed-out">
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
-        >
-          <SeedlingIllustration className="h-28 w-28" />
-          <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
-            {intl.formatMessage({
-              id: "app.admin.auth.connectRequired",
-              defaultMessage: "Connect to continue",
-            })}
-          </h1>
-          <p className="mt-2 max-w-md body-sm text-text-sub">
-            {intl.formatMessage({
-              id: "app.admin.auth.connectPrompt",
-              defaultMessage:
-                "Connect your wallet or sign in with a passkey to access this feature.",
-            })}
-          </p>
-          <div className="mt-6 w-full max-w-sm">
-            <AdminSignInContainer />
-          </div>
-        </main>
-      </AdminAccessHomeShell>
+      <main id="main-content" tabIndex={-1} key="signed-out">
+        <ConnectPrompt
+          title={intl.formatMessage({
+            id: "app.admin.auth.connectRequired",
+            defaultMessage: "Connect to continue",
+          })}
+          description={intl.formatMessage(
+            isEmailSignInOfferedAtBoot()
+              ? {
+                  id: "app.admin.auth.connectPromptWithEmail",
+                  defaultMessage:
+                    "Sign in with a passkey, your email or a wallet to open the Green Goods Hub.",
+                }
+              : {
+                  id: "app.admin.auth.connectPrompt",
+                  defaultMessage:
+                    "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
+                }
+          )}
+          action={<AdminSignInContainer />}
+          testId="admin-sign-in-shell"
+        />
+      </main>
     );
   }
 

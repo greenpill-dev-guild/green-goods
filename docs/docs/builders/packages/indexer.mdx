@@ -4,7 +4,7 @@ sidebar_label: Indexer
 slug: /builders/packages/indexer
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-15
 feature_status: Live
 source_of_truth:
   - packages/indexer/AGENTS.md
@@ -26,6 +26,16 @@ memberships, vaults, and module state arrive as queryable entities instead of ra
 One boundary defines this package: **it indexes protocol events, not EAS attestations**. Work,
 approval, and assessment records are read through shared's [EAS data layer](../integrations/eas);
 keeping attestations out of Envio keeps the two truth paths independently verifiable.
+
+```mermaid
+flowchart TB
+  accTitle: The two read paths
+  accDescr: Envio projects protocol events into GraphQL. EAS attestations use a separate shared data layer.
+  events["Protocol events"] --> handlers["Envio handlers"]
+  handlers --> models["GraphQL read models"]
+  models --> readers["Apps and Agent reporting"]
+  eas["EAS attestations"] -.-> separate["Separate Shared EAS reader"]
+```
 
 ## Map
 

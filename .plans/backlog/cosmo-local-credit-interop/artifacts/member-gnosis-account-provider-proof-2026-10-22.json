@@ -1,0 +1,1075 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-23T00:05:35.391Z",
+  "headAtInvestigation": "c40697f6e9696ec710f5f482e708b8ab3fce80bd",
+  "evidenceClass": "Read-only Alchemy node observations, published provider matrices and fictional local signing proof; no member control or provider certification",
+  "provider": "User-approved Green Goods Alchemy app",
+  "pin": {
+    "chainId": 100,
+    "network": "gnosis-mainnet",
+    "number": "0x2ea09ff",
+    "blockDecimal": 48892415,
+    "hash": "0xe420e6be6351e11cb1326fa62eb9271e33ca6fffb0cc2719c9e6747f21fb1b36",
+    "stateRoot": "0x8b80b80804431c2e9808bf86e4364165b4d2ad69bc9004a418dfd23ce5e17abe",
+    "timestamp": "0x6adaa28b"
+  },
+  "configuration": {
+    "permissionless": "0.2.57",
+    "viem": "2.55.13",
+    "kernel": "0.3.1",
+    "entryPointVersion": "0.7",
+    "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+    "factory": "0xaac5D4240AF87249B3f71BC8E4A2cae074A3E419",
+    "metaFactory": "0xd703aaE79538628d27099B8c4f621bE4CCd142d5",
+    "implementation": "0xBAC849bB641841b44E965fB01A4Bf5F074f84b4D",
+    "validator": "0xbA45a2BFb8De3D24cA9D7F1B551E14dFF5d690Fd",
+    "salt": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "reads": [
+    {
+      "name": "legacyValidatorCode",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "\"0x\""
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "name": "fictionalAccountCode",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "\"0x\""
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "name": "getAddress",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "\"0x0000000000000000000000009546b80b2faf5d5a9905c752d26b60296d6bc305\""
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "name": "createAccount",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "RPC error (3): execution reverted"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    },
+    {
+      "name": "deployWithFactory",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "RPC error (3): execution reverted"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    }
+  ],
+  "alchemyAccountAbstractionProbe": {
+    "method": "supportedEntryPoints",
+    "network": "gnosis-mainnet",
+    "response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "RPC error (-32600): Unsupported method: supportedEntryPoints on GNOSIS_MAINNET"
+        }
+      ],
+      "structuredContent": {
+        "error_code": "INVALID_ARGUMENT"
+      },
+      "isError": true
+    },
+    "limit": "Connector method/network rejection only; not a test of every canonical ERC-4337 endpoint or custom provider offering"
+  },
+  "publishedProviderObservations": [
+    {
+      "source": "https://docs.pimlico.io/guides/supported-chains",
+      "observedAt": "2026-10-22",
+      "chain": 100,
+      "entryPoint07Bundler": true,
+      "entryPoint07Paymaster": true,
+      "kernel031ListedSupported": false,
+      "limit": "Published matrix; no configured policy or endpoint certification"
+    },
+    {
+      "source": "https://www.alchemy.com/docs/wallets/supported-chains",
+      "observedAt": "2026-10-22",
+      "gnosisListed": false,
+      "limit": "Published Wallet API table omits Gnosis; successful node RPC is separate"
+    },
+    {
+      "source": "https://docs.zerodev.app/onboarding/passkeys/overview",
+      "observedAt": "2026-10-22",
+      "exampleKernel": "V3_3",
+      "exampleValidator": "V0_0_3_PATCHED",
+      "limit": "Current example is not certification of the selected Kernel 0.3.1 profile or migration helper"
+    }
+  ],
+  "limits": [
+    "No production account/provider policy changed or new provider selected.",
+    "No actual member credential, browser ceremony, hosted bundler/paymaster/sponsorship or recovery proved.",
+    "Gnosis legacy code and factory failures are fresh RPC observations; revert data omitted, no cause decoded.",
+    "Helper source/build/security provenance remains unresolved.",
+    "COM-46 approval remains unproved; latest prior recorded read was In Progress with no approved evidence supplied."
+  ],
+  "localRootSigningProof": {
+    "schemaVersion": 1,
+    "observedAt": "2026-10-23T00:05:06.622Z",
+    "head": "c40697f6e9696ec710f5f482e708b8ab3fce80bd",
+    "workingTreeStatus": " M packages/shared/package.json\n?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/root-signing-proof.mjs\n",
+    "sourceHashes": {
+      ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/root-signing-proof.mjs": "d82a799b01d0a5ddf143930e167c568d5d6614a65da3d04dcfa4ccf33364a59a",
+      ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/fixture.mjs": "ce2df88237ad8fae006bb5a9c1005aea5fc5e4d876dfe4d26970154f05a11873",
+      ".plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-2026-10-22.json": "a771b2f0f63e3091cbfc0ed39e8af51e68722099e14f7b2874ed0a5649d84d64",
+      ".plans/backlog/cosmo-local-credit-interop/artifacts/member-migration-characterization-2026-10-22.json": "35fc14d75d5f4126d3beb616766a05e81aef247eae303a4f81c5816b240b2946",
+      "packages/contracts/test/helpers/MemberMigrationFailureFixture.sol": "ea0e63afecac547e4b25f2f755698912338f3718b5c84c1e0caa8645bfd7a46c",
+      "packages/contracts/.generated/foundry/out/default/MemberMigrationFailureFixture.sol/MemberMigrationFailureFixture.json": "51a215ab554588b1467767f675a85d35e63f97a73948c8a8b41c1a875c388452",
+      "packages/contracts/foundry.toml": "15cc15d84e9d12c566ca2a6a5a9562fee1d51b373c7f81cb2a9ea83ce5028244",
+      "packages/contracts/foundry.lock": "748e3d344ecbf6a0f6e8d16053e437954c3755b9a567b9fa06461bd55ebc886b",
+      "packages/contracts/package.json": "e948e9693b93cd14c09caac1bffed2cf62a088386722cf0d7c24d5a77ab3a69e",
+      "packages/shared/package.json": "949369a983568bcae31abcdcc6c5e644e6eba3c2bc39f10437e86bba126be5c9",
+      "bun.lock": "85cb5b30fabdce6225c2b44337336ca7f90a95fe99aea26d5637606c8d0094d6",
+      "node_modules/.bun/permissionless@0.2.57+fc74d5abac655535/node_modules/permissionless/accounts/kernel/toKernelSmartAccount.ts": "98ab1f81c5fbc4a8f4ce2f2a21e052fa21db1069d2472f7944091a5dd2b0b6ab",
+      "node_modules/.bun/permissionless@0.2.57+fc74d5abac655535/node_modules/permissionless/accounts/kernel/utils/getNonceKey.ts": "9d6aa25e7b44b0bdccc62b362a3e6fd8db29261fbc1e944a8f672b1f2ce8b355"
+    },
+    "command": [
+      "/Users/afo/.bun/bin/bun",
+      "/Users/afo/Code/greenpill/green-goods/.plans/backlog/cosmo-local-credit-interop/proofs/member-migration/root-signing-proof.mjs"
+    ],
+    "chainId": 100,
+    "pin": {
+      "network": "gnosis-mainnet",
+      "number": "0x2e9fa9c",
+      "blockNumber": 48888476,
+      "hash": "0x11a68d53c3dc81c412402cc1393e379358763ede55ab53fe0a9e361b21878867",
+      "stateRoot": "0x3c236e000bfa05bfc0db558132ab2f1c7105a8a917895f50956cf207730d28d6",
+      "timestamp": "0x6ada547a"
+    },
+    "address": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+    "dependencies": {
+      "entryPoint": {
+        "address": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+        "codeHash": "0x8db5ff695839d655407cc8490bb7a5d82337a86a6b39c3f0258aa6c3b582fc58"
+      },
+      "implementation": {
+        "address": "0xBAC849bB641841b44E965fB01A4Bf5F074f84b4D",
+        "codeHash": "0x36377ba9ba3ff415ecca4f235f1a480f1fc4abb653c3bf711568e1ffbb3c9532"
+      },
+      "factory": {
+        "address": "0xaac5D4240AF87249B3f71BC8E4A2cae074A3E419",
+        "codeHash": "0xeecde6f459d0ecadbd5b76e89de74d8187b52d5c71651fdfc007c45d4f2f3ca0"
+      },
+      "metaFactory": {
+        "address": "0xd703aaE79538628d27099B8c4f621bE4CCd142d5",
+        "codeHash": "0x4527f3642a53f1f4ce76beb05f955a8859b7245a1ff20da5be9a518d2fcd64aa"
+      },
+      "legacy": {
+        "address": "0xbA45a2BFb8De3D24cA9D7F1B551E14dFF5d690Fd",
+        "codeHash": "0x17589a97c20e5e650d920a76e13ae0f05efcc719b96eb352bc9504d0ae946d07"
+      },
+      "patched": {
+        "address": "0x7ab16Ff354AcB328452F1D445b3Ddee9a91e9e69",
+        "codeHash": "0x726d987ac55574f77f5184326631c5c51142f94c16c9b9281b751f97519c9eea"
+      },
+      "controlledFixture": {
+        "address": "0x5416adf327242b7224413dcd6e454ffcb5c1e73c",
+        "codeHash": "0x19155e85744d1b7fb19382c47b0c9e4b37e4a74e4b5c55cf83909b06e0d9a41e"
+      }
+    },
+    "nodeInfo": {
+      "environment": {
+        "baseFee": "0xb",
+        "chainId": 100,
+        "gasLimit": "0x1036640",
+        "gasPrice": "0x3b9aca0b"
+      },
+      "hardFork": "Bpo1",
+      "clientVersion": "anvil/v1.7.1"
+    },
+    "rows": [
+      {
+        "label": "canonical_creation_and_controlled_root_change",
+        "original": {
+          "account": {
+            "exists": false,
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
+            "storage": {
+              "validation": "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "implementation": "0x0000000000000000000000000000000000000000000000000000000000000000"
+            },
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": ["0", "0"]
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009408",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384000",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "changed": {
+          "receipt": {
+            "transaction": "0xbf776a65c60d588da9908189ef46627ebd78290087d0c3040399067c29f65a54",
+            "status": "success",
+            "event": {
+              "userOpHash": "0xc0c4f0ecc19fcf1d7caf3f4231ec8a4ac52348f819da07ba07e23fdeccba39a4",
+              "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
+              "paymaster": "0x0000000000000000000000000000000000000000",
+              "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
+              "success": true,
+              "actualGasCost": "6458445",
+              "actualGasUsed": "922635"
+            },
+            "operation": {
+              "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+              "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
+              "factory": "0xd703aaE79538628d27099B8c4f621bE4CCd142d5",
+              "factoryData": "0xc5265d5d000000000000000000000000aac5d4240af87249b3f71bc8e4a2cae074a3e4190000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001643c3b752b01bA45a2BFb8De3D24cA9D7F1B551E14dFF5d690Fd0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000000606b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f536f43ee3cf965173c103a76bc9f629ac7d0b1eccd8adf3bed16f08c4775be58f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+              "callData": "0xe9ae5c53ff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000d85416adf327242b7224413dcd6e454ffcb5c1e73c40416a15017ab16Ff354AcB328452F1D445b3Ddee9a91e9e690000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000606b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f536f43ee3cf965173c103a76bc9f629ac7d0b1eccd8adf3bed16f08c4775be58f0000000000000000",
+              "verificationGasLimit": "2500000",
+              "callGasLimit": "600000",
+              "preVerificationGas": "100000",
+              "maxFeePerGas": "1000000016",
+              "maxPriorityFeePerGas": "0",
+              "signature": "omitted: synthetic fixture signature"
+            },
+            "userOpHash": "0xc0c4f0ecc19fcf1d7caf3f4231ec8a4ac52348f819da07ba07e23fdeccba39a4"
+          },
+          "validators": [
+            {
+              "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+              "to": "0xba45a2bfb8de3d24ca9d7f1b551e14dff5d690fd",
+              "type": "CALL",
+              "selector": "0x97003203",
+              "output": "0x0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        "afterChange": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": true,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009409",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384000",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      },
+      {
+        "label": "old_client_root_nonce_dispatches_active_patched_validator",
+        "receipt": {
+          "transaction": "0x9b65431f43d2b96e63789c1ef9c3bc065d74cac5699557aea70ddac68547a7ee",
+          "status": "success",
+          "event": {
+            "userOpHash": "0xd635add3bc2b959a2a760310f282431eb70d9ede32adaa20247adee74ac695bb",
+            "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
+            "paymaster": "0x0000000000000000000000000000000000000000",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
+            "success": true,
+            "actualGasCost": "4453757",
+            "actualGasUsed": "636251"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000389546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000f1f7f0f90000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0xd635add3bc2b959a2a760310f282431eb70d9ede32adaa20247adee74ac695bb"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "migrationReady": false
+      },
+      {
+        "label": "patched_root_authorizes_explicit_legacy_uninstall",
+        "receipt": {
+          "transaction": "0xe492623373752c3373564f125991e15ae993e0b2436460b88028b03f05fb99a0",
+          "status": "success",
+          "event": {
+            "userOpHash": "0x5c5aa2dda36ade5326e22ad4c170c10feb20473af9a7d001f35266e2e6cb65e4",
+            "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
+            "paymaster": "0x0000000000000000000000000000000000000000",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384000",
+            "success": true,
+            "actualGasCost": "4718518",
+            "actualGasUsed": "674074"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384000",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000b89546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000a71763a80000000000000000000000000000000000000000000000000000000000000001000000000000000000000000ba45a2bfb8de3d24ca9d7f1b551e14dff5d690fd000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0x5c5aa2dda36ade5326e22ad4c170c10feb20473af9a7d001f35266e2e6cb65e4"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "afterRemoval": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": false,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000000"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384001",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      },
+      {
+        "label": "patched_client_signs_after_uninstall_at_same_address",
+        "receipt": {
+          "transaction": "0xf398ad7ba1efb8e95934a229ba708d610e53d3d5182c1e8e376002b81d4fb3f7",
+          "status": "success",
+          "event": {
+            "userOpHash": "0x4e3f397a350fc566c6047275d8ce992bc5dfe3706521ad051aef128f32dcb19c",
+            "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
+            "paymaster": "0x0000000000000000000000000000000000000000",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384001",
+            "success": true,
+            "actualGasCost": "4521405",
+            "actualGasUsed": "645915"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384001",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000389546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000f1f7f0f90000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0x4e3f397a350fc566c6047275d8ce992bc5dfe3706521ad051aef128f32dcb19c"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "after": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": false,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000000"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384002",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      },
+      {
+        "label": "identical_patched_operation_replay_rejected",
+        "receipt": {
+          "transaction": "0xc2bc734cd9e3d0128f4f95f51187d498b98b1a8cdcdc7b5de969fc98d1857fda",
+          "status": "reverted",
+          "outerFailure": {
+            "abiItem": {
+              "inputs": [
+                {
+                  "name": "opIndex",
+                  "type": "uint256"
+                },
+                {
+                  "name": "reason",
+                  "type": "string"
+                }
+              ],
+              "name": "FailedOp",
+              "type": "error"
+            },
+            "args": ["0", "AA25 invalid account nonce"],
+            "errorName": "FailedOp"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384001",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000389546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000f1f7f0f90000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0x4e3f397a350fc566c6047275d8ce992bc5dfe3706521ad051aef128f32dcb19c"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "after": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": false,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000000"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384002",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      },
+      {
+        "label": "explicit_uninstalled_legacy_validator_rejected",
+        "receipt": {
+          "transaction": "0xf95c929015412d6142a28665c3d9424f752b1213231c9b5614e2df2397215613",
+          "status": "reverted",
+          "outerFailure": {
+            "abiItem": {
+              "inputs": [
+                {
+                  "name": "opIndex",
+                  "type": "uint256"
+                },
+                {
+                  "name": "reason",
+                  "type": "string"
+                },
+                {
+                  "name": "inner",
+                  "type": "bytes"
+                }
+              ],
+              "name": "FailedOpWithRevert",
+              "type": "error"
+            },
+            "args": ["0", "AA23 reverted", "0x682a6e7c"],
+            "errorName": "FailedOpWithRevert"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "3052449261062627122512307950750860484493987618534698646682996599825629184",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000389546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000f1f7f0f90000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0xed0dfc2934528a7267f3a105b3c225c833e35d0e3c2f14791983f0c9d2d2382e"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0xba45a2bfb8de3d24ca9d7f1b551e14dff5d690fd",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "after": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": false,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000000"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384002",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      },
+      {
+        "label": "patched_wrong_chain_rejected",
+        "receipt": {
+          "transaction": "0x1b128a4cdbc10df14f44645fac66987933fe63a40056e8520b776464c8050bb2",
+          "status": "reverted",
+          "outerFailure": {
+            "abiItem": {
+              "inputs": [
+                {
+                  "name": "opIndex",
+                  "type": "uint256"
+                },
+                {
+                  "name": "reason",
+                  "type": "string"
+                }
+              ],
+              "name": "FailedOp",
+              "type": "error"
+            },
+            "args": ["0", "AA24 signature error"],
+            "errorName": "FailedOp"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384002",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000389546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000f1f7f0f90000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0x6fa36a912fee002153f6e8be31c296a7b21da7a8f3c3f7aa0aa5035c6bc517b5"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "after": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": false,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000000"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384002",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      },
+      {
+        "label": "patched_wrong_account_rejected",
+        "receipt": {
+          "transaction": "0xed81147e20eef81e4c395e612e1855838a2bae33d21b6d106409857a8ec677cc",
+          "status": "reverted",
+          "outerFailure": {
+            "abiItem": {
+              "inputs": [
+                {
+                  "name": "opIndex",
+                  "type": "uint256"
+                },
+                {
+                  "name": "reason",
+                  "type": "string"
+                }
+              ],
+              "name": "FailedOp",
+              "type": "error"
+            },
+            "args": ["0", "AA24 signature error"],
+            "errorName": "FailedOp"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384002",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000389546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000f1f7f0f90000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0x6fa36a912fee002153f6e8be31c296a7b21da7a8f3c3f7aa0aa5035c6bc517b5"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "after": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": false,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000000"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384002",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      },
+      {
+        "label": "patched_changed_payload_rejected",
+        "receipt": {
+          "transaction": "0xff0ef8e9e743cc868c96252e0877dd00741a60bfc063014480105c347b503110",
+          "status": "reverted",
+          "outerFailure": {
+            "abiItem": {
+              "inputs": [
+                {
+                  "name": "opIndex",
+                  "type": "uint256"
+                },
+                {
+                  "name": "reason",
+                  "type": "string"
+                }
+              ],
+              "name": "FailedOp",
+              "type": "error"
+            },
+            "args": ["0", "AA24 signature error"],
+            "errorName": "FailedOp"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384002",
+            "callData": "0xe9ae5c53ff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000185416adf327242b7224413dcd6e454ffcb5c1e73c3d5060bf0000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0x02aadfc263b4aadb4ebf832b90774fa366922bb6b525b40adc9a5327cd96eaad"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "after": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": false,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000000"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384002",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      },
+      {
+        "label": "corrected_patched_signature_reuses_unconsumed_nonce",
+        "receipt": {
+          "transaction": "0x56f8a17e41246141c35eb274c71c6217fefe3a2dd12c078b53491266e231b4fd",
+          "status": "success",
+          "event": {
+            "userOpHash": "0x6fa36a912fee002153f6e8be31c296a7b21da7a8f3c3f7aa0aa5035c6bc517b5",
+            "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
+            "paymaster": "0x0000000000000000000000000000000000000000",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384002",
+            "success": true,
+            "actualGasCost": "4451328",
+            "actualGasUsed": "635904"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "846796754633378362562281213574866283866259131353433012085244647440384002",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000389546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000f1f7f0f90000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0x6fa36a912fee002153f6e8be31c296a7b21da7a8f3c3f7aa0aa5035c6bc517b5"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "migrationReady": false
+      },
+      {
+        "label": "legacy_address_root_nonce_is_not_legacy_authority",
+        "receipt": {
+          "transaction": "0xbc28940de690c2b8d40b5122ad35f66ec5703b337c5816d3d2516b29d04ff55c",
+          "status": "success",
+          "event": {
+            "userOpHash": "0x2e5eedff60ba0ab30a450506dd0243555fc81b33c064de6615d28a7a5167d554",
+            "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
+            "paymaster": "0x0000000000000000000000000000000000000000",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "success": true,
+            "actualGasCost": "4442627",
+            "actualGasUsed": "634661"
+          },
+          "operation": {
+            "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
+            "callData": "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000389546b80b2faf5d5a9905c752d26b60296d6bc3050000000000000000000000000000000000000000000000000000000000000000f1f7f0f90000000000000000",
+            "verificationGasLimit": "2500000",
+            "callGasLimit": "600000",
+            "preVerificationGas": "100000",
+            "maxFeePerGas": "1000000014",
+            "maxPriorityFeePerGas": "0",
+            "signature": "omitted: synthetic fixture signature"
+          },
+          "userOpHash": "0x2e5eedff60ba0ab30a450506dd0243555fc81b33c064de6615d28a7a5167d554"
+        },
+        "validators": [
+          {
+            "from": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+            "to": "0x7ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "type": "CALL",
+            "selector": "0x97003203",
+            "output": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "finalState": {
+          "account": {
+            "exists": true,
+            "codeHash": "0xaaa52c8cc8a0e3fd27ce756cc6b4e70c51423e9b597b11f32d3e49f8b1fc890d",
+            "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009411",
+            "root": "0x017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+            "currentNonce": 1,
+            "validNonceFrom": 0,
+            "oldModule": false,
+            "patchedModule": true,
+            "oldConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000000"
+            },
+            "patchedConfig": {
+              "nonce": 1,
+              "hook": "0x0000000000000000000000000000000000000001"
+            },
+            "oldExecuteAllowed": false,
+            "keys": {
+              "legacy": ["0", "0"],
+              "patched": [
+                "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+                "36134250956749795798585127919587881956611106672985015071877198253568414405109"
+              ]
+            },
+            "storage": {
+              "validation": "0x0000000000000000000001017ab16ff354acb328452f1d445b3ddee9a91e9e69",
+              "implementation": "0x000000000000000000000000bac849bb641841b44e965fb01a4bf5f074f84b4d"
+            }
+          },
+          "rootLegacyKey": "1285602196284242792929010450007941968666503721659079688561390398533009411",
+          "rootPatchedKey": "846796754633378362562281213574866283866259131353433012085244647440384003",
+          "explicitLegacyKey": "3052449261062627122512307950750860484493987618534698646682996599825629184"
+        },
+        "migrationReady": false
+      }
+    ],
+    "scope": {
+      "memberPossessionProved": false,
+      "hostedBundlerProved": false,
+      "sponsorshipProved": false,
+      "helperExecuted": false,
+      "helperCertified": false,
+      "migrationReady": false,
+      "productionConfigChanged": false,
+      "liveBroadcast": false
+    },
+    "credential": "Public P256 scalar 1 and synthetic greengoods.test WebAuthn responses",
+    "transport": "Read-only Alchemy bridge; genuine historical fork cache, exact provenance in handoff",
+    "limits": [
+      "Gnosis-only continuation; earlier three-chain failure matrix retains its separate dated scope.",
+      "Canonical legacy validator deployed only on isolated fork; controlled root-change fixture is not the unverified migration helper.",
+      "Existing genuine Foundry historical fork cache supplies most dependency state; new Alchemy reads fill missing pinned storage. This is not independent fresh full-state authentication.",
+      "Call traces show actual validator dispatch, not member possession, browser WebAuthn or hosted bundler/paymaster certification."
+    ]
+  },
+  "validation": {
+    "focusedSharedCommand": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/settlement-aa-profile.test.ts src/__tests__/config/pimlico.test.ts src/__tests__/workflows/auth-passkey-adapters.test.ts src/__tests__/workflows/authPasskeyOwner.test.ts src/__tests__/modules/agent-reporting/owner-validator.test.ts src/__tests__/service-access-voucher-recovery.test.ts",
+    "focusedSharedResult": {
+      "files": 6,
+      "tests": 45,
+      "durationSeconds": 1.79,
+      "exitCode": 0
+    },
+    "rootProofCommand": "MEMBER_MIGRATION_RPC_URL=http://127.0.0.1:62297/ PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd /private/tmp/green-goods-root-signing-20261022/wrapper test",
+    "rootProofResult": {
+      "cases": 11,
+      "exitCode": 0
+    },
+    "selectorResult": "QA selects only format and lint; no production critical override for Plan Hub proof/evidence changes. Final expanded execution recorded in handoff.",
+    "runtimeSourceChanged": false,
+    "renderedEvidence": "none; actual member ceremony remains pending",
+    "retainedFailures": [
+      "First temporary wrapper ran outside repo, so Anvil tool resolution failed with exit127; wrapper now changes to repo before runner.",
+      "Biome mjs stdin labels were outside configured includes and returned not-fixed/no-processing results; an included JavaScript stdin label plus byte-identical checked output supplies explicit source formatting proof."
+    ]
+  },
+  "attribution": {
+    "startingHead": "c40697f6e9696ec710f5f482e708b8ab3fce80bd",
+    "evidence": "Working-tree run with exact input hashes. The unrelated Shared manifest export is dirty and preserved; no clean whole-commit receipt. The later signed commit attributes unchanged owned blobs only.",
+    "helperCertified": false,
+    "memberSigningReady": false
+  }
+}

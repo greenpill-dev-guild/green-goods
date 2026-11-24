@@ -1,6 +1,8 @@
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { type Locale, supportedLanguages, useApp } from "@green-goods/shared/providers/App";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 
 interface FooterLink {
   href: string;
@@ -8,9 +10,10 @@ interface FooterLink {
   defaultLabel: string;
 }
 
-// Only the project's outside homes. The site's own routes are the header's job
-// (DESIGN.browser.md § Compact utility footer).
-const FOOTER_LINKS: readonly FooterLink[] = [
+// Site navigation belongs in the header. The footer keeps the project's outside
+// homes, each in a new tab, and below them the site's own privacy, contact and
+// terms pages.
+const OUTSIDE_LINKS: readonly FooterLink[] = [
   {
     href: "https://x.com/greengoodsapp",
     labelId: "public.footer.twitter",
@@ -27,7 +30,15 @@ const FOOTER_LINKS: readonly FooterLink[] = [
     defaultLabel: "GitHub",
   },
   { href: "https://docs.greengoods.app", labelId: "public.footer.docs", defaultLabel: "Docs" },
-] as const;
+];
+
+const SITE_LINKS: readonly FooterLink[] = [
+  { href: "/privacy", labelId: "public.footer.privacy", defaultLabel: "Privacy" },
+  { href: "/contact", labelId: "public.footer.contact", defaultLabel: "Contact" },
+  { href: "/terms", labelId: "public.footer.terms", defaultLabel: "Terms of Use" },
+];
+
+const LINK_ROW_CLASS_NAME = "flex flex-wrap items-center gap-x-5 gap-y-1 sm:justify-end";
 
 export type PublicFooterVariant = "default" | "soil";
 
@@ -38,10 +49,13 @@ interface PublicFooterProps {
 /**
  * PublicFooter — compact utility footer for every public-browser page.
  *
- * Single row at desktop with a small wordmark, restored provenance line, and
- * right-aligned links to Twitter, LinkedIn, GitHub, and Docs. Stacks gracefully on
- * mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the
- * footer stays quiet.
+ * A small wordmark, the provenance line, and two right-aligned rows of links:
+ * Twitter, LinkedIn, GitHub and Docs, then Privacy, Contact and Terms of Use,
+ * with the site's language beside them (PRD-1041). The App provider keeps the
+ * choice, so it holds on every public page and the next visit.
+ * On a phone everything stacks, and the provenance line comes last so it
+ * always ends the page. Schedule-a-Call lives in `PublicGetInTouch` above the
+ * footer; the footer stays quiet.
  *
  * Variants:
  * - `default` — light surface, used on Home.
@@ -53,6 +67,29 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
   const currentYear = new Date().getFullYear();
 
   const isSoil = variant === "soil";
+  const linkClassName = cn(
+    "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+    isSoil
+      ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
+      : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
+  );
+
+  const renderLink = ({ href, labelId, defaultLabel }: FooterLink) => {
+    const label = formatMessage({ id: labelId, defaultMessage: defaultLabel });
+    return (
+      <li key={href}>
+        {href.startsWith("/") ? (
+          <Link to={href} viewTransition className={linkClassName}>
+            {label}
+          </Link>
+        ) : (
+          <a href={href} target="_blank" rel="noreferrer noopener" className={linkClassName}>
+            {label}
+          </a>
+        )}
+      </li>
+    );
+  };
 
   return (
     <footer
@@ -76,6 +113,23 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
           })}
         </Link>
 
+        <nav
+          className={cn(
+            "flex flex-col gap-y-2 text-xs tracking-[0.02em] sm:col-start-2 sm:row-start-1 sm:items-end sm:justify-self-end @min-[70rem]:col-start-3",
+            isSoil ? "text-static-white/72" : "text-text-sub-600"
+          )}
+          aria-label={formatMessage({
+            id: "public.footer.navLabel",
+            defaultMessage: "Footer links",
+          })}
+        >
+          <ul className={LINK_ROW_CLASS_NAME}>{OUTSIDE_LINKS.map(renderLink)}</ul>
+          <ul className={LINK_ROW_CLASS_NAME}>{SITE_LINKS.map(renderLink)}</ul>
+          <LanguageSelect />
+        </nav>
+
+        {/* Last in the page order, so on a phone the provenance line ends the footer. Wider
+            footers place it in the grid. */}
         <p
           className={cn(
             "text-xs tracking-[0.02em] sm:col-span-2 sm:row-start-2 @min-[70rem]:col-span-1 @min-[70rem]:col-start-2 @min-[70rem]:row-start-1 @min-[70rem]:justify-self-center @min-[70rem]:text-center",
@@ -91,35 +145,38 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
             { year: currentYear }
           )}
         </p>
-
-        <nav
-          className={cn(
-            "flex flex-wrap items-center gap-x-5 gap-y-1 text-xs tracking-[0.02em] sm:col-start-2 sm:row-start-1 sm:justify-self-end sm:text-right @min-[70rem]:col-start-3",
-            isSoil ? "text-static-white/72" : "text-text-sub-600"
-          )}
-          aria-label={formatMessage({
-            id: "public.footer.navLabel",
-            defaultMessage: "Footer links",
-          })}
-        >
-          {FOOTER_LINKS.map(({ href, labelId, defaultLabel }) => (
-            <a
-              key={href}
-              href={href}
-              target="_blank"
-              rel="noreferrer noopener"
-              className={cn(
-                "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-                isSoil
-                  ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
-                  : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
-              )}
-            >
-              {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-            </a>
-          ))}
-        </nav>
       </div>
     </footer>
+  );
+}
+
+/** Language names in their own words, so a visitor finds theirs whatever is on screen. */
+function ownName(locale: Locale): string {
+  const name = new Intl.DisplayNames([locale], { type: "language" }).of(locale) ?? locale;
+  return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
+}
+
+/**
+ * The site's language, as the installed app's settings choose it. It shows the language on
+ * screen (`useIntl().locale`) and offers every language the product ships.
+ */
+function LanguageSelect() {
+  const { formatMessage, locale } = useIntl();
+  const { switchLanguage } = useApp();
+  return (
+    <NativeSelect
+      surface="editorial"
+      aria-label={formatMessage({ id: "public.footer.language", defaultMessage: "Language" })}
+      value={locale}
+      onChange={(event) => switchLanguage(event.target.value as Locale)}
+      // 16px on touch widths, so tapping it never zooms the page (DL-030).
+      className="w-auto self-start font-sans text-base tracking-[0.02em] sm:self-end sm:text-xs"
+    >
+      {supportedLanguages.map((option) => (
+        <option key={option} value={option} lang={option}>
+          {ownName(option)}
+        </option>
+      ))}
+    </NativeSelect>
   );
 }

@@ -11,6 +11,7 @@
  */
 
 import { type QueryClient } from "@tanstack/react-query";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
@@ -57,11 +58,13 @@ const mockGetReceipt = vi.fn();
 const mockReconcileBroadcast = vi.fn();
 let authMode: "wallet" | "passkey" = "wallet";
 const mockOwnership = vi.fn();
+const mockReadyToSign = vi.fn();
 const mockSender = () => ({
   authMode,
   sendContractCall: mockSendTransaction,
   signTypedData: vi.fn(),
   assertOwnership: mockOwnership,
+  assertReadyToSign: mockReadyToSign,
   reconcileBroadcast: mockReconcileBroadcast,
 });
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => TEST_SIGNER }));
@@ -98,7 +101,6 @@ vi.mock("../../../config/default-chain", () => ({
 
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
-    waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
     readContract: mockReadContract,
     getTransactionReceipt: mockGetReceipt,
   }),
@@ -128,12 +130,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   };
 });
 
-// Mock viem's encodeFunctionData
-vi.mock("viem", () => ({
-  encodeFunctionData: vi.fn().mockReturnValue("0xencoded"),
-}));
-
-import { type ListingStep, useCreateListing } from "../../../hooks/hypercerts/useCreateListing";
+import { useCreateListing } from "../../../hooks/hypercerts/useCreateListing";
 import { toastService } from "../../../components/Toast/toast.service";
 import { useListingSubmissionStore } from "../../../stores/useListingSubmissionStore";
 
@@ -146,6 +143,7 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockReadyToSign.mockReset();
     useListingSubmissionStore.setState({ pending: {} });
     authMode = mode;
     mockReadContract.mockReset().mockResolvedValue(0n);
@@ -183,6 +181,43 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
     mockSendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
   });
 
+  it("asks to reconnect before preparing a listing or checking quiet ownership", async () => {
+    mockReadyToSign.mockImplementation(refuseWithoutWallet);
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    const params = {
+      hypercertId: 1n,
+      fractionId: 1n,
+      currency: TEST_MODULE,
+      pricePerUnit: 1000n,
+      minUnitAmount: 1n,
+      maxUnitAmount: 1000n,
+      minUnitsToKeep: 0n,
+      sellLeftover: false,
+      durationDays: 30,
+    };
+    try {
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN, 1n), {
+        queryClient,
+      });
+      await act(async () => {
+        await expect(result.current.createListing(params)).rejects.toMatchObject({
+          name: "WalletReconnectRequiredError",
+          asked: true,
+        });
+      });
+      expect(asked).toHaveBeenCalledOnce();
+      expect(mockOwnership).not.toHaveBeenCalled();
+      expect(mockGetOrderNonces).not.toHaveBeenCalled();
+      expect(mockBuildMakerAsk).not.toHaveBeenCalled();
+      expect(mockSignMakerAsk).not.toHaveBeenCalled();
+      expect(mockSendTransaction).not.toHaveBeenCalled();
+      expect(toastService.error).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
+  });
+
   describe("initial state", () => {
     it("starts with idle step and no error", () => {
       const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN, 1n), {
@@ -192,15 +227,6 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
       expect(result.current.step).toBe("idle");
       expect(result.current.isCreating).toBe(false);
       expect(result.current.error).toBeNull();
-    });
-
-    it("provides createListing and reset functions", () => {
-      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN, 1n), {
-        queryClient,
-      });
-
-      expect(typeof result.current.createListing).toBe("function");
-      expect(typeof result.current.reset).toBe("function");
     });
   });
 
@@ -439,37 +465,6 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
     });
   });
 
-  describe("step types", () => {
-    it("has valid step union type values", () => {
-      const validSteps: ListingStep[] = [
-        "idle",
-        "building",
-        "signing",
-        "registering",
-        "confirming",
-        "done",
-        "error",
-      ];
-
-      // Each step value should be a string
-      validSteps.forEach((step) => {
-        expect(typeof step).toBe("string");
-      });
-    });
-  });
-
-  describe("reset", () => {
-    it("resets step to idle", () => {
-      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN, 1n), {
-        queryClient,
-      });
-
-      act(() => result.current.reset());
-
-      expect(result.current.step).toBe("idle");
-      expect(result.current.error).toBeNull();
-    });
-  });
   it("reads canonical reverted receipts when the sender cannot reconcile", async () => {
     const hash = `0x${"ab".repeat(32)}` as const;
     mockSendTransaction.mockResolvedValueOnce({ hash, sponsored: false, confirmation: "pending" });

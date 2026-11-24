@@ -10,6 +10,31 @@ import { IHatsModuleFactory } from "../../src/interfaces/IHatsModuleFactory.sol"
 import { ICVSyncPowerFacet } from "../../src/interfaces/ICVSyncPowerFacet.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
 import { ZeroAddress, ArrayLengthMismatch } from "../../src/CommonErrors.sol";
+import { StewardRolePublisher } from "../../src/accounts/StewardRolePublisher.sol";
+import { StewardRouterFixture } from "../helpers/StewardRoleFixtures.sol";
+
+contract StewardObserverFixture {
+    HatsModule private immutable module;
+    address private immutable garden;
+    mapping(address => bool) public observed;
+    mapping(address => uint256) public calls;
+    bool public broken;
+
+    constructor(HatsModule module_, address garden_) {
+        module = module_;
+        garden = garden_;
+    }
+
+    function setBroken(bool value) external {
+        broken = value;
+    }
+
+    function syncSteward(address account) external {
+        require(!broken, "observer unavailable");
+        calls[account]++;
+        observed[account] = module.isStewardOf(garden, account);
+    }
+}
 
 /// @notice Mock conviction strategy that records syncPower calls
 contract MockConvictionStrategy is ICVSyncPowerFacet {
@@ -136,6 +161,68 @@ contract HatsModuleTest is Test {
         assertEq(adapter.owner(), owner, "Owner should be set correctly");
     }
 
+    function testIntegration_Hats_stewardObserverTracksGrantsOwnerSubgrantAndRevocation() public {
+        adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
+        StewardObserverFixture observer = new StewardObserverFixture(adapter, garden1);
+        adapter.setStewardObserver(garden1, address(observer));
+        vm.startPrank(owner);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertTrue(observer.observed(user1));
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertFalse(observer.observed(user1));
+        adapter.grantRole(garden1, user2, IHatsModule.GardenRole.Owner);
+        assertTrue(observer.observed(user2));
+        adapter.revokeRole(garden1, user2, IHatsModule.GardenRole.Owner);
+        assertTrue(observer.observed(user2), "owner revocation does not revoke the steward subhat");
+        vm.stopPrank();
+    }
+
+    function testIntegration_Hats_stewardObserverFailureCannotBlockRoleRevocation() public {
+        adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
+        StewardObserverFixture observer = new StewardObserverFixture(adapter, garden1);
+        adapter.setStewardObserver(garden1, address(observer));
+        vm.prank(owner);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        observer.setBroken(true);
+        vm.prank(owner);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertFalse(adapter.isStewardOf(garden1, user1));
+    }
+
+    function testIntegration_Hats_stewardObserverConfigurationRequiresProtocolOwner() public {
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.NotGardenAdmin.selector, user1, garden1));
+        adapter.setStewardObserver(garden1, address(0x123));
+    }
+
+    function testIntegration_Hats_fundedStewardHookDispatchesAutomaticallyAndTransportFailureCannotBlockRevocation()
+        public
+    {
+        vm.chainId(42_161);
+        adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
+        StewardRouterFixture router = new StewardRouterFixture();
+        StewardRolePublisher publisher =
+            new StewardRolePublisher(address(router), address(adapter), garden1, 2, address(0x789));
+        adapter.setStewardObserver(garden1, address(publisher));
+        vm.deal(address(publisher), 100);
+        vm.prank(owner);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertEq(router.sends(), 1);
+        assertEq(publisher.dispatchedRevision(user1), 1);
+        router.setBroken(true);
+        vm.prank(owner);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertFalse(adapter.isStewardOf(garden1, user1));
+        (uint64 revision, bool eligible) = publisher.states(user1);
+        assertEq(revision, 2);
+        assertFalse(eligible);
+        assertEq(router.sends(), 1);
+        router.setBroken(false);
+        publisher.syncSteward(user1);
+        assertEq(router.sends(), 2);
+        assertEq(publisher.dispatchedRevision(user1), 2);
+    }
+
     function test_initialize_setsHatsContract() public {
         assertEq(address(adapter.hats()), address(mockHats), "Hats contract should be set");
     }
@@ -202,8 +289,9 @@ contract HatsModuleTest is Test {
         assertTrue(configured, "Should be configured");
     }
 
-    function test_configureGarden_byGardenItself() public {
+    function testIntegration_Hats_revertsWhenGardenAccountRemapsItsRoles() public {
         vm.prank(garden1);
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.NotGardenAdmin.selector, garden1, garden1));
         adapter.configureGarden(
             garden1,
             GARDEN1_OWNER_HAT,
@@ -214,7 +302,7 @@ contract HatsModuleTest is Test {
             GARDEN1_COMMUNITY_HAT
         );
 
-        assertTrue(adapter.isConfigured(garden1), "Garden should be configured");
+        assertFalse(adapter.isConfigured(garden1));
     }
 
     function test_configureGarden_byConfigAuthority() public {
@@ -740,10 +828,11 @@ contract HatsModuleTest is Test {
         adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);
 
         adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Owner);
-        assertEq(karmaAdminSync.removeCalls(garden1, user1), 1);
+        assertEq(karmaAdminSync.removeCalls(garden1, user1), 0, "Steward still retains project access");
+        assertEq(karmaAdminSync.addCalls(garden1, user1), 2);
 
         adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
-        assertEq(karmaAdminSync.removeCalls(garden1, user1), 2);
+        assertEq(karmaAdminSync.removeCalls(garden1, user1), 1);
     }
 
     function test_grantRoles_revertsOnArrayMismatch() public {
@@ -858,7 +947,7 @@ contract HatsModuleTest is Test {
         adapter.createGardenHatTree(garden2, "Garden Two", address(0x9999));
     }
 
-    function test_createGardenHatTree_createsAllSixRoleHats() public {
+    function testIntegration_Hats_createsSixRoleHatsWithExpectedHierarchy() public {
         address gardenToken = address(0x7777);
         adapter.setGardenToken(gardenToken);
 
@@ -866,7 +955,7 @@ contract HatsModuleTest is Test {
         adapter.setProtocolHatIds(0, gardensHatId, 0);
 
         vm.prank(gardenToken);
-        adapter.createGardenHatTree(garden2, "Garden Two", address(0x9999));
+        uint256 adminHatId = adapter.createGardenHatTree(garden2, "Garden Two", address(0x9999));
 
         (
             uint256 ownerHatId,
@@ -879,6 +968,15 @@ contract HatsModuleTest is Test {
         ) = adapter.gardenHats(garden2);
 
         assertTrue(configured, "Garden should be configured");
+        assertEq(mockHats.getHatLevel(gardensHatId), 0);
+        assertEq(mockHats.getHatLevel(adminHatId), 1);
+        assertEq(mockHats.getHatLevel(ownerHatId), 2);
+        assertEq(mockHats.getAdminAtLevel(ownerHatId, 1), adminHatId);
+        assertTrue(mockHats.isTopHat(gardensHatId));
+        assertFalse(mockHats.isTopHat(ownerHatId));
+        assertTrue(mockHats.isAdminOfHat(address(adapter), ownerHatId));
+        assertFalse(mockHats.isAdminOfHat(garden2, ownerHatId));
+        assertFalse(mockHats.isAdminOfHat(user1, ownerHatId));
         assertGt(ownerHatId, 0, "Owner hat should be set");
         assertGt(operatorHatId, 0, "Operator hat should be set");
         assertGt(evaluatorHatId, 0, "Evaluator hat should be set");
@@ -890,7 +988,7 @@ contract HatsModuleTest is Test {
         assertEq(stewardDetails, "Garden Two Steward", "New role hats should use the Steward label");
     }
 
-    function test_createGardenHatTree_mintsAdminHatToGardenAndModule() public {
+    function testIntegration_Hats_onlyModuleWearsNewGardenAdminHat() public {
         address gardenToken = address(0x7777);
         adapter.setGardenToken(gardenToken);
 
@@ -900,7 +998,7 @@ contract HatsModuleTest is Test {
         vm.prank(gardenToken);
         uint256 adminHatId = adapter.createGardenHatTree(garden2, "Garden Two", address(0x9999));
 
-        assertTrue(mockHats.isWearerOfHat(garden2, adminHatId), "Garden should wear admin hat");
+        assertFalse(mockHats.isWearerOfHat(garden2, adminHatId), "Garden accounts do not receive raw role administration");
         assertTrue(mockHats.isWearerOfHat(address(adapter), adminHatId), "Module should wear admin hat");
     }
 
@@ -1083,7 +1181,7 @@ contract HatsModuleTest is Test {
 
     function test_revokeRole_twoUsersWithSameHatType() public {
         // L1: Validates H3 fix — revoking the same hat type from two different users
-        // must succeed because each revocation uses a unique burn address.
+        // must succeed because each revocation burns the hat, leaving the account free to wear it again.
         adapter.configureGarden(
             garden1,
             GARDEN1_OWNER_HAT,
@@ -1199,6 +1297,143 @@ contract HatsModuleTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Leaving a Garden
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @dev Bit n of `worn` is GardenRole(n). Owner's bit is cleared, because an Owner is refused.
+    function testFuzz_Hats_leaveGardenRemovesExactlyTheHatsWorn(uint8 worn) public {
+        worn &= 0x37;
+        _configureGarden1WithOwner();
+        adapter.setKarmaGAPModule(address(karmaAdminSync));
+        StewardObserverFixture observer = new StewardObserverFixture(adapter, garden1);
+        adapter.setStewardObserver(garden1, address(observer));
+
+        uint256[6] memory hatIds = [
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        ];
+        uint256 wornCount;
+        for (uint256 i = 0; i < hatIds.length; i++) {
+            if (worn & (1 << i) == 0) continue;
+            mockHats.setWearer(hatIds[i], user1, true);
+            wornCount++;
+        }
+
+        if (wornCount == 0) {
+            vm.prank(user1);
+            vm.expectRevert(HatsModule.NotGardenMember.selector);
+            adapter.leaveGarden(garden1);
+            return;
+        }
+
+        vm.recordLogs();
+        vm.prank(user1);
+        adapter.leaveGarden(garden1);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 revoked;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == IHatsModule.RoleRevoked.selector) revoked++;
+        }
+        assertEq(revoked, wornCount, "One RoleRevoked per worn hat, none for the rest");
+
+        for (uint256 i = 0; i < hatIds.length; i++) {
+            assertFalse(mockHats.isWearerOfHat(user1, hatIds[i]), "No hat should remain");
+        }
+        // A hat that was never worn must not fire the steward hooks, which can spend the observer's fuel.
+        uint256 stewardHookCalls = worn & (1 << uint8(IHatsModule.GardenRole.Steward)) == 0 ? 0 : 1;
+        assertEq(karmaAdminSync.removeCalls(garden1, user1), stewardHookCalls, "Karma follows the steward hat alone");
+        assertEq(observer.calls(user1), stewardHookCalls, "The observer follows the steward hat alone");
+    }
+
+    function testIntegration_Hats_leaveGardenClearsGrantedRolesAndTouchesNobodyElse() public {
+        _configureGarden1WithOwner();
+        adapter.configureGarden(
+            garden2,
+            GARDEN2_OWNER_HAT,
+            GARDEN2_OPERATOR_HAT,
+            GARDEN2_EVALUATOR_HAT,
+            GARDEN2_GARDENER_HAT,
+            GARDEN2_FUNDER_HAT,
+            GARDEN2_COMMUNITY_HAT
+        );
+        MockConvictionStrategy strategy = new MockConvictionStrategy();
+        address[] memory strategies = new address[](1);
+        strategies[0] = address(strategy);
+        adapter.setConvictionStrategies(garden1, strategies);
+        StewardObserverFixture observer = new StewardObserverFixture(adapter, garden1);
+        adapter.setStewardObserver(garden1, address(observer));
+
+        // Granting Steward also grants the Evaluator and Gardener hats.
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        adapter.grantRole(garden1, user2, IHatsModule.GardenRole.Gardener);
+        mockHats.setWearer(GARDEN2_GARDENER_HAT, user1, true);
+        assertTrue(observer.observed(user1), "Observer should see the steward before they leave");
+        uint256 syncsBefore = strategy.syncedMembersLength();
+
+        vm.prank(user1);
+        adapter.leaveGarden(garden1);
+
+        assertFalse(adapter.isStewardOf(garden1, user1), "Steward hat should be gone");
+        assertFalse(adapter.isEvaluatorOf(garden1, user1), "Evaluator hat should be gone");
+        assertFalse(adapter.isGardenerOf(garden1, user1), "Gardener hat should be gone");
+        assertFalse(observer.observed(user1), "Observer should see the steward leave");
+        assertGt(strategy.syncedMembersLength(), syncsBefore, "Conviction strategies should be offered a sync");
+
+        assertTrue(adapter.isGardenerOf(garden1, user2), "Another member should keep their role");
+        assertTrue(adapter.isGardenerOf(garden2, user1), "Their role in another garden should stay");
+    }
+
+    function testIntegration_Hats_leaveGardenRevertsWhenCallerWearsOwnerHat() public {
+        _configureGarden1WithOwner();
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);
+
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.OwnerCannotLeave.selector, garden1));
+        adapter.leaveGarden(garden1);
+
+        // The refusal stops an accidental exit. It is no last-owner guarantee: an Owner can drop the hat themselves.
+        vm.startPrank(user1);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Owner);
+        adapter.leaveGarden(garden1);
+        vm.stopPrank();
+        assertFalse(adapter.isOwnerOf(garden1, user1), "Owner hat should be gone");
+        assertFalse(adapter.isStewardOf(garden1, user1), "Steward hat should be gone");
+        assertFalse(adapter.isGardenerOf(garden1, user1), "Gardener hat should be gone");
+    }
+
+    function testIntegration_Hats_leaveGardenRevertsWhenThereIsNothingToLeave() public {
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.GardenNotConfigured.selector, garden1));
+        adapter.leaveGarden(garden1);
+
+        _configureGarden1WithOwner();
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        vm.prank(user1);
+        adapter.leaveGarden(garden1);
+        vm.prank(user1);
+        vm.expectRevert(HatsModule.NotGardenMember.selector);
+        adapter.leaveGarden(garden1);
+    }
+
+    /// @dev A burn address would keep wearing the hat and read as a member.
+    function testIntegration_Hats_revokeBurnsTheHatInsteadOfMovingIt() public {
+        _configureGarden1WithOwner();
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        (,, uint32 supply,,,,,,) = mockHats.viewHat(GARDEN1_GARDENER_HAT);
+        assertEq(supply, 1, "The grant should mint one hat");
+
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        (,, supply,,,,,,) = mockHats.viewHat(GARDEN1_GARDENER_HAT);
+        assertEq(supply, 0, "Revocation should leave no wearer behind");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Conviction Power Sync on Grant Tests (H-7 fix verification)
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1253,6 +1488,29 @@ contract HatsModuleTest is Test {
             GARDEN1_COMMUNITY_HAT
         );
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
+    }
+
+    function testIntegration_Hats_rejectsGrantBeyondConfiguredRoleCapacity() public {
+        _configureGarden1WithOwner();
+        mockHats.changeHatMaxSupply(GARDEN1_GARDENER_HAT, 1);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertTrue(adapter.isGardenerOf(garden1, user1));
+        vm.expectRevert(MockHats.MaxSupplyReached.selector);
+        adapter.grantRole(garden1, user2, IHatsModule.GardenRole.Gardener);
+        assertFalse(mockHats.wearers(GARDEN1_GARDENER_HAT, user2));
+    }
+
+    function testIntegration_Hats_rejectsInactiveGrantAndIgnoresIneligibleWearer() public {
+        _configureGarden1WithOwner();
+        mockHats.setHatActive(GARDEN1_GARDENER_HAT, false);
+        vm.expectRevert(MockHats.HatNotActive.selector);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertFalse(mockHats.wearers(GARDEN1_GARDENER_HAT, user1));
+        mockHats.setHatActive(GARDEN1_GARDENER_HAT, true);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertTrue(adapter.isGardenerOf(garden1, user1));
+        mockHats.setEligibility(GARDEN1_GARDENER_HAT, user1, false);
+        assertFalse(adapter.isGardenerOf(garden1, user1));
     }
 
     function test_grantRole_autoMintsProtocolGardenersHat() public {

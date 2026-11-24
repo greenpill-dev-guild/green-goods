@@ -24,8 +24,10 @@ vi.mock("@wagmi/core", async (importOriginal) => ({
   readContract: mocks.readContract,
 }));
 vi.mock("../config/appkit", () => ({ getWagmiConfig: () => ({ mocked: true }) }));
-vi.mock("../utils/blockchain/contracts", () => ({
+vi.mock("../utils/blockchain/contract-abis/settlement-module", () => ({
   SettlementModuleABI: [{ marker: "settlement" }],
+}));
+vi.mock("../utils/blockchain/contracts", () => ({
   CommitmentPoolingModuleABI: [{ marker: "pooling" }],
   getNetworkContracts: () => ({ settlementModule: SETTLEMENT, commitmentPoolingModule: POOLING }),
 }));

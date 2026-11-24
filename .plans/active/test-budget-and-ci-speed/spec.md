@@ -91,7 +91,7 @@ The current test-consolidation slice changes no visible runtime behavior. No new
 
 ## Coordination and scope
 
-The active codebase-architecture-skills hub owns the September 22 coverage checkpoint and PRD-835 visibility. This plan proposes a replacement policy but does not mark that obligation done or edit its mirror.
+The [closed architecture hub](https://github.com/greenpill-dev-guild/green-goods/blob/1642bc694ae6e6bc31c0b4fb1caec4fde23b3298/.plans/active/codebase-architecture-skills/plan.todo.md) records the September checkpoint's closure by decision D3 and the accepted PRD-835 closeout. Its historical evidence remains separate from this plan's replacement policy.
 
 The September 19 guidance slice names that ownership in `.claude/context/testing.md` without changing the existing two-point ratchet or any numerical threshold. The replacement proposal remains a separate decision for the checkpoint, supported by fresh measured coverage and parity evidence.
 

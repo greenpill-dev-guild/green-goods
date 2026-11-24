@@ -19,6 +19,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Mocks (must be before imports)
 // ============================================
 
+const mockProtocolRoles = vi.hoisted(() => ({ team: false }));
+vi.mock("../../../hooks/roles/useProtocolRoles", () => ({
+  useProtocolRoles: () => mockProtocolRoles,
+}));
 const mockPrimaryAddress = vi.fn();
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => mockPrimaryAddress(),
@@ -66,8 +70,18 @@ function createGarden(overrides: Partial<Garden> = {}): Garden {
 // ============================================
 
 describe("useGardenPermissions", () => {
+  it("lets Team manage Stewards without granting garden or general role management", () => {
+    mockProtocolRoles.team = true;
+    const { result } = renderHook(() => useGardenPermissions());
+    const garden = createGarden();
+    expect(result.current.canManageStewards(garden)).toBe(true);
+    expect(result.current.canManageGarden(garden)).toBe(false);
+    expect(result.current.canAddMembers(garden)).toBe(false);
+    expect(result.current.isOwnerOfGarden(garden)).toBe(false);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
+    mockProtocolRoles.team = false;
     mockPrimaryAddress.mockReturnValue(USER_ADDRESS);
   });
 
@@ -111,16 +125,6 @@ describe("useGardenPermissions", () => {
 
   describe("passkey mode", () => {
     it("uses smart account address for passkey users", () => {
-      mockPrimaryAddress.mockReturnValue(SMART_ACCOUNT);
-
-      const garden = createGarden({ stewards: [SMART_ACCOUNT] as any[] });
-      const { result } = renderHook(() => useGardenPermissions());
-
-      expect(result.current.isStewardOfGarden(garden)).toBe(true);
-    });
-
-    it("uses primary address from usePrimaryAddress (single source of truth)", () => {
-      // usePrimaryAddress resolves the correct address based on authMode
       mockPrimaryAddress.mockReturnValue(SMART_ACCOUNT);
 
       const garden = createGarden({ stewards: [SMART_ACCOUNT] as any[] });

@@ -5,17 +5,24 @@ slug: /community/gardener-guide/track-status-and-attestations
 description: "Follow a submission from your phone to your steward's decision: what each status means, what approval brings, and what to do when work comes back."
 audience: gardener
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-11-04"
 feature_status: Live
 image: /img/social/track-status-and-attestations.webp
 goal: "Let a gardener read any status in Your Work, act on a rejection, and understand what approval does and does not bring."
 difficulty: "quickstart"
-estimated_time: "3 minutes."
+estimated_time: "5 minutes."
 prereqs: "At least one piece of work started or submitted."
 next_steps: "/community/gardener-guide/recovery-and-sync"
 persona_context: "Gardeners waiting on a steward's review, or wondering what happens after approval."
 source_of_truth:
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentWork.tsx
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
   - packages/client/src/views/Home/WorkDashboard/index.tsx
+  - packages/client/src/views/Home/Notifications/NotificationRow.tsx
+  - packages/client/src/views/Home/Garden/Commitment/serviceRewards.ts
+  - packages/client/src/views/Home/Garden/Commitment/ServicePromise.tsx
+  - packages/shared/src/modules/commitment-pooling/service-access-wallet.ts
   - packages/client/src/views/Home/WorkDashboard/PendingTab.tsx
   - packages/client/src/views/Home/WorkDashboard/CompletedTab.tsx
   - packages/client/src/views/Home/WorkDashboard/buildPendingRows.ts
@@ -40,27 +47,23 @@ keywords:
   - cookie jar
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Track Your Work
 
-**Your Work** is the one place that shows everything you have recorded: what is still on your phone, what is with your steward, and what they decided. This page explains each status, what an approval means, and what to do when work comes back.
+**Your Work** shows what you have recorded for the garden selected on Home: what is still on your phone, what is with your steward, and what they decided. This page explains each status, what approval means, and how rewards differ from approval.
+
+<GuideImage src="/img/community/guide-track.webp" alt="Photographs of planting, fence repair, compost and waterway work beside a notebook." width="1672" height="941" loading="eager" className="gg-figure gg-overview-photo gg-guide-opening" />
 
 ## Before you start
 
+- These navigation steps follow the current beta. Use the version your steward asked you to use; [Install and Update](/community/gardener-guide/installing-and-updating) explains choosing the beta.
 - Open the installed app, signed in to the account you submit with.
 - You do not need a signal to look. The list shows what was saved the last time you were online.
-
-<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
-  <img src="/img/community/editorial-solar-workshop.webp" alt="Two adults' hands inspect a small solar panel on a wooden workbench beside a notebook and tools." width="1774" height="887" decoding="async" />
-  <figcaption>Follow the record of the work you did, from a panel check to a tree-planting task. AI-generated editorial illustration, created for these docs on 12 October 2026; not real people, a location, or reviewed work.</figcaption>
-</figure>
 
 ## Steps
 
 ### 1. Open Your Work
 
-1. Open **Home**.
+1. Open **Home** and check the garden named at the top. Tap its name to choose another in **Your Gardens** if needed.
 2. Tap the **Your Work** button at the top. It shows a number while anything is still on your phone.
 
 There are two tabs. **Pending** holds everything that is not decided yet. **Completed** holds work a steward has reviewed.
@@ -82,14 +85,6 @@ On the **Pending** tab, each item carries a label.
 
 These labels describe the work record. Queued photos and details may already have been prepared in public storage before the record is sent. [The privacy answers](/faq#is-what-i-upload-private) explain what becomes public.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-work-pending-example.png" alt="Your Work on Pending, with one Seedling Transplant item marked To upload and an Upload all button." loading="lazy" width="390" height="844" />
-  <figcaption>
-    <strong>Check the saved item before you send it.</strong> This example is <strong className="gg-inline-label">To upload</strong>. Use <strong className="gg-inline-label">Upload all</strong> when you are online and it is ready. “Nothing sent yet” describes the work record, not whether media is already public.
-    <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Pending With Example Photo, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The record is fictional; the photo does not verify its count, time or note.</span>
-  </figcaption>
-</figure>
-
 ### 3. See the decision
 
 1. Tap the **Completed** tab. Reviewed work is marked **Approved** or **Rejected**.
@@ -105,17 +100,13 @@ If you also review other people's work, choose **My work** in the Completed filt
 - **Approved:** the item is on the **Completed** tab, marked **Approved**. Its page says **Your submission has been approved**.
 - **Rejected:** the item is marked **Rejected**, and its page says **Not yet approved**, with the steward's reason under **Review feedback**.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-work-completed-example.png" alt="Your Work on Completed with My work selected and a Seedling Transplant item marked Approved." loading="lazy" width="390" height="844" />
-  <figcaption><strong>Find your own reviewed work.</strong> On Completed, choose <strong className="gg-inline-label">My work</strong>. Open the item to read the decision; an approval is not a payment.
-  <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Completed With Example Photo, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. Fictional reviewed record; no real approval was made.</span></figcaption>
-</figure>
-
 ## What happens next
 
 ### While it is in review
 
-A steward of your garden looks at your photos and details and compares them with what the action asks for. Green Goods does not send an alert when they decide, so check **Your Work** now and then.
+A steward of your garden looks at your photos and details and compares them with what the action asks for. Home's **Notifications** bell can list your work's approval or rejection, with review feedback. It shows events for the selected garden and marks them seen on this device when you open it.
+
+This is an in-app list, not a push notification or email. Offline or incomplete reads may not show every event. **Your Work** and the work's own record remain the places to check its status.
 
 There is no fixed review time. It depends on your stewards. Two things help:
 
@@ -137,31 +128,55 @@ What approval does not do:
 - **It does not pay you by itself.** No payment is attached to an approval.
 - **It does not measure the outcome.** It records a steward's review of your evidence. It is not a scientific measurement of what changed.
 
+### Work for a promise
+
+If your work contributes to a promise, open that promise from the garden's **Promises** tab. **Linked** means the work is attached to it. **Approved** means a steward reviewed the work. **Counted toward this promise** means that approval reached its requirement. If approved work is still waiting to be counted, ask your steward to check the existing record; do not upload a duplicate.
+
+Once the required work is counted, the eligible confirmer acts next. Confirmation that the promise was kept is separate from work approval and from payment. The [promise guide](/community/gardener-guide/make-a-promise) covers both garden-work and other-proof paths.
+
 ### How gardeners get rewarded
 
 Rewards are separate from approval, and each garden decides how to use them.
 
-**The garden's shared fund.** If your garden has a cookie jar with money in it, gardeners can claim from it. Ask your steward what the jar is meant for before you claim.
+| Reward path | What it means |
+|---|---|
+| A cookie-jar claim | A separate claim from a garden's shared fund, subject to access, balance, limits and cooldown |
+| An agreed voucher reward | Access to the issuer's stated service under an eligible pilot promise's exact terms |
+| An agreed G$ reward | A separate monetary reward, only when included in the promise's accepted terms |
+
+Submitting ordinary work does not create any of these rewards automatically.
+
+**The garden's shared fund.** If your garden has a cookie jar with money in it, eligible gardeners can claim from it. Ask your steward what the jar is meant for before you claim. A jar claim is separate from any reward agreed for your work.
 
 1. Open **Home**, tap the wallet button at the top to open **Your Wallet**, and choose **Cookies**.
-2. Read the jar's limit per claim and how often you can claim.
-3. Enter an amount and say what it is for under **Purpose**. The purpose is recorded with the payout.
-4. Tap **Claim** and confirm when asked.
+2. Find the right garden heading and tap its jar row to open the claim form. Your wallet can list jars from more than one garden.
+3. Read the jar's limit per claim and how often you can claim.
+4. Enter an amount and say what it is for under **Purpose**. The purpose is recorded with the payout.
+5. Tap **Claim**, review the confirmation, and confirm when asked.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-cookie-jar-claim.webp" alt="A cookie jar on the Cookies tab for Green Goods Community Garden: up to 4 DAI per claim, once every 7 days, the line Jar holds 12 DAI, an amount box with a Max button, a Purpose box reading Seedlings for the nursery, and a Claim button" loading="lazy" width="780" height="900" />
-  <figcaption>
-    <strong>A separate claim, if your garden offers one.</strong> Read the jar's limits and enter a purpose before <strong className="gg-inline-label">Claim</strong>. These example amounts are not promised rewards for approved work.
-    <span className="gg-overview-source">Source: deployed Storybook, Client/Wallet/CookieJarTab,
-    Claimable Jar fixture, with example amounts and purpose. Captured 12 October 2026;
-    780 × 900 image cropped from a 390 × 844 phone viewport at 2×. Build revision unavailable.
-    This is a form, not a payment receipt.</span>
-  </figcaption>
-</figure>
-
-If **Cookies** says **No cookie jars yet**, your garden has no jar you can claim from. Your steward can tell you whether one is planned.
+If no jars appear, the app has not found one you can currently access. An offline or failed read is not proof that the garden has no jar. Read any warning, reconnect and retry, or ask your steward.
 
 **Badges.** Open **Profile**, then **Badges**. **First Work** can be claimed after your first submitted work.
+
+### Pilot voucher rewards
+
+The voucher pilot is limited to participating members and supported promises. Read the issuer's terms before taking part. A voucher names access to a particular service; it is not a promise of cash or an automatic booking.
+
+1. From Home, open **Promises** and choose the request. Read its **Rewards**: who issues the voucher, how many you are agreeing to, the work required and any separate G$ reward.
+2. If offered, open **Agree to the Rewards** and review the exact terms. **Agree and Take It Up** records your agreement before take-up. These can be separate wallet or passkey prompts. If steward approval is required, wait for acceptance; agreeing does not reserve voucher inventory or a service appointment.
+3. Record the agreed work. Follow it through **Linked**, **Approved**, and **Counted toward this promise**. For a promise using other proof, follow its evidence steps instead.
+4. The eligible confirmer acts when the promise is ready. **Kept** records that confirmation; it does not prove a reward transfer arrived.
+5. Check each reward separately. Vouchers and G$ can arrive independently. When voucher holdings are available, **Your Wallet** has a **Vouchers** tab. A missing tab, row or receipt does not prove that a transfer failed; ask your steward before retrying anything.
+
+<Callout kind="note" title="Check each reward separately">
+
+The beta can show agreed terms and the recorded delivery status for each reward. Work approval, a kept promise, voucher delivery, any G$ reward and later service delivery are separate outcomes. A missing or unavailable receipt does not prove that a reward arrived or that a transfer failed. Ask your steward to check its delivery record before retrying anything. Do not submit the work again.
+
+</Callout>
+
+Receiving a voucher is separate from using its service. A suitable held voucher can be presented for that service when its booking path is available. Exchanging for another issuer's voucher is optional and does not book the service. Read the exact cost, availability, consent and issuer-approval steps before continuing; do not assume a listed offer means immediate access.
+
+Where the service supports a partial return, the holder approves the final delivered and refundable amounts. A proposed return is not money or vouchers already back in your account. Each transfer must finish separately. Ask the issuer for help if the service or a return remains unresolved.
 
 ### If it is rejected
 
@@ -177,13 +192,12 @@ If the feedback is unclear, ask your steward before you resubmit.
 
 | What you see | What to do |
 |---|---|
-| Your work is not in **Pending** or **Completed** | Check that you are signed in to the account you submitted with. Then set the **Completed** time filter to **Year** |
+| Your work is not in **Pending** or **Completed** | Check the account and the garden selected on Home. Then set the **Completed** time filter to **Year** |
 | It has been **In review** for a long time | Message your steward. If the action has ended, they can no longer decide on it, and you will need to submit under an action that is open |
 | The label is **Checking** and will not change | Leave it. The app is making sure it arrived, and it checks again when you are online. Do not submit it again |
 | **Approved**, but you expected a payment | Approval does not pay by itself. See [How gardeners get rewarded](#how-gardeners-get-rewarded) |
+| A kept pilot promise has no reward receipt | Check any loading or unavailable message, then ask your steward to check the agreed reward and delivery record; do not submit duplicate work |
 | The list looks out of date | Tap the refresh button next to **Upload all**. It needs a signal |
-
-To reach the community, open **Profile**, then the **Help** tab, and tap **Telegram**.
 
 ## Next step
 

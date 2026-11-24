@@ -1,19 +1,27 @@
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
+import { ENDOWMENT_DEPOSITS_ENABLED } from "../../config/app";
 import { useMutation } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useRef } from "react";
 import { useIntl } from "react-intl";
+import type { Hex } from "viem";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
-import type { OctantVaultWalletEndowPreparedTransaction } from "../../modules/vault-crowdfunding";
+import { requireConfirmed } from "../../modules/transactions/confirmation";
+import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
+import type { OctantVaultWalletEndowPreparedTransaction as PreparedEndow } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import {
+  isRecoverableAllowanceReadError,
+  mayStillLand,
+} from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import {
-  isRecoverableAllowanceReadError,
   shouldShowErrorToast,
   shouldShowLifecycleToast,
   type VaultDepositFailureReason,
@@ -31,6 +39,11 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
+  const act = (transaction: PreparedEndow): SendActContext => ({
+    act: "vault_endow",
+    authMode: sender?.authMode,
+    chainId: transaction.chainId,
+  });
   const showLifecycleToast = shouldShowLifecycleToast(options.toastMode);
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
@@ -38,9 +51,19 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
     toastContext: "Octant Wallet Endow",
   });
   const activeToastId = useRef<string | undefined>(undefined);
+  // A deposit that went out with no receipt yet: what it waits for, in place of success.
+  const unconfirmed = useRef<"still-confirming" | "safe-signers" | null>(null);
+  // A deposit that settles as submitted (a Safe proposal, or past its receipt limit) has not
+  // landed: its act ends still confirming, never confirmed.
+  const recordedEndow = (run: (transaction: PreparedEndow) => Promise<Hex | null>) =>
+    recordedSendAct(act, run, () => (unconfirmed.current ? "confirming" : "confirmed"));
 
   const mutation = useMutation({
-    mutationFn: async (transaction: OctantVaultWalletEndowPreparedTransaction) => {
+    mutationFn: recordedEndow(async (transaction: PreparedEndow) => {
+      unconfirmed.current = null;
+      if (!ENDOWMENT_DEPOSITS_ENABLED) {
+        throw new Error(formatMessage({ id: "public.fund.endowmentPause.title" }));
+      }
       if (transaction.chainId !== OCTANT_V2_ETHEREUM_CHAIN_ID) {
         throw new Error("Octant Wallet Endow requires Ethereum mainnet chain ID 1");
       }
@@ -50,6 +73,8 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       if (authMode !== "wallet" || sender.authMode !== "wallet" || !primaryAddress) {
         throw new Error("Octant Wallet Endow requires a connected wallet");
       }
+      // Before the approval starts: a wallet that has not answered is asked to reconnect.
+      sender.assertReadyToSign?.();
 
       const receiver = transaction.receiver.receiverAddress;
       if (!addressesEqual(primaryAddress, receiver)) {
@@ -191,25 +216,31 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
 
       if (allowance < transaction.amount) {
         try {
+          // A Safe's proposal has not run yet: its approval may still land, but the
+          // allowance cannot show it, so the deposit waits (PRD-1570).
           if (allowance > 0n) {
             options.onLifecycleStep?.("approvalReset");
+            requireConfirmed(
+              await sender.sendContractCall({
+                address: transaction.assetAddress,
+                abi: ERC20_ALLOWANCE_ABI,
+                functionName: "approve",
+                args: [transaction.vaultAddress, 0n],
+                chainId,
+              })
+            );
+          }
+
+          options.onLifecycleStep?.("approval");
+          requireConfirmed(
             await sender.sendContractCall({
               address: transaction.assetAddress,
               abi: ERC20_ALLOWANCE_ABI,
               functionName: "approve",
-              args: [transaction.vaultAddress, 0n],
+              args: [transaction.vaultAddress, transaction.amount],
               chainId,
-            });
-          }
-
-          options.onLifecycleStep?.("approval");
-          await sender.sendContractCall({
-            address: transaction.assetAddress,
-            abi: ERC20_ALLOWANCE_ABI,
-            functionName: "approve",
-            args: [transaction.vaultAddress, transaction.amount],
-            chainId,
-          });
+            })
+          );
 
           const refreshedAllowanceResult = await readContract(getWagmiConfig(), {
             address: transaction.assetAddress,
@@ -226,9 +257,12 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
             );
           }
         } catch (error) {
+          // The cause stays, so a send that may still land reads as one.
           throw new VaultDepositStageError(
             "approval",
-            error instanceof Error ? error.message : "Approval failed"
+            error instanceof Error ? error.message : "Approval failed",
+            undefined,
+            { cause: error }
           );
         }
       }
@@ -273,15 +307,31 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
           args: [transaction.amount, receiver],
           chainId,
         });
+        // A Safe's proposal has not run: submitted, never endowed, and it names no transaction.
+        if (result.confirmation === "pending") {
+          unconfirmed.current =
+            result.awaiting === "safe-signers" ? "safe-signers" : "still-confirming";
+          return result.awaiting === "safe-signers" ? null : result.hash;
+        }
         return result.hash;
       } catch (error) {
+        // A deposit past its receipt limit went out and may still land: it settles as submitted,
+        // so checkout never offers to deposit it again (PRD-1551).
+        const sent = mayStillLand(error) ? (error as { hash?: Hex }).hash : undefined;
+        if (sent) {
+          unconfirmed.current = "still-confirming";
+          return sent;
+        }
         throw new VaultDepositStageError(
           "deposit",
-          error instanceof Error ? error.message : "Deposit failed"
+          error instanceof Error ? error.message : "Deposit failed",
+          undefined,
+          { cause: error }
         );
       }
-    },
+    }),
     onMutate: () => {
+      if (!ENDOWMENT_DEPOSITS_ENABLED) return;
       if (!showLifecycleToast) {
         activeToastId.current = undefined;
         return { toastId: undefined };
@@ -297,7 +347,11 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       options.onLifecycleStep?.("success");
       if (context?.toastId) toastService.dismiss(context.toastId);
       activeToastId.current = undefined;
-      if (showLifecycleToast) {
+      if (unconfirmed.current) {
+        // Sent, not yet endowed: it says what it waits for, never success.
+        const { label, detail } = SEND_STAGE_WORDS[unconfirmed.current];
+        toastService.info({ title: formatMessage(label), message: formatMessage(detail!) });
+      } else if (showLifecycleToast) {
         toastService.success({
           title: formatMessage({ id: "app.treasury.deposit" }),
           message: formatMessage({ id: "app.treasury.depositSuccess" }),
@@ -324,7 +378,10 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
           });
           return;
         }
-        if (showErrorToast) {
+        // An approval that may still land is not a failure: in either error mode the handler
+        // reads its cause and says so, where the stage alone would say it failed (PRD-1570).
+        const stillLanding = mayStillLand(error);
+        if (showErrorToast && !stillLanding) {
           toastService.error({
             title: formatMessage({ id: "app.treasury.deposit" }),
             message: formatMessage({
@@ -343,7 +400,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
         }
         handleError(error, {
           metadata: { ...metadata, ...error.diagnostics },
-          showToast: !showErrorToast,
+          showToast: !showErrorToast || stillLanding,
         });
         return;
       }

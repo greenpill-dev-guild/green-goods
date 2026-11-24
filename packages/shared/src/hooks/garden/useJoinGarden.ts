@@ -30,10 +30,22 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { newAttemptId, recordSendAct, sendActEnding } from "../../modules/app/sendActAnalytics";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
+import { activeGardenScope } from "../../modules/garden/active-garden";
 import {
   createDefaultJoinGardenPorts,
   joinGarden as submitJoinGarden,
 } from "../../modules/garden/join-garden-command";
+import {
+  addPendingJoin,
+  forgetLapsedPendingJoins,
+  hasFreshPendingJoin,
+  markOwnJoinEntry,
+  removePendingJoin,
+  subscribeToPendingJoins,
+} from "../../modules/garden/pending-joins";
+import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import type { Garden } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 
@@ -48,10 +60,10 @@ interface PasskeySession {
 
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/contract-errors";
-import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { gardensKeys } from "../../config/query-keys/garden";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { useDocumentEvent } from "../utils/useEventListener";
+import { useDelayedInvalidation, useTimeout } from "../utils/useTimeout";
 
 /**
  * Check if a garden has openJoining enabled on-chain
@@ -85,76 +97,30 @@ export async function checkGardenOpenJoining(gardenAddress: Address): Promise<bo
   }
 }
 
-// Pending joins storage for optimistic UI
-const PENDING_JOINS_KEY = "greengoods:pending-joins";
-const PENDING_JOIN_TTL = 15 * 60 * 1000; // 15 minutes — generous to avoid UI flash during indexer lag
-
-// In-tab subscriber pattern. localStorage's `storage` event only fires across
-// tabs; this lets same-tab consumers (useMemo on garden filters) retrigger
-// when a join confirms or expires inside the current tab.
-const pendingJoinsSubscribers = new Set<() => void>();
-function notifyPendingJoinsChanged() {
-  for (const listener of pendingJoinsSubscribers) {
-    listener();
-  }
-}
-
-function getPendingJoins(): Record<string, { address: string; timestamp: number }> {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function addPendingJoin(gardenId: string, userAddress: string, timestamp = Date.now()) {
-  if (typeof window === "undefined") return;
-  const pending = getPendingJoins();
-  const existing = pending[gardenId];
-  if (
-    existing &&
-    existing.address.toLowerCase() === userAddress.toLowerCase() &&
-    Date.now() - existing.timestamp < PENDING_JOIN_TTL
-  ) {
-    return;
-  }
-  pending[gardenId] = { address: userAddress, timestamp };
-  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
-  notifyPendingJoinsChanged();
-}
-
-// Idempotent: must not notify when nothing changed. `isGardenMember` (a render-
-// path predicate) calls this to clean up confirmed/expired pendings, and an
-// unconditional notify would re-trigger any memo subscribed via
-// `usePendingJoinsVersion`, producing an infinite render loop the moment the
-// indexer-confirmed gardener list and the local pending-join overlap (e.g.
-// immediately post-login on the auto-join-community-garden flow).
-function removePendingJoin(gardenId: string) {
-  if (typeof window === "undefined") return;
-  const pending = getPendingJoins();
-  if (!(gardenId in pending)) return;
-  delete pending[gardenId];
-  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
-  notifyPendingJoinsChanged();
-}
-
 /**
  * Subscribe to pending-join changes inside this tab. Used by garden-membership
  * filter memos so optimistic UI updates immediately on join/release without
- * waiting for an unrelated render trigger.
+ * waiting for an unrelated render trigger. A join the indexer never lists has
+ * no such trigger when its limit passes, so each subscriber also keeps the time.
  *
  * @returns an incrementing counter; use it as a `useMemo`/`useEffect` dep.
  */
 export function usePendingJoinsVersion(): number {
   const [version, setVersion] = useState(0);
+  const { set: setLimitTimer } = useTimeout();
   useEffect(() => {
-    const listener = () => setVersion((prev) => prev + 1);
-    pendingJoinsSubscribers.add(listener);
-    return () => {
-      pendingJoinsSubscribers.delete(listener);
-    };
+    return subscribeToPendingJoins(() => setVersion((prev) => prev + 1));
   }, []);
+  // Each change re-arms the timer: a new join may be the next to lapse.
+  useEffect(() => {
+    const settle = () => {
+      const wait = forgetLapsedPendingJoins();
+      if (wait !== null) setLimitTimer(settle, wait);
+    };
+    settle();
+  }, [version, setLimitTimer]);
+  // A sleeping device holds timers back, so a screen that comes back checks the clock at once.
+  useDocumentEvent("visibilitychange", forgetLapsedPendingJoins);
   return version;
 }
 
@@ -172,23 +138,11 @@ export function isGardenMember(
 
   // Check actual membership
   if (isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, stewards)) {
-    if (gardenId) removePendingJoin(gardenId); // Cleanup if confirmed
     return true;
   }
 
   // Check pending joins for optimistic UI
-  if (gardenId) {
-    const pending = getPendingJoins()[gardenId];
-    if (pending && pending.address.toLowerCase() === userAddress.toLowerCase()) {
-      if (Date.now() - pending.timestamp > PENDING_JOIN_TTL) {
-        removePendingJoin(gardenId);
-        return false;
-      }
-      return true;
-    }
-  }
-
-  return false;
+  return gardenId ? hasFreshPendingJoin(gardenId, userAddress) : false;
 }
 
 interface JoinGardenState {
@@ -211,9 +165,9 @@ interface JoinGardenState {
  */
 export function useJoinGarden() {
   const { formatMessage } = useIntl();
-  const { smartAccountAddress, smartAccountClient, eoa } = useUser();
-  const walletAddress = eoa?.address;
-  const primaryAddress = smartAccountAddress || walletAddress;
+  // The primary address covers every sign-in: an embedded wallet has no `eoa` and no smart
+  // account, and joins through the wallet path under the address useUser() derives for it.
+  const { smartAccountClient, walletRestore, authMode: signIn, primaryAddress } = useUser();
 
   const networkConfig = getDefaultChain();
   const chainId = Number(networkConfig.chainId ?? DEFAULT_CHAIN_ID);
@@ -238,8 +192,18 @@ export function useJoinGarden() {
   // 10 seconds for indexer to process
   const { start: scheduleGardenSync } = useDelayedInvalidation(invalidateGardens, 10000);
 
+  // A join is the member choosing the garden: it becomes the active one, whatever was active
+  // before (DL-147). The pending join just recorded lists it as theirs until the roster does.
+  const activateJoinedGarden = useCallback(
+    (gardenAddress: string, account: string) => {
+      const scope = activeGardenScope(chainId, account);
+      if (scope) useActiveGardenStore.getState().rememberGarden(scope, gardenAddress);
+    },
+    [chainId]
+  );
+
   /**
-   * Join a garden by its address/ID
+   * Join a garden by its address/ID, which also makes it the active garden (DL-147)
    *
    * @param gardenAddress - The garden contract address to join
    * @param sessionOverride - Optional passkey session (used during login flow)
@@ -261,12 +225,17 @@ export function useJoinGarden() {
         throw new Error(formatMessage({ id: "app.garden.joinMissingInfo" }));
       }
 
-      // Track join started
-      const authMode = client?.account ? "passkey" : "wallet";
+      // A passkey account sends through its smart account; any other sign-in sends through the
+      // wallet path, and an embedded wallet keeps its own kind in every record (PRD-1570).
+      const sendsByWallet = !client?.account;
+      const authMode = sendsByWallet ? (signIn === "embedded" ? "embedded" : "wallet") : "passkey";
       addBreadcrumb("garden_join_started", { gardenAddress, authMode });
+      // One id for this press: the join's own events and its send act share it (PRD-1561).
+      const attemptId = newAttemptId();
       trackGardenJoinStarted({
         gardenAddress,
         authMode,
+        attemptId,
       });
 
       setState((prev) => ({
@@ -280,27 +249,38 @@ export function useJoinGarden() {
       const previousGardens = queryClient.getQueryData<Garden[]>(gardensKeys.byChain(chainId));
 
       try {
-        const txHash = await submitJoinGarden(
-          {
-            gardenAddress: gardenAddress as Hex,
-            userAddress: targetAddress as Hex,
-            chainId,
-            smartAccountClient: client,
-          },
-          createDefaultJoinGardenPorts({
-            walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) =>
-              writeContractAsync({
-                address: targetGarden,
-                abi: GardenAccountABI,
-                functionName: "joinGarden",
-                args: [],
-                chainId: targetChain,
-              }),
-            recordPending: addPendingJoin,
-          })
+        // A wallet join returns once it is broadcast, before its receipt: it may still land.
+        const joinEnding = () => (sendsByWallet ? "confirming" : "confirmed");
+        const txHash = await recordSendAct(
+          { act: "garden_join", authMode, chainId, attemptId },
+          () =>
+            submitJoinGarden(
+              {
+                gardenAddress: gardenAddress as Hex,
+                userAddress: targetAddress as Hex,
+                chainId,
+                smartAccountClient: client,
+              },
+              createDefaultJoinGardenPorts({
+                walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) => {
+                  // A wallet that has not answered is asked to reconnect before it is asked to sign.
+                  if (walletRestore) refuseWithoutWallet();
+                  return writeContractAsync({
+                    address: targetGarden,
+                    abi: GardenAccountABI,
+                    functionName: "joinGarden",
+                    args: [],
+                    chainId: targetChain,
+                  });
+                },
+                recordPending: addPendingJoin,
+              })
+            ),
+          joinEnding
         );
 
-        // Optimistic update: add user to garden's gardeners list
+        // Optimistic update: add user to garden's gardeners list, marked as the join's own entry so
+        // the pending join stays until a read of the roster lists them (`useMyGardens`).
         queryClient.setQueryData(
           gardensKeys.byChain(chainId),
           (oldGardens: Garden[] | undefined) => {
@@ -309,16 +289,18 @@ export function useJoinGarden() {
               if (garden.id === gardenAddress) {
                 const currentGardeners = garden.gardeners || [];
                 if (!isAddressInList(targetAddress, currentGardeners)) {
-                  return {
-                    ...garden,
-                    gardeners: [...currentGardeners, targetAddress],
-                  };
+                  return markOwnJoinEntry(
+                    { ...garden, gardeners: [...currentGardeners, targetAddress] },
+                    targetAddress
+                  );
                 }
               }
               return garden;
             });
           }
         );
+
+        activateJoinedGarden(gardenAddress, targetAddress);
 
         // Delayed sync - give indexer time to process the event
         // Uses useDelayedInvalidation for automatic cleanup on unmount
@@ -329,6 +311,7 @@ export function useJoinGarden() {
           gardenAddress,
           txHash,
           authMode,
+          attemptId,
         });
 
         isJoiningRef.current = false;
@@ -344,8 +327,9 @@ export function useJoinGarden() {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
           isJoiningRef.current = false;
-          trackGardenJoinAlreadyMember({ gardenAddress });
+          trackGardenJoinAlreadyMember({ gardenAddress, attemptId });
           addPendingJoin(gardenAddress, targetAddress);
+          activateJoinedGarden(gardenAddress, targetAddress);
           setState((prev) => ({
             ...prev,
             isJoining: false,
@@ -366,9 +350,12 @@ export function useJoinGarden() {
         // stays out of the failure funnel and the error dashboard — counting
         // aborts as failures is what made `failures.conversion-kill` read a
         // two-person retry loop as a 66.7% garden_join conversion kill (PRD-717).
-        if (isCancelledTxError(error)) {
-          trackGardenJoinCancelled({ gardenAddress, authMode });
-        } else {
+        // A send that may still land is not a failure either: `send_act_ended`
+        // records it as still confirming (PRD-1553).
+        const { outcome } = sendActEnding(error);
+        if (outcome === "cancelled") {
+          trackGardenJoinCancelled({ gardenAddress, authMode, attemptId });
+        } else if (outcome === "failed") {
           // Telemetry carries the parsed error family only — viem embeds the
           // signer address in raw wallet messages, and these values are quoted
           // into shared surfaces by the growth-pulse routine.
@@ -380,6 +367,7 @@ export function useJoinGarden() {
             error: parsedErrorFamily,
             parsedErrorFamily,
             authMode,
+            attemptId,
           });
 
           // Also track as structured exception for PostHog error dashboard
@@ -405,10 +393,13 @@ export function useJoinGarden() {
     [
       primaryAddress,
       smartAccountClient,
+      signIn,
+      walletRestore,
       writeContractAsync,
       chainId,
       queryClient,
       scheduleGardenSync,
+      activateJoinedGarden,
       formatMessage,
     ]
   );

@@ -1,30 +1,37 @@
 import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboardScroll";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { usePendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
 import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
 import { useLinkedWorkUIDs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
 import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
+import type { WorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
 import type { WorkDashboardPendingFilter } from "@green-goods/shared/stores/useUIStore";
 import type { Work } from "@green-goods/shared/types/domain";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
-import { RiCheckLine, RiTaskLine } from "@remixicon/react";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider, useIntl } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
   JOURNEY_GARDEN,
+  JOURNEY_GARDEN_RECORD,
   JOURNEY_NEIGHBOUR,
   JOURNEY_VIEWER,
   todayAt,
 } from "../../../../../shared/.storybook/clientJourneyFixtures";
 import { withHeldToast } from "../../../../../shared/.storybook/decorators";
-import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../../shared/.storybook/fixtures";
+import {
+  FIXTURE_IMAGE_BANNER,
+  FIXTURE_IMAGE_WASTE,
+  FIXTURE_WORK_MEDIA,
+  hoursAgo,
+} from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { DOCUMENTATION_SUBMISSION } from "../../../../../shared/.storybook/submitWorkFixtures";
 import {
@@ -34,6 +41,7 @@ import {
 } from "../../../../../shared/.storybook/pendingWorkFixtures";
 import { CompletedTab } from "./CompletedTab";
 import { PendingTab } from "./PendingTab";
+import { ToReviewTab } from "./ToReviewTab";
 import { buildUploadAction, type UploadBarState } from "./uploadActions";
 import { WorkDashboardShell } from "./WorkDashboardShell";
 
@@ -48,7 +56,7 @@ const PHONE_VIEWPORT = {
 const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
-type Moment = "all" | "afterCancel" | "afterDiscard" | "empty";
+type Moment = "all" | "afterCancel" | "afterDiscard" | "empty" | "takeUp" | "sendGaveUp";
 
 const EMPTY: PendingWorkFixture = {
   submissions: [],
@@ -59,8 +67,76 @@ const EMPTY: PendingWorkFixture = {
   onPhone: 0,
 };
 
+/** Work queued on this phone, for a promise the same tap took up (decision 18). */
+function forPromise(id: string, title: string, actionUID: number, savedAt: number): Work {
+  return {
+    ...gardenWork(id, title, { actionUID, gardenerAddress: JOURNEY_VIEWER, createdAt: savedAt }),
+    metadata: JSON.stringify({ clientWorkId: `client-${id}`, submissionState: "ready" }),
+    status: "offline",
+  };
+}
+
+/**
+ * The three stages of a take-up chain, as Your Work names them: a work waiting for its take-up,
+ * one whose take-up gave up, and a sent work whose link to the promise gave up.
+ */
+const TAKE_UP_CHAIN: PendingWorkFixture = {
+  submissions: [
+    forPromise("job-compost", "Compost Turn", 2, hoursAgo(2)),
+    forPromise("job-mulch", "Mulching", 4, hoursAgo(3)),
+    gardenWork("0x5eed07", "Seedling Transplant", {
+      actionUID: 5,
+      gardenerAddress: JOURNEY_VIEWER,
+      createdAt: hoursAgo(26),
+    }),
+  ],
+  drafts: [],
+  proofs: [],
+  linkedWorkIds: new Set(["job-compost", "job-mulch"]),
+  linkedWorkUIDs: new Set(),
+  onPhone: 2,
+};
+const TAKE_UP_STATES = new Map<string, NonNullable<ReturnType<WorkUploads["statusOf"]>>>([
+  ["job-compost", { state: "take-up-pending" }],
+  ["job-mulch", { state: "take-up-failed" }],
+]);
+
+/** Work queued on this phone whose send gave up, in the state its metadata records. */
+function gaveUp(id: string, title: string, actionUID: number, state: object): Work {
+  return {
+    ...forPromise(id, title, actionUID, hoursAgo(1)),
+    metadata: JSON.stringify({ clientWorkId: `client-${id}`, ...state }),
+  };
+}
+
+/**
+ * Three sends that gave up, each named Didn't send (DL-177): one that used up its tries, one the
+ * chain reverted, and one Upload all flagged because the batch it rode in reverted.
+ */
+const SEND_GAVE_UP: PendingWorkFixture = {
+  submissions: [
+    gaveUp("job-compost", "Compost Turn", 2, { submissionState: "retry-required" }),
+    gaveUp("job-mulch", "Mulching", 4, { submissionState: "reverted" }),
+    gaveUp("job-seedling", "Seedling Transplant", 5, {
+      submissionState: "blocked",
+      blockedReason: "batch-reverted",
+    }),
+  ],
+  drafts: [],
+  proofs: [],
+  linkedWorkIds: new Set(),
+  linkedWorkUIDs: new Set(),
+  onPhone: 3,
+};
+
 const fixtureAt = (moment: Moment, documentationPhoto = false) =>
-  moment === "empty" ? EMPTY : pendingWorkFixture(moment, documentationPhoto);
+  moment === "empty"
+    ? EMPTY
+    : moment === "takeUp"
+      ? TAKE_UP_CHAIN
+      : moment === "sendGaveUp"
+        ? SEND_GAVE_UP
+        : pendingWorkFixture(moment, documentationPhoto);
 
 /** Work in a garden the steward reviews, and a review of theirs still on this phone. */
 function gardenWork(id: string, title: string, overrides: Partial<Work> = {}): Work {
@@ -85,14 +161,19 @@ const COMPLETED_WORKS: Work[] = [
 ];
 
 interface DashboardFrameProps {
-  tab: "pending" | "completed";
+  tab: "pending" | "toReview" | "completed";
   /** Where the Pending list stands, as the frames draw it. */
   moment?: Moment;
-  /** Opt-in sourced photograph and one fictional work record; generic scenarios stay unchanged. */
+  /** Opt-in sourced photograph and fictional work, promise proof and draft records; generic scenarios stay unchanged. */
   documentationPhoto?: boolean;
-  /** A steward's view: work waiting for their review, and their reviews still on this phone. */
+  /** Someone who may review the garden's work: what waits for them, which adds the To Review tab. */
   toReview?: Work[];
+  /** Their reviews still on this phone, which Pending lists as their own. */
   decisions?: Work[];
+  /** The review read may stop short of all there is, so the tab and its line name no count. */
+  uncounted?: boolean;
+  isLoading?: boolean;
+  hasError?: boolean;
   /** Completed rows. */
   items?: Work[];
   pendingFilter?: WorkDashboardPendingFilter;
@@ -103,7 +184,12 @@ interface DashboardFrameProps {
   savedAt?: number;
   /** Queued work and decisions: renders the Pending header action when set. */
   uploads?: Partial<UploadBarState>;
+  /** The active garden, named under the title (DL-129); unset draws a member with none. */
+  gardenName?: string;
 }
+
+/** The frames hand the tab the active garden's rows already, so its own scope keeps them all. */
+const IN_ACTIVE_GARDEN = () => true;
 
 const NO_UPLOADS: UploadBarState = {
   readyCount: 0,
@@ -118,8 +204,11 @@ function DashboardFrame({
   tab,
   moment = "all",
   documentationPhoto = false,
-  toReview = [],
+  toReview,
   decisions = [],
+  uncounted = false,
+  isLoading = false,
+  hasError = false,
   items = [],
   pendingFilter = "all",
   completedFilter = "all",
@@ -128,6 +217,7 @@ function DashboardFrame({
   isOffline = false,
   savedAt,
   uploads,
+  gardenName,
 }: DashboardFrameProps) {
   const intl = useIntl();
   const fixture = fixtureAt(moment, documentationPhoto);
@@ -138,36 +228,26 @@ function DashboardFrame({
         intl.formatMessage
       )
     : undefined;
-  const tabs = [
-    {
-      id: "pending",
-      icon: <RiTaskLine className="w-4 h-4" />,
-      label: intl.formatMessage({ id: "app.workDashboard.tabs.pending" }),
-      count: fixture.onPhone > 0 ? fixture.onPhone : undefined,
-    },
-    {
-      id: "completed",
-      icon: <RiCheckLine className="w-4 h-4" />,
-      label: intl.formatMessage({ id: "app.workDashboard.tabs.completed" }),
-    },
-  ];
 
   return (
     <WorkDashboardShell
       isClosing={false}
       onRequestClose={fn()}
-      tabs={tabs}
+      gardenName={gardenName}
+      pendingCount={fixture.onPhone}
+      toReviewCount={toReview && (uncounted ? 0 : toReview.length)}
       activeTab={tab}
       onTabChange={fn()}
     >
       {tab === "pending" ? (
         <PendingTab
+          inScope={IN_ACTIVE_GARDEN}
           submissions={fixture.submissions}
           isOnThisDevice={(work) => work.status === "offline"}
-          toReview={toReview}
           decisions={decisions}
           uploads={{
             pausedForDataSaver: uploads?.pausedForDataSaver ?? false,
+            statusOf: (jobId) => (moment === "takeUp" ? TAKE_UP_STATES.get(jobId) : undefined),
             decisionFor: (workId) => {
               const decided = decisions.find((work) => work.id === workId);
               return decided
@@ -181,7 +261,7 @@ function DashboardFrame({
           }}
           viewer={JOURNEY_VIEWER}
           reads={{
-            needsReview: { isLoading: false, isError: false },
+            decisions: { isLoading: false, isError: false },
             myWork: { isLoading: false, isError: false },
           }}
           isFetching={isFetching}
@@ -193,6 +273,19 @@ function DashboardFrame({
           onRefresh={fn()}
           onOpenWork={fn()}
           onOpenPath={fn()}
+        />
+      ) : tab === "toReview" ? (
+        <ToReviewTab
+          items={toReview ?? []}
+          viewer={JOURNEY_VIEWER}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          hasError={hasError}
+          uncounted={uncounted}
+          onWorkClick={fn()}
+          onRefresh={fn()}
+          isOffline={isOffline}
+          savedAt={savedAt}
         />
       ) : (
         <CompletedTab
@@ -228,8 +321,9 @@ const withLocale: Decorator = (Story, context) => {
 };
 
 /**
- * Your Work at phone width: the shared bottom sheet at the full tier with its two
- * tabs, Pending and Completed (D3). Pending is one list sorted by what needs you
+ * Your Work at phone width: the shared bottom sheet at the full tier with its tabs,
+ * Pending and Completed (D3), and To Review for whoever may review the garden's work
+ * (DL-149). Pending is the member's own work, one list sorted by what needs them
  * (D12): blocked work, work to upload, drafts, anything being checked, then work
  * in review (O2). Its header is the count, Refresh and Upload all, then the
  * filter, which offers only the states the list holds (D17, D27).
@@ -251,6 +345,7 @@ const meta: Meta<typeof DashboardFrame> = {
   // The list reads drafts, proof and promise links itself; each story hands it the frame's.
   beforeEach: ({ args }) => {
     const fixture = fixtureAt(args.moment ?? "all", args.documentationPhoto);
+    mocked(usePrimaryAddress).mockReturnValue(JOURNEY_VIEWER);
     mocked(useDrafts).mockReturnValue({
       drafts: fixture.drafts,
       draftCount: fixture.drafts.length,
@@ -264,6 +359,7 @@ const meta: Meta<typeof DashboardFrame> = {
     } as unknown as ReturnType<typeof useCommitmentJobs>);
     mocked(useCommitmentQueueState).mockReturnValue({
       linkedWorkIds: fixture.linkedWorkIds,
+      failedLinkWorkIds: new Set(args.moment === "takeUp" ? ["0x5eed07"] : []),
     } as unknown as ReturnType<typeof useCommitmentQueueState>);
     mocked(useLinkedWorkUIDs).mockReturnValue({
       linked: fixture.linkedWorkUIDs,
@@ -272,6 +368,7 @@ const meta: Meta<typeof DashboardFrame> = {
       data: PENDING_ACTIONS,
     } as unknown as ReturnType<typeof useActions>);
     return resetHookMocks(
+      usePrimaryAddress,
       useDrafts,
       usePendingProof,
       useCommitmentJobs,
@@ -285,9 +382,14 @@ const meta: Meta<typeof DashboardFrame> = {
 export default meta;
 type Story = StoryObj<typeof DashboardFrame>;
 
-/** A single fictional seedling record waiting for the gardener to send it. */
+/** A mixed garden record: work, promise-linked drafts and proof waiting on this phone. */
 export const PendingWithExamplePhoto: Story = {
-  args: { documentationPhoto: true, uploads: { readyCount: 1 } },
+  args: { documentationPhoto: true, uploads: { readyCount: 2 } },
+};
+
+/** Saved items that need a connection before they can reach a steward. */
+export const RecoveryWithExamplePhoto: Story = {
+  args: { documentationPhoto: true, pendingFilter: "upload", uploads: { readyCount: 2 } },
 };
 
 export const OfflineWithExamplePhoto: Story = {
@@ -309,6 +411,19 @@ export const CompletedWithExamplePhoto: Story = {
         media: [DOCUMENTATION_SUBMISSION.photo],
         feedback: DOCUMENTATION_SUBMISSION.note,
       },
+      gardenWork("0x5eed05", "Compost Turn", {
+        status: "approved",
+        gardenerAddress: JOURNEY_VIEWER,
+        actionUID: 2,
+        media: [FIXTURE_IMAGE_WASTE],
+      }),
+      gardenWork("0x5eed06", "Path Edging", {
+        status: "rejected",
+        gardenerAddress: JOURNEY_VIEWER,
+        actionUID: 6,
+        feedback: "Add a photo showing the full repaired edge.",
+        media: [FIXTURE_IMAGE_BANNER],
+      }),
     ],
   },
 };
@@ -406,13 +521,130 @@ export const UploadCancelledToast: Story = {
   ],
 };
 
-/** A steward's list: work waiting for their review, and a review of theirs still on this phone. */
+const WAITING_FOR_REVIEW: Work[] = [
+  gardenWork("0xreview1", "Greenhouse Repair", { createdAt: hoursAgo(20) }),
+  gardenWork("0xreview2", "Tool Shed Inventory", { actionUID: 3, createdAt: hoursAgo(44) }),
+  gardenWork("0xreview3", "Swale Repair", { actionUID: 6, createdAt: hoursAgo(70) }),
+];
+
+/**
+ * Pending for someone who may review (DL-149): their own work and a review of theirs still on this
+ * phone, and none of the work waiting for them, which the To Review tab counts.
+ */
 export const PendingSteward: Story = {
   args: {
     uploads: READY,
-    toReview: [gardenWork("0xreview", "Compost Turn", { createdAt: hoursAgo(20) })],
+    toReview: WAITING_FOR_REVIEW,
     decisions: [gardenWork("0xdecided", "Path Edging", { status: "approved" })],
   },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByTestId("tab-toReview")).toHaveTextContent("3");
+    await expect(body.getByText("Your review")).toBeVisible();
+    await expect(body.queryByText("Greenhouse Repair")).toBeNull();
+  },
+};
+
+/** The review queue on its own tab, in the review rows, its count on the tab and the line. */
+export const ToReview: Story = {
+  args: { tab: "toReview", toReview: WAITING_FOR_REVIEW },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByText("3 to review")).toBeVisible();
+    await expect(body.getByText("Greenhouse Repair")).toBeVisible();
+    await expect(body.getByTestId("tab-toReview")).toHaveTextContent("3");
+  },
+};
+
+export const ToReviewSpanish: Story = {
+  args: { tab: "toReview", toReview: WAITING_FOR_REVIEW },
+  parameters: { locale: "es" },
+};
+
+export const ToReviewPortuguese: Story = {
+  args: { tab: "toReview", toReview: WAITING_FOR_REVIEW },
+  parameters: { locale: "pt" },
+};
+
+/** Someone who may review with nothing waiting: the tab stays, with no count. */
+export const ToReviewEmpty: Story = {
+  args: { tab: "toReview", toReview: [] },
+};
+
+/** The read may stop short of all there is, so neither the tab nor its line names a number. */
+export const ToReviewUncounted: Story = {
+  args: { tab: "toReview", toReview: WAITING_FOR_REVIEW, uncounted: true },
+};
+
+/** None waiting among the rows read, with older work unread: it does not call the queue empty. */
+export const ToReviewEmptyRecentOnly: Story = {
+  args: { tab: "toReview", toReview: [], uncounted: true },
+};
+
+export const ToReviewLoading: Story = {
+  args: { tab: "toReview", toReview: [], isLoading: true },
+};
+
+export const ToReviewError: Story = {
+  args: { tab: "toReview", toReview: [], hasError: true },
+};
+
+/** The same list offline: when it was read, and no Refresh. */
+export const ToReviewOffline: Story = {
+  args: {
+    tab: "toReview",
+    toReview: WAITING_FOR_REVIEW,
+    isOffline: true,
+    savedAt: todayAt(10, 2),
+  },
+};
+
+/**
+ * Work for a promise taken up in the same tap (decision 18): each row names the stage that
+ * stopped, the take-up first, the work's own upload after it, and the link once the work is sent.
+ */
+export const PendingTakeUpChain: Story = {
+  args: { moment: "takeUp" },
+  play: async ({ canvasElement }) => {
+    // The sheet draws in a portal, so its rows are found from the page body.
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByText("Takes up the promise first")).toBeVisible();
+    await expect(body.getByText("Couldn't take up the promise")).toBeVisible();
+    await expect(body.getByText("Couldn't link it to the promise")).toBeVisible();
+  },
+};
+
+/** Every send that gave up reads Didn't send, a reverted batch's included; none says the record refused it. */
+export const PendingDidntSend: Story = {
+  tags: ["storybook-ci"],
+  args: { moment: "sendGaveUp" },
+  play: async ({ canvasElement }) => {
+    // The sheet draws in a portal, so its rows are found from the page body.
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findAllByText("Nothing was sent")).toHaveLength(3);
+    await expect(body.getAllByText("Didn't send")).toHaveLength(3);
+    await expect(body.queryByText("The record refused it")).toBeNull();
+  },
+};
+
+export const PendingDidntSendSpanish: Story = {
+  args: { moment: "sendGaveUp" },
+  parameters: { locale: "es" },
+};
+
+export const PendingDidntSendPortuguese: Story = {
+  args: { moment: "sendGaveUp" },
+  parameters: { locale: "pt" },
+};
+
+export const PendingTakeUpChainSpanish: Story = {
+  args: { moment: "takeUp" },
+  parameters: { locale: "es" },
+};
+
+export const PendingTakeUpChainPortuguese: Story = {
+  args: { moment: "takeUp" },
+  parameters: { locale: "pt" },
 };
 
 /** The same list where its words run longest. */
@@ -423,6 +655,30 @@ export const PendingSpanish: Story = {
 
 export const PendingPortuguese: Story = {
   args: { uploads: READY },
+  parameters: { locale: "pt" },
+};
+
+/**
+ * In the member's active garden (DL-129): the sheet lists that garden's work
+ * only, and the line under its title names the garden in the description's place.
+ */
+export const PendingInActiveGarden: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
+  play: async ({ canvasElement }) => {
+    const sheet = within(canvasElement.ownerDocument.body).getByRole("dialog", {
+      name: "Your Work",
+    });
+    await expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
+  },
+};
+
+export const PendingInActiveGardenSpanish: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
+  parameters: { locale: "es" },
+};
+
+export const PendingInActiveGardenPortuguese: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
   parameters: { locale: "pt" },
 };
 

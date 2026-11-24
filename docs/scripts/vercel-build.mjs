@@ -20,6 +20,7 @@ const steps = [
   [node, ["scripts/quality/check-ontology.mjs"]],
   [node, ["scripts/quality/check-skill-behavior-contracts.mjs"]],
   ["bun", ["run", "--cwd", "docs", "test"]],
+  ["bun", ["run", "--cwd", "docs", "cms:build"]],
   ["bun", ["run", "--cwd", "docs", "build"]],
 ];
 

@@ -1,0 +1,1290 @@
+import { claimFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import {
+  type CommitmentDerivedState,
+  type ServiceAccessAction,
+  type ServiceAccessSnapshot,
+  type ServiceOfferLine,
+  selectServiceAccessAction,
+  serviceAccessAvailableActions,
+  useServiceAccess,
+  useServiceAccessMutation,
+  useServiceOfferLines,
+} from "@green-goods/shared/commitment-pooling";
+import { Button } from "@green-goods/shared/components/Button";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
+import { useGardenPoolController } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
+import {
+  useCommitmentActivity,
+  useCommitmentCycle,
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import enMessages from "@green-goods/shared/i18n/en";
+import esMessages from "@green-goods/shared/i18n/es";
+import ptMessages from "@green-goods/shared/i18n/pt";
+import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
+import type { Meta, StoryObj } from "@storybook/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { IntlProvider } from "react-intl";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
+import {
+  gardenPoolControllerFixture,
+  JOURNEY_POOL,
+  LIVE_PROMISES,
+} from "../../../../../../shared/.storybook/clientJourneyFixtures";
+import {
+  withAdminIdentity,
+  withSeededQueryClient,
+} from "../../../../../../shared/.storybook/decorators";
+import {
+  type JourneyFlow,
+  JourneyPlayer,
+  useJourneyEmbed,
+} from "../../../../../../shared/.storybook/journeyPlayer";
+import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
+import {
+  type BookingStoryService,
+  type BookingStoryStage,
+  bookingStoryController,
+  bookingStoryCoreState,
+  bookingStorySnapshot,
+  bookingStoryWallet,
+  type ExchangeStoryState,
+  type RewardStoryState,
+  rewardStoryController,
+  rewardStorySnapshot,
+  VOUCHER_STORY_NAMES,
+  VOUCHER_STORY_WALLET_KEY,
+} from "../../../../../../shared/.storybook/voucherBookingFixtures";
+import {
+  VOUCHER_STORY_ISSUERS,
+  VOUCHER_STORY_SCOPE,
+  voucherStorySeeds,
+  vouchers,
+  voucherWalletStory,
+} from "../../../../../../shared/.storybook/voucherPilotFixtures";
+import { ISSUER_STEPS } from "@/components/Features/Vouchers/ServiceIssuerJourney.stories";
+import { VouchersTab } from "../../WalletSheet/VouchersTab";
+import { GardenPool } from "../Pool/GardenPool";
+import { GardenCommitment } from "./GardenCommitment";
+
+type Lang = "en" | "es" | "pt";
+const MESSAGES = { en: enMessages, es: esMessages, pt: ptMessages } as const;
+
+/** One step of a journey: the page's state, and who moves it on from here. */
+interface JourneyStep {
+  /** The narration band's line, as the lab's journeys tell it (story text, English only). */
+  caption: string;
+  booking?: {
+    service: BookingStoryService;
+    stage: BookingStoryStage;
+    confirmed?: boolean;
+    exchange?: ExchangeStoryState;
+    /** A booking that stopped partway, or a read the page can't use yet. */
+    options?: Omit<
+      NonNullable<Parameters<typeof bookingStorySnapshot>[2]>,
+      "confirmed" | "exchange"
+    >;
+    /** The promise's own state where it isn't the stage's usual one. */
+    core?: CommitmentDerivedState;
+    tweak?: (snapshot: ServiceAccessSnapshot) => ServiceAccessSnapshot;
+    /** The service read failed, so the page has no snapshot. */
+    readFailed?: boolean;
+    /** The issuer's proof is on the promise: a problem raised after the delivery was reported. */
+    proofRecorded?: boolean;
+  };
+  reward?: { state: RewardStoryState; withGd: boolean };
+  /** The pool garden's steward decides the member's already-submitted reward claim. */
+  stewardReview?: "ready" | "paused" | "unread";
+  /** A retained offline claim needs agreement before it can resume. */
+  queuedClaim?: boolean;
+  /** What the reader holds now, in whole vouchers. */
+  holds: { techAndSun: number; greenGoods: number };
+  /** The other person's act that moves the journey on, as the band's button. */
+  next?: string;
+  /** Where the reader's own acts on the page lead. */
+  acts?: Partial<Record<ServiceAccessAction["action"] | "confirm", number>>;
+}
+
+const HUB_DAY: JourneyStep[] = [
+  {
+    caption:
+      "Lina holds 9 Tech and Sun vouchers. The page says what a hub day takes, and one button books it.",
+    booking: { service: "hubDay", stage: "open" },
+    holds: { techAndSun: 9, greenGoods: 0 },
+    acts: { requestClaim: 1 },
+  },
+  {
+    caption:
+      "She agreed to the terms. The tracker's clock says the next step waits on Tech and Sun, not on Lina.",
+    booking: { service: "hubDay", stage: "waitingApproval" },
+    holds: { techAndSun: 9, greenGoods: 0 },
+    next: "Tech and Sun approves",
+    acts: { abortVoucherSetup: 11 },
+  },
+  {
+    caption:
+      "Tech and Sun approved. The Deposit marker is filled because the step is Lina's, and the status says Needs you.",
+    booking: { service: "hubDay", stage: "readyToDeposit" },
+    holds: { techAndSun: 9, greenGoods: 0 },
+    acts: { approveVoucherAllowance: 3, presentVoucherSetup: 3, abortVoucherSetup: 11 },
+  },
+  {
+    caption:
+      "Deposited. Confirming the deposit and Tech and Sun's acceptance are one wait to Lina.",
+    booking: { service: "hubDay", stage: "confirmingDeposit" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    next: "Green Goods confirms the deposit",
+    acts: { abortVoucherSetup: 11 },
+  },
+  {
+    caption:
+      "Tech and Sun accepts by 2 November. Until then Lina can cancel and get her voucher back.",
+    booking: { service: "hubDay", stage: "waitingAcceptance" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    next: "Tech and Sun accepts",
+    acts: { abortVoucherSetup: 11 },
+  },
+  {
+    caption:
+      "Accepted. Tech and Sun's Accept and Start sends the start, so Lina has nothing to do. She can start it herself if it hasn't gone after 15 minutes.",
+    booking: { service: "hubDay", stage: "starting" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    next: "The start lands",
+  },
+  {
+    caption: "Booked. The Service marker is Lina's: she goes to the hub.",
+    booking: { service: "hubDay", stage: "inProgress" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    next: "Tech and Sun reports the hub day",
+  },
+  {
+    caption:
+      "Tech and Sun reported the visit. Lina approves the split, then confirms her visit; the delivery's proof is back on the page.",
+    booking: { service: "hubDay", stage: "readyToClose" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    acts: { finalizeVoucherAllocation: 8 },
+  },
+  {
+    caption:
+      "The split is approved and its transfer is on its way. Lina confirms the promise was kept.",
+    booking: { service: "hubDay", stage: "transfersPending" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    acts: { executeVoucherFinalLeg: 8, confirm: 9 },
+  },
+  {
+    caption:
+      "Kept, after Lina confirmed it. The tracker's clock waits on the voucher's way to Tech and Sun's reserve.",
+    booking: { service: "hubDay", stage: "transfersPending", confirmed: true },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    next: "The transfer arrives",
+  },
+  {
+    caption: "Done. Every marker is ticked and the page says where the voucher went.",
+    booking: { service: "hubDay", stage: "closed" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption:
+      "Lina canceled before Tech and Sun accepted. Her voucher comes back once the cancellation is confirmed.",
+    booking: { service: "hubDay", stage: "canceling" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    next: "The cancellation is confirmed",
+    acts: { dispatchVoucherSetupCommand: 12 },
+  },
+  {
+    caption: "Canceled. Her voucher is back in her account, and the booking leaves the tracker.",
+    booking: { service: "hubDay", stage: "canceled" },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+  {
+    caption:
+      "A visit cut short: Tech and Sun proposes half the voucher back, and Lina reviews the split.",
+    booking: {
+      service: "hubDay",
+      stage: "returnProposed",
+      tweak: (snapshot) => ({
+        ...snapshot,
+        voucherSetups: snapshot.voucherSetups.map((row) => ({
+          ...row,
+          destination: row.destination && {
+            ...row.destination,
+            issuerReturnCeiling: vouchers(0.5),
+          },
+        })),
+      }),
+    },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+];
+
+const EXCHANGE_THEN_REDEEM: JourneyStep[] = [
+  {
+    caption: "Claude access takes 10 Green Goods vouchers. Lina holds 2, and 9 of Tech and Sun's.",
+    booking: { service: "access", stage: "notEnough", exchange: "none" },
+    holds: { techAndSun: 9, greenGoods: 2 },
+    acts: { quotePilotExchange: 1 },
+  },
+  {
+    caption:
+      "The shared pool quotes 8 Green Goods vouchers for 8.01 of Tech and Sun's, fees included.",
+    booking: { service: "access", stage: "notEnough", exchange: "quoted" },
+    holds: { techAndSun: 9, greenGoods: 2 },
+    acts: { approvePilotExchange: 2, executePilotExchange: 2 },
+  },
+  {
+    caption: "Sent. Until the result is known, no other paid exchange can start.",
+    booking: { service: "access", stage: "open", exchange: "unknown" },
+    holds: { techAndSun: 0.99, greenGoods: 10 },
+    acts: { resolvePilotExchange: 3 },
+  },
+  {
+    caption: "Exchanged. The swap booked nothing: Lina now redeems her 10 Green Goods vouchers.",
+    booking: { service: "access", stage: "open", exchange: "confirmed" },
+    holds: { techAndSun: 0.99, greenGoods: 10 },
+    acts: { requestClaim: 4 },
+  },
+  {
+    caption:
+      "She agreed to the exact terms. Green Goods' Safe approves next; it takes 2 of 5 signatures.",
+    booking: { service: "access", stage: "waitingApproval" },
+    holds: { techAndSun: 0.99, greenGoods: 10 },
+    next: "Green Goods approves",
+  },
+  {
+    caption: "Approved. Lina deposits the 10 vouchers; her passkey may ask twice.",
+    booking: { service: "access", stage: "readyToDeposit" },
+    holds: { techAndSun: 0.99, greenGoods: 10 },
+    acts: { approveVoucherAllowance: 6, presentVoucherSetup: 6 },
+  },
+  {
+    caption: "In escrow. Green Goods confirms the deposit, then accepts.",
+    booking: { service: "access", stage: "waitingAcceptance" },
+    holds: { techAndSun: 0.99, greenGoods: 0 },
+    next: "Green Goods accepts",
+  },
+  {
+    caption: "Accepted and started. Her 30 days run from the day she can sign in.",
+    booking: { service: "access", stage: "inProgress" },
+    holds: { techAndSun: 0.99, greenGoods: 0 },
+  },
+];
+
+const ENDS_EARLY: JourneyStep[] = [
+  {
+    caption: "Lina's Claude seat is active, but it stops working after 12 of 30 days.",
+    booking: { service: "access", stage: "inProgress" },
+    holds: { techAndSun: 0.99, greenGoods: 0 },
+    next: "Green Goods proposes a return",
+  },
+  {
+    caption: "Green Goods proposes 6 back by days of access. Nothing moves until Lina approves.",
+    booking: { service: "access", stage: "returnProposed" },
+    holds: { techAndSun: 0.99, greenGoods: 0 },
+    acts: { finalizeVoucherAllocation: 2 },
+  },
+  {
+    caption: "The split is fixed. Each transfer runs on its own.",
+    booking: { service: "access", stage: "transfersPending" },
+    holds: { techAndSun: 0.99, greenGoods: 0 },
+    acts: { executeVoucherFinalLeg: 3 },
+  },
+  {
+    caption:
+      "The 4 for Green Goods arrived; the 6 back to Lina didn't go through. Anyone can retry it.",
+    booking: { service: "access", stage: "returnFailed" },
+    holds: { techAndSun: 0.99, greenGoods: 0 },
+    acts: { executeVoucherFinalLeg: 4 },
+  },
+  {
+    caption: "Both transfers arrived: 6 back with Lina, 4 to Green Goods' reserve.",
+    booking: { service: "access", stage: "closed" },
+    holds: { techAndSun: 0.99, greenGoods: 6 },
+    next: "The stewards close it as ended early",
+  },
+  {
+    caption: "The garden's stewards closed the promise as ended early, never kept.",
+    booking: { service: "access", stage: "closed" },
+    holds: { techAndSun: 0.99, greenGoods: 6 },
+  },
+];
+
+const EARN_WITH_GD: JourneyStep[] = [
+  {
+    caption:
+      "Riverside Commons asks for two compost workshops, for 2 Tech and Sun vouchers and 120 G$.",
+    reward: { state: "agreementUnavailable", withGd: true },
+    holds: { techAndSun: 7, greenGoods: 0 },
+    next: "Green Goods records Lina's agreement",
+  },
+  {
+    caption: "Lina took it up. She does the work and adds it.",
+    reward: { state: "inProgress", withGd: true },
+    holds: { techAndSun: 7, greenGoods: 0 },
+    next: "The stewards confirm her work",
+  },
+  {
+    caption: "Her work is confirmed. Each reward is on its way on its own.",
+    reward: { state: "bothOnTheWay", withGd: true },
+    holds: { techAndSun: 7, greenGoods: 0 },
+    next: "The vouchers arrive",
+  },
+  {
+    caption: "The vouchers arrived; the G$ is still on its way.",
+    reward: { state: "vouchersIn", withGd: true },
+    holds: { techAndSun: 9, greenGoods: 0 },
+    next: "The G$ payout fails",
+  },
+  {
+    caption: "The G$ payout didn't go through and is being retried. The vouchers are unaffected.",
+    reward: { state: "gdDelayed", withGd: true },
+    holds: { techAndSun: 9, greenGoods: 0 },
+    next: "The retried payout arrives",
+  },
+  {
+    caption: "Both rewards arrived, each with its own receipt.",
+    reward: { state: "received", withGd: true },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+];
+
+const EARN_VOUCHERS_ONLY: JourneyStep[] = [
+  {
+    caption: "A vouchers-only request: map the garden's water lines for 2 Tech and Sun vouchers.",
+    reward: { state: "inProgress", withGd: false },
+    holds: { techAndSun: 7, greenGoods: 0 },
+    next: "The stewards confirm the work",
+  },
+  {
+    caption: "Tech and Sun's reserve is short, so the reward waits. It is unchanged, not lost.",
+    reward: { state: "reserveShort", withGd: false },
+    holds: { techAndSun: 7, greenGoods: 0 },
+    next: "Tech and Sun tops up its reserve",
+  },
+  {
+    caption: "Delivered once, after the repair.",
+    reward: { state: "received", withGd: false },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+];
+
+/** A booking's setup with its destination changed, for the states a fixture stage doesn't draw. */
+const withDestination =
+  (change: Partial<NonNullable<ServiceAccessSnapshot["voucherSetups"][number]["destination"]>>) =>
+  (snapshot: ServiceAccessSnapshot): ServiceAccessSnapshot => ({
+    ...snapshot,
+    voucherSetups: snapshot.voucherSetups.map((row) => ({
+      ...row,
+      destination: row.destination && { ...row.destination, ...change },
+    })),
+  });
+
+/** The states a booking or a reward reaches when an act stops partway or a read can't be used. */
+const RECOVERY: JourneyStep[] = [
+  {
+    caption:
+      "The offer moved to version 3 and to Green Goods vouchers after Lina deposited: her booking keeps version 2 and Tech and Sun.",
+    booking: {
+      service: "hubDay",
+      stage: "termsChanged",
+      tweak: (snapshot) => ({
+        ...snapshot,
+        offer: snapshot.offer && {
+          ...snapshot.offer,
+          voucher: {
+            asset: VOUCHER_STORY_ISSUERS.greenGoods.asset,
+            issuer: VOUCHER_STORY_ISSUERS.greenGoods.account,
+            units: vouchers(1),
+          },
+        },
+      }),
+    },
+    holds: { techAndSun: 8, greenGoods: 2 },
+  },
+  {
+    caption:
+      "Lina approved the split, then declined the transfer's prompt. Close the Booking sends it.",
+    booking: { service: "hubDay", stage: "transfersPending", options: { legsSent: false } },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption:
+      "Lina confirmed while her voucher was still on its way: the booking stays Closing, its tracker waiting on the transfer.",
+    booking: { service: "hubDay", stage: "transfersPending", confirmed: true },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption:
+      "The transfer arrived before Lina confirmed. The promise still needs her, and Promise kept? says the transfer arrived.",
+    booking: { service: "hubDay", stage: "closed", core: "READY_FOR_CONFIRMATION" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption:
+      "Lina canceled, then declined sending it. Cancel Booking sends the recorded cancellation.",
+    booking: { service: "hubDay", stage: "canceling", options: { cancelSent: false } },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption:
+      "The deposit's confirmation didn't reach the source. Retry Confirmation sends it again.",
+    booking: { service: "hubDay", stage: "confirmingDeposit", options: { ackStuck: true } },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption: "The escrow took the deposit but couldn't finish it. Deposit runs its stored retry.",
+    booking: { service: "hubDay", stage: "readyToDeposit", options: { depositRetry: true } },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+  {
+    caption: "The escrow is paused. Deposit's sheet says so and can't send.",
+    booking: {
+      service: "hubDay",
+      stage: "readyToDeposit",
+      options: { pause: { destinationVoucher: true } },
+    },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+  {
+    caption:
+      "Lina holds no Tech and Sun vouchers. The deposit isn't offered until she does; she can exchange, or cancel.",
+    booking: { service: "hubDay", stage: "readyToDeposit", options: { held: 0n } },
+    holds: { techAndSun: 0, greenGoods: 0 },
+  },
+  {
+    caption:
+      "Lina reported a problem after Tech and Sun reported the visit: the proof stays, and the tracker waits on the garden's stewards.",
+    booking: { service: "hubDay", stage: "problemReported", proofRecorded: true },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption: "A hub day cut short: half the voucher back, and the hub day counted as delivered.",
+    booking: {
+      service: "hubDay",
+      stage: "returnProposed",
+      tweak: withDestination({ issuerReturnCeiling: vouchers(0.5) }),
+    },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption: "A service in general words: 12 of the 30 sessions it authorized were delivered.",
+    booking: {
+      service: "access",
+      stage: "returnProposed",
+      tweak: (snapshot) => ({
+        ...snapshot,
+        offer: snapshot.offer && { ...snapshot.offer, unitLabel: "sessions" },
+      }),
+    },
+    holds: { techAndSun: 0.99, greenGoods: 0 },
+  },
+  {
+    caption: "The shared pool has only 5 to give. Try a Smaller Amount asks for that.",
+    booking: { service: "access", stage: "notEnough", exchange: "short" },
+    holds: { techAndSun: 9, greenGoods: 2 },
+  },
+  {
+    caption:
+      "The exchange's transfer didn't go through: nothing moved, and the quote didn't expire.",
+    booking: { service: "access", stage: "notEnough", exchange: "failed" },
+    holds: { techAndSun: 9, greenGoods: 2 },
+  },
+  {
+    caption: "A vouchers-only reward on its way.",
+    reward: { state: "bothOnTheWay", withGd: false },
+    holds: { techAndSun: 7, greenGoods: 0 },
+  },
+  {
+    caption: "The voucher transfer failed with the reserve full enough: it waits for a retry.",
+    reward: { state: "voucherDelayed", withGd: false },
+    holds: { techAndSun: 7, greenGoods: 0 },
+  },
+  {
+    caption: "Agreeing isn't available in the app yet: Ask for Help opens the app's Help.",
+    reward: { state: "agreementUnavailable", withGd: true },
+    holds: { techAndSun: 7, greenGoods: 0 },
+  },
+  {
+    caption: "The service read failed: taking this up waits, and Try Again reads it again.",
+    booking: { service: "hubDay", stage: "open", readFailed: true },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+];
+
+/** An agreed reward never replaces the service booking's own review and consent. */
+const AGREED_REWARD_BOOKING: JourneyStep[] = [
+  {
+    caption: "Lina already agreed to this promise's reward. She reviews the service booking next.",
+    booking: {
+      service: "hubDay",
+      stage: "open",
+      core: "OFFERED",
+      tweak: (snapshot) => {
+        const issuer = VOUCHER_STORY_ISSUERS.techAndSun;
+        const termsHash = `0x${"c".repeat(64)}` as const;
+        snapshot.evidence = "onchain";
+        snapshot.pause.core = false;
+        snapshot.capabilities = {
+          ...snapshot.capabilities,
+          mutation: "onchain",
+          reasons: [],
+          sourceBuyer: snapshot.key.buyer,
+          canSignSource: true,
+        };
+        snapshot.availableActions = ["requestClaim"];
+        snapshot.acceptancePolicy.earned = {
+          ...snapshot.acceptancePolicy.earned,
+          status: "bound",
+          module: issuer.account,
+          revision: 2n,
+          termsHash,
+          creator: issuer.account,
+          claimType: "individual",
+          viewerConsentRevision: 2n,
+          modulePaused: false,
+          terms: {
+            issuer: issuer.account,
+            issuerAuthority: issuer.account,
+            asset: issuer.asset,
+            totalUnits: vouchers(1),
+            allocationPolicy: termsHash,
+            serviceTermsRef: termsHash,
+            season: 3n,
+            issuerApproved: true,
+            frozen: true,
+          },
+        };
+        return snapshot;
+      },
+    },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+];
+
+const INELIGIBLE_REWARD_BOOKING: JourneyStep[] = AGREED_REWARD_BOOKING.map((step) => ({
+  ...step,
+  caption: "Lina has no eligible buyer garden. Agreeing to a reward cannot yet lead to a booking.",
+  booking: {
+    ...step.booking!,
+    tweak: (snapshot) => {
+      const reward = step.booking!.tweak!(snapshot);
+      reward.eligibleBuyerGardens = [];
+      reward.acceptancePolicy.earned.viewerConsentRevision = 0n;
+      reward.availableActions = serviceAccessAvailableActions(reward);
+      return reward;
+    },
+  },
+}));
+
+const EARNED_CLAIM_REVIEW: JourneyStep[] = [
+  {
+    caption: "A member asked to take up this rewarded request. Its garden's steward decides.",
+    reward: { state: "agreementUnavailable", withGd: true },
+    stewardReview: "ready",
+    holds: { techAndSun: 0, greenGoods: 0 },
+  },
+];
+
+const JOURNEYS = {
+  messageWaits: [
+    {
+      caption: "The request is sent, but has not arrived for issuer approval.",
+      booking: {
+        service: "hubDay",
+        stage: "waitingApproval",
+        tweak: (s: ServiceAccessSnapshot) => {
+          s.voucherSetups[0]!.destination!.result.phase = "none";
+          s.voucherSetups[0]!.source.authorizationMessageId = s.voucherSetups[0]!.setupId;
+          return s;
+        },
+      },
+      holds: { techAndSun: 9, greenGoods: 0 },
+      next: "Request arrives",
+    },
+    {
+      caption: "The request arrived. The issuer can approve it now.",
+      booking: { service: "hubDay", stage: "waitingApproval" },
+      holds: { techAndSun: 9, greenGoods: 0 },
+      next: "Show activation wait",
+    },
+    {
+      caption:
+        "The activation was sent once. The page waits for arrival instead of asking for another signature.",
+      booking: {
+        service: "hubDay",
+        stage: "starting",
+        tweak: (s: ServiceAccessSnapshot) => {
+          s.voucherSetups[0]!.source.decisionDispatched = true;
+          s.voucherSetups[0]!.source.decisionMessageId = s.voucherSetups[0]!.setupId;
+          return s;
+        },
+      },
+      holds: { techAndSun: 8, greenGoods: 0 },
+    },
+  ] satisfies JourneyStep[],
+  hubDay: HUB_DAY,
+  exchange: EXCHANGE_THEN_REDEEM,
+  endsEarly: ENDS_EARLY,
+  earn: EARN_WITH_GD,
+  earnVouchersOnly: EARN_VOUCHERS_ONLY,
+  recovery: RECOVERY,
+  agreedRewardBooking: AGREED_REWARD_BOOKING,
+  ineligibleRewardBooking: INELIGIBLE_REWARD_BOOKING,
+  earnedClaimReview: EARNED_CLAIM_REVIEW,
+  queuedClaimAgreement: EARNED_CLAIM_REVIEW.map((step) => ({
+    ...step,
+    stewardReview: undefined,
+    queuedClaim: true,
+  })),
+  earnedClaimPaused: EARNED_CLAIM_REVIEW.map((step) => ({
+    ...step,
+    stewardReview: "paused" as const,
+  })),
+  earnedClaimUnread: EARNED_CLAIM_REVIEW.map((step) => ({
+    ...step,
+    stewardReview: "unread" as const,
+  })),
+} as const;
+type JourneyId = keyof typeof JOURNEYS;
+
+function snapshotFor(step: JourneyStep): ServiceAccessSnapshot {
+  if (step.reward) {
+    const snapshot = rewardStorySnapshot(step.reward.state, step.reward.withGd);
+    if (step.stewardReview || step.queuedClaim) {
+      // Use the same frozen reward fixture as the combined booking, on this earned request.
+      AGREED_REWARD_BOOKING[0]!.booking!.tweak!(snapshot);
+      snapshot.acceptancePolicy.earned.modulePaused =
+        step.stewardReview === "unread" ? null : step.stewardReview === "paused";
+      if (step.stewardReview === "unread") snapshot.acceptancePolicy.earned.terms = null;
+      if (step.queuedClaim) {
+        snapshot.acceptancePolicy.earned.viewerConsentRevision = 0n;
+        snapshot.availableActions = ["consentEarnedTerms"];
+      }
+    }
+    return snapshot;
+  }
+  const { service, stage, confirmed, exchange, options, tweak } = step.booking!;
+  const snapshot = bookingStorySnapshot(service, stage, { ...options, confirmed, exchange });
+  return tweak ? tweak(snapshot) : snapshot;
+}
+
+function controllerFor(step: JourneyStep, onConfirm: () => void) {
+  if (step.reward) {
+    const controller = rewardStoryController(step.reward.state, step.reward.withGd);
+    if (step.stewardReview && controller.detail) {
+      controller.detail.commitment.claimMode = "APPROVAL_GATED";
+      controller.actKind = null;
+      controller.roles.stewardsPoolGarden = true;
+      controller.pendingClaimRequests = [
+        claimFixture({
+          commitmentId: controller.detail.commitment.commitmentId,
+          state: "PENDING",
+        }),
+      ];
+    }
+    if (step.queuedClaim) {
+      controller.actKind = null;
+      controller.queue.hasPendingJob = true;
+      controller.queue.pendingAct = {
+        jobId: "held-claim",
+        kind: "claim",
+        waitingReason: "reward-agreement-required",
+        discardable: true,
+        createdAt: 1,
+      };
+    }
+    return controller;
+  }
+  const { service, stage, confirmed } = step.booking!;
+  const ended = stage === "closed" && service === "access" && step.next === undefined;
+  const core =
+    step.booking!.core ??
+    (ended
+      ? "CANCELLED"
+      : stage === "closed" && service === "access"
+        ? "ACCEPTED"
+        : bookingStoryCoreState(service, stage, confirmed));
+  const controller = bookingStoryController(service, core, {
+    proofRecorded: step.booking!.proofRecorded,
+  });
+  return {
+    ...controller,
+    confirmation: {
+      ...controller.confirmation,
+      phase: confirmed ? ("confirmed" as const) : ("ask" as const),
+    },
+    acts: {
+      ...controller.acts,
+      confirm: async () => {
+        onConfirm();
+        return "story-confirm-job";
+      },
+    },
+  };
+}
+
+/** A service on a garden's list: who promises it, what a booking takes, and what booking needs. */
+interface EntryService {
+  title: string;
+  by: string;
+  takes: bigint;
+  booking: ServiceOfferLine["booking"];
+}
+const UNIT = 1_000_000n;
+const held = (vouchers: bigint): ServiceOfferLine["booking"] => ({
+  kind: "hold",
+  held: vouchers * UNIT,
+  decimals: 6,
+});
+
+/** Where a member starts before the promise page, when the walk begins from Home. */
+interface EntryScreen {
+  screen: "wallet" | "list";
+  caption: string;
+  /** The garden's list: its services, the reader's row first. */
+  rows?: readonly EntryService[];
+  /** A request that leads the list in place of services, by its title. */
+  request?: string;
+}
+const TECH_AND_SUN_LIST: readonly EntryService[] = [
+  { title: "Hub day, up to 4 hours", by: "Tech and Sun", takes: 1n, booking: held(9n) },
+  { title: "Integration lesson, 60 minutes", by: "Teo Alves", takes: 1n, booking: held(1n) },
+  {
+    title: "Measurement coaching, 60 minutes",
+    by: "Maya Ruiz",
+    takes: 1n,
+    booking: { kind: "exchange" },
+  },
+];
+const ENTRY: Partial<Record<JourneyId, readonly EntryScreen[]>> = {
+  hubDay: [
+    {
+      screen: "wallet",
+      caption:
+        "Lina starts in her wallet's Vouchers tab, holding 9 from Tech and Sun. She opens the holding and taps Book a Service.",
+    },
+    {
+      screen: "list",
+      caption: "Tech and Sun's garden lists what its vouchers book. She opens the hub day.",
+      rows: TECH_AND_SUN_LIST,
+    },
+  ],
+  exchange: [
+    {
+      screen: "wallet",
+      caption:
+        "Lina holds 9 Tech and Sun vouchers and 2 from Green Goods. She opens the Green Goods holding and taps Book a Service.",
+    },
+    {
+      screen: "list",
+      caption: "Green Goods' garden lists its services. She opens Claude access.",
+      rows: [
+        {
+          title: "Claude access, 30 days",
+          by: "Green Goods",
+          takes: 10n,
+          booking: { kind: "exchange" },
+        },
+        { title: "Assisted session, 30 minutes", by: "Green Goods", takes: 1n, booking: held(2n) },
+      ],
+    },
+  ],
+  earn: [
+    {
+      screen: "list",
+      caption: "Riverside Commons' Promises list. Lina opens the request that pays in vouchers.",
+      request: "Teach two compost workshops",
+    },
+  ],
+};
+const OFFERED = LIVE_PROMISES[2]!;
+const REQUESTED = LIVE_PROMISES[1]!;
+
+/** Runs once when a screen's own navigation leaves it, so the walk follows the app's links. */
+function Leave({ onLeave }: { onLeave: () => void }) {
+  useEffect(onLeave, [onLeave]);
+  return null;
+}
+
+/** A garden's Promises list for an entry screen: its services to book, or an open request. */
+function EntryList({ rows, request }: { rows: readonly EntryService[]; request?: string }) {
+  const services = rows.map((service, at) => {
+    const commitmentId = BigInt(4101 + at);
+    return {
+      service,
+      title: service.title,
+      row: {
+        ...OFFERED.row,
+        commitment: {
+          ...OFFERED.row.commitment,
+          id: `42161-${commitmentId}`,
+          commitmentId,
+          metadataCID: `bafy-entry-${commitmentId}`,
+          claimMode: "APPROVAL_GATED" as const,
+          claimType: "INDIVIDUAL" as const,
+          targetUnits: 1n,
+          unitLabel: null,
+        },
+      },
+    };
+  });
+  // An open request nobody has taken up yet, ahead of the garden's other live promises.
+  const listed = request
+    ? [
+        {
+          title: request,
+          row: {
+            ...REQUESTED.row,
+            commitment: {
+              ...REQUESTED.row.commitment,
+              derivedState: "REQUESTED" as const,
+              onchainState: "REQUESTED" as const,
+              state: "REQUESTED" as const,
+              counterparty: null,
+              leadProvider: null,
+            },
+          },
+        },
+        LIVE_PROMISES[0]!,
+        OFFERED,
+      ]
+    : services;
+  mocked(useGardenPoolController).mockReturnValue(
+    gardenPoolControllerFixture(listed, { canCreate: false })
+  );
+  mocked(useServiceOfferLines).mockReturnValue(
+    new Map<string, ServiceOfferLine>(
+      services.map(({ row, service }) => [
+        row.commitment.commitmentId.toString(),
+        {
+          promisedBy: service.by,
+          gender: null,
+          takes: { units: service.takes * UNIT, decimals: 6 },
+          booking: service.booking,
+        },
+      ])
+    )
+  );
+  return (
+    <div className="min-h-dvh bg-bg-canvas px-4 pb-24 pt-3">
+      <GardenPool pool={JOURNEY_POOL} />
+    </div>
+  );
+}
+
+/**
+ * The page as the reader sees it, driven by the journey: the reader's own acts on the page
+ * move it on through the real sheets and the shared selectors, and the band's button plays the
+ * other person's step. Nothing here signs, reads a chain or reaches a service.
+ */
+function VoucherJourney({
+  journey,
+  start,
+  lang,
+  fromHome,
+}: {
+  journey: JourneyId;
+  start: number;
+  lang: Lang;
+  /** Open on the screens a member comes from: the wallet, then the garden's list. */
+  fromHome: boolean;
+}) {
+  const steps: readonly JourneyStep[] = JOURNEYS[journey];
+  const entry = (fromHome && ENTRY[journey]) || [];
+  const count = entry.length + steps.length;
+  // Below zero the walk is on an entry screen; from zero, on the promise page's steps.
+  const at = (position: number) => Math.min(position, count - 1) - entry.length;
+  const [index, setIndex] = useState(at(start));
+  const embedded = useJourneyEmbed(index + entry.length, count, (position) =>
+    setIndex(at(position))
+  );
+  const entryScreen = index < 0 ? entry[index + entry.length] : undefined;
+  const step = steps[Math.max(index, 0)]!;
+  const snapshot = useMemo(() => snapshotFor(step), [step]);
+  const client = useQueryClient();
+  const { account } = VOUCHER_STORY_SCOPE;
+  const walletKey = VOUCHER_STORY_WALLET_KEY;
+  // The wallet follows the journey: what the reader holds, what the booking holds and owes back.
+  useLayoutEffect(() => {
+    client.setQueryData(walletKey, bookingStoryWallet(snapshot, step.holds));
+  }, [client, walletKey, snapshot, step.holds]);
+  const go = (target: number | undefined) => {
+    if (target !== undefined) setIndex(target);
+  };
+  const mutateAsync = async (action: ServiceAccessAction) => {
+    const allowed =
+      action.action.endsWith("PilotExchange") ||
+      selectServiceAccessAction(snapshot, action).allowed;
+    if (!allowed)
+      throw new Error(`The page sent an action the selectors do not offer: ${action.action}`);
+    const target = step.acts?.[action.action];
+    if (target === undefined)
+      return { kind: "local-rehearsal" as const, observationId: "story", snapshot };
+    setIndex(target);
+    return {
+      kind: "local-rehearsal" as const,
+      observationId: `story:${journey}:${target}`,
+      snapshot: snapshotFor(steps[target]!),
+    };
+  };
+  const readFailed = step.booking?.readFailed === true;
+  mocked(useServiceAccess).mockReturnValue({
+    data: readFailed ? undefined : snapshot,
+    isLoading: false,
+    isError: readFailed,
+    status: readFailed ? "error" : "success",
+    fetchStatus: "idle",
+    error: readFailed ? new Error("Service read failed") : null,
+    refetch: fn(),
+  } as unknown as ReturnType<typeof useServiceAccess>);
+  mocked(useServiceAccessMutation).mockReturnValue({
+    isPending: false,
+    mutateAsync,
+  } as unknown as ReturnType<typeof useServiceAccessMutation>);
+  mocked(useGardenCommitmentController).mockReturnValue(
+    controllerFor(step, () => go(step.acts?.confirm))
+  );
+  mocked(usePrimaryAddress).mockReturnValue(account);
+  mocked(useCommitmentActivity).mockReturnValue({
+    events: [],
+    isError: false,
+  } as unknown as ReturnType<typeof useCommitmentActivity>);
+  mocked(useCommitmentCycle).mockReturnValue({
+    cycle: null,
+  } as unknown as ReturnType<typeof useCommitmentCycle>);
+  mocked(useGardens).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useGardens>);
+  mocked(useActions).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useActions>);
+  mocked(useGreenGoodsEnsName).mockImplementation(
+    (address) =>
+      ({
+        data: address ? (VOUCHER_STORY_NAMES[address.toLowerCase()] ?? null) : null,
+      }) as ReturnType<typeof useGreenGoodsEnsName>
+  );
+  mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
+  useEffect(() => {
+    setIndex(Math.min(start, count - 1) - entry.length);
+  }, [start, count, entry.length]);
+  const wallet = bookingStoryWallet(snapshot, step.holds);
+  const garden = snapshot.offer?.providerGarden ?? snapshot.eligibleBuyerGardens[0]?.address;
+  return (
+    <div className="flex min-h-dvh flex-col bg-bg-white-0 text-text-strong-950">
+      {embedded ? null : (
+        <div
+          className="sticky top-0 z-50 border-b border-stroke-soft-200 bg-bg-weak-50 p-3 text-xs"
+          data-component="VoucherJourneyNarration"
+        >
+          <p className="font-semibold text-text-sub-600">
+            Step {index + entry.length + 1} of {count}
+          </p>
+          <p className="mt-0.5 text-sm text-text-strong-950">
+            {entryScreen?.caption ?? step.caption}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="compact"
+              emphasis="secondary"
+              disabled={index + entry.length === 0}
+              onClick={() => setIndex(index - 1)}
+            >
+              Back
+            </Button>
+            {!entryScreen && step.next ? (
+              <Button type="button" size="compact" onClick={() => setIndex(index + 1)}>
+                {step.next}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      )}
+      <IntlProvider key={lang} locale={lang} messages={MESSAGES[lang]}>
+        {entryScreen ? (
+          // The entry screen's own links move the walk on: any navigation leaves it.
+          <MemoryRouter key={index} initialEntries={["/home"]}>
+            <Routes>
+              <Route
+                path="/home"
+                element={
+                  entryScreen.screen === "wallet" ? (
+                    <div className="flex h-dvh flex-col overflow-hidden bg-bg-white-0">
+                      <VouchersTab wallet={wallet} onClose={() => undefined} />
+                    </div>
+                  ) : (
+                    <EntryList rows={entryScreen.rows ?? []} request={entryScreen.request} />
+                  )
+                }
+              />
+              <Route path="*" element={<Leave onLeave={() => setIndex(index + 1)} />} />
+            </Routes>
+          </MemoryRouter>
+        ) : (
+          <MemoryRouter
+            key={`${journey}:${snapshot.key.commitmentId}`}
+            initialEntries={[`/home/${garden}/commitments/${snapshot.key.commitmentId.toString()}`]}
+          >
+            <Routes>
+              <Route
+                path="/home/:id/commitments/:commitmentId"
+                element={
+                  step.queuedClaim ? (
+                    <JobQueueProvider>
+                      <GardenCommitment />
+                    </JobQueueProvider>
+                  ) : (
+                    <GardenCommitment />
+                  )
+                }
+              />
+              {/* See Your Vouchers leads Home, with the wallet open on its Vouchers tab. */}
+              <Route
+                path="/home"
+                element={
+                  <div
+                    className="flex h-dvh flex-col overflow-hidden bg-bg-white-0"
+                    data-component="VoucherJourneyDestination"
+                  >
+                    <VouchersTab wallet={wallet} onClose={() => undefined} />
+                  </div>
+                }
+              />
+              {/* The page's own back arrow leaves for the list the reader came from. */}
+              {entry.length ? (
+                <Route path="*" element={<Leave onLeave={() => setIndex(-1)} />} />
+              ) : null}
+            </Routes>
+          </MemoryRouter>
+        )}
+      </IntlProvider>
+    </div>
+  );
+}
+
+/**
+ * The voucher pilot's slice-1 journeys on the real promise page, with fictional accounts: earn
+ * vouchers (with optional G$), redeem a voucher you hold, exchange then redeem, and Claude access
+ * that ends early. The reader's acts run through the page's sheets; the band plays everyone else.
+ */
+const meta: Meta<typeof VoucherJourney> = {
+  title: "Client/Commitments/Voucher Journeys",
+  component: VoucherJourney,
+  parameters: { layout: "fullscreen" },
+  globals: { viewport: { value: "mobile" } },
+  decorators: [withSeededQueryClient(voucherStorySeeds(voucherWalletStory("empty")))],
+  // The journey sets these hooks while it renders; give every later story the real ones back.
+  beforeEach: () =>
+    resetHookMocks(
+      useServiceAccess,
+      useServiceAccessMutation,
+      useGardenCommitmentController,
+      usePrimaryAddress,
+      useCommitmentActivity,
+      useCommitmentCycle,
+      useGardens,
+      useActions,
+      useGreenGoodsEnsName,
+      useEnsName,
+      useGardenPoolController,
+      useServiceOfferLines
+    ),
+  argTypes: {
+    journey: { control: false },
+    start: { control: { type: "number", min: 0 } },
+    lang: { control: "inline-radio", options: ["en", "es", "pt"] },
+    fromHome: { control: "boolean" },
+  },
+  args: { start: 0, lang: "en", fromHome: false },
+};
+export default meta;
+type Story = StoryObj<typeof VoucherJourney>;
+
+const LINA = "Lina, a member holding vouchers";
+/** A journey as the walkthrough's panel lists it, opening on the screens a member comes from. */
+function flowNote(
+  id: JourneyId,
+  story: string,
+  title: string,
+  options: { who?: string; mainSteps?: number; side?: boolean } = {}
+): JourneyFlow {
+  const steps: readonly JourneyStep[] = JOURNEYS[id];
+  const entry = ENTRY[id] ?? [];
+  const main = options.mainSteps ?? steps.length;
+  return {
+    id,
+    title,
+    who: options.who ?? LINA,
+    story: `client-commitments-voucher-journeys--${story}`,
+    args: "fromHome:!true",
+    side: options.side,
+    steps: [...entry, ...steps.slice(0, main)],
+    sideStates: steps
+      .slice(main)
+      .map((step, at) => ({ label: step.caption, step: entry.length + main + at })),
+  };
+}
+
+/** Every App flow in one place: the panel narrates, the stage is the story it names. */
+export const Walkthrough: StoryObj = {
+  globals: { viewport: { value: undefined } },
+  render: () => (
+    <JourneyPlayer
+      surface="App"
+      flows={[
+        {
+          id: "setup",
+          title: "Setup and awards",
+          who: "Teo, a member issuing his own vouchers",
+          story: "client-profile-service-issuer-journey--setup-and-awards",
+          steps: ISSUER_STEPS,
+        },
+        flowNote("earn", "earn-vouchers", "Earn vouchers"),
+        flowNote("hubDay", "redeem-hub-day", "Redeem a hub day", { mainSteps: 11 }),
+        flowNote("exchange", "exchange-then-redeem", "Exchange then redeem"),
+        flowNote("endsEarly", "claude-access-ends-early", "Access ends early", { side: true }),
+        flowNote("earnVouchersOnly", "earn-vouchers-only", "Reward waits on the reserve", {
+          side: true,
+        }),
+        flowNote("messageWaits", "cross-chain-waits", "Cross-chain waits", { side: true }),
+        flowNote("recovery", "recovery-states", "Recovery states", { side: true }),
+      ]}
+      widths={[
+        { label: "390", width: 390, height: 844 },
+        { label: "375", width: 375, height: 812 },
+        { label: "360", width: 360, height: 640 },
+      ]}
+      counterpart={{
+        label: "Open the Hub Side",
+        story: "admin-pool-voucher-journeys--walkthrough",
+      }}
+    />
+  ),
+};
+
+/** Journey 1: a request that pays Tech and Sun vouchers and G$, each arriving on its own. */
+export const EarnVouchers: Story = { args: { journey: "earn" } };
+
+/** Journey 1, vouchers only: a short reserve leaves the reward waiting, never lost. */
+export const EarnVouchersOnly: Story = { args: { journey: "earnVouchersOnly" } };
+
+/** Journey 2: a Tech and Sun hub day for one voucher, from agreeing to kept. */
+export const RedeemHubDay: Story = { args: { journey: "hubDay" } };
+
+/** Journey 3: too few Green Goods vouchers, an exchange in the shared pool, then the booking. */
+export const ExchangeThenRedeem: Story = { args: { journey: "exchange" } };
+
+/** Journey 4: Claude access stops after 12 of 30 days and ends early, never kept. */
+export const ClaudeAccessEndsEarly: Story = { args: { journey: "endsEarly" } };
+
+/** When an act stops partway or a read can't be used: each state and the page's way on. */
+export const RecoveryStates: Story = { args: { journey: "recovery" } };
+/** Synthetic snapshots of network waits, separate from issuer and member actions. */
+export const CrossChainWaits: Story = { args: { journey: "messageWaits" } };
+
+/** Fictional reviewed reward, with the real booking page and its own consent sheet. */
+export const AgreedRewardKeepsBooking: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "agreedRewardBooking" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(canvas.queryByRole("button", { name: "Take It Up" })).not.toBeInTheDocument();
+    await userEvent.click(await canvas.findByRole("button", { name: "Book" }));
+    await expect(await page.findByRole("dialog", { name: "Review and Redeem" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Agree to These Terms" })).toBeVisible();
+  },
+};
+
+/** No paid reward agreement is offered without a buyer garden eligible for the booking. */
+export const RewardWaitsForBuyerEligibility: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "ineligibleRewardBooking" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("region", { name: "Rewards" })).toBeVisible();
+    await expect(
+      canvas.queryByRole("button", { name: "Agree to the Rewards" })
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("button", { name: "Agree and Take It Up" })
+    ).not.toBeInTheDocument();
+  },
+};
+
+/** Reward consent never hides the steward's decision on a submitted approval-gated claim. */
+export const EarnedClaimStewardDecisions: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "earnedClaimReview" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const decisions = within(await canvas.findByRole("region", { name: "Waiting on you" }));
+    await expect(decisions.getByRole("button", { name: /^Accept$/ })).toBeEnabled();
+    await expect(decisions.getByRole("button", { name: /^Decline$/ })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: /^Ask Again$/ })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Take It Up$/ })).toBeNull();
+  },
+};
+
+/** A paused reward still lets its steward decline a claim, but cannot accept it. */
+export const EarnedClaimPaused: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "earnedClaimPaused" },
+  play: async ({ canvasElement }) => {
+    const decisions = within(
+      await within(canvasElement).findByRole("region", { name: "Waiting on you" })
+    );
+    await expect(decisions.getByRole("button", { name: /^Accept$/ })).toBeDisabled();
+    await expect(decisions.getByRole("button", { name: /^Decline$/ })).toBeEnabled();
+  },
+};
+
+/** An unread reward cannot grant acceptance from a partial snapshot. */
+export const EarnedClaimUnread: Story = {
+  ...EarnedClaimPaused,
+  args: { journey: "earnedClaimUnread" },
+};
+
+/** A waiting queued claim keeps its reward agreement reachable without discarding it. */
+export const QueuedClaimCanReviewRewards: Story = {
+  tags: ["storybook-ci"],
+  decorators: [withAdminIdentity],
+  args: { journey: "queuedClaimAgreement" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "Agree and Take It Up" }));
+    await expect(
+      await within(canvasElement.ownerDocument.body).findByRole("dialog", {
+        name: "Agree to the Rewards",
+      })
+    ).toBeVisible();
+  },
+};
+
+/** The hub day from the offer through the deposit, driven by the page's own acts. */
+export const HubDayAgreeAndDeposit: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "hubDay" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await canvas.findByRole("button", { name: "Book" }));
+    await userEvent.click(await page.findByRole("button", { name: "Agree to These Terms" }));
+    await expect(await page.findByText("Tech and Sun approves the booking next.")).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "Done" }));
+    await expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
+      "Tech and Sun approves your booking next."
+    );
+    await userEvent.click(canvas.getByRole("button", { name: "Tech and Sun approves" }));
+    await userEvent.click(await canvas.findByRole("button", { name: "Deposit 1 Voucher" }));
+    await userEvent.click(await page.findByRole("button", { name: "Deposit 1 Voucher" }));
+    await expect(await page.findByText("Deposited.")).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "View Booking" }));
+    await waitFor(() =>
+      expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
+        "Your voucher is held for this booking."
+      )
+    );
+  },
+};

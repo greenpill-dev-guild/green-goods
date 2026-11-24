@@ -83,6 +83,7 @@ export interface JobProcessor<TPayload = unknown, TEncoded = unknown> {
 // ============================================
 
 export interface WorkJobPayload {
+  uploadConsent?: import("./domain").WorkUploadConsent;
   /** Admission input; replaced with a canonical dependent job before persistence. */
   linkIntent?: DraftWorkLink | null;
   /** Kept with the admitted Work so cancellation cannot lose its original target. */
@@ -109,6 +110,7 @@ export interface WorkJobPayload {
 export type SendCheckpoint = Pick<
   WorkUploadCheckpoint,
   | "broadcast"
+  | "batchReference"
   | "broadcastPending"
   | "broadcastPendingAt"
   | "intentBlock"
@@ -117,6 +119,7 @@ export type SendCheckpoint = Pick<
   | "transactionNonce"
   | "transactionHash"
   | "transactionReplaced"
+  | "awaiting"
 >;
 
 export interface ApprovalJobPayload {
@@ -273,6 +276,8 @@ export interface DraftWorkLink {
   commitmentTitle: string;
   requirementLabel: string;
   returnTo: string;
+  /** The promise is an Open ask that Submit takes up first (decision 18), so Pending says so. */
+  takesUp?: true;
 }
 
 export interface WorkDraftRecord {

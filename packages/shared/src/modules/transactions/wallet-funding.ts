@@ -1,5 +1,6 @@
 import { formatEther, type Hex } from "viem";
 import type { Address } from "../../types/domain";
+import { withGasHeadroom } from "./gas-headroom";
 
 /** The chain reads a funding check needs. A viem public client provides them. */
 export interface WalletFundingReader {
@@ -14,6 +15,8 @@ export interface WalletTransaction {
   data: Hex;
   /** ETH sent with the call, on top of gas. */
   value?: bigint;
+  /** The gas over the estimate that the send asks for, as on `ContractCall`. */
+  gasHeadroomPercent?: number;
 }
 
 /**
@@ -44,8 +47,9 @@ export class WalletCannotFundTransactionError extends Error {
  * also executes the call, so a transaction that would revert fails here instead
  * of inside the wallet.
  *
- * Gas is priced at the fee cap viem would send (`maxFeePerGas`). A wallet that
- * pads the gas limit or fee further can still ask for slightly more.
+ * Gas is priced at the limit the send asks for, headroom included, and at the
+ * fee cap viem would send (`maxFeePerGas`). A wallet that pads the gas limit or
+ * fee further can still ask for slightly more.
  */
 export async function assertWalletCanFundTransaction(
   reader: WalletFundingReader,
@@ -67,7 +71,8 @@ export async function assertWalletCanFundTransaction(
     }),
     reader.estimateFeesPerGas(),
   ]);
-  const required = value + gas * (fees.maxFeePerGas ?? fees.gasPrice ?? 0n);
+  const required =
+    value + withGasHeadroom(gas, [transaction]) * (fees.maxFeePerGas ?? fees.gasPrice ?? 0n);
   if (balance < required) {
     throw new WalletCannotFundTransactionError({ required, balance });
   }

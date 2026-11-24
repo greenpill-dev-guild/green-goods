@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { formatApy } from "@green-goods/shared/utils/blockchain/aave";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import {
@@ -8,8 +9,8 @@ import {
   type PublicGardenVaultSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
-} from "@green-goods/shared/hooks/public/usePublicVaultSummary";
-import { usePublicVaultCatalogSummary } from "@green-goods/shared/hooks/public/usePublicVaultCatalogSummary";
+  usePublicVaultCatalogSummary,
+} from "@green-goods/shared/hooks/public/usePublicVaultCatalogSummary";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
@@ -22,10 +23,10 @@ import {
   EditorialKicker,
   EditorialListRowSkeleton,
   EditorialLinkArrow,
-  EditorialNumeral,
   EditorialVaultAssetCardSkeleton,
   editorialTitleTags,
 } from "@/components/Public/atoms";
+import { FundSupportPaths } from "@/components/Public/FundSupportPaths";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
@@ -44,70 +45,6 @@ const PublicEndowmentPanel = lazy(() =>
   }))
 );
 const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
-interface SupportPathProps {
-  numeral: string;
-  titleId: string;
-  defaultTitle: string;
-  ledeId: string;
-  defaultLede: string;
-  routesId: string;
-  defaultRoutes: string;
-  bestForId: string;
-  defaultBestFor: string;
-  learnMoreId: string;
-  defaultLearnMore: string;
-  learnMoreHref: string;
-}
-
-function SupportPath({
-  numeral,
-  titleId,
-  defaultTitle,
-  ledeId,
-  defaultLede,
-  routesId,
-  defaultRoutes,
-  bestForId,
-  defaultBestFor,
-  learnMoreId,
-  defaultLearnMore,
-  learnMoreHref,
-}: SupportPathProps) {
-  const { formatMessage } = useIntl();
-  return (
-    <article className="flex flex-col gap-5">
-      <EditorialNumeral>{numeral}</EditorialNumeral>
-      <h3 className="font-serif text-2xl font-normal leading-[1.05] tracking-[-0.012em] text-text-strong-950 md:text-3xl">
-        {formatMessage({ id: titleId, defaultMessage: defaultTitle })}
-      </h3>
-      <p className="text-base leading-[1.6] text-text-sub-600 md:text-lg">
-        {formatMessage({ id: ledeId, defaultMessage: defaultLede })}
-      </p>
-      <dl className="space-y-3 text-sm leading-[1.55] text-text-sub-600">
-        <div>
-          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({ id: "public.fund.support.routes", defaultMessage: "Where it goes" })}
-          </dt>
-          <dd className="mt-1">{formatMessage({ id: routesId, defaultMessage: defaultRoutes })}</dd>
-        </div>
-        <div>
-          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({ id: "public.fund.support.bestFor", defaultMessage: "Best for" })}
-          </dt>
-          <dd className="mt-1">
-            {formatMessage({ id: bestForId, defaultMessage: defaultBestFor })}
-          </dd>
-        </div>
-      </dl>
-      <div>
-        <EditorialLinkArrow to={learnMoreHref} external>
-          {formatMessage({ id: learnMoreId, defaultMessage: defaultLearnMore })}
-        </EditorialLinkArrow>
-      </div>
-    </article>
-  );
-}
-
 // The endowment engine always supports these two assets, so the metrics
 // section keeps their cards visible even when the live figures cannot be
 // fetched — a blank section reads as "broken" rather than "no data yet".
@@ -145,7 +82,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
             {formatMessage({
               id: "public.fund.vaults.lede",
               defaultMessage:
-                "Endow places a long-term deposit in a Garden's Vault. Donate sends support straight to a Garden's shared fund.",
+                "Endow places a long-term deposit in a garden's vault. Donate sends support straight to a garden's shared fund.",
             })}
           </p>
         </header>
@@ -153,7 +90,11 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
         {assets.length > 0 ? (
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2">
             {assets.map((asset) => (
-              <VaultAssetCard key={`${asset.chainId}:${asset.asset}`} asset={asset} />
+              <VaultAssetCard
+                key={`${asset.chainId}:${asset.asset}`}
+                asset={asset}
+                isYieldLoading={summary.isYieldLoading}
+              />
             ))}
           </div>
         ) : showSkeleton ? (
@@ -219,17 +160,25 @@ function VaultAssetUnavailableCard({ symbol, errored }: { symbol: string; errore
   );
 }
 
-function VaultAssetCard({ asset }: { asset: PublicVaultSummaryAsset }) {
+function VaultAssetCard({
+  asset,
+  isYieldLoading,
+}: {
+  asset: PublicVaultSummaryAsset;
+  isYieldLoading: boolean;
+}) {
   const { formatMessage } = useIntl();
-  const aprValue =
-    typeof asset.apr === "number"
+  const aprValue = asset.isAprLoading
+    ? formatMessage({ id: "public.fund.vaults.loading", defaultMessage: "Loading..." })
+    : typeof asset.apr === "number"
       ? formatApy(asset.apr)
       : formatMessage({
           id: "public.fund.vaults.aprUnavailable",
           defaultMessage: "APR unavailable",
         });
-  const readyToHarvestValue =
-    asset.accruingYield !== undefined
+  const readyToHarvestValue = isYieldLoading
+    ? formatMessage({ id: "public.fund.vaults.loading", defaultMessage: "Loading..." })
+    : asset.accruingYield !== undefined
       ? formatVaultAssetAmount(asset.accruingYield, asset)
       : formatMessage({
           id: "public.fund.vaults.liveYieldUnavailable",
@@ -273,14 +222,14 @@ function VaultAssetCard({ asset }: { asset: PublicVaultSummaryAsset }) {
         <VaultMetric
           label={formatMessage({
             id: "public.fund.vaults.readyToHarvest",
-            defaultMessage: "Yield ready for Gardens",
+            defaultMessage: "Yield ready for gardens",
           })}
           value={readyToHarvestValue}
         />
         <VaultMetric
           label={formatMessage({
             id: "public.fund.vaults.routed",
-            defaultMessage: "Routed to Gardens",
+            defaultMessage: "Routed to gardens",
           })}
           value={routedValue}
         />
@@ -373,7 +322,6 @@ function FundPageContent() {
   const [isEndowmentPanelOpen, setEndowmentPanelOpen] = useState(false);
   const isEndowmentPanelClosePendingRef = useRef(false);
   const hasWalletRuntime = Boolean(selectorState);
-  const { ref: pathsRef, revealed: pathsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: gardensRef, revealed: gardensRevealed } = useInViewReveal<HTMLElement>();
 
   const matchHighlightRef = useRef<HTMLDivElement | null>(null);
@@ -440,6 +388,7 @@ function FundPageContent() {
 
   const handleSupport = useCallback(
     (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => {
+      if (intent === "endow" && !ENDOWMENT_DEPOSITS_ENABLED) return;
       setSelectorState({ garden, intent });
     },
     []
@@ -462,9 +411,17 @@ function FundPageContent() {
           editorialTitleTags
         )}
         lede={formatMessage({
-          id: "public.fund.heroLede",
-          defaultMessage:
-            "Choose a Garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. You can read its approved submissions before contributing.",
+          ...(ENDOWMENT_DEPOSITS_ENABLED
+            ? {
+                id: "public.fund.heroLede",
+                defaultMessage:
+                  "Choose a garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. You can read its approved submissions before contributing.",
+              }
+            : {
+                id: "public.fund.heroDonationLede",
+                defaultMessage:
+                  "Choose a garden whose work you want to support. You can read its approved submissions and donate to its shared fund.",
+              }),
         })}
       />
 
@@ -493,8 +450,8 @@ function FundPageContent() {
                         : "public.fund.gardenQuery.stale",
                     defaultMessage:
                       resolved.status === "ambiguous"
-                        ? 'We couldn\'t tell which Garden you meant by "{query}". Pick one below.'
-                        : 'We couldn\'t find a Garden matching "{query}". Browse the list below.',
+                        ? 'We couldn\'t tell which garden you meant by "{query}". Pick one below.'
+                        : 'We couldn\'t find a garden matching "{query}". Browse the list below.',
                   },
                   { query: resolved.rawQuery ?? "" }
                 )}
@@ -507,93 +464,9 @@ function FundPageContent() {
         <VaultAggregationSection summary={vaultSummary} />
       </div>
 
-      {/* § 02: Ways to support, Donate and Endow explained before the Garden list */}
-      <section
-        ref={pathsRef}
-        data-revealed={pathsRevealed}
-        className="editorial-section-reveal bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
-        aria-labelledby="public-fund-paths-title"
-      >
-        <div className="editorial-cascade mx-auto max-w-7xl">
-          <header className="border-b border-stroke-soft-200 pb-6">
-            <EditorialKicker className="mb-3">
-              {formatMessage({
-                id: "public.fund.paths.kicker",
-                defaultMessage: "§ 02: Ways to support",
-              })}
-            </EditorialKicker>
-            <EditorialHeading id="public-fund-paths-title">
-              {formatMessage({
-                id: "public.fund.paths.title",
-                defaultMessage: "Choose how your support helps.",
-              })}
-            </EditorialHeading>
-          </header>
+      {ENDOWMENT_DEPOSITS_ENABLED && <FundSupportPaths />}
 
-          <div className="mt-12 grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
-            <SupportPath
-              numeral="1."
-              titleId="public.fund.paths.donateTitle"
-              defaultTitle="Donate"
-              ledeId="public.fund.paths.donateLede"
-              defaultLede="Direct support that reaches a Garden's shared fund today and funds the season's most immediate work."
-              routesId="public.fund.paths.donateRoutes"
-              defaultRoutes="Goes to this Garden's shared fund."
-              bestForId="public.fund.paths.donateBestFor"
-              defaultBestFor="Immediate needs and near-term work."
-              learnMoreId="public.fund.paths.donateLearnMore"
-              defaultLearnMore="How direct support works"
-              learnMoreHref="https://docs.greengoods.app/community/funder-guide"
-            />
-            <SupportPath
-              numeral="2."
-              titleId="public.fund.paths.endowTitle"
-              defaultTitle="Endow"
-              ledeId="public.fund.paths.endowLede"
-              defaultLede="A long-term deposit in the Garden's Vault that stays withdrawable, its yield supporting the Garden season after season — not a personal return."
-              routesId="public.fund.paths.endowRoutes"
-              defaultRoutes="Goes to this Garden's Vault endowment."
-              bestForId="public.fund.paths.endowBestFor"
-              defaultBestFor="Long-term support that keeps working."
-              learnMoreId="public.fund.paths.endowLearnMore"
-              defaultLearnMore="Learn about Octant V2 vaults"
-              learnMoreHref="https://octant.build"
-            />
-          </div>
-
-          <aside
-            className="mt-10 border-t border-stroke-soft-200 pt-6 text-xs leading-[1.6] text-text-soft-400"
-            aria-label={formatMessage({
-              id: "public.fund.paths.disclosures",
-              defaultMessage: "Important disclosures",
-            })}
-          >
-            <p>
-              {formatMessage({
-                id: "public.fund.dialog.taxDisclaimer",
-                defaultMessage:
-                  "Both paths support the Garden directly. Neither is tax-deductible, charitable, or nonprofit-backed unless separately configured.",
-              })}
-            </p>
-            <p className="mt-2">
-              <span className="font-mono uppercase tracking-[0.16em] text-text-soft-400">
-                {formatMessage({
-                  id: "public.fund.paths.endowRiskLabel",
-                  defaultMessage: "On Endow",
-                })}
-                {" — "}
-              </span>
-              {formatMessage({
-                id: "public.fund.dialog.endow.risk",
-                defaultMessage:
-                  "Heads up: deposit value can move with the underlying token, and withdrawals can take time.",
-              })}
-            </p>
-          </aside>
-        </div>
-      </section>
-
-      {/* § 03: Choose a Garden to donate to or endow */}
+      {/* Choose a garden to support. */}
       <section
         ref={gardensRef}
         data-revealed={gardensRevealed}
@@ -605,10 +478,15 @@ function FundPageContent() {
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <EditorialKicker className="mb-3">
-                  {formatMessage({
-                    id: "public.fund.gardens.kicker",
-                    defaultMessage: "§ 03: Choose a Garden",
-                  })}
+                  {ENDOWMENT_DEPOSITS_ENABLED
+                    ? formatMessage({
+                        id: "public.fund.gardens.kicker",
+                        defaultMessage: "§ 03: Choose a garden",
+                      })
+                    : formatMessage({
+                        id: "public.fund.gardens.donateKicker",
+                        defaultMessage: "§ 02: Choose a garden",
+                      })}
                 </EditorialKicker>
                 <EditorialHeading id="public-fund-gardens-title">
                   {formatMessage({
@@ -630,6 +508,23 @@ function FundPageContent() {
                 })}
               </EditorialGhostButton>
             </div>
+            {!ENDOWMENT_DEPOSITS_ENABLED && (
+              <div className="mt-5 max-w-2xl text-sm text-text-sub-600">
+                <p className="font-semibold text-text-strong-950">
+                  {formatMessage({
+                    id: "public.fund.endowmentPause.title",
+                    defaultMessage: "New endowment deposits are paused",
+                  })}
+                </p>
+                <p className="mt-1">
+                  {formatMessage({
+                    id: "public.fund.endowmentPause.body",
+                    defaultMessage:
+                      "We’re updating our endowment vaults. You can still review your existing endowments and withdraw what’s available.",
+                  })}
+                </p>
+              </div>
+            )}
           </header>
 
           <PublicSurfaceState

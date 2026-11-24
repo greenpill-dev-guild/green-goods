@@ -1,9 +1,8 @@
 import { RiAppsLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { ToolbarSlot } from "../../../components/Canvas";
-import type { UserRole } from "../../gardener/useRole";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 
-export type AdminPrimaryWorkspaceId = "hub" | "garden" | "community" | "actions";
+export type AdminPrimaryWorkspaceId = "review" | "garden" | "community" | "actions";
 export type AdminWorkspacePermission = "showWork" | "showGarden" | "showCommunity" | "showActions";
 
 export interface AdminWorkspaceViewDefinition {
@@ -14,23 +13,22 @@ export interface AdminWorkspaceViewDefinition {
   rootPath: string;
   href: string;
   permission: AdminWorkspacePermission;
-  commandRoles?: UserRole[];
 }
 
 export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
   {
-    id: "hub",
-    label: "Hub",
-    labelId: "cockpit.nav.hub",
+    id: "review",
+    label: "Review",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
-    rootPath: "/hub",
-    href: adminRoutes.hub(),
+    rootPath: "/review",
+    href: adminRoutes.review(),
     permission: "showWork",
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     rootPath: "/garden",
     href: adminRoutes.garden(),
@@ -39,7 +37,7 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     rootPath: "/community",
     href: adminRoutes.community(),
@@ -53,17 +51,16 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
     rootPath: "/actions",
     href: adminRoutes.actions(),
     permission: "showActions",
-    commandRoles: ["deployer"],
   },
 ];
 
 const ADMIN_TEAM_COMMAND_ROUTES = [
   {
     id: "page-cookies",
-    labelId: "cockpit.community.cookies.title",
+    labelId: "hub.community.cookies.title",
     defaultLabel: "Campaign Cookie Jars",
     href: adminRoutes.cookies(),
-    roles: ["deployer"] as UserRole[],
+    permission: "showActions" as AdminWorkspacePermission,
   },
 ];
 
@@ -73,7 +70,6 @@ export const ADMIN_COMMAND_ROUTES = [
     labelId: view.labelId,
     defaultLabel: view.label,
     href: view.href,
-    roles: view.commandRoles,
     permission: view.permission,
   })),
   ...ADMIN_TEAM_COMMAND_ROUTES,

@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePromiseGroupController } from "../../../hooks/client-ui/pool/usePromiseGroupController";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
+  CommitmentCycleRecord,
   CommitmentPoolRecord,
   CommitmentReadModel,
 } from "../../../modules/commitment-pooling/types-core";
@@ -20,6 +21,7 @@ import type { Address } from "../../../types/domain";
 import {
   commitmentDetailFixture,
   commitmentFixture,
+  cycleFixture,
   poolFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
@@ -51,6 +53,8 @@ const mocks = vi.hoisted(() => ({
   },
   commitments: [] as CommitmentReadModel[],
   refetchCommitments: vi.fn(),
+  /** The pool's cycles; undefined while unread. */
+  cycles: [] as CommitmentCycleRecord[] | undefined,
   memberHere: true,
   claimGardens: {
     member: [] as Array<{ address: Address; name: string }>,
@@ -65,6 +69,8 @@ const mocks = vi.hoisted(() => ({
   retryMetadata: vi.fn(),
   membershipUnavailable: false,
   retryMembership: vi.fn(),
+  /** The copies with a request waiting on a steward, anyone's; null while the first read waits. */
+  asks: [] as bigint[] | null,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => LINA }));
@@ -87,6 +93,7 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
     refetch: mocks.refetchCommitments,
     availability: { status: "available" },
   }),
+  useCommitmentCycles: () => ({ data: mocks.cycles, isError: false, refetch: vi.fn() }),
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadata: () => ({
@@ -99,7 +106,10 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   }),
 }));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
-  usePoolClaimRequests: () => ({ rows: [], isLoading: false, isError: false, refetch: vi.fn() }),
+  usePoolClaimRequests: () => {
+    const data = mocks.asks?.map((commitmentId) => ({ claim: { commitmentId } }));
+    return { data, rows: data ?? [], isLoading: false, isError: false, refetch: vi.fn() };
+  },
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
@@ -139,12 +149,15 @@ describe("usePromiseGroupController", () => {
     mocks.pools.pools = [poolFixture({ garden: ROUTE })];
     mocks.pools.isError = false;
     mocks.commitments = [copy(11), copy(12)];
+    // The fixture copies carry no due date, so they fall due with their season: read, and open.
+    mocks.cycles = [cycleFixture({ endTime: BigInt(Math.floor(Date.now() / 1000)) + 86_400n })];
     mocks.memberHere = true;
     mocks.claimGardens = { member: [], stewarded: [] };
     mocks.limit = null;
     mocks.pendingActs = new Map();
     mocks.metadataFailed = false;
     mocks.membershipUnavailable = false;
+    mocks.asks = [];
     mocks.detail.mockImplementation(async (id: bigint) =>
       commitmentDetailFixture({
         commitment:
@@ -167,6 +180,8 @@ describe("usePromiseGroupController", () => {
   it("takes up one on a garden pool as the person, through the route garden", async () => {
     const { result } = render();
     expect(result.current.claimNeedsContext).toBe(false);
+    // The copy it would choose, which a group of voucher offers opens to book instead.
+    await waitFor(() => expect(result.current.choice).toBe(11n));
 
     await act(async () => result.current.takeUp.start());
 
@@ -177,6 +192,50 @@ describe("usePromiseGroupController", () => {
       gardenContext: ROUTE,
       gardenAddress: ROUTE,
     });
+  });
+
+  it("offers no copy of an undated set once its cycle has ended, or while that end is unread", async () => {
+    // Without due dates of their own, the copies fall due when their season ends.
+    mocks.cycles = undefined;
+    const { result, rerender } = render();
+    expect(result.current.bar?.hold).toBe("unknown");
+    // The page's reward reads the same clock, so it has none to read while the end is unread.
+    expect(result.current.dueClock).toBeNull();
+
+    const endTime = BigInt(Math.floor(Date.now() / 1000)) - 60n;
+    mocks.cycles = [cycleFixture({ endTime })];
+    rerender();
+    expect(result.current.bar?.hold).toBe("none");
+    expect([...(result.current.dueClock?.cycleEndTimes.values() ?? [])]).toContain(endTime);
+    // The counts agree with the held act: none available, the lapsed copies ended.
+    expect(result.current.counts).toMatchObject({ available: 0, ended: 2 });
+    await act(async () => result.current.takeUp.start());
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  // PRD-1492: the page held its act with "None are available right now" beside "1 available",
+  // because the one open copy already had someone's request on it.
+  it("counts a reviewed group's asked-for copies as waiting on a steward, as its held act reads them", () => {
+    mocks.commitments = [copy(11), copy(12)].map((record) => ({
+      ...record,
+      claimMode: "APPROVAL_GATED" as const,
+    }));
+    mocks.asks = [11n];
+    const { result, rerender } = render();
+    expect(result.current.bar).toEqual({ act: "askToTakeUp", hold: null });
+    expect(result.current.counts).toMatchObject({ available: 1, requested: 1 });
+
+    mocks.asks = [11n, 12n];
+    rerender();
+    expect(result.current.bar).toEqual({ act: "askToTakeUp", hold: "none" });
+    expect(result.current.counts).toMatchObject({ available: 0, requested: 2 });
+
+    // A first read of the requests that waits for a connection answers nothing: unknown, never
+    // a copy offered that someone may have asked for (Codex on #1610).
+    mocks.asks = null;
+    rerender();
+    expect(result.current.availabilityKnown).toBe(false);
+    expect(result.current.bar).toEqual({ act: "askToTakeUp", hold: "unknown" });
   });
 
   it("on the protocol pool, sends nothing until the person chooses who takes it up", async () => {

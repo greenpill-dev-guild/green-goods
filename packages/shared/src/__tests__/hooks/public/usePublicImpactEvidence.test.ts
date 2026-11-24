@@ -16,6 +16,10 @@ import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mockGetGardens = vi.fn();
+const mockIndexerQuery = vi.fn();
+vi.mock("../../../modules/data/graphql-client", () => ({
+  greenGoodsIndexer: { query: (...args: unknown[]) => mockIndexerQuery(...args) },
+}));
 const mockGetActions = vi.fn();
 vi.mock("../../../modules/data/greengoods", () => ({
   getGardens: (...args: unknown[]) => mockGetGardens(...args),
@@ -55,12 +59,51 @@ describe("usePublicImpactEvidence", () => {
     );
   });
 
+  it("shares one fresh eligibility read across the 50-garden Arbitrum evidence slice", async () => {
+    const gardens = Array.from({ length: 50 }, (_, index) =>
+      createMockGarden({ id: `0x${(1000 + index).toString(16).padStart(40, "0")}` })
+    );
+    mockGetGardens.mockResolvedValue(gardens);
+    mockGetWorks.mockResolvedValue(
+      gardens.map((garden, index) =>
+        createMockWork({
+          id: `0x${(1000 + index).toString(16).padStart(64, "0")}`,
+          gardenAddress: garden.id as Address,
+        })
+      )
+    );
+    mockIndexerQuery.mockImplementation(async (_query, _variables, operation) =>
+      operation === "getPublicCommitmentExclusions"
+        ? {
+            data: {
+              Commitment: [
+                { id: "42161-99", poolId: "1", cycleId: "1", workUIDs: [], assessmentUID: null },
+              ],
+            },
+          }
+        : { data: { CommitmentEvent: [] } }
+    );
+    const { result } = renderHookWithQueryClient(
+      () => usePublicImpactEvidence({ chainId: 42161 }),
+      { queryClient }
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockGetGardenHypercerts).toHaveBeenCalledTimes(50);
+    expect(mockGetGardenAssessments).toHaveBeenCalledTimes(50);
+    expect(
+      mockIndexerQuery.mock.calls.filter((call) => call[2] === "getPublicCommitmentExclusions")
+    ).toHaveLength(1);
+    expect(
+      mockIndexerQuery.mock.calls.filter((call) => call[2] === "getPublicRehearsalWorkHistory")
+    ).toHaveLength(1);
+  });
+
   it("records only approved work as evidence", async () => {
     const garden = createMockGarden({ id: "0x1111111111111111111111111111111111111111" });
     mockGetGardens.mockResolvedValue([garden]);
     mockGetWorks.mockResolvedValue(
       ["approved", "pending", "rejected"].map((id) =>
-        createMockWork({ id, gardenAddress: garden.id })
+        createMockWork({ id, gardenAddress: garden.id as Address })
       )
     );
     mockReadWorkApprovalsForWorks.mockResolvedValue({
@@ -91,7 +134,9 @@ describe("usePublicImpactEvidence", () => {
   ])("says the ledger is partial when %s", async (_case, fail) => {
     const garden = createMockGarden({ id: "0x1111111111111111111111111111111111111111" });
     mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockResolvedValue([createMockWork({ id: "work", gardenAddress: garden.id })]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "work", gardenAddress: garden.id as Address }),
+    ]);
     fail();
 
     const { result } = renderHookWithQueryClient(() => usePublicImpactEvidence(), { queryClient });
@@ -126,7 +171,9 @@ describe("usePublicImpactEvidence", () => {
   ])("leaves the certificate count unknown when %s", async (_case, arrange, flags) => {
     const garden = createMockGarden({ id: "0x1111111111111111111111111111111111111111" });
     mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockResolvedValue([createMockWork({ id: "work", gardenAddress: garden.id })]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "work", gardenAddress: garden.id as Address }),
+    ]);
     arrange();
 
     const { result } = renderHookWithQueryClient(() => usePublicImpactEvidence(), { queryClient });

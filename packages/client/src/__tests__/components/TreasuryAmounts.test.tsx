@@ -1,14 +1,26 @@
 /** @vitest-environment happy-dom */
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import userEvent from "@testing-library/user-event";
-import { within } from "@testing-library/react";
-import { renderWithProviders as render, screen } from "../test-utils";
+
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { GardenVault, VaultDeposit } from "@green-goods/shared/types/vaults";
+import { act, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render, screen } from "../test-utils";
 
+const QUIET_PLAN = {
+  signatures: null as number | null,
+  signatureLine: null as string | null,
+  isHeld: false,
+  isPaused: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null as null | Record<string, unknown>,
+};
 const mocks = vi.hoisted(() => ({
+  plan: {} as Record<string, unknown>,
+  planInput: {} as { onLanded?: () => void },
   online: true,
   pending: false,
+  endowmentDepositsEnabled: true,
   maxWithdraw: 100000n,
   withdraw: vi.fn(),
   preview: vi.fn(),
@@ -59,6 +71,12 @@ const jar: CookieJar = {
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => mocks.online,
 }));
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  get ENDOWMENT_DEPOSITS_ENABLED() {
+    return mocks.endowmentDepositsEnabled;
+  },
+}));
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: account }),
 }));
@@ -70,6 +88,25 @@ vi.mock("@green-goods/shared/hooks/vault/useVaultPreview", () => ({
     mocks.preview(input);
     return { preview: { maxWithdraw: mocks.maxWithdraw } };
   },
+}));
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
+  useDepositPlan: (input: { onLanded?: () => void }) => {
+    mocks.planInput = input;
+    return mocks.plan;
+  },
+  useVaultDeposit: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
+  useGardenVaults: () => ({ vaults: [vault], isLoading: false, isError: false }),
+}));
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposits", () => ({
+  useVaultDeposits: () => ({ deposits: [], isLoading: false, isError: false }),
+}));
+vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
+  useGardenCookieJars: () => ({ jars: [], isLoading: false, error: null }),
+}));
+vi.mock("@green-goods/shared/hooks/blockchain/useErc20Balance", () => ({
+  useErc20Balance: () => ({ data: { value: 5_000_000n, decimals: 6, symbol: "USDC" } }),
 }));
 vi.mock("@green-goods/shared/hooks/vault/useVaultWithdraw", () => ({
   useVaultWithdraw: () => ({ mutate: mocks.withdraw, isPending: mocks.pending }),
@@ -83,20 +120,144 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
   getVaultAssetSymbol: () => "USDC",
 }));
 
+import { CookieJarRow } from "../../components/Features/Garden/CookieJarRow";
+import { EndowmentSheet } from "../../components/Sheets/EndowmentSheet";
 import { MyDepositRow } from "../../components/Sheets/EndowmentSheet/MyDepositRow";
-import { CookieJarCard } from "../../components/Sheets/EndowmentSheet/CookieJarCard";
+import { TreasuryTabContent } from "../../components/Sheets/EndowmentSheet/TreasuryTabContent";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.plan = QUIET_PLAN;
   mocks.online = true;
   mocks.pending = false;
+  mocks.endowmentDepositsEnabled = true;
   mocks.maxWithdraw = 100000n;
 });
 
+/** A deposit's row opens its page, where the withdrawal is. */
+async function openDeposit(user: ReturnType<typeof userEvent.setup>) {
+  render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+  const row = screen.getByRole("button", { name: /USDC/ });
+  expect(row).toHaveAttribute("aria-expanded", "false");
+  await user.click(row);
+  expect(row).toHaveAttribute("aria-expanded", "true");
+}
+
+describe("Depositing from the endowment sheet", () => {
+  const sheet = () => (
+    <EndowmentSheet isOpen onClose={vi.fn()} gardenAddress={garden} gardenName="Garden" />
+  );
+  const heldPlan = () => ({
+    ...QUIET_PLAN,
+    isHeld: true,
+    isPaused: true,
+    holdFeedback: {
+      title: "We couldn’t confirm your last deposit.",
+      message: "Deposits here are paused.",
+      hasUnreadValues: false,
+      isSettling: false,
+      onCheckAgain: vi.fn(),
+      onMoveOn: vi.fn(),
+    },
+  });
+
+  it("says how many signatures a deposit takes and pauses it while an earlier one is unknown", async () => {
+    mocks.plan = { ...QUIET_PLAN, signatureLine: "2 signatures" };
+    const { rerender } = render(sheet());
+    await userEvent.setup().type(screen.getByRole("textbox", { name: "Amount to deposit" }), "1");
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeEnabled();
+    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+
+    mocks.plan = heldPlan();
+    rerender(sheet());
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Move On" })).toBeEnabled();
+  });
+
+  it("keeps recovery for an earlier deposit available during the endowment pause", async () => {
+    mocks.endowmentDepositsEnabled = false;
+    const plan = heldPlan();
+    mocks.plan = plan;
+    render(sheet());
+
+    expect(screen.getByText("New deposits paused")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Check Again" }));
+    expect(plan.holdFeedback.onCheckAgain).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Move On" })).toBeEnabled();
+  });
+
+  it("clears the amount when a held deposit proves it landed", async () => {
+    mocks.plan = QUIET_PLAN;
+    render(sheet());
+    const amount = screen.getByRole("textbox", { name: "Amount to deposit" });
+    await userEvent.setup().type(amount, "1");
+    expect(amount).toHaveValue("1");
+
+    act(() => mocks.planInput.onLanded?.());
+
+    expect(amount).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
+  });
+});
+
 describe("Treasury amount controls", () => {
+  it("lists a deposit as a row with what can be withdrawn, and no act until it opens", () => {
+    render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+    expect(screen.getByRole("button", { name: /USDC/ })).toHaveAccessibleName(
+      /USDC.*My shares: 0.*0\.1 USDC.*Available balance/
+    );
+    expect(screen.queryByRole("button", { name: /^Withdraw$/i })).not.toBeInTheDocument();
+  });
+
+  it("says the reader has no deposits only after their deposits were read", async () => {
+    const refetchDeposits = vi.fn();
+    const treasury = (state: { depositsLoading?: boolean; depositsError?: boolean }) => (
+      <TreasuryTabContent
+        isOnline
+        vaults={[vault]}
+        vaultsLoading={false}
+        vaultsError={false}
+        myDeposits={[]}
+        {...state}
+        refetchDeposits={refetchDeposits}
+        gardenAddress={garden}
+        primaryAddress={account}
+        selectedAsset={asset}
+        onSelectAsset={vi.fn()}
+        amountInput=""
+        onAmountChange={vi.fn()}
+        balance={undefined}
+        previewShares={undefined}
+        decimals={6}
+      />
+    );
+    const { rerender } = render(treasury({ depositsLoading: true }));
+    expect(screen.queryByText("No deposits yet")).not.toBeInTheDocument();
+
+    rerender(treasury({ depositsError: true }));
+    expect(screen.queryByText("No deposits yet")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Failed to load vault data");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetchDeposits).toHaveBeenCalledOnce();
+
+    rerender(treasury({}));
+    expect(screen.getByText("No deposits yet")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText(/Support this garden by making an endowment deposit/)).toBeVisible();
+
+    mocks.endowmentDepositsEnabled = false;
+    rerender(treasury({}));
+    expect(screen.getByText("No deposits yet")).toBeVisible();
+    expect(
+      screen.queryByText(/Support this garden by making an endowment deposit/)
+    ).not.toBeInTheDocument();
+  });
+
   it("associates a vault precision error with the input and prevents a withdrawal", async () => {
     const user = userEvent.setup();
-    render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+    await openDeposit(user);
     const input = screen.getByRole("textbox", { name: /Amount to withdraw/i });
     await user.type(input, "0.1234567");
     expect(input).toHaveAttribute("aria-invalid", "true");
@@ -108,7 +269,7 @@ describe("Treasury amount controls", () => {
 
   it("uses the vault preview limit and submits the parsed amount only after confirmation", async () => {
     const user = userEvent.setup();
-    render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+    await openDeposit(user);
     const input = screen.getByRole("textbox", { name: /Amount to withdraw/i });
     await user.type(input, "0.100001");
     expect(screen.getByRole("button", { name: /^Withdraw$/i })).toBeDisabled();
@@ -134,7 +295,13 @@ describe("Treasury amount controls", () => {
 
   it("keeps the jar balance, purpose, precision and confirmation requirements", async () => {
     const user = userEvent.setup();
-    render(<CookieJarCard jar={jar} gardenAddress={garden} gardenName="Garden Alpha" />);
+    render(
+      <CookieJarRow jar={jar} gardenAddress={garden} gardenName="Garden Alpha" amount="balance" />
+    );
+    // A garden's endowment sheet leads with what the jar holds, beside its per-claim limit.
+    expect(screen.getByRole("button", { name: /USDC/i })).toHaveAccessibleName(
+      /0\.1 USDC a claim.*0\.05 USDC.*Jar Balance/
+    );
     await user.click(screen.getByRole("button", { name: /USDC/i }));
     const input = screen.getByRole("textbox", { name: /^How much$/i });
     const withdraw = screen.getByRole("button", { name: /^Claim$/i });
@@ -163,10 +330,11 @@ describe("Treasury amount controls", () => {
   it("caps a jar at the per-withdrawal limit when its balance is larger", async () => {
     const user = userEvent.setup();
     render(
-      <CookieJarCard
+      <CookieJarRow
         jar={{ ...jar, balance: 200000n }}
         gardenAddress={garden}
         gardenName="Garden Alpha"
+        amount="balance"
       />
     );
     await user.click(screen.getByRole("button", { name: /USDC/i }));
@@ -178,7 +346,7 @@ describe("Treasury amount controls", () => {
     mocks.online = state !== "offline";
     mocks.pending = state === "pending";
     const user = userEvent.setup();
-    render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+    await openDeposit(user);
     await user.click(screen.getByRole("button", { name: /^max$/i }));
     const withdraw = screen.getByRole("button", { name: /^Withdraw$/i });
     if (state === "pending") {
@@ -194,10 +362,11 @@ describe("Treasury amount controls", () => {
   it("keeps paused jars closed to withdrawals", async () => {
     const user = userEvent.setup();
     render(
-      <CookieJarCard
+      <CookieJarRow
         jar={{ ...jar, isPaused: true }}
         gardenAddress={garden}
         gardenName="Garden Alpha"
+        amount="balance"
       />
     );
     await user.click(screen.getByRole("button", { name: /USDC/i }));

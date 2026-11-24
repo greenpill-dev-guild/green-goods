@@ -1,21 +1,13 @@
 /* ============================================================================
  * Admin M3 component skins & motion — admin-owned CSS for admin-owned
- * components (plus two third-party surfaces). Imported by admin's index.css
+ * components (plus two third-party surfaces). Imported by admin's workspace stylesheet
  * AND the shared Storybook preview, so stories exercise the same motion and
  * dark-mode fixes as the runtime app.
  *
  * This file contains NO remote styling of shared components — that practice
- * ended with the Shell fork (Cockpit M3 1a, Step 1) and the removal of
+ * ended with the Shell fork (Hub M3 1a, Step 1) and the removal of
  * admin-m3-overrides.css (Step 5).
  * ============================================================================ */
-
-.admin-loading-screen {
-  background: rgb(var(--m3-surface-container-low));
-}
-
-[data-theme="dark"] .admin-loading-screen {
-  background: rgb(var(--m3-surface));
-}
 
 /* Toast / Snackbar (react-hot-toast) — M3 inverse surface */
 .admin-m3 [data-hot-toast] > div {
@@ -113,6 +105,28 @@
     animation: adminDialogModalOut var(--spring-spatial-duration)
       var(--spring-spatial-easing) both;
   }
+}
+
+/* A dialog hosts the shared action bar in its own footer bar, which pads it and
+ * draws its hairline, the way DialogShell and ConfirmDialog set the bar's
+ * padding from their own selectors (DL-117). The bar fills that row, so a note
+ * takes the start and the actions keep to the end. */
+[data-component="AdminDialog"] [data-slot="actions"] > [data-component="SheetActions"],
+[data-region="form-flow-actions"] > [data-component="SheetActions"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  background-color: transparent;
+}
+
+/* From 640px the centered dialog keeps its own surface (DL-104), so the shared
+ * header's scroll edge (DL-028) covers with that fill, not the phone sheet's.
+ * The cover is a token the shared scroll-edge rule reads (DL-031). */
+[data-component="AdminDialog"][data-slot="surface"]:not([data-sheet-surface]) {
+  --sheet-scroll-edge-cover: linear-gradient(
+    rgb(var(--m3-surface-container-high)),
+    rgb(var(--m3-surface-container-high))
+  );
 }
 
 /* ============================================================================
@@ -214,7 +228,7 @@
  * Action flow phase cross-fade (qualify ↔ configure)
  * Animates only the content group — the ActionFlowShell header + footer stay
  * stationary. Reuses the route-content fade keyframe + admin motion tokens
- * (minimal-cockpit budget). Disabled under reduced motion.
+ * (minimal-chrome budget). Disabled under reduced motion.
  * ============================================================================ */
 .action-flow-fade {
   animation: var(--admin-motion-route-content-duration) var(--admin-motion-route-content-easing) both

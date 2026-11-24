@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "../../utils/styles/cn";
 
 /**
- * `default` is the 16px field (DL-022); `admin` rides the cockpit field family;
+ * `default` is the 16px field (DL-022); `admin` rides the Hub field family;
  * `editorial` is the public site's underline field (DL-024).
  */
 type ControlSurface = "default" | "admin" | "editorial";

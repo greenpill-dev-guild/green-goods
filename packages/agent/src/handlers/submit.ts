@@ -1,9 +1,12 @@
+import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
+import type { Address } from "@green-goods/shared/types/domain";
 import { parseWorkText } from "../services/ai";
-import { agentMessage } from "../i18n";
+import { agentMessage, type AgentLocale, normalizeAgentLocale } from "../i18n";
 import * as db from "../services/db";
 import { classifyError } from "../services/errors";
 import { loggers } from "../services/logger";
 import type {
+  CallbackContent,
   HandlerResult,
   InboundMessage,
   ParsedWorkData,
@@ -22,6 +25,15 @@ import {
 const log = loggers.handlers;
 const PROTOCOL_WORK_TITLE = "Submission";
 
+interface SubmissionReview {
+  work: ParsedWorkData;
+  token: string;
+  policyVersion: string;
+  uploaderAddress: string;
+  gardenAddress: string | undefined;
+  locale: AgentLocale;
+}
+
 export interface SubmitDeps {
   generateId: () => string;
   notifyOperator?: (operatorPlatformId: string, message: string) => Promise<void>;
@@ -30,7 +42,7 @@ export interface SubmitDeps {
 export async function handleTextSubmission(
   message: InboundMessage,
   user: User,
-  _deps: SubmitDeps
+  deps: SubmitDeps
 ): Promise<HandlerResult> {
   if (!canSubmitWork(user)) {
     return gardenerOnlyResponse(message.locale);
@@ -49,14 +61,14 @@ export async function handleTextSubmission(
     };
   }
 
-  return showConfirmation(workData, message.locale);
+  return showConfirmation(workData, user, deps.generateId(), message.locale);
 }
 
 export async function handleVoiceSubmission(
   message: InboundMessage,
   user: User,
   transcribedText: string,
-  _deps: SubmitDeps
+  deps: SubmitDeps
 ): Promise<HandlerResult> {
   if (!canSubmitWork(user)) {
     return gardenerOnlyResponse(message.locale);
@@ -72,10 +84,23 @@ export async function handleVoiceSubmission(
     };
   }
 
-  return showConfirmation(workData, message.locale);
+  return showConfirmation(workData, user, deps.generateId(), message.locale);
 }
 
-function showConfirmation(workData: ParsedWorkData, locale?: string): HandlerResult {
+function showConfirmation(
+  workData: ParsedWorkData,
+  user: User,
+  token: string,
+  locale?: string
+): HandlerResult {
+  const review: SubmissionReview = {
+    work: workData,
+    token,
+    policyVersion: WORK_UPLOAD_POLICY_VERSION,
+    uploaderAddress: user.address,
+    gardenAddress: user.currentGarden,
+    locale: normalizeAgentLocale(locale),
+  };
   const tasksSummary = workData.tasks
     .map((t) => {
       if (t.count) return `• ${t.type}: ${t.count} ${t.species}`;
@@ -86,20 +111,26 @@ function showConfirmation(workData: ParsedWorkData, locale?: string): HandlerRes
 
   return {
     response: {
-      text: agentMessage(locale, "submit.confirm", {
-        tasks: tasksSummary,
-        notes: workData.notes,
-        date: workData.date,
-      }),
+      text:
+        agentMessage(locale, "submit.confirm", {
+          tasks: tasksSummary,
+          notes: workData.notes,
+          date: workData.date,
+        }) +
+        "\n\n" +
+        agentMessage(locale, "submit.uploadTerms", { version: review.policyVersion }),
       parseMode: "markdown",
       buttons: [
-        { label: agentMessage(locale, "submit.submitButton"), callbackData: "confirm_submission" },
+        {
+          label: agentMessage(locale, "submit.submitButton"),
+          callbackData: `confirm_submission:${token}`,
+        },
         { label: agentMessage(locale, "submit.cancelButton"), callbackData: "cancel_submission" },
       ],
     },
     updateSession: {
       step: "confirming_work",
-      draft: workData,
+      draft: review,
       updatedAt: Date.now(),
     },
   };
@@ -130,16 +161,20 @@ export async function handleConfirmSubmission(
     };
   }
 
-  if (!session.draft || !user.currentGarden) {
-    return {
-      response: {
-        text: agentMessage(message.locale, "sessionExpired.submitInvalid"),
-      },
-      clearSession: true,
-    };
+  const review = session.draft as SubmissionReview | undefined;
+  const callback = message.content as CallbackContent;
+  if (
+    !user.currentGarden ||
+    session.step !== "confirming_work" ||
+    !review?.work ||
+    review.policyVersion !== WORK_UPLOAD_POLICY_VERSION ||
+    review.uploaderAddress !== user.address ||
+    review.gardenAddress !== user.currentGarden ||
+    callback.data !== `confirm_submission:${review.token}`
+  ) {
+    return { response: { text: agentMessage(message.locale, "sessionExpired.submitInvalid") } };
   }
-
-  const workData = session.draft as ParsedWorkData;
+  const workData = review.work;
 
   try {
     const claimed = await claimMessageIdempotency("submit-confirm", message);
@@ -150,6 +185,7 @@ export async function handleConfirmSubmission(
       };
     }
 
+    const acceptedAt = new Date().toISOString();
     const draft: WorkDraftData = {
       actionUID: 0,
       title: PROTOCOL_WORK_TITLE,
@@ -157,6 +193,14 @@ export async function handleConfirmSubmission(
       plantCount: workData.tasks.reduce((acc, t) => acc + (t.count || t.amount || 0), 0),
       feedback: workData.notes,
       media: [],
+      uploadConsent: {
+        policyVersion: WORK_UPLOAD_POLICY_VERSION,
+        uploaderAddress: user.address as Address,
+        termsAcceptedAt: acceptedAt,
+        publicSharingAcceptedAt: acceptedAt,
+        locale: review.locale,
+        permissionsConfirmed: true,
+      },
     };
 
     const pendingId = generateId();

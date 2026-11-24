@@ -2,14 +2,46 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" type="image/png" href="%BASE_URL%%HUB_BROWSER_ICON%" data-hub-icon />
+    <!-- The installed Hub: its own window, name, icon and splash per environment (PRD-1533, PRD-1517). -->
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="%BASE_URL%%HUB_APPLE_TOUCH_ICON%" />
+    <meta name="apple-mobile-web-app-title" content="%HUB_SHORT_NAME%" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAF8F5" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#110C08" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Green Goods Admin</title>
-    <meta property="og:title" content="Green Goods Admin" />
-    <meta property="og:description" content="Manage gardens, operators, and regenerative assessments for Green Goods." />
-    <meta property="og:image" content="/social-image.webp" />
+    <link rel="preload" href="%BASE_URL%fonts/jakarta-latin-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <style id="local-fonts">
+      @font-face {
+        font-family: 'Plus Jakarta Sans';
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/jakarta-latin-ext-normal.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Plus Jakarta Sans';
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/jakarta-latin-normal.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+    </style>
+    <title>Green Goods Hub</title>
+    <meta name="description" content="A workspace for garden stewards to coordinate promises, review documented work, and manage garden access." />
+    <meta property="og:title" content="Green Goods Hub" />
+    <meta property="og:description" content="A workspace for garden stewards to coordinate promises, review documented work, and manage garden access." />
+    <meta property="og:url" content="https://admin.greengoods.app" />
+    <meta property="og:image" content="https://admin.greengoods.app/social-card.webp" />
+    <meta property="og:image:alt" content="Green Goods Hub card that reads Tend your garden's record, over seedlings and notebooks on a garden table" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="/social-image.webp" />
+    <meta name="twitter:description" content="A workspace for garden stewards to coordinate promises, review documented work, and manage garden access." />
+    <meta name="twitter:image" content="https://admin.greengoods.app/social-card.webp" />
+    <meta name="twitter:image:alt" content="Green Goods Hub card that reads Tend your garden's record, over seedlings and notebooks on a garden table" />
     <script>
       (function() {
         const KEY = 'theme';
@@ -26,7 +58,7 @@
     </script>
   </head>
   <body>
-    <div id="root" class="overflow-hidden"></div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

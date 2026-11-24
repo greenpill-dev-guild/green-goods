@@ -23,7 +23,7 @@ export function useContractTxSender() {
   const sender = useTransactionSender();
   const chainId = useCurrentChain();
 
-  return async (request: SendContractTxRequest): Promise<`0x${string}`> => {
+  const send = async (request: SendContractTxRequest): Promise<`0x${string}`> => {
     if (!sender) {
       throw new Error("TransactionSender not available — auth not initialized");
     }
@@ -39,4 +39,6 @@ export function useContractTxSender() {
 
     return result.hash;
   };
+  // The sign-in kind and chain its sends go through, for the act's send record (PRD-1553).
+  return Object.assign(send, { authMode: sender?.authMode, chainId });
 }

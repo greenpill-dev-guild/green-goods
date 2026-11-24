@@ -2,7 +2,7 @@ import { useDocumentEvent, useWindowEvent } from "@green-goods/shared/hooks/util
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { FlowBar } from "@/components/Features/Work";
+import { FlowBar } from "@/components/Features/Work/FlowBar";
 
 /**
  * The app's flow bar, fixed to the bottom of the viewport at every width, its content held to the
@@ -66,7 +66,7 @@ export function CeremonyBar({ children }: { children: ReactNode }) {
         className={cn(
           "[@media(max-height:20rem)]:hidden",
           follows && "hidden",
-          barHeight === null && "h-[calc(7rem+env(safe-area-inset-bottom))]"
+          barHeight === null && "h-[calc(7rem+var(--safe-area-bottom))]"
         )}
         style={barHeight === null ? undefined : { height: barHeight }}
       />

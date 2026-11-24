@@ -1,7 +1,6 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
-import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
 import {
   GardenJoinRequestTransportError,
   gardenJoinRequestTransport,
@@ -41,30 +40,6 @@ import { useGardenJoinRequestMutationBarrier } from "./useGardenJoinRequestMutat
 type AsyncState = { isLoading: boolean; error: Error | null };
 const IDLE_ASYNC_STATE: AsyncState = { isLoading: false, error: null };
 
-export function useGardenJoinRequestAvailability(
-  kind: GardenJoinRequestKind = "garden_membership"
-): boolean {
-  return useGardenJoinRequestAvailabilityState(kind).available;
-}
-
-export function useGardenJoinRequestAvailabilityState(
-  kind: GardenJoinRequestKind = "garden_membership"
-) {
-  const query = useQuery({
-    queryKey: gardenJoinRequestKeys.availability(),
-    queryFn: () => gardenJoinRequestTransport.availability(),
-    staleTime: 60_000,
-    retry: false,
-  });
-  return {
-    available:
-      query.data?.enabled === true &&
-      (query.data.supportedKinds ?? ["garden_membership"]).includes(kind),
-    isLoading: query.isPending,
-    error: query.error,
-  };
-}
-
 export function useGardenJoinRequests(
   gardenAddress?: Address | null,
   options: { kind?: GardenJoinRequestKind } = {}
@@ -72,7 +47,7 @@ export function useGardenJoinRequests(
   const kind = options.kind ?? "garden_membership";
   const chainId = useCurrentChain();
   const accountAddress = usePrimaryAddress() as Address | null;
-  const { authMode, smartAccountClient, resolveSmartAccountClient } = useAuth();
+  const { authMode, walletRestore, smartAccountClient, resolveSmartAccountClient } = useAuth();
   const { signMessageAsync } = useSignMessage();
   const session = useGardenJoinRequestSession(
     chainId,
@@ -118,7 +93,7 @@ export function useGardenJoinRequests(
         throw new Error("Connect your account before continuing.");
       }
       let account = smartAccountClient?.account;
-      if (authMode === "passkey") {
+      if (isSmartAccountAuthMode(authMode)) {
         assertSmartAccountClientResolverActive(resolveSmartAccountClient);
         const client =
           smartAccountClient?.chain?.id === chainId
@@ -152,12 +127,14 @@ export function useGardenJoinRequests(
       };
       const signer = createAccountMessageSigner({
         authMode,
+        walletRestore,
         signMessage: signMessageAsync,
         account,
       });
       const signature = await signer(buildGardenJoinProofMessage(unsigned, content));
-      const factoryArgs =
-        authMode === "passkey" ? await resolveAccountFactoryArgs(account) : undefined;
+      const factoryArgs = isSmartAccountAuthMode(authMode)
+        ? await resolveAccountFactoryArgs(account)
+        : undefined;
       if (unsigned.expiresAt <= Math.floor(Date.now() / 1000)) {
         throw new GardenJoinRequestTransportError(
           "Authorization expired while signing. Please sign again.",
@@ -179,6 +156,7 @@ export function useGardenJoinRequests(
     [
       accountAddress,
       authMode,
+      walletRestore,
       smartAccountClient,
       resolveSmartAccountClient,
       chainId,
@@ -496,5 +474,13 @@ function failureToShow(
   return error;
 }
 
-// The declared join-request entrypoint also exposes its presentation lifecycle.
+// The declared join-request entrypoint also exposes the service's availability, the dialog's
+// presentation lifecycle, the gardens awaiting review and what a signed queue read does for the
+// waiting count, each kept in its own module.
 export { useGardenJoinRequestActivity } from "./useGardenJoinRequestActivity";
+export {
+  useGardenJoinRequestAvailability,
+  useGardenJoinRequestAvailabilityState,
+} from "./useGardenJoinRequestAvailability";
+export { useAwaitingJoinRequests } from "./useGardenJoinRequestSession";
+export { useJoinRequestCountUpdates } from "./useJoinRequestCount";

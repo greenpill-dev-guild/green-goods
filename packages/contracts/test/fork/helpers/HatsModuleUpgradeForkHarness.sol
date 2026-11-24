@@ -5,10 +5,26 @@ import { Test } from "forge-std/Test.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { IERC6551Registry } from "../../../src/interfaces/IERC6551Registry.sol";
+import { IHats } from "../../../src/interfaces/IHats.sol";
+import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { HatsModule } from "../../../src/modules/Hats.sol";
+
+/// @dev Cheatcodes the pinned forge-std interface predates.
+interface IHatsUpgradeForkVm {
+    function parseJsonAddress(string calldata json, string calldata key) external pure returns (address);
+}
 
 interface IERC721OwnerOf {
     function ownerOf(uint256 tokenId) external view returns (address);
+}
+
+/// @notice What a deployed garden account already exposes. Its code cannot change with the module.
+interface ILiveGardenAccount {
+    function isGardener(address account) external view returns (bool);
+    function gardenMemberCount() external view returns (uint256);
+    function setOpenJoining(bool openJoining) external;
+    function setMaxGardeners(uint256 maxGardeners) external;
+    function joinGarden() external;
 }
 
 /// @notice Shared current-state rehearsal for a deployed HatsModule UUPS proxy.
@@ -43,6 +59,7 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
     address private hatsModule;
     address private gardenToken;
     address private gardenAccountImpl;
+    address private gardenAccountProxy;
 
     function _setUpHatsModuleUpgrade(string memory rpcEnvironmentVariable, uint256 expectedChainId) internal {
         uint256 forkBlock = vm.envUint("HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER");
@@ -60,6 +77,10 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
         hatsModule = abi.decode(vm.parseJson(deployment, ".hatsModule"), (address));
         gardenToken = abi.decode(vm.parseJson(deployment, ".gardenToken"), (address));
         gardenAccountImpl = abi.decode(vm.parseJson(deployment, ".gardenAccountImpl"), (address));
+        // Networks that never minted through the upgradeable account record it as null or omit it.
+        try IHatsUpgradeForkVm(address(vm)).parseJsonAddress(deployment, ".gardenAccountProxy") returns (address proxy) {
+            gardenAccountProxy = proxy;
+        } catch { }
 
         assertGt(hatsModule.code.length, 0, "HatsModule proxy must contain code");
         assertGt(gardenToken.code.length, 0, "GardenToken must contain code");
@@ -78,11 +99,9 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
         assertTrue(moduleBefore.owner != address(0), "live proxy owner must be configured");
         assertGt(implementationBefore.code.length, 0, "current implementation must contain code");
 
-        HatsModule newImplementation = new HatsModule();
-        vm.prank(moduleBefore.owner);
-        UUPSUpgradeable(hatsModule).upgradeTo(address(newImplementation));
+        address newImplementation = _upgradeToRehearsedImplementation();
 
-        assertEq(_implementation(), address(newImplementation), "proxy did not use rehearsed implementation");
+        assertEq(_implementation(), newImplementation, "proxy did not use rehearsed implementation");
         assertEq(
             keccak256(abi.encode(_snapshotModule(proxy))),
             keccak256(abi.encode(moduleBefore)),
@@ -105,6 +124,114 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
                 string.concat("Steward alias mismatch for token ", vm.toString(i))
             );
         }
+    }
+
+    /// @notice Every deployed garden must support leaving through the module alone.
+    function _rehearseLeavingLiveGardens() internal {
+        HatsModule proxy = HatsModule(hatsModule);
+        _upgradeToRehearsedImplementation();
+
+        GardenSnapshot[] memory gardens = _snapshotGardens(proxy);
+        for (uint256 i = 0; i < gardens.length; i++) {
+            _rehearseLeavingLiveGarden(proxy, gardens[i].garden, vm.toString(i));
+        }
+    }
+
+    function _rehearseLeavingLiveGarden(HatsModule proxy, address garden, string memory token) private {
+        ILiveGardenAccount account = ILiveGardenAccount(garden);
+        IHats hats = proxy.hats();
+        (uint256 ownerHat, uint256 stewardHat,,,,,,) = proxy.getGardenHatIds(garden);
+        address fixtureOwner = makeAddr("rehearsalOwner");
+        address member = makeAddr("leavingMember");
+
+        // Live Owner hats can move between blocks, so the rehearsal mints its own as the hat's admin.
+        vm.prank(hatsModule);
+        hats.mintHat(ownerHat, fixtureOwner);
+
+        vm.prank(fixtureOwner);
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.OwnerCannotLeave.selector, garden));
+        proxy.leaveGarden(garden);
+
+        (,, uint32 stewardSupplyBefore,,,,,,) = hats.viewHat(stewardHat);
+        vm.startPrank(fixtureOwner);
+        proxy.grantRole(garden, member, IHatsModule.GardenRole.Steward);
+        proxy.grantRole(garden, member, IHatsModule.GardenRole.Funder);
+        proxy.grantRole(garden, member, IHatsModule.GardenRole.Community);
+        account.setOpenJoining(true);
+        account.setMaxGardeners(0);
+        vm.stopPrank();
+        assertTrue(proxy.isStewardOf(garden, member), string.concat("steward hat missing: ", token));
+        assertTrue(proxy.isEvaluatorOf(garden, member), string.concat("evaluator hat missing: ", token));
+        assertTrue(proxy.isGardenerOf(garden, member), string.concat("gardener hat missing: ", token));
+        assertTrue(proxy.isFunderOf(garden, member), string.concat("funder hat missing: ", token));
+        assertTrue(proxy.isCommunityOf(garden, member), string.concat("community hat missing: ", token));
+
+        vm.prank(member);
+        proxy.leaveGarden(garden);
+
+        assertFalse(account.isGardener(member), string.concat("account still sees a member: ", token));
+        assertFalse(proxy.isStewardOf(garden, member), string.concat("steward hat stayed: ", token));
+        assertFalse(proxy.isEvaluatorOf(garden, member), string.concat("evaluator hat stayed: ", token));
+        assertFalse(proxy.isFunderOf(garden, member), string.concat("funder hat stayed: ", token));
+        assertFalse(proxy.isCommunityOf(garden, member), string.concat("community hat stayed: ", token));
+        // Revocation burns the hat. A burn address would keep wearing it and read as a steward.
+        (,, uint32 stewardSupplyAfter,,,,,,) = hats.viewHat(stewardHat);
+        assertEq(stewardSupplyAfter, stewardSupplyBefore, string.concat("revocation left a wearer behind: ", token));
+
+        // The account's join counter only counts up, so coming back counts as another join.
+        uint256 countBeforeRejoining = account.gardenMemberCount();
+        vm.prank(member);
+        account.joinGarden();
+        assertTrue(account.isGardener(member), string.concat("could not rejoin: ", token));
+        assertEq(account.gardenMemberCount(), countBeforeRejoining + 1, string.concat("join not counted: ", token));
+
+        vm.prank(member);
+        proxy.leaveGarden(garden);
+        assertFalse(account.isGardener(member), string.concat("could not leave again: ", token));
+    }
+
+    /// @notice Replaces the live implementation through the proxy's real owner.
+    function _upgradeToRehearsedImplementation() internal returns (address newImplementation) {
+        newImplementation = address(new HatsModule());
+        vm.prank(HatsModule(hatsModule).owner());
+        UUPSUpgradeable(hatsModule).upgradeTo(newImplementation);
+    }
+
+    /// @notice Every reviewed garden account, in token order.
+    function _liveGardens() internal returns (address[] memory gardens) {
+        gardens = new address[](reviewedGardenCount);
+        for (uint256 tokenId = 0; tokenId < reviewedGardenCount; tokenId++) {
+            gardens[tokenId] = _gardenAccount(tokenId);
+        }
+    }
+
+    function _hatsModule() internal view returns (address) {
+        return hatsModule;
+    }
+
+    /// @dev Older gardens use the fixed account implementation; newer mints use the upgradeable account proxy.
+    ///      Anyone can deploy the other kind of account for a token, so the garden is the one the module configured.
+    function _gardenAccount(uint256 tokenId) private returns (address garden) {
+        IERC6551Registry registry = IERC6551Registry(TOKENBOUND_REGISTRY);
+        address legacy = registry.account(gardenAccountImpl, TOKENBOUND_SALT, chainIdUnderTest, gardenToken, tokenId);
+        address upgradeable = gardenAccountProxy == address(0)
+            ? address(0)
+            : registry.account(gardenAccountProxy, TOKENBOUND_SALT, chainIdUnderTest, gardenToken, tokenId);
+        bool upgradeableConfigured = upgradeable != address(0) && _configuredInModule(upgradeable);
+        bool legacyConfigured = _configuredInModule(legacy);
+        assertTrue(
+            upgradeableConfigured != legacyConfigured,
+            string.concat("exactly one garden account must be configured: ", vm.toString(tokenId))
+        );
+        garden = upgradeableConfigured ? upgradeable : legacy;
+        assertGt(garden.code.length, 0, string.concat("garden account has no code: ", vm.toString(tokenId)));
+    }
+
+    function _configuredInModule(address garden) private view returns (bool) {
+        (bool ok, bytes memory data) = hatsModule.staticcall(abi.encodeCall(HatsModule.getGardenHatIds, (garden)));
+        if (!ok || data.length != 32 * 8) return false;
+        (,,,,,,, bool configured) = abi.decode(data, (uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool));
+        return configured;
     }
 
     function _assertReviewedGardenCountIsExact() private {
@@ -139,9 +266,7 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
     function _snapshotGardens(HatsModule proxy) private returns (GardenSnapshot[] memory snapshots) {
         snapshots = new GardenSnapshot[](reviewedGardenCount);
         for (uint256 tokenId = 0; tokenId < reviewedGardenCount; tokenId++) {
-            address garden = IERC6551Registry(TOKENBOUND_REGISTRY)
-                .account(gardenAccountImpl, TOKENBOUND_SALT, chainIdUnderTest, gardenToken, tokenId);
-            assertGt(garden.code.length, 0, string.concat("garden account has no code: ", vm.toString(tokenId)));
+            address garden = _gardenAccount(tokenId);
 
             (bool success, bytes memory configuration) =
                 address(proxy).staticcall(abi.encodeCall(proxy.getGardenHatIds, (garden)));

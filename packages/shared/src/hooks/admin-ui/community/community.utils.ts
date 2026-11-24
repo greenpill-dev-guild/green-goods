@@ -7,9 +7,12 @@ import {
   formatTokenAmount,
 } from "../../../utils/blockchain/vaults";
 import {
+  ADD_MEMBER_ROUTE_ITEM,
   type AdminCommunityRouteContext,
   adminRoutes,
+  FUND_JAR_ROUTE_ITEM,
 } from "../../../utils/navigation/admin-routes";
+import { pushRouteItem } from "../../navigation/useCanvasSearchParams";
 import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
 /**
@@ -56,7 +59,7 @@ export function buildCommunityHeaderStats({
       id: "treasury",
       value: formatAssetAmounts(endowmentByAsset, locale),
       label: formatMessage({
-        id: "cockpit.community.stats.treasury",
+        id: "hub.community.stats.treasury",
         defaultMessage: "endowment",
       }),
     },
@@ -67,7 +70,7 @@ export function buildCommunityHeaderStats({
       id: "distributed",
       value: formatTokenAmount(distributedAmounts[0] ?? 0n),
       label: formatMessage({
-        id: "cockpit.community.stats.distributed",
+        id: "hub.community.stats.distributed",
         defaultMessage: "distributed",
       }),
     });
@@ -132,17 +135,20 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 /**
  * Community view-level actions. The set is stable across Community tabs so
  * desktop button positions and the mobile FAB speed dial do not shift while
- * stewards move between Members, Coordination, Endowment, and Payouts.
+ * stewards move between Members, Coordination, Endowment, and Payouts. Add
+ * Member and Fund Cookie Jar read the active tab, to open their dialogs over it
+ * (DL-140).
  */
 export function buildCommunityViewActions(
-  _mode: CommunityWorkspaceMode,
+  mode: CommunityWorkspaceMode,
   canManage: boolean,
   isOwner: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
   routeContext?: AdminCommunityRouteContext,
   /** False once the garden is known to have no payout jar to fund. */
-  hasPayoutJar = true
+  hasPayoutJar = true,
+  canAddMember = canManage
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
   // "View public" lives once, on the Garden workspace — not duplicated here.
@@ -150,18 +156,21 @@ export function buildCommunityViewActions(
     {
       id: "add-member",
       label: "Add member",
-      labelId: "cockpit.community.action.addMember",
+      labelId: "hub.community.action.addMember",
       icon: RiUserAddLine,
       onClick: () =>
-        navigate(adminRoutes.communityMembers({ gardenId: gardenAddress, item: "add-member" })),
+        pushRouteItem(
+          navigate,
+          adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: ADD_MEMBER_ROUTE_ITEM })
+        ),
       variant: "primary",
-      visible: hasSelectedGarden && canManage,
+      visible: hasSelectedGarden && canAddMember,
       primary: true,
     },
     {
       id: "deposit-withdraw",
       label: "Deposit / withdraw",
-      labelId: "cockpit.community.action.depositWithdraw",
+      labelId: "hub.community.action.depositWithdraw",
       icon: RiMoneyDollarCircleLine,
       onClick: () => navigate(adminRoutes.communityEndowmentVault(routeContext)),
       variant: "secondary",
@@ -170,10 +179,13 @@ export function buildCommunityViewActions(
     {
       id: "fund-payout-jar",
       label: "Fund Cookie Jar",
-      labelId: "cockpit.community.action.fundPayoutJar",
+      labelId: "hub.community.action.fundPayoutJar",
       icon: RiHandCoinLine,
       onClick: () =>
-        navigate(adminRoutes.communityPayouts({ gardenId: gardenAddress, item: "fund-jar" })),
+        pushRouteItem(
+          navigate,
+          adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: FUND_JAR_ROUTE_ITEM })
+        ),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
       // Stays in place, disabled and saying why, rather than doing nothing (D10).
@@ -181,7 +193,7 @@ export function buildCommunityViewActions(
       ...(hasPayoutJar
         ? {}
         : {
-            disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+            disabledReasonId: "hub.community.action.fundPayoutJarNoJar",
             disabledReason: "This garden has no payout jar yet.",
           }),
     },

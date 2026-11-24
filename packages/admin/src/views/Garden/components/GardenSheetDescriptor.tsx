@@ -59,8 +59,8 @@ export function GardenSheetDescriptor({
     if (poolCommitmentId && gardenAddress && poolCloseTo) {
       return {
         title: formatMessage({
-          id: "cockpit.garden.pool.commitment.title",
-          defaultMessage: "Commitment",
+          id: "hub.garden.pool.commitment.title",
+          defaultMessage: "Promise",
         }),
         content: (
           <CommitmentDialogPanel

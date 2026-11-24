@@ -1,10 +1,11 @@
+import type { Domain } from "@green-goods/shared/types/domain";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import {
   getMinRequiredWorkImages,
   type SubmitWorkController,
 } from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
-import type { Domain } from "@green-goods/shared/types/domain";
+import { DOMAIN_LABELS } from "@green-goods/shared/utils/domain";
 import { useIntl } from "react-intl";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
@@ -14,13 +15,6 @@ import { ActionChooserGrid } from "./ActionChooserGrid";
 import { SubmitWorkFields } from "./SubmitWorkFields";
 import { SubmitWorkPhotos } from "./SubmitWorkPhotos";
 import { SubmitWorkReview } from "./SubmitWorkReview";
-
-const DOMAIN_TAB_KEYS: Record<Domain, string> = {
-  0: "app.admin.assessment.domainAction.domain.solar",
-  1: "app.admin.assessment.domainAction.domain.agroforestry",
-  2: "app.admin.assessment.domainAction.domain.education",
-  3: "app.admin.assessment.domainAction.domain.waste",
-};
 
 export function SubmitWorkStepContent({
   controller,
@@ -35,7 +29,6 @@ export function SubmitWorkStepContent({
   const { formatMessage } = useIntl();
   const {
     activeStepId,
-    availableActions,
     busy,
     chooserDomains,
     effectiveDomain,
@@ -79,13 +72,12 @@ export function SubmitWorkStepContent({
               },
               ...chooserDomains.map((domain) => ({
                 id: String(domain),
-                label: formatMessage({ id: DOMAIN_TAB_KEYS[domain] }),
-                count: availableActions.filter((action) => action.domain === domain).length,
+                label: formatMessage({ id: DOMAIN_LABELS[domain].assessmentLabelId }),
               })),
             ]}
           />
         ) : null}
-        <p className="sr-only" aria-live="polite">
+        <p className="type-meta text-text-sub" aria-live="polite">
           {formatMessage(
             {
               id: "app.admin.work.submit.actionCount",
@@ -119,7 +111,7 @@ export function SubmitWorkStepContent({
           surface="admin"
           label={formatMessage({ id: "app.admin.work.submit.media" })}
           helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm"
           multiple
           compress={false}
           showPreview={false}
@@ -127,7 +119,7 @@ export function SubmitWorkStepContent({
           disabled={busy}
         />
         {isPreparingMedia ? (
-          <p role="status" className="body-sm text-text-sub">
+          <p role="status" className="type-body text-text-sub">
             {progressMessage}
           </p>
         ) : null}
@@ -153,7 +145,7 @@ export function SubmitWorkStepContent({
           description={selectedAction?.title}
         />
         {selectedAction?.inputs.some((input) => input.required) ? (
-          <p className="body-xs text-text-sub">
+          <p className="type-meta text-text-sub">
             {formatMessage({
               id: "app.admin.work.submit.requiredLegend",
               defaultMessage: "* Required field",

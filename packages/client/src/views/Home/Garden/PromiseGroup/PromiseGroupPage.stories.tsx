@@ -39,6 +39,7 @@ const meta: Meta<typeof PromiseGroupPage> = {
   args: {
     title: STORY_GROUP_TITLE,
     note: STORY_GROUP_NOTE,
+    reward: null,
     availabilityKnown: true,
     cap: 2n,
     isPending: false,
@@ -55,13 +56,17 @@ const meta: Meta<typeof PromiseGroupPage> = {
 export default meta;
 type Story = StoryObj<typeof PromiseGroupPage>;
 
-/** Nobody's taken one of these up yet here: Take Up One, and the pool's at-once limit, stated once. */
+/**
+ * Nobody's taken one of these up yet here: Take Up One, what keeping one earns, and the pool's
+ * at-once limit, stated once.
+ */
 export const Open: Story = {
+  args: { reward: "$5.00, paid in G$ after it's kept" },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("region", { name: "What each one asks" })).toHaveTextContent(
-      "2 hours"
-    );
+    const asks = canvas.getByRole("region", { name: "What each one asks" });
+    await expect(asks).toHaveTextContent("2 hours");
+    await expect(within(asks).getByText("$5.00, paid in G$ after it's kept")).toBeVisible();
     await expect(
       canvas.getByText("You can hold up to 2 promises from this pool at once.")
     ).toBeVisible();
@@ -105,6 +110,31 @@ export const StewardReviewed: Story = {
     await expect(
       within(canvasElement).getByRole("button", { name: "Ask to Take Up One" })
     ).toBeEnabled();
+  },
+};
+
+/**
+ * A steward-reviewed group whose open copies all have a request waiting on a steward: the act is
+ * held, and the counts agree with it rather than saying one is available (PRD-1492).
+ */
+export const StewardReviewedEveryOneAskedFor: Story = {
+  args: page(
+    {
+      available: 0,
+      requested: 2,
+      inProgress: 3,
+      kept: 5,
+      overrides: { claimMode: "APPROVAL_GATED" },
+    },
+    { bar: { act: "askToTakeUp", hold: "none" } }
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("region", { name: "Right now" })).toHaveTextContent(
+      "None available · 2 waiting on a steward · 3 in progress · 5 kept"
+    );
+    await expect(canvas.getByRole("button", { name: "Ask to Take Up One" })).toBeDisabled();
+    await expect(canvas.getByText("None are available right now")).toBeVisible();
   },
 };
 

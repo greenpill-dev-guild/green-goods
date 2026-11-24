@@ -220,6 +220,36 @@ export async function getIndexedCampaignCookieJars(
     .filter((row): row is IndexedCampaignCookieJar => Boolean(row));
 }
 
+const ROOT_GARDEN_TEAM_QUERY = /* GraphQL */ `
+  query CampaignCookieJarTeam($chainId: Int!, $garden: String!) {
+    Garden(where: { chainId: { _eq: $chainId }, id: { _ilike: $garden } }) {
+      owners
+      operators
+    }
+  }
+`;
+
+async function readRootGardenTeam(chainId: number): Promise<string[]> {
+  const rootGarden = getNetworkConfig(chainId).rootGarden?.address;
+  if (!rootGarden || isZeroAddress(rootGarden)) return [];
+
+  const { data, error } = await greenGoodsIndexer.query<
+    { Garden?: Array<{ owners?: string[] | null; operators?: string[] | null }> },
+    { chainId: number; garden: string }
+  >(ROOT_GARDEN_TEAM_QUERY, { chainId, garden: rootGarden }, "getCampaignCookieJarTeam");
+
+  if (error) throw new Error(error.message);
+  return (data?.Garden ?? []).flatMap((garden) => [
+    ...(garden.owners ?? []),
+    ...(garden.operators ?? []),
+  ]);
+}
+
+/**
+ * Who may list a campaign: the deployment registry's owner and the Community Garden's owners and
+ * stewards. The garden creator allowlist stays out of this, because being allowed to create a
+ * garden does not let an account speak for Green Goods.
+ */
 export async function getCampaignCookieJarTrustedCreators(
   chainId = DEFAULT_CHAIN_ID
 ): Promise<Address[]> {
@@ -227,41 +257,37 @@ export async function getCampaignCookieJarTrustedCreators(
   if (isZeroAddress(contracts.deploymentRegistry)) return [];
 
   const publicClient = createChainPublicClient(chainId);
-  const [ownerResult, allowlistResult] = await Promise.allSettled([
+  const [ownerResult, teamResult] = await Promise.allSettled([
     publicClient.readContract({
       address: contracts.deploymentRegistry,
       abi: DEPLOYMENT_REGISTRY_ABI,
       functionName: "owner",
     }),
-    publicClient.readContract({
-      address: contracts.deploymentRegistry,
-      abi: DEPLOYMENT_REGISTRY_ABI,
-      functionName: "getAllowlist",
-    }),
+    readRootGardenTeam(chainId),
   ]);
 
-  if (ownerResult.status === "rejected" && allowlistResult.status === "rejected") {
-    logger.warn("[CampaignCookieJars] DeploymentRegistry trust reads failed", {
+  if (ownerResult.status === "rejected" && teamResult.status === "rejected") {
+    logger.warn("[CampaignCookieJars] Trust reads failed", {
       ownerError: ownerResult.reason,
-      allowlistError: allowlistResult.reason,
+      teamError: teamResult.reason,
     });
     throw new Error(
-      `Campaign cookie jar trust registry reads failed: ${errorMessage(ownerResult.reason)}; ${errorMessage(allowlistResult.reason)}`
+      `Campaign cookie jar trust reads failed: ${errorMessage(ownerResult.reason)}; ${errorMessage(teamResult.reason)}`
     );
   }
 
   const owner =
     ownerResult.status === "fulfilled" ? normalizeCampaignAddress(ownerResult.value) : null;
-  const allowlist =
-    allowlistResult.status === "fulfilled"
-      ? allowlistResult.value
+  const team =
+    teamResult.status === "fulfilled"
+      ? teamResult.value
           .map((address) => normalizeCampaignAddress(address))
           .filter((address): address is Address => Boolean(address))
       : [];
   const trusted = new Map<string, Address>();
 
   if (owner) trusted.set(owner.toLowerCase(), owner);
-  for (const address of allowlist) {
+  for (const address of team) {
     trusted.set(address.toLowerCase(), address);
   }
 

@@ -7,12 +7,9 @@
  * allow. The admin dialog renders from this and never asks the chain or the
  * indexer itself.
  *
- * Eligibility follows the contract: ordinary confirmation through the reader's
- * seat; a garden fallback only while the ordinary path is unreachable and the
- * reader currently stewards the commitment's own garden; a protocol fallback
- * only when the commitment opted in and the reader currently stewards the
- * registered protocol garden; never for anyone on the roster. Local authority
- * is tested first, so a dual-role steward renders the garden path.
+ * Ordinary confirmation uses the reader's seat. Fallback requires an unreachable
+ * ordinary path and excludes contributors. Local garden authority takes precedence
+ * over an opted-in protocol fallback.
  *
  * @module hooks/admin-ui/pool/useCommitmentDialogController
  */
@@ -30,6 +27,7 @@ import {
   selectConfirmationEligibility,
 } from "../../../modules/commitment-pooling/selectors";
 import {
+  isConfirmerByAccount,
   isPoolSteward,
   selectCommitmentActPermissions,
   selectCommitmentDisputeAuthority,
@@ -37,24 +35,23 @@ import {
   selectCommitmentSubmissionReadiness,
   selectDueLiveCommitments,
   selectOrdinaryConfirmationReachable,
+  withEffectiveConfirmers,
 } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { selectWorkDecisionReadback } from "../../../modules/commitment-pooling/work-decision-readback";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useGardenAssessments } from "../../assessment/useGardenAssessments";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
-import { toActPhaseReport, useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
-import { isResolvableMetadataCID } from "../../../modules/commitment-pooling/metadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
-import { useTxActPhase } from "../../blockchain/useTxActPhase";
-import { claimantStanding } from "../../../modules/commitment-pooling/waiting-for-approval";
-import { useClaimDecisions } from "./useClaimDecisions";
 import {
-  actPhaseFor,
-  claimActKey,
-  sendForConfirmationActKey,
-} from "../../../modules/transactions/act-phase";
+  claimantStanding,
+  pendingAskAt,
+} from "../../../modules/commitment-pooling/waiting-for-approval";
+import { useClaimDecisions } from "./useClaimDecisions";
+import { useCommitmentQueuedSends } from "./useCommitmentQueuedSends";
+import { useEditsTermsFromGroup } from "./useEditsTermsFromGroup";
+import { claimActKey } from "../../../modules/transactions/act-phase";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
 import {
   useCommitment,
@@ -70,7 +67,6 @@ import { useGardenRoles } from "../../roles/useGardenRoles";
 import { useProgressiveInvalidation } from "../../utils/useTimeout";
 import { reviewRefreshOptions } from "../../commitment-pooling/review-refresh";
 import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
-import type { CommitmentClaimRequestRecord } from "../../../modules/commitment-pooling/types-core";
 
 /** `ICommitmentPoolingModule.DisputeResolution`, by code. */
 const DISPUTE_RESOLUTION_CODE = {
@@ -79,16 +75,6 @@ const DISPUTE_RESOLUTION_CODE = {
   CANCELLED: 2,
   EXPIRED: 3,
 } as const;
-
-/** When a person's pending ask was made, so the decision on it holds for that ask alone. */
-function pendingAskAt(
-  asks: readonly CommitmentClaimRequestRecord[] | undefined,
-  claimant: Address
-): number | undefined {
-  return asks?.find(
-    (ask) => ask.state === "PENDING" && ask.claimant.toLowerCase() === claimant.toLowerCase()
-  )?.requestedAt;
-}
 
 export function useCommitmentDialogController(input: {
   chainId: number;
@@ -101,7 +87,11 @@ export function useCommitmentDialogController(input: {
   const isOnline = useOnlineStatus();
 
   const detailQuery = useCommitment({ chainId, commitmentId }, { refreshWhileOpen: true });
-  const commitment = detailQuery.commitment;
+  const indexedCommitment = detailQuery.commitment;
+  const commitment = useMemo(
+    () => (indexedCommitment ? withEffectiveConfirmers(indexedCommitment) : indexedCommitment),
+    [indexedCommitment]
+  );
   const detail = detailQuery.detail;
   const activity = useCommitmentActivity(
     { chainId, commitmentId, limit: 50 },
@@ -117,6 +107,7 @@ export function useCommitmentDialogController(input: {
     { chainId, poolId: pool?.poolId },
     { enabled: pool !== null }
   );
+  const termsFromGroup = useEditsTermsFromGroup(chainId, commitment, poolCommitments.data);
   const cycleQuery = useCommitmentCycle(
     { chainId, cycleId: commitment?.cycleId ?? 0n },
     { enabled: Boolean(commitment?.cycleId && commitment.cycleId !== 0n), refreshWhileOpen: true }
@@ -137,10 +128,6 @@ export function useCommitmentDialogController(input: {
   // The same line and decisions as the Pool tab's Waiting for approval card.
   const claimDecisions = useClaimDecisions();
   const { approve: approveClaim, decline: declineClaim } = claimDecisions;
-  // Send for Confirmation goes through the queue, which says whether it landed
-  // or stays queued on this device.
-  const sendAct = useTxActPhase();
-  const trackSend = sendAct.trackReported;
   const [submittedDecisions, setSubmittedDecisions] = useState<
     readonly { workUID: string; decisionUID: string }[]
   >([]);
@@ -151,10 +138,9 @@ export function useCommitmentDialogController(input: {
     attributions: detail?.workAttributions ?? [],
     enabled: Boolean(detail),
   });
-  const jobs = useCommitmentJobs({ chainId, execution: "foreground" });
   // What this reader already signed: `confirmFulfillment` reverts
   // `AlreadyConfirmed` on a repeat, and a threshold above one keeps the record
-  // ready in between. Same key as the Hub queue's read, so both share one answer.
+  // ready in between. Same key as the Review queue's read, so both share one answer.
   const confirmed = useQuery({
     queryKey: commitmentPoolingKeys.activity(chainId, {
       actor: viewer,
@@ -235,7 +221,7 @@ export function useCommitmentDialogController(input: {
     return times;
   }, [cycleQuery.cycle]);
   const dueCommitments = useMemo(() => (commitment ? [commitment] : []), [commitment]);
-  const now = useExpiryClock({ commitments: dueCommitments, cycleEndTimes });
+  const now = useExpiryClock({ chainId, commitments: dueCommitments, cycleEndTimes });
   const isDue = useMemo(() => {
     if (!commitment) return false;
     return selectDueLiveCommitments({ commitments: [commitment], cycleEndTimes, now }).length > 0;
@@ -266,6 +252,7 @@ export function useCommitmentDialogController(input: {
         isPoolSteward: isLocalSteward,
       })
     : false;
+  const membershipNotRequired = isConfirmerByAccount(commitment, viewer);
 
   // Twelve plain booleans off already-derived state: cheaper to recompute than
   // to memoise behind a fifteen-entry dependency list.
@@ -313,6 +300,15 @@ export function useCommitmentDialogController(input: {
     setSubmittedDecisions([]);
     cancelReconciliationReadback();
   }, [cancelReconciliationReadback, commitmentId]);
+  // Its sends through the queue, each followed to where it stands; a Confirm Kept on its way
+  // rereads the record until it shows Kept (PRD-1205).
+  const queued = useCommitmentQueuedSends({
+    chainId,
+    commitmentId,
+    garden,
+    membershipNotRequired,
+    onConfirmSent: scheduleReconciliationReadback,
+  });
 
   const acts = useMemo(
     () => ({
@@ -325,15 +321,7 @@ export function useCommitmentDialogController(input: {
         }),
       markReady: (reason: string) =>
         mutation.mutateAsync({ action: "markReadyForConfirmation", commitmentId, reason }),
-      sendForConfirmation: () =>
-        trackSend(sendForConfirmationActKey(commitmentId), (report) =>
-          jobs.enqueue({
-            act: "sendForConfirmation",
-            commitmentId,
-            gardenAddress: garden,
-            report: toActPhaseReport(report),
-          })
-        ),
+      sendForConfirmation: queued.sendForConfirmation,
       attachAssessment: (assessmentUID: `0x${string}`) =>
         mutation.mutateAsync({ action: "attachAssessment", commitmentId, assessmentUID }),
       raiseDispute: (reason: string) =>
@@ -352,7 +340,7 @@ export function useCommitmentDialogController(input: {
           gardenAddress: garden,
         }),
       expire: () => mutation.mutateAsync({ action: "expireCommitment", commitmentId }),
-      confirmOrdinary: () => jobs.enqueue({ act: "confirm", commitmentId, gardenAddress: garden }),
+      confirmOrdinary: queued.confirmOrdinary,
       /** The reason goes on chain as plain text: the contract stores it itself. */
       confirmFallback: (reason: string) =>
         mutation.mutateAsync({ action: "confirmFulfillmentAsFallback", commitmentId, reason }),
@@ -401,8 +389,7 @@ export function useCommitmentDialogController(input: {
       mutation,
       approveClaim,
       declineClaim,
-      trackSend,
-      jobs,
+      queued,
       commitmentId,
       garden,
       reconciliationDecisionUIDs,
@@ -441,7 +428,7 @@ export function useCommitmentDialogController(input: {
     title: metadata?.title ?? null,
     note: metadata?.note ?? null,
     metadata: metadata ?? null,
-    metadataKnown: metadata !== null || !isResolvableMetadataCID(commitment?.metadataCID),
+    editsTermsFromGroup: termsFromGroup,
     cycle: cycleQuery.cycle,
     events: activity.events,
     disputeReason,
@@ -475,8 +462,7 @@ export function useCommitmentDialogController(input: {
       refetch: workDecisions.refetch,
     },
     acts,
-    claimPhase: (claimant: Address) =>
-      actPhaseFor(claimDecisions.phase, claimActKey(commitmentId, claimant)),
+    claimPhase: (claimant: Address) => claimDecisions.phaseOf(claimActKey(commitmentId, claimant)),
     claimDecisions: claimDecisions.decisions,
     claimInFlight:
       claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",
@@ -484,8 +470,9 @@ export function useCommitmentDialogController(input: {
       pool && poolCommitments.data
         ? claimantStanding(poolCommitments.commitments, claimant, pool.providerOpenCommitmentCap)
         : null,
-    sendPhase: actPhaseFor(sendAct.phase, sendForConfirmationActKey(commitmentId)),
-    isActing: mutation.isPending || jobs.isPending,
+    sendPhase: queued.sendPhase,
+    confirmPhase: queued.confirmPhase,
+    isActing: mutation.isPending || queued.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
     // Decision reads have their own bounded recovery row. They must not hide
     // the otherwise-readable commitment behind the panel's Not Found state.

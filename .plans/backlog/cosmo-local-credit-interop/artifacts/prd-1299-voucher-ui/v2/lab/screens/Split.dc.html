@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review the final split</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr">
+    <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span><span class="mid">Your promise</span></div>
+    <div class="ident"><span class="kind">Your promise · Sunroot Skills Hub</span><h1>Solar basics course, 10 lessons</h1></div>
+  </div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-label="Review the final split">
+    <div class="grip" aria-hidden="true"></div>
+    <div class="shead">
+      <div><h2 class="stitle">Review the Final Split</h2><p class="sdesc">Sunroot proposes ending early · 100 Sunroot vouchers</p></div>
+      <a class="close" href="Holder.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+    <sc-if value="{{isSteps}}" hint-placeholder-val="{{false}}">
+      <div class="stepper" style="padding: 4px 24px 8px">
+        <button type="button" class="st {{p1}}" onClick="{{go1}}" style="background: none; border: 0; padding: 0; font: inherit; cursor: pointer"><span class="dot">1</span>Lessons</button>
+        <button type="button" class="st {{p2}}" onClick="{{go2}}" style="background: none; border: 0; padding: 0; font: inherit; cursor: pointer"><span class="dot">2</span>Split</button>
+        <button type="button" class="st {{p3}}" onClick="{{go3}}" style="background: none; border: 0; padding: 0; font: inherit; cursor: pointer"><span class="dot">3</span>Freeze</button>
+      </div>
+    </sc-if>
+    <div class="sbody">
+      <sc-if value="{{showLessons}}" hint-placeholder-val="{{true}}">
+        <p class="h3">Lessons delivered</p>
+        <div class="card">
+          <div class="facts">
+            <div class="fact"><span class="k">Sunroot reports</span><span class="v"><span>{{lessons}} of 10 lessons</span><small>{{proofs}}</small></span></div>
+            <sc-for list="{{lessonLines}}" as="l" hint-placeholder-count="3"><div class="fact"><span class="k">Lesson {{l.n}}</span><span class="v"><span>{{l.d}}</span><small>Photo and note</small></span></div></sc-for>
+          </div>
+        </div>
+        <button type="button" class="chk {{c1Cls}}" onClick="{{toggle1}}" aria-pressed="{{c1On}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{receivedLabel}}</span></button>
+      </sc-if>
+
+      <sc-if value="{{showSplit}}" hint-placeholder-val="{{true}}">
+        <p class="h3">Your 100 Sunroot vouchers</p>
+        <sc-if value="{{isBar}}" hint-placeholder-val="{{true}}">
+          <div class="splitbar"><span class="a" style="width: {{resPct}}">{{resShort}}</span><span class="b" style="width: {{backPct}}">{{backShort}}</span></div>
+          <div class="card">
+            <div class="facts">
+              <div class="fact"><span class="k">To Sunroot's reserve</span><span class="v"><span>{{res}}</span><small>Sunroot can reuse these within its budget</small></span></div>
+              <div class="fact"><span class="k">Back to you</span><span class="v"><span>{{back}}</span><small>To your Gnosis wallet <span class="mono">0x9A40…41bD</span></small></span></div>
+              <div class="fact total"><span class="k">Total</span><span class="v">100</span></div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{isBuckets}}" hint-placeholder-val="{{false}}">
+          <div class="buckets">
+            <div class="bucket res"><span class="bl">To Sunroot's reserve</span><span class="bn">{{res}}</span><span class="bs">Sunroot can reuse these within its budget</span></div>
+            <div class="bucket back"><span class="bl">Back to you</span><span class="bn">{{back}}</span><span class="bs">To your Gnosis wallet 0x9A40…41bD</span></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{isSteps}}" hint-placeholder-val="{{false}}">
+          <div class="card">
+            <div class="facts">
+              <div class="fact"><span class="k">To Sunroot's reserve</span><span class="v"><span>{{res}}</span><small>Reusable within its budget</small></span></div>
+              <div class="fact"><span class="k">Back to you</span><span class="v"><span>{{back}}</span><small class="mono">0x9A40…41bD</small></span></div>
+            </div>
+          </div>
+        </sc-if>
+        <div class="notice {{remCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{remIcon}}"/></svg>{{remT}}</span><p>{{remB}}</p></div>
+        <p class="small">Lessons and vouchers are counted separately. This split comes from Sunroot's remedy terms, not a price per lesson.</p>
+      </sc-if>
+
+      <sc-if value="{{showFreeze}}" hint-placeholder-val="{{true}}">
+        <sc-if value="{{frozen}}" hint-placeholder-val="{{false}}"><div class="notice ok"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>Split frozen</span><p>These amounts can't change. The transfers start now.</p></div></sc-if>
+        <sc-if value="{{notFrozen}}" hint-placeholder-val="{{true}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>Freezing is final</span><p>After you freeze, nobody can change these amounts or where they go. Two transfers then run on their own. If one fails, it's retried with these same amounts.</p></div></sc-if>
+        <button type="button" class="chk {{c2Cls}}" onClick="{{toggle2}}" aria-pressed="{{c2On}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{approveLabel}}</span></button>
+      </sc-if>
+    </div>
+    <div class="sacts">
+      <sc-if value="{{showNext}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{next}}">Continue</button></sc-if>
+      <sc-if value="{{showFreezeBtn}}" hint-placeholder-val="{{true}}"><button type="button" class="btn {{freezeOff}}" onClick="{{freeze}}">Freeze Split</button></sc-if>
+      <sc-if value="{{outside}}" hint-placeholder-val="{{false}}"><button type="button" class="btn sec">Ask Sunroot to Fix It</button></sc-if>
+      <sc-if value="{{frozen}}" hint-placeholder-val="{{false}}"><a class="btn" href="Holder.dc.html">See Transfers</a></sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Split bar","Two buckets","Step by step"],"default":"Split bar","section":"Direction"},"state":{"editor":"enum","options":["Partial","Outside remedy","Full discharge","Full return","Frozen"],"default":"Partial","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) {
+    if (prev.state !== this.props.state || prev.variant !== this.props.variant) this.setState({ c1: undefined, c2: undefined, step: undefined, frozenNow: undefined });
+  }
+  renderVals() {
+    var v = this.props.variant ?? 'Split bar';
+    var st = this.props.state ?? 'Partial';
+    var dark = this.props.dark ?? false;
+    var s = this.state || {};
+    var self = this;
+    var frozen = st === 'Frozen' || !!s.frozenNow;
+    var C = {
+      'Partial': { les: 3, res: 40, rem: ['ok', 'Within the agreed remedy', 'Sunroot authorized returning up to 60 vouchers for missed lessons.'] },
+      'Outside remedy': { les: 3, res: 30, rem: ['err', "Sunroot hasn't authorized this return", 'The proposal returns 70, but Sunroot authorized up to 60. Ask Sunroot to fix the proposal before you freeze.'] },
+      'Full discharge': { les: 10, res: 100, rem: ['ok', 'Every lesson delivered', 'All 100 go to Sunroot. Nothing comes back, as the terms say for a completed course.'] },
+      'Full return': { les: 0, res: 0, rem: ['ok', 'Within the agreed remedy', 'No lessons were delivered, so all 100 come back to you.'] },
+      'Frozen': { les: 3, res: 40, rem: ['ok', 'Within the agreed remedy', 'Sunroot authorized returning up to 60 vouchers for missed lessons.'] },
+    };
+    var c = C[st];
+    var back = 100 - c.res;
+    var dates = ['Oct 21', 'Oct 23', 'Oct 28', 'Oct 30', 'Nov 4', 'Nov 6', 'Nov 11', 'Nov 13', 'Nov 18', 'Nov 20'];
+    var shown = Math.min(c.les, 3);
+    var lessonLines = [];
+    for (var i = 0; i < shown; i++) lessonLines.push({ n: i + 1, d: dates[i] });
+    var c1 = frozen ? true : !!s.c1;
+    var c2 = frozen ? true : !!s.c2;
+    var outside = st === 'Outside remedy';
+    var steps = v === 'Step by step';
+    var step = s.step || 1;
+    var OKI = '#ri-check-line';
+    var ERRI = '#ri-alert-line';
+    var can = c1 && c2 && !outside && !frozen;
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isBar: v === 'Split bar', isBuckets: v === 'Two buckets', isSteps: steps,
+      p1: step === 1 ? 'on' : 'done', p2: step === 2 ? 'on' : (step > 2 ? 'done' : ''), p3: step === 3 ? 'on' : '',
+      go1: function () { self.setState({ step: 1 }); }, go2: function () { self.setState({ step: 2 }); }, go3: function () { self.setState({ step: 3 }); },
+      showLessons: !steps || step === 1, showSplit: !steps || step === 2, showFreeze: !steps || step === 3,
+      showNext: steps && step < 3 && !frozen, next: function () { self.setState({ step: step + 1 }); },
+      showFreezeBtn: (!steps || step === 3) && !frozen,
+      lessons: c.les, proofs: c.les === 0 ? 'No proofs' : c.les + ' proofs attached', lessonLines: lessonLines,
+      receivedLabel: c.les === 0 ? 'I confirm no lessons were delivered' : 'I received these ' + c.les + ' lessons',
+      approveLabel: 'I approve ' + c.les + ' delivered lessons and this split.',
+      res: c.res, back: back, resPct: c.res + '%', backPct: back + '%',
+      resShort: c.res >= 20 ? c.res + ' to Sunroot' : (c.res > 0 ? String(c.res) : ''),
+      backShort: back >= 20 ? back + ' back to you' : (back > 0 ? String(back) : ''),
+      remCls: c.rem[0], remT: c.rem[1], remB: c.rem[2], remIcon: c.rem[0] === 'err' ? ERRI : OKI,
+      c1Cls: c1 ? 'on' : '', c2Cls: c2 ? 'on' : '', c1On: c1 ? 'true' : 'false', c2On: c2 ? 'true' : 'false',
+      toggle1: function () { if (!frozen) self.setState({ c1: !c1 }); },
+      toggle2: function () { if (!frozen) self.setState({ c2: !c2 }); },
+      freezeOff: can ? '' : 'off',
+      freeze: function () { if (can) self.setState({ frozenNow: true }); },
+      outside: outside && !frozen, frozen: frozen, notFrozen: !frozen,
+    };
+  }
+}
+</script>
+</body>
+</html>

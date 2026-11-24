@@ -1,7 +1,7 @@
 /**
  * Authentication Session Utilities
  *
- * Client-only session management for passkey authentication.
+ * Browser session storage for passkey and wallet authentication.
  *
  * Storage keys:
  * - AUTH_MODE_STORAGE_KEY: Which auth method is active ("passkey" | "wallet")
@@ -9,16 +9,44 @@
  * - CREDENTIAL_STORAGE_KEY: Passkey credential (id + publicKey)
  * - SMART_ACCOUNT_ADDRESS_STORAGE_KEY: Expected passkey smart-account address
  *
- * Note: This is a simplified client-only approach following Pimlico's documentation.
- * Credentials are stored in localStorage - no server-side storage needed.
- * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
+ * Credential metadata is stored locally for session restoration. Server selection
+ * and legacy-account lookup are owned by config/passkeyServer.ts and the auth
+ * workflows; local session storage does not replace the passkey directory.
+ * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey
  */
 
 import type { Address, Hex } from "viem";
-import type { P256Credential } from "viem/account-abstraction";
 
 import type { AuthMode } from "../../types/auth";
 import { logger } from "../app/logger";
+
+import { CREDENTIAL_STORAGE_KEY } from "./passkey-credential-storage";
+
+export {
+  getPasskeyRequestIds,
+  matchesBrowserId,
+  setStoredCredential,
+  getStoredCredential,
+  hasStoredCredential,
+  clearStoredCredential,
+  type PasskeyCredential,
+} from "./passkey-credential-storage";
+
+import {
+  ACCOUNT_PROFILE_STORAGE_KEY,
+  PROFILE_ACCOUNTS_STORAGE_KEY,
+  asHexAddress,
+  clearStoredAccountProfiles,
+} from "./passkey-profile-storage";
+
+export {
+  getStoredAccountProfile,
+  setStoredAccountProfile,
+  getStoredProfileAddress,
+  setStoredProfileAddress,
+  getStoredOriginalAccountAddress,
+  asHexAddress,
+} from "./passkey-profile-storage";
 
 export interface SessionStorage {
   getItem(key: string): string | null;
@@ -26,9 +54,7 @@ export interface SessionStorage {
   removeItem(key: string): void;
 }
 
-// ============================================================================
 // STORAGE KEYS
-// ============================================================================
 
 /** Active auth mode */
 export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
@@ -36,18 +62,13 @@ export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 /** Username for display */
 export const USERNAME_STORAGE_KEY = "greengoods_username";
 
-/** Passkey credential (id + publicKey as JSON) */
-const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
-
 /** RP ID used during passkey registration (for cross-device consistency) */
 export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
 
 /** Expected smart-account address rebuilt from the active passkey credential */
 export const SMART_ACCOUNT_ADDRESS_STORAGE_KEY = "greengoods_smart_account_address";
 
-// ============================================================================
 // AUTH MODE
-// ============================================================================
 
 export type { AuthMode } from "../../types/auth";
 
@@ -69,9 +90,7 @@ export function clearAuthMode(storage: SessionStorage = localStorage): void {
   storage.removeItem(AUTH_MODE_STORAGE_KEY);
 }
 
-// ============================================================================
 // SIGNED-OUT SENTINEL (explicit sign-out durability)
-// ============================================================================
 
 /**
  * Sentinel written by explicit sign-out.
@@ -103,9 +122,7 @@ export function hasSignedOutSentinel(storage: SessionStorage = localStorage): bo
   return storage.getItem(SIGNED_OUT_STORAGE_KEY) === "true";
 }
 
-// ============================================================================
 // USERNAME (Pimlico Server)
-// ============================================================================
 
 /** Get stored username for Pimlico passkey server */
 export function getStoredUsername(storage: SessionStorage = localStorage): string | null {
@@ -127,9 +144,7 @@ export function hasStoredUsername(storage: SessionStorage = localStorage): boole
   return Boolean(storage.getItem(USERNAME_STORAGE_KEY));
 }
 
-// ============================================================================
 // RP ID (for Android passkey compatibility)
-// ============================================================================
 
 /** Store RP ID used during registration */
 export function setStoredRpId(rpId: string, storage: SessionStorage = localStorage): void {
@@ -146,9 +161,7 @@ export function clearStoredRpId(storage: SessionStorage = localStorage): void {
   storage.removeItem(RP_ID_STORAGE_KEY);
 }
 
-// ============================================================================
 // SMART ACCOUNT ADDRESS (account continuity)
-// ============================================================================
 
 /** Store the expected smart-account address for passkey account continuity. */
 export function setStoredSmartAccountAddress(
@@ -170,9 +183,7 @@ export function clearStoredSmartAccountAddress(storage: SessionStorage = localSt
   storage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
 }
 
-// ============================================================================
 // EMBEDDED WALLET ADDRESS
-// ============================================================================
 
 /** Storage key for embedded wallet address (for offline identity display) */
 export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
@@ -180,12 +191,14 @@ export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 /** Last wallet address used as the primary app identity. */
 export const WALLET_ADDRESS_STORAGE_KEY = "greengoods_wallet_address";
 
-const WAGMI_STORE_KEY = "wagmi.store";
+/**
+ * The open email account (owner, smart account, method and email). Kept
+ * here, not beside its reader in `openfort-account`, so sign-out clears it without loading the
+ * Kernel library.
+ */
+export const OPENFORT_ACCOUNT_STORAGE_KEY = "greengoods_openfort_account";
 
-/** Narrow a stored value to a hex address; anything else reads as absent. */
-export function asHexAddress(value: unknown): Hex | null {
-  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) ? (value as Hex) : null;
-}
+const WAGMI_STORE_KEY = "wagmi.store";
 
 function readWagmiWalletAddress(storage: SessionStorage): Hex | null {
   try {
@@ -274,12 +287,11 @@ export function clearActiveSessionAuth(storage: SessionStorage = localStorage): 
   clearAuthMode(storage);
   clearEmbeddedAddress(storage);
   clearStoredWalletAddress(storage);
+  storage.removeItem(OPENFORT_ACCOUNT_STORAGE_KEY);
   setSignedOutSentinel(storage);
 }
 
-// ============================================================================
 // SIGN OUT
-// ============================================================================
 
 /**
  * Clear all auth storage including credential, username, and RP ID.
@@ -289,6 +301,7 @@ export function clearActiveSessionAuth(storage: SessionStorage = localStorage): 
  * Only use this for complete account deletion.
  */
 export function clearAllAuth(storage: SessionStorage = localStorage): void {
+  clearStoredAccountProfiles(storage);
   storage.removeItem(AUTH_MODE_STORAGE_KEY);
   storage.removeItem(USERNAME_STORAGE_KEY);
   storage.removeItem(CREDENTIAL_STORAGE_KEY);
@@ -296,12 +309,11 @@ export function clearAllAuth(storage: SessionStorage = localStorage): void {
   storage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   storage.removeItem(EMBEDDED_ADDRESS_KEY);
   storage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
+  storage.removeItem(OPENFORT_ACCOUNT_STORAGE_KEY);
   storage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 
-// ============================================================================
 // DEBUG UTILITIES
-// ============================================================================
 
 function isPasskeyDebugEnabled(): boolean {
   return Boolean(import.meta.env.DEV) || import.meta.env.VITE_DEBUG_MODE === "true";
@@ -358,126 +370,40 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
   (window as { __debugPasskey?: typeof debugPasskeyConfig }).__debugPasskey = debugPasskeyConfig;
 }
 
-// ============================================================================
-// CREDENTIAL STORAGE (Client-Only)
-// ============================================================================
-
 /**
- * Serializable credential data for localStorage storage.
- * Only stores the fields needed to reconstruct the smart account.
+ * Only an absence of all session metadata permits a host to defer auth startup.
+ * Presence includes malformed/legacy records and explicit sign-out metadata:
+ * the normal auth runtime owns their interpretation, migration and recovery.
+ * This probe never parses or writes storage, and treats blocked storage as unknown.
  */
-export type PasskeyCredential = P256Credential & {
-  /** Browser credential ID, always base64url. `id` remains the Kernel identity input. */
-  signingId?: string;
-};
-
-interface StoredCredential {
-  version: 3;
-  id: string;
-  publicKey: `0x${string}`;
-  signingId: string | null;
-}
-
-/** Unknown legacy IDs may be hex or base64url; offer both without changing account identity. */
-export function getPasskeyRequestIds(
-  credential: Pick<PasskeyCredential, "id" | "signingId">
-): ArrayBuffer[] {
-  const id = credential.signingId ?? credential.id;
-  const base64 = id.replace(/-/g, "+").replace(/_/g, "/");
-  const decoded = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
-  const ids: ArrayBuffer[] = [decoded.buffer];
-  const hex = id.replace(/^0x/, "");
-  if (!credential.signingId && hex.length > 0 && hex.length % 2 === 0 && /^[\da-f]+$/i.test(hex)) {
-    ids.unshift(Uint8Array.from(hex.match(/.{2}/g)!, (byte) => parseInt(byte, 16)).buffer);
-  }
-  return ids;
-}
-
-/**
- * Store passkey credential in localStorage.
- * Keeps account identity separate from the browser ID used for signing.
- */
-export function setStoredCredential(
-  credential: PasskeyCredential,
-  storage: SessionStorage = localStorage
-): void {
-  const storedData: StoredCredential = {
-    version: 3,
-    id: credential.id,
-    publicKey: credential.publicKey,
-    signingId: credential.signingId ?? credential.raw?.id ?? null,
-  };
-  storage.setItem(CREDENTIAL_STORAGE_KEY, JSON.stringify(storedData));
-}
-
-/**
- * Get stored credential from localStorage.
- * Returns a P256Credential-compatible object (without raw).
- */
-export function getStoredCredential(
-  storage: SessionStorage = localStorage
-): PasskeyCredential | null {
-  const stored = storage.getItem(CREDENTIAL_STORAGE_KEY);
-  if (!stored) return null;
-
+export function hasSessionRestoreEvidence(storage?: Pick<SessionStorage, "getItem">): boolean {
   try {
-    const data = JSON.parse(stored) as {
-      version?: unknown;
-      idEncoding?: unknown;
-      id?: unknown;
-      publicKey?: unknown;
-      signingId?: unknown;
-    } | null;
-    if (!data || typeof data.id !== "string" || !data.id || typeof data.publicKey !== "string") {
-      throw new Error("Stored passkey credential is incomplete");
-    }
-
-    if (data.version === 2 && data.idEncoding !== "base64url") return null;
-    if (data.version !== undefined && data.version !== 2 && data.version !== 3) return null;
-    if (
-      data.version === 3 &&
-      data.signingId !== null &&
-      (typeof data.signingId !== "string" || !data.signingId)
-    )
-      return null;
-
-    const credential: PasskeyCredential = {
-      id: data.id,
-      publicKey: data.publicKey as `0x${string}`,
-      raw: undefined as unknown as PublicKeyCredential,
-      ...(data.version === 2
-        ? { signingId: data.id }
-        : data.version === 3 && typeof data.signingId === "string"
-          ? { signingId: data.signingId }
-          : {}),
-    };
-    if (data.version !== 3) setStoredCredential(credential, storage);
-    return credential;
+    const readableStorage = storage ?? window.localStorage;
+    return [
+      AUTH_MODE_STORAGE_KEY,
+      CREDENTIAL_STORAGE_KEY,
+      USERNAME_STORAGE_KEY,
+      RP_ID_STORAGE_KEY,
+      SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
+      ACCOUNT_PROFILE_STORAGE_KEY,
+      PROFILE_ACCOUNTS_STORAGE_KEY,
+      EMBEDDED_ADDRESS_KEY,
+      WALLET_ADDRESS_STORAGE_KEY,
+      OPENFORT_ACCOUNT_STORAGE_KEY,
+      LAST_ACCOUNT_STORAGE_KEY,
+      WAGMI_STORE_KEY,
+      SIGNED_OUT_STORAGE_KEY,
+    ].some((key) => readableStorage.getItem(key) !== null);
   } catch {
-    logger.warn("[Session] Failed to parse stored credential, clearing...");
-    storage.removeItem(CREDENTIAL_STORAGE_KEY);
-    return null;
+    return true;
   }
-}
-
-/**
- * Check if there's a stored credential.
- */
-export function hasStoredCredential(storage: SessionStorage = localStorage): boolean {
-  return storage.getItem(CREDENTIAL_STORAGE_KEY) !== null;
-}
-
-/**
- * Clear stored credential.
- */
-export function clearStoredCredential(storage: SessionStorage = localStorage): void {
-  storage.removeItem(CREDENTIAL_STORAGE_KEY);
 }
 
 /**
  * The storage a local sign-out clears.
  *
- * Auth mode and the addresses a restore would read back go. Passkey recovery
+ * Auth mode and the addresses a restore would read back go, the email
+ * account's record with them. Passkey recovery
  * metadata stays: the username, credential and expected address are the
  * same-device fallback that powers one-tap re-login. The signed-out sentinel
  * makes it durable, suppressing automatic passkey restore until the next
@@ -487,5 +413,6 @@ export function clearSessionForSignOut(storage: SessionStorage = localStorage): 
   clearAuthMode(storage);
   clearEmbeddedAddress(storage);
   clearStoredWalletAddress(storage);
+  storage.removeItem(OPENFORT_ACCOUNT_STORAGE_KEY);
   setSignedOutSentinel(storage);
 }

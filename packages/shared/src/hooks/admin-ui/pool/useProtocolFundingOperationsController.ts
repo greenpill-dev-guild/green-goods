@@ -10,6 +10,7 @@
  * @module hooks/admin-ui/pool/useProtocolFundingOperationsController
  */
 
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
@@ -19,19 +20,139 @@ import type {
   SettlementActKind,
   SettlementActStatus,
 } from "./controller.types";
+import {
+  type PoolFundingTransferBlock,
+  selectQueuedTransferBlock,
+  selectTransferBlock,
+} from "../../../modules/commitment-pooling/pool-funding";
+import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { selectSettlementActions } from "../../../modules/commitment-pooling/settlement";
 import { pinCommitmentReason } from "../../../modules/commitment-pooling/reasons";
 import type { HexString } from "../../../modules/commitment-pooling/types-core";
+import type { BroadcastConfirmation } from "../../../modules/transactions/types";
 import type { Address } from "../../../types/domain";
 import { ZERO_ADDRESS } from "../../../utils/blockchain/address";
+import { mayStillLand } from "../../../utils/errors/tx-error-classifier";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
+import { useTransactionSender } from "../../blockchain/useTransactionSender";
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import {
   useSettlementMutation,
   useSettlementOperationsCapabilities,
 } from "../../commitment-pooling/useSettlement";
 import { useRole } from "../../gardener/useRole";
+
+type FundingRead = ReturnType<typeof usePoolFunding>["snapshot"];
+
+type FundingAct =
+  | { action: "queueFunding"; garden: Address; amount: bigint }
+  | { action: "dispatchDisbursement" | "retryCommand" | "requeue"; disbursementId: bigint }
+  | { action: "cancelDisbursement"; disbursementId: bigint; reasonCID: string };
+
+/**
+ * What a proposal will change once it runs, against the read it was sent from: a
+ * new funding transfer numbered above every transfer that read listed, or one
+ * transfer leaving the state it stood in. A resend leaves its transfer dispatched,
+ * so only the wallet, or a later state such as confirmed, can show that it ran.
+ */
+type ProposedEffect =
+  | { kind: "new-transfer"; garden: Address; amount: bigint; after: bigint }
+  | { kind: "transfer-moves"; disbursementId: bigint; from: string | null; resend: boolean };
+
+/**
+ * The state one transfer stands in; null when the read doesn't list it. Its Celo
+ * execution is left out: Celo can update that while a proposal waits, and only a
+ * new state ends any repeat of the act.
+ */
+function transferState(read: FundingRead, disbursementId: bigint): string | null {
+  return (
+    read?.disbursements.find((entry) => entry.disbursementId === disbursementId)?.state ?? null
+  );
+}
+
+function proposedEffect(act: FundingAct, read: FundingRead): ProposedEffect {
+  if (act.action === "queueFunding") {
+    const after = (read?.disbursements ?? []).reduce(
+      (highest, row) => (row.disbursementId > highest ? row.disbursementId : highest),
+      0n
+    );
+    return { kind: "new-transfer", garden: act.garden, amount: act.amount, after };
+  }
+  return {
+    kind: "transfer-moves",
+    disbursementId: act.disbursementId,
+    from: transferState(read, act.disbursementId),
+    resend: act.action === "retryCommand",
+  };
+}
+
+/** How a proposal ended once it stopped holding sends: it reverted on chain, or it ran. */
+type ProposalSettlement = "reverted" | "ran";
+
+/** A proposal a Safe took, by the identifier its wallet returned, and what it will change. */
+interface Proposal {
+  /** What the wallet is asked about; a passkey's operation past its receipt limit names none. */
+  hash?: HexString;
+  effect: ProposedEffect;
+  /**
+   * Set the first time it settles and kept until another act replaces it, so a
+   * transfer that later returns to the state it was proposed from, such as a
+   * requeued transfer failing again, doesn't hold every send a second time.
+   */
+  settled?: ProposalSettlement;
+}
+
+/** Whether the wallet has run a proposal, as `reconcileBroadcast` reads it. */
+type ProposalOutcome = BroadcastConfirmation["status"];
+
+/** How often a held panel asks the wallet again, on the funding read's own cadence. */
+const PROPOSAL_RECHECK_MS = 30_000;
+
+/** Whether the read lists what the proposal will change. */
+function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
+  if (!read) return false;
+  if (effect.kind === "transfer-moves") {
+    const now = transferState(read, effect.disbursementId);
+    return now !== null && now !== effect.from;
+  }
+  const source = read.safe?.toLowerCase();
+  return read.disbursements.some(
+    (row) =>
+      row.kind === "FUNDING" &&
+      row.source.toLowerCase() === source &&
+      row.garden?.toLowerCase() === effect.garden.toLowerCase() &&
+      row.amount === effect.amount &&
+      row.disbursementId > effect.after
+  );
+}
+
+/**
+ * How a proposal has settled, so the same act can't be proposed twice; null while it
+ * still holds sends. It settles when the wallet says it reverted, or when its own
+ * change shows. A dispatch, requeue or cancel waits for the read to show its transfer
+ * in a new state even after the wallet says it ran: until then the read still offers
+ * the act, and a repeat would revert on chain. A resend changes no state, so the
+ * wallet saying it ran is enough. A new transfer like the one queued could be another
+ * steward's, so it needs both.
+ */
+function proposalSettlement(
+  proposal: Proposal,
+  outcome: ProposalOutcome,
+  read: FundingRead
+): ProposalSettlement | null {
+  if (proposal.settled) return proposal.settled;
+  if (outcome === "reverted") return "reverted";
+  const { effect } = proposal;
+  const shown = effectShown(effect, read);
+  // With nothing to ask the wallet about, or a repeat the read would still offer, only the
+  // read can settle it.
+  if (!proposal.hash || (effect.kind === "transfer-moves" && !effect.resend)) {
+    return shown ? "ran" : null;
+  }
+  if (effect.kind === "transfer-moves") return outcome === "confirmed" || shown ? "ran" : null;
+  return outcome === "confirmed" && shown ? "ran" : null;
+}
 
 function fundingView(query: ReturnType<typeof usePoolFunding>): PoolFundingControllerView {
   return {
@@ -55,7 +176,7 @@ export function useProtocolFundingOperationsController(input: {
   const { chainId, protocolGarden, targetGarden } = input;
   const viewer = usePrimaryAddress() ?? undefined;
   const isOnline = useOnlineStatus();
-  const { isDeployer } = useRole();
+  const { isProtocolTeam } = useRole();
   const sourceQuery = usePoolFunding(
     { chainId, garden: protocolGarden ?? ZERO_ADDRESS },
     { enabled: Boolean(protocolGarden) }
@@ -69,15 +190,57 @@ export function useProtocolFundingOperationsController(input: {
     account: viewer,
     protocolGarden,
     executorGarden: protocolGarden,
-    isDeployer,
+    isProtocolTeam,
   });
   const mutation = useSettlementMutation({ chainId });
+  const sender = useTransactionSender();
   const [lastAct, setLastAct] = useState<SettlementActStatus | null>(null);
-  const canAct = Boolean(viewer) && isOnline && !mutation.isPending && !capabilities.isLoading;
+  // An act a Safe took as a proposal. Sends stay closed until it settles, so the act
+  // can't be proposed twice. This lasts as long as the panel: reloading is how a
+  // proposal the Safe never runs is sent again.
+  const [proposed, setProposed] = useState<Proposal | null>(null);
+  const asksWallet = Boolean(proposed?.hash && !proposed.settled && sender?.reconcileBroadcast);
+  const outcomeQuery = useQuery({
+    queryKey: commitmentPoolingKeys.settlementProposal(chainId, proposed?.hash ?? ""),
+    queryFn: async (): Promise<ProposalOutcome> => {
+      if (!proposed?.hash || !sender?.reconcileBroadcast) return "unresolved";
+      const outcome = await sender.reconcileBroadcast({
+        kind: "transaction",
+        hash: proposed.hash,
+        chainId,
+        ...(viewer ? { account: viewer } : {}),
+      });
+      return outcome.status;
+    },
+    enabled: asksWallet,
+    refetchInterval: (query) =>
+      query.state.data === undefined || query.state.data === "unresolved"
+        ? PROPOSAL_RECHECK_MS
+        : false,
+    retry: false,
+  });
+  const outcome: ProposalOutcome = outcomeQuery.data ?? "unresolved";
+  const settlement = proposed ? proposalSettlement(proposed, outcome, sourceQuery.snapshot) : null;
+  // Kept the first time it settles; React renders again before committing this render.
+  if (proposed && settlement && !proposed.settled) {
+    setProposed((current) =>
+      current === proposed ? { ...current, settled: settlement } : current
+    );
+  }
+  const proposalPending = proposed !== null && settlement === null;
+  // From the first tap: a send reads the Safe again before the wallet is asked.
+  const isActing = mutation.isPending || lastAct?.phase === "signing";
+  const canAct = Boolean(viewer) && isOnline && !isActing && !capabilities.isLoading;
+  const canSend = canAct && !proposalPending;
 
   const rows = useMemo<ProtocolFundingRow[]>(() => {
     const snapshot = sourceQuery.snapshot;
     if (!snapshot?.safe) return [];
+    const funding = {
+      snapshot,
+      isError: sourceQuery.isError,
+      hasStaleBalance: sourceQuery.hasStaleBalance,
+    };
     const sourceSafe = snapshot.safe.toLowerCase();
     const executions = new Map(
       snapshot.executions.map((execution) => [execution.executionKey.toLowerCase(), execution])
@@ -94,9 +257,13 @@ export function useProtocolFundingOperationsController(input: {
           isBatchMember: Boolean(row.batchId),
           kind: "FUNDING",
           sourcePaused: snapshot.settlementUnavailableReasons.includes("source_paused"),
-          canDispatchOrRetry: capabilities.canDispatchOrRetry && canAct,
-          canRequeueOrCancel: capabilities.canRequeueOrCancel && canAct,
+          canDispatchOrRetry: capabilities.canDispatchOrRetry && canSend,
+          canRequeueOrCancel: capabilities.canRequeueOrCancel && canSend,
         });
+        // A dispatch or resend spends the CCIP fee before Celo can refuse it.
+        const dispatchable = actions.dispatch && !row.batchId;
+        const resendable = actions.retrySameCommand && execution?.status !== "SUCCESS";
+        const sendBlock = selectQueuedTransferBlock(funding, row);
         const state: ProtocolFundingRow["state"] =
           row.state === "DISPATCHED" &&
           execution?.status === "SUCCESS" &&
@@ -111,41 +278,88 @@ export function useProtocolFundingOperationsController(input: {
           amount: row.amount,
           state,
           executionKey: row.executionKey,
-          canDispatch: actions.dispatch && !row.batchId,
-          canRetry: actions.retrySameCommand && execution?.status !== "SUCCESS",
+          canDispatch: dispatchable && !sendBlock,
+          canRetry: resendable && !sendBlock,
           canRequeue: actions.startNewAttempt,
           canCancel: actions.cancelIndividual,
+          sendBlock: dispatchable || resendable ? sendBlock : null,
         };
       })
       .sort((left, right) => (left.disbursementId > right.disbursementId ? -1 : 1));
-  }, [canAct, capabilities, sourceQuery.snapshot]);
+  }, [
+    canSend,
+    capabilities,
+    sourceQuery.snapshot,
+    sourceQuery.isError,
+    sourceQuery.hasStaleBalance,
+  ]);
 
+  // A refresh also asks the wallet again about a proposal it is holding for.
   const refetch = useCallback(async () => {
-    return Promise.all([sourceQuery.refetch(), targetQuery.refetch()]);
-  }, [sourceQuery, targetQuery]);
+    return Promise.all([
+      sourceQuery.refetch(),
+      targetQuery.refetch(),
+      ...(asksWallet ? [outcomeQuery.refetch()] : []),
+    ]);
+  }, [asksWallet, outcomeQuery, sourceQuery, targetQuery]);
 
   const run = useCallback(
     async (
       kind: SettlementActKind,
-      action:
-        | { action: "queueFunding"; garden: Address; amount: bigint }
-        | { action: "dispatchDisbursement" | "retryCommand" | "requeue"; disbursementId: bigint }
-        | { action: "cancelDisbursement"; disbursementId: bigint; reasonCID: string }
+      action: FundingAct,
+      /** Asks the latest read why this can't go, when the send can spend the CCIP fee. */
+      blockOf?: (
+        funding: Parameters<typeof selectQueuedTransferBlock>[0]
+      ) => PoolFundingTransferBlock | null
     ): Promise<HexString> => {
       setLastAct({ kind, phase: "signing" });
+      let before = sourceQuery.snapshot;
       try {
-        const hash = (await mutation.mutateAsync(action)) as HexString;
-        setLastAct({ kind, phase: "submitted", hash });
+        if (blockOf) {
+          // The rows and the review read a snapshot up to 30 seconds old; the send reads again.
+          const fresh = await sourceQuery.refetch();
+          const block = blockOf({
+            snapshot: fresh.data ?? null,
+            isError: fresh.isError,
+            hasStaleBalance: false,
+          });
+          if (block) throw new Error(`The protocol Safe can't send this transfer: ${block}`);
+          before = fresh.data ?? null;
+        }
+        const result = await mutation.mutateAsync(action);
+        const hash = result.hash as HexString;
+        if (result.confirmation === "pending") {
+          setProposed({ hash, effect: proposedEffect(action, before) });
+          setLastAct({ kind, phase: "proposed", hash });
+        } else {
+          setLastAct({ kind, phase: "submitted", hash });
+        }
         await refetch();
         return hash;
       } catch (error) {
-        setLastAct({ kind, phase: "failed", error });
+        // A send past its receipt limit went out and may still land: sends stay closed until it
+        // settles, as for a proposal, and it never reads as failed (PRD-1551).
+        if (mayStillLand(error)) {
+          const hash = (error as { hash?: HexString }).hash;
+          setProposed({ ...(hash ? { hash } : {}), effect: proposedEffect(action, before) });
+          setLastAct({ kind, phase: "still-confirming", ...(hash ? { hash } : {}) });
+        } else setLastAct({ kind, phase: "failed", error });
         await refetch().catch(() => undefined);
         throw error;
       }
     },
-    [mutation, refetch]
+    [mutation, refetch, sourceQuery]
   );
+
+  /** A queued or dispatched transfer as the read holds it; one it no longer holds is not sent. */
+  const transferOf = (disbursementId: bigint) => {
+    const row = sourceQuery.snapshot?.disbursements.find(
+      (entry) => entry.disbursementId === disbursementId
+    );
+    if (!row) throw new Error(`Transfer #${disbursementId.toString()} is not in the latest read`);
+    return (funding: Parameters<typeof selectQueuedTransferBlock>[0]) =>
+      selectQueuedTransferBlock(funding, row);
+  };
 
   return {
     chainId,
@@ -161,13 +375,30 @@ export function useProtocolFundingOperationsController(input: {
     sourceFunding: fundingView(sourceQuery),
     targetFunding: fundingView(targetQuery),
     rows,
-    lastAct,
-    isActing: mutation.isPending,
+    // Once a proposal settles, it either reverted on chain or ran, and the indexed rows say how.
+    lastAct:
+      (lastAct?.phase === "proposed" || lastAct?.phase === "still-confirming") && settlement
+        ? settlement === "reverted"
+          ? {
+              kind: lastAct.kind,
+              phase: "failed",
+              error: new Error("The Safe ran the proposal and it reverted"),
+            }
+          : { ...lastAct, phase: "submitted" }
+        : lastAct,
+    isActing,
     queueFunding: (garden, amount) =>
-      run("queue-funding", { action: "queueFunding", garden, amount }),
-    dispatch: (disbursementId) =>
-      run("dispatch", { action: "dispatchDisbursement", disbursementId }),
-    retry: (disbursementId) => run("retry", { action: "retryCommand", disbursementId }),
+      run("queue-funding", { action: "queueFunding", garden, amount }, (funding) =>
+        selectTransferBlock(funding, amount)
+      ),
+    dispatch: async (disbursementId) =>
+      run(
+        "dispatch",
+        { action: "dispatchDisbursement", disbursementId },
+        transferOf(disbursementId)
+      ),
+    retry: async (disbursementId) =>
+      run("retry", { action: "retryCommand", disbursementId }, transferOf(disbursementId)),
     requeue: (disbursementId) => run("requeue", { action: "requeue", disbursementId }),
     cancel: async (disbursementId, reason) => {
       const reasonCID = await pinCommitmentReason({

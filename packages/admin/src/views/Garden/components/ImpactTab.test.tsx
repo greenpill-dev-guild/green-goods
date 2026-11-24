@@ -47,15 +47,15 @@ describe("ImpactTab", () => {
     expect(screen.queryByRole("link", { name: "View All" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Create Hypercert" })).toHaveAttribute(
       "href",
-      expect.stringContaining("/hub/certify/create")
+      expect.stringMatching(/^\/review\/certify\?.*item=create-hypercert/)
     );
     expect(screen.getByRole("link", { name: "Create Assessment" })).toHaveAttribute(
       "href",
-      expect.stringContaining("/hub/assess/create")
+      expect.stringMatching(/^\/review\/assess\?.*item=create-assessment/)
     );
   });
 
-  it("keeps the Hub links from viewers who cannot create", () => {
+  it("keeps the Review links from viewers who cannot create", () => {
     renderImpact({ canReview: false, canCertify: false });
 
     expect(screen.queryByRole("link", { name: "Create Hypercert" })).not.toBeInTheDocument();
@@ -112,7 +112,9 @@ describe("ImpactTab", () => {
     expect(screen.queryByText("No assessments found")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Create Assessment" })).not.toBeInTheDocument();
     // The summary does not count a list it could not read.
-    expect(screen.getByText("Total Assessments").nextElementSibling).toHaveTextContent("—");
+    expect(
+      screen.getByText("Total Assessments").closest('[data-component="FactRow"]')
+    ).toHaveTextContent("—");
   });
 
   it("says a failed hypercerts read failed, rather than reading as an empty list", () => {
@@ -120,7 +122,9 @@ describe("ImpactTab", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Failed to load hypercerts");
     expect(screen.queryByRole("link", { name: "Create Hypercert" })).not.toBeInTheDocument();
-    expect(screen.getByText("Total Hypercerts").nextElementSibling).toHaveTextContent("—");
+    expect(
+      screen.getByText("Total Hypercerts").closest('[data-component="FactRow"]')
+    ).toHaveTextContent("—");
   });
 
   it("shows View All once a list has items", () => {

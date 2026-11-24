@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { ALL_DOMAINS, DOMAIN_SLUG_PREFIX } from "../../utils/domain";
 import type { ActionTranslationMap, ActionTranslationRecord, WorkInput } from "../../types/domain";
 
 // ---------------------------------------------------------------------------
@@ -17,15 +18,8 @@ import type { ActionTranslationMap, ActionTranslationRecord, WorkInput } from ".
 
 // Named DOMAIN_ENUM_VALUES (not ACTION_DOMAINS) so the module-local numeric list
 // cannot be confused with the exported ACTION_DOMAINS string vocabulary.
-const DOMAIN_ENUM_VALUES = [0, 1, 2, 3] as const;
+const DOMAIN_ENUM_VALUES = ALL_DOMAINS;
 type ActionDomainValue = (typeof DOMAIN_ENUM_VALUES)[number];
-
-const DOMAIN_SLUG_PREFIX: Record<ActionDomainValue, string> = {
-  0: "solar",
-  1: "agro",
-  2: "edu",
-  3: "waste",
-};
 
 const workInputTypeSchema = z.enum([
   "text",

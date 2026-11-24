@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:fdf9109100fc3e5ff95c89672f0e5cc0c867254baec2494a154f195ee033edd5"
+source_digest: "sha256:1badd1f853ca8c7da492297e5b625315d55e5268f9c50217d317bc186e8ee83a"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -30,7 +30,7 @@ import TermAnchor from "@site/src/components/docs/TermAnchor";
 
 The formal specification of the Green Goods shared vocabulary: the entities the protocol tracks, the controlled vocabularies each layer spells its own way, the EAS schemas, the constraints the contracts enforce, and the lifecycle state machines. The source of truth is the machine-readable sidecar `packages/shared/src/ontology/green-goods-ontology.json`; this page is generated from it and CI fails when either drifts from the code.
 
-The ontology currently declares 21 canonical concepts. Availability does not change a term's meaning.
+The ontology currently declares 24 canonical concepts. Availability does not change a term's meaning.
 
 ## Entities
 
@@ -46,33 +46,36 @@ The ontology currently declares 21 canonical concepts. Availability does not cha
 | <TermAnchor id="cookie-jar" />**Cookie Jar** | canonical | available | implemented · deployed · active · integrated | admin · client · public · docs | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead. | contracts · indexer (CampaignCookieJar) · shared · docs |
 | <TermAnchor id="attestation" />**Attestation** | canonical | available | implemented · deployed · active · integrated | admin · client · public · docs | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. | contracts · shared · docs |
 | <TermAnchor id="hat" />**Hat** | canonical | available | implemented · deployed · active · integrated | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | contracts · indexer (Garden) · shared · docs |
-| <TermAnchor id="season" />**Season** | canonical | planned | partial · not-applicable · not-applicable · partial | admin · client · agent · public · docs | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
+| <TermAnchor id="season" />**Season** | canonical | available | implemented · deployed · active · integrated | admin · client · agent · public · docs | A garden's main rhythm: a Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. It stays a season at every stage, from planned to archived. A pool has at most one open Season at a time, and Campaigns may run beside it. It paces work and is never a countdown. | contracts · indexer (CommitmentCycle) · shared · docs |
 | <TermAnchor id="need" />**Need** | canonical | planned | not-implemented · not-deployed · inactive · not-integrated | community · admin · client · public · docs | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | spec |
 | <TermAnchor id="commitment-pool" />**Commitment Pool** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · indexer (CommitmentPool) · spec |
-| <TermAnchor id="commitment-cycle" />**Commitment Cycle** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | contracts · indexer (CommitmentCycle) · spec |
-| <TermAnchor id="commitment-series" />**Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · indexer (CommitmentSeries) · spec |
+| <TermAnchor id="commitment-cycle" />**Commitment Cycle** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | contracts · indexer (CommitmentCycle) · spec |
+| <TermAnchor id="commitment-series" />**Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · docs | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · indexer (CommitmentSeries) · spec |
 | <TermAnchor id="commitment-provider-exposure" />**Commitment Provider Exposure** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. | indexer (CommitmentProviderExposure) · spec |
-| <TermAnchor id="commitment-unit-summary" />**Commitment Unit Summary** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. | indexer (CommitmentUnitSummary) · spec |
+| <TermAnchor id="commitment-unit-summary" />**Commitment Unit Summary** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. | indexer (CommitmentUnitSummary) · spec |
 | <TermAnchor id="commitment-series-cycle-summary" />**Commitment Series Cycle Summary** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | Current lifecycle counts for the instances of one commitment series within one cycle. | indexer (CommitmentSeriesCycleSummary) · spec |
-| <TermAnchor id="commitment" />**Commitment** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · community · docs | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | contracts · spec |
-| <TermAnchor id="commitment-contributor" />**Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · community · docs | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
-| <TermAnchor id="commitment-payout-plan" />**Commitment Payout Plan** | canonical | deployed-not-available | implemented · deployed · inactive · partial | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
+| <TermAnchor id="commitment" />**Commitment** | canonical | available | implemented · deployed · active · integrated | admin · client · community · docs | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | contracts · spec |
+| <TermAnchor id="commitment-contributor" />**Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · community · docs | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
+| <TermAnchor id="commitment-payout-plan" />**Commitment Payout Plan** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
+| <TermAnchor id="service-voucher" />**Service Voucher** | canonical | in-build | implemented · deployed · inactive · partial | admin · client · docs | An issuer-specific token representing a published service promise, such as hub access or a career call. A voucher identifies its issuer and service terms; a wallet balance does not establish current service capacity or acceptance by another issuer. Approved request rewards and steward awards can transfer existing reserve vouchers to a gardener. | contracts · shared |
+| <TermAnchor id="voucher-exchange-pool" />**Voucher Exchange Pool** | canonical | in-build | implemented · deployed · inactive · partial | admin · client · docs | A curated inventory of admitted service vouchers with its own prices, holding limits, fees, and governance. A pool can exchange multiple listed vouchers when policy and inventory permit. A garden pool supports local service exchange; the separately curated Green Goods pool admits only reviewed vouchers for its offered services. | shared |
+| <TermAnchor id="voucher-award" />**Voucher Award** | canonical | in-build | implemented · not-deployed · inactive · partial | admin · client · docs | A durable steward-reviewed allocation of existing issuer-reserve vouchers to a recipient, with an amount, reason, and optional contribution reference. Preparing the record binds one Safe transaction but does not send it. Confirmation requires the matching successful Safe execution and token transfer. | shared |
 
 ## Personas
 
 | Persona | Hat | Surfaces | Definition |
 |---|---|---|---|
-| <TermAnchor id="gardener" />**Gardener** | gardener | admin · client · agent · public · docs | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
-| <TermAnchor id="steward" />**Steward** | steward | admin · client · agent · public · docs | A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). |
-| <TermAnchor id="evaluator" />**Evaluator** | evaluator | admin · client · public · docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards. |
-| <TermAnchor id="funder" />**Funder** | funder | admin · client · public · docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
-| <TermAnchor id="community-member" />**Community Member** | community | client · public · docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
+| <TermAnchor id="gardener" />**Gardener** | gardener | admin · client · agent · public · docs | A person doing regenerative work in a garden. Submits work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
+| <TermAnchor id="steward" />**Steward** | steward | admin · client · agent · public · docs | A person who stewards a garden — creates actions, approves work, configures the vault and the Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). |
+| <TermAnchor id="evaluator" />**Evaluator** | evaluator | admin · client · public · docs | A person who authors or strengthens assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted work; that authority belongs to stewards. |
+| <TermAnchor id="funder" />**Funder** | funder | admin · client · public · docs | A person or organization who funds a garden's work, from an individual or diaspora supporter to a grantmaker, institution, or crypto ecosystem fund. A funder donates to the garden's cookie jar, endows its vault, or backs the garden through a grant or partnership. A donation is a gift with nothing to withdraw. An endowment is a vault deposit the funder can redeem, less any strategy or contract loss; its yield is donated onward through the garden's configured splits, never paid to the funder. Giving needs no role; a steward or owner may grant the funder Hat, which makes its holder a garden member. |
+| <TermAnchor id="community-member" />**Community Member** | community | client · public · docs | A local resident affected by a garden's work. Signals or attests that work exists and is healthy, and helps prioritize future actions through public signal and conviction flows. |
 
-The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.
+The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the steward surfaces.
 
 ## Supporting terms
 
-Terms projected into the generated glossary's Term Reference section but deliberately excluded from the canonical entity and persona sets. Declaring them here prevents public definitions from accumulating orphan nouns.
+Technical terms kept in this Builders reference and deliberately excluded from the canonical entity and persona sets. Declaring them here preserves their meaning and published glossary links.
 
 | Term | Why it is not an entity |
 |---|---|
@@ -89,7 +92,7 @@ Terms projected into the generated glossary's Term Reference section but deliber
 | <TermAnchor id="owner" />**Owner** | A &#96;garden-role&#96; member with no dedicated persona — see personas_note. |
 | <TermAnchor id="passkey" />**Passkey** | Authentication credential; account infrastructure, not domain vocabulary. |
 | <TermAnchor id="pwa" />**PWA (Progressive Web App)** | A delivery surface, listed under Surfaces rather than entities. |
-| <TermAnchor id="resolver" />**Resolver** | The contract that gates an attestation; declared per schema as &#96;resolver&#96;, not modelled as an entity. |
+| <TermAnchor id="resolver" />**Resolver** | The contract that gates an attestation; declared per schema as &#96;resolver&#96;, not modeled as an entity. |
 | <TermAnchor id="schema" />**Schema** | The attestation template layer; the sidecar's &#96;schemas&#96; section is its canon. |
 | <TermAnchor id="smart-account" />**Smart Account (Account Abstraction)** | Wallet infrastructure, not domain vocabulary. |
 
@@ -114,11 +117,11 @@ Eight Forms of Capital used to tag actions and assessments by the kind of value 
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel for unmapped on-chain values — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Capital</code> | <code>SOCIAL=0, MATERIAL=1, FINANCIAL=2, LIVING=3, INTELLECTUAL=4, EXPERIENTIAL=5, SPIRITUAL=6, CULTURAL=7</code> |  |
-| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Ordered deliberately: the union is declared here in canonical machine order because index-based bridges between Capital and CapitalType lists are a live bug risk. The current file deviates (living-first presentational order) — baselined until reordered or a mapping function lands. |
+| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Declared in the Capital enum's order. Consumers store the words, never positions; convert only through capitalToCapitalType and capitalTypeToCapital. |
 
 - **Mapping `capital-enum-to-capital-type`** (shared-enum → capital-type; explicit; total; bijective): SOCIAL → social, MATERIAL → material, FINANCIAL → financial, LIVING → living, INTELLECTUAL → intellectual, EXPERIENTIAL → experiential, SPIRITUAL → spiritual, CULTURAL → cultural.
-  - Code anchor: none — no runtime mapping function exists yet.
-  - No runtime mapping function exists yet — see known_issues.missing-capital-mapping-fn.
+  - Code anchor: `packages/shared/src/types/hypercerts.ts`
+  - capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. packages/shared/src/__tests__/types/domain-enums.test.ts checks both directions against these pairs.
 
 ### `domain`
 
@@ -131,15 +134,19 @@ Category of regenerative work — where the work happens. Four production domain
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Domain</code> | <code>SOLAR=0, AGRO=1, EDU=2, WASTE=3</code> |  |
-| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education, mutual_credit</code> | Long-form lowercase spellings used in hypercert metadata. mutual_credit is a product concept ahead of the on-chain enum (deferred Domain 5) — declared, not drift. |
-| slug-prefix | shared | <code>packages/shared/src/hooks/action/useActionForm.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). |
+| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education</code> | Long-form lowercase spellings written into hypercert metadata: each attested work's domain, the hypercert's own domain when its work names exactly one, and the work scope suggested from an assessment. The admin keys its hypercert domain labels on them, and the public garden-impact API (v1) derives its ordered list from the shared enum mapping. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain. |
+| slug-prefix | shared | <code>packages/shared/src/utils/domain.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). Each is its Solidity member name in lower case, and both the deploy actions validator and the create-action form reject a slug whose prefix is not its domain's. |
+| design-token | shared | <code>packages/shared/src/types/domain.ts · DOMAIN_TOKEN_SLUG</code> | <code>solar, agro, education, waste</code> | CSS token and display-label spelling. DOMAIN_COLORS and DOMAIN_CONFIG derive from this map; the palette keeps complete Tailwind class names so app builds can discover them. |
 
-- **Mapping `domain-to-action-domain`** (solidity → action-domain; explicit; total; unmapped on the right: mutual_credit): SOLAR → solar, AGRO → agroforestry, EDU → education, WASTE → waste.
-  - Code anchor: `packages/shared/src/modules/data/hypercerts-filters.ts`
+- **Mapping `domain-to-action-domain`** (solidity → action-domain; explicit; total; bijective): SOLAR → solar, AGRO → agroforestry, EDU → education, WASTE → waste.
+  - Code anchor: `packages/shared/src/utils/domain.ts`
 
-- **Mapping `action-domain-vs-slug-prefix`** (action-domain → slug-prefix; identity; partial; unmapped on the left: mutual_credit): identity (same spelling on both sides).
-  - Code anchor: none — no runtime mapping function exists yet.
-  - The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined.
+- **Mapping `domain-to-slug-prefix`** (solidity → slug-prefix; explicit; total; bijective): SOLAR → solar, AGRO → agro, EDU → edu, WASTE → waste.
+  - Code anchor: `packages/shared/src/utils/domain.ts`
+  - AGRO and EDU each have two published lowercase spellings, and neither can be rewritten: action slugs are immutable on chain, and minted hypercert metadata keeps the long forms. Each spelling is mapped from the canonical enum, never from the other, so agro and agroforestry both mean AGRO.
+
+- **Mapping `domain-to-design-token`** (solidity → design-token; explicit; total; bijective): SOLAR → solar, AGRO → agro, EDU → education, WASTE → waste.
+  - Code anchor: `packages/shared/src/types/domain.ts`
 
 ### `garden-role`
 
@@ -207,8 +214,7 @@ Kind of Gardens V2 conviction signal pool attached to a garden. Distinct from th
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/IGardensModule.sol · PoolType</code> | <code>ActionSignal, HypercertSignal</code> |  |
-| indexer | indexer | <code>packages/indexer/schema.graphql · PoolType</code> | <code>ACTION_SIGNAL, HYPERCERT_SIGNAL</code> | Currently &#123;HYPERCERT, ACTION&#125; — inverted vs chain and referenced by zero entity fields (dead surface). Baselined; fix direction is deletion or correction alongside the shared enum. |
-| shared | shared | <code>packages/shared/src/types/gardens-community.ts · PoolType</code> | <code>ActionSignal=0, HypercertSignal=1</code> | Currently &#123;Hypercert = 0, Action = 1&#125; — inverted vs chain. Verified latent, not live: pool types are assigned by address identity (annotateGardenSignalPools), never decoded from a raw uint8. Baselined with a mandatory blast-radius re-check before burn-down. |
+| shared | shared | <code>packages/shared/src/types/gardens-community.ts · PoolType</code> | <code>ActionSignal=0, HypercertSignal=1</code> | Pools are classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type. |
 
 ### `vault-event-type`
 
@@ -252,9 +258,17 @@ Canonical display status for work items across the UI — protocol states plus c
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | shared-union | shared | <code>packages/shared/src/types/domain.ts · WorkDisplayStatus</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> |  |
-| enhanced-work-approval | shared | <code>packages/shared/src/hooks/work/useWorkApprovals.ts · EnhancedWorkApproval.status</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent five-value list (failed instead of sync_failed; missing uploading/offline) — baselined. |
-| offline-work-item | shared | <code>packages/shared/src/types/offline.ts · OfflineWorkItem.status</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent four-value list — baselined pending status-union consolidation. |
-| hypercert-sync-status | shared | <code>packages/shared/src/hooks/hypercerts/useHypercerts.ts · HypercertSyncStatus</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent four-value sync list — baselined pending status-union consolidation. |
+| enhanced-work-approval | shared | <code>packages/shared/src/hooks/work/useWorkApprovals.ts · EnhancedWorkApproval.status</code> | <code>approved, rejected</code> | The decided subset of the canonical union, declared in code as Extract&lt;WorkDisplayStatus, "approved" \| "rejected"&gt;: every review read from the attestation history has decided its work, so pending and the upload and sync states never apply to it. |
+
+### `hypercert-sync-status`
+
+How far a newly minted hypercert has caught up with the indexer; not the hypercert's lifecycle status (hypercert-status). It shares the word syncing with the work display status but not its meaning: it tracks a hypercert's indexing, not a work's upload or review.
+
+**Canonical members:** synced · syncing · optimistic · failed
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| shared-union | shared | <code>packages/shared/src/hooks/hypercerts/useHypercerts.ts · HypercertSyncStatus</code> | <code>synced, syncing, optimistic, failed</code> |  |
 
 ### `cynefin-phase`
 
@@ -548,6 +562,10 @@ Read-model direction derived from immutable payer and provider gardens plus the 
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSettlementFlow</code> | <code>UNKNOWN, INTERNAL, PROTOCOL_TO_GARDEN, GARDEN_TO_PROTOCOL, GARDEN_TO_GARDEN</code> | UNKNOWN is retained until the protocol garden configuration is observed. |
 | shared | shared | <code>packages/shared/src/modules/commitment-pooling/types-vocabulary.ts · CommitmentSettlementFlow</code> | <code>UNKNOWN, INTERNAL, PROTOCOL_TO_GARDEN, GARDEN_TO_PROTOCOL, GARDEN_TO_GARDEN</code> |  |
 
+- **Mapping `canonical-to-indexer`** (canonical → indexer; explicit; total; bijective; unmapped on the right: UNKNOWN): Internal → INTERNAL, ProtocolToGarden → PROTOCOL_TO_GARDEN, GardenToProtocol → GARDEN_TO_PROTOCOL, GardenToGarden → GARDEN_TO_GARDEN.
+  - Code anchor: `packages/shared/src/modules/commitment-pooling/types-vocabulary.ts`
+  - Conceptual direction names map to the published uppercase read-model words. UNKNOWN is an indexer sentinel, not a settlement direction.
+
 ### `loan-state`
 
 Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by shared consumers from indexed repayment amounts while repayment sits between zero and principal + feeAmount and is never stored as a contract or indexer hard state.
@@ -619,7 +637,7 @@ GraphQL execution-result mirror with an explicit UNKNOWN sentinel.
 
 ### `commitment-claim-request-state`
 
-Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.
+Indexer lifecycle of a commitment claim request. A request still pending is superseded when its commitment is taken up by someone else, canceled or expires, and its resolution code (COMMITMENT_ACCEPTED, COMMITMENT_CANCELLED or COMMITMENT_EXPIRED) says which.
 
 **Canonical members:** PENDING · ACCEPTED · DECLINED · SUPERSEDED
 
@@ -661,6 +679,16 @@ Lifecycle of the internal durable identity for one Offer used over time in one p
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSeriesState</code> | <code>UNKNOWN, ACTIVE, RESTING, RETIRED</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
 | shared | shared | <code>packages/shared/src/modules/commitment-pooling/types-vocabulary.ts · CommitmentSeriesState</code> | <code>UNKNOWN, ACTIVE, RESTING, RETIRED</code> |  |
 
+### `voucher-award-state`
+
+Durable status of an existing-reserve voucher award. A local form draft has no award record; awaiting_authorization means the exact transaction has been prepared, not sent.
+
+**Canonical members:** awaiting_authorization · submitted · confirmed · failed · needs_reconciliation
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| shared-record | shared | <code>packages/shared/src/public-contracts/voucher-awards.ts · VoucherAwardRecord.state</code> | <code>awaiting_authorization, submitted, confirmed, failed, needs_reconciliation</code> |  |
+
 ## Specified vocabularies without an implemented source
 
 These vocabularies are canonical specifications whose declared implementation anchor has not arrived. The gate watches each anchor and requires the source status and representations to be updated when it lands.
@@ -681,46 +709,6 @@ source: implemented · revocable: false · resolver: `packages/contracts/src/res
 | endDate | <code>uint256</code> |
 | location | <code>string</code> |
 
-### `work` — Green Goods Work Submission
-
-source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/Work.sol`
-
-| Field | Type |
-|---|---|
-| actionUID | <code>uint256</code> |
-| title | <code>string</code> |
-| feedback | <code>string</code> |
-| metadata | <code>string</code> |
-| media | <code>string[]</code> |
-
-### `workApproval` — Green Goods Work Approval
-
-source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/WorkApproval.sol`
-
-| Field | Type |
-|---|---|
-| actionUID | <code>uint256</code> |
-| workUID | <code>bytes32</code> |
-| approved | <code>bool</code> |
-| feedback | <code>string</code> |
-| confidence | <code>uint8</code> |
-| verificationMethod | <code>uint8</code> |
-| reviewNotesCID | <code>string</code> |
-
-### `badge` — GreenGoodsBadge
-
-source: implemented · revocable: true · resolver: none
-
-Registered via the standalone badge-schemas path outside config/schemas.json; the only revocable Green Goods schema, with no resolver. Records no canonical entity: GreenWill badging is a demonstration sidecar, not part of the v1 entity set.
-
-| Field | Type |
-|---|---|
-| badgeType | <code>string</code> |
-| recipient | <code>address</code> |
-| earnedAt | <code>uint40</code> |
-| evidenceUri | <code>string</code> |
-| tier | <code>uint8</code> |
-
 ### `assessmentV3` — Green Goods Assessment v3
 
 source: implemented · revocable: false · resolver: none
@@ -740,6 +728,20 @@ Assessment v2 fields plus assessmentKind, cycleId, and baselineUID; one of exact
 | cycleId | <code>uint256</code> |
 | baselineUID | <code>bytes32</code> |
 
+### `badge` — GreenGoodsBadge
+
+source: implemented · revocable: true · resolver: none
+
+Registered via the standalone badge-schemas path outside config/schemas.json; the only revocable Green Goods schema, with no resolver. Records no canonical entity: GreenWill badging is a demonstration sidecar, not part of the v1 entity set.
+
+| Field | Type |
+|---|---|
+| badgeType | <code>string</code> |
+| recipient | <code>address</code> |
+| earnedAt | <code>uint40</code> |
+| evidenceUri | <code>string</code> |
+| tier | <code>uint8</code> |
+
 ### `communityTestimony` — Green Goods Community Testimony
 
 source: implemented · revocable: false · resolver: none
@@ -751,6 +753,20 @@ Community-Hat-gated testimony attached to a commitment; the second of exactly tw
 | commitmentId | <code>uint256</code> |
 | title | <code>string</code> |
 | testimonyCID | <code>string</code> |
+
+### `fundingAttribution` — Green Goods Funding Attribution
+
+source: specified · revocable: false · planned resolver: `FundingAttributionResolver`
+
+Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from NeedsResolver and the joined reader verifies canonical receipts before display.
+
+| Field | Type |
+|---|---|
+| chainId | <code>uint256</code> |
+| txHash | <code>bytes32</code> |
+| token | <code>address</code> |
+| amount | <code>uint256</code> |
+| rail | <code>uint8</code> |
 
 ### `need` — Green Goods Need
 
@@ -788,19 +804,31 @@ Steward-authored child moderation records use EAS recipient as the garden, refUI
 | mergedIntoNeedUID | <code>bytes32</code> |
 | noteCID | <code>string</code> |
 
-### `fundingAttribution` — Green Goods Funding Attribution
+### `work` — Green Goods Work Submission
 
-source: specified · revocable: false · planned resolver: `FundingAttributionResolver`
-
-Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from NeedsResolver and the joined reader verifies canonical receipts before display.
+source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/Work.sol`
 
 | Field | Type |
 |---|---|
-| chainId | <code>uint256</code> |
-| txHash | <code>bytes32</code> |
-| token | <code>address</code> |
-| amount | <code>uint256</code> |
-| rail | <code>uint8</code> |
+| actionUID | <code>uint256</code> |
+| title | <code>string</code> |
+| feedback | <code>string</code> |
+| metadata | <code>string</code> |
+| media | <code>string[]</code> |
+
+### `workApproval` — Green Goods Work Approval
+
+source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/WorkApproval.sol`
+
+| Field | Type |
+|---|---|
+| actionUID | <code>uint256</code> |
+| workUID | <code>bytes32</code> |
+| approved | <code>bool</code> |
+| feedback | <code>string</code> |
+| confidence | <code>uint8</code> |
+| verificationMethod | <code>uint8</code> |
+| reviewNotesCID | <code>string</code> |
 
 ## Constraints
 
@@ -825,6 +853,9 @@ Cross-layer invariants and where they are enforced. This catalog is documentatio
 - **`needs-eas-envelope-reference`** · domain-range · specified — All four Needs schemas use EAS recipient as the canonical garden and expirationTime zero; a Need is a root with refUID zero, while NeedSignal, NeedStatus, and FundingAttribution use refUID to reference an exact live same-garden Need. _(specified in `.plans/backlog/community-interface/spec.md`; watches `packages/contracts/src/resolvers/Needs.sol#NeedsResolver`)_
 - **`need-signal-latest-winner`** · functional · specified — For each Need and attester, readers first select the greatest unsigned (timeCreated, uid) NeedSignal tuple and then apply revocation and expiry; a revoked or expired winner clears the signal without restoring an older record, and support and non-support remain separate counts. _(specified in `.plans/backlog/community-interface/spec.md`; watches `packages/shared/src/modules/community-needs/signals.ts#NeedSignal`)_
 - **`needs-resolver-trust-boundaries`** · closed-set · specified — Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Steward authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed. _(specified in `.plans/backlog/community-interface/spec.md`; watches `packages/contracts/src/resolvers/Needs.sol#NeedsResolver`)_
+- **`voucher-pool-policy-independence`** · functional · implemented — Issuer and token identity are canonical across pools. Listing admission, price, and holding cap belong to a selected pool, so local listing and delisting cannot change Green Goods policy implicitly. _(enforced at: `packages/shared/src/modules/commitment-pooling/service-issuer-types.ts#ServiceIssuerPool`, `packages/shared/src/modules/commitment-pooling/service-issuer-governance.ts#serviceIssuerGovernanceDrafts`, `packages/contracts/script/utils/clc-garden-release.ts#buildCLCGardenPlan`)_
+- **`voucher-two-pool-adoption`** · closed-set · implemented — The garden-exchange release adopts the existing Green Goods pool and existing collective voucher tokens, provisions one separate Tech and Sun pool, and keeps funding and service activation explicit. Simulated deployment receipts cannot register a production pool. _(enforced at: `packages/contracts/script/utils/clc-garden-release.ts#buildCLCGardenPlan`, `packages/contracts/script/utils/clc-garden-execution.ts#executeGardenDeployment`)_
+- **`voucher-award-exact-reserve-transfer`** · functional · implemented — One award identity binds an immutable recipient, token, amount, reason, reference, and prepared Safe envelope. Preparation requires current reserve authority; confirmation requires the exact successful execution and transfer. A draft or submitted hash alone never establishes payment. _(enforced at: `packages/agent/src/services/voucher-awards.ts#createVoucherAwardService`, `packages/agent/src/services/voucher-awards-chain.ts#createVoucherAwardChain`, `packages/shared/src/public-contracts/voucher-awards.ts#parseVoucherAwardInput`)_
 
 ## State Machines
 
@@ -848,7 +879,7 @@ The union in types/domain.ts documents itself as the single source of truth: pen
 | syncing | uploading | off-chain | queued media begins uploading before the attestation is submitted |
 | syncing · uploading | sync_failed | off-chain | a recoverable queue or upload failure preserves the job for retry |
 | uploading | pending | on-chain | successful EAS Work attestation submission creates the pending public record |
-| pending | approved · rejected | on-chain | a Steward records a separate Work Approval attestation |
+| pending | approved · rejected | on-chain | a steward records a separate Work Approval attestation |
 
 ### `commitment-pool`
 
@@ -932,11 +963,11 @@ Direction-aware fulfillment: the party receiving the team's work confirms by def
 | Offered · Requested · Accepted | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
 | Offered · Requested · Accepted · ReadyForConfirmation | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
 | Accepted · ReadyForConfirmation · Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
-| Disputed | Accepted · ReadyForConfirmation · Fulfilled · Cancelled · Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
+| Disputed | Accepted · ReadyForConfirmation · Fulfilled · Cancelled · Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution rejects the steward who raised the dispute (SelfDisputeResolution) and a dispute with no recorded raiser (UnknownDisputeRaiser), while that steward may still restore, cancel or expire it; it then requires an available recognition policy and verified contributor, and freezes an unfrozen roster before DisputeResolved |
 
 ### `commitment-loan`
 
-Records-only pool credit (CreditRegistry). Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.
+Records-only pool credit (CreditRegistry) for the separate Commitment Credit companion. No client or admin screen offers it yet, so no garden can borrow or repay through Green Goods. Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.
 
 _Implementation evidence: `packages/contracts/src/registries/Credit.sol#requestLoan`, `packages/contracts/test/unit/CreditRegistry.t.sol#testCreditRegistry_requestApproveDisburseAndRepayInInstallments`, `packages/indexer/test/credit-registry.test.ts#CreditRegistry`._
 
@@ -962,6 +993,25 @@ _Implementation evidence: `packages/contracts/src/registries/Credit.sol#requestL
 | Disbursed | Defaulted | on-chain | markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused |
 | Defaulted | Repaid | on-chain | recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal |
 
+### `voucher-award`
+
+Preparation creates awaiting_authorization after validating authority, reserve inventory, and the exact envelope. Confirmed is terminal. Failure distinguishes a reverted outer transaction from a Safe execution failure; a consumed nonce requires reconciliation, never an automatic replacement payment.
+
+_Implementation evidence: `packages/agent/src/services/voucher-awards.ts#createVoucherAwardService`, `packages/agent/src/services/voucher-awards-chain.ts#createVoucherAwardChain`._
+
+| State | Storage |
+|---|---|
+| awaiting_authorization | off-chain |
+| submitted | off-chain |
+| confirmed | off-chain |
+| failed | off-chain |
+| needs_reconciliation | off-chain |
+
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| awaiting_authorization · submitted · failed · needs_reconciliation | submitted · confirmed · failed | off-chain | Reconcile the supplied transaction hash against the prepared Safe envelope and canonical receipt. Pending execution stays submitted; a verified successful execution plus exact transfer confirms; reverted or Safe-failed execution records failure. An unresolved submitted transaction cannot be replaced by another unconfirmed hash. |
+| awaiting_authorization · failed | needs_reconciliation | off-chain | Read a prepared or outer-transaction-reverted award and observe that its Safe nonce has changed. Preserve the award and exact envelope for receipt reconciliation. |
+
 ## Agent query seam
 
 Agents and application code should use the compact read-only query API exported by `@green-goods/shared`. It resolves canonical ids, typed refs, display names, and declared aliases without importing the full semantic sidecar.
@@ -984,7 +1034,6 @@ Use `maturity.availability` and the returned evidence before making a release cl
 
 ## Known Issues
 
-- **`missing-capital-mapping-fn`** — No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ. _(`packages/shared/src/types/domain.ts`, `packages/shared/src/types/hypercerts.ts`)_
 - **`community-surface-token`** — The ontology uses a `community` surface token on Need, Commitment, and Commitment Contributor while the product still treats community experiences as part of the client and public surfaces. Either promote Community to a distinct product surface or fold the token into `client`; until then the generated glossary carries the declared value verbatim. _(`docs/docs/reference/glossary.generated.mdx`, `packages/shared/src/ontology/green-goods-ontology.json`)_
 
 ## Deliberately excluded from v1

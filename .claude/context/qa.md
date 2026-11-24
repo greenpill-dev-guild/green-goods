@@ -42,10 +42,11 @@ connects them.
    as a document (§ Artifact ownership), so the full record outlives the laptop that pulled it.
 5. **Triage** — [`qa-triage`](../skills/qa-triage/SKILL.md) enriches and scope-locks accepted
    findings, then writes safe Issue and Customer Need records to Linear and appends private defect
-   rows to the Green Goods v1.1 QA Sheet. After a team QA call, the
-   [`qa-call-report`](../../docs/routines/qa-call-report.md) routine (or `/qa-triage --call`)
-   writes the session to Linear instead: one `QA session YYYY-MM-DD` parent issue carrying the
-   report, with slice sub-issues sized one slice = one branch = one PR.
+   rows to the Green Goods v1.1 QA Sheet. After a team QA call, `/qa-triage --call` writes the
+   session to Linear instead: one `QA session YYYY-MM-DD` parent issue carrying the report, with
+   slice sub-issues sized one slice = one branch = one PR. When nobody will confirm the run, such
+   as an agent closing an automated QA pass, `--call --unattended` writes the same record under
+   [conservative rules](../skills/qa-triage/references/unattended-report.md).
 6. **Decisions** — only user-locked design decisions enter
    [`design/decision-log.md`](../skills/design/decision-log.md). Observations and verdicts do not
    become design policy by implication.
@@ -83,8 +84,8 @@ deferred handoff, or a live session — works in this order:
 | Session log, pulled results, generated report, local handoff | `tmp/qa-session/<slug>/` | `qa-session`, `qa:pull`, and `qa:report`; local and gitignored — `report.md` leaves only as the session parent's attached Linear document (below), `report.public.md` only for the docs example or the Discord lede |
 | Coverage report | Standard output from `bun run qa status` | Read-only command; nothing is persisted |
 | Defect tracking | Linear plus the private Green Goods v1.1 QA Sheet | `qa-triage`, after explicit scope and write confirmation |
-| Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | [`qa-call-report`](../../docs/routines/qa-call-report.md) after a team call, or `/qa-triage --call` interactively |
-| Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent; beside the receipt in the restricted Drive QA folder when a solo session has no parent | [`qa-call-report`](../../docs/routines/qa-call-report.md), `/qa-triage --call`, or the `qa-session` close, after the privacy grep |
+| Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | `/qa-triage --call` after a team call, or `--call --unattended` when nobody will confirm the run |
+| Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent; beside the receipt in the restricted Drive QA folder when a solo session has no parent | `/qa-triage --call`, attended or unattended, or the `qa-session` close, after the privacy grep |
 | Session receipts, screenshots, and recordings | Restricted Drive QA folder | `qa-session`, after content inspection |
 | Locked design decisions | `.claude/skills/design/decision-log.md` in git | `qa-session`, after the decision lock gate |
 
@@ -172,7 +173,8 @@ Environment attribution: a run records its environment (production, beta/staging
 it opens, the QA app shows it in the header, and the session header and the Linear parent lede
 repeat it. A tester who crosses to another environment for one case prefixes that note with
 `[beta]`, `[prod]`, or `[local]`: every verdict taken outside the run's environment carries its
-prefix, whichever of the three the run's is.
+prefix, whichever of the three the run's is. A verdict taken on alpha, the experiments site at
+`alpha.greengoods.app`, carries `[alpha]`; alpha is not a run environment of its own.
 
 ## Runs
 
@@ -193,7 +195,7 @@ Rules that follow from this:
   on every row, the tally adds fixed, still failing, regressed, and newly walked, and the **Re-QA**
   filter lists what the compared run left failing or blocked.
 - A verdict on a case retired between two runs is read on each active successor named by the
-  catalog's `replacedBy` chain and labelled *inherited*, in the app and in `qa:report`.
+  catalog's `replacedBy` chain and labeled *inherited*, in the app and in `qa:report`.
 - The session header names the run id (`run-N`) the walk records into; the call-report path
   pulls that run (`qa:pull --run <id>`, `latest-closed` when it was rolled over before the report
   ran) and the previous run beside it for `qa:report --previous`.
@@ -212,7 +214,7 @@ ID, tester, and verdict, before assigning dispositions or clustering.
 | `decision` | Needs a product or design ruling before a fix is honest (limits, copy direction, flow choices) | The parent's `Decisions needed` section plus the session's single decisions child |
 | `investigate` | A symptom whose cause or intent is unknown; not fixable until someone looks | A `Not sliced · investigate` line in the parent; a slice only after the look |
 | `catalog` | Feedback about the test case itself: split it, rename it, move it, unclear, missing twin | `tmp/qa-triage/<slug>/catalog-feedback.md` from the skill, copied at close into the plan hub that owns the next catalog change (de-attributed: no verdicts, no tester names, because the repository is public), or one `Catalog feedback` comment on the parent from the routine; never a slice |
-| `environment` | Behaviour caused by the harness or environment, not the product (cold start, beta-only data, wrong wallet) | One environment line in the parent; never a slice |
+| `environment` | Behavior caused by the harness or environment, not the product (cold start, beta-only data, wrong wallet) | One environment line in the parent; never a slice |
 
 The same queue budget applies to `polish`: derive state and priority first, then keep only the
 first N Todo-eligible slices by priority in `Todo` and file the rest as `Backlog`. The default is 8;
@@ -253,12 +255,12 @@ For the commitment relay, two people keep two distinct allowlisted wallets and o
 the entire walk:
 
 - **Protocol & review** is the protocol steward and independent steward or evaluator of the test
-  Garden. This person must remain outside both contributor rosters.
-- **Garden & member** is a steward and member of the test Garden. This person makes the institutional
+  garden. This person must remain outside both contributor rosters.
+- **Garden & member** is a steward and member of the test garden. This person makes the institutional
   claim and contributes the Work and evidence.
 
-The protocol Request stays in the protocol pool after the Garden claims it. The protocol-to-Garden
-payout is earned compensation. The Garden-to-member obligation is a separate Garden-pool commitment.
+The protocol Request stays in the protocol pool after the garden claims it. The protocol-to-garden
+payout is earned compensation. The garden-to-member obligation is a separate garden-pool commitment.
 The Protocol treasury top-up is discretionary funding with no commitment ID and never substitutes
 for earned compensation. A starting assessment adds context but does not gate opening a Season or
 Campaign.

@@ -22,12 +22,12 @@ duplicate them:
 | Retrospective meeting-notes triage, PostHog cross-ref, Linear + Sheet writes | [`qa-triage`](../qa-triage/SKILL.md) (this skill hands off to it) |
 | Linear payload templates, label scheme, disposition rules | [`qa-triage/linear-templates.md`](../qa-triage/linear-templates.md) |
 | Sheet/workbook schemas, surface vocabulary, severity defaults | [`qa-triage/sheet-schema.md`](../qa-triage/sheet-schema.md) |
-| Reproduce-first diagnosis, rendered-DOM-geometry-first UI regression protocol | [`debug`](../debug/SKILL.md) § User-Facing Bug Triage, § User-Observed UI Regression Protocol |
+| Reproduce-first diagnosis, rendered-DOM-geometry-first UI regression protocol | [`debug`](../debug/SKILL.md) § Reported-bug triage, § UI protocol |
 | Casual phrase → `data-component`/`data-region` resolution (admin) | [`design/defect-grammar.md`](../design/defect-grammar.md) |
 | Locked design decisions (DL-NNN ledger, graduation ladder) | [`design/decision-log.md`](../design/decision-log.md) |
 | In-session fast validation rungs (QA Speed Mode) | [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) § Partial rungs |
 | Journey matrices, receipt fields, defect labels, evidence hierarchy | `docs/docs/builders/quality/product-experience-qa.mdx` |
-| Post-call report + fix slices for team calls (app + Meet notes → Linear) | [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine / `/qa-triage --call` |
+| Post-call report + fix slices for team calls (app + Meet notes → Linear) | [`/qa-triage --call`](../qa-triage/references/call-mode.md); `--call --unattended` when nobody will confirm, such as an automated pass |
 | Fix posture for any QA fix (history, seams, update-over-add) | [`.claude/context/qa.md § Fix posture`](../../context/qa.md) |
 | Pre-merge gate at close | [`ship`](../ship/SKILL.md) |
 
@@ -100,9 +100,10 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    passes** — verified 2026-08-28 to render real garden data (work queues, submissions, media).
    `?mockAuth=steward` currently resolves to an address with **no garden assignment in the
    production indexer** and lands on the "no garden access" empty state, so it proves the gate,
-   not the journey. Mock auth changes the app's role context but does not disable transaction
-   hooks. Disconnect any wallet session before a mock-auth pass; cancel an unexpected wallet
-   prompt and treat the setup as invalid. Both roles are **loopback-only**: use them solely on
+   not the journey. Mock auth changes the app's role context and gives wagmi no wallet connector,
+   so writes, sends and signatures fail before they reach a wallet. Still disconnect any wallet
+   session before a mock-auth pass; a wallet prompt during one means the setup is invalid: cancel
+   it and report it. Both roles are **loopback-only**: use them solely on
    `localhost`/`127.0.0.1` sessions, never over `dev:tunnel` or any non-loopback URL
    (a tunneled dev server would hand production-backed steward views to anyone with the link) —
    those checks go through authenticated Brave instead. The mock role persists in **per-tab**
@@ -143,7 +144,7 @@ Log every dictated item to `tmp/qa-session/<slug>/qa-session-<slug>.md` **immedi
 walk with diagnosis monologues — one-line acknowledgment plus the triage question, nothing more.
 
 ```markdown
-### OBS-07 · 14:32 · admin /hub/work · defect
+### OBS-07 · 14:32 · admin /review/work · defect
 > "the approve button is below the fold again on review"
 resolved: ReviewForm actions not routed through AdminDialog.actions (defect-grammar Tier 1)
 case: ADM-012
@@ -295,14 +296,14 @@ wallets and never exchange identities or role assignments midway through the flo
 
 - Read the lane's role before starting and verify each wallet can actually hold it. For the service
   relay, **Protocol & review** stays outside both contributor rosters; **Garden & member** is a
-  steward and member of the test Garden.
+  steward and member of the test garden.
 - Follow the phase order. **Act** identifies the person changing state; **Verify** identifies the
   person who must independently observe it. The actor waits at every named handoff.
 - Both people may record their own verdict on cases explicitly shared for verification. A known gate
   never records Blocked automatically: attempt the step, name the visible gate when it blocks, then
   continue the remaining non-value steps.
 - Preserve the product model in observations: the protocol Request stays in the protocol pool; the
-  Garden's member obligation is a separate Garden commitment; a Protocol treasury top-up has no
+  garden's member obligation is a separate garden commitment; a Protocol treasury top-up has no
   commitment ID and is not earned compensation; a starting assessment is context, not a cycle gate.
 
 One agent may guide both people on the same call, or each person may use their own agent. With two
@@ -334,8 +335,8 @@ that walker's ports.
 need running per person. For a team call where walkers recorded app-only, the per-walker
 artifacts in this section do **not** apply — with no per-walker agent there is no OBS log,
 deferred handoff, or per-walker receipt to produce, and none should be fabricated. That call's
-close IS the [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine or
-`/qa-triage --call`: it joins the app state with the Meet notes, and the Linear session report
+close IS [`/qa-triage --call`](../qa-triage/references/call-mode.md), attended or unattended: it
+joins the app state with the Meet notes, and the Linear session report
 plus slices are the close-out artifacts. Per-walker artifacts remain required only for walks an
 agent drove: each agent-driven walker still produces their own OBS log, deferred handoff, and
 receipt, because dispositions and fixes are theirs. The decision lock gate (Phase 4.4) runs

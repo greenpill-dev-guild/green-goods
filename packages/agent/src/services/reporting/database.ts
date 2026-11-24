@@ -39,11 +39,21 @@ function migrateReportingDatabase(
   for (const migration of migrations) {
     if (migration.version <= current) continue;
     db.transaction(() => {
+      for (const { table, column, definition } of migration.columns ?? []) {
+        addColumnOnce(db, table, column, definition);
+      }
       for (const statement of migration.statements) db.exec(statement);
       db.exec(`PRAGMA user_version = ${migration.version}`);
     }).immediate();
   }
   return latest;
+}
+
+/** Adds a column unless its table has it; the names come from the migration list, not input. */
+function addColumnOnce(db: Database, table: string, column: string, definition: string): void {
+  const columns = db.query(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (columns.some(({ name }) => name === column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
 /** Runs synchronous work in one IMMEDIATE transaction; nested calls become savepoints. */

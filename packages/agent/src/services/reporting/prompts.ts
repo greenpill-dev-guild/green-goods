@@ -153,6 +153,27 @@ export function closeConversationPrompt(core: ReportingCore, conversationId: str
     .run({ conversation: conversationId, now: core.clock.now() });
 }
 
+/** Closes the conversation's open question if it is about this subject; any other stays open. */
+export function closeSubjectPrompt(
+  core: ReportingCore,
+  conversationId: string,
+  subjectKind: PromptSubjectKind,
+  subjectId: string
+): void {
+  core.db
+    .query(
+      `UPDATE conversation_prompts SET state = 'superseded', resolved_at = $now
+       WHERE conversation_id = $conversation AND state = 'open'
+         AND subject_kind = $kind AND subject_id = $subject`
+    )
+    .run({
+      conversation: conversationId,
+      kind: subjectKind,
+      subject: subjectId,
+      now: core.clock.now(),
+    });
+}
+
 /**
  * Interprets an interactive reply ID of the form `p:<promptId>:<optionId>` against the open
  * prompt. A reply to a superseded prompt returns null and is treated as a new message.

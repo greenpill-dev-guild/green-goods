@@ -1,9 +1,9 @@
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import {
   CREATION_BUNDLE_SIZE,
   type CreationSendMode,
 } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import type { SeedStatusView } from "./seedStatus";
 
 export interface SeedFlowFooterProps {
@@ -42,6 +42,7 @@ export function SeedFlowNote({
   mode,
   count,
   reason,
+  testId,
 }: {
   phase: string;
   busy: boolean;
@@ -50,12 +51,13 @@ export function SeedFlowNote({
   count: number;
   /** Why the button is off, when it is. */
   reason: string | null;
+  testId?: string;
 }) {
   const { formatMessage } = useIntl();
   const note =
     phase === "asking"
       ? formatMessage({
-          id: "cockpit.garden.pool.seed.note.waiting",
+          id: "hub.garden.pool.seed.note.waiting",
           defaultMessage: "The dialog stays open until your wallet answers.",
         })
       : busy
@@ -65,7 +67,7 @@ export function SeedFlowNote({
             ? count <= CREATION_BUNDLE_SIZE
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.note.bundle",
+                    id: "hub.garden.pool.seed.note.bundle",
                     defaultMessage:
                       "{count, plural, one {Your wallet will ask you once.} other {Your wallet will ask you once, for all #.}}",
                   },
@@ -73,7 +75,7 @@ export function SeedFlowNote({
                 )
               : formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.note.bundles",
+                    id: "hub.garden.pool.seed.note.bundles",
                     defaultMessage: "Your wallet will ask you {requests} times, once for every 10.",
                   },
                   { requests: Math.ceil(count / CREATION_BUNDLE_SIZE) }
@@ -81,7 +83,7 @@ export function SeedFlowNote({
             : mode === "one-by-one"
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.note.oneByOne",
+                    id: "hub.garden.pool.seed.note.oneByOne",
                     defaultMessage:
                       "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
                   },
@@ -89,12 +91,12 @@ export function SeedFlowNote({
                 )
               : mode === "background"
                 ? formatMessage({
-                    id: "cockpit.garden.pool.seed.note.background",
+                    id: "hub.garden.pool.seed.note.background",
                     defaultMessage:
                       "They wait in this device's queue until you send them from the Promises tab.",
                   })
                 : null));
-  return note ? <span role="status">{note}</span> : null;
+  return note ? <span data-testid={testId}>{note}</span> : null;
 }
 
 /**
@@ -126,101 +128,90 @@ export function SeedFlowFooter({
 
   if (!isLast) {
     return (
-      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
-          type="button"
-          variant={stepIndex === 0 ? "text" : "outlined"}
-          onClick={() => (stepIndex === 0 ? onCancel() : onBack())}
-          className="self-start sm:self-auto"
-        >
-          {stepIndex === 0
-            ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
-            : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
-        <AdminButton type="button" variant="filled" onClick={onNext} className="w-full sm:w-auto">
-          {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-        </AdminButton>
-      </div>
+      <SheetActions
+        layout="steps"
+        primary={{
+          label: formatMessage({ id: "app.common.next", defaultMessage: "Next" }),
+          onClick: onNext,
+        }}
+        secondary={{
+          label:
+            stepIndex === 0
+              ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
+              : formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+          onClick: () => (stepIndex === 0 ? onCancel() : onBack()),
+        }}
+      />
     );
   }
 
   if (status.phase === "created" || status.phase === "finishLater") {
     return (
-      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton type="button" variant="filled" onClick={onDone} className="w-full sm:w-auto">
-          {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </AdminButton>
-      </div>
+      <SheetActions
+        primary={{
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: onDone,
+        }}
+      />
     );
   }
 
   const retrying = status.retry > 0;
+  const back = {
+    label: formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+    onClick: onBack,
+    disabled: busy || backDisabled,
+  };
+  const addAnother = canAddAnother && !retrying;
 
   return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="seed-prompt-count">
+    <SheetActions
+      // Back and Create share a row; a third choice stacks them instead.
+      layout={addAnother ? "stack" : "steps"}
+      note={
         <SeedFlowNote
+          testId="seed-prompt-count"
           phase={status.phase}
           busy={busy}
           mode={mode}
           count={retrying ? status.retry : total}
           reason={createDisabled ? blockedReason : null}
         />
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
-          type="button"
-          variant="outlined"
-          onClick={onBack}
-          disabled={busy || backDisabled}
-          className="self-start sm:self-auto"
-        >
-          {formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
-        {canAddAnother && !retrying ? (
-          <AdminButton
-            type="button"
-            variant="outlined"
-            onClick={onAddAnother}
-            disabled={busy || addAnotherDisabled}
-            className="w-full sm:w-auto"
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.seed.addAnother",
-              defaultMessage: "Add Another Like This",
-            })}
-          </AdminButton>
-        ) : null}
-        <AdminButton
-          type="button"
-          variant="filled"
-          onClick={onCreate}
-          disabled={busy || createDisabled}
-          loading={busy}
-          className="w-full sm:w-auto"
-        >
-          {retrying
-            ? status.phase === "partial"
-              ? formatMessage(
-                  {
-                    id: "cockpit.garden.pool.seed.tryAgainCount",
-                    defaultMessage: "Try Again ({count})",
-                  },
-                  { count: status.retry }
-                )
-              : formatMessage({
-                  id: "cockpit.garden.pool.setup.retry",
-                  defaultMessage: "Try Again",
-                })
-            : formatMessage(
-                {
-                  id: "cockpit.garden.pool.seed.create",
-                  defaultMessage: "{count, plural, one {Create Promise} other {Create # Promises}}",
-                },
-                { count: total }
-              )}
-        </AdminButton>
-      </div>
-    </div>
+      }
+      primary={{
+        label: retrying
+          ? status.phase === "partial"
+            ? formatMessage(
+                { id: "hub.garden.pool.seed.tryAgainCount", defaultMessage: "Try Again ({count})" },
+                { count: status.retry }
+              )
+            : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
+          : formatMessage(
+              {
+                id: "hub.garden.pool.seed.create",
+                defaultMessage: "{count, plural, one {Create Promise} other {Create # Promises}}",
+              },
+              { count: total }
+            ),
+        onClick: onCreate,
+        disabled: busy || createDisabled,
+        loading: busy,
+      }}
+      secondary={
+        addAnother
+          ? [
+              back,
+              {
+                label: formatMessage({
+                  id: "hub.garden.pool.seed.addAnother",
+                  defaultMessage: "Add Another Like This",
+                }),
+                onClick: onAddAnother,
+                disabled: busy || addAnotherDisabled,
+              },
+            ]
+          : back
+      }
+    />
   );
 }

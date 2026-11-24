@@ -47,7 +47,7 @@ Accepted defaults:
 
 ## Target Surfaces
 
-- `packages/admin/src/components/Garden/GardenYieldCard.tsx`
+- `packages/admin/src/views/Garden/Vault.tsx` (`GardenVaultView`; `GardenYieldCard` was removed unused in #1252 on 2026-10-24)
 - `packages/admin/src/views/Community/components/CommunityTab.tsx`
 - `packages/admin/src/components/Vault/PositionCard.tsx`
 - `packages/client/src/components/Dialogs/ConvictionDrawer.tsx`
@@ -58,7 +58,7 @@ Accepted defaults:
 Run focused tests for changed surfaces first:
 
 ```bash
-bun run --cwd packages/admin test src/__tests__/components/Garden/GardenYieldCard.yield-split.test.tsx src/__tests__/components/Vault/PositionCard.yield-split.test.tsx
+bun run --cwd packages/admin test src/__tests__/views/GardenVaultView.yield-split.test.tsx src/__tests__/components/Vault/PositionCard.yield-split.test.tsx
 bun run --cwd packages/client test src/__tests__/components/Dialogs/ConvictionDrawer.yield-split.test.tsx
 bun run lint:vocab
 bun run check:design-tokens

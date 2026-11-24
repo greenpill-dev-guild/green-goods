@@ -40,12 +40,36 @@ const ABI_SOURCES = [
     target: "ICommitmentPoolingModule.json",
   },
   {
+    source: "ICommitmentServiceOffers.sol/ICommitmentServiceOffers.json",
+    target: "ICommitmentServiceOffers.json",
+  },
+  {
+    source: "ICommitmentVoucherAcceptance.sol/ICommitmentVoucherAcceptance.json",
+    target: "ICommitmentVoucherAcceptance.json",
+  },
+  {
     source: "ICommitmentRegistry.sol/ICommitmentRegistry.json",
     target: "ICommitmentRegistry.json",
   },
   {
     source: "ISettlementModule.sol/ISettlementModule.json",
     target: "ISettlementModule.json",
+  },
+  {
+    source: "ISettlementPersonalServicePurchases.sol/ISettlementPersonalServicePurchases.json",
+    target: "ISettlementPersonalServicePurchases.json",
+  },
+  {
+    source: "VoucherEntitlementModule.sol/VoucherEntitlementModule.json",
+    target: "VoucherEntitlementModule.json",
+  },
+  {
+    source: "VoucherRedemptionModule.sol/VoucherRedemptionModule.json",
+    target: "VoucherRedemptionModule.json",
+  },
+  {
+    source: "GnosisVoucherEscrow.sol/GnosisVoucherEscrow.json",
+    target: "GnosisVoucherEscrow.json",
   },
 ] as const;
 

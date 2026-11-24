@@ -1,14 +1,19 @@
+import { createLogger } from "../logger";
+import { captureAgentException } from "../sentry";
 import { readControl } from "./controls";
 import { inTransaction } from "./database";
 import { decryptConversationChat } from "./identity-store";
 import type { ReportingCore } from "./runtime";
 import type { OutboundMessage, OutboundTransport } from "./transport";
 
+const log = createLogger("reporting");
+
 /**
  * Durable reply outbox. Reply intents commit with the domain transition that produced them, and
  * only this dispatcher sends. Replies in one conversation go out in commit order; a newer prompt
- * suppresses unsent older prompts. A private notification rechecks the recipient's live binding
- * and identity epoch at send time, so relinking silences the old channel.
+ * suppresses unsent older prompts, and once sent takes the buttons off the question it replaced
+ * where the channel can edit a sent message. A private notification rechecks the recipient's live
+ * binding and identity epoch at send time, so relinking silences the old channel.
  */
 export interface ReplyIntent {
   conversationId: string;
@@ -26,6 +31,18 @@ export interface ReplyIntent {
 
 function payloadContext(outboxId: string): string {
   return `delivery_outbox.payload:${outboxId}`;
+}
+
+/** A reply as it was written, or null once retention has removed its content. */
+export function readReplyMessage(
+  core: ReportingCore,
+  row: { id: string; payload_ciphertext: string | null }
+): OutboundMessage | null {
+  return row.payload_ciphertext
+    ? (JSON.parse(
+        core.keyring.open(row.payload_ciphertext, payloadContext(row.id))
+      ) as OutboundMessage)
+    : null;
 }
 
 /** Call inside the committing transaction. A repeated dedupe key returns null and sends nothing. */
@@ -91,13 +108,23 @@ const CONSENT_EXEMPT = new Set([
   "publish.unknown",
   "publish.uncertain",
   "publish.reverted",
+  "publish.stillConfirming",
+  "publish.unconfirmed",
+  "publish.attestationUnread",
+  "publish.publishedChecking",
   "review.recorded",
+  "review.recordedChecking",
+  "review.stillConfirming",
+  "review.unconfirmed",
+  "review.attestationUnread",
 ]);
 
 interface OutboxRow {
   id: string;
   conversation_id: string;
   channel_subject_id: string;
+  prompt_id: string | null;
+  dispatch_seq: number;
   reply_kind: string;
   channel_binding_id: string | null;
   identity_epoch: number | null;
@@ -113,8 +140,8 @@ function claimNext(
   return inTransaction(core.db, () => {
     const row = core.db
       .query(
-        `SELECT id, conversation_id, channel_subject_id, reply_kind, channel_binding_id, identity_epoch, audience,
-                payload_ciphertext, attempts, state, next_attempt_at
+        `SELECT id, conversation_id, channel_subject_id, prompt_id, dispatch_seq, reply_kind, channel_binding_id,
+                identity_epoch, audience, payload_ciphertext, attempts, state, next_attempt_at
          FROM delivery_outbox WHERE conversation_id = $conversation
            AND state IN ('pending','retry_wait','dispatching') ORDER BY dispatch_seq LIMIT 1`
       )
@@ -170,11 +197,15 @@ function claimNext(
   });
 }
 
-/** Sends due replies in commit order, one conversation at a time. Holds while messages are paused. */
+/**
+ * Sends due replies in commit order, one conversation at a time. Holds while messages are paused.
+ * Once `stopping` is aborted it finishes the send in hand and claims no other reply.
+ */
 export async function dispatchOutbox(
   core: ReportingCore,
   transport: OutboundTransport,
-  limit = 50
+  limit = 50,
+  stopping?: AbortSignal
 ): Promise<{ sent: number; held: boolean }> {
   if (!readControl(core, "outbound_messages").enabled) return { sent: 0, held: true };
   const conversations = core.db
@@ -184,16 +215,16 @@ export async function dispatchOutbox(
     )
     .all({ now: core.clock.now(), limit }) as Array<{ conversation_id: string }>;
   let sent = 0;
+  // Each question sent takes the buttons off the one before it. Those edits start at once and run
+  // beside the sends after them, so none holds up a reply; the pass waits for them only at its end.
+  const retiring: Array<Promise<void>> = [];
   for (const { conversation_id: conversationId } of conversations) {
     for (;;) {
+      if (stopping?.aborted) return settled(retiring, { sent, held: false });
       const claim = claimNext(core, conversationId);
       if (!claim) break;
       const chat = decryptConversationChat(core, conversationId);
-      const message = claim.row.payload_ciphertext
-        ? (JSON.parse(
-            core.keyring.open(claim.row.payload_ciphertext, payloadContext(claim.row.id))
-          ) as OutboundMessage)
-        : null;
+      const message = readReplyMessage(core, claim.row);
       const result =
         chat && message
           ? await transport
@@ -212,9 +243,71 @@ export async function dispatchOutbox(
       recordSendResult(core, claim.row, claim.attemptId, result);
       if (result.status !== "accepted") break;
       sent += 1;
+      if (chat && claim.row.prompt_id && transport.retireChoices)
+        retiring.push(retireEarlierQuestion(core, transport, claim.row, chat));
     }
   }
-  return { sent, held: false };
+  return settled(retiring, { sent, held: false });
+}
+
+/** The pass's outcome once its edits have settled; they never reject. */
+async function settled<T>(retiring: Array<Promise<void>>, outcome: T): Promise<T> {
+  await Promise.allSettled(retiring);
+  return outcome;
+}
+
+/**
+ * A question just sent replaces the one sent before it, so that one's buttons come off. Each
+ * question is retired by the next question to reach the chat, once; a question with no choices is
+ * left alone. Whether it had choices is read from the question itself, which outlives the purge
+ * of a cancelled report's sent text; the text, while held, lets the channel keep the question's
+ * links. The lookup runs when this is called, before its first await.
+ * Retiring is best effort and never rejects: a button left behind only puts the open question
+ * again.
+ */
+async function retireEarlierQuestion(
+  core: ReportingCore,
+  transport: OutboundTransport,
+  sent: OutboxRow,
+  chat: { providerRealm: string; chatId: string }
+): Promise<void> {
+  try {
+    const earlier = core.db
+      .query(
+        // The prompt and state terms match the index of sent questions word for word, so the
+        // newest earlier question is the first entry read.
+        `SELECT o.id, o.payload_ciphertext, p.options_json, a.provider_message_id
+         FROM delivery_outbox o
+           JOIN conversation_prompts p ON p.id = o.prompt_id
+           JOIN delivery_attempts a ON a.outbox_id = o.id
+         WHERE o.conversation_id = $conversation AND o.dispatch_seq < $seq
+           AND o.prompt_id IS NOT NULL AND o.state IN ('accepted','sent','delivered','read')
+           AND o.prompt_id <> $prompt
+           AND a.state IN ('accepted','sent','delivered','read') AND a.provider_message_id IS NOT NULL
+         ORDER BY o.dispatch_seq DESC LIMIT 1`
+      )
+      .get({
+        conversation: sent.conversation_id,
+        prompt: sent.prompt_id,
+        seq: sent.dispatch_seq,
+      }) as {
+      id: string;
+      payload_ciphertext: string | null;
+      options_json: string;
+      provider_message_id: string;
+    } | null;
+    if (!earlier || (JSON.parse(earlier.options_json) as unknown[]).length === 0) return;
+    // The question as sent lets the channel keep its links; a purge leaves only the question row.
+    const message = readReplyMessage(core, earlier);
+    await transport.retireChoices?.({
+      providerRealm: chat.providerRealm,
+      externalChatId: chat.chatId,
+      providerMessageId: earlier.provider_message_id,
+      ...(message ? { message } : {}),
+    });
+  } catch (error) {
+    log.warn({ error: errorCodeOf(error) }, "Could not retire an earlier question's buttons");
+  }
 }
 
 function errorCodeOf(error: unknown): string {
@@ -262,24 +355,48 @@ function recordSendResult(
   });
 }
 
-/** A failed delivery waits for its next attempt, or ends once it is terminal or exhausted. */
+/**
+ * A failed delivery waits for its next attempt, or ends once it is terminal or exhausted. Moving
+ * into a wait leaves a warning; moving into the end leaves an error and an error event, since the
+ * message never reaches the chat. A provider can repeat a failed status for one attempt, and a
+ * repeat that leaves the state as it was records nothing, so it cannot flood the error tracker.
+ * Only the reply's kind, the error code and the attempt count are recorded.
+ */
 export function endOrRetry(
   core: ReportingCore,
   outboxId: string,
   input: { terminal: boolean; code: string; next: number; now: number }
 ): void {
+  const state = input.terminal ? "terminal_failed" : "retry_wait";
+  const before = core.db
+    .query("SELECT state, reply_kind, attempts FROM delivery_outbox WHERE id = $id")
+    .get({ id: outboxId }) as { state: string; reply_kind: string; attempts: number } | null;
   core.db
     .query(
       `UPDATE delivery_outbox SET state = $state, last_error_code = $code, next_attempt_at = $next, updated_at = $now
        WHERE id = $id`
     )
-    .run({
-      id: outboxId,
-      state: input.terminal ? "terminal_failed" : "retry_wait",
-      code: input.code,
-      next: input.next,
-      now: input.now,
-    });
+    .run({ id: outboxId, state, code: input.code, next: input.next, now: input.now });
+  if (!before || before.state === state) return;
+  const fields = {
+    replyKind: before.reply_kind,
+    errorCode: input.code,
+    attempt: before.attempts,
+    maxAttempts: core.settings.maxOutboxAttempts,
+  };
+  if (!input.terminal) {
+    log.warn(
+      { ...fields, retryInMs: input.next - input.now },
+      "Chat message not delivered; trying again"
+    );
+    return;
+  }
+  log.error(fields, "Chat message could not be delivered");
+  captureAgentException(new Error("Chat message could not be delivered"), {
+    source: "reporting.outbox",
+    surface: "reporting",
+    metadata: fields,
+  });
 }
 
 /** A crash between claim and result leaves `dispatching`; treat it as uncertain and retry later. */

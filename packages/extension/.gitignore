@@ -1,0 +1,5 @@
+.output/
+.wxt/
+node_modules/
+g0/out/
+stats.html

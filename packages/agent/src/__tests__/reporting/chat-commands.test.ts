@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   commandReplyId,
   isGreeting,
+  isPauseControl,
   parseCommand,
   replyCommand,
 } from "../../services/reporting/coordinator/commands";
@@ -24,6 +25,20 @@ describe("account requests in plain words", () => {
     ["conectar otra cuenta", "switch"],
     ["use another account", "switch"],
     ["quero usar outra conta", "switch"],
+    // A new link is a fresh copy of the link the chat already sent, not another account.
+    ["new link", "newLink"],
+    ["NEW LINK", "newLink"],
+    ["can you send me a new link please", "newLink"],
+    ["another link", "newLink"],
+    ["nuevo enlace", "newLink"],
+    ["envíame otro enlace", "newLink"],
+    ["novo link", "newLink"],
+    ["me manda outro link", "newLink"],
+    ["link a new account", "switch"],
+    ["link another wallet", "switch"],
+    // "Link" first is the verb: linking another account, not a new copy of a link.
+    ["link another", "switch"],
+    ["can i link another", "switch"],
   ])("reads %s as %s", (text, kind) => {
     expect(parseCommand(text)?.kind).toBe(kind);
   });
@@ -34,6 +49,7 @@ describe("account requests in plain words", () => {
     "change the title to fence planting",
     "sign in sheet printed for the volunteers",
     "link the photos to the report",
+    "the new link between the beds is done",
     "I want to change this",
     "can I use this",
     "change",
@@ -42,11 +58,20 @@ describe("account requests in plain words", () => {
   });
 
   it("reads a garden word alone as a command, and a command button as its word", () => {
-    expect(["GARDEN", "huerto", "hortas"].map((text) => parseCommand(text)?.kind)).toEqual([
-      "garden",
-      "garden",
-      "garden",
-    ]);
+    // The chat says jardín and jardim; the older huerto and horta still work.
+    const gardenWords = [
+      "GARDEN",
+      "huerto",
+      "hortas",
+      "Jardín",
+      "jardin",
+      "jardines",
+      "JARDIM",
+      "jardins",
+    ];
+    expect(gardenWords.map((text) => parseCommand(text)?.kind)).toEqual(
+      gardenWords.map(() => "garden")
+    );
     expect(["join", "unirme", "participar"].map((text) => parseCommand(text)?.kind)).toEqual([
       "join",
       "join",
@@ -54,9 +79,38 @@ describe("account requests in plain words", () => {
     ]);
     // A story that names a garden, or a button of some question, is neither.
     expect(parseCommand("garden beds weeded")).toBeNull();
+    expect(parseCommand("jardín regado")).toBeNull();
     expect(replyCommand(commandReplyId("garden"))).toEqual({ kind: "garden" });
     expect(replyCommand("p:prompt-1:0")).toBeNull();
     expect(replyCommand(commandReplyId("planted"))).toBeNull();
+  });
+
+  it("reads the account and language words, and LANG alone as asking which language", () => {
+    expect(["account", "CUENTA", "conta"].map((text) => parseCommand(text)?.kind)).toEqual([
+      "account",
+      "account",
+      "account",
+    ]);
+    const ask = { kind: "locale", locale: null };
+    expect(["language", "LANG", "idioma"].map(parseCommand)).toEqual([ask, ask, ask]);
+    expect(parseCommand("language pt")).toEqual({ kind: "locale", locale: "pt" });
+    expect(parseCommand("idioma es")).toEqual({ kind: "locale", locale: "es" });
+    // A language the chat does not speak, or more words than a command, is left for the report.
+    expect(parseCommand("lang fr")).toBeNull();
+    expect(parseCommand("my account has two gardens")).toBeNull();
+    // A language button sends LANG with that language, whichever question is open.
+    expect(replyCommand(commandReplyId("lang es"))).toEqual({ kind: "locale", locale: "es" });
+  });
+
+  it("lets only STOP, DELETE and CANCEL through a paused channel, typed or tapped", () => {
+    const through = ["STOP", "parar", "borrar", "apagar", "cancelar"].map((text) =>
+      isPauseControl({ text })
+    );
+    expect(through).toEqual([true, true, true, true, true]);
+    expect(isPauseControl({ replyId: commandReplyId("stop") })).toBe(true);
+    expect(["status", "help", "stop the tractor"].some((text) => isPauseControl({ text }))).toBe(
+      false
+    );
   });
 
   it("knows a hello from a story", () => {

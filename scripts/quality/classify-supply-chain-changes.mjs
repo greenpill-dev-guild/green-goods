@@ -9,12 +9,17 @@ const guidanceExact = new Set([
   "CLAUDE.md",
   "ONBOARDING.md",
   "scripts/quality/check-codex-docs.js",
+  // check-codex-docs reads markers in the pattern checker, so editing it reaches that job too.
+  "scripts/quality/check-react-patterns.js",
   // Catalog and ledger edits must reach the guidance job: it is where the
   // cross-revision Test ID guard (check:qa-id-ledger) runs.
   "scripts/data/qa-test-catalog.json",
   "scripts/data/qa-test-id-ledger.json",
 ]);
 const guidancePrefixes = [
+  ".agents/",
+  "packages/qa/",
+  "scripts/agents/",
   ".codex/",
   ".claude/",
   ".plans/",
@@ -43,6 +48,7 @@ const supplyExact = new Set([
 // Every file the parity job's suites read or import, so a change to one runs them. The parity
 // suite's tests guard this list against what it reads.
 const parityExact = new Set([
+  ".mise.toml",
   ".github/actions/setup-js/action.yml",
   ".husky/pre-commit",
   ".husky/pre-push",
@@ -64,11 +70,13 @@ const parityExact = new Set([
   "packages/admin/package.json",
   "packages/admin/tsconfig.json",
   "packages/admin/vitest.config.ts",
+  "packages/agent/Dockerfile",
   "packages/agent/vitest.config.ts",
   "packages/client/package.json",
   "packages/client/tsconfig.json",
   "packages/client/vitest.config.ts",
   "packages/indexer/.c8rc.json",
+  "packages/indexer/Dockerfile",
   "packages/shared/package.json",
   "packages/shared/vitest.config.ts",
   // The parity suite holds the tests for these test-quality inputs.
@@ -86,7 +94,7 @@ function startsWithAny(path, prefixes) {
 export function classifySupplyChainChanges(paths, { workflowDispatch = false } = {}) {
   const normalized = [...new Set(paths.filter(Boolean).map((path) => path.replaceAll("\\", "/")))];
   if (workflowDispatch) {
-    return { format: true, guidance: true, supply: true, parity: true };
+    return { format: true, guidance: true, supply: true, parity: true, deadcode: true };
   }
 
   return {
@@ -106,6 +114,9 @@ export function classifySupplyChainChanges(paths, { workflowDispatch = false } =
     parity: normalized.some(
       (path) => parityExact.has(path) || path.startsWith(".github/workflows/"),
     ),
+    // Knip reads far more than code: workflows, hooks, MCP and tool configs, .gitignore. A finding
+    // that lands unchecked blocks the next pull request that runs it, so it runs on every run.
+    deadcode: true,
   };
 }
 

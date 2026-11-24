@@ -1,0 +1,134 @@
+import { isGardenMembersOnly } from "../../config/garden-visibility";
+import { Domain, type Address, type Garden } from "../../types/domain";
+import { expandDomainMask } from "../../utils/domain";
+import { gardenMembership, isMyGarden } from "./membership";
+
+/** "open" keeps gardens anyone can join without an invitation, whether or not the viewer belongs. */
+export type GardenFilterScope = "all" | "mine" | "open";
+export type GardenSortOrder = "name" | "recent";
+
+export interface GardenFiltersState {
+  scope: GardenFilterScope;
+  sort: GardenSortOrder;
+  /** Keep gardens tagged with any of these domains; empty or unset keeps all. */
+  domains?: Domain[];
+}
+
+/** What Home shows before anyone filters, and what Reset returns to. */
+export const DEFAULT_GARDEN_FILTERS: GardenFiltersState = { scope: "all", sort: "recent" };
+
+/**
+ * Whether the app may list a garden for an account: a family garden kept for its members is
+ * listed only when the account is one of them (DL-126); every other garden is listed for anyone.
+ */
+export function isGardenListedFor(garden: { id: string }, isMember: boolean): boolean {
+  return isMember || !isGardenMembersOnly(garden.id as Address);
+}
+
+/**
+ * Read filters saved on the device. Saved input is untrusted: anything that is
+ * not a known scope, sort, or domain falls back to the default for that field.
+ */
+export function parseGardenFilters(value: unknown): GardenFiltersState {
+  if (!value || typeof value !== "object") return DEFAULT_GARDEN_FILTERS;
+  const saved = value as { scope?: unknown; sort?: unknown; domains?: unknown };
+  const domains = Array.isArray(saved.domains)
+    ? saved.domains.filter(
+        (domain): domain is Domain => typeof domain === "number" && domain in Domain
+      )
+    : [];
+  return {
+    scope:
+      saved.scope === "mine" || saved.scope === "open" ? saved.scope : DEFAULT_GARDEN_FILTERS.scope,
+    sort: saved.sort === "name" ? "name" : DEFAULT_GARDEN_FILTERS.sort,
+    ...(domains.length > 0 ? { domains } : {}),
+  };
+}
+
+export interface FilteredGardensResult {
+  /** The filtered and sorted gardens */
+  filteredGardens: Garden[];
+  /** Count of the account's own gardens (`modules/garden/membership`) */
+  myGardensCount: number;
+  /** Count of gardens anyone can join, whatever the current scope */
+  openGardensCount: number;
+  /** Whether any filter is active (not default) */
+  isFilterActive: boolean;
+  /** Count of active filters (0-3) */
+  activeFilterCount: number;
+}
+
+/**
+ * Filters and sorts a list of gardens based on user preferences.
+ *
+ * @param gardens - The full list of gardens
+ * @param filters - Current filter/sort settings
+ * @param userAddress - The user's primary address (lowercase) or null if not authenticated
+ *
+ * @example
+ * ```tsx
+ * const { data: gardens = [] } = useGardens();
+ * const primaryAddress = usePrimaryAddress();
+ * const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "recent" });
+ *
+ * const { filteredGardens, myGardensCount, isFilterActive } = filterGardens(
+ *   gardens,
+ *   filters,
+ *   primaryAddress?.toLowerCase() ?? null
+ * );
+ * ```
+ */
+export function filterGardens(
+  gardens: Garden[],
+  filters: GardenFiltersState,
+  userAddress: string | null
+): FilteredGardensResult {
+  const { scope, sort, domains = [] } = filters;
+  const isMine = (garden: Garden) => isMyGarden(gardenMembership(garden, userAddress));
+  const visibleGardens = gardens.filter((garden) => isGardenListedFor(garden, isMine(garden)));
+
+  const myGardens = visibleGardens.filter(isMine);
+  const openGardens = visibleGardens.filter((garden) => garden.openJoining === true);
+
+  // Filter by scope
+  let working = visibleGardens;
+  if (scope === "mine") {
+    working = myGardens;
+  } else if (scope === "open") {
+    working = openGardens;
+  }
+
+  // Filter by domain: a garden stays when it carries any of the chosen domains
+  if (domains.length > 0) {
+    const wanted = new Set(domains);
+    working = working.filter((garden) =>
+      expandDomainMask(garden.domainMask ?? 0).some((domain) => wanted.has(domain))
+    );
+  }
+
+  // Sort
+  let filteredGardens: Garden[];
+  if (sort === "recent") {
+    filteredGardens = [...working].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  } else {
+    filteredGardens = [...working].sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
+    );
+  }
+
+  // Compute filter state
+  const isScopeFiltered = scope !== DEFAULT_GARDEN_FILTERS.scope;
+  const isSortFiltered = sort !== DEFAULT_GARDEN_FILTERS.sort;
+  const isDomainFiltered = domains.length > 0;
+  const isFilterActive = isScopeFiltered || isSortFiltered || isDomainFiltered;
+  const activeFilterCount =
+    (isScopeFiltered ? 1 : 0) + (isSortFiltered ? 1 : 0) + (isDomainFiltered ? 1 : 0);
+
+  return {
+    filteredGardens,
+    myGardensCount: myGardens.length,
+    openGardensCount: openGardens.length,
+    isFilterActive,
+    activeFilterCount,
+  };
+}

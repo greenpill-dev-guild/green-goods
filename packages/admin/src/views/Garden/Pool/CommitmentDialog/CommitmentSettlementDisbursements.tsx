@@ -1,14 +1,14 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type { CommitmentSettlementController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { SettlementDisbursementView } from "@green-goods/shared/modules/commitment-pooling/settlement-workflow";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatGdollar, shortAddress } from "../poolFundingPresentation";
 import { type TransferAct, TransferReviewDialog } from "../TransferReviewDialog";
-import { displayChip } from "./commitmentSettlementPresentation";
+import { blockerMessage, displayChip } from "./commitmentSettlementPresentation";
 
 type RowAct = TransferAct;
 type OpenDialog = { act: RowAct | "cancel"; disbursementId: bigint } | null;
@@ -26,7 +26,7 @@ export function CommitmentSettlementDisbursements({
   target,
 }: {
   settlement: CommitmentSettlementController;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   target?: ReactNode;
 }) {
   const intl = useIntl();
@@ -43,10 +43,11 @@ export function CommitmentSettlementDisbursements({
       : act === "retry"
         ? settlement.acts.retry(disbursementId)
         : settlement.acts.requeue(disbursementId));
+    // The panel's status line says whether it landed or is waiting on a Safe.
     toastService.success({
       title: formatMessage({
-        id: "cockpit.garden.pool.settlement.toast.confirmed",
-        defaultMessage: "Settlement step confirmed",
+        id: "hub.garden.pool.settlement.toast.sent",
+        defaultMessage: "Settlement step sent",
       }),
       message: `${idLabel(disbursementId)} · ${hash.slice(0, 10)}…`,
     });
@@ -58,60 +59,60 @@ export function CommitmentSettlementDisbursements({
     return (
       <div className="flex flex-wrap justify-end gap-1">
         {view.actions.dispatch ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             disabled={disabled}
             onClick={() => setOpen({ act: "dispatch", disbursementId: id })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.act.dispatch",
+              id: "hub.garden.pool.settlement.act.dispatch",
               defaultMessage: "Dispatch…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {view.actions.retry ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             disabled={disabled}
             onClick={() => setOpen({ act: "retry", disbursementId: id })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.act.retry",
+              id: "hub.garden.pool.settlement.act.retry",
               defaultMessage: "Resend…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {view.actions.requeue ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             disabled={disabled}
             onClick={() => setOpen({ act: "requeue", disbursementId: id })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.act.requeue",
+              id: "hub.garden.pool.settlement.act.requeue",
               defaultMessage: "Requeue…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {view.actions.cancel ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             disabled={disabled}
             onClick={() => setOpen({ act: "cancel", disbursementId: id })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.act.cancel",
+              id: "hub.garden.pool.settlement.act.cancel",
               defaultMessage: "Cancel…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
     );
@@ -123,9 +124,9 @@ export function CommitmentSettlementDisbursements({
 
   return (
     <div className="space-y-2" data-component="CommitmentSettlementDisbursements">
-      <h5 className="label-sm text-text-soft">
+      <h5 className="type-meta-sm text-text-soft">
         {formatMessage({
-          id: "cockpit.garden.pool.settlement.disbursements",
+          id: "hub.garden.pool.settlement.disbursements",
           defaultMessage: "Disbursements",
         })}
       </h5>
@@ -140,11 +141,11 @@ export function CommitmentSettlementDisbursements({
               data-disbursement={disbursement.disbursementId.toString()}
               data-display={view.display}
             >
-              <div className="flex items-center justify-between gap-2 text-body-md">
+              <div className="flex items-center justify-between gap-2 type-body">
                 <span className="text-text-strong">
                   {formatMessage(
                     {
-                      id: "cockpit.garden.pool.settlement.disbursement.row",
+                      id: "hub.garden.pool.settlement.disbursement.row",
                       defaultMessage: "{id} · {amount} to {recipient}",
                     },
                     {
@@ -158,6 +159,11 @@ export function CommitmentSettlementDisbursements({
                   {chip.label}
                 </StatusBadge>
               </div>
+              {view.retryBlocker ? (
+                <p className="type-meta text-text-soft" data-testid="settlement-resend-block">
+                  {blockerMessage(view.retryBlocker, intl)}
+                </p>
+              ) : null}
               {rowActions(view)}
             </li>
           );
@@ -188,18 +194,18 @@ export function CommitmentSettlementDisbursements({
         variant="danger"
         title={formatMessage(
           {
-            id: "cockpit.garden.pool.settlement.cancel.title",
+            id: "hub.garden.pool.settlement.cancel.title",
             defaultMessage: "Cancel disbursement {id}",
           },
           { id: open ? idLabel(open.disbursementId) : "" }
         )}
         description={formatMessage({
-          id: "cockpit.garden.pool.settlement.cancel.body",
+          id: "hub.garden.pool.settlement.cancel.body",
           defaultMessage:
-            "The disbursement stays recorded as cancelled with your reason. The payout plan keeps its pointer to this commitment.",
+            "The disbursement stays recorded as canceled with your reason. The payout plan keeps its pointer to this promise.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.settlement.cancel.confirm",
+          id: "hub.garden.pool.settlement.cancel.confirm",
           defaultMessage: "Cancel Disbursement",
         })}
         isLoading={settlement.isActing}

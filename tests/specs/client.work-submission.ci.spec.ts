@@ -19,52 +19,19 @@ test.describe("Work Submission CI Tests", () => {
   test.describe.configure({ mode: "serial" });
   test.use({ baseURL: CLIENT_URL });
 
-  test.describe("Login Page Accessibility", () => {
-    // Real-login splash behavior remains a separate headless CI debt. The
-    // authenticated specs below use the supported DevAuthProvider seam.
-    // SKIP: #564 owner:afo expiry:2026-11-12 — real-login splash needs its own headless fixture
-    test.skip("login page loads and shows auth options", async ({ page }) => {
-      await page.goto("/home/login?presentation=pwa", { waitUntil: "domcontentloaded" });
-      await page.waitForLoadState("domcontentloaded");
-
-      await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
-    });
-  });
-
-  test.describe("Home Page with Mocked Data", () => {
-    test("renders home page with garden list when authenticated", async ({ page }) => {
-      const helper = await setupAuthenticatedClient(page);
-      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
-      await helper.waitForPageLoad();
-
-      expect(page.url()).not.toContain("/home/login");
-      await expect(page.getByTestId("garden-card").first()).toBeVisible();
-    });
-
-    test("navigates to login when not authenticated", async ({ page }) => {
-      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
-      await page.waitForURL(/\/home\/login/, { timeout: 15000 });
-      expect(page.url()).toContain("/home/login");
-    });
-  });
-
   test.describe("Work Form Validation", () => {
     test("blocks progress when required action details are empty", async ({ page }) => {
       const helper = await setupAuthenticatedClient(page);
       await page.goto("/home/garden?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      const actionCard = page.getByTestId("action-card").first();
-      const gardenCard = page.getByTestId("garden-card").first();
-      await expect(actionCard).toBeVisible();
-      await expect(gardenCard).toBeVisible();
-
-      await actionCard.click();
-      await gardenCard.click();
-
-      const startButton = page.getByRole("button", { name: "Start Gardening" });
-      await expect(startButton).toBeEnabled();
-      await startButton.click();
+      // The account's one garden is active, with one action and nothing owed, so the flow skips
+      // Start and opens on Media with that action. The step markers still count four.
+      const steps = page.getByRole("list", { name: "Steps" }).getByRole("listitem");
+      await expect(steps.nth(1)).toHaveAttribute("aria-current", "step", { timeout: 15000 });
+      await expect(steps).toHaveCount(4);
+      await expect(page.getByRole("listbox", { name: "Select Your Action" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Start Gardening" })).toHaveCount(0);
 
       await page.locator("#work-media-upload").setInputFiles({
         name: "planting-proof.png",

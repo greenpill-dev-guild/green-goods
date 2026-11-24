@@ -1,7 +1,6 @@
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
 import { formatUnixDate } from "../poolPresentation";
@@ -51,60 +50,56 @@ export function CommitmentAssessmentDialog({
       tone={tone}
       target={target}
       title={formatMessage({
-        id: "cockpit.garden.pool.commitment.attach.title",
+        id: "hub.garden.pool.commitment.attach.title",
         defaultMessage: "Attach an Assessment",
       })}
       description={formatMessage({
-        id: "cockpit.garden.pool.commitment.attach.description",
+        id: "hub.garden.pool.commitment.attach.description",
         defaultMessage:
           "Only current assessments recorded for the provider garden appear here. Attaching one vouches that it applies.",
       })}
       bodyClassName="space-y-3"
-      actions={
-        <>
-          <AdminButton type="button" variant="text" onClick={() => onClose()}>
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            variant="filled"
-            disabled={!assessmentUID || actDisabled}
-            loading={isActing}
-            onClick={async () => {
-              if (!assessmentUID) return;
-              await acts.attachAssessment(assessmentUID as `0x${string}`);
-              onClose();
-            }}
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.commitment.attach.confirm",
-              defaultMessage: "Attach",
-            })}
-          </AdminButton>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({
+            id: "hub.garden.pool.commitment.attach.confirm",
+            defaultMessage: "Attach",
+          }),
+          disabled: !assessmentUID || actDisabled,
+          loading: isActing,
+          onClick: async () => {
+            if (!assessmentUID) return;
+            await acts.attachAssessment(assessmentUID as `0x${string}`);
+            onClose();
+          },
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: () => onClose(),
+        },
+      }}
     >
       {assessmentsLoading ? (
         <div
           className="h-16 rounded-[var(--m3-shape-md)] skeleton-shimmer"
           role="status"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.commitment.attach.loading",
+            id: "hub.garden.pool.commitment.attach.loading",
             defaultMessage: "Loading assessments",
           })}
         />
       ) : assessments.length === 0 ? (
-        <p className="body-sm text-text-soft" data-testid="attach-assessment-empty">
+        <p className="type-body text-text-soft" data-testid="attach-assessment-empty">
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.attach.empty",
+            id: "hub.garden.pool.commitment.attach.empty",
             defaultMessage:
-              "No current assessment is recorded for the provider garden yet. An evaluator records one from the Hub; this commitment cannot be sent for confirmation until then.",
+              "No current assessment is recorded for the provider garden yet. An evaluator records one from Review; this promise cannot be sent for confirmation until then.",
           })}
         </p>
       ) : (
         <AdminChoiceGroup
           ariaLabel={formatMessage({
-            id: "cockpit.garden.pool.commitment.attach.pick",
+            id: "hub.garden.pool.commitment.attach.pick",
             defaultMessage: "Assessment",
           })}
           value={assessmentUID}

@@ -1,8 +1,9 @@
 /** @vitest-environment happy-dom */
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 let connectivityStore: typeof import("../../stores/connectivity")["connectivityStore"];
+let NETWORK_SETTLE_MS: number;
 beforeAll(async () => {
-  ({ connectivityStore } = await import("../../stores/connectivity"));
+  ({ connectivityStore, NETWORK_SETTLE_MS } = await import("../../stores/connectivity"));
 });
 
 // A probe request that never answers but, like fetch, rejects once its signal aborts. Stopping the
@@ -195,4 +196,106 @@ it("leaves a degraded connection to its scheduled recovery instead of probing fo
 
   await expect(connectivityStore.confirmForBackgroundWork()).resolves.toBe(false);
   expect(request).toHaveBeenCalledTimes(2);
+});
+
+it.each([
+  {
+    name: "a steady connection",
+    before: undefined,
+    after: undefined,
+    degraded: false,
+    steady: true,
+  },
+  {
+    name: "a reconnect just before the failure",
+    before: "online",
+    after: undefined,
+    degraded: false,
+    steady: false,
+  },
+  {
+    name: "a disconnect the browser reports late",
+    before: undefined,
+    after: "offline",
+    degraded: false,
+    steady: false,
+  },
+  {
+    name: "a degraded connection",
+    before: undefined,
+    after: undefined,
+    degraded: true,
+    steady: false,
+  },
+] as const)("classifies a request failure on $name", async ({
+  before,
+  after,
+  degraded,
+  steady,
+}) => {
+  vi.useFakeTimers();
+  if (degraded) {
+    // Both origin probes fail while the browser still reports a connection.
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    stop = connectivityStore.configureProbe("/connectivity-check.txt");
+    await connectivityStore.check();
+    expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
+  }
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS + 1_000);
+  if (before) {
+    window.dispatchEvent(new Event(before));
+    await vi.advanceTimersByTimeAsync(1_000);
+  }
+  const result = connectivityStore.failedOnSteadyConnection();
+  if (after) {
+    await vi.advanceTimersByTimeAsync(100);
+    window.dispatchEvent(new Event(after));
+    window.dispatchEvent(new Event("online"));
+  }
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
+  await expect(result).resolves.toBe(steady);
+});
+
+it("classifies a request failure on a network change during the request", async () => {
+  vi.useFakeTimers();
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS + 1_000);
+  const startedAt = Date.now();
+  await vi.advanceTimersByTimeAsync(1_000);
+  window.dispatchEvent(new Event("offline"));
+  window.dispatchEvent(new Event("online"));
+  // The request hangs through the change and fails at the GraphQL timeout.
+  await vi.advanceTimersByTimeAsync(11_000);
+  const result = connectivityStore.failedOnSteadyConnection(startedAt);
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
+  await expect(result).resolves.toBe(false);
+});
+
+it("classifies a request failure on a degraded connection that recovers during the wait", async () => {
+  vi.useFakeTimers();
+  const request = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+  vi.stubGlobal("fetch", request);
+  stop = connectivityStore.configureProbe("/connectivity-check.txt");
+  await connectivityStore.check();
+  expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
+  // The failure lands just before the store's 30-second recheck, which then succeeds.
+  await vi.advanceTimersByTimeAsync(27_000);
+  const result = connectivityStore.failedOnSteadyConnection();
+  request.mockResolvedValue(new Response("ok"));
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
+  expect(connectivityStore.getStatusSnapshot().state).toBe("online");
+  await expect(result).resolves.toBe(false);
+});
+
+it("waits for a probe still running before classifying a request failure", async () => {
+  vi.useFakeTimers();
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS + 1_000);
+  vi.stubGlobal("fetch", vi.fn(unanswered));
+  // The installed app has just started probing; two 3-second attempts outlast the wait.
+  stop = connectivityStore.configureProbe("/connectivity-check.txt");
+  const result = connectivityStore.failedOnSteadyConnection();
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
+  expect(connectivityStore.getStatusSnapshot().state).toBe("online");
+  await vi.advanceTimersByTimeAsync(1_000);
+  await expect(result).resolves.toBe(false);
+  expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
 });

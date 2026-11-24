@@ -1,22 +1,21 @@
-import type {
-  DisplayGroupCounts,
-  DisplayGroupEntry,
-} from "@green-goods/shared/modules/commitment-pooling/display-groups";
-import type { CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
+import type { GroupTakeUpCounts } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
+import type { TakeUpGroupEntry } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
+import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type IntlShape, useIntl } from "react-intl";
 
-import { COMMITMENT_ROW_FRAME } from "./CommitmentRow";
+import { promiseDueDetail } from "./presentation";
 
 /**
- * A group's counts in one line, availability first: "4 available · 3 in
- * progress · 3 kept". Counts that can't be read say so, alone, rather than
- * reading as none or standing on a read that failed (PRD-1029 c9).
+ * A group's counts, availability first: "4 available · 3 in progress · 3 kept".
+ * Copies with a request waiting on a steward follow availability, since no
+ * second ask goes to them: "None available · 1 waiting on a steward" (PRD-1492).
+ * Counts that can't be read say so, alone, rather than reading as none or
+ * standing on a read that failed (PRD-1029 c9).
  */
 function groupCountsParts(
   intl: Pick<IntlShape, "formatMessage">,
-  counts: DisplayGroupCounts,
+  counts: GroupTakeUpCounts,
   { unknown = false }: { unknown?: boolean } = {}
 ): string[] {
   const { formatMessage } = intl;
@@ -26,6 +25,11 @@ function groupCountsParts(
       ? formatMessage({ id: "app.pool.group.counts.available" }, { count: counts.available })
       : formatMessage({ id: "app.pool.group.counts.none" }),
   ];
+  if (counts.requested > 0) {
+    parts.push(
+      formatMessage({ id: "app.pool.group.counts.requested" }, { count: counts.requested })
+    );
+  }
   if (counts.inProgress > 0) {
     parts.push(
       formatMessage({ id: "app.pool.group.counts.inProgress" }, { count: counts.inProgress })
@@ -42,86 +46,75 @@ function groupCountsParts(
 
 export function groupCountsText(
   intl: Pick<IntlShape, "formatMessage">,
-  counts: DisplayGroupCounts,
+  counts: GroupTakeUpCounts,
   options: { unknown?: boolean } = {}
 ): string {
   return groupCountsParts(intl, counts, options).join(" · ");
 }
 
 export interface PromiseGroupRowProps {
-  group: DisplayGroupEntry<CommitmentReadModel>;
+  /** The group, counted as its page counts it (`groupTakeUpCounts`). */
+  group: TakeUpGroupEntry;
   /** The promises' shared name, once their metadata has resolved. */
   title?: string | null;
   /** The last read of the pool failed, so the counts may be out of date. */
   availabilityUnknown?: boolean;
+  /** No copy is left to take up and the untaken ones are past due: the pill says Past due. */
+  pastDue?: boolean;
   onOpen?: () => void;
 }
 
 /**
- * Many separate promises made alike, as one row (PRD-1029 c1). It keeps the
- * promise row's frame: 88px, the direction's 3px edge, a two-line title. The
- * tile is a stack with the number of promises, so "10" never reads as ten
- * units of one promise, and the line under the title gives the counts,
- * availability first. There is no progress bar and no "Yours": the reader's
- * own copies are ordinary rows beside it.
+ * Many separate promises made alike, as one row (PRD-1029 c1), on the shared commitment
+ * row: the direction's icon carries the number of promises, so "10" never reads as ten units
+ * of one promise. The pill says what is still available, then the details give the shared
+ * due date and the tile's number in words, followed by the rest of the counts ("10 promises,
+ * 3 kept", DL-166). There is no progress bar and no "Yours": the reader's own copies are
+ * ordinary rows beside it.
  */
 export function PromiseGroupRow({
   group,
   title,
   availabilityUnknown = false,
+  pastDue = false,
   onOpen,
 }: PromiseGroupRowProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const sample = group.children[0];
-  const isRequest = sample?.direction === "REQUEST";
   const units = sample?.unitLabel
     ? formatCommitmentUnits(intl, sample.targetUnits, sample.unitLabel)
     : null;
   const primary = title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
-  const count = group.counts.published;
-  const name = formatMessage({ id: "app.pool.group.row.name" }, { count });
-  const countsParts = groupCountsParts(intl, group.counts, { unknown: availabilityUnknown });
-  const Element = onOpen ? "button" : "div";
+  const [availability, ...rest] = groupCountsParts(intl, group.counts, {
+    unknown: availabilityUnknown,
+  });
 
   return (
-    <Element
-      {...(onOpen ? { type: "button" as const, onClick: onOpen, "data-pressable": "card" } : {})}
-      title={primary}
-      className={cn(
-        COMMITMENT_ROW_FRAME,
-        "focus:outline-none focus-visible:shadow-button-primary-focus",
-        isRequest ? "border-s-information-base" : "border-s-primary"
-      )}
+    <CommitmentRow
       data-component="PromiseGroupRow"
-      data-direction={sample?.direction}
-    >
-      {/* A stack of cards, the front one carrying how many promises there are. */}
-      <span className="relative mt-1 h-8 w-8 shrink-0" aria-hidden="true">
-        <span className="absolute inset-0 translate-x-1 -translate-y-1 rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-white-0" />
-        <span className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-weak-50 text-xs font-semibold tabular-nums text-text-strong-950">
-          {count > 99 ? "99+" : count}
-        </span>
-      </span>
-      <span className="flex h-full min-w-0 flex-1 flex-col justify-between">
-        <span className="line-clamp-2 text-sm font-medium leading-[18px] text-text-strong-950">
-          <span className="sr-only">{name}: </span>
-          {primary}
-        </span>
-        <span
-          className="flex min-h-7 min-w-0 flex-wrap content-end items-center gap-x-1 text-xs leading-[14px] text-text-sub-600"
-          data-availability={availabilityUnknown ? "unknown" : "known"}
-        >
-          {countsParts.map((part, index) => (
-            <span key={part} className="whitespace-nowrap">
-              {index > 0 ? <span aria-hidden="true">{" · "}</span> : null}
-              <span className={index === 0 && !availabilityUnknown ? "font-semibold" : undefined}>
-                {part}
-              </span>
-            </span>
-          ))}
-        </span>
-      </span>
-    </Element>
+      data-availability={availabilityUnknown ? "unknown" : "known"}
+      direction={sample?.direction}
+      title={primary}
+      // Past due takes the availability's place, as on a single promise's row (DL-176); counts
+      // that cannot be read say so instead.
+      status={
+        pastDue && !availabilityUnknown
+          ? { label: formatMessage({ id: "app.commitments.state.pastDue" }), tone: "warning" }
+          : {
+              label: availability,
+              tone: !availabilityUnknown && group.counts.available > 0 ? "info" : "neutral",
+            }
+      }
+      due={promiseDueDetail(intl, sample?.dueDate)}
+      group={{
+        size: group.counts.published,
+        counts: [
+          formatMessage({ id: "app.pool.group.row.size" }, { count: group.counts.published }),
+          ...rest,
+        ].join(", "),
+      }}
+      onOpen={onOpen}
+    />
   );
 }

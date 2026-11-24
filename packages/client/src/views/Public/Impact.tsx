@@ -1,3 +1,5 @@
+import { DOMAIN_TOKEN_SLUG } from "@green-goods/shared/types/domain";
+import { ALL_DOMAINS, DOMAIN_LABELS } from "@green-goods/shared/utils/domain";
 import { Button } from "@green-goods/shared/components/Button";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import {
@@ -74,21 +76,13 @@ interface DomainEntry {
 
 const DOMAIN_FILTERS: readonly DomainEntry[] = [
   { id: "all", filterId: "all", labelId: "public.actions.domain.all", defaultLabel: "All" },
-  { id: "solar", filterId: "0", labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
-  {
-    id: "agro",
-    filterId: "1",
-    labelId: "app.domain.tab.agro",
-    defaultLabel: "Agroforestry",
-  },
-  {
-    id: "education",
-    filterId: "2",
-    labelId: "app.domain.tab.education",
-    defaultLabel: "Education",
-  },
-  { id: "waste", filterId: "3", labelId: "app.domain.tab.waste", defaultLabel: "Waste" },
-] as const;
+  ...ALL_DOMAINS.map((domain) => ({
+    id: DOMAIN_TOKEN_SLUG[domain],
+    filterId: String(domain),
+    labelId: DOMAIN_LABELS[domain].id,
+    defaultLabel: DOMAIN_LABELS[domain].defaultMessage,
+  })),
+];
 
 function recordMatchesDomain(record: PublicImpactEvidenceRecord, filterId: string): boolean {
   if (filterId === "all") return true;
@@ -139,25 +133,27 @@ export default function ImpactPage() {
   // CLAUDE.md — never chain useMemos on the same source).
   const { counted, filteredRecords, pageRecords, totalPages } = useMemo(() => {
     const records = slice?.records ?? [];
+    const domainEntry = DOMAIN_FILTERS.find((d) => d.id === domainFilter);
+    const gardenFilterLower = gardenFilter === "all" ? null : gardenFilter.toLowerCase();
+    // The records the domain and garden filters leave. Each kind chip counts these, so it says
+    // how many choosing it would show (PUB-047); the kind filter then narrows them.
+    const inScope = records.filter((record) => {
+      if (domainEntry && domainEntry.filterId !== "all") {
+        if (!recordMatchesDomain(record, domainEntry.filterId)) return false;
+      }
+      return !gardenFilterLower || record.gardenId.toLowerCase() === gardenFilterLower;
+    });
     const byKind: Record<KindFilter, number> = {
-      all: records.length,
+      all: inScope.length,
       assessment: 0,
       work: 0,
       certificate: 0,
     };
-    for (const record of records) {
+    for (const record of inScope) {
       byKind[record.kind] += 1;
     }
-    const domainEntry = DOMAIN_FILTERS.find((d) => d.id === domainFilter);
-    const gardenFilterLower = gardenFilter === "all" ? null : gardenFilter.toLowerCase();
-    const filtered = records.filter((record) => {
-      if (kindFilter !== "all" && record.kind !== kindFilter) return false;
-      if (domainEntry && domainEntry.filterId !== "all") {
-        if (!recordMatchesDomain(record, domainEntry.filterId)) return false;
-      }
-      if (gardenFilterLower && record.gardenId.toLowerCase() !== gardenFilterLower) return false;
-      return true;
-    });
+    const filtered =
+      kindFilter === "all" ? inScope : inScope.filter((record) => record.kind === kindFilter);
     const pages = Math.max(1, Math.ceil(filtered.length / LEDGER_PAGE_SIZE));
     const safePage = Math.min(Math.max(1, page), pages);
     const start = (safePage - 1) * LEDGER_PAGE_SIZE;
@@ -209,7 +205,7 @@ export default function ImpactPage() {
         value: "all",
         label: formatMessage({
           id: "public.impact.filters.gardenAll",
-          defaultMessage: "All Gardens",
+          defaultMessage: "All gardens",
         }),
       },
       ...[...gardens]
@@ -257,7 +253,7 @@ export default function ImpactPage() {
       formatMessage({ id: "public.home.proof.works", defaultMessage: "Approved submissions" }),
       formatMessage({
         id: "public.home.proof.worksNote",
-        defaultMessage: "Work reviewed by a Garden's stewards.",
+        defaultMessage: "Work reviewed by a garden's stewards.",
       }),
       counts.fieldNoteCount
     ),
@@ -301,14 +297,14 @@ export default function ImpactPage() {
           {
             id: "public.impact.heroTitle",
             defaultMessage:
-              "<line>See how Garden</line> <line>work becomes</line> <line><accent>evidence</accent></line>",
+              "<line>See how garden</line> <line>work becomes</line> <line><accent>evidence</accent></line>",
           },
           editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
-            "See the work communities have done and the evidence behind it. Local stewards review submissions, and assessments help explain what changed.",
+            "See the work communities have documented and the evidence behind it. Local stewards review submissions; assessments record starting conditions and evidence standards.",
         })}
       />
 
@@ -352,7 +348,7 @@ export default function ImpactPage() {
         intro={formatMessage({
           id: "public.impact.pipeline.intro",
           defaultMessage:
-            "A Garden identifies local needs, agrees on the work, documents what happens, and learns from the evidence. Measured outcomes depend on the methods and assessments each project publishes.",
+            "A garden identifies local needs, agrees on the work, documents what happens, and learns from the evidence. Measured outcomes depend on the methods and assessments each project publishes.",
         })}
       />
 
@@ -389,7 +385,7 @@ export default function ImpactPage() {
             className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-4"
             aria-label={formatMessage({
               id: "public.impact.filters.label",
-              defaultMessage: "Filter evidence by record kind, domain, and Garden",
+              defaultMessage: "Filter evidence by record kind, domain, and garden",
             })}
           >
             {KIND_FILTERS.map((entry) => (
@@ -494,7 +490,7 @@ export default function ImpactPage() {
                     : formatMessage({
                         id: "public.impact.evidence.empty",
                         defaultMessage:
-                          "Assessment evidence will appear here as Gardens publish it.",
+                          "Assessment evidence will appear here as gardens publish it.",
                       })}
                 </p>
                 {kindFilter !== "all" || domainFilter !== "all" ? (
@@ -586,7 +582,7 @@ export default function ImpactPage() {
                 {formatMessage({
                   id: "public.impact.evidence.partialData",
                   defaultMessage:
-                    "Showing the most recent evidence we could load. More may be available across Gardens.",
+                    "Showing the most recent evidence we could load. More may be available across gardens.",
                 })}
               </p>
             </div>

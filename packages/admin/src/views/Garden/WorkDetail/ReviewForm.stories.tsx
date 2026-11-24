@@ -1,9 +1,15 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { type ReviewBatch, useReviewBatch } from "@green-goods/shared/hooks/work/useWorkApproval";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, userEvent, within } from "storybook/test";
-import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
+import {
+  withAdminIdentity,
+  withSeededQueryClient,
+} from "../../../../../shared/.storybook/decorators";
 import { daysAgo, FIXTURE_IMAGE_AGROFORESTRY } from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { ReviewForm } from "./ReviewForm";
@@ -32,7 +38,7 @@ const APPROVED_WORK: Work = { ...BASE_WORK, status: "approved" };
 const ACTIVE_ACTION_END = 4_102_444_800_000; // 2100-01-01
 
 const meta: Meta<typeof ReviewForm> = {
-  title: "Admin/Workflows/Hub/ReviewForm",
+  title: "Admin/Workflows/Review/ReviewForm",
   component: ReviewForm,
   tags: ["autodocs"],
   parameters: {
@@ -69,16 +75,103 @@ type Story = StoryObj<typeof ReviewForm>;
 
 export const Actionable: Story = {};
 
-export const PublishedSubmitterName: Story = {
+const REVIEW_BATCH = {
+  available: true,
+  reviews: [],
+  approvals: 0,
+  rejections: 0,
+  signatures: 0,
+  signatureStep: 1,
+  sendSize: 0,
+  blockedCount: 0,
+  oneSignatureEach: false,
+  isSending: false,
+  isSettlingHold: false,
+  reviewFor: () => undefined,
+  isHeld: () => false,
+  stage: fn(),
+  unstage: fn(),
+  unstageBlocked: fn(),
+  send: fn(async () => {}),
+  holdFeedback: null,
+} satisfies ReviewBatch;
+
+/** Once a rail is listed, a decision can wait for the batch instead of going at once. */
+export const WithBatch: Story = {
+  tags: ["storybook-ci"],
   beforeEach: () => {
-    mocked(useEnsName).mockReturnValue({ data: "ordinary.eth" } as ReturnType<typeof useEnsName>);
-    mocked(useGreenGoodsEnsName).mockReturnValue({ data: "river.greengoods.eth" } as ReturnType<
+    mocked(useReviewBatch).mockReturnValue(REVIEW_BATCH);
+    return resetHookMocks(useReviewBatch);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Add to Batch" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Reject" })).toBeEnabled();
+  },
+};
+
+export const WaitingInBatch: Story = {
+  beforeEach: () => {
+    mocked(useReviewBatch).mockReturnValue({
+      ...REVIEW_BATCH,
+      reviewFor: () => ({
+        draft: {
+          actionUID: BASE_WORK.actionUID,
+          workUID: BASE_WORK.id,
+          approved: true,
+          feedback: "Lovely work, thank you.",
+          confidence: 3,
+          verificationMethod: 1,
+        },
+      }),
+    });
+    return resetHookMocks(useReviewBatch);
+  },
+};
+
+export const HeldAfterAnUnknownSend: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: () => {
+    mocked(useReviewBatch).mockReturnValue({
+      ...REVIEW_BATCH,
+      isHeld: () => true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last reviews.",
+        message:
+          "They could still land, so these works stay locked until you check again or move on. If they land after you move on, they’ll have two reviews.",
+        detail: "0 of 1 have a review recorded now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        isBusy: false,
+        onCheckAgain: fn(),
+        onMoveOn: fn(),
+      },
+    });
+    return resetHookMocks(useReviewBatch);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Check Again" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Approve" })).toBeNull();
+  },
+};
+
+export const PublishedSubmitterName: Story = {
+  tags: ["storybook-ci"],
+  decorators: [
+    withSeededQueryClient([[queryKeys.ens.passkeyName(DEFAULT_CHAIN_ID, GARDENER), "river"]]),
+  ],
+  beforeEach: () => {
+    mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
+    mocked(useGreenGoodsEnsName).mockReturnValue({ data: null } as ReturnType<
       typeof useGreenGoodsEnsName
     >);
     return resetHookMocks(useEnsName, useGreenGoodsEnsName);
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/river will see this decision/)).toBeVisible();
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("river")).toBeVisible();
+    await expect(canvas.getByText(GARDENER)).toBeVisible();
   },
 };
 
@@ -99,6 +192,21 @@ export const RoleBlocked: Story = {
 export const ActionExpired: Story = {
   args: {
     actionEndTime: 1_577_836_800_000, // 2020-01-01
+  },
+};
+
+/**
+ * Opened from a Review day whose read could not say this work's status: it may be decided
+ * already, so Approve and Reject wait until its status is read.
+ */
+export const StatusUnread: Story = {
+  tags: ["storybook-ci"],
+  args: { statusUnread: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Status not known")).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Approve" })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: "Reject" })).toBeNull();
   },
 };
 

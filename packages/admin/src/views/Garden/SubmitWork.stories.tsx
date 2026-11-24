@@ -187,7 +187,7 @@ const DETAILS_ACTION: Action = {
 // first eligible garden by name, which is not the seeded one. So every story's
 // route names the garden the story is about.
 function submitWorkPath(garden: SharedGarden = STORYBOOK_PRIMARY_ADMIN_GARDEN) {
-  return `/hub/work/submit?gardenId=${garden.id}`;
+  return `/review/work/submit?gardenId=${garden.id}`;
 }
 
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
@@ -282,7 +282,7 @@ function submitWorkDecorators({
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ];
 }
@@ -301,27 +301,27 @@ export const AvailableAction: Story = {
     // here: advancing without it shows an inline error and the Details fields stay
     // out of reach.
     await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
-    await expect(await canvas.findByText(/Add at least 1 photo to continue/)).toBeVisible();
+    await expect(await canvas.findByText(/Add at least 1 media item to continue/)).toBeVisible();
     await expect(canvas.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
   },
 };
 
-// Multiple eligible actions → the scannable card chooser (radiogroup).
+// Multiple eligible actions → the shared action picker (a listbox of banner cards).
 export const ActionChooser: Story = {
   tags: ["storybook-ci"],
   render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const cards = await canvas.findAllByRole("radio");
+    const cards = await canvas.findAllByRole("option");
     expect(cards.length).toBeGreaterThan(1);
     await userEvent.click(cards[0]);
     // Select-in-place: the card is marked but the chooser stays on the Action
     // step; the footer Next then advances to Media (chooser gone).
-    await expect(cards[0]).toBeChecked();
-    expect(canvas.getAllByRole("radio").length).toBeGreaterThan(1);
+    await expect(cards[0]).toHaveAttribute("aria-selected", "true");
+    expect(canvas.getAllByRole("option").length).toBeGreaterThan(1);
     await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
-    await expect(canvas.queryByRole("radio")).not.toBeInTheDocument();
+    await expect(canvas.queryByRole("option")).not.toBeInTheDocument();
   },
 };
 
@@ -338,7 +338,7 @@ export const DomainFilter: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("tablist")).toBeVisible();
-    expect((await canvas.findAllByRole("radio")).length).toBeGreaterThan(1);
+    expect((await canvas.findAllByRole("option")).length).toBeGreaterThan(1);
   },
 };
 
@@ -352,8 +352,8 @@ function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
   const [router] = useState(() =>
     createMemoryRouter(
       [
-        { path: "/hub/work/submit", element: children },
-        { path: "*", element: <div className="p-6">Hub route</div> },
+        { path: "/review/work/submit", element: children },
+        { path: "*", element: <div className="p-6">Review route</div> },
       ],
       { initialEntries: [submitWorkPath()] }
     )
@@ -361,7 +361,7 @@ function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
   return <RouterProvider router={router} />;
 }
 
-// The route host in its dialog, as the Hub opens it, with the given actions seeded.
+// The route host in its dialog, as Review opens it, with the given actions seeded.
 function submitWorkRouteDecorators(actions: Action[]) {
   return [
     withAdminIdentity,
@@ -374,7 +374,7 @@ function submitWorkRouteDecorators(actions: Action[]) {
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ];
 }
@@ -407,7 +407,7 @@ export const MediaStepStaging: Story = {
     const photos = () =>
       within(flow.querySelector<HTMLElement>('[data-component="SubmitWorkPhotos"]')!);
     const count = () => photos().getByRole("status");
-    await expect(count()).toHaveTextContent("0 of 2 photos");
+    await expect(count()).toHaveTextContent("0 of 2 media items");
 
     // Each photo is under the 1 MB compression threshold, so it stages as it is.
     const input = flow.querySelector<HTMLInputElement>('input[type="file"]');
@@ -422,7 +422,7 @@ export const MediaStepStaging: Story = {
       { name: "Preview east-bed-after.jpg" },
       { timeout: 5000 }
     );
-    await expect(count()).toHaveTextContent("3 photos added");
+    await expect(count()).toHaveTextContent("3 media items added");
     await expect(count()).toHaveAttribute("data-state", "met");
 
     // Both controls sit on one tile, so each has to take the press at its own centre.
@@ -456,10 +456,12 @@ export const MediaStepStaging: Story = {
     // Back below the requirement, the count turns amber again and Next is held.
     await userEvent.click(remove);
     await userEvent.click(within(flow).getByRole("button", { name: "Remove seedling-tray.jpg" }));
-    await expect(count()).toHaveTextContent("1 of 2 photos");
+    await expect(count()).toHaveTextContent("1 of 2 media items");
     await expect(count()).toHaveAttribute("data-state", "needed");
     await userEvent.click(within(flow).getByRole("button", { name: "Next" }));
-    await expect(await within(flow).findByText(/Add at least 2 photos to continue/)).toBeVisible();
+    await expect(
+      await within(flow).findByText(/Add at least 2 media items to continue/)
+    ).toBeVisible();
   },
 };
 
@@ -469,7 +471,8 @@ async function openDetailsStep(canvasElement: HTMLElement) {
     name: "Submit Work",
   });
   await userEvent.click(await within(flow).findByRole("button", { name: "Next" }));
-  await within(flow).findByLabelText("Time Spent (hours)");
+  // The dialog can still be fading in from opacity 0 here, so wait until the step can be seen.
+  await waitFor(() => expect(within(flow).getByLabelText("Time Spent (hours)")).toBeVisible());
   return within(flow);
 }
 
@@ -498,6 +501,60 @@ export const DetailsStepChecked: Story = {
     await expect(flow.getAllByRole("alert")).toHaveLength(4);
     await expect(flow.getByLabelText("Seedlings lost")).not.toHaveAccessibleDescription();
     await expect(flow.getByLabelText("Time Spent (hours)")).toBeVisible();
+  },
+};
+
+export const RepeatingRows: Story = {
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkRouteStory />,
+  decorators: submitWorkRouteDecorators([
+    {
+      ...DETAILS_ACTION,
+      inputs: [
+        {
+          key: "breakdown",
+          title: "Category Breakdown",
+          placeholder: "",
+          type: "repeater",
+          required: true,
+          options: [],
+          repeaterFields: [
+            {
+              key: "category",
+              title: "Category",
+              placeholder: "",
+              type: "text",
+              required: true,
+              options: [],
+            },
+            {
+              key: "weight",
+              title: "Weight (kg)",
+              placeholder: "",
+              type: "number",
+              required: true,
+              options: [],
+            },
+          ],
+        },
+      ],
+    },
+  ]),
+  play: async ({ canvasElement }) => {
+    const flow = await openDetailsStep(canvasElement);
+    await userEvent.click(flow.getByRole("button", { name: "Next" }));
+    await expect(await flow.findByText("This field is required")).toBeVisible();
+    await userEvent.click(flow.getByRole("button", { name: /^Add$/ }));
+    await userEvent.type(flow.getByLabelText(/Category \*/), "Plastic");
+    await userEvent.click(flow.getByRole("button", { name: "Next" }));
+    await expect(flow.getByLabelText(/Weight \(kg\)/)).toHaveAttribute("aria-invalid", "true");
+    await userEvent.type(flow.getByLabelText(/Weight \(kg\)/), "12");
+    await userEvent.click(flow.getByRole("button", { name: /^Add$/ }));
+    await userEvent.click(flow.getByRole("button", { name: "Remove Category Breakdown 2" }));
+    await userEvent.click(flow.getByRole("button", { name: "Next" }));
+    await expect(await flow.findByText("Plastic")).toBeVisible();
+    await expect(flow.getByText("12")).toBeVisible();
+    await expect(flow.queryByText(/\[object Object\]/)).not.toBeInTheDocument();
   },
 };
 

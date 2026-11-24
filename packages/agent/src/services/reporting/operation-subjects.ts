@@ -12,6 +12,7 @@ import { publicationRecords } from "./publication-records";
 import { reopenReview } from "./review-jobs";
 import { commitReview, loadReview, type ReviewRecord, reviewState } from "./reviews";
 import type { ReportingCore } from "./runtime";
+import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
 
 /**
  * What an execution operation publishes: a gardener's report or a steward's decision. Signing,
@@ -78,8 +79,16 @@ function draftSubject(core: ReportingCore, loaded: DraftRecord): OperationSubjec
     consented(summaryDigest) {
       const subject = channelSubject(core, draft.participantId, draft.conversationId);
       return (
-        Boolean(subject && activeConsentId(core, subject, "processing")) &&
-        hasPublicationConsent(core, draft.id, draft.revision, summaryDigest)
+        Boolean(
+          subject && activeConsentId(core, subject, "processing", WORK_UPLOAD_POLICY_VERSION)
+        ) &&
+        hasPublicationConsent(
+          core,
+          draft.id,
+          draft.revision,
+          summaryDigest,
+          WORK_UPLOAD_POLICY_VERSION
+        )
       );
     },
     advance(event, participantAction) {

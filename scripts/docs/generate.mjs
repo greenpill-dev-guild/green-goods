@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { parseGeneratorArgs, syncProjections } from "./generator-core.mjs";
@@ -47,6 +48,8 @@ const PUBLIC_ROUTE_CONTRACTS = [
   "packages/shared/src/public-contracts/profile-avatar.ts",
   "packages/shared/src/public-contracts/routes.ts",
   "packages/shared/src/public-contracts/saved-offers/types.ts",
+  "packages/shared/src/modules/commitment-pooling/service-issuer-desk-protocol.ts",
+  "packages/shared/src/public-contracts/voucher-awards.ts",
 ];
 const PACKAGE_MANIFESTS = [
   "packages/admin/package.json",
@@ -71,9 +74,10 @@ function mcpWrapperSources(root) {
 export function createProjections(root = REPO_ROOT) {
   const ontology = readJson(root, ONTOLOGY);
   const taskRouting = readJson(root, TASK_ROUTING);
-  const deployments = supportedChainIds(root, CHAINS).map(
-    (chainId) => `packages/contracts/deployments/${chainId}-latest.json`
-  );
+  // Wallet support can precede a protocol deployment. Only persisted artifacts can own deployment facts.
+  const deployments = supportedChainIds(root, CHAINS)
+    .map((chainId) => `packages/contracts/deployments/${chainId}-latest.json`)
+    .filter((source) => existsSync(path.join(root, source)));
   const integrationCommon = [
     ...deployments,
     NETWORKS,
@@ -140,7 +144,7 @@ export function createProjections(root = REPO_ROOT) {
       render: renderIntegrationProjections,
     },
     { scope: "ontology", output: "docs/docs/builders/architecture/data-model.mdx", sources: [ONTOLOGY, PROJECTIONS, "packages/indexer/schema.graphql", "scripts/quality/ontology-render.mjs"], render: renderDataModel },
-    { scope: "ontology", output: "docs/docs/reference/glossary.generated.mdx", sources: [ONTOLOGY, PROJECTIONS, BANNED_VOCABULARY, "scripts/quality/ontology-render.mjs"], render: renderGlossary },
+    { scope: "ontology", output: "docs/docs/reference/glossary.generated.mdx", sources: [ONTOLOGY, PROJECTIONS, BANNED_VOCABULARY, "scripts/quality/ontology-render.mjs", ...new Set((readJson(root, PROJECTIONS).community_terms ?? []).flatMap(term => term.source_of_truth))], render: renderGlossary },
     {
       scope: "ontology",
       output: "docs/docs/builders/architecture/entity-matrix.mdx",

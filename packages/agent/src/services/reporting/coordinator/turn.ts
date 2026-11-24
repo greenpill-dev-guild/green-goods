@@ -4,24 +4,22 @@ import type { CatalogResult, ReportingCatalog } from "../catalog";
 import { accountAwaitingPair } from "../channel-pairing";
 import { inTransaction } from "../database";
 import {
+  consumeAlbumItems,
   consumeInboxEvent,
   deferInboxEvent,
   type InboxEventRow,
   nextConversationEvent,
+  quarantineInboxEvents,
+  waitInboxEvents,
 } from "../inbox";
 import {
   findGarden,
   type GardenScope,
   gardenScope,
-  gardensIn,
   type ReportingGarden,
   soleGarden,
 } from "../gardens";
-import {
-  type InterpretationResult,
-  interpretWithDeadline,
-  type ReportInterpreter,
-} from "../interpretation";
+import type { ReportInterpreter } from "../interpretation";
 import {
   acquireConversationLease,
   type ConversationLease,
@@ -33,31 +31,36 @@ import {
   answerConnectionOffer,
   answerGrantChoice,
   confirmPublication,
+  describeAccount,
   disconnectAccount,
   handlePairing,
   requestConnection,
   welcome,
 } from "./account-steps";
-import type { ChatCommand } from "./commands";
+import { type ChatCommand, linkCommand } from "./commands";
 import {
   answerConsent,
   answerVoiceConsent,
   sendConsentNotice,
   withdrawProcessing,
 } from "./consent-step";
-import { loadTurnContext, planTurn, type TurnContext, type TurnPlan } from "./context";
+import { loadTurnContext, planEventTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
 import { answeredGarden, readGardensForTurn } from "./garden-step";
-import { handleReportAnswer } from "./report-answer";
+import { handleReportAnswer, lapsedJoinReply } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
+import { SUGGESTION_PROMPT, suggestedGarden, suggestionFor } from "./last-report";
 import { gardenToDrop, type TurnExternal } from "./report-work";
-import { isReviewPrompt, nextReviewStep } from "./review-prompts";
+import { isReviewPrompt } from "./review-prompts";
+import { readTurn, unansweredWords } from "./turn-reading";
 import {
   answerReviewPrompt,
   answerReviewSelection,
+  correctReview,
   handleReviewCommand,
   requestReview,
+  reviewOwnsCommand,
 } from "./review-steps";
 import { startRecovery } from "../recovery";
 import { StaleReviewError } from "../reviews";
@@ -65,10 +68,11 @@ import { TurnWriter } from "./writer";
 
 /**
  * The durable coordinator every transport feeds. One leased worker handles a conversation's
- * events in arrival order. Each turn reads state, makes bounded external calls outside any
- * transaction, then commits the transition, the consumed event and its reply intents together,
- * but only while its lease fence and the draft revision it read are still current. A stale result
- * is discarded and the event replanned against the newer revision; it is never marked consumed.
+ * events in arrival order; an album's files, one event each, are one turn once the album has gone
+ * quiet. Each turn reads state, makes bounded external calls outside any transaction, then
+ * commits the transition, the consumed event and its reply intents together, but only while its
+ * lease fence and the draft revision it read are still current. A stale result is discarded and
+ * the event replanned against the newer revision; it is never marked consumed.
  */
 export interface CoordinatorDeps {
   core: ReportingCore;
@@ -79,6 +83,11 @@ export interface CoordinatorDeps {
   commands?: Partial<
     Record<string, (writer: TurnWriter, plan: Extract<TurnPlan, { kind: "command" }>) => void>
   >;
+  /**
+   * Aborted once the process is stopping. A turn already under way finishes and commits, because
+   * cutting off its model call would answer the gardener without the model; no other turn starts.
+   */
+  stopping?: AbortSignal;
 }
 
 const MAX_REPLANS = 3;
@@ -109,6 +118,11 @@ function reportGarden(
   if (plan.kind === "answer" && plan.prompt.kind === "select_garden") {
     const answered = answeredGarden(scope, plan.prompt, plan.option, plan.text);
     if (answered) return answered;
+  }
+  // "Same as last time": the suggested garden's activities are read in the turn that takes it.
+  if (plan.kind === "answer" && plan.prompt.kind === SUGGESTION_PROMPT) {
+    const suggested = suggestedGarden(scope, plan.prompt);
+    if (suggested) return suggested;
   }
   // Pairing takes a garden the new account does not report to off the report.
   const dropped = commandOf(plan) === "pair" && gardenToDrop(core.gardens, ctx.draft, account);
@@ -146,33 +160,6 @@ function reasksReview(ctx: TurnContext, plan: TurnPlan): boolean {
   );
 }
 
-/** A report's questions that offer a list of choices. */
-const REPORT_CHOICES = new Set([
-  "select_garden",
-  "select_action",
-  "field",
-  "time_unit",
-  "conflict",
-  "edit_field",
-]);
-
-/**
- * Typed words sent to a report's list of choices that are neither numbers nor one of the choices'
- * own labels; null for anything else. A garden or activity named in other words still lands here,
- * and the answer handler tries its own matching before it turns to what the model read.
- */
-function offChoiceText(plan: TurnPlan): string | null {
-  if (plan.kind !== "answer" || plan.option !== null) return null;
-  const { prompt } = plan;
-  if (!REPORT_CHOICES.has(prompt.kind) || prompt.options.length === 0) return null;
-  const text = plan.text?.trim();
-  if (!text) return null;
-  const said = text.toLowerCase();
-  const numbers = said.split(/[\s,;]+/u).every((part) => /^\d+$/u.test(part));
-  const label = prompt.options.some((choice) => choice.label.toLowerCase() === said);
-  return numbers || label ? null : text;
-}
-
 async function gatherExternal(
   deps: CoordinatorDeps,
   ctx: TurnContext,
@@ -189,9 +176,9 @@ async function gatherExternal(
   const outside =
     plan.kind === "answer" &&
     (OUTSIDE_REPORT.has(plan.prompt.kind) || isReviewPrompt(plan.prompt.kind));
-  // A story or correction is read by the model, and so are words sent to a list of choices that
-  // pick none of them: they may be a question, a correction or the answer in other words.
-  const said = plan.kind === "message" ? plan.text : offChoiceText(plan);
+  // A story or correction is read by the model, and so are words sent to a question that do not
+  // answer it as it stands: they may be a question, a correction or the answer in other words.
+  const said = plan.kind === "message" ? plan.text : unansweredWords(core, ctx, plan);
   const forModel = said && !reviewText && ctx.modelEnabled && ctx.binding ? said : null;
   // CONNECT with an address says which gardens that account is in, whatever this chat is linked to.
   const namesAccount =
@@ -206,7 +193,7 @@ async function gatherExternal(
     (plan.kind === "command" && REPORT_COMMANDS.has(plan.command.kind)) ||
     reasks;
   const scope = gardenScope(core.gardens, account);
-  let garden = reportGarden(core, ctx, plan, scope, account);
+  const garden = reportGarden(core, ctx, plan, scope, account);
   // The activities are read whenever the reply may have to offer them: while the report has
   // still to choose one, which a changed garden asks of it again, and for any answer but one to
   // the garden question. That one needs them only for a garden it names, which is a change; its
@@ -219,48 +206,30 @@ async function gatherExternal(
   const changing = garden?.address !== draft?.content.garden?.address;
   const answersOther = plan.kind === "answer" && !outside && plan.prompt.kind !== "select_garden";
   const needsCatalog = garden !== null && reportPlan && (choosing || answersOther || changing);
-  let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
-  let interpretation: InterpretationResult | null = null;
-  if (forModel) {
-    const content = ctx.draft?.content;
-    interpretation = await interpretWithDeadline(
-      deps.interpreter,
-      {
-        locale: ctx.locale,
-        draftRevision: ctx.draft?.revision ?? 0,
-        message: { sourceEntryId: ctx.event.id, text: forModel },
-        content: {
-          actionUID: content?.actionUID ?? null,
-          title: content?.title ?? null,
-          timeSpentMinutes: content?.timeSpentMinutes ?? null,
-          feedback: content?.feedback ?? null,
-          details: content?.details ?? {},
-        },
-        requirements: content ? outstandingRequirements(content, ctx.draft?.snapshot ?? null) : [],
-        gardens: gardensIn(scope).map((candidate) => ({
-          key: candidate.key,
-          label: candidate.label,
-        })),
-        actions: result?.ok
-          ? result.actions.map((action) => ({
-              uid: action.definition.actionUID,
-              title: action.definition.title,
-              inputs: action.definition.inputs,
-            }))
-          : [],
-        observations: [],
-      },
-      deps.interpretationTimeoutMs
-    );
-    // A garden the model read for a report that has none yet: its activities are read in this
-    // turn too, so the reply can ask which activity instead of failing to list them.
-    const named = gardensIn(scope).find((candidate) => candidate.key === interpretation?.gardenKey);
-    if (named && !garden && !ctx.draft?.content.garden) {
-      garden = named;
-      result = await activitiesOf(named);
-    }
-  }
-  return { catalog: { garden, result }, interpretation };
+  const result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
+  const suggestion = reportPlan
+    ? await suggestionFor(core, ctx, account, { garden, result }, activitiesOf)
+    : undefined;
+  if (!deps.interpreter || !ctx.modelEnabled || !ctx.binding || reviewText)
+    return { catalog: { garden, result }, interpretation: null, suggestion };
+  const read = await readTurn({
+    core,
+    interpreter: deps.interpreter,
+    timeoutMs: deps.interpretationTimeoutMs,
+    ctx,
+    plan,
+    scope,
+    garden,
+    result,
+    said: forModel,
+    activitiesOf,
+  });
+  return {
+    catalog: { garden: read.garden, result: read.result },
+    interpretation: read.interpretation,
+    reread: read.reread,
+    suggestion,
+  };
 }
 
 type TurnOutcome = "consume" | "hold" | "pause";
@@ -304,9 +273,9 @@ function applyTurn(
           handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       } else if (plan.prompt.kind === "grant_choice" && plan.option) {
         answerGrantChoice(writer, plan.option.value);
-      } else if (plan.prompt.kind === "join_community") {
-        // Its one choice reads the account's role again, and so does any other reply: the report
-        // is waiting on nothing else.
+      } else if (plan.prompt.kind === "join_community" && !lapsedJoinReply(writer.ctx, plan)) {
+        // Its one choice reads the account's role again, and so does any other reply while its
+        // report is open. After that report ends, the reply goes to the answer handler below.
         handleReportCommand(writer, { kind: "retry" }, external);
       } else if (plan.prompt.kind === "connect_offer") {
         answerConnectionOffer(writer, plan.option !== null);
@@ -325,7 +294,7 @@ function applyTurn(
     case "message": {
       const { review, account } = writer.ctx;
       if (review && account && reasksReview(writer.ctx, plan)) {
-        nextReviewStep(writer, review, account.address);
+        correctReview(writer, review, plan.text);
         return "consume";
       }
       handleReportMessage(writer, plan, external);
@@ -340,15 +309,17 @@ function applyTurn(
 function routeCommand(
   deps: CoordinatorDeps,
   writer: TurnWriter,
-  plan: Extract<TurnPlan, { kind: "command" }>,
+  asked: Extract<TurnPlan, { kind: "command" }>,
   external: TurnExternal
 ): void {
-  const { command } = plan;
   const { review } = writer.ctx;
+  const plan = { ...asked, command: linkCommand(asked.command, writer.ctx.account !== null) };
+  const { command } = plan;
   if (command.kind === "stop" || command.kind === "delete")
     return withdrawProcessing(writer, command.kind);
   if (command.kind === "pair") return handlePairing(writer, command.code, external);
   if (command.kind === "connect") return requestConnection(writer, command.account);
+  if (command.kind === "account") return describeAccount(writer);
   if (command.kind === "disconnect" || command.kind === "switch")
     return disconnectAccount(writer, command.kind === "switch");
   if (command.kind === "publish") return confirmPublication(writer, command.token, false);
@@ -356,7 +327,10 @@ function routeCommand(
   if (command.kind === "help" || command.kind === "start") return writer.say("help");
   if (command.kind === "review") return requestReview(writer, command.index);
   if (command.kind === "recover") return startRecovery(writer);
-  if (review && reviewOwnsCommand(writer) && handleReviewCommand(writer, review, command)) return;
+  // Ownership reads the command as asked, so NEW LINK can find the link the chat sent last.
+  if (review && reviewOwnsCommand(writer, review, asked.command)) {
+    if (handleReviewCommand(writer, review, command)) return;
+  }
   const owned = deps.commands?.[command.kind];
   if (owned) return owned(writer, plan);
   handleReportCommand(writer, command, external);
@@ -368,29 +342,17 @@ function startsIdle(writer: TurnWriter): boolean {
   return Boolean(binding) && !draft && !review;
 }
 
-/** Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing. */
-function reviewOwnsCommand(writer: TurnWriter): boolean {
-  const { review, prompt, draft } = writer.ctx;
-  return Boolean(review && (isReviewPrompt(prompt?.kind) || !draft));
+/** Settles the turn's event, and the rest of its album with it. */
+function finalizeEvent(core: ReportingCore, ctx: TurnContext, outcome: TurnOutcome): void {
+  const ids = [ctx.event.id, ...ctx.album.map((item) => item.id)];
+  if (outcome === "consume") {
+    consumeInboxEvent(core, ctx.event.id);
+    consumeAlbumItems(core, ids.slice(1));
+  } else if (outcome === "pause") waitInboxEvents(core, ids, core.clock.now() + PAUSE_RETRY_MS);
+  else quarantineInboxEvents(core, ids);
 }
 
-function finalizeEvent(core: ReportingCore, event: InboxEventRow, outcome: TurnOutcome): void {
-  if (outcome === "consume") consumeInboxEvent(core, event.id);
-  else if (outcome === "pause") {
-    core.db
-      .query("UPDATE inbox_events SET next_attempt_at = $next WHERE id = $id")
-      .run({ id: event.id, next: core.clock.now() + PAUSE_RETRY_MS });
-  } else {
-    // Quarantined until consent releases it or the pre-consent window expires.
-    core.db
-      .query(
-        "UPDATE inbox_events SET state = 'quarantined', next_attempt_at = COALESCE(expires_at, $far) WHERE id = $id"
-      )
-      .run({ id: event.id, far: core.clock.now() + core.settings.preConsentRetentionMs });
-  }
-}
-
-type CommitResult = "committed" | "stale" | "fenced" | "gone";
+type CommitResult = "committed" | "stale" | "fenced" | "gone" | "waiting";
 
 async function runTurn(
   deps: CoordinatorDeps,
@@ -398,29 +360,39 @@ async function runTurn(
   event: InboxEventRow
 ): Promise<CommitResult> {
   const { core } = deps;
-  const ctx = loadTurnContext(core, event);
-  if (!ctx) {
+  const loaded = loadTurnContext(core, event);
+  if (!loaded) {
     inTransaction(core.db, () => consumeInboxEvent(core, event.id));
     return "gone";
   }
-  const plan = planTurn(ctx);
-  const external = await gatherExternal(deps, ctx, plan);
+  // An album still arriving waits whole; the messages after it wait behind its first file.
+  if (loaded.albumReadyAt > core.clock.now()) {
+    return inTransaction(core.db, () => {
+      if (!holdsLease(core, lease)) return "fenced" as const;
+      waitInboxEvents(core, [event.id, ...loaded.album.map(({ id }) => id)], loaded.albumReadyAt);
+      return "waiting" as const;
+    });
+  }
+  const { ctx, plan, wholeAlbum } = planEventTurn(core, loaded);
+  const external = await gatherExternal(deps, ctx, lapsedJoinReply(ctx, plan) ?? plan);
   try {
     return inTransaction(core.db, () => {
       if (!holdsLease(core, lease)) return "fenced" as const;
-      const now = loadTurnContext(core, event);
+      const now = loadTurnContext(core, ctx.event, { wholeAlbum });
       if (
         !now ||
         now.draft?.id !== ctx.draft?.id ||
         now.draft?.revision !== ctx.draft?.revision ||
         now.review?.id !== ctx.review?.id ||
         now.review?.revision !== ctx.review?.revision ||
-        now.prompt?.id !== ctx.prompt?.id
+        now.prompt?.id !== ctx.prompt?.id ||
+        // A file that joined the album meanwhile is read with it, so the turn is planned again.
+        now.album.length !== ctx.album.length
       ) {
         throw new StaleDraftError();
       }
       const writer = new TurnWriter(core, ctx);
-      finalizeEvent(core, event, applyTurn(deps, writer, plan, external));
+      finalizeEvent(core, ctx, applyTurn(deps, writer, plan, external));
       return "committed" as const;
     });
   } catch (error) {
@@ -444,6 +416,7 @@ export async function processConversation(
   const seen = new Map<string, number>();
   try {
     for (;;) {
+      if (deps.stopping?.aborted) break;
       const event = nextConversationEvent(core, conversationId);
       if (!event) break;
       // A turn must move its event on; one that keeps coming back is parked, not spun on.
@@ -462,7 +435,7 @@ export async function processConversation(
           return committed;
         }
       }
-      if (result === "fenced") return committed;
+      if (result === "fenced" || result === "waiting") return committed;
       if (result === "stale") {
         inTransaction(core.db, () => deferInboxEvent(core, event.id, "stale_revision", 1_000));
         return committed;

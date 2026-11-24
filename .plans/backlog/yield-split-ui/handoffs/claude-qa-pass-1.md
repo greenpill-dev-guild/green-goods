@@ -24,7 +24,7 @@ Review the implemented UI and product guardrails after `ui`, `state_api`, and `c
 Prefer targeted reruns from the implementation lanes, plus source review for guardrails:
 
 ```bash
-bun run --cwd packages/admin test src/__tests__/components/Garden/GardenYieldCard.yield-split.test.tsx src/__tests__/components/Vault/PositionCard.yield-split.test.tsx
+bun run --cwd packages/admin test src/__tests__/views/GardenVaultView.yield-split.test.tsx src/__tests__/components/Vault/PositionCard.yield-split.test.tsx
 bun run --cwd packages/client test src/__tests__/components/Dialogs/ConvictionDrawer.yield-split.test.tsx
 bun run lint:vocab
 node scripts/harness/plan-hub.mjs validate

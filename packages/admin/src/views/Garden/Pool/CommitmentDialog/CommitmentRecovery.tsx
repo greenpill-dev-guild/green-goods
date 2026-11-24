@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   RiCheckboxCircleLine,
@@ -6,7 +7,6 @@ import {
   RiTimeLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import type { OpenDialog } from "./commitmentDialogPresentation";
 
 /**
@@ -43,25 +43,25 @@ export function CommitmentRecovery({
       className="space-y-2"
       data-testid="commitment-accepted-acts"
       aria-label={formatMessage({
-        id: "cockpit.garden.pool.commitment.accepted.label",
+        id: "hub.garden.pool.commitment.accepted.label",
         defaultMessage: "Recovery",
       })}
     >
       {reconciliation.readAvailable && reconciliation.count > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
-          <p className="flex min-w-0 items-start gap-2 body-sm">
+          <p className="flex min-w-0 items-start gap-2 type-body">
             <RiRefreshLine className="mt-0.5 h-4 w-4 shrink-0 text-primary-dark" aria-hidden />
             <span>
               <span className="font-medium text-text-strong">
                 {formatMessage({
-                  id: "cockpit.garden.pool.commitment.reconciliation.title",
+                  id: "hub.garden.pool.commitment.reconciliation.title",
                   defaultMessage: "Count Approved Linked Work",
                 })}
               </span>{" "}
               <span className="text-text-soft">
                 {formatMessage(
                   {
-                    id: "cockpit.garden.pool.commitment.reconciliation.body",
+                    id: "hub.garden.pool.commitment.reconciliation.body",
                     defaultMessage:
                       "{count, plural, one {# approved link is} other {# approved links are}} waiting to count.",
                   },
@@ -70,35 +70,35 @@ export function CommitmentRecovery({
               </span>
             </span>
           </p>
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => onOpenDialog("reconcile-work")}
             disabled={
               actDisabled || !can.syncWorkDecisions || reconciliation.readbackStatus === "pending"
             }
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.confirm",
+              id: "hub.garden.pool.commitment.reconciliation.confirm",
               defaultMessage: "Count Linked Work",
             })}
-          </AdminButton>
+          </Button>
           {blockedReason ? (
-            <p className="basis-full body-xs text-warning-dark">{blockedReason}</p>
+            <p className="basis-full type-meta text-warning-dark">{blockedReason}</p>
           ) : null}
         </div>
       ) : null}
 
       {reconciliation.readbackStatus === "pending" ? (
         <p
-          className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 body-sm text-text-soft"
+          className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 type-body text-text-soft"
           role="status"
           aria-live="polite"
         >
           <RiTimeLine className="h-4 w-4 shrink-0" aria-hidden />
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.reconciliation.pending",
+            id: "hub.garden.pool.commitment.reconciliation.pending",
             defaultMessage: "Waiting for indexed confirmation…",
           })}
         </p>
@@ -106,13 +106,13 @@ export function CommitmentRecovery({
 
       {reconciliation.readbackStatus === "succeeded" ? (
         <p
-          className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 body-sm text-success-dark"
+          className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 type-body text-success-dark"
           role="status"
           aria-live="polite"
         >
           <RiCheckboxCircleLine className="h-4 w-4 shrink-0" aria-hidden />
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.reconciliation.success",
+            id: "hub.garden.pool.commitment.reconciliation.success",
             defaultMessage: "Approved linked work counted.",
           })}
         </p>
@@ -120,15 +120,15 @@ export function CommitmentRecovery({
 
       {reconciliation.readbackStatus === "needsFreshReview" ? (
         <div
-          className="flex items-start gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 body-sm text-warning-dark"
+          className="flex items-start gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 type-body text-warning-dark"
           role="alert"
         >
           <RiErrorWarningLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.needsFreshReview",
+              id: "hub.garden.pool.commitment.reconciliation.needsFreshReview",
               defaultMessage:
-                "A newer Work decision needs review before this linked work can count.",
+                "A newer work decision needs review before this linked work can count.",
             })}
           </span>
         </div>
@@ -137,13 +137,13 @@ export function CommitmentRecovery({
       {reconciliation.readbackStatus === "unavailable" ||
       (!reconciliation.readAvailable && !reconciliation.isLoading) ? (
         <div
-          className="flex items-start gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 body-sm text-warning-dark"
+          className="flex items-start gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 type-body text-warning-dark"
           role="alert"
         >
           <RiErrorWarningLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.unavailable",
+              id: "hub.garden.pool.commitment.reconciliation.unavailable",
               defaultMessage: "Work decision readback is unavailable.",
             })}
           </span>
@@ -161,103 +161,103 @@ export function CommitmentRecovery({
         offer the act.
       */}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
-            <p className="min-w-0 body-sm">
+            <p className="min-w-0 type-body">
               <span className="font-medium text-text-strong">
                 {evidenceOnly
                   ? formatMessage({
-                      id: "cockpit.garden.pool.commitment.accepted.cannotConfirm",
+                      id: "hub.garden.pool.commitment.accepted.cannotConfirm",
                       defaultMessage: "Recipient can’t confirm?",
                     })
                   : formatMessage({
-                      id: "cockpit.garden.pool.commitment.accepted.workStalled",
+                      id: "hub.garden.pool.commitment.accepted.workStalled",
                       defaultMessage: "Work still outstanding?",
                     })}
               </span>{" "}
               <span className="text-text-soft">
                 {evidenceOnly
                   ? formatMessage({
-                      id: "cockpit.garden.pool.commitment.accepted.cannotConfirmHint",
+                      id: "hub.garden.pool.commitment.accepted.cannotConfirmHint",
                       defaultMessage: "A steward can mark it ready with a recorded reason.",
                     })
                   : formatMessage({
-                      id: "cockpit.garden.pool.commitment.accepted.workStalledHint",
+                      id: "hub.garden.pool.commitment.accepted.workStalledHint",
                       defaultMessage:
                         "A steward can mark it ready with a recorded reason. The credit already verified still counts.",
                     })}
               </span>
             </p>
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => onOpenDialog("mark-ready")}
               disabled={actDisabled || !can.markReady}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.commitment.act.markReady",
+                id: "hub.garden.pool.commitment.act.markReady",
                 defaultMessage: "Mark Ready…",
               })}
-            </AdminButton>
+            </Button>
           </div>
           {can.attachAssessment ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
-              <p className="min-w-0 body-sm">
+              <p className="min-w-0 type-body">
                 <span className="font-medium text-text-strong">
                   {formatMessage({
-                    id: "cockpit.garden.pool.commitment.accepted.assessment",
+                    id: "hub.garden.pool.commitment.accepted.assessment",
                     defaultMessage: "Assessment required",
                   })}
                 </span>{" "}
                 <span className="text-text-soft">
                   {formatMessage({
-                    id: "cockpit.garden.pool.commitment.accepted.assessmentHint",
+                    id: "hub.garden.pool.commitment.accepted.assessmentHint",
                     defaultMessage:
                       "Only assessments recorded for the provider garden can be attached.",
                   })}
                 </span>
               </p>
-              <AdminButton
+              <Button
                 type="button"
-                variant="outlined"
-                size="sm"
+                emphasis="secondary"
+                size="compact"
                 onClick={() => onOpenDialog("attach-assessment")}
                 disabled={actDisabled}
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.commitment.act.attachAssessment",
+                  id: "hub.garden.pool.commitment.act.attachAssessment",
                   defaultMessage: "Attach Assessment…",
                 })}
-              </AdminButton>
+              </Button>
             </div>
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
-            <p className="min-w-0 body-sm">
+            <p className="min-w-0 type-body">
               <span className="font-medium text-text-strong">
                 {formatMessage({
-                  id: "cockpit.garden.pool.commitment.accepted.calledOff",
+                  id: "hub.garden.pool.commitment.accepted.calledOff",
                   defaultMessage: "Called off?",
                 })}
               </span>{" "}
               <span className="text-text-soft">
                 {formatMessage({
-                  id: "cockpit.garden.pool.commitment.accepted.calledOffHint",
-                  defaultMessage: "Cancelling releases the committed units and records why.",
+                  id: "hub.garden.pool.commitment.accepted.calledOffHint",
+                  defaultMessage: "Canceling releases the committed units and records why.",
                 })}
               </span>
             </p>
             {/* Outlined where it sits; the red is for the confirm inside its dialog. */}
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => onOpenDialog("cancel")}
               disabled={actDisabled || !can.cancel}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.commitment.act.cancel",
-                defaultMessage: "Cancel Commitment…",
+                id: "hub.garden.pool.commitment.act.cancel",
+                defaultMessage: "Cancel Promise…",
               })}
-            </AdminButton>
+            </Button>
           </div>
         </>
       ) : null}

@@ -1,6 +1,7 @@
+import type { ButtonProps } from "@green-goods/shared/components/Button";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton, type AdminButtonProps } from "@/components/AdminButton";
 import type { FlowStatusTone } from "./FlowStatusRow";
 
 /** Where a create flow's send stands, as its Review step and its footer show it. */
@@ -59,8 +60,8 @@ export interface FlowSendFooterProps {
   phase: FlowSendPhase;
   /** The act the Review's primary performs, as its label ("Submit Assessment"). */
   sendLabel: string;
-  /** How the primary sends when a press is not all of it: the form it submits, its icon. */
-  sendButtonProps?: Pick<AdminButtonProps, "type" | "form" | "leadingIcon">;
+  /** How the primary sends when a press is not all of it: the form it submits, its 18px icon. */
+  sendButtonProps?: Pick<ButtonProps, "type" | "form" | "leadingIcon">;
   /** Said beside the Review's buttons: how often the wallet asks, or why sending is off. */
   note?: ReactNode;
   /** Next is held: the step has nothing chosen yet. */
@@ -107,90 +108,57 @@ export function FlowSendFooter({
 
   if (phase === "sent") {
     return (
-      <div
-        data-component="FlowSendFooter"
-        data-phase={phase}
-        className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end"
-      >
-        {another ? (
-          <AdminButton
-            type="button"
-            variant="outlined"
-            onClick={another.onClick}
-            className="w-full sm:w-auto"
-          >
-            {another.label}
-          </AdminButton>
-        ) : null}
-        <AdminButton type="button" variant="filled" onClick={onDone} className="w-full sm:w-auto">
-          {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </AdminButton>
-      </div>
+      <SheetActions
+        primary={{
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: onDone,
+        }}
+        secondary={another ? { label: another.label, onClick: another.onClick } : undefined}
+      />
     );
   }
 
   const waiting = held || phase === "sending";
   const isFirst = stepIndex === 0;
-  const back = (
-    <AdminButton
-      type="button"
-      variant={isFirst ? "text" : "outlined"}
-      onClick={isFirst ? onCancel : onBack}
-      disabled={waiting}
-      className="self-start sm:self-auto"
-    >
-      {isFirst
-        ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
-        : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-    </AdminButton>
-  );
+  const back = {
+    label: isFirst
+      ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
+      : formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+    onClick: isFirst ? onCancel : onBack,
+    disabled: waiting,
+  };
 
   if (!isLast) {
     return (
-      <div
-        data-component="FlowSendFooter"
-        data-phase={phase}
-        className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end"
-      >
-        {back}
-        <AdminButton
-          type="button"
-          variant="filled"
-          onClick={onNext}
-          disabled={waiting || nextDisabled}
-          className="w-full sm:w-auto"
-        >
-          {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-        </AdminButton>
-      </div>
+      <SheetActions
+        layout="steps"
+        primary={{
+          label: formatMessage({ id: "app.common.next", defaultMessage: "Next" }),
+          onClick: onNext,
+          disabled: waiting || nextDisabled,
+        }}
+        secondary={back}
+      />
     );
   }
 
   return (
-    <div
-      data-component="FlowSendFooter"
-      data-phase={phase}
-      className="flex w-full flex-col gap-2 sm:flex-row sm:items-center"
-    >
-      <p className="min-w-0 body-xs text-text-soft sm:flex-1">
-        {note ? <span role="status">{note}</span> : null}
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        {back}
-        <AdminButton
-          type="button"
-          {...sendButtonProps}
-          variant="filled"
-          onClick={onSend}
-          loading={phase === "sending"}
-          disabled={waiting || sendDisabled}
-          className="w-full sm:w-auto"
-        >
-          {phase === "failed"
+    <SheetActions
+      layout="steps"
+      note={note ?? null}
+      primary={{
+        type: sendButtonProps?.type,
+        form: sendButtonProps?.form,
+        icon: sendButtonProps?.leadingIcon,
+        label:
+          phase === "failed"
             ? formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })
-            : sendLabel}
-        </AdminButton>
-      </div>
-    </div>
+            : sendLabel,
+        onClick: onSend,
+        loading: phase === "sending",
+        disabled: waiting || sendDisabled,
+      }}
+      secondary={back}
+    />
   );
 }

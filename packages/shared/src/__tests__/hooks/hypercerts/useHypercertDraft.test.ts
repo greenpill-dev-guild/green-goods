@@ -7,7 +7,7 @@
  */
 
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
 // Mocks
@@ -76,12 +76,7 @@ const mockStoreState = {
   allowlist: [] as Array<{ address: string; units: bigint }>,
 };
 
-// Keep track of subscriber callbacks
-let subscribeFn: ((state: typeof mockStoreState) => void) | null = null;
-const mockSubscribe = vi.fn((_selector: unknown, callback: unknown) => {
-  subscribeFn = callback as (state: typeof mockStoreState) => void;
-  return vi.fn(); // unsubscribe
-});
+const mockSubscribe = vi.fn((_selector: unknown, _callback: unknown) => vi.fn());
 
 vi.mock("../../../stores/useHypercertWizardStore", () => {
   const store = (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState);
@@ -425,7 +420,9 @@ describe("useHypercertDraft", () => {
       {
         field: "allowlist",
         value: {
-          allowlist: [{ address: "0x1234567890123456789012345678901234567890", units: 100n }],
+          allowlist: [
+            { address: "0x1234567890123456789012345678901234567890" as const, units: 100n },
+          ],
         },
       },
     ])("detects meaningful progress when $field is set", async ({ value }) => {

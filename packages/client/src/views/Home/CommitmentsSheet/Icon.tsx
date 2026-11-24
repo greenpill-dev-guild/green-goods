@@ -1,10 +1,12 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { RiHandHeartLine } from "@remixicon/react";
-import type React from "react";
+import React, { useState } from "react";
 import { useIntl } from "react-intl";
-
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { preloadCommitmentsSheet } from "../DeferredSurfaces";
 
 export interface CommitmentsSheetIconProps {
   onClick: () => void;
@@ -17,6 +19,12 @@ export interface CommitmentsSheetIconProps {
   className?: string;
 }
 
+/**
+ * The Promises launcher, its glyph green at rest (DL-133). It fetches the sheet's code as it
+ * mounts and waits for it, disabled and busy, so its first tap opens a sheet with something to
+ * show (DL-132). A fetch that fails is logged and frees it: the sheet's own lazy import reports
+ * the failure through the route's error frame on open.
+ */
 export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
   onClick,
   actCount = 0,
@@ -24,12 +32,22 @@ export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
 }) => {
   const intl = useIntl();
   const hasActs = actCount > 0;
+  const [isReady, setIsReady] = useState(false);
+
+  useAsyncEffect(async ({ isMounted }) => {
+    await preloadCommitmentsSheet().catch((error: unknown) =>
+      logger.warn("Could not preload the promises sheet", { source: "CommitmentsSheetIcon", error })
+    );
+    if (isMounted()) setIsReady(true);
+  }, []);
 
   return (
     <IconButton
       emphasis="secondary"
       size="compact"
       onClick={onClick}
+      disabled={!isReady}
+      aria-busy={!isReady}
       className={className}
       aria-label={
         hasActs
@@ -37,19 +55,10 @@ export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
           : intl.formatMessage({ id: "app.commitments.openButton" })
       }
       data-testid="commitments-sheet-button"
-      icon={<RiHandHeartLine aria-hidden="true" />}
+      icon={<RiHandHeartLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
       badge={
         hasActs ? (
-          <span
-            className={cn(
-              "inline-flex items-center justify-center text-xs font-semibold rounded-full min-w-[18px] h-[18px] px-1",
-              pwaStatusStyles.primary.badge,
-              "shadow-sm border-2 border-bg-white-0"
-            )}
-            data-testid="commitments-notification-badge"
-          >
-            {actCount > 99 ? "99+" : actCount}
-          </span>
+          <CountBadge count={actCount} ring data-testid="commitments-notification-badge" />
         ) : undefined
       }
     />

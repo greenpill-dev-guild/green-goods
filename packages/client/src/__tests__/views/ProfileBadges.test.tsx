@@ -1,10 +1,12 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 
 const GREENWILL_BADGE_IDS = {
@@ -103,7 +105,8 @@ vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
   useProtocolMemberStatus: sharedMocks.useProtocolMemberStatus,
 }));
 
-vi.mock("@remixicon/react", () => ({
+vi.mock("@remixicon/react", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   RiAwardLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-award" }),
   RiAlertLine: (props: any) => createElement("span", props),
   RiCheckboxCircleLine: (props: any) => createElement("span", props),
@@ -122,8 +125,17 @@ vi.mock("@/components/Cards", () => ({
 
 import { ProfileBadges } from "../../views/Profile/Badges";
 
-const wrap = (el: React.ReactElement) =>
-  createElement(MemoryRouter, null, createElement(IntlProvider, { locale: "en", messages }, el));
+// Dates format in UTC, so a badge's calendar day is the same on every test machine.
+const wrap = (
+  el: React.ReactElement,
+  locale = "en",
+  localeMessages: Record<string, string> = messages
+) =>
+  createElement(
+    MemoryRouter,
+    null,
+    createElement(IntlProvider, { locale, messages: localeMessages, timeZone: "UTC" }, el)
+  );
 
 /** Genesis open to claim and not yet held, as the badge list reads it. */
 const genesisClaimable = () => ({
@@ -220,7 +232,7 @@ describe("ProfileBadges", () => {
           metadataURI: "ipfs://first-work",
           validator: "0x0000000000000000000000000000000000000001",
           authorizedIssuer: "0x0000000000000000000000000000000000000002",
-          unlockLock: "0x0000000000000000000000000000000000000003",
+          unlockLock: "0x0000000000000000000000000000000000000005",
           claimable: true,
           active: true,
           holderCount: 2,
@@ -356,14 +368,30 @@ describe("ProfileBadges", () => {
     cleanup();
   });
 
-  it("renders earned badge data and prefers the protocol ENS identity", () => {
+  it("renders Unlock artwork for earned and claimable badges and prefers the protocol ENS identity", () => {
     render(wrap(createElement(ProfileBadges)));
 
     expect(screen.getByText("Issued to river")).toBeInTheDocument();
     expect(screen.getByText("Genesis")).toBeInTheDocument();
     expect(screen.getByTestId("profile-badge-grid")).toHaveClass("grid-cols-2");
-    expect(screen.getByRole("button", { name: "View Genesis badge" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View First Work badge" })).toBeInTheDocument();
+    const genesis = screen.getByRole("button", { name: "View Genesis badge" });
+    const firstWork = screen.getByRole("button", { name: "View First Work badge" });
+    const genesisImage = within(genesis).getByAltText("");
+    expect(genesisImage).toHaveAttribute(
+      "src",
+      "https://locksmith.unlock-protocol.com/42161/lock/0x0000000000000000000000000000000000000003/icon"
+    );
+    expect(within(firstWork).getByAltText("")).toHaveAttribute(
+      "src",
+      "https://locksmith.unlock-protocol.com/42161/lock/0x0000000000000000000000000000000000000005/icon"
+    );
+
+    expect(genesisImage).toHaveAttribute("width", "80");
+    expect(genesisImage).toHaveAttribute("height", "80");
+
+    fireEvent.error(genesisImage);
+    expect(within(genesis).queryByAltText("")).toBeNull();
+    expect(within(genesis).getByTestId("icon-seedling")).toBeInTheDocument();
   });
 
   it("renders one neutral empty state when no badges are returned", () => {
@@ -421,6 +449,102 @@ describe("ProfileBadges", () => {
     await user.click(screen.getByRole("button", { name: "Close" }));
 
     expect(screen.queryByRole("dialog", { name: "Genesis" })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["en", messages, "View Genesis badge", "Genesis", "Issued on March 9, 2024"],
+    ["es", esMessages, "Ver insignia Génesis", "Génesis", "Emitida el 9 de marzo de 2024"],
+    ["pt", ptMessages, "Ver insígnia Gênese", "Gênese", "Emitida em 9 de março de 2024"],
+  ])("labels the ownership issue date on the card and sheet in %s", async (locale, localeMessages, buttonName, title, issuedOn) => {
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileBadges), locale, localeMessages));
+
+    // The date comes from the ownership issue block, in seconds, rather than a qualifying action.
+    const card = screen.getByRole("button", { name: buttonName });
+    const cardDate = within(card).getByText(issuedOn);
+    expect(cardDate.tagName).toBe("TIME");
+    expect(card).toHaveAccessibleDescription(
+      `${localeMessages["app.profile.badges.earnedStatus"]} ${issuedOn}`
+    );
+    expect(cardDate).toHaveAttribute("datetime", "2024-03-09T16:00:00.000Z");
+    expect(card.querySelector('[data-testid="badge-artwork"]')).toBeInTheDocument();
+
+    await user.click(card);
+    const sheet = screen.getByRole("dialog", { name: title });
+    expect(within(sheet).getByText(issuedOn)).toHaveAttribute(
+      "datetime",
+      "2024-03-09T16:00:00.000Z"
+    );
+  });
+
+  it.each([
+    null,
+    0,
+    -1,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+  ])("leaves earned cards and sheets undated when ownership time is %s", async (issuedAt) => {
+    const listing = sharedMocks.useGreenWillBadges();
+    const earned = listing.earnedBadges.map((badge: any) => ({
+      ...badge,
+      ownership: issuedAt === null ? null : { ...badge.ownership, issuedAt },
+    }));
+    sharedMocks.useGreenWillBadges.mockReturnValue({ ...listing, earnedBadges: earned });
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileBadges)));
+    const card = screen.getByRole("button", { name: "View Genesis badge" });
+    expect(card.querySelector("time")).toBeNull();
+    await user.click(card);
+    expect(screen.getByRole("dialog", { name: "Genesis" }).querySelector("time")).toBeNull();
+  });
+
+  it("leaves a ready-to-claim badge undated on its card and sheet", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileBadges)));
+    const card = screen.getByRole("button", { name: "View First Work badge" });
+    expect(card.querySelector("time")).toBeNull();
+    await user.click(card);
+    const sheet = screen.getByRole("dialog", { name: "First Work" });
+    expect(within(sheet).getByText("Ready to claim")).toBeInTheDocument();
+    expect(sheet.querySelector("time")).toBeNull();
+  });
+
+  it("shows the badge's artwork in its sheet, and its own glyph when the artwork fails or is missing", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(wrap(createElement(ProfileBadges)));
+
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+    const artwork = within(screen.getByRole("dialog", { name: "Genesis" })).getByTestId(
+      "badge-artwork"
+    );
+    const image = within(artwork).getByAltText("");
+    expect(image).toHaveAttribute("width", "144");
+    expect(image).toHaveAttribute("height", "144");
+    expect(image).toHaveAttribute(
+      "src",
+      "https://locksmith.unlock-protocol.com/42161/lock/0x0000000000000000000000000000000000000003/icon"
+    );
+    fireEvent.error(image);
+    expect(within(artwork).queryByAltText("")).toBeNull();
+    expect(within(artwork).getByTestId("icon-seedling")).toBeInTheDocument();
+    unmount();
+
+    // A badge with no Unlock collection never requests artwork.
+    const listing = genesisClaimable();
+    sharedMocks.useGreenWillBadges.mockReturnValue({
+      ...listing,
+      badges: listing.badges.map((badge) => ({
+        ...badge,
+        unlockLock: "0x0000000000000000000000000000000000000000",
+      })),
+    });
+    render(wrap(createElement(ProfileBadges)));
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+    const placeholder = within(screen.getByRole("dialog", { name: "Genesis" })).getByTestId(
+      "badge-artwork"
+    );
+    expect(placeholder.querySelector("img")).toBeNull();
+    expect(within(placeholder).getByTestId("icon-seedling")).toBeInTheDocument();
   });
 
   it("allows claiming the genesis badge when eligible", async () => {
@@ -483,6 +607,7 @@ describe("ProfileBadges", () => {
       within(screen.getByRole("dialog", { name: "Genesis" })).getByText("Earned")
     ).toBeVisible();
     expect(screen.queryByRole("button", { name: "Claim Genesis" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Genesis" }).querySelector("time")).toBeNull();
   });
 
   it("trusts an Earned badge over a claim whose wait failed", async () => {

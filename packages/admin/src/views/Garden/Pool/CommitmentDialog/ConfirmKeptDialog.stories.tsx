@@ -26,7 +26,7 @@ const meta: Meta<typeof ConfirmKeptDialog> = {
     docs: {
       description: {
         component:
-          "The review before a commitment is confirmed as kept, shared by Hub → Confirm and the commitment inspector: the commitment, the garden's pool it lives in, who kept it, and whether this confirmation closes it for good. A single confirmation cannot be taken back either, so both cases say so.",
+          "The review before a commitment is confirmed as kept, shared by Review → Confirm and the commitment inspector: the commitment, the garden's pool it lives in, who kept it, and whether this confirmation closes it for good. A single confirmation cannot be taken back either, so both cases say so.",
       },
     },
   },
@@ -34,7 +34,7 @@ const meta: Meta<typeof ConfirmKeptDialog> = {
     open: true,
     onClose: () => undefined,
     onConfirm: async () => undefined,
-    tone: "hub",
+    tone: "review",
     chainId: DEFAULT_CHAIN_ID,
     poolGarden: STORY_GARDEN,
     title: "Repair tool handles",
@@ -46,7 +46,7 @@ const meta: Meta<typeof ConfirmKeptDialog> = {
   decorators: [
     withSeededQueryClient(SEEDS),
     (Story) => (
-      <div className="p-4" data-tone="hub">
+      <div className="p-4" data-tone="review">
         <Story />
       </div>
     ),
@@ -59,9 +59,9 @@ type Story = StoryObj<typeof ConfirmKeptDialog>;
 /** The last confirmation needed: it closes the commitment for everyone. */
 export const ClosesIt: Story = {
   play: async () => {
-    const dialog = await screen.findByRole("dialog", { name: "Confirm This Commitment Kept" });
+    const dialog = await screen.findByRole("dialog", { name: "Confirm This Promise Kept" });
     await expect(dialog).toHaveTextContent("“Repair tool handles” in Rio Rainforest Lab’s pool");
-    await expect(dialog).toHaveTextContent("This closes the commitment as kept, for everyone.");
+    await expect(dialog).toHaveTextContent("This closes the promise as kept, for everyone.");
   },
 };
 
@@ -69,7 +69,7 @@ export const ClosesIt: Story = {
 export const CountsTowardIt: Story = {
   args: { confirmationCount: 0, confirmationThreshold: 3 },
   play: async () => {
-    const dialog = await screen.findByRole("dialog", { name: "Confirm This Commitment Kept" });
+    const dialog = await screen.findByRole("dialog", { name: "Confirm This Promise Kept" });
     await expect(dialog).toHaveTextContent(
       "Yours is confirmation 1 of the 3 needed, and it cannot be taken back."
     );
@@ -80,7 +80,7 @@ export const CountsTowardIt: Story = {
 export const ProtocolPool: Story = {
   args: { poolGarden: STORY_ROOT_GARDEN },
   play: async () => {
-    const dialog = await screen.findByRole("dialog", { name: "Confirm This Commitment Kept" });
+    const dialog = await screen.findByRole("dialog", { name: "Confirm This Promise Kept" });
     await expect(dialog).toHaveTextContent("Writing to the Green Goods protocol pool");
   },
 };

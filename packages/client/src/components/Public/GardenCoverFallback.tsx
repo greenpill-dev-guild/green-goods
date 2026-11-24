@@ -1,3 +1,4 @@
+import { DOMAIN_TOKEN_SLUG } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 
 /**
@@ -24,30 +25,11 @@ interface Palette {
 // (see packages/client/src/styles/editorial.css). Walnut foreground reads
 // well across all four soft surfaces.
 const PALETTES: readonly Palette[] = [
-  {
-    // solar — warm umber → pale amber
-    ink: "var(--color-domain-solar)",
-    soft: "var(--color-domain-solar-soft)",
+  ...Object.values(DOMAIN_TOKEN_SLUG).map((slug) => ({
+    ink: `var(--color-domain-${slug})`,
+    soft: `var(--color-domain-${slug}-soft)`,
     fg: "var(--color-editorial-deep)",
-  },
-  {
-    // agro — deep moss → pale sage
-    ink: "var(--color-domain-agro)",
-    soft: "var(--color-domain-agro-soft)",
-    fg: "var(--color-editorial-deep)",
-  },
-  {
-    // education — slate violet → pale violet
-    ink: "var(--color-domain-education)",
-    soft: "var(--color-domain-education-soft)",
-    fg: "var(--color-editorial-deep)",
-  },
-  {
-    // waste — harbour blue → pale harbour
-    ink: "var(--color-domain-waste)",
-    soft: "var(--color-domain-waste-soft)",
-    fg: "var(--color-editorial-deep)",
-  },
+  })),
   {
     // editorial — walnut → linen
     ink: "var(--color-editorial-deep)",

@@ -34,6 +34,9 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
 vi.mock("../../../hooks/blockchain/useEnsName", () => ({
   useEnsName: (address: Address) => mocks.ensName(address),
 }));
+vi.mock("../../../hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
 vi.mock("../../../hooks/garden/useEligibleAdminGardens", () => ({
   useEligibleAdminGardens: () => ({ eligibleGardens: [gardenOne, gardenTwo] }),
 }));

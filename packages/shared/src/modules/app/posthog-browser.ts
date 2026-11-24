@@ -1,7 +1,9 @@
 import { type CaptureResult, posthog } from "posthog-js";
 import { flushCrashReports } from "./crash-reports";
-import { restoreExceptionTopLevelProps } from "./posthog";
+import { classifyExternalError, externalErrorTags } from "./external-errors";
+import { getAppContext, restoreExceptionTopLevelProps, track } from "./posthog";
 import { isReportingCeremonyPath, redactPrivatePaths } from "./private-paths";
+import { getTelemetrySegmentation } from "./telemetry-context";
 import { registerTelemetrySink } from "./telemetry-sink";
 
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
@@ -20,6 +22,8 @@ type ExceptionEntry = {
   stacktrace?: { frames?: unknown };
   value?: unknown;
 };
+
+type ExceptionFrame = { abs_path?: unknown; filename?: unknown } | null;
 
 /** Drop extension-owned exceptions while preserving frameless application failures. */
 export function dropExtensionExceptions(event: CaptureResult | null): CaptureResult | null {
@@ -64,6 +68,52 @@ export function dropSkippedTransitionExceptions(event: CaptureResult | null): Ca
   );
 
   return isSkippedTransition ? null : event;
+}
+
+/**
+ * Tag WalletConnect relay and beta toolbar exceptions as external (PRD-1560). A relay reconnect
+ * that nothing of ours handled drops to a warning; see `external-errors`.
+ */
+export function tagExternalExceptions(event: CaptureResult | null): CaptureResult | null {
+  if (!event || event.event !== "$exception" || !event.properties) return event;
+
+  const list = event.properties.$exception_list;
+  if (!Array.isArray(list)) return event;
+
+  const entries = list as ExceptionEntry[];
+  const external = classifyExternalError({
+    messages: entries.map((entry) => entry?.value),
+    locations: entries.flatMap((entry) =>
+      Array.isArray(entry?.stacktrace?.frames)
+        ? (entry.stacktrace.frames as ExceptionFrame[]).flatMap((frame) => [
+            frame?.abs_path,
+            frame?.filename,
+          ])
+        : []
+    ),
+  });
+  if (!external) return event;
+
+  const unhandled = entries.some((entry) => entry?.mechanism?.handled === false);
+  return {
+    ...event,
+    properties: {
+      ...event.properties,
+      ...externalErrorTags(external),
+      ...(external.recoverable && unhandled ? { $exception_level: "warning" } : {}),
+    },
+  };
+}
+
+/**
+ * Stamp every event with this build's segmentation (PRD-1560), autocaptured ones included.
+ * PostHog captures the first `$pageview` inside `init`, before the app registers its super
+ * properties, and a returning browser still holds the last visit's release and account flag.
+ */
+export function segmentEvent(event: CaptureResult | null): CaptureResult | null {
+  if (!event) return event;
+  const properties = event.properties ?? {};
+  return { ...event, properties: { ...properties, ...getTelemetrySegmentation(properties) } };
 }
 
 /** Development hosts whose exceptions must never reach the shared production project. */
@@ -144,6 +194,8 @@ export function initializePostHog(apiKey: string): void {
       restoreExceptionTopLevelProps,
       dropExtensionExceptions,
       dropSkippedTransitionExceptions,
+      tagExternalExceptions,
+      segmentEvent,
     ],
     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
   });
@@ -164,6 +216,19 @@ export function initializePostHog(apiKey: string): void {
   // that wait for a connection go out when it returns. The listener lives as long as the page.
   if (initializedKey === null && typeof window !== "undefined") {
     window.addEventListener("online", flushCrashReports);
+    if (document.documentElement.dataset.bootPresentation === "pwa") {
+      const trackStartupReady = () => {
+        const mark = performance.getEntriesByName("gg-pwa-startup-ready", "mark")[0];
+        if (mark)
+          track("pwa_startup_ready", {
+            ...getAppContext(),
+            duration_ms: Math.round(mark.startTime),
+          });
+      };
+      // Auth can become ready before or after the analytics transport connects.
+      if (performance.getEntriesByName("gg-pwa-startup-ready", "mark").length) trackStartupReady();
+      else window.addEventListener("gg-pwa-startup-ready", trackStartupReady, { once: true });
+    }
   }
   initializedKey = apiKey;
   flushCrashReports();

@@ -1,7 +1,7 @@
 import type { PublicationEnvelope } from "@green-goods/shared/modules/agent-reporting";
 import { decodeAbiParameters, type Hex, pad, parseAbiParameters, zeroHash } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
-import { latestAttempt, updateAttempt } from "./attempts";
+import { latestAttempt, SAFE_SIGNERS, updateAttempt } from "./attempts";
 import {
   ATTESTED_TOPIC,
   type Addr,
@@ -9,13 +9,20 @@ import {
   type TransactionReceiptView,
   USER_OPERATION_EVENT_TOPIC,
 } from "./chain";
+import {
+  ATTESTATION_PENDING,
+  announceConfirmed,
+  announcePublishedChecking,
+  announceStillConfirming,
+  foundAfterStop,
+  recordMined,
+  stopChecking,
+} from "./check-notices";
 import { inTransaction } from "./database";
 import type { ClaimedJob } from "./jobs";
-import { participantWriter } from "./notify";
 import { operationSubject } from "./operation-subjects";
 import { type OperationRecord, operationById, setOperationState } from "./operations";
 import { audit } from "./participants";
-import { publicationRecords } from "./publication-records";
 import type { ReportingCore } from "./runtime";
 import type { JobOutcome } from "./worker";
 
@@ -31,6 +38,16 @@ export interface ReconciliationDeps {
   chain: ReportingChain;
   scanWindowBlocks: bigint;
 }
+
+/**
+ * How often, and how many times, a send a Safe only proposed is looked for: every ten minutes for
+ * a week. Its owners may take that long to sign, and nothing here can tell a proposal they will
+ * never run from one they have not run yet (PRD-1568).
+ */
+const SAFE_CHECK_INTERVAL_MS = 10 * 60_000;
+export const SAFE_CHECK_PASSES = (7 * 24 * 60 * 60_000) / SAFE_CHECK_INTERVAL_MS;
+/** What marks that check's job, so the check an earlier report started can end beside it. */
+export const SAFE_CHECK_PAYLOAD = { safeSigners: true } as const;
 
 interface Verified {
   uid: Hex;
@@ -158,18 +175,28 @@ async function resolve(
     }
   }
   // No usable hash, or the reported one does not carry this envelope: search the bounded range.
-  const fromBlock = BigInt(operation.fromBlock ?? attempt?.fromBlock ?? 0);
+  // A Safe's proposal can be run hours or days after it went out, long past the one window a sent
+  // transaction lands in, so its check reads every window from the send to the chain's head
+  // (PRD-1568). Nothing is kept between passes, so a pass after an outage misses nothing.
   const latest = await chain.blockNumber(envelope.chainId);
-  const toBlock =
-    latest < fromBlock + deps.scanWindowBlocks ? latest : fromBlock + deps.scanWindowBlocks;
-  const events = await chain.attestedEvents(envelope.chainId, {
-    eas: envelope.easAddress as Addr,
-    schemaUID: envelope.schemaUID,
-    recipient: envelope.gardenAddress as Addr,
-    attester: envelope.accountAddress as Addr,
-    fromBlock,
-    toBlock,
-  });
+  const events: Awaited<ReturnType<ReportingChain["attestedEvents"]>> = [];
+  let fromBlock = BigInt(operation.fromBlock ?? attempt?.fromBlock ?? 0);
+  for (;;) {
+    const windowEnd = fromBlock + deps.scanWindowBlocks;
+    const toBlock = latest < windowEnd ? latest : windowEnd;
+    events.push(
+      ...(await chain.attestedEvents(envelope.chainId, {
+        eas: envelope.easAddress as Addr,
+        schemaUID: envelope.schemaUID,
+        recipient: envelope.gardenAddress as Addr,
+        attester: envelope.accountAddress as Addr,
+        fromBlock,
+        toBlock,
+      }))
+    );
+    if (attempt?.reasonCode !== SAFE_SIGNERS || toBlock >= latest) break;
+    fromBlock = toBlock + 1n;
+  }
   const matches: Verified[] = [];
   const unread = new Set<Hex>();
   for (const event of events) {
@@ -241,34 +268,6 @@ function publish(
   operationSubject(core, operation)?.recorded(verified, envelope, `published:${operation.id}`);
 }
 
-/**
- * Says once that the transaction is confirmed while its attestation is still being read. The
- * dedupe key belongs to the operation, so every later pass through this state stays silent, and
- * the verified result follows without anything more from its author.
- */
-function announceConfirmed(
-  core: ReportingCore,
-  operation: OperationRecord,
-  envelope: PublicationEnvelope,
-  transactionHash: Hex
-): void {
-  const subject = operationSubject(core, operation);
-  if (!subject) return;
-  const out = participantWriter(core, {
-    participantId: subject.participantId,
-    conversationId: subject.conversationId,
-    dedupePrefix: `confirmed:${operation.id}`,
-  });
-  out?.sayWithRecords(
-    "publish.confirmed",
-    publicationRecords((key) => out.text(key), {
-      chainId: envelope.chainId,
-      transactionHash,
-      attestationUid: null,
-    })
-  );
-}
-
 function revert(deps: ReconciliationDeps, operation: OperationRecord): void {
   const { core } = deps;
   const attempt = latestAttempt(core, operation.id);
@@ -292,11 +291,30 @@ export async function reconcileOperation(
   const operation = operationById(core, job.subjectId);
   const envelope = operation?.envelope;
   if (!operation || !envelope || operation.state !== "reconciling") return { status: "done" };
+  // A Safe's proposal has a check of its own; one an earlier report started ends here, quietly.
+  if (
+    job.payload.safeSigners !== SAFE_CHECK_PAYLOAD.safeSigners &&
+    latestAttempt(core, operation.id)?.reasonCode === SAFE_SIGNERS
+  )
+    return { status: "done" };
+  // If a retry spends the job's last attempt, the worker parks it and the check stops there.
+  const stopped = (reason: string) => () => stopChecking(core, operation.id, reason);
   let resolution: Resolution;
   try {
     resolution = await resolve(deps, operation, envelope);
   } catch {
-    return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
+    const safe = inTransaction(core.db, () => {
+      const current = operationById(core, operation.id);
+      if (current?.state === "reconciling") announceStillConfirming(core, current, job);
+      return latestAttempt(core, operation.id)?.reasonCode === SAFE_SIGNERS;
+    });
+    return {
+      status: "retry",
+      errorCode: "dependency_unavailable",
+      // An outage must not spend a Safe's week of checks in a few hours.
+      delayMs: safe ? SAFE_CHECK_INTERVAL_MS : 30_000,
+      onParked: stopped("dependency_unavailable"),
+    };
   }
   return inTransaction(core.db, (): JobOutcome => {
     const current = operationById(core, operation.id);
@@ -306,8 +324,19 @@ export async function reconcileOperation(
         publish(deps, current, envelope, resolution.verified);
         return { status: "done" };
       case "confirmed":
-        announceConfirmed(core, current, envelope, resolution.transactionHash);
-        return { status: "retry", errorCode: "attestation_pending", delayMs: 30_000 };
+        // The person gets the transaction's link; only its attestation is still unread. If the
+        // check runs out after this, it says so, with the link. On its last pass it says only
+        // that, not the promise of more this pass would otherwise make just before stopping.
+        recordMined(core, current, resolution.transactionHash);
+        if (job.attempts < job.maxAttempts)
+          announceConfirmed(core, current, envelope, resolution.transactionHash);
+        foundAfterStop(core, current, "transaction_mined");
+        return {
+          status: "retry",
+          errorCode: ATTESTATION_PENDING,
+          delayMs: 30_000,
+          onParked: stopped(ATTESTATION_PENDING),
+        };
       case "reverted":
         revert(deps, current);
         return { status: "done" };
@@ -319,9 +348,36 @@ export async function reconcileOperation(
           { kind: "operation", id: current.id },
           { reason: resolution.reason }
         );
-        return { status: "retry", errorCode: resolution.reason, delayMs: 5 * 60_000 };
-      case "pending":
-        return { status: "retry", errorCode: "receipt_pending", delayMs: 30_000 };
+        if (resolution.reason === "multiple_matches") {
+          foundAfterStop(core, current, "multiple_matches");
+          announcePublishedChecking(core, current);
+        } else announceStillConfirming(core, current, job);
+        return {
+          status: "retry",
+          errorCode: resolution.reason,
+          delayMs: 5 * 60_000,
+          // Two matching attestations mean it was published; that one is for an operator to settle.
+          ...(resolution.reason === "multiple_matches"
+            ? {}
+            : { onParked: stopped(resolution.reason) }),
+        };
+      case "pending": {
+        // A Safe's proposal waits on its owners, not the network: checked less often, for longer.
+        if (latestAttempt(core, current.id)?.reasonCode === SAFE_SIGNERS)
+          return {
+            status: "retry",
+            errorCode: SAFE_SIGNERS,
+            delayMs: SAFE_CHECK_INTERVAL_MS,
+            onParked: stopped(SAFE_SIGNERS),
+          };
+        announceStillConfirming(core, current, job);
+        return {
+          status: "retry",
+          errorCode: "receipt_pending",
+          delayMs: 30_000,
+          onParked: stopped("receipt_pending"),
+        };
+      }
     }
   });
 }

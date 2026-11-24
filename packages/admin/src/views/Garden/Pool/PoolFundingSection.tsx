@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
@@ -5,7 +7,6 @@ import { goodDollarWeiToUsdCents } from "@green-goods/shared/modules/wallet/good
 import { RiAlertLine, RiCheckLine, RiInformationLine, RiRefreshLine } from "@remixicon/react";
 import { type RefObject, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import {
   formatGdollar,
@@ -85,21 +86,24 @@ export function PoolFundingSection({
       <div className="flex items-center justify-between gap-2">
         <AdminCardTitle as="h3" id="pool-funding-title">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.title",
+            id: "hub.garden.pool.funding.title",
             defaultMessage: "Pool Funding",
           })}
         </AdminCardTitle>
-        <AdminIconButton
+        <IconButton
           size="lg"
-          label={formatMessage({
-            id: "cockpit.garden.pool.funding.refresh",
+          aria-label={formatMessage({
+            id: "hub.garden.pool.funding.refresh",
+            defaultMessage: "Refresh Pool Funding",
+          })}
+          title={formatMessage({
+            id: "hub.garden.pool.funding.refresh",
             defaultMessage: "Refresh Pool Funding",
           })}
           onClick={() => void handleRefresh()}
           loading={manualRefresh === "running"}
-        >
-          <RiRefreshLine />
-        </AdminIconButton>
+          icon={<RiRefreshLine />}
+        />
       </div>
 
       {funding.isLoading && !snapshot ? (
@@ -107,7 +111,7 @@ export function PoolFundingSection({
           role="status"
           className="space-y-2"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.funding.loading",
+            id: "hub.garden.pool.funding.loading",
             defaultMessage: "Loading pool funding",
           })}
         >
@@ -117,21 +121,21 @@ export function PoolFundingSection({
       ) : (
         <>
           <div className="space-y-0.5">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.funding.availablePromises",
+                id: "hub.garden.pool.funding.availablePromises",
                 defaultMessage: "Available for new promises",
               })}
             </p>
             <p className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
-              <span className="text-title-md font-semibold text-text-strong">
+              <span className="type-title-md font-semibold text-text-strong">
                 {availableDollars ?? formatGdollar(available, locale)}
               </span>
               {available !== null && availableDollars !== null ? (
-                <span className="body-sm text-text-sub">
+                <span className="type-body text-text-sub">
                   {formatMessage(
                     {
-                      id: "cockpit.garden.pool.funding.aboutGoodDollars",
+                      id: "hub.garden.pool.funding.aboutGoodDollars",
                       defaultMessage: "about {amount} G$",
                     },
                     { amount: formatGoodDollarsCompact(available, locale) }
@@ -141,11 +145,11 @@ export function PoolFundingSection({
             </p>
           </div>
 
-          <p className="body-xs text-text-sub tabular-nums" data-slot="funding-safe-line">
+          <p className="type-meta text-text-sub tabular-nums" data-slot="funding-safe-line">
             {snapshot?.safe
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.funding.safeLine",
+                    id: "hub.garden.pool.funding.safeLine",
                     defaultMessage: "{balance} in the Safe · {committed} committed",
                   },
                   {
@@ -156,7 +160,7 @@ export function PoolFundingSection({
               : funding.isError && !snapshot
                 ? fundingStateMessage("unavailable", intl)
                 : formatMessage({
-                    id: "cockpit.garden.pool.funding.noSafe",
+                    id: "hub.garden.pool.funding.noSafe",
                     defaultMessage: "No settlement Safe configured",
                   })}
           </p>
@@ -189,59 +193,59 @@ export function PoolFundingSection({
             >
               {snapshot?.settlementReadiness === "ready" && !stale
                 ? formatMessage({
-                    id: "cockpit.garden.pool.funding.settlementReady",
+                    id: "hub.garden.pool.funding.settlementReady",
                     defaultMessage: "Settlement ready",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.funding.settlementUnavailable",
+                    id: "hub.garden.pool.funding.settlementUnavailable",
                     defaultMessage: "Settlement unavailable",
                   })}
             </StatusBadge>
           </div>
 
           {readIssue || blockedBy ? (
-            <p className="body-xs text-text-sub" data-slot="funding-blocked-by">
+            <p className="type-meta text-text-sub" data-slot="funding-blocked-by">
               {readIssue ?? (blockedBy ? readinessReasonMessage(blockedBy, intl) : null)}
             </p>
           ) : null}
 
           {protocolContext ? (
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.funding.protocolNote",
+                id: "hub.garden.pool.funding.protocolNote",
                 defaultMessage:
                   "Upstream treasury inflow is not recorded here; the Celo Safe balance is authoritative.",
               })}
             </p>
           ) : null}
 
-          <p className="flex flex-wrap items-center gap-x-1 body-xs text-text-sub">
+          <p className="flex flex-wrap items-center gap-x-1 type-meta text-text-sub">
             <span>
               {funding.isRefetching
                 ? formatMessage({
-                    id: "cockpit.garden.pool.funding.refreshing",
+                    id: "hub.garden.pool.funding.refreshing",
                     defaultMessage: "Refreshing…",
                   })
                 : snapshot?.balance?.readAt
-                  ? `${stale ? formatMessage({ id: "cockpit.garden.pool.funding.lastRead", defaultMessage: "Last read" }) : formatMessage({ id: "cockpit.garden.pool.funding.readAt", defaultMessage: "Read" })} ${formatTime(snapshot.balance.readAt * 1_000, { hour: "numeric", minute: "2-digit" })}`
+                  ? `${stale ? formatMessage({ id: "hub.garden.pool.funding.lastRead", defaultMessage: "Last read" }) : formatMessage({ id: "hub.garden.pool.funding.readAt", defaultMessage: "Read" })} ${formatTime(snapshot.balance.readAt * 1_000, { hour: "numeric", minute: "2-digit" })}`
                   : formatMessage({
-                      id: "cockpit.garden.pool.funding.notRead",
+                      id: "hub.garden.pool.funding.notRead",
                       defaultMessage: "No current balance read",
                     })}
             </span>
             <span aria-hidden>·</span>
-            <AdminButton
+            <Button
               ref={detailsButtonRef}
               type="button"
-              variant="text"
-              size="sm"
+              emphasis="tertiary"
+              size="compact"
               onClick={onOpenDetails}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.funding.openDetails",
+                id: "hub.garden.pool.funding.openDetails",
                 defaultMessage: "View Details",
               })}
-            </AdminButton>
+            </Button>
           </p>
         </>
       )}
@@ -249,7 +253,7 @@ export function PoolFundingSection({
       <span className="sr-only" aria-live="polite">
         {manualRefresh === "done"
           ? formatMessage({
-              id: "cockpit.garden.pool.funding.refreshComplete",
+              id: "hub.garden.pool.funding.refreshComplete",
               defaultMessage: "Pool funding refreshed",
             })
           : ""}

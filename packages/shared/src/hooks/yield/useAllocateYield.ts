@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import type { AllocateYieldParams } from "../../types/gardens-community";
@@ -24,6 +25,8 @@ export function useAllocateYield() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const allocateAct: SendActContext = { act: "yield_allocate", authMode, chainId };
   const yieldSplitterAddress = getNetworkContracts(chainId).yieldSplitter as Address;
   const handleError = createMutationErrorHandler({
     source: "useAllocateYield",
@@ -44,14 +47,14 @@ export function useAllocateYield() {
   );
 
   return useMutation({
-    mutationFn: async (params: AllocateYieldParams) => {
+    mutationFn: recordedSendAct(allocateAct, async (params: AllocateYieldParams) => {
       return sendContractTx({
         address: yieldSplitterAddress,
         abi: YIELD_SPLITTER_ABI,
         functionName: "splitYield",
         args: [params.gardenAddress, params.assetAddress, params.vaultAddress],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.yield.allocating" }),

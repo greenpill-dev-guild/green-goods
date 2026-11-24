@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withCanvasFrame, withRouter } from "../../../../shared/.storybook/decorators";
-import { AdminButton } from "../AdminButton";
 import { AdminTabRail } from "../AdminTabRail";
 import { CanvasRouteContent, CanvasRouteFrame, CanvasRouteHeader } from "./CanvasRouteFrame";
 
@@ -37,7 +37,7 @@ export const StateCatalog: Story = {
         variant="canvas"
         sticky
         metadata={<span>Rio Rainforest Lab</span>}
-        backLink={{ to: "/hub", label: "Back to hub" }}
+        backLink={{ to: "/review", label: "Back to Review" }}
       >
         <AdminTabRail
           ariaLabel="Garden workspace sections"
@@ -45,23 +45,25 @@ export const StateCatalog: Story = {
           onChange={() => {}}
           tabs={[
             { id: "overview", label: "Overview" },
-            { id: "impact", label: "Impact", count: 6 },
+            { id: "impact", label: "Impact" },
             { id: "settings", label: "Settings" },
           ]}
         />
       </CanvasRouteHeader>
       <CanvasRouteContent className="mt-4 space-y-4">
         <div className="rounded-lg border border-stroke-soft bg-bg-white p-4">
-          <p className="label-md text-text-strong">Workspace content lane</p>
-          <p className="mt-1 body-sm text-text-sub">
+          <p className="type-label-sm text-text-strong">Workspace content lane</p>
+          <p className="mt-1 type-body text-text-sub">
             Route bodies should sit inside this constrained content container.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <AdminButton size="sm">Primary action</AdminButton>
-          <AdminButton size="sm" variant="outlined">
+          <Button type="button" size="compact">
+            Primary action
+          </Button>
+          <Button type="button" emphasis="secondary" size="compact">
             Secondary action
-          </AdminButton>
+          </Button>
         </div>
       </CanvasRouteContent>
     </CanvasRouteFrame>
@@ -78,7 +80,7 @@ export const NarrowContent: Story = {
         maxWidthClassName="max-w-3xl"
       />
       <CanvasRouteContent maxWidthClassName="max-w-3xl" className="mt-4">
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 body-sm text-text-sub">
+        <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 type-body text-text-sub">
           Narrow routes use the same shell with a smaller content width.
         </div>
       </CanvasRouteContent>

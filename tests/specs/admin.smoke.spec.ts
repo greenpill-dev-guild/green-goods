@@ -1,16 +1,10 @@
 /**
- * Admin Cockpit Smoke Tests
- *
- * Deterministic browser checks for the current admin cockpit routes.
- *
- * Strategy:
- * - Use the app's dev-only `mockAuth` seam instead of brittle wagmi storage injection
- * - Mock indexer gardens/actions queries so cockpit routes have stable data
- * - Mock EAS GraphQL with empty attestations so `/hub` renders predictable empty/loading states
+ * Hub smoke checks on the dev-only `mockAuth` seam, not brittle wagmi storage injection, with
+ * mocked indexer and EAS reads so each route renders stable data.
  */
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
-import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { AdminTestHelper, seedAcceptedUploadTerms, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 
@@ -22,7 +16,7 @@ const MOCK_GARDENS = [
     tokenAddress: "0xabcd1234567890123456789012345678901234ef",
     tokenID: "1",
     name: "Mock Steward Garden",
-    description: "Fixture garden for admin cockpit verification",
+    description: "Fixture garden for Hub verification",
     location: "Nairobi",
     bannerImage: "",
     gardeners: ["0x2aa64E6d80390F5C017F0313cB908051BE2FD35e"],
@@ -36,6 +30,23 @@ const MOCK_GARDENS = [
     createdAt: Math.floor(Date.now() / 1000),
   },
 ];
+interface HubFixture {
+  gardens?: typeof MOCK_GARDENS;
+  /** Who may create gardens; the RPC mock's own list when left out. */
+  allowlisted?: readonly string[];
+}
+
+// The same garden with the signed-in address as an evaluator only, and nobody allowed to create
+// gardens, so Community stays closed.
+const EVALUATOR_ONLY: HubFixture = {
+  gardens: MOCK_GARDENS.map((garden) => ({
+    ...garden,
+    operators: [],
+    owners: [],
+    evaluators: [MOCK_STEWARD_ADDRESS],
+  })),
+  allowlisted: [],
+};
 const MOCK_GARDEN_DOMAINS = MOCK_GARDENS.map((garden) => ({
   garden: garden.id,
   domainMask: 1,
@@ -63,7 +74,10 @@ function getGraphQLQueryText(request: { postData(): string | null }): string {
   return "";
 }
 
-async function mockAdminCockpitBackend(page: Page) {
+async function mockAdminHubBackend(
+  page: Page,
+  { gardens = MOCK_GARDENS, allowlisted }: HubFixture = {}
+) {
   const handleIndexerRoute = async (route: Route) => {
     if (route.request().method() === "OPTIONS") {
       return route.fulfill({
@@ -80,7 +94,7 @@ async function mockAdminCockpitBackend(page: Page) {
         headers: GRAPHQL_HEADERS,
         body: JSON.stringify({
           data: {
-            Garden: MOCK_GARDENS,
+            Garden: gardens,
             GardenDomains: MOCK_GARDEN_DOMAINS,
           },
         }),
@@ -93,7 +107,11 @@ async function mockAdminCockpitBackend(page: Page) {
         headers: GRAPHQL_HEADERS,
         body: JSON.stringify({
           data: {
-            Garden: MOCK_GARDENS.map(({ id, name }) => ({ id, name })),
+            Garden: gardens
+              .filter((garden) =>
+                [...garden.operators, ...garden.owners].includes(MOCK_STEWARD_ADDRESS)
+              )
+              .map(({ id, name }) => ({ id, name })),
           },
         }),
       });
@@ -152,44 +170,55 @@ async function mockAdminCockpitBackend(page: Page) {
     });
   });
 
-  await mockSepoliaRpc(page, { garden: MOCK_GARDENS[0] });
+  await mockSepoliaRpc(page, { garden: gardens[0], allowlisted });
 }
 
-async function setupMockSteward(page: Page) {
+async function setupMockSteward(page: Page, fixture: HubFixture = {}) {
   const helper = new AdminTestHelper(page);
+  await seedAcceptedUploadTerms(page.context(), ADMIN_URL, ["steward"]);
   await helper.enableMockAuth("steward");
-  await mockAdminCockpitBackend(page);
+  await mockAdminHubBackend(page, fixture);
   return helper;
 }
 
+// A signed-in boot shows "Opening your workspace…" for 10 to 20 seconds on a quiet clean-room
+// dev server and can outlast the helper's 30s wait for `main` on a busy one. A boot-sized wait
+// for `main` runs first; the helper's checks still run after it.
+const SIGNED_IN_BOOT_MS = 60_000;
+// A whole signed-in load: the boot's wait for `main`, plus the navigation and the helper's checks.
+const SIGNED_IN_LOAD_MS = SIGNED_IN_BOOT_MS + 20_000;
+
+async function waitForSignedInBoot(page: Page, helper: AdminTestHelper) {
+  await page.getByRole("main").waitFor({ state: "visible", timeout: SIGNED_IN_BOOT_MS });
+  await helper.waitForPageLoad();
+}
+
 test.describe.configure({ mode: "serial" });
-test.describe("Admin Cockpit", () => {
+test.describe("Green Goods Hub", () => {
   test.use({ baseURL: ADMIN_URL });
 
   test("shows the connect shell when unauthenticated", async ({ page }) => {
-    await page.goto("/hub");
+    await page.goto("/review");
     await page.waitForLoadState("domcontentloaded");
 
     await expect(page.getByText("Connect to continue")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /sign in with a wallet/i })).toBeVisible();
   });
 
-  test("renders the work cockpit for a mocked steward", async ({ page }) => {
+  test("renders the work Hub for a mocked steward", async ({ page }) => {
     const helper = await setupMockSteward(page);
 
-    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
+    await page.goto(helper.buildMockAuthPath("/review", "steward"));
     await helper.waitForPageLoad();
 
     await expect(page.getByText("Connect to continue")).toHaveCount(0);
     await expect(page.getByText("Mock Steward Garden", { exact: true })).toBeVisible({
       timeout: 15000,
     });
-    // Hub is the workspace heading; its active pipeline stage appears in the tab rail below.
-    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible({ timeout: 15000 });
-    // The Hub tab rail renders pipeline stage tabs filtered by role
-    // capability. With mocked steward auth, canManage gates the work tab and
-    // history is always visible; canAssess / canCertify depend on hats role
-    // assignments that the mock cannot fake, so 1-4 tabs is acceptable.
+    await expect(page.getByRole("heading", { name: "Review", exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    // Stage tabs follow hats roles the mock cannot fake, so only the work tab is certain.
     const tablist = page.getByRole("tablist");
     await expect(tablist).toBeVisible();
     const tabCount = await tablist.getByRole("tab").count();
@@ -198,25 +227,40 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByPlaceholder("Search submissions")).toBeVisible();
   });
 
-  test("keeps mock auth active across full reloads on other cockpit routes", async ({ page }) => {
+  test("keeps mock auth active across full reloads on other Hub routes", async ({ page }) => {
+    // Two full signed-in loads; the default 30s is too short for both on a busy machine.
+    test.setTimeout(2 * SIGNED_IN_LOAD_MS);
     const helper = await setupMockSteward(page);
 
-    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
-    await helper.waitForPageLoad();
+    await page.goto(helper.buildMockAuthPath("/review", "steward"));
+    await waitForSignedInBoot(page, helper);
 
     await page.goto("/actions");
-    await helper.waitForPageLoad();
+    await waitForSignedInBoot(page, helper);
 
-    // Actions is gated to deployers (commit 6e88d78e); mock steward without
-    // deployer role lands on the Unauthorized state. Auth is still active —
-    // the page renders the cockpit chrome, not the connect shell.
+    // Actions belongs to the Green Goods team, and this steward's garden is not the Community
+    // Garden, so the route shows the Unauthorized state in place. Auth is still active: the page
+    // renders the Hub chrome, not the connect shell.
     await expect(page.getByText("Connect to continue")).toHaveCount(0);
     await expect(page).toHaveURL(/\/actions(?:\?.*)?$/);
-    await expect(
-      page
-        .getByRole("heading", { name: "Actions", exact: true })
-        .or(page.getByRole("heading", { name: "Unauthorized", exact: true }))
-    ).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Unauthorized", exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+  });
+
+  test("sends someone without Community access to Review", async ({ page }) => {
+    // As the page arrives, the garden sync writes the garden into the address while the guard's
+    // redirect is still loading Review. The redirect has to land anyway, not leave a blank page.
+    test.setTimeout(SIGNED_IN_LOAD_MS);
+    const helper = await setupMockSteward(page, EVALUATOR_ONLY);
+
+    await page.goto(helper.buildMockAuthPath("/community", "steward"));
+    await waitForSignedInBoot(page, helper);
+
+    await expect(page).toHaveURL(/\/review\b/, { timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Review", exact: true })).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
@@ -228,8 +272,6 @@ test.describe("Admin Cockpit", () => {
     await page.goto(helper.buildMockAuthPath("/profile"));
     await helper.waitForPageLoad();
 
-    // Profile workspace renders a "Profile" heading at the canvas root with
-    // Profile/Settings as secondary navigation.
     await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole("tab", { name: "Profile" })).toHaveAttribute(
       "aria-selected",
@@ -253,7 +295,7 @@ test.describe("Admin Cockpit", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe(null);
   });
 
-  test("redirects desktop profile deep links back to hub while opening the settings sheet", async ({
+  test("redirects desktop profile deep links back to Review while opening the settings sheet", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -262,10 +304,10 @@ test.describe("Admin Cockpit", () => {
     await page.goto(helper.buildMockAuthPath("/profile?tab=settings"));
     await helper.waitForPageLoad();
 
-    // Hub redirects /hub → /hub/<active-stage>. Default stage is "work".
+    // /review redirects to /review/<active-stage>.
     await expect
       .poll(() => new URL(page.url()).pathname, { timeout: 15000 })
-      .toMatch(/^\/hub(?:\/[a-z]+)?$/);
+      .toMatch(/^\/review(?:\/[a-z]+)?$/);
     const settingsDialog = page.getByRole("dialog", { name: "Settings" });
     await expect(settingsDialog).toBeVisible({ timeout: 15000 });
     await expect(settingsDialog.getByRole("heading", { name: "Theme" })).toBeVisible();

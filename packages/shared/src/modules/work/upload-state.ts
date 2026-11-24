@@ -9,13 +9,22 @@
  * @module modules/work/upload-state
  */
 
-import type { Job, WorkJobPayload } from "../../types/job-queue";
-import { hasRecordedSend, isTerminallyFailedJob } from "../job-queue/queue-policy";
+import type { Job } from "../../types/job-queue";
+import {
+  hasRecordedSend,
+  hasRevertedWorkSend,
+  isTerminallyFailedJob,
+  recordedSendAwaiting,
+} from "../job-queue/queue-policy";
 
 /** What background preparation last found for a queued item. */
 export type UploadPreparation =
-  | { status: "ready"; checkedAt: string }
-  | { status: "photo-pending" | "photo-needs-attention"; checkedAt: string }
+  | { status: "ready" | "photo-pending"; checkedAt: string }
+  /**
+   * `photo` names one that cannot be published, when that is what needs attention;
+   * `video` says the file is a video.
+   */
+  | { status: "photo-needs-attention"; photo?: string; video?: true; checkedAt: string }
   | { status: "blocked"; reason: string; checkedAt: string };
 
 export type QueuedUploadState =
@@ -25,9 +34,13 @@ export type QueuedUploadState =
   | "reverted"
   /** It used up its retries: the person tries it again or discards it. */
   | "failed"
+  /** A work for a promise this account is still taking up: it goes once the take-up lands. */
+  | "take-up-pending"
+  /** That take-up gave up: the person sends it again or discards it. */
+  | "take-up-failed"
   /** A HEIC photo is waiting for the decoder. */
   | "photo-pending"
-  /** A photo could not be converted. */
+  /** A photo could not be converted, or a video could not be read. */
   | "photo-needs-attention"
   /** The chain would refuse it now, for the recorded reason. */
   | "blocked"
@@ -40,6 +53,12 @@ export interface QueuedUploadStatus {
   state: QueuedUploadState;
   /** Why a blocked item cannot be sent. */
   reason?: string;
+  /** The photo that needs attention, by file name, when one is named. */
+  photo?: string;
+  /** The file that needs attention is a video. */
+  video?: true;
+  /** A sent item a Safe only proposed waits for the Safe's signers (PRD-1564). */
+  awaiting?: "safe-signers";
 }
 
 // Each kind here needs an entry in upload-kinds.ts, which says how it is prepared
@@ -58,8 +77,16 @@ export function uploadPreparationOf(job: Pick<Job, "meta">): UploadPreparation |
   switch (preparation.status) {
     case "ready":
     case "photo-pending":
-    case "photo-needs-attention":
       return { status: preparation.status, checkedAt: preparation.checkedAt };
+    case "photo-needs-attention": {
+      const { photo, video } = preparation as { photo?: unknown; video?: unknown };
+      return {
+        status: preparation.status,
+        ...(typeof photo === "string" ? { photo } : {}),
+        ...(video === true ? { video } : {}),
+        checkedAt: preparation.checkedAt,
+      };
+    }
     case "blocked":
       return typeof (preparation as { reason?: unknown }).reason === "string"
         ? {
@@ -73,21 +100,38 @@ export function uploadPreparationOf(job: Pick<Job, "meta">): UploadPreparation |
   }
 }
 
-export function queuedUploadStatus(job: Job): QueuedUploadStatus {
-  if (
-    job.meta?.workTransactionReverted ||
-    (job.kind === "work" && (job.payload as WorkJobPayload).uploadCheckpoint?.transactionReverted)
-  )
-    return { state: "reverted" };
-  if (hasRecordedSend(job)) return { state: "sent" };
+/**
+ * Where a queued item stands. `takeUp` is the claim a work waits on, when the same tap took its
+ * promise up (`take-up-hold`); the caller reads it from the jobs it already holds.
+ */
+export function queuedUploadStatus(
+  job: Job,
+  options: { takeUp?: Job | null } = {}
+): QueuedUploadStatus {
+  if (hasRevertedWorkSend(job)) return { state: "reverted" };
+  if (hasRecordedSend(job)) {
+    const awaiting = recordedSendAwaiting(job);
+    return { state: "sent", ...(awaiting ? { awaiting } : {}) };
+  }
   if (isTerminallyFailedJob(job)) return { state: "failed" };
+  // However far it was prepared, a work goes only after the take-up of its promise.
+  if (options.takeUp)
+    return { state: isTerminallyFailedJob(options.takeUp) ? "take-up-failed" : "take-up-pending" };
 
   const preparation = uploadPreparationOf(job);
   // A send attempt's own wait outranks an older preparation answer.
   const waiting = job.meta?.waitingReason;
+  if (waiting === "upload-policy-required") return { state: "blocked", reason: waiting };
   if (waiting === "photo-conversion-pending") return { state: "photo-pending" };
   if (waiting === "photo-needs-attention") return { state: "photo-needs-attention" };
+  if (waiting === "video-needs-attention") return { state: "photo-needs-attention", video: true };
   if (!preparation) return { state: "preparing" };
   if (preparation.status === "blocked") return { state: "blocked", reason: preparation.reason };
+  if (preparation.status === "photo-needs-attention")
+    return {
+      state: preparation.status,
+      ...(preparation.photo ? { photo: preparation.photo } : {}),
+      ...(preparation.video ? { video: preparation.video } : {}),
+    };
   return { state: preparation.status };
 }

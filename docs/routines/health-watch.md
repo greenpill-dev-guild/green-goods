@@ -4,7 +4,7 @@ trigger:
   schedule: "30 14 * * 1,3,5"  # Mon/Wed/Fri 14:30 UTC (= 07:30 PT) — reduced from daily 2026-07-18; red-only posting unchanged, Sentry alerting covers off-days
 repos:
   - green-goods
-environment: green-goods-routines-extended
+environment: green-goods
 network-access: full
 env-vars:
   - ARBITRUM_RPC_URL
@@ -25,12 +25,12 @@ connectors:
   - linear
   - posthog
   - vercel
-model: claude-opus-5
+model: claude-opus-5-5
 ---
 
 # Prompt
 
-You are the health-watch routine for Green Goods. Run the five health checks below. Open or update **Linear Product Issues** (unprojected, accepted operational health work) only for **real anomalies** — be conservative about what counts. Most days, this routine should post a one-line all-green summary and create no Issues.
+You are the health-watch routine for Green Goods. Run the six health checks below. Open or update **Linear Product Issues** (accepted operational health work) only for **real anomalies** — be conservative about what counts. Most days, this routine should post a one-line all-green summary and create no Issues.
 
 The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routing destination. GitHub is for PRs and code review only — health-watch never writes GitHub Issues, never adds Project items, and never sets iteration/Sprints fields.
 
@@ -38,7 +38,7 @@ The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routin
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID (numeric). Use `<@${DISCORD_USER_ID_AFO}>` in messages to @mention him only on real anomalies.
-- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:maintenance` for operational anomalies or `activity:build` for code fixes + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary. Pass labels to `save_issue` as **bare child names** (`["green-goods", "maintenance", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
+- **Linear is the canonical surface for accepted operational health work.** Issues live on the Product team, routed per [Project routing](README.md#project-routing) (a bounded active project that clearly owns the work, otherwise the active release project, unprojected only when none is started), and carry the canonical scheme (`protocol:green-goods` + `activity:maintenance` for operational anomalies or `activity:build` for code fixes + `package:*` + `ai:routine`), except a lane check 6 lists from another repository, which carries its row's labels. The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs, the active release project and the active bounded projects by name at the start of every run; on lookup failure, fail loud in the Discord summary. An absent release project between releases is a valid state, not a lookup failure. Pass labels to `save_issue` as **bare child names** (`["green-goods", "maintenance", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
 
 ## Threshold philosophy
 
@@ -49,10 +49,11 @@ The previous spec used a 50-block indexer threshold (~12.5s at Arbitrum's 250ms 
 - **Vercel** — flag any failed production deploy in last 24h OR runtime-error spike (>50% increase vs prior 24h baseline) on a guild-deployed Vercel project.
 - **Agent uptime** — flag if the agent service (`BOT_API_URL`) `/health` is unreachable or returns non-200.
 - **Client error spike** — flag a `$exception` surge in PostHog above the calibrated absolute floor (App ≥30/24h, Admin ≥15/24h). Below the floor is informational (🟡) or green. When Sentry access is available, use it to attach release/stack context, not as a replacement for the PostHog spike threshold.
+- **Scheduled CI lanes**: flag a scheduled workflow on `develop`, or a lane check 6 lists from another repository, whose latest scheduled run failed. A lane that was cancelled, skipped or has not run when due is informational.
 
 ## Categories and checks
 
-Each category maps to a Linear label combination — old `health:*` GitHub labels are retired. Issues are unprojected on the Product team and use the canonical scheme:
+Each category maps to a Linear label combination — old `health:*` GitHub labels are retired. Issues use the canonical scheme:
 
 | Check | Linear labels (in addition to `protocol:green-goods` + `activity:maintenance` or `activity:build` + `ai:routine`) |
 |---|---|
@@ -61,6 +62,7 @@ Each category maps to a Linear label combination — old `health:*` GitHub label
 | Contracts state drift | `package:contracts` |
 | Agent service down/unreachable | `package:agent` |
 | Client-side error spike | `package:client` or `package:admin` (whichever PostHog project surged) |
+| Scheduled CI lane red | one package, from the failed jobs: `package:contracts` when Contracts Nightly or Coverage Nightly's contracts job failed; else the first failed job's package in the workflow's job order (`package:shared`, `package:client` or `package:admin` for Coverage Nightly's other jobs, `package:shared` for Shared's weekly run); none for any other lane. The Issue body names every failed job. A lane in another repository carries its row's labels in place of this whole scheme (see check 6) |
 
 **Codex hand-off:** most health anomalies are operational (indexer/agent/contract state) and stay `ai:routine` for a human. Only when an accepted health Issue is a **code fix that clears the Codex-ready bar** (clear surface + concrete suggested fix + validation; never `package:contracts` or shared auth — see [`README.md` § Codex hand-off](README.md)) swap `ai:routine`→`ai:codex`, and delegate to Codex when it also clears the autonomous-confident bar.
 
@@ -138,11 +140,61 @@ Thresholds are **absolute count floors** calibrated from 30-day observed volume 
 | App (163591) | <10 / 24h | 10–29 / 24h | ≥30 / 24h |
 | Admin (262122) | <5 / 24h | 5–14 / 24h | ≥15 / 24h |
 
-**Degraded-payload caveat**: `$exception_type` and `$exception_message` have been null since 2026-05-13 (the `qa-triage-pulse` "M1" finding). This check **counts** events and groups them by URL — it cannot categorize the error type yet. Carry this caveat with the evidence — the description says the count and the window in a sentence, the first comment carries the top offending URLs and this caveat. Either way, do not assert *which* error spiked. Revisit promoting this to a per-error-type check once the payload is repaired.
+**Degraded-payload caveat**: `$exception_type` and `$exception_message` have been null since 2026-05-13 (the `sync-triage-pulse` "M1" finding). This check **counts** events and groups them by URL — it cannot categorize the error type yet. Carry this caveat with the evidence — the description says the count and the window in a sentence, the first comment carries the top offending URLs and this caveat. Either way, do not assert *which* error spiked. Revisit promoting this to a per-error-type check once the payload is repaired.
 
 **Evidence to capture** (body gets the count line; the detail goes in the first comment): per-project 24h count, the top `$current_url` paths (strip query strings, IDs, and addresses — privacy), and the degraded-payload note. Carry `package:client` (App surge) or `package:admin` (Admin surge).
 
-### 6. Sentry release regression context (optional)
+### 6. Scheduled CI lanes
+
+A scheduled lane is a workflow in `.github/workflows/` with a `schedule:` trigger; read the list from this checkout on every run rather than keeping one here. Without this check, a red scheduled run reaches only GitHub's own notification email.
+
+The repository is public, so read each lane's latest scheduled run on `develop` from GitHub's REST API **without a token**, one request per lane:
+
+```text
+GET https://api.github.com/repos/greenpill-dev-guild/green-goods/actions/workflows/<file>/runs?event=schedule&branch=develop&per_page=1
+```
+
+#### Lanes in other repositories
+
+This checkout cannot see another repository's workflows, so those lanes are listed here, one row each; adding a lane is adding a row, and each row's short name is unique. A row's repository must be public, because this check never holds a token. Read a row's lane the same way, against its repository and branch:
+
+```text
+GET https://api.github.com/repos/<repository>/actions/workflows/<workflow file>/runs?event=schedule&branch=<branch>&per_page=1
+```
+
+| Short name | Repository | Workflow file | Branch | Overdue window | Linear team | Linear labels | Project | Red means |
+|---|---|---|---|---|---|---|---|---|
+| `network` | `greenpill-dev-guild/network` | `github-pages.yml` ("Deploy Website to GitHub Pages") | `main` | 24 hours (hourly cron; GitHub starts it about every 8 hours) | Product | `network`, `maintenance`, `routine` | none | The scheduled rebuild that carries stewards' approved Directus edits onto greenpill.network failed, so those edits stop reaching the public site until a later run succeeds. A hung deploy ends `cancelled` and a cron GitHub has disabled reads `overdue`: both freeze the site but stay 🟡. |
+
+A row's lane follows the same reading order, Issue body, dedupe and recovery rules as this repository's lanes, except:
+
+- **Title.** The title carries `Scheduled lane <short name>/<workflow file>`, for example `Scheduled lane network/github-pages.yml`, because two repositories can share a workflow file name.
+- **Labels.** The Issue carries exactly the row's labels, passed as bare child names: no `green-goods`, no package label, and no package label set on a later update. Resolve the row's team and labels with the rest in Setup; when one does not resolve, file nothing for that row and say so in the Discord summary.
+- **Lookup.** The open-Issue lookup, both the query in Auto-close on recovery and the check in Dedupe logic, searches the row's team and matches the row's first label plus the title phrase, in place of the labels those name. Matching those labels would miss the row's Issue and open a duplicate on every red run.
+- **Project.** The Project column replaces Project routing: `none` files the Issue with no project and never sets one on a later update.
+- **Body.** The body opens with the first sentence of the row's "Red means" cell.
+- **No Codex hand-off.** The Issue keeps `routine`: its fix belongs in that repository, which a hand-off from here cannot reach.
+- **Failed requests.** A failed request makes only that row's lane unknown; every other lane is still read. A 404 means the row is stale (the repository was renamed or made private, or the workflow file renamed): report 🟡 `lane not found` for it, naming the row.
+- **Summary.** The Discord summary names the lane `<short name>/<workflow file>`.
+
+Each row adds one unauthenticated request to a run, and one more for `jobs_url` when it is red.
+
+#### Reading a lane
+
+Take `workflow_runs[0]`: its `name`, `status`, `conclusion`, `created_at`, `html_url` and `jobs_url`. `event=schedule` leaves out manual and push runs, so a passing manual dispatch does not hide a red scheduled lane. Re-running the scheduled run itself does count: the API reports its latest attempt.
+
+Read each lane in this order; the first match wins:
+
+- No scheduled run started within the lane's overdue window → 🟡 informational (`overdue`), whatever the last run concluded. The window is twice the cron interval and never less than 24 hours (a row in another repository states its own), because GitHub delays and drops scheduled runs: the hourly CodeQL Cache Prune lane runs every 2 to 11 hours.
+- `status` is anything but `completed` (`queued`, `in_progress`, `waiting`, `pending`, `requested`) → 🟡 informational.
+- `conclusion` is `success` → 🟢.
+- `conclusion` is `failure`, `timed_out` or `startup_failure` → 🔴 accepted anomaly, one Issue per lane, its title carrying `Scheduled lane <workflow file>` (for example `Scheduled lane contracts-nightly.yml`): the file name stays put when a workflow's display name changes.
+- Any other conclusion (`cancelled`, `skipped`, `neutral`, `stale`, `action_required`) → 🟡 informational.
+- A request that fails, or returns 403 or 429 (the unauthenticated rate limit is 60 requests an hour per address) → `ci=unknown` in the summary and no Issue.
+
+**Issue body**: the lane, the run's date and link, and the names of the failed jobs (`GET` the run's `jobs_url` on the same API; `html_url` is the browser page); never paste logs. The first comment may carry the failing step names. A fix belongs in a pull request, which this routine never opens.
+
+### 7. Sentry release regression context (optional)
 
 If a Sentry connector/API surface is available, query Sentry after the PostHog/Vercel/agent checks above. This check is evidence enrichment first, alerting second:
 
@@ -155,7 +207,7 @@ If Sentry is unavailable, note `Sentry: skipped — connector unavailable` in pr
 
 ## Auto-close on recovery (Linear Issue status)
 
-Before opening a new Issue or appending a comment, query Linear for an existing open Issue in the relevant category — match on the canonical labels above plus a category phrase carried in the title (`Indexer lag` / `Vercel deploy` / `Contracts drift` / `Agent down` / `Client errors`). Titles are plain sentences with no prefix, so the phrase must sit **inside** the sentence for this lookup to find last run's Issue; a title that drops it opens a duplicate every run:
+Before opening a new Issue or appending a comment, query Linear for an existing open Issue in the relevant category — match on the canonical labels above plus a category phrase carried in the title (`Indexer lag` / `Vercel deploy` / `Contracts drift` / `Agent down` / `Client errors` / `Scheduled lane <workflow file>`, or `Scheduled lane <short name>/<workflow file>` for a lane check 6 lists from another repository). Titles are plain sentences with no prefix, so the phrase must sit **inside** the sentence for this lookup to find last run's Issue; a title that drops it opens a duplicate every run:
 
 ```
 Linear query (read-only):
@@ -184,6 +236,10 @@ For **agent**:
 For **client errors**:
 - If today's count is below the 🟡 floor (App <10, Admin <5) AND the prior 2 daily checks were also below it → transition to `Done` with `Client errors recovered: 3 consecutive checks under threshold. Closing.` Otherwise append a dated comment.
 
+For **scheduled lanes**:
+- A pull request fixes a red lane, and under the routing rules green CI never makes an issue `Done`, so the routine never changes this Issue's status. The first time the lane's latest scheduled run succeeds, add one comment, `Scheduled lane recovered: <run date> passed (<run link>).`, and leave the status to a person; after that, a green lane adds nothing. While the lane is red, append a dated comment with the latest run's date, link and failed jobs, and, when it differs, set the package label from that run's failed jobs by the same rule as a new Issue (see "Scheduled CI lane red" in the label table): `package:contracts` when the contracts job failed, else the first failed job's package in the workflow's job order.
+- For this category the lookup also matches `In Review`, so a lane that is red again while its fix waits for review gets a comment, not a second Issue.
+
 ## Dedupe logic (Linear)
 
 For each category that warrants an Issue:
@@ -192,7 +248,7 @@ For each category that warrants an Issue:
 if no open Linear Issue matching the canonical labels + category marker:
   Linear: create Issue
     team        = Product
-    project     = (none — unprojected)
+    project     = a bounded project from Setup that clearly owns the work, else the release project (none when no release project is started)
     title       = "<plain sentence that contains the category phrase>"
                   // no "<category>:" prefix; the phrase sits inside the
                   // sentence, because § Auto-close matches on it to find
@@ -208,7 +264,9 @@ if no open Linear Issue matching the canonical labels + category marker:
     comment #1  = <the full evidence: tables, per-URL breakdowns, Sentry
                    corroboration, caveats>
 else:
-  Linear: comment on the existing Issue with <dated append>
+  Linear: comment on the existing Issue with <dated append>,
+          and set its project as above when it has none or its
+          project is Completed or Canceled
 ```
 
 **The body is a description, not a dashboard.** Say what is happening, what it
@@ -269,7 +327,7 @@ POST https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/mess
 **All-green run (every check 🟢, no Issues created/updated, no recoveries): post exactly one line** — this is most runs (house style v2, see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)):
 
 ```text
-🩺 Health watch · {YYYY-MM-DD}: all green · indexer, deploys, contracts, agent, client errors all OK{, {K} Issue(s) still open <links>}
+🩺 Health watch · {YYYY-MM-DD}: all green · indexer, deploys, contracts, agent, client errors, scheduled lanes all OK{, {K} Issue(s) still open <links>}
 ```
 
 **Anything non-green, or any state change (new/updated Issue, recovery): post the per-check breakdown**, non-green lines first, 🟢 lines folded into one:
@@ -284,7 +342,7 @@ POST https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/mess
 🟢 {remaining checks folded}: {e.g. "Vercel, contracts, agent, client errors all OK"}
 
 {if any anomaly created/updated: "→ {N} Linear Issue(s) created/updated · <links>"}
-{if recovery: "✓ {category} recovered · Linear Issue <{url}> moved to Done"}
+{if recovery: "✓ {category} recovered · Linear Issue <{url}> moved to Done"; for a scheduled lane, "✓ {lane} passed again · Linear Issue <{url}> waits for a person"}
 ```
 
 **@mention rule**: if any check is 🔴, prefix the message with `<@${DISCORD_USER_ID_AFO}>`. If everything is 🟢 or 🟡 with no new Issues, no mention. Recovery-only runs (where the only change is auto-close) also get no mention — just the breakdown with its ✓ line.
@@ -296,15 +354,36 @@ If Discord is unreachable, continue — Linear Issues are the primary output.
 End the session with a one-line summary:
 
 ```
-health-watch: indexer={status}, vercel={status}, contracts={status_or_deferred}, agent={status}, errors={status}, opened={N}, recovered={M}
+health-watch: indexer={status}, vercel={status}, contracts={status_or_deferred}, agent={status}, errors={status}, ci={status}, opened={N}, recovered={M}
 ```
 
 ## Guardrails
 
 - **No false positives.** When in doubt, do NOT open an Issue. The cost of a missed alert is one day; the cost of a false alert is your trust in this routine.
 - **Indexer-gates-everything.** If indexer is 🔴, contracts checks are deferred. Period.
-- **Auto-close stale recoveries.** Don't let recovered conditions sit as open Issues — transition them to `Done` with evidence.
+- **Auto-close stale recoveries.** Don't let recovered conditions sit as open Issues: transition them to `Done` with evidence, by each category's rule in Auto-close on recovery. Contracts drift and scheduled lanes are the exceptions: a person closes a contracts Issue, and a person sets a scheduled lane's status.
 - **Linear is the only Issue surface.** No GitHub Issue writes, no GitHub Project items, no `Sprints` / iteration field updates. The retired `health:*` GitHub label set is not used.
-- **No CI check.** CI is intentionally not a health-watch signal — this routine's environment has no GitHub access (no connector, no token, no `gh`), and `main`-branch CI failures already surface via GitHub's native notifications. Do not re-add a `gh`- or Actions-based CI check here.
-- **Project routing discipline.** Every Issue is unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
+- **Scheduled lanes only, read without a token.** The CI signal is the latest scheduled run of each scheduled workflow on `develop` and of each lane check 6 lists from another repository, read from GitHub's public REST API with no token, no `gh` and no connector; pull-request and push CI stay with GitHub's notifications and the PR author. Never write to GitHub, and never store a GitHub token for this check.
+- **Project routing discipline.** Every Issue follows [Project routing](README.md#project-routing): a bounded active project that clearly owns the work, otherwise the active release project, or unprojected when none is started. A lane check 6 lists from another repository takes its row's Project instead. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
 - **Terse narration.** Keep working narration terse — the Discord summary, any Linear Issues, and the one-line summary are the only products of this run.
+
+## Rebuilding the cloud routine from this file
+
+1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines).
+2. Click **New routine** (or use `/schedule` in Claude Code).
+3. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and executes this file on every run, so a change takes effect as soon as it merges to `develop`. Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it. The bootstrap carries one failure post of its own, because a run that cannot load the spec never reads the spec's failure rules; that post uses the spec's channel variable, so a channel change touches both.
+
+   ```text
+   You are the health-watch routine for Green Goods. Your spec is docs/routines/health-watch.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are.
+   2. Read the whole spec: `git show origin/develop:docs/routines/health-watch.md`.
+   3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
+
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ health-watch could not load its spec ({the failed step}); no health checks ran this run.`, sent as the `content` field of a JSON body built with an encoder such as `jq -n --arg`, never by hand, with `POST https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_ENGINEERING_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+
+   Limits that hold whatever the spec says: never push code, open PRs, or create GitHub Issues or Project items; post to Discord only in the channel `DISCORD_ENGINEERING_CHANNEL_ID` names.
+   ```
+
+4. Configure the repo (`green-goods`, checked out at `develop`, its default branch, so the files a run reads from the checkout match the spec it fetched), environment (green-goods, `env_01CRAWm3KauPFp4ntqdAufPR`), env vars, connectors, model, and cron per the frontmatter above.
+5. Save, then record the routine id in `docs/routines/README.md`. If the bootstrap is ever pointed at `main`, spec changes take effect only once they land on `main`.

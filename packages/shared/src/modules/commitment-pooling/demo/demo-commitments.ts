@@ -18,9 +18,40 @@ import {
   ROSA,
   TUNDE,
 } from "./demo-builders";
+import { REHEARSAL_ISSUER } from "./demo-service-access-fixtures";
 
 export function demoCommitments(V: Address): CommitmentReadModel[] {
   return [
+    ...[1025n, 1026n].map((commitmentId) =>
+      commitment({
+        commitmentId,
+        direction: "REQUEST",
+        commitmentType: "DOMAIN_IMPACT",
+        onchainState: "ACCEPTED",
+        derivedState: "ACTIVE",
+        creator: REHEARSAL_ISSUER,
+        leadProvider: V,
+        counterparty: V,
+        claimMode: "APPROVAL_GATED",
+        unitLabel: "tasks",
+        targetUnits: 1n,
+      })
+    ),
+    ...[1022n, 1023n, 1024n].map((commitmentId) =>
+      commitment({
+        commitmentId,
+        direction: "OFFER",
+        commitmentType: "SUPPORT_SERVICE",
+        onchainState: commitmentId === 1024n ? "ACCEPTED" : "OFFERED",
+        derivedState: commitmentId === 1024n ? "ACTIVE" : "OFFERED",
+        creator: REHEARSAL_ISSUER,
+        leadProvider: REHEARSAL_ISSUER,
+        counterparty: commitmentId === 1024n ? V : null,
+        claimMode: "APPROVAL_GATED",
+        unitLabel: commitmentId === 1023n ? "sessions" : "lessons",
+        targetUnits: commitmentId === 1023n ? 1n : 10n,
+      })
+    ),
     // Browsing: a neighbour's open offer the reader may take up.
     commitment({
       commitmentId: 1001n,
@@ -177,7 +208,7 @@ export function demoCommitments(V: Address): CommitmentReadModel[] {
       confirmationCount: 1,
       fulfilledBy: ROSA,
       confirmationPath: "POOL_FALLBACK",
-      fallbackReason: "The neighbour who took this up moved away before confirming.",
+      fallbackReason: "The neighbor who took this up moved away before confirming.",
       targetUnits: 2n,
     }),
     // Lapsed: offer it again.
@@ -191,7 +222,7 @@ export function demoCommitments(V: Address): CommitmentReadModel[] {
       unitLabel: "repairs",
       targetUnits: 1n,
     }),
-    // Withdrawn.
+    // Withdrawn by the reader, with their reason.
     commitment({
       commitmentId: 1014n,
       direction: "REQUEST",
@@ -200,6 +231,20 @@ export function demoCommitments(V: Address): CommitmentReadModel[] {
       creator: V,
       unitLabel: "rides",
       targetUnits: 1n,
+      cancelReasonCID: "bafy-demo-reason-1014",
+    }),
+    // A neighbor's offer a steward withdrew while the reader's request to take it up waited.
+    commitment({
+      commitmentId: 1027n,
+      direction: "OFFER",
+      commitmentType: "SUPPORT_SERVICE",
+      onchainState: "CANCELLED",
+      creator: ROSA,
+      leadProvider: ROSA,
+      claimMode: "APPROVAL_GATED",
+      unitLabel: "sessions",
+      targetUnits: 2n,
+      cancelReasonCID: "bafy-demo-reason-1027",
     }),
     // Under review after a Not yet.
     commitment({

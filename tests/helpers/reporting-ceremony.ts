@@ -257,6 +257,9 @@ export async function standInBehindAccountStep(page: Page) {
     },
     /** How many passkeys the authenticator holds. */
     passkeys: async () => (await passkeys()).length,
+    /** How many times its passkeys have signed anything, all together. */
+    signatures: async () =>
+      (await passkeys()).reduce((total, passkey) => total + passkey.signCount, 0),
     /** Whether a passkey prompt closes with no passkey, as a dismissed or timed-out one does. */
     async closePrompts(closed: boolean) {
       await cdp.send("WebAuthn.setUserVerified", { authenticatorId, isUserVerified: !closed });

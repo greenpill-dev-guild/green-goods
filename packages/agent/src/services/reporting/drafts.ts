@@ -58,6 +58,11 @@ function lifecycleColumn(lifecycle: ReportLifecycle): string {
     : "open";
 }
 
+/** Whether a draft in this lifecycle is still its conversation's open report. */
+export function isOpenLifecycle(lifecycle: ReportLifecycle): boolean {
+  return lifecycleColumn(lifecycle) === "open";
+}
+
 const SELECT_DRAFT = `
   SELECT d.id, d.participant_id, d.conversation_id, d.revision, d.machine_snapshot, d.author_account_id,
          d.last_participant_action_at, r.content_ciphertext, r.action_definition_snapshot
@@ -248,4 +253,19 @@ export function commitDraft(
     });
   }
   return loadDraft(core, input.draftId) as DraftRecord;
+}
+
+/** The question profile a report asks with, as `slug@version`; null for the activity's own words. */
+export function pinnedQuestionProfile(core: ReportingCore, draftId: string): string | null {
+  const row = core.db
+    .query("SELECT question_profile FROM work_drafts WHERE id = $id")
+    .get({ id: draftId }) as { question_profile: string | null } | null;
+  return row?.question_profile ?? null;
+}
+
+/** Set when a report takes an activity, and kept until it takes another. */
+export function pinQuestionProfile(core: ReportingCore, draftId: string, ref: string | null): void {
+  core.db
+    .query("UPDATE work_drafts SET question_profile = $ref WHERE id = $id")
+    .run({ id: draftId, ref });
 }

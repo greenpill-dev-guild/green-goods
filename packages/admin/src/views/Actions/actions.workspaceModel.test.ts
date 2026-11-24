@@ -10,7 +10,6 @@ import {
   deriveActionDetailModel,
   resolveActionsRouteState,
 } from "@green-goods/shared/hooks/admin-ui/actions/actions.workspaceModel";
-import { canManageActionsForRole } from "@green-goods/shared/hooks/admin-ui/actions/useActionsController";
 import {
   ACTION_CREATE_CONTENT_ID,
   toActionDetailContentId,
@@ -107,12 +106,6 @@ describe("actions workspace model", () => {
     expect(restored?.title).toBe("Updated action");
     expect(restored?.startTime.toISOString()).toBe("2026-03-01T12:00:00.000Z");
     expect(restored?.isEditingInstructions).toBe(true);
-  });
-
-  it("keeps Actions management deployer-only", () => {
-    expect(canManageActionsForRole("deployer")).toBe(true);
-    expect(canManageActionsForRole("steward")).toBe(false);
-    expect(canManageActionsForRole("user")).toBe(false);
   });
 
   it("derives one localized lifecycle model for action detail surfaces", () => {

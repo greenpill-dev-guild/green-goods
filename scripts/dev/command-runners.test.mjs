@@ -192,11 +192,11 @@ test('exploration accepts only a replayable unsigned seed and preserves it throu
 
 test('qualified reports reject missing, skipped, failed, stale and retried scenarios', async () => {
   const { assertQualifiedReport } = await import('./test-e2e.js');
-  // The passkey preset needs the server-rejection case and both account-step journeys.
+  // The passkey preset needs the server-rejection case and the three account-step journeys.
   const passkeyCase = () => ({ projectName: 'passkey-mock', results: [{ status: 'passed', retry: 0 }] });
   const passed = {
-    stats: { startTime: '2026-10-05T00:00:00Z', expected: 3, skipped: 0, unexpected: 0, flaky: 0 },
-    errors: [], suites: [{ specs: [{ tests: Array.from({ length: 3 }, passkeyCase) }] }],
+    stats: { startTime: '2026-10-05T00:00:00Z', expected: 4, skipped: 0, unexpected: 0, flaky: 0 },
+    errors: [], suites: [{ specs: [{ tests: Array.from({ length: 4 }, passkeyCase) }] }],
   };
   assert.doesNotThrow(() => assertQualifiedReport(passed, 'passkey', 0));
   for (const patch of [{ expected: 0 }, { skipped: 1 }, { unexpected: 1 }, { flaky: 1 }]) {

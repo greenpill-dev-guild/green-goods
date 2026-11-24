@@ -25,7 +25,7 @@ const meta: Meta<typeof ClaimantName> = {
   decorators: [
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     (Story) => (
-      <div className="p-4 text-body-md" data-tone="garden">
+      <div className="p-4 type-body" data-tone="garden">
         <Story />
       </div>
     ),

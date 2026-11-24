@@ -1,7 +1,9 @@
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
-import { expect, fn, within } from "storybook/test";
+import { expect, fn, mocked, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../../shared/.storybook/decorators";
+import { activeGarden, memberGarden, TAS_HUB } from "../../../../shared/.storybook/homeFixtures";
 import { AppBar } from "../Layout/AppBar";
 import { AppLaunchError } from "./AppLaunchError";
 import { AppScreenError } from "./AppScreenError";
@@ -10,7 +12,7 @@ import { AppScreenError } from "./AppScreenError";
 function ScreenInApp({ route, children }: { route: string; children: React.ReactNode }) {
   return (
     <MemoryRouter initialEntries={[route]}>
-      <div className="bg-bg-white-0 pb-[calc(69px+env(safe-area-inset-bottom))] text-text-strong-950">
+      <div className="bg-bg-canvas pb-[calc(69px+var(--safe-area-bottom))] text-text-strong-950">
         {children}
         <AppBar />
       </div>
@@ -24,6 +26,12 @@ const meta: Meta = {
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile" } },
   decorators: [withInstalledPwa({ heightClassName: "min-h-dvh" }), withClientAppRuntime],
+  // A member in a garden, so the bottom bar these screens sit over shows (DL-155).
+  beforeEach: () => {
+    mocked(useActiveGarden).mockReturnValue(
+      activeGarden("ready", [memberGarden(TAS_HUB, ["gardener"])], TAS_HUB.id)
+    );
+  },
 };
 
 export default meta;

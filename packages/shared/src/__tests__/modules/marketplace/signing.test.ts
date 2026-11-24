@@ -7,9 +7,10 @@
  */
 
 import type { Address, Hex } from "viem";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMakerAsk, signMakerAsk, validateOrder } from "../../../modules/marketplace/signing";
-import type { CreateListingParams } from "../../../types/hypercerts";
+import { type CreateListingParams, LISTING_DEFAULTS } from "../../../types/hypercerts";
 import { ZERO_ADDRESS } from "../../../utils/blockchain/address";
 
 const mockReadiness = vi.hoisted(() => ({
@@ -80,7 +81,6 @@ const TEST_SIGNER = "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF" as Address;
 const CHAIN_ID = 11155111;
 
 function makeTestParams(overrides?: Partial<CreateListingParams>): CreateListingParams {
-  const now = Math.floor(Date.now() / 1000);
   return {
     hypercertId: 1001n,
     fractionId: 2001n,
@@ -107,6 +107,15 @@ describe("marketplace/signing", () => {
     mockReadiness.addresses.hypercertsModule = "0x6666666666666666666666666666666666666666";
     mockReadiness.addresses.strategyHypercertFractionOffer =
       "0x7777777777777777777777777777777777777777";
+  });
+
+  it("provides the recommended listing defaults", () => {
+    expect(LISTING_DEFAULTS.pricePerUnit).toBe(10n ** 13n);
+    expect(LISTING_DEFAULTS.minUnitAmount).toBe(1n);
+    expect(LISTING_DEFAULTS.maxUnitAmount).toBe(2n ** 256n - 1n);
+    expect(LISTING_DEFAULTS.minUnitsToKeep).toBe(0n);
+    expect(LISTING_DEFAULTS.sellLeftover).toBe(true);
+    expect(LISTING_DEFAULTS.durationDays).toBe(90);
   });
 
   describe("buildMakerAsk", () => {
@@ -185,6 +194,28 @@ describe("marketplace/signing", () => {
   });
 
   describe("signMakerAsk", () => {
+    it("asks to reconnect before ownership checks or signing an order", async () => {
+      const order = buildMakerAsk(makeTestParams(), TEST_SIGNER, CHAIN_ID);
+      const sender = {
+        assertReadyToSign: refuseWithoutWallet,
+        assertOwnership: vi.fn(),
+        signTypedData: vi.fn(),
+      };
+      const asked = vi.fn();
+      const stop = onWalletReconnectAsk(asked);
+      try {
+        await expect(signMakerAsk(order, sender, CHAIN_ID)).rejects.toMatchObject({
+          name: "WalletReconnectRequiredError",
+          asked: true,
+        });
+        expect(asked).toHaveBeenCalledOnce();
+        expect(sender.assertOwnership).not.toHaveBeenCalled();
+        expect(sender.signTypedData).not.toHaveBeenCalled();
+      } finally {
+        stop();
+      }
+    });
+
     it("calls walletClient.signTypedData with correct domain and types", async () => {
       const params = makeTestParams();
       const order = buildMakerAsk(params, TEST_SIGNER, CHAIN_ID);

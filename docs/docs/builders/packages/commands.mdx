@@ -24,7 +24,7 @@ generated_from:
   - scripts/dev/browser.js
   - scripts/dev/package-commands.mjs
   - scripts/dev/test.js
-source_digest: "sha256:2a1099f0ae5a39dabb0cf681fde72059ee486f552f43984a28c70e271ff24055"
+source_digest: "sha256:358cf07261032b274b7e5bfa7f22e53827807254eaf8e60513c73887da5e2eb5"
 source_of_truth:
   - docs/package.json
   - package.json
@@ -52,7 +52,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 Generated from package manifests and owning command definitions. Start with the getting-started guide for everyday commands. Operational scripts can write to live networks; read the owning runbook before using them.
 
-## Repository root (17)
+## Repository root (18)
 
 | Script | Invocation from repository root |
 |---|---|
@@ -68,6 +68,7 @@ Generated from package manifests and owning command definitions. Start with the 
 | env:sync | <CopyCommand command="bun run env:sync" /> |
 | format | <CopyCommand command="bun run format" /> |
 | lint | <CopyCommand command="bun run lint" /> |
+| openfort:keys | <CopyCommand command="bun run openfort:keys" /> |
 | postinstall | <CopyCommand command="bun run postinstall" /> |
 | prepare | <CopyCommand command="bun run prepare" /> |
 | qa | <CopyCommand command="bun run qa" /> |
@@ -181,24 +182,26 @@ Generated from package manifests and owning command definitions. Start with the 
 |---|---|
 | build | <CopyCommand command="bun run --cwd packages/qa build" /> |
 
-## docs (8)
+## docs (10)
 
 | Script | Invocation from repository root |
 |---|---|
 | audit | <CopyCommand command="bun run --cwd docs audit" /> |
 | build | <CopyCommand command="bun run --cwd docs build" /> |
 | check:search-index | <CopyCommand command="bun run --cwd docs check:search-index" /> |
+| cms:build | <CopyCommand command="bun run --cwd docs cms:build" /> |
+| cms:dev | <CopyCommand command="bun run --cwd docs cms:dev" /> |
 | dev | <CopyCommand command="bun run --cwd docs dev" /> |
 | docusaurus | <CopyCommand command="bun run --cwd docs docusaurus" /> |
 | predev | <CopyCommand command="bun run --cwd docs predev" /> |
 | test | <CopyCommand command="bun run --cwd docs test" /> |
 | typecheck | <CopyCommand command="bun run --cwd docs typecheck" /> |
 
-Total: 97 manifest entries across 9 manifests. The root exposes 17.
+Total: 100 manifest entries across 9 manifests. The root exposes 18.
 
 ## Selectable operations and implementation
 
-Manifest counts stay separate from the 92 contract operations and 72 stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.
+Manifest counts stay separate from the 103 contract operations and 78 stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.
 
 This projection tracks 6 owning command implementation files:
 

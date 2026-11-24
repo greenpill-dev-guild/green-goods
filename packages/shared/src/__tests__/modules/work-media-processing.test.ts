@@ -4,6 +4,7 @@ const heicToMocks = vi.hoisted(() => ({
   heicTo: vi.fn(),
   isHeic: vi.fn(),
 }));
+const canvas = vi.hoisted(() => ({ redraw: vi.fn() }));
 
 // The connection is confirmed, so importing the decoder is worth attempting.
 vi.mock("../../stores/connectivity", () => ({
@@ -16,32 +17,167 @@ vi.mock("../../stores/connectivity", () => ({
 }));
 
 vi.mock("heic-to/csp", () => heicToMocks);
+// The compressor's canvas, which a Node test does not have.
+vi.mock("../../utils/work/image-compression", () => ({ imageCompressor: canvas }));
 
 import {
   HEIC_JPEG_QUALITY,
   getSafeMediaBatchMetadata,
   getWorkMediaId,
   normalizeWorkMediaFiles,
+  prepareMediaForUpload,
 } from "../../modules/work/media-processing";
+import {
+  CAMERA_DETAILS,
+  type PhotoType,
+  bytesOf,
+  cameraPhoto,
+  cleanPhoto,
+  leakedCameraDetails,
+  photoFile,
+  photoVariants,
+  unreadableCameraPng,
+} from "../test-utils/photo-fixtures";
+import { videoFile, videoVariants } from "../test-utils/video-fixtures";
+
+const PHOTO_NAMES: Record<PhotoType, string> = {
+  "image/jpeg": "beds.jpg",
+  "image/png": "beds.png",
+  "image/webp": "beds.webp",
+};
 
 describe("normalizeWorkMediaFiles", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     heicToMocks.isHeic.mockResolvedValue(false);
     heicToMocks.heicTo.mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" }));
+    canvas.redraw.mockResolvedValue(null);
   });
 
-  it("passes supported JPEG, PNG, and WebP files through unchanged", async () => {
-    const jpeg = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
-    const png = new File(["png"], "photo.png", { type: "image/png" });
-    const webp = new File(["webp"], "photo.webp", { type: "image/webp" });
+  it("keeps photos with no metadata, and videos, exactly as they were picked", async () => {
+    const photos = (Object.keys(PHOTO_NAMES) as PhotoType[]).map((type) =>
+      photoFile(cleanPhoto(type), PHOTO_NAMES[type], type)
+    );
+    const video = videoFile(videoVariants()[0].published, "clip.mp4", "video/mp4");
 
-    const result = await normalizeWorkMediaFiles([jpeg, png, webp]);
+    const result = await normalizeWorkMediaFiles([...photos, video]);
 
-    expect(result.accepted.map((item) => item.file)).toEqual([jpeg, png, webp]);
-    expect(result.accepted.every((item) => item.converted === false)).toBe(true);
     expect(result.rejected).toEqual([]);
+    for (const [index, picked] of [...photos, video].entries()) {
+      const { file, originalFile, converted } = result.accepted[index];
+      // Nothing had to go, so the file queued is the one picked.
+      expect(file).toBe(originalFile);
+      expect(converted).toBe(false);
+      expect(await bytesOf(file)).toEqual(await bytesOf(picked));
+    }
     expect(heicToMocks.heicTo).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["image/jpeg", 6],
+    ["image/png", 6],
+    ["image/webp", 6],
+    ["image/jpeg", 1],
+  ] as const)("strips the location and camera details from %s, keeping its picture and orientation %i", async (type, orientation) => {
+    const picked = photoFile(cameraPhoto(type, { orientation }), PHOTO_NAMES[type], type);
+    expect(leakedCameraDetails(await bytesOf(picked))).toEqual(
+      expect.arrayContaining([
+        CAMERA_DETAILS.make,
+        CAMERA_DETAILS.model,
+        CAMERA_DETAILS.serial,
+        CAMERA_DETAILS.software,
+        CAMERA_DETAILS.gpsDatum,
+        CAMERA_DETAILS.xmpLocation,
+      ])
+    );
+
+    const result = await normalizeWorkMediaFiles([picked]);
+
+    expect(result.rejected).toEqual([]);
+    const { file, originalFile } = result.accepted[0];
+    expect(leakedCameraDetails(await bytesOf(file))).toEqual([]);
+    // The picture's own bytes, its color profile and its orientation are all that remain.
+    expect(await bytesOf(file)).toEqual(cleanPhoto(type, { orientation }));
+    expect([file.name, file.type, file.lastModified]).toEqual([
+      picked.name,
+      type,
+      picked.lastModified,
+    ]);
+    expect(await bytesOf(originalFile)).toEqual(await bytesOf(picked));
+  });
+
+  it.each(
+    photoVariants()
+  )("strips $name, keeping what draws it, and gives the same file back a second time", async ({
+    type,
+    picked,
+    published,
+  }) => {
+    const [first] = (await normalizeWorkMediaFiles([photoFile(picked, "variant", type)])).accepted;
+    expect(await bytesOf(first.file)).toEqual(published);
+    expect(leakedCameraDetails(await bytesOf(first.file))).toEqual([]);
+    const [second] = (await normalizeWorkMediaFiles([first.file])).accepted;
+    expect(second.file).toBe(second.originalFile);
+  });
+
+  it("queues a video without its location, device or capture time, moving nothing", async () => {
+    const { recorded, published } = videoVariants()[0];
+
+    const result = await normalizeWorkMediaFiles([videoFile(recorded, "clip.mp4", "video/mp4")]);
+
+    expect(result.rejected).toEqual([]);
+    expect(await bytesOf(result.accepted[0].file)).toEqual(published);
+  });
+
+  it("refuses a video whose container it cannot read in full, since it cannot tell what it carries", async () => {
+    const result = await normalizeWorkMediaFiles([
+      new File(["mp4"], "clip.mp4", { type: "video/mp4" }),
+    ]);
+
+    expect(result.accepted).toEqual([]);
+    expect(result.rejected).toEqual([expect.objectContaining({ reason: "unsupported" })]);
+  });
+
+  it("queues a photo below the compression threshold without its metadata", async () => {
+    const picked = photoFile(cameraPhoto("image/jpeg"), "beds.jpg", "image/jpeg");
+    const compressor = { shouldCompress: vi.fn(() => false), compressImages: vi.fn() };
+
+    const prepared = await prepareMediaForUpload([picked], compressor);
+
+    expect(compressor.compressImages).not.toHaveBeenCalled();
+    expect(prepared.rejectedCount).toBe(0);
+    expect(await bytesOf(prepared.files[0])).toEqual(cleanPhoto("image/jpeg", { orientation: 6 }));
+  });
+
+  it("redraws a photo whose chunks cannot be read, and queues it without the camera's details", async () => {
+    const picked = photoFile(unreadableCameraPng(), "beds.png", "image/png");
+    expect(leakedCameraDetails(await bytesOf(picked))).toContain(CAMERA_DETAILS.serial);
+    // The browser draws it leniently; the canvas writes the picture back with nothing else.
+    canvas.redraw.mockImplementation(async (file: File) =>
+      photoFile(cleanPhoto("image/png"), file.name, "image/png")
+    );
+
+    const result = await normalizeWorkMediaFiles([picked]);
+
+    expect(canvas.redraw).toHaveBeenCalledOnce();
+    expect(await bytesOf(canvas.redraw.mock.calls[0][0])).toEqual(await bytesOf(picked));
+    expect(result.rejected).toEqual([]);
+    const { file } = result.accepted[0];
+    expect([file.name, file.type]).toEqual(["beds.png", "image/png"]);
+    expect(leakedCameraDetails(await bytesOf(file))).toEqual([]);
+    expect(await bytesOf(file)).toEqual(cleanPhoto("image/png"));
+  });
+
+  it("refuses a photo neither the rewrite nor a canvas can read, since it cannot tell what it carries", async () => {
+    const unreadable = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
+
+    const result = await normalizeWorkMediaFiles([unreadable]);
+
+    expect(canvas.redraw).toHaveBeenCalledOnce();
+    expect(result.accepted).toEqual([]);
+    expect(result.rejected).toEqual([
+      expect.objectContaining({ reason: "unsupported", file: expect.any(File) }),
+    ]);
   });
 
   it("converts HEIC files to JPEG before accepting them", async () => {
@@ -79,15 +215,43 @@ describe("normalizeWorkMediaFiles", () => {
   });
 
   it("rejects unsupported files before they enter the draft", async () => {
-    const text = new File(["notes"], "notes.txt", { type: "text/plain" });
+    const sheet = new File(["PK"], "yields.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
 
-    const result = await normalizeWorkMediaFiles([text]);
+    const result = await normalizeWorkMediaFiles([sheet]);
 
     expect(result.accepted).toEqual([]);
     expect(result.converted).toEqual([]);
     expect(result.rejected).toHaveLength(1);
     expect(result.rejected[0].reason).toBe("unsupported");
     expect(heicToMocks.heicTo).not.toHaveBeenCalled();
+  });
+
+  it("keeps a document only when its bytes match its type, and queues it as it was picked", async () => {
+    const pdf = new File(["%PDF-1.7\n"], "certificate.pdf", { type: "application/pdf" });
+    const notes = new File(["# Site report\n\nPanels: 12"], "report.md", { type: "" });
+    const renamed = new File(["<html><script></script>"], "invoice.pdf", {
+      type: "application/pdf",
+    });
+    const scan = new File(["%PDF-1.7\n"], "scan.pdf", { type: "application/pdf" });
+    Object.defineProperty(scan, "size", { value: 10 * 1024 * 1024 + 1 });
+
+    const result = await normalizeWorkMediaFiles([pdf, notes, renamed, scan]);
+
+    // The Markdown file takes the type its extension names, so its upload can be signed for it.
+    expect(result.accepted.map(({ file }) => [file.name, file.type])).toEqual([
+      ["certificate.pdf", "application/pdf"],
+      ["report.md", "text/markdown"],
+    ]);
+    expect(result.rejected.map(({ file, reason }) => [file.name, reason])).toEqual([
+      ["invoice.pdf", "unsupported"],
+      ["scan.pdf", "too_large"],
+    ]);
+    const compressor = { shouldCompress: vi.fn(() => true), compressImages: vi.fn() };
+    const prepared = await prepareMediaForUpload([pdf], compressor);
+    expect(compressor.compressImages).not.toHaveBeenCalled();
+    expect(await prepared.files[0].text()).toBe("%PDF-1.7\n");
   });
 
   it("returns stable media IDs and safe batch metadata", () => {
@@ -102,6 +266,7 @@ describe("normalizeWorkMediaFiles", () => {
       size_buckets: ["0-1mb"],
       image_count: 1,
       video_count: 1,
+      document_count: 0,
     });
   });
 });

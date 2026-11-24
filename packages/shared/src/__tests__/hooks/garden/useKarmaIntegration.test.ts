@@ -11,8 +11,12 @@ import {
   KARMA_SYNC_VERSION,
   type KarmaIntegrationDerivationInput,
 } from "../../../hooks/garden/useKarmaIntegration";
-import { KARMA_ACCOUNT_READ_ABI } from "../../../hooks/garden/karmaIntegration";
-import type { Address } from "../../../types/domain";
+import {
+  EMPTY_KARMA_PROJECTION,
+  KARMA_ACCOUNT_READ_ABI,
+  uniqueKarmaReconciliationAccounts,
+} from "../../../hooks/garden/karmaIntegration";
+import type { Address, Garden } from "../../../types/domain";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
 const PROJECT_UID = `0x${"22".repeat(32)}` as const;
@@ -226,5 +230,25 @@ describe("deriveKarmaIntegrationAuthorization", () => {
         stewards: [STEWARD],
       })
     ).toEqual({ canReconcile: false });
+  });
+
+  // PRD-1311: a garden restored from an older build's cache can lack a role list.
+  it("reads a garden whose owner or steward list is missing", () => {
+    expect(
+      deriveKarmaIntegrationAuthorization({
+        primaryAddress: STEWARD,
+        owners: undefined,
+        stewards: [STEWARD],
+      })
+    ).toEqual({ canReconcile: true });
+
+    const legacyGarden = { id: GARDEN } as unknown as Garden;
+    const pending = "0x5555555555555555555555555555555555555555" as Address;
+    expect(
+      uniqueKarmaReconciliationAccounts(legacyGarden, {
+        ...EMPTY_KARMA_PROJECTION,
+        membershipPendingAccounts: [pending],
+      })
+    ).toEqual([pending]);
   });
 });

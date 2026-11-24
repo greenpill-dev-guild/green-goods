@@ -20,7 +20,7 @@ interface UseFocusTrapOptions {
   /** Whether the trap is active (default: true) */
   enabled?: boolean;
   /** Selector for the element to auto-focus on mount (default: '[data-testid="modal-drawer-close"]') */
-  autoFocusSelector?: string;
+  autoFocusSelector?: string | null;
 }
 
 /**
@@ -58,25 +58,43 @@ export function useFocusTrap(
       // author removed from the tab order so wrap targets stay real.
       const focusable = Array.from(
         container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      ).filter((el) => el.tabIndex >= 0);
+      ).filter((el) => {
+        if (el.tabIndex < 0 || el.matches(":disabled, [type='hidden']")) return false;
+        for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          if (
+            node.hidden ||
+            node.inert ||
+            style.display === "none" ||
+            style.visibility === "hidden"
+          )
+            return false;
+          if (node === container) break;
+        }
+        return true;
+      });
       if (focusable.length === 0) return;
 
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
+      // Safari can skip buttons in its native Tab order, including a photo just restored
+      // by a nested viewer. Own every step instead of relying on native movement between
+      // the boundaries, so it cannot jump to the page or browser chrome.
+      const current = focusable.indexOf(document.activeElement as HTMLElement);
+      const next =
+        current < 0
+          ? e.shiftKey
+            ? focusable.length - 1
+            : 0
+          : (current + (e.shiftKey ? -1 : 1) + focusable.length) % focusable.length;
+      e.preventDefault();
+      focusable[next].focus();
     };
 
     container.addEventListener("keydown", handleKeyDown);
 
     // Auto-focus target element for keyboard users
-    const target = container.querySelector<HTMLElement>(autoFocusSelector);
+    const target = autoFocusSelector
+      ? container.querySelector<HTMLElement>(autoFocusSelector)
+      : null;
     target?.focus();
 
     return () => container.removeEventListener("keydown", handleKeyDown);

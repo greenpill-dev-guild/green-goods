@@ -14,24 +14,33 @@
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { http } from "viem";
+import { type Config, createConfig } from "wagmi";
 import { ENV } from "../lib/env";
+import { boundConnectorRestores } from "../modules/auth/connector-restore-deadline";
+import { hasMockAuthOverride } from "../modules/auth/mock-auth-seam";
 import { logger } from "../modules/app/logger";
 import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getResolvedTheme } from "../utils/styles/theme";
+import { APP_DESCRIPTION } from "./app";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
 
-type AppKitMetadata = {
+export type AppKitMetadata = {
   name: string;
   description: string;
   url: string;
   icons: string[];
+  redirect?: {
+    native?: string;
+    universal?: string;
+  };
 };
 
 type AppKitInitOptions = {
   projectId?: string;
   metadata?: AppKitMetadata;
   defaultChainId?: number;
+  fontFamily?: string;
 };
 
 const RABBY_WALLET_ID = "18388be9ac2d02726dbac9777c96efaac06d744b2f6d580fccdd4127a6d01fd1";
@@ -73,7 +82,7 @@ function getCanonicalAppUrl(): string {
 
 const defaultMetadata: AppKitMetadata = {
   name: "Green Goods",
-  description: "Start Bringing Your Impact Onchain",
+  description: APP_DESCRIPTION,
   url: getCanonicalAppUrl(),
   icons: ["https://www.greengoods.app/icon.png"],
 };
@@ -91,6 +100,28 @@ export function createAppKitTransports(
   );
 }
 
+function configureWalletReturnFallback(
+  appKit: ReturnType<typeof createAppKit>,
+  redirect: AppKitMetadata["redirect"]
+): void {
+  if (!redirect) return;
+
+  // AppKit 1.8.24 copies only the four branding fields into WalletConnect.
+  // Set the return fallback on the signer metadata used by new session proposals.
+  void appKit
+    .getUniversalProvider()
+    .then((provider) => {
+      if (!provider) {
+        logger.warn("[AppKit] Wallet return fallback unavailable: provider did not initialize");
+        return;
+      }
+      provider.client.metadata.redirect = redirect;
+    })
+    .catch((error: unknown) => {
+      logger.warn("[AppKit] Could not configure wallet return fallback", { error });
+    });
+}
+
 /**
  * Initialize (or return) the singleton AppKit + Wagmi config.
  * Accepts optional overrides but will not re-initialize once created.
@@ -105,6 +136,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
   }
 
   if (appKitInstance && wagmiAdapterInstance) {
+    configureWalletReturnFallback(appKitInstance, options?.metadata?.redirect);
     return {
       appKit: appKitInstance,
       wagmiConfig: wagmiAdapterInstance.wagmiConfig,
@@ -136,6 +168,9 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     transports,
   });
+  // Before AppKit's launch restore: one wallet that never answers must not hold every
+  // later restore of the visit (PRD-1575). Lives as long as the singleton config.
+  boundConnectorRestores(wagmiAdapterInstance.wagmiConfig);
 
   // Get initial theme from system/localStorage
   const initialTheme = getResolvedTheme();
@@ -152,6 +187,8 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     // chain at send time via the wagmi-based chain guard, so suppressing the
     // intrusive page-load prompt is safe. See Reown options: allowUnsupportedChain.
     allowUnsupportedChain: true,
+    // A mock-auth session must not have a stored wallet reconnected into AppKit's config.
+    enableReconnect: !mockAuthSeamActive(),
     defaultNetwork: getChain(
       options?.defaultChainId ?? DEFAULT_CHAIN_ID
     ) as (typeof networks)[number],
@@ -168,8 +205,12 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     themeVariables: {
       "--w3m-accent": "#367D42", // Green Goods primary green
       "--w3m-border-radius-master": "12px",
+      // A host font also suppresses AppKit's otherwise unconditional font preloads.
+      ...(options?.fontFamily ? { "--apkt-font-family": options.fontFamily } : {}),
     },
   });
+
+  configureWalletReturnFallback(appKitInstance, metadata.redirect);
 
   return {
     appKit: appKitInstance,
@@ -213,10 +254,36 @@ export function peekAppKit() {
  * Get the singleton Wagmi config (lazily initialized).
  * Throws in SSR — all call sites are inside WagmiProvider (browser-only).
  */
-export function getWagmiConfig() {
+export function getWagmiConfig(): Config {
   const config = getAppKitSingleton().wagmiConfig;
   if (!config) {
     throw new Error("getWagmiConfig() called before AppKit initialization or in SSR context");
   }
-  return config;
+  return activeWagmiConfig(config as unknown as Config);
+}
+
+// The window check comes first, so a non-browser consumer (the Agent) never reads import.meta.env.
+function mockAuthSeamActive(): boolean {
+  return typeof window !== "undefined" && Boolean(import.meta.env.DEV) && hasMockAuthOverride();
+}
+
+let mockAuthConfig: Config | null = null;
+
+/**
+ * The wagmi config the app signs and reads with: AppKit's, or in a development `?mockAuth=`
+ * session one with the same chains and RPC transports, no connector and no stored connection.
+ * A mock session borrows a role's address and holds no key, so every write, send and signature
+ * fails before it can reach a wallet. `AppKitProvider` and every `getWagmiConfig()` caller get the
+ * same answer.
+ */
+export function activeWagmiConfig(real: Config): Config {
+  if (!mockAuthSeamActive()) return real;
+  mockAuthConfig ??= createConfig({
+    chains: real.chains,
+    transports: createAppKitTransports([...real.chains]),
+    connectors: [],
+    multiInjectedProviderDiscovery: false,
+    storage: null,
+  });
+  return mockAuthConfig;
 }

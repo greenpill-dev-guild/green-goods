@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
@@ -18,7 +19,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 
@@ -141,28 +141,20 @@ export function WithdrawModal({
       title={formatMessage({ id: "app.treasury.withdraw" })}
       description={formatMessage({ id: "app.treasury.withdrawDescription" })}
       preventClose={withdrawMutation.isPending}
-      actions={
-        <>
-          <AdminButton
-            type="button"
-            variant="text"
-            onClick={onClose}
-            disabled={withdrawMutation.isPending}
-          >
-            {formatMessage({ id: "app.common.cancel" })}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            onClick={onSubmit}
-            disabled={
-              Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending
-            }
-            loading={withdrawMutation.isPending}
-          >
-            {formatMessage({ id: "app.treasury.withdraw" })}
-          </AdminButton>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({ id: "app.treasury.withdraw" }),
+          onClick: onSubmit,
+          disabled:
+            Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending,
+          loading: withdrawMutation.isPending,
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel" }),
+          onClick: onClose,
+          disabled: withdrawMutation.isPending,
+        },
+      }}
     >
       <div className="space-y-4">
         <AssetSelector
@@ -187,9 +179,11 @@ export function WithdrawModal({
           <Alert
             variant="error"
             action={
-              <AdminButton
-                variant="danger"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="primary"
+                tone="danger"
+                size="compact"
                 onClick={() => {
                   void refetchDeposits();
                 }}
@@ -198,7 +192,7 @@ export function WithdrawModal({
                 {depositsFetching
                   ? formatMessage({ id: "app.common.refreshing" })
                   : formatMessage({ id: "app.common.tryAgain" })}
-              </AdminButton>
+              </Button>
             }
           >
             {depositsQueryError instanceof Error
@@ -207,7 +201,7 @@ export function WithdrawModal({
           </Alert>
         )}
 
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
+        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 type-body text-text-sub">
           <p>
             {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
             <span className="font-medium text-text-strong">
@@ -223,29 +217,28 @@ export function WithdrawModal({
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <AdminTextField
-            id="withdraw-amount"
-            className="min-w-0 flex-1"
-            label={formatMessage({ id: "app.treasury.withdrawAmount" })}
-            required
-            value={amountInput}
-            onChange={(event) => setAmountInput(event.target.value)}
-            placeholder={`0.0 ${assetSymbol}`}
-            error={amountError ? formatMessage({ id: amountError }) : undefined}
-            inputProps={{ inputMode: "decimal" }}
-          />
-          <AdminButton
-            variant="outlined"
-            size="sm"
-            className="w-full sm:mt-2 sm:w-auto"
-            onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
-          >
-            {formatMessage({ id: "app.treasury.max" })}
-          </AdminButton>
-        </div>
+        <AdminTextField
+          id="withdraw-amount"
+          label={formatMessage({ id: "app.treasury.withdrawAmount" })}
+          required
+          value={amountInput}
+          onChange={(event) => setAmountInput(event.target.value)}
+          placeholder={`0.0 ${assetSymbol}`}
+          error={amountError ? formatMessage({ id: amountError }) : undefined}
+          inputProps={{ inputMode: "decimal" }}
+          action={
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
+            >
+              {formatMessage({ id: "app.treasury.max" })}
+            </Button>
+          }
+        />
 
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
+        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 type-body text-text-sub">
           <p>
             {formatMessage({ id: "app.treasury.sharesToBurn" })}:{" "}
             <span className="font-medium text-text-strong">

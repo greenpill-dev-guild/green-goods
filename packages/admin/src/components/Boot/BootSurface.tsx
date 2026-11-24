@@ -1,7 +1,15 @@
-import { RiAlertLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react";
+import { Button } from "@green-goods/shared/components/Button";
+import {
+  RiAlertLine,
+  RiDeleteBinLine,
+  RiKey2Line,
+  RiRefreshLine,
+  RiWallet3Line,
+} from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
+import { ConnectPrompt } from "@/components/Layout/ConnectPrompt";
+import { SignInSlots } from "@/components/SignInSlots";
 
 /**
  * The boot surfaces render before any provider exists — no IntlProvider, no
@@ -20,39 +28,84 @@ const BOOT_COPY: Record<
     reload: string;
     reset: string;
     details: string;
+    connectTitle: string;
+    connectDescription: string;
+    connect: string;
+    passkey: string;
+    otherWays: string;
+    connectDescriptionWithEmail: string;
   }
 > = {
   en: {
     loading: "Opening your workspace…",
-    failedTitle: "Green Goods Admin could not start",
+    failedTitle: "Green Goods Hub could not start",
     failedBody:
       "Something failed before the workspace could open. Reload to try again, or clear the cached data if a reload does not help.",
     reload: "Reload",
     reset: "Clear Cached Data and Reload",
     details: "Technical details",
+    connectTitle: "Connect to continue",
+    connectDescription:
+      "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
+    connect: "Sign in with a Wallet",
+    passkey: "Continue with Passkey",
+    otherWays: "Other Ways to Sign In",
+    connectDescriptionWithEmail:
+      "Sign in with a passkey, your email or a wallet to open the Green Goods Hub.",
   },
   es: {
     loading: "Abriendo tu espacio de trabajo…",
-    failedTitle: "Green Goods Admin no pudo iniciarse",
+    failedTitle: "Green Goods Hub no pudo iniciarse",
     failedBody:
       "Algo falló antes de que el espacio de trabajo pudiera abrirse. Recarga para intentarlo de nuevo o borra los datos en caché si recargar no ayuda.",
     reload: "Recargar",
     reset: "Borrar datos en caché y recargar",
     details: "Detalles técnicos",
+    connectTitle: "Conectar para continuar",
+    connectDescription:
+      "Conecta tu billetera o inicia sesión con una clave de acceso para abrir el Green Goods Hub.",
+    connect: "Entrar con wallet",
+    passkey: "Continuar con clave de acceso",
+    otherWays: "Otras formas de entrar",
+    connectDescriptionWithEmail:
+      "Entra con una clave de acceso, tu correo o una wallet para abrir el Green Goods Hub.",
   },
   pt: {
     loading: "Abrindo seu espaço de trabalho…",
-    failedTitle: "O Green Goods Admin não conseguiu iniciar",
+    failedTitle: "O Green Goods Hub não conseguiu iniciar",
     failedBody:
       "Algo falhou antes de o espaço de trabalho abrir. Recarregue para tentar de novo ou limpe os dados em cache se recarregar não ajudar.",
     reload: "Recarregar",
     reset: "Limpar dados em cache e recarregar",
     details: "Detalhes técnicos",
+    connectTitle: "Conectar para continuar",
+    connectDescription:
+      "Conecte sua carteira ou entre com uma chave de acesso para abrir o Green Goods Hub.",
+    connect: "Entrar com wallet",
+    passkey: "Continuar com chave de acesso",
+    otherWays: "Outras formas de entrar",
+    connectDescriptionWithEmail:
+      "Entre com uma chave de acesso, seu e-mail ou uma wallet para abrir o Green Goods Hub.",
   },
 };
 
-/** The language chosen in the app, when storage can be read. */
+/**
+ * The language chosen on any Green Goods site, when it can be read: the `gg-language` cookie on
+ * the shared domain first, as Shared's `readStoredLanguage` reads it (PRD-1493), so a choice made
+ * in the App opens the Hub's sign-in in it, else this site's own storage.
+ */
 function storedLanguage(): string | null {
+  try {
+    for (const part of document.cookie.split(";")) {
+      const [name, ...value] = part.trim().split("=");
+      if (name === "gg-language" && value.length > 0) {
+        const shared = decodeURIComponent(value.join("="));
+        if (shared) return shared;
+      }
+    }
+  } catch {
+    // Cookies can be blocked; this site's own choice still applies.
+  }
   try {
     return window.localStorage.getItem("gg-language");
   } catch {
@@ -98,6 +151,77 @@ export function BootShell() {
   return <AdminLoadingScreen label={copy.loading} locale={locale} />;
 }
 
+/**
+ * Provider-free entry to the passkey and wallet sign-in paths. It fills the same slots as
+ * the Hub's sign-in with the same two actions, so the workspace takes over without the
+ * screen changing; the copy matches the locale catalogs' `app.login.button.*` strings.
+ */
+export function BootConnect({
+  onConnect,
+  onPasskey,
+  onOtherWays,
+}: {
+  onConnect: () => void;
+  onPasskey: () => void;
+  /** With email sign-in on, the second slot opens the other ways (email, a wallet) instead. */
+  onOtherWays?: () => void;
+}) {
+  const locale = resolveBootLocale();
+  const copy = BOOT_COPY[locale];
+  return (
+    <main id="main-content">
+      <ConnectPrompt
+        title={copy.connectTitle}
+        description={onOtherWays ? copy.connectDescriptionWithEmail : copy.connectDescription}
+        lang={locale}
+        action={
+          <SignInSlots
+            slotOne={
+              <Button
+                className="w-full"
+                type="button"
+                emphasis="primary"
+                size="lg"
+                leadingIcon={<RiKey2Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+                onClick={onPasskey}
+                data-testid="passkey-start-button"
+              >
+                <span className="min-w-0 truncate">{copy.passkey}</span>
+              </Button>
+            }
+            slotTwo={
+              onOtherWays ? (
+                <Button
+                  className="w-full"
+                  type="button"
+                  emphasis="secondary"
+                  size="lg"
+                  onClick={onOtherWays}
+                  data-testid="other-ways-button"
+                >
+                  {copy.otherWays}
+                </Button>
+              ) : (
+                <Button
+                  className="w-full"
+                  type="button"
+                  emphasis="secondary"
+                  size="lg"
+                  leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+                  onClick={onConnect}
+                  data-testid="connect-wallet-button"
+                >
+                  {copy.connect}
+                </Button>
+              )
+            }
+          />
+        }
+      />
+    </main>
+  );
+}
+
 export interface BootRecoveryProps {
   error: unknown;
   onReload: () => void;
@@ -130,29 +254,29 @@ export function BootRecovery({ error, onReload, onReset }: BootRecoveryProps) {
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-lighter">
         <RiAlertLine className="h-7 w-7 text-warning-dark" aria-hidden />
       </div>
-      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
-        {copy.failedTitle}
-      </h1>
-      <p className="mb-6 mt-2 max-w-sm body-sm text-text-sub">{copy.failedBody}</p>
+      <h1 className="mt-5 type-title-lg font-semibold text-text-strong">{copy.failedTitle}</h1>
+      <p className="mb-6 mt-2 max-w-sm type-body text-text-sub">{copy.failedBody}</p>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <AdminButton
+        <Button
           type="button"
-          variant="filled"
-          leadingIcon={<RiRefreshLine />}
+          emphasis="primary"
+          size="sm"
+          leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
           onClick={onReload}
         >
           {copy.reload}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="outlined"
-          leadingIcon={<RiDeleteBinLine />}
+          emphasis="secondary"
+          size="sm"
+          leadingIcon={<RiDeleteBinLine className="h-[18px] w-[18px]" aria-hidden="true" />}
           onClick={onReset}
         >
           {copy.reset}
-        </AdminButton>
+        </Button>
       </div>
-      <details className="mt-6 max-w-lg text-left body-xs text-text-sub">
+      <details className="mt-6 max-w-lg text-left type-meta text-text-sub">
         <summary className="cursor-pointer">{copy.details}</summary>
         <pre
           className="mt-2 whitespace-pre-wrap break-words rounded-[var(--m3-shape-sm)] bg-bg-white p-3"

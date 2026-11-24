@@ -14,17 +14,18 @@ import { arbitrum } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeWagmiDeps,
+  createMockBatchBudget,
   createMockContractCall,
+  type FakeWagmiDeps,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
-import { TransactionRevertedError, type ContractCall } from "../types";
+import { TransactionRevertedError } from "../types";
 import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 
 // ============================================
 // Test fixtures
 // ============================================
 
-const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
 const TEST_CALL = createMockContractCall();
 
 // ============================================
@@ -36,7 +37,7 @@ describe("WalletSender", () => {
   let mockWriteContractAsync: ReturnType<
     typeof vi.fn<ConstructorParameters<typeof WalletSender>[1]>
   >;
-  let mockDeps: WalletSenderDeps;
+  let mockDeps: FakeWagmiDeps;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -79,6 +80,46 @@ describe("WalletSender", () => {
   });
 
   describe("sendContractCall", () => {
+    it("gives a call that asks for headroom that much gas over the node's estimate", async () => {
+      const estimateGas = vi.fn(async () => 100_000n);
+      mockDeps.estimateGas = estimateGas;
+
+      await sender.sendContractCall(createMockContractCall({ gasHeadroomPercent: 50 }));
+      expect(estimateGas).toHaveBeenCalledWith(
+        expect.objectContaining({ account: MOCK_ADDRESSES.deployer, chainId: 42161 })
+      );
+      expect(mockWriteContractAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ gas: 150_000n })
+      );
+
+      // Any other call is still sized by the wallet.
+      estimateGas.mockClear();
+      mockWriteContractAsync.mockClear();
+      await sender.sendContractCall(TEST_CALL);
+      expect(estimateGas).not.toHaveBeenCalled();
+      expect(mockWriteContractAsync.mock.calls[0][0]).not.toHaveProperty("gas");
+    });
+
+    it("sends a batch call at the gas its budget was checked at", async () => {
+      const estimateGas = vi.fn(async () => 100_000n);
+      mockDeps.estimateGas = estimateGas;
+      mockDeps.preflightBatch = vi.fn(async () => ({
+        gas: "140000",
+        maxFeePerGas: "1",
+        maxFee: "140000",
+        sponsored: false,
+        authority: "wallet" as const,
+      }));
+
+      await sender.sendContractCall(createMockContractCall({ gasHeadroomPercent: 50 }), {
+        batchBudget: createMockBatchBudget(),
+      });
+      expect(estimateGas).not.toHaveBeenCalled();
+      expect(mockWriteContractAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ gas: 140_000n })
+      );
+    });
+
     it("sends transaction via writeContractAsync", async () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
@@ -166,6 +207,7 @@ describe("WalletSender", () => {
         onReplaced: expect.any(Function),
         hash: MOCK_TX_HASH,
         chainId: 42220,
+        timeout: 120_000,
       });
       expect(result.sponsored).toBe(false);
     });
@@ -212,6 +254,7 @@ describe("WalletSender", () => {
         onReplaced: expect.any(Function),
         hash: MOCK_TX_HASH,
         chainId: TEST_CALL.chainId,
+        timeout: 120_000,
       });
     });
 
@@ -234,6 +277,31 @@ describe("WalletSender", () => {
       expect(result.hash).toBe(safeStyleHash);
       expect(result.confirmation).toBe("pending");
       expect(result.sponsored).toBe(false);
+      expect(result.awaiting).toBeUndefined();
+      expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
+    });
+
+    // PRD-957: a Safe that answers with a short proposal id waits on its signers, as one that
+    // answers with the 32-byte safeTxHash does, so a queued act says so instead of checking.
+    it("says a Safe's short proposal id waits for the Safe's signers", async () => {
+      const proposalId = `0x${"5a".repeat(20)}` as `0x${string}`;
+      mockWriteContractAsync.mockResolvedValueOnce(proposalId);
+      mockDeps.readWalletAnswer.mockResolvedValueOnce("safe-proposal");
+      const onAwaiting = vi.fn();
+
+      await expect(sender.sendContractCall(TEST_CALL, { onAwaiting })).resolves.toEqual({
+        hash: proposalId,
+        sponsored: false,
+        confirmation: "pending",
+        awaiting: "safe-signers",
+      });
+      expect(onAwaiting).toHaveBeenCalledWith("safe-signers");
+      // Asked of the account that signs: the connected one when the call names none.
+      expect(mockDeps.readWalletAnswer).toHaveBeenCalledWith(
+        MOCK_ADDRESSES.deployer,
+        proposalId,
+        TEST_CALL.chainId
+      );
       expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
     });
 
@@ -287,12 +355,6 @@ describe("WalletSender", () => {
     });
   });
 
-  describe("sendBatch (unsupported)", () => {
-    it("does not expose sendBatch", () => {
-      expect("sendBatch" in sender).toBe(false);
-    });
-  });
-
   describe("atomic batches", () => {
     const BATCH_HASH = `0x${"b".repeat(64)}` as const;
     const SECOND_CALL = createMockContractCall({ functionName: "approve" });
@@ -323,6 +385,8 @@ describe("WalletSender", () => {
           trace.push("status");
           return {
             status: "success",
+            atomic: true,
+            chainId: 42161,
             receipts: [{ status: "success", transactionHash: BATCH_HASH }],
           };
         }),
@@ -437,6 +501,8 @@ describe("WalletSender", () => {
     it("says a reverted batch wrote nothing, and an unanswered one is unknown", async () => {
       vi.mocked(batchDeps.waitForCallsStatus!).mockResolvedValueOnce({
         status: "failure",
+        atomic: true,
+        chainId: 42161,
         receipts: [{ status: "reverted", transactionHash: BATCH_HASH }],
       });
       await expect(sender.sendAtomicBatch([TEST_CALL, SECOND_CALL])).rejects.toBeInstanceOf(

@@ -28,7 +28,25 @@ const greenGoods = installGreenGoodsWorker(self);
 // It never claims open pages or skips waiting: the update prompt asks first.
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
-registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
+const cachedNavigation = createHandlerBoundToURL("index.html");
+registerRoute(
+  new NavigationRoute(async (options) => {
+    // An explicit startup retry can recover a document whose old assets are gone.
+    if (options.url.searchParams.has("gg_reload")) {
+      try {
+        const response = await fetch(options.request, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(5_000),
+        });
+        if (response.ok && response.headers.get("content-type")?.includes("text/html"))
+          return response;
+      } catch {
+        // Keep the offline shell available if the network is still unreachable.
+      }
+    }
+    return cachedNavigation(options);
+  })
+);
 
 // Avatars and app images. Gateway media is answered above from its own cache.
 // Both routes below wait on the network, so a stalled update hand-over counts

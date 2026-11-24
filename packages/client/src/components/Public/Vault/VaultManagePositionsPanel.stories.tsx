@@ -83,7 +83,7 @@ const panel = async () => within(await screen.findByTestId("vault-manage-positio
 
 /**
  * Manage Endowments on the public vaults page: the connected wallet's campaign vault positions, each
- * with its value and a Redeem form capped at what is redeemable now. The wallet runtime, account,
+ * with its value and a Withdraw form capped at what can be withdrawn now. The wallet runtime, account,
  * position reads, and redeem mutation are mocked, so the panel opens without a wallet.
  */
 const meta: Meta<typeof VaultManagePositionsPanel> = {
@@ -110,18 +110,18 @@ export const Positions: Story = {
   },
 };
 
-export const RedeemForm: Story = {
+export const WithdrawForm: Story = {
   beforeEach: withWallet(),
   play: async () => {
     const row = within((await panel()).getByTestId("vault-manage-position-greenpill-nyc"));
-    await userEvent.click(row.getByRole("button", { name: "Redeem" }));
-    const amount = row.getByLabelText("Amount to redeem");
+    await userEvent.click(row.getByRole("button", { name: "Withdraw" }));
+    const amount = row.getByLabelText("Amount to withdraw");
     await userEvent.type(amount, "2");
-    await expect(row.getByText(/no higher than what is redeemable now/i)).toBeVisible();
-    await expect(row.getByRole("button", { name: /^Redeem / })).toBeDisabled();
+    await expect(row.getByText(/no higher than what you can withdraw now/i)).toBeVisible();
+    await expect(row.getByRole("button", { name: /^Withdraw / })).toBeDisabled();
     await userEvent.clear(amount);
     await userEvent.type(amount, "0.5");
-    await expect(row.getByRole("button", { name: /^Redeem .*0\.6 WETH/ })).toBeEnabled();
+    await expect(row.getByRole("button", { name: /^Withdraw .*0\.6 WETH/ })).toBeEnabled();
   },
 };
 

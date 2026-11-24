@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
@@ -6,7 +7,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiTaskLine } from "@remixicon/react";
 import React, { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
-import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 function importWorkDashboard() {
   return import(".").then((module) => ({ default: module.WorkDashboard }));
@@ -55,28 +56,14 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
     };
   }, [isOnline]);
 
-  // Only show notifications for actual pending work items
+  // The glyph is green at rest like every launcher's (DL-133); the outline tints while work waits.
   const hasPendingItems = pendingCount > 0;
-  const statusTone: PwaStatusTone = hasPendingItems ? "primary" : "neutral";
-  const statusStyles = pwaStatusStyles[statusTone];
-  const borderColor = hasPendingItems ? statusStyles.border : undefined;
-  const primaryIcon = <RiTaskLine className={statusStyles.icon} aria-hidden="true" />;
+  const borderColor = hasPendingItems ? pwaStatusStyles.primary.border : undefined;
+  const primaryIcon = <RiTaskLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />;
 
-  let badge: React.ReactNode;
-  if (hasPendingItems) {
-    badge = (
-      <span
-        className={cn(
-          "inline-flex items-center justify-center text-xs font-semibold rounded-full min-w-[18px] h-[18px] px-1",
-          pwaStatusStyles.primary.badge,
-          "shadow-sm border-2 border-bg-white-0"
-        )}
-        data-testid="notification-badge"
-      >
-        {pendingCount > 99 ? "99+" : pendingCount}
-      </span>
-    );
-  }
+  const badge = hasPendingItems ? (
+    <CountBadge count={pendingCount} ring data-testid="notification-badge" />
+  ) : undefined;
 
   return (
     <>

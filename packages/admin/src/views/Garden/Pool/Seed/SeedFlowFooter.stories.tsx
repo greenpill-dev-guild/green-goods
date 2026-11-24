@@ -1,3 +1,4 @@
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import type { CreationSendMode } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
@@ -73,8 +74,11 @@ const meta: Meta<FooterStoryArgs> = {
   render: (args) => <FooterAt {...args} />,
   decorators: [
     (Story) => (
-      <div className="max-w-2xl p-4" data-tone="garden">
-        <Story />
+      // The flow shell's footer bar, so the story shows the bar as a flow pins it.
+      <div className="max-w-2xl" data-tone="garden">
+        <SheetFooter>
+          <Story />
+        </SheetFooter>
       </div>
     ),
   ],
@@ -108,6 +112,9 @@ export const Approving: Story = { args: { phase: "asking" } };
 export const SendingOneByOne: Story = { args: { phase: "sending", mode: "one-by-one" } };
 
 export const Declined: Story = { args: { phase: "declined" } };
+
+/** Past one signature's ceilings, nothing went out, and the note counts one prompt per promise. */
+export const PastCeilings: Story = { args: { phase: "overCeilings", mode: "one-by-one" } };
 
 /** The answer was lost, so Try Again finishes whatever the chain already has. */
 export const Unconfirmed: Story = { args: { phase: "unconfirmed" } };

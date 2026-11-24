@@ -1,7 +1,7 @@
 import { activeConsentId } from "../consent";
-import { readControl } from "../controls";
 import { inTransaction } from "../database";
 import { InterpretationUnavailableError } from "../interpretation";
+import { modelMeter, modelProcessingOn } from "../model-spend";
 import { participantWriter } from "../notify";
 import type { OpenAIConfig } from "../openai-responses";
 import { openPrompt } from "../prompts";
@@ -79,7 +79,7 @@ export async function hearVoiceNote(
 ): Promise<VoiceOutcome> {
   const { core, openai } = deps;
   const transcriptionModel = openai?.transcriptionModel;
-  if (!openai || !transcriptionModel || !readControl(core, "model_processing").enabled) {
+  if (!openai || !transcriptionModel || !modelProcessingOn(core)) {
     return limitation("media.voicePaused");
   }
   const source = core.db
@@ -108,8 +108,9 @@ export async function hearVoiceNote(
   try {
     const heard = await transcribeVoice(
       { ...openai, transcriptionModel },
-      { wav: normalized.wav, locale: input.locale },
-      AbortSignal.timeout(60_000)
+      { wav: normalized.wav, locale: input.locale, seconds: normalized.seconds },
+      AbortSignal.timeout(60_000),
+      modelMeter(core)
     );
     if (!heard.text) return limitation("media.voiceEmpty");
     return { kind: "heard", text: heard.text, model: heard.model, seconds: normalized.seconds };

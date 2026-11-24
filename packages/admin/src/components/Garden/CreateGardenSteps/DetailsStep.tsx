@@ -1,4 +1,7 @@
+import { DOMAIN_OPTIONS } from "../gardenSettingsDraft";
+import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
 import { GARDEN_NAME_MAX_LENGTH } from "@green-goods/shared/hooks/garden/useCreateGardenForm";
@@ -6,11 +9,11 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
-import { DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
+import { DOMAIN_COLORS, type Domain } from "@green-goods/shared/types/domain";
 import { suggestSlug, validateSlug } from "@green-goods/shared/utils/blockchain/ens";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
-import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiDeleteBinLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminFieldGroup } from "../../AdminFieldGroup";
@@ -19,43 +22,13 @@ import { AdminTextArea, AdminTextField } from "../../AdminTextField";
 
 type DetailField = "name" | "slug" | "description" | "location";
 
-const DOMAIN_OPTIONS = [
-  {
-    value: Domain.SOLAR,
-    labelId: "app.garden.create.domain.solar",
-    defaultLabel: "Solar",
-    descriptionId: "app.garden.create.domain.solar.description",
-    defaultDescription: "Track solar panel installations, kWh generated, and maintenance",
-  },
-  {
-    value: Domain.AGRO,
-    labelId: "app.garden.create.domain.agro",
-    defaultLabel: "Agroforestry",
-    descriptionId: "app.garden.create.domain.agro.description",
-    defaultDescription: "Document tree planting, harvests, and land stewardship",
-  },
-  {
-    value: Domain.EDU,
-    labelId: "app.garden.create.domain.edu",
-    defaultLabel: "Education",
-    descriptionId: "app.garden.create.domain.edu.description",
-    defaultDescription: "Record workshops, trainings, and knowledge sharing",
-  },
-  {
-    value: Domain.WASTE,
-    labelId: "app.garden.create.domain.waste",
-    defaultLabel: "Waste",
-    descriptionId: "app.garden.create.domain.waste.description",
-    defaultDescription: "Log waste collection, recycling, and composting activities",
-  },
-] as const;
-
 interface DetailsStepProps {
   showValidation: boolean;
 }
 
 export function DetailsStep({ showValidation }: DetailsStepProps) {
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const form = useCreateGardenStore((s) => s.form);
   const setField = useCreateGardenStore((s) => s.setField);
   const domains = useCreateGardenStore((s) => s.form.domains) ?? [];
@@ -79,9 +52,15 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   // Slug availability check (tier 2: debounced RPC)
   const trimmedSlug = form.slug.trim();
   const slugValidation = useMemo(() => validateSlug(trimmedSlug), [trimmedSlug]);
-  const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
-    slugValidation.valid ? trimmedSlug : undefined
-  );
+  const {
+    data: isSlugAvailable,
+    isError: slugCheckFailed,
+    isFetching: isCheckingSlug,
+  } = useSlugAvailability(slugValidation.valid ? trimmedSlug : undefined);
+  // The chain's last answer stands. A name it never answered for reads as unchecked, not taken:
+  // submit asks again, and the mint has the final say.
+  const isSlugUnchecked =
+    slugValidation.valid && slugCheckFailed && isSlugAvailable === undefined && !isCheckingSlug;
 
   const detailsErrors = useMemo(
     () => ({
@@ -95,10 +74,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           : null,
       slug:
         trimmedSlug.length === 0
-          ? formatMessage({
-              id: "app.garden.create.slugRequired",
-              defaultMessage: "ENS slug is required",
-            })
+          ? formatMessage({ id: "app.garden.create.slugRequired" })
           : slugValidation.valid
             ? null
             : slugValidation.error,
@@ -145,6 +121,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
       // Upload to IPFS (remaining 50%)
       setBannerUploadProgress(50);
 
+      if (!(await authorizeUpload())) return;
       const uploadResult = await uploadFileToIPFS(file);
       const ipfsUrl = resolveIPFSUrl(uploadResult.cid);
 
@@ -159,7 +136,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         }),
         message: formatMessage({
           id: "app.garden.create.bannerUploadedMessage",
-          defaultMessage: "Image uploaded successfully to IPFS",
+          defaultMessage: "Image uploaded.",
         }),
         context: "banner upload",
         suppressLogging: true,
@@ -252,11 +229,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
       </div>
       <AdminTextField
         id="create-garden-slug"
-        className="font-mono"
-        label={formatMessage({
-          id: "app.garden.create.ensSubdomainLabel",
-          defaultMessage: "ENS subdomain",
-        })}
+        label={formatMessage({ id: "app.garden.create.ensSubdomainLabel" })}
         required
         value={form.slug}
         onChange={(event) => {
@@ -290,14 +263,18 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               : undefined
         }
         helperText={
-          trimmedSlug
-            ? `${trimmedSlug}.greengoods.eth`
-            : formatMessage({
-                id: "app.garden.create.ensHint",
-                defaultMessage: "This will be your garden's ENS name on greengoods.eth",
+          isSlugUnchecked
+            ? formatMessage({
+                id: "app.garden.create.slugUnchecked",
+                defaultMessage:
+                  "We couldn't check this name. We'll check it again when you create the garden.",
               })
+            : trimmedSlug
+              ? `${trimmedSlug}.greengoods.eth`
+              : formatMessage({ id: "app.garden.create.ensHint" })
         }
         inputProps={{
+          className: "font-mono",
           inputMode: "text",
           autoCapitalize: "none",
           autoComplete: "off",
@@ -326,7 +303,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         }
         helperText={" "}
       />
-      <div className="space-y-1.5 body-sm">
+      <div className="space-y-1.5 type-body">
         <FileUploadField
           surface="admin"
           label={formatMessage({
@@ -347,7 +324,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           onRemoveFile={handleRemoveBanner}
         />
         {isUploadingBanner && (
-          <div className="flex items-center gap-2 body-xs text-text-sub">
+          <div className="flex items-center gap-2 type-meta text-text-sub">
             <RiLoader4Line className="h-4 w-4 animate-spin" />
             <span>
               {formatMessage(
@@ -358,8 +335,18 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           </div>
         )}
         {form.bannerImage && !bannerFile && (
-          <div className="mt-2">
+          <div className="relative mt-2">
             <img src={form.bannerImage} alt="" className="h-24 w-full rounded-lg object-cover" />
+            <IconButton
+              className="absolute right-2 top-2"
+              emphasis="secondary"
+              tone="danger"
+              size="compact"
+              onClick={handleRemoveBanner}
+              aria-label={formatMessage({ id: "app.common.remove" })}
+              title={formatMessage({ id: "app.common.remove" })}
+              icon={<RiDeleteBinLine />}
+            />
           </div>
         )}
       </div>

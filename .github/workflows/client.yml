@@ -17,6 +17,8 @@ on:
       - "playwright.config.ts"
       - "tests/**"
       - "packages/client/**"
+      # The passkey browser ceremony composes the Agent reporting driver and runtime.
+      - "packages/agent/src/**"
       - "packages/shared/**"
       - "!packages/shared/**/__tests__/**"
       - "!packages/shared/**/*.test.*"
@@ -56,6 +58,7 @@ on:
       - "playwright.config.ts"
       - "tests/**"
       - "packages/client/**"
+      - "packages/agent/src/**"
       - "packages/shared/**"
       - "!packages/shared/**/__tests__/**"
       - "!packages/shared/**/*.test.*"
@@ -111,9 +114,10 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
+      # With coverage, the floors in vitest.config.ts hold on every pull request, not only nightly.
       - name: Run client tests
         working-directory: packages/client
-        run: bun run test
+        run: bun run test --coverage
         env:
           CI: true
 
@@ -212,7 +216,8 @@ jobs:
   e2e:
     name: Playwright Client CI
     if: github.event_name != 'workflow_dispatch' || inputs.operation == 'ci' || inputs.operation == 'all'
-    runs-on: ubuntu-latest
+    # Playwright 1.60 cannot install Chromium on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -260,7 +265,7 @@ jobs:
           node -e 'const fs = require("node:fs"); const path = "tests/test-results/results.json"; if (!fs.existsSync(path)) { console.log("::notice::Playwright results.json was not produced"); process.exit(0); } const results = JSON.parse(fs.readFileSync(path, "utf8")); console.log(`::notice::${results.stats?.skipped ?? 0} Playwright tests skipped`);'
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: client-playwright-report
@@ -268,7 +273,7 @@ jobs:
           retention-days: 14
 
       - name: Upload test results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: client-playwright-results
@@ -301,7 +306,7 @@ jobs:
 
       - name: Upload Lighthouse results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: lighthouse-client-results
           path: packages/client/.lighthouseci/

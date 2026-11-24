@@ -54,14 +54,3 @@ export const buildGardenMemberSets = (
     memberIds,
   };
 };
-
-export const gardenHasMember = (
-  target: string | null | undefined,
-  gardeners?: GardenMemberLike[],
-  stewards?: GardenMemberLike[]
-) => {
-  if (!target) return false;
-  const normalizedTarget = target.toLowerCase();
-  const { memberIds } = buildGardenMemberSets(gardeners, stewards);
-  return memberIds.has(normalizedTarget);
-};

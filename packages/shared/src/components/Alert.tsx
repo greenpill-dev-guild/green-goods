@@ -88,6 +88,7 @@ export function Alert({
       </div>
       {onDismiss && (
         <IconButton
+          data-piece-control
           size="compact"
           className="-my-1.5 -mr-1.5 flex-shrink-0 text-current opacity-70 hover:opacity-100"
           onClick={onDismiss}

@@ -21,11 +21,9 @@ import { RiCloseCircleLine, RiRefreshLine, RiSendPlaneLine } from "@remixicon/re
 import { GardenJoinRequestStatus } from "./GardenJoinRequestStatus";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
 
 export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Address }) {
   const { formatMessage } = useIntl();
-  const navigate = useNavigate();
   const formId = useId();
   const [open, setOpen] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -71,12 +69,12 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   const ensName = useEnsName(join.accountAddress);
   // While a lookup that outranks the name in hand is still running, the name can
   // change, so nothing is shown or sent until it settles. This reads `isFetching`,
-  // not `isLoading`: a cached empty answer refetching in the background (claiming a
-  // username invalidates these keys) would otherwise look settled and let a request
-  // go out under a lower-priority name. A lookup that fails falls through to the next
-  // name and finally to the display-name field, which is what every account was asked
-  // before: a name service being down must not block a request, and the request is
-  // tied to the account's address either way.
+  // not `isLoading`: a cached empty answer refetching in the background would
+  // otherwise look settled and let a request go out under a lower-priority name. A
+  // lookup that fails falls through to the next name and finally to the display-name
+  // field, which is what every account was asked before: a name service being down
+  // must not block a request, and the request is tied to the account's address
+  // either way.
   const isResolvingName = greenGoodsName.isFetching || (!greenGoodsName.data && ensName.isFetching);
   const accountName = isResolvingName
     ? null
@@ -108,7 +106,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
         kind: "sent",
         text: formatMessage({
           id: "app.garden.joinRequest.sent",
-          defaultMessage: "Your request was sent to the garden stewards.",
+          defaultMessage: "Sent to the garden’s stewards.",
         }),
       });
     } catch (caught) {
@@ -172,8 +170,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
         kind: "withdrawn",
         text: formatMessage({
           id: "app.garden.joinRequest.withdrawn",
-          defaultMessage:
-            "Your request was withdrawn. You can send a new one whenever you’re ready.",
+          defaultMessage: "Withdrawn. You can ask again whenever you’re ready.",
         }),
       });
     } catch {
@@ -189,15 +186,15 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   const actionLabels = {
     send: formatMessage({
       id: "app.garden.joinRequest.send",
-      defaultMessage: "Send Request",
+      defaultMessage: "Ask to Join",
     }),
     check: formatMessage({
       id: "app.garden.joinRequest.checkStatus",
-      defaultMessage: "Check Request Status",
+      defaultMessage: "Check Status",
     }),
     withdraw: formatMessage({
       id: "app.garden.joinRequest.withdraw",
-      defaultMessage: "Withdraw Request",
+      defaultMessage: "Withdraw",
     }),
   };
   // Reserve the largest action label so changing request state cannot move the buttons.
@@ -214,7 +211,9 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
     );
   }
   const requestState = join.request?.state;
-  const actions: SheetActionsProps =
+  const showsForm = requestState !== "pending" && requestState !== "welcomed";
+  // A welcomed request leaves nothing to act on; the dialog's close button ends it.
+  const actions: SheetActionsProps | undefined =
     requestState === "pending"
       ? {
           primary: {
@@ -247,18 +246,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
           },
         }
       : requestState === "welcomed"
-        ? {
-            primary: {
-              label: formatMessage({
-                id: "app.garden.joinRequest.claimUsername",
-                defaultMessage: "Claim a Username",
-              }),
-              onClick: () => {
-                setOpen(false);
-                navigate("/profile");
-              },
-            },
-          }
+        ? undefined
         : {
             primary: {
               label: actionLabel(
@@ -305,7 +293,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
       >
         {formatMessage({
           id: "app.garden.joinRequest.action",
-          defaultMessage: "Request to Join",
+          defaultMessage: "Ask to Join",
         })}
       </Button>
       <DialogShell
@@ -313,15 +301,17 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
         onOpenChange={setOpen}
         title={formatMessage({
           id: "app.garden.joinRequest.title",
-          defaultMessage: "Request to Join This Garden",
+          defaultMessage: "Ask to Join This Garden",
         })}
         description={formatMessage({
           id: "app.garden.joinRequest.overview",
-          defaultMessage: "Follow your request to join this garden.",
+          defaultMessage: "Follow along after asking to join this garden.",
         })}
         size="lg"
-        sheetSize="full"
-        bodyClassName="sm:h-[30rem]"
+        // The introduction form takes the room it needs; once a request is sent or welcomed only
+        // its status is left, so the sheet and the dialog are only as tall as it (PRD-1208).
+        sheetSize={showsForm ? "full" : "compact"}
+        bodyClassName={showsForm ? "sm:h-[30rem]" : undefined}
         actions={actions}
       >
         <div className="space-y-4">
@@ -342,14 +332,14 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
               hasCheckedStatus={join.hasCheckedStatus}
             />
           </div>
-          {join.request?.state !== "pending" && join.request?.state !== "welcomed" ? (
+          {showsForm ? (
             <form id={formId} className="space-y-4" onSubmit={submit}>
               {accountName ? (
                 <p className="text-sm text-text-sub-600">
                   {formatMessage(
                     {
                       id: "app.garden.joinRequest.requestingAs",
-                      defaultMessage: "Requesting as {name}",
+                      defaultMessage: "Asking as {name}",
                     },
                     { name: <strong className="text-text-strong-950">{requestName}</strong> }
                   )}
@@ -393,7 +383,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
               {formatMessage({
                 id: "app.garden.joinRequest.signingExplanation",
                 defaultMessage:
-                  "Confirm with your wallet or passkey to send your request and check for updates. There’s no fee.",
+                  "Confirm with your wallet or passkey to ask to join and check for updates. There’s no fee.",
               })}
             </p>
           ) : null}

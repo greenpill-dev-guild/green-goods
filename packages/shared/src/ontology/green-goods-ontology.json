@@ -43,7 +43,7 @@
       "id": "cookie-jar",
       "display": "Cookie Jar",
       "matrix_column": "Cookie Jar",
-      "definition": "Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.",
+      "definition": "Cookie Jars are garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.",
       "contract_source": "packages/contracts/src/modules/CookieJar.sol",
       "deployment_fields": ["cookieJarFactory", "cookieJarModule"],
       "indexer_contracts": ["CookieJarFactory"],
@@ -77,7 +77,7 @@
       "id": "ens",
       "display": "ENS",
       "matrix_column": "ENS",
-      "definition": "ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.",
+      "definition": "ENS connects garden identity to names across the configured registry, receiver, and application resolution paths.",
       "contract_source": "packages/contracts/src/registries/ENS.sol",
       "deployment_fields": ["ensReceiver", "greenGoodsENS"],
       "remote_deployment_fields": {
@@ -92,7 +92,7 @@
       "id": "gardens",
       "display": "Gardens",
       "matrix_column": "Gardens V2",
-      "definition": "The Gardens module connects a Green Goods Garden to governance communities and signal pools.",
+      "definition": "The Gardens module connects a Green Goods garden to governance communities and signal pools.",
       "contract_source": "packages/contracts/src/modules/Gardens.sol",
       "deployment_fields": ["gardensModule"],
       "indexer_contracts": [],
@@ -102,7 +102,7 @@
       "id": "hats",
       "display": "Hats Protocol",
       "matrix_column": "Hats Protocol",
-      "definition": "Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.",
+      "definition": "Hats provides the on-chain role hierarchy used to authorize garden responsibilities.",
       "contract_source": "packages/contracts/src/modules/Hats.sol",
       "deployment_fields": ["hatsModule"],
       "indexer_contracts": ["HatsModule"],
@@ -122,7 +122,7 @@
       "id": "karma",
       "display": "Karma GAP",
       "matrix_column": "Karma GAP",
-      "definition": "Karma GAP connects Garden activity with project reporting and milestone records.",
+      "definition": "Karma GAP connects garden activity with project reporting and milestone records.",
       "contract_source": "packages/contracts/src/modules/Karma.sol",
       "deployment_fields": ["karmaGAPModule"],
       "indexer_contracts": ["KarmaGAPModule"],
@@ -132,7 +132,7 @@
       "id": "octant",
       "display": "Octant",
       "matrix_column": "Octant",
-      "definition": "Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.",
+      "definition": "Octant provides garden vault creation, deposits, withdrawals, and yield-donation mechanics.",
       "contract_source": "packages/contracts/src/modules/Octant.sol",
       "deployment_fields": ["octantFactory", "octantModule"],
       "indexer_contracts": ["OctantModule", "OctantVault"],
@@ -142,7 +142,7 @@
       "id": "tokenbound",
       "display": "Tokenbound Accounts",
       "matrix_column": "Tokenbound",
-      "definition": "ERC-6551 token-bound accounts make each Garden token an on-chain account that holds the Garden's treasury, role Hats, and attested records.",
+      "definition": "ERC-6551 token-bound accounts make each Garden token an on-chain account that holds the garden's treasury, role Hats, and attested records.",
       "contract_source": "packages/contracts/src/accounts/Garden.sol",
       "deployment_fields": ["accountProxy", "gardenAccountImpl", "gardenToken"],
       "indexer_contracts": ["GardenAccount", "GardenToken"],
@@ -172,14 +172,25 @@
       "definition": "A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata.",
       "layers": {
         "solidity": [
-          "packages/contracts/src/tokens/Garden.sol",
-          "packages/contracts/src/accounts/Garden.sol"
+          {
+            "file": "packages/contracts/src/tokens/Garden.sol",
+            "symbol": "GardenToken"
+          },
+          {
+            "file": "packages/contracts/src/accounts/Garden.sol",
+            "symbol": "GardenAccount"
+          }
         ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "Garden"
         },
-        "shared": ["packages/shared/src/types/domain.ts"],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/domain.ts",
+            "symbol": "Garden"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "relationships": [
@@ -202,12 +213,22 @@
       "display": "Action",
       "definition": "A documented activity a gardener can perform — the unit of work template (e.g. \"Plant native species\", \"Remove invasive growth\").",
       "layers": {
-        "solidity": ["packages/contracts/src/registries/Action.sol"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/registries/Action.sol",
+            "symbol": "Action"
+          }
+        ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "Action"
         },
-        "shared": ["packages/shared/src/types/domain.ts"],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/domain.ts",
+            "symbol": "Action"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "relationships": [
@@ -225,8 +246,18 @@
       "display": "Work",
       "definition": "One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for steward review; approval records a separate Work Approval attestation.",
       "layers": {
-        "solidity": ["packages/contracts/src/resolvers/Work.sol"],
-        "shared": ["packages/shared/src/types/domain.ts"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/resolvers/Work.sol",
+            "symbol": "WorkResolver"
+          }
+        ],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/domain.ts",
+            "symbol": "Work"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Not indexed by Envio — work attestations are queried from EAS (easscan) per the indexing boundary.",
@@ -249,8 +280,18 @@
       "display": "Work Approval",
       "definition": "The separate EAS attestation in which a garden steward records approval or rejection of a submitted Work, with feedback, confidence, and verification method. The Work record already exists; this decision never creates it.",
       "layers": {
-        "solidity": ["packages/contracts/src/resolvers/WorkApproval.sol"],
-        "shared": ["packages/shared/src/types/domain.ts"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/resolvers/WorkApproval.sol",
+            "symbol": "WorkApprovalResolver"
+          }
+        ],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/domain.ts",
+            "symbol": "WorkApproval"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Not indexed by Envio — approval attestations are queried from EAS (easscan) per the indexing boundary.",
@@ -278,8 +319,18 @@
       "display": "Assessment",
       "definition": "An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval).",
       "layers": {
-        "solidity": ["packages/contracts/src/resolvers/Assessment.sol"],
-        "shared": ["packages/shared/src/types/domain.ts"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/resolvers/Assessment.sol",
+            "symbol": "AssessmentResolver"
+          }
+        ],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/domain.ts",
+            "symbol": "GardenAssessment"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Not indexed by Envio — assessment attestations are queried from EAS (easscan) per the indexing boundary.",
@@ -298,12 +349,22 @@
       "display": "Hypercert",
       "definition": "An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit.",
       "layers": {
-        "solidity": ["packages/contracts/src/modules/Hypercerts.sol"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/modules/Hypercerts.sol",
+            "symbol": "HypercertsModule"
+          }
+        ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "Hypercert"
         },
-        "shared": ["packages/shared/src/types/hypercerts.ts"],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/hypercerts.ts",
+            "symbol": "HypercertRecord"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "relationships": [
@@ -325,12 +386,22 @@
       "display": "Vault",
       "definition": "A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, which they can redeem, though a strategy or contract loss can reduce what comes back; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios.",
       "layers": {
-        "solidity": ["packages/contracts/src/modules/Octant.sol"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/modules/Octant.sol",
+            "symbol": "OctantModule"
+          }
+        ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "GardenVault"
         },
-        "shared": ["packages/shared/src/types/vaults.ts"],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/vaults.ts",
+            "symbol": "GardenVault"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "relationships": [
@@ -347,12 +418,22 @@
       "display": "Cookie Jar",
       "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead.",
       "layers": {
-        "solidity": ["packages/contracts/src/modules/CookieJar.sol"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/modules/CookieJar.sol",
+            "symbol": "CookieJarModule"
+          }
+        ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "CampaignCookieJar"
         },
-        "shared": ["packages/shared/src/types/cookie-jar.ts"],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/cookie-jar.ts",
+            "symbol": "CampaignCookieJar"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Only shared campaign jars are indexed; per-garden jars stay on-chain reads per the indexing boundary.",
@@ -370,8 +451,18 @@
       "display": "Attestation",
       "definition": "An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims.",
       "layers": {
-        "solidity": ["packages/contracts/src/Schemas.sol"],
-        "shared": ["packages/shared/src/types/eas-responses.ts"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/Schemas.sol",
+            "symbol": "WorkSchema"
+          }
+        ],
+        "shared": [
+          {
+            "file": "packages/shared/src/types/eas-responses.ts",
+            "symbol": "EASAttestationRaw"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "EAS attestations are deliberately outside the Envio boundary; queried from easscan.",
@@ -394,14 +485,25 @@
       "definition": "A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest.",
       "layers": {
         "solidity": [
-          "packages/contracts/src/modules/Hats.sol",
-          "packages/contracts/src/interfaces/IHatsModule.sol"
+          {
+            "file": "packages/contracts/src/modules/Hats.sol",
+            "symbol": "HatsModule"
+          },
+          {
+            "file": "packages/contracts/src/interfaces/IHatsModule.sol",
+            "symbol": "GardenRole"
+          }
         ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "Garden"
         },
-        "shared": ["packages/shared/src/utils/blockchain/garden-roles.ts"],
+        "shared": [
+          {
+            "file": "packages/shared/src/utils/blockchain/garden-roles.ts",
+            "symbol": "GardenRole"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Role membership is flattened onto Garden role arrays (gardeners/operators/evaluators/owners/funders/communities).",
@@ -417,16 +519,32 @@
     {
       "id": "season",
       "display": "Season",
-      "definition": "A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown.",
+      "definition": "A garden's main rhythm: a Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. It stays a season at every stage, from planned to archived. A pool has at most one open Season at a time, and Campaigns may run beside it. It paces work and is never a countdown.",
       "layers": {
+        "solidity": [
+          {
+            "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+            "symbol": "Cycle"
+          }
+        ],
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentCycle"
+        },
+        "shared": [
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+            "symbol": "CommitmentCycleType"
+          }
+        ],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
-      "note": "No dedicated on-chain or typed representation today; the commitment-pooling Cycle (type Season) becomes its first formal representation.",
+      "note": "Represented by a Season-type commitment cycle of the garden's pool (CycleType.Season, cycleType SEASON in the indexer and Shared), in any state; at most one is open per pool. Not the same as Season One or Season Two, the network-wide program periods that span gardens. Season One appears in the product only as an editorial window, the public archive's Vol. I (SEASON_ONE_WINDOW in usePublicVolume), not as a commitment cycle; Season Two has no product representation yet.",
       "relationships": [
         {
           "to": "commitment-cycle",
-          "kind": "formalized-by",
-          "note": "implemented in Commitment Pooling; not yet integrated into the product surface"
+          "kind": "represented-by",
+          "note": "a Season-type cycle of the garden's pool, in any state; a Campaign-type cycle is not a season"
         }
       ],
       "semantic_status": "canonical",
@@ -463,7 +581,12 @@
       "definition": "A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+            "symbol": "Pool"
+          }
+        ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "CommitmentPool"
@@ -484,7 +607,12 @@
       "definition": "A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+            "symbol": "Cycle"
+          }
+        ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "CommitmentCycle"
@@ -505,7 +633,12 @@
       "definition": "The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun.",
       "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+            "symbol": "CommitmentSeries"
+          }
+        ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "CommitmentSeries"
@@ -599,7 +732,12 @@
       "definition": "A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"]
+        "solidity": [
+          {
+            "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+            "symbol": "Commitment"
+          }
+        ]
       },
       "relationships": [
         {
@@ -638,7 +776,12 @@
       "definition": "A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"]
+        "solidity": [
+          {
+            "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+            "symbol": "ContributorRecord"
+          }
+        ]
       },
       "relationships": [
         {
@@ -663,12 +806,22 @@
       "definition": "A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ISettlementModule.sol"],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+            "symbol": "CommitmentPayoutPlan"
+          }
+        ],
         "indexer": {
           "file": "packages/indexer/schema.graphql",
           "type": "CommitmentPayoutPlan"
         },
-        "shared": ["packages/shared/src/types/indexer-responses.ts"]
+        "shared": [
+          {
+            "file": "packages/shared/src/types/indexer-responses.ts",
+            "symbol": "IndexerCommitmentPayoutPlan"
+          }
+        ]
       },
       "relationships": [
         {
@@ -686,6 +839,104 @@
       ],
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "docs"]
+    },
+    {
+      "id": "service-voucher",
+      "display": "Service Voucher",
+      "definition": "An issuer-specific token representing a published service promise, such as hub access or a career call. A voucher identifies its issuer and service terms; a wallet balance does not establish current service capacity or acceptance by another issuer. Approved request rewards and steward awards can transfer existing reserve vouchers to a gardener.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "layers": {
+        "shared": [
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/service-issuer-types.ts",
+            "symbol": "ServiceIssuerAsset"
+          }
+        ],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/modules/GnosisVoucherAdapter.sol",
+            "symbol": "GnosisVoucherAdapter"
+          },
+          {
+            "file": "packages/contracts/src/modules/GnosisVoucherEscrow.sol",
+            "symbol": "GnosisVoucherEscrow"
+          }
+        ]
+      },
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "offered-in"
+        },
+        {
+          "to": "commitment",
+          "kind": "can-reward-or-access"
+        }
+      ],
+      "note": "Voucher token identity, issuer authority, reserve, and service terms remain distinct from exchange-pool admission. A member may issue their own voucher; membership alone does not make it redeemable through Green Goods."
+    },
+    {
+      "id": "voucher-exchange-pool",
+      "display": "Voucher Exchange Pool",
+      "definition": "A curated inventory of admitted service vouchers with its own prices, holding limits, fees, and governance. A pool can exchange multiple listed vouchers when policy and inventory permit. A garden pool supports local service exchange; the separately curated Green Goods pool admits only reviewed vouchers for its offered services.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "layers": {
+        "shared": [
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/service-issuer-types.ts",
+            "symbol": "ServiceIssuerPool"
+          },
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/service-issuer-governance.ts",
+            "symbol": "serviceIssuerGovernanceDrafts",
+            "kind": "value"
+          }
+        ]
+      },
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "serves"
+        },
+        {
+          "to": "service-voucher",
+          "kind": "lists-and-exchanges"
+        }
+      ],
+      "note": "The two-pool release adopts the existing Green Goods exchange and provisions one Tech and Sun exchange with independent dependencies. The same Tech and Sun voucher can be admitted to both pools without duplicating its token or supply. A local listing does not imply Green Goods admission. A voucher exchange pool is separate from a Commitment Pool or Signal Pool."
+    },
+    {
+      "id": "voucher-award",
+      "display": "Voucher Award",
+      "definition": "A durable steward-reviewed allocation of existing issuer-reserve vouchers to a recipient, with an amount, reason, and optional contribution reference. Preparing the record binds one Safe transaction but does not send it. Confirmation requires the matching successful Safe execution and token transfer.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "layers": {
+        "shared": [
+          {
+            "file": "packages/shared/src/public-contracts/voucher-awards.ts",
+            "symbol": "VoucherAwardRecord"
+          },
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/voucher-award-send.ts",
+            "symbol": "sendVoucherAward",
+            "kind": "value"
+          }
+        ]
+      },
+      "relationships": [
+        {
+          "to": "service-voucher",
+          "kind": "transfers"
+        },
+        {
+          "to": "garden",
+          "kind": "recognizes-contribution-to"
+        }
+      ],
+      "note": "Its identity is chain, reserve, and award ID. Reusing that identity with different details is rejected. An award can recognize a past contribution without fabricating a Work Approval or fulfilling a Commitment, and it does not mint new supply."
     }
   ],
   "personas": [
@@ -693,40 +944,40 @@
       "id": "gardener",
       "display": "Gardener",
       "hat": "gardener",
-      "definition": "A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits.",
+      "definition": "A person doing regenerative work in a garden. Submits work, holds gardener Hats, receives credit toward Hypercerts and yield splits.",
       "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
       "id": "steward",
       "display": "Steward",
       "hat": "steward",
-      "definition": "A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).",
+      "definition": "A person who stewards a garden — creates actions, approves work, configures the vault and the Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).",
       "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
       "id": "evaluator",
       "display": "Evaluator",
       "hat": "evaluator",
-      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards.",
+      "definition": "A person who authors or strengthens assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted work; that authority belongs to stewards.",
       "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "funder",
       "display": "Funder",
       "hat": "funder",
-      "definition": "A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits.",
+      "definition": "A person or organization who funds a garden's work, from an individual or diaspora supporter to a grantmaker, institution, or crypto ecosystem fund. A funder donates to the garden's cookie jar, endows its vault, or backs the garden through a grant or partnership. A donation is a gift with nothing to withdraw. An endowment is a vault deposit the funder can redeem, less any strategy or contract loss; its yield is donated onward through the garden's configured splits, never paid to the funder. Giving needs no role; a steward or owner may grant the funder Hat, which makes its holder a garden member.",
       "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "community-member",
       "display": "Community Member",
       "hat": "community",
-      "definition": "A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
+      "definition": "A local resident affected by a garden's work. Signals or attests that work exists and is healthy, and helps prioritize future actions through public signal and conviction flows.",
       "surfaces": ["client", "public", "docs"]
     }
   ],
-  "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.",
-  "supporting_terms_note": "Terms projected into the generated glossary's Term Reference section but deliberately excluded from the canonical entity and persona sets. Declaring them here prevents public definitions from accumulating orphan nouns.",
+  "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the steward surfaces.",
+  "supporting_terms_note": "Technical terms kept in this Builders reference and deliberately excluded from the canonical entity and persona sets. Declaring them here preserves their meaning and published glossary links.",
   "supporting_terms": [
     {
       "id": "domain",
@@ -796,7 +1047,7 @@
     {
       "id": "resolver",
       "display": "Resolver",
-      "reason": "The contract that gates an attestation; declared per schema as `resolver`, not modelled as an entity."
+      "reason": "The contract that gates an attestation; declared per schema as `resolver`, not modeled as an entity."
     },
     {
       "id": "schema",
@@ -902,7 +1153,7 @@
             "spiritual",
             "cultural"
           ],
-          "note": "Ordered deliberately: the union is declared here in canonical machine order because index-based bridges between Capital and CapitalType lists are a live bug risk. The current file deviates (living-first presentational order) — baselined until reordered or a mapping function lands."
+          "note": "Declared in the Capital enum's order. Consumers store the words, never positions; convert only through capitalToCapitalType and capitalTypeToCapital."
         }
       ],
       "mappings": [
@@ -923,8 +1174,8 @@
             "SPIRITUAL": "spiritual",
             "CULTURAL": "cultural"
           },
-          "code_anchor": null,
-          "note": "No runtime mapping function exists yet — see known_issues.missing-capital-mapping-fn."
+          "code_anchor": "packages/shared/src/types/hypercerts.ts",
+          "note": "capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. packages/shared/src/__tests__/types/domain-enums.test.ts checks both directions against these pairs."
         }
       ],
       "source_status": "implemented"
@@ -974,18 +1225,28 @@
           "symbol": "ActionDomain",
           "extract": "ts-union",
           "ordered": false,
-          "members": ["solar", "waste", "agroforestry", "education", "mutual_credit"],
-          "note": "Long-form lowercase spellings used in hypercert metadata. mutual_credit is a product concept ahead of the on-chain enum (deferred Domain 5) — declared, not drift."
+          "members": ["solar", "waste", "agroforestry", "education"],
+          "note": "Long-form lowercase spellings written into hypercert metadata: each attested work's domain, the hypercert's own domain when its work names exactly one, and the work scope suggested from an assessment. The admin keys its hypercert domain labels on them, and the public garden-impact API (v1) derives its ordered list from the shared enum mapping. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain."
         },
         {
           "id": "slug-prefix",
           "layer": "shared",
-          "file": "packages/shared/src/hooks/action/useActionForm.ts",
+          "file": "packages/shared/src/utils/domain.ts",
           "symbol": "DOMAIN_SLUG_PREFIX",
           "extract": "ts-object-values",
           "ordered": true,
           "members": ["solar", "agro", "edu", "waste"],
-          "note": "Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*)."
+          "note": "Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). Each is its Solidity member name in lower case, and both the deploy actions validator and the create-action form reject a slug whose prefix is not its domain's."
+        },
+        {
+          "id": "design-token",
+          "layer": "shared",
+          "file": "packages/shared/src/types/domain.ts",
+          "symbol": "DOMAIN_TOKEN_SLUG",
+          "extract": "ts-object-values",
+          "ordered": true,
+          "members": ["solar", "agro", "education", "waste"],
+          "note": "CSS token and display-label spelling. DOMAIN_COLORS and DOMAIN_CONFIG derive from this map; the palette keeps complete Tailwind class names so app builds can discover them."
         }
       ],
       "mappings": [
@@ -995,24 +1256,45 @@
           "to": "action-domain",
           "kind": "explicit",
           "total_from": true,
-          "bijective": false,
-          "unmapped_to": ["mutual_credit"],
+          "bijective": true,
           "pairs": {
             "SOLAR": "solar",
             "AGRO": "agroforestry",
             "EDU": "education",
             "WASTE": "waste"
           },
-          "code_anchor": "packages/shared/src/modules/data/hypercerts-filters.ts"
+          "code_anchor": "packages/shared/src/utils/domain.ts"
         },
         {
-          "id": "action-domain-vs-slug-prefix",
-          "from": "action-domain",
+          "id": "domain-to-slug-prefix",
+          "from": "solidity",
           "to": "slug-prefix",
-          "kind": "identity",
-          "total_from": false,
-          "unmapped_from": ["mutual_credit"],
-          "note": "The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined."
+          "kind": "explicit",
+          "total_from": true,
+          "bijective": true,
+          "pairs": {
+            "SOLAR": "solar",
+            "AGRO": "agro",
+            "EDU": "edu",
+            "WASTE": "waste"
+          },
+          "code_anchor": "packages/shared/src/utils/domain.ts",
+          "note": "AGRO and EDU each have two published lowercase spellings, and neither can be rewritten: action slugs are immutable on chain, and minted hypercert metadata keeps the long forms. Each spelling is mapped from the canonical enum, never from the other, so agro and agroforestry both mean AGRO."
+        },
+        {
+          "id": "domain-to-design-token",
+          "from": "solidity",
+          "to": "design-token",
+          "kind": "explicit",
+          "total_from": true,
+          "bijective": true,
+          "pairs": {
+            "SOLAR": "solar",
+            "AGRO": "agro",
+            "EDU": "education",
+            "WASTE": "waste"
+          },
+          "code_anchor": "packages/shared/src/types/domain.ts"
         }
       ],
       "source_status": "implemented"
@@ -1177,16 +1459,6 @@
           "members": ["ActionSignal", "HypercertSignal"]
         },
         {
-          "id": "indexer",
-          "layer": "indexer",
-          "file": "packages/indexer/schema.graphql",
-          "symbol": "PoolType",
-          "extract": "graphql-enum",
-          "ordered": true,
-          "members": ["ACTION_SIGNAL", "HYPERCERT_SIGNAL"],
-          "note": "Currently {HYPERCERT, ACTION} — inverted vs chain and referenced by zero entity fields (dead surface). Baselined; fix direction is deletion or correction alongside the shared enum."
-        },
-        {
           "id": "shared",
           "layer": "shared",
           "file": "packages/shared/src/types/gardens-community.ts",
@@ -1195,7 +1467,7 @@
           "ordered": true,
           "members": ["ActionSignal", "HypercertSignal"],
           "values": [0, 1],
-          "note": "Currently {Hypercert = 0, Action = 1} — inverted vs chain. Verified latent, not live: pool types are assigned by address identity (annotateGardenSignalPools), never decoded from a raw uint8. Baselined with a mandatory blast-radius re-check before burn-down."
+          "note": "Pools are classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type."
         }
       ],
       "mappings": [],
@@ -1337,53 +1609,30 @@
           "extract": "ts-property-union",
           "property": "status",
           "ordered": false,
-          "members": [
-            "approved",
-            "rejected",
-            "pending",
-            "syncing",
-            "uploading",
-            "sync_failed",
-            "offline"
-          ],
-          "note": "Declared as the canonical union; the current file carries a divergent five-value list (failed instead of sync_failed; missing uploading/offline) — baselined."
-        },
+          "members": ["approved", "rejected"],
+          "note": "The decided subset of the canonical union, declared in code as Extract<WorkDisplayStatus, \"approved\" | \"rejected\">: every review read from the attestation history has decided its work, so pending and the upload and sync states never apply to it."
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
+    },
+    {
+      "id": "hypercert-sync-status",
+      "definition": "How far a newly minted hypercert has caught up with the indexer; not the hypercert's lifecycle status (hypercert-status). It shares the word syncing with the work display status but not its meaning: it tracks a hypercert's indexing, not a work's upload or review.",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "none",
+        "members": ["synced", "syncing", "optimistic", "failed"]
+      },
+      "representations": [
         {
-          "id": "offline-work-item",
-          "layer": "shared",
-          "file": "packages/shared/src/types/offline.ts",
-          "symbol": "OfflineWorkItem",
-          "extract": "ts-property-union",
-          "property": "status",
-          "ordered": false,
-          "members": [
-            "approved",
-            "rejected",
-            "pending",
-            "syncing",
-            "uploading",
-            "sync_failed",
-            "offline"
-          ],
-          "note": "Declared as the canonical union; the current file carries a divergent four-value list — baselined pending status-union consolidation."
-        },
-        {
-          "id": "hypercert-sync-status",
+          "id": "shared-union",
           "layer": "shared",
           "file": "packages/shared/src/hooks/hypercerts/useHypercerts.ts",
           "symbol": "HypercertSyncStatus",
           "extract": "ts-union",
           "ordered": false,
-          "members": [
-            "approved",
-            "rejected",
-            "pending",
-            "syncing",
-            "uploading",
-            "sync_failed",
-            "offline"
-          ],
-          "note": "Declared as the canonical union; the current file carries a divergent four-value sync list — baselined pending status-union consolidation."
+          "members": ["synced", "syncing", "optimistic", "failed"]
         }
       ],
       "mappings": [],
@@ -2445,7 +2694,25 @@
           ]
         }
       ],
-      "mappings": [],
+      "mappings": [
+        {
+          "id": "canonical-to-indexer",
+          "from": "canonical",
+          "to": "indexer",
+          "kind": "explicit",
+          "total_from": true,
+          "bijective": true,
+          "pairs": {
+            "Internal": "INTERNAL",
+            "ProtocolToGarden": "PROTOCOL_TO_GARDEN",
+            "GardenToProtocol": "GARDEN_TO_PROTOCOL",
+            "GardenToGarden": "GARDEN_TO_GARDEN"
+          },
+          "unmapped_to": ["UNKNOWN"],
+          "code_anchor": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "note": "Conceptual direction names map to the published uppercase read-model words. UNKNOWN is an indexer sentinel, not a settlement direction."
+        }
+      ],
       "source_status": "implemented"
     },
     {
@@ -2700,7 +2967,7 @@
     },
     {
       "id": "commitment-claim-request-state",
-      "definition": "Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.",
+      "definition": "Indexer lifecycle of a commitment claim request. A request still pending is superseded when its commitment is taken up by someone else, canceled or expires, and its resolution code (COMMITMENT_ACCEPTED, COMMITMENT_CANCELLED or COMMITMENT_EXPIRED) says which.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
         "ordered": true,
@@ -2944,6 +3211,41 @@
       ],
       "mappings": [],
       "source_status": "implemented"
+    },
+    {
+      "id": "voucher-award-state",
+      "definition": "Durable status of an existing-reserve voucher award. A local form draft has no award record; awaiting_authorization means the exact transaction has been prepared, not sent.",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "none",
+        "members": [
+          "awaiting_authorization",
+          "submitted",
+          "confirmed",
+          "failed",
+          "needs_reconciliation"
+        ]
+      },
+      "representations": [
+        {
+          "id": "shared-record",
+          "layer": "shared",
+          "file": "packages/shared/src/public-contracts/voucher-awards.ts",
+          "symbol": "VoucherAwardRecord",
+          "extract": "ts-property-union",
+          "property": "state",
+          "ordered": false,
+          "members": [
+            "awaiting_authorization",
+            "submitted",
+            "confirmed",
+            "failed",
+            "needs_reconciliation"
+          ]
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
     }
   ],
   "schemas": {
@@ -3083,7 +3385,12 @@
           "type": "uint8"
         }
       ],
-      "source_status": "implemented"
+      "source_status": "implemented",
+      "registration": {
+        "name_symbol": "GREEN_GOODS_BADGE_NAME",
+        "revocable_symbol": "REVOCABLE",
+        "resolver_argument": "address(0)"
+      }
     },
     "assessmentV3": {
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
@@ -3523,6 +3830,65 @@
       "enforced_at": [],
       "holes": [],
       "source_status": "specified"
+    },
+    {
+      "id": "voucher-pool-policy-independence",
+      "kind": "functional",
+      "source_status": "implemented",
+      "statement": "Issuer and token identity are canonical across pools. Listing admission, price, and holding cap belong to a selected pool, so local listing and delisting cannot change Green Goods policy implicitly.",
+      "enforced_at": [
+        {
+          "file": "packages/shared/src/modules/commitment-pooling/service-issuer-types.ts",
+          "symbol": "ServiceIssuerPool"
+        },
+        {
+          "file": "packages/shared/src/modules/commitment-pooling/service-issuer-governance.ts",
+          "symbol": "serviceIssuerGovernanceDrafts"
+        },
+        {
+          "file": "packages/contracts/script/utils/clc-garden-release.ts",
+          "symbol": "buildCLCGardenPlan"
+        }
+      ],
+      "holes": []
+    },
+    {
+      "id": "voucher-two-pool-adoption",
+      "kind": "closed-set",
+      "source_status": "implemented",
+      "statement": "The garden-exchange release adopts the existing Green Goods pool and existing collective voucher tokens, provisions one separate Tech and Sun pool, and keeps funding and service activation explicit. Simulated deployment receipts cannot register a production pool.",
+      "enforced_at": [
+        {
+          "file": "packages/contracts/script/utils/clc-garden-release.ts",
+          "symbol": "buildCLCGardenPlan"
+        },
+        {
+          "file": "packages/contracts/script/utils/clc-garden-execution.ts",
+          "symbol": "executeGardenDeployment"
+        }
+      ],
+      "holes": []
+    },
+    {
+      "id": "voucher-award-exact-reserve-transfer",
+      "kind": "functional",
+      "source_status": "implemented",
+      "statement": "One award identity binds an immutable recipient, token, amount, reason, reference, and prepared Safe envelope. Preparation requires current reserve authority; confirmation requires the exact successful execution and transfer. A draft or submitted hash alone never establishes payment.",
+      "enforced_at": [
+        {
+          "file": "packages/agent/src/services/voucher-awards.ts",
+          "symbol": "createVoucherAwardService"
+        },
+        {
+          "file": "packages/agent/src/services/voucher-awards-chain.ts",
+          "symbol": "createVoucherAwardChain"
+        },
+        {
+          "file": "packages/shared/src/public-contracts/voucher-awards.ts",
+          "symbol": "parseVoucherAwardInput"
+        }
+      ],
+      "holes": []
     }
   ],
   "state_machines": [
@@ -3589,7 +3955,7 @@
           "from": ["pending"],
           "to": ["approved", "rejected"],
           "layer": "on-chain",
-          "mechanism": "a Steward records a separate Work Approval attestation"
+          "mechanism": "a steward records a separate Work Approval attestation"
         }
       ],
       "source_status": "implemented",
@@ -3893,7 +4259,7 @@
           "from": ["Disputed"],
           "to": ["Accepted", "ReadyForConfirmation", "Fulfilled", "Cancelled", "Expired"],
           "layer": "on-chain",
-          "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved"
+          "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution rejects the steward who raised the dispute (SelfDisputeResolution) and a dispute with no recorded raiser (UnknownDisputeRaiser), while that steward may still restore, cancel or expire it; it then requires an available recognition policy and verified contributor, and freezes an unfrozen roster before DisputeResolved"
         }
       ],
       "source_status": "implemented",
@@ -3917,7 +4283,7 @@
           "symbol": "CreditRegistry"
         }
       ],
-      "note": "Records-only pool credit (CreditRegistry). Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.",
+      "note": "Records-only pool credit (CreditRegistry) for the separate Commitment Credit companion. No client or admin screen offers it yet, so no garden can borrow or repay through Green Goods. Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.",
       "states": [
         {
           "name": "None",
@@ -4004,6 +4370,59 @@
       ],
       "source_status": "implemented",
       "kind": "executable"
+    },
+    {
+      "id": "voucher-award",
+      "vocabulary": "voucher-award-state",
+      "source_status": "implemented",
+      "kind": "executable",
+      "enforced_at": [
+        {
+          "file": "packages/agent/src/services/voucher-awards.ts",
+          "symbol": "createVoucherAwardService"
+        },
+        {
+          "file": "packages/agent/src/services/voucher-awards-chain.ts",
+          "symbol": "createVoucherAwardChain"
+        }
+      ],
+      "note": "Preparation creates awaiting_authorization after validating authority, reserve inventory, and the exact envelope. Confirmed is terminal. Failure distinguishes a reverted outer transaction from a Safe execution failure; a consumed nonce requires reconciliation, never an automatic replacement payment.",
+      "states": [
+        {
+          "name": "awaiting_authorization",
+          "storage": "off-chain"
+        },
+        {
+          "name": "submitted",
+          "storage": "off-chain"
+        },
+        {
+          "name": "confirmed",
+          "storage": "off-chain"
+        },
+        {
+          "name": "failed",
+          "storage": "off-chain"
+        },
+        {
+          "name": "needs_reconciliation",
+          "storage": "off-chain"
+        }
+      ],
+      "transitions": [
+        {
+          "from": ["awaiting_authorization", "submitted", "failed", "needs_reconciliation"],
+          "to": ["submitted", "confirmed", "failed"],
+          "layer": "off-chain",
+          "mechanism": "Reconcile the supplied transaction hash against the prepared Safe envelope and canonical receipt. Pending execution stays submitted; a verified successful execution plus exact transfer confirms; reverted or Safe-failed execution records failure. An unresolved submitted transaction cannot be replaced by another unconfirmed hash."
+        },
+        {
+          "from": ["awaiting_authorization", "failed"],
+          "to": ["needs_reconciliation"],
+          "layer": "off-chain",
+          "mechanism": "Read a prepared or outer-transaction-reverted award and observe that its Safe nonce has changed. Preserve the award and exact envelope for receipt reconciliation."
+        }
+      ]
     }
   ],
   "integration_matrix": {
@@ -4204,11 +4623,6 @@
     }
   ],
   "known_issues": [
-    {
-      "id": "missing-capital-mapping-fn",
-      "statement": "No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ.",
-      "anchors": ["packages/shared/src/types/domain.ts", "packages/shared/src/types/hypercerts.ts"]
-    },
     {
       "id": "community-surface-token",
       "statement": "The ontology uses a `community` surface token on Need, Commitment, and Commitment Contributor while the product still treats community experiences as part of the client and public surfaces. Either promote Community to a distinct product surface or fold the token into `client`; until then the generated glossary carries the declared value verbatim.",

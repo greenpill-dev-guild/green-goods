@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 import { SETTLEMENT_ENABLED } from "../../config/app";
+import { readCreationStanding } from "./creation-standing";
 import {
   hashCommitmentCreationPayload,
   hashSeriesCreationPayload,
@@ -68,16 +69,24 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
         : { status: "identity-conflict", reason: "commitment-payload-mismatch" };
     }
     if (job.submittedTxHash) return { status: "waiting", reason: "pending-first-send" };
+    // Only now, with nothing of it on the chain or on record: a promise already made stays made,
+    // whatever has closed since. One the chain can no longer keep is refused before any wait.
+    const standing = await readCreationStanding(payload, dependencies);
+    if (standing === "unreadable") return { status: "waiting", reason: "windows-unavailable" };
+    if (standing !== "open") return { status: "refused", reason: standing };
   }
 
   // Reconcile submitted work above first; retain unsent reward jobs without a new signature.
-  if (
-    !SETTLEMENT_ENABLED &&
-    job.kind === "commitment" &&
-    (job.payload as CommitmentCreationPayload).consideration.rail ===
-      CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT
-  ) {
-    return { status: "waiting", reason: "settlement-unavailable" };
+  // A reward is paid through the garden's settlement account, so it isn't promised while
+  // that account is inactive or can't be read, however long the job sat in the queue.
+  if (job.kind === "commitment") {
+    const payload = job.payload as CommitmentCreationPayload;
+    if (payload.consideration.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT) {
+      const active =
+        SETTLEMENT_ENABLED &&
+        (await dependencies.readSettlementAccountActive?.(payload.gardenAddress));
+      if (active !== true) return { status: "waiting", reason: "settlement-unavailable" };
+    }
   }
 
   if (job.kind === "workLink") {
@@ -126,8 +135,9 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
     }
   }
 
-  // A named confirmer is authorized by the list on the commitment, not by any
-  // hat, so a membership wait would hold an act the chain already accepts.
+  // A confirmer the chain takes by account (named, or the Request's creator or the
+  // Offer's taker: isConfirmerByAccount) needs no hat, so a membership wait would
+  // hold an act the chain already accepts.
   const byIdentity =
     "membershipNotRequired" in job.payload && job.payload.membershipNotRequired === true;
   if (dependencies.hasMembership && !byIdentity) {

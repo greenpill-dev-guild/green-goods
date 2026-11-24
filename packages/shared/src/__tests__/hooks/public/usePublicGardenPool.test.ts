@@ -33,6 +33,7 @@ vi.mock("../../../config/default-chain", () => ({
 import { usePublicGardenPool } from "../../../hooks/public/usePublicGardenPool";
 import { getPublicGardenPool } from "../../../modules/commitment-pooling/data-public-pools";
 import type { Address } from "../../../types/domain";
+import { communityRehearsals } from "../../test-utils/public-rehearsal-fixtures";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
 const OTHER_GARDEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -118,6 +119,8 @@ describe("public commitment pool reader", () => {
       name: `Name for ${cid.replace("ipfs://", "")}`,
     }));
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return {
         data: {
@@ -150,6 +153,226 @@ describe("public commitment pool reader", () => {
     });
   });
 
+  it("removes rehearsal counters, units and empty rehearsal cycles while keeping real activity", async () => {
+    const normal = mocks.query.getMockImplementation();
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicGardenPool")
+        return {
+          data: {
+            CommitmentPool: [
+              {
+                ...POOL,
+                id: "42161-1",
+                poolId: "1",
+                commitmentsAccepted: "3",
+                commitmentsFulfilled: "3",
+                commitmentsCancelled: "1",
+                commitmentsDue: "3",
+                openCommitmentCount: "0",
+              },
+            ],
+          },
+        };
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicPoolEligibleRecords")
+        return {
+          data: {
+            providers: [
+              { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+            ],
+            offerProviders: [],
+            cycle0: [],
+          },
+        };
+      if (args[2] === "getPublicGardenPoolDetails")
+        return {
+          data: {
+            CommitmentCycle: [
+              { ...cycle(1, "SEASON", "OPEN", 50), poolId: "1" },
+              { ...cycle(20, "CAMPAIGN", "OPEN", 55), poolId: "1" },
+            ],
+            CommitmentUnitSummary: [
+              {
+                ...POOL_SUMMARY,
+                poolId: "1",
+                scopeId: "1",
+                unitLabel: "phones",
+                expectedUnits: "3",
+                approvedUnits: "0",
+                fulfilledUnits: "3",
+                openUnits: "0",
+              },
+              {
+                ...POOL_SUMMARY,
+                poolId: "1",
+                scopeId: "1",
+                unitLabel: "surveys",
+                expectedUnits: "2",
+                approvedUnits: "1",
+                fulfilledUnits: "2",
+                openUnits: "0",
+              },
+            ],
+          },
+        };
+      return normal?.(...args);
+    });
+    const result = await getPublicGardenPool(42161, GARDEN);
+    expect(result?.pool).toMatchObject({
+      commitmentsAccepted: 1n,
+      commitmentsFulfilled: 1n,
+      commitmentsCancelled: 0n,
+      commitmentsDue: 1n,
+      distinctProviderCount: 1n,
+    });
+    expect(result?.openSeason).toBeNull();
+    expect(result?.openCampaigns.map((record) => record.cycleId)).toEqual([20n]);
+    expect(result?.poolUnitSummaries).toHaveLength(1);
+    expect(result?.poolUnitSummaries[0]).toMatchObject({
+      unitLabel: "surveys",
+      expectedUnits: 1n,
+      fulfilledUnits: 1n,
+      approvedUnits: 1n,
+    });
+    expect(containsAddressValue(result)).toBe(false);
+  });
+
+  it("excludes another pool's rehearsal certificate without changing production pool counters", async () => {
+    const normal = mocks.query.getMockImplementation();
+    let includeProductionCertificate = false;
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicGardenCommitmentCertificates") {
+        const clauses = args[1].excludedRecords;
+        const excludesQa = clauses.some(
+          (clause: { commitmentEntityIds?: { _contains: string[] } }) =>
+            clause.commitmentEntityIds?._contains.includes("42161-4")
+        );
+        return {
+          data: {
+            Hypercert: includeProductionCertificate
+              ? [{ id: "real" }]
+              : excludesQa
+                ? []
+                : [{ id: "qa" }],
+          },
+        };
+      }
+      return normal?.(...args);
+    });
+    const record = await getPublicGardenPool(42161, GARDEN);
+    expect(record?.pool.commitmentsFulfilled).toBe(6n);
+    expect(record?.pool.commitmentsOffered).toBe(8n);
+    expect(record?.hasCommitmentCertificates).toBe(false);
+    includeProductionCertificate = true;
+    expect((await getPublicGardenPool(42161, GARDEN))?.hasCommitmentCertificates).toBe(true);
+    mocks.query.mockImplementation(async (...args) =>
+      args[2] === "getPublicCommitmentExclusions"
+        ? { error: new Error("eligibility source offline") }
+        : normal?.(...args)
+    );
+    const unavailableCertificate = await getPublicGardenPool(42161, GARDEN);
+    expect(unavailableCertificate?.pool.commitmentsFulfilled).toBe(6n);
+    expect(unavailableCertificate?.hasCommitmentCertificates).toBe(false);
+  });
+
+  it("counts unaccepted Offer creators once alongside accepted providers without exposing identities", async () => {
+    const normal = mocks.query.getMockImplementation();
+    const first = "0x0000000000000000000000000000000000000020";
+    const second = "0x0000000000000000000000000000000000000021";
+    const third = "0x0000000000000000000000000000000000000022";
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicGardenPool")
+        return { data: { CommitmentPool: [{ ...POOL, poolId: "1" }] } };
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicPoolEligibleRecords")
+        return {
+          data: {
+            providers: [
+              { id: "42161-20", leadProvider: first },
+              { id: "42161-21", leadProvider: second },
+            ],
+            offerProviders: [
+              { id: "42161-22", creator: first },
+              { id: "42161-23", creator: third },
+            ],
+            cycle0: [],
+          },
+        };
+      return normal?.(...args);
+    });
+    const result = await getPublicGardenPool(42161, GARDEN);
+    expect(result?.pool.distinctProviderCount).toBe(3n);
+    expect(containsAddressValue(result)).toBe(false);
+    expect(forbiddenPublicFieldKeys(result)).toEqual([]);
+  });
+
+  it("keeps production cycles and fails rather than publishing an invalid correction", async () => {
+    const normal = mocks.query.getMockImplementation();
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicGardenPool")
+        return { data: { CommitmentPool: [{ ...POOL, poolId: "1" }] } };
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicPoolEligibleRecords")
+        return {
+          data: {
+            providers: [
+              { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+              { id: "42161-21", leadProvider: "0x0000000000000000000000000000000000000021" },
+            ],
+            offerProviders: [],
+            cycle0: [{ id: "42161-20" }],
+          },
+        };
+      if (args[2] === "getPublicGardenPoolDetails")
+        return {
+          data: {
+            CommitmentCycle: [
+              {
+                ...cycle(20, "SEASON", "OPEN", 50),
+                poolId: "1",
+                commitmentsReadyForConfirmation: "2",
+                commitmentsCancelled: "1",
+              },
+            ],
+            CommitmentUnitSummary: [],
+          },
+        };
+      return normal?.(...args);
+    });
+    const result = await getPublicGardenPool(42161, GARDEN);
+    expect(result?.openSeason).toMatchObject({
+      cycleId: 20n,
+      commitmentsAccepted: 4n,
+      commitmentsFulfilled: 3n,
+      commitmentsCancelled: 1n,
+    });
+    mocks.query.mockImplementation(async (...args) =>
+      args[2] === "getPublicGardenPool"
+        ? { data: { CommitmentPool: [{ ...POOL, poolId: "1", commitmentsFulfilled: "0" }] } }
+        : args[2] === "getPublicCommitmentExclusions"
+          ? { data: { Commitment: communityRehearsals() } }
+          : args[2] === "getPublicPoolEligibleRecords"
+            ? {
+                data: {
+                  providers: [
+                    { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+                  ],
+                  offerProviders: [],
+                  cycle0: [],
+                },
+              }
+            : normal?.(...args)
+    );
+    await expect(getPublicGardenPool(42161, GARDEN)).rejects.toThrow(
+      "Rehearsal correction exceeds"
+    );
+  });
+
   it("returns only public aggregates and never selects provider exposure", async () => {
     const result = await getPublicGardenPool(42161, GARDEN);
     const documents = mocks.query.mock.calls.map(([document]) => document).join("\n");
@@ -179,6 +402,8 @@ describe("public commitment pool reader", () => {
       cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
     );
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: indexedCycles, CommitmentUnitSummary: [] } };
     });
@@ -214,6 +439,8 @@ describe("usePublicGardenPool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: [], CommitmentUnitSummary: [] } };
     });
@@ -225,6 +452,8 @@ describe("usePublicGardenPool", () => {
       cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
     );
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: [open, ...finished], CommitmentUnitSummary: [] } };
     });
@@ -305,6 +534,8 @@ describe("usePublicGardenPool", () => {
     expect(documents).toContain("limit: 1");
 
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       if (operation === "getPublicGardenCommitmentCertificates") {
         return { data: { Hypercert: [{ id: "42161-7" }] } };
@@ -318,6 +549,8 @@ describe("usePublicGardenPool", () => {
     // A failed linkage read cannot prove an anchor: it answers "no" and the
     // pool record stays publishable.
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       if (operation === "getPublicGardenCommitmentCertificates") {
         return { error: new Error("bundleKind not in hosted schema") };
@@ -331,6 +564,8 @@ describe("usePublicGardenPool", () => {
 
   it("reports an unavailable cycle name without discarding indexed cycle data", async () => {
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return {
         data: {
@@ -359,6 +594,8 @@ describe("usePublicGardenPool", () => {
       cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
     );
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: finished, CommitmentUnitSummary: [] } };
     });
@@ -387,6 +624,8 @@ describe("usePublicGardenPool", () => {
     });
 
     mocks.query.mockImplementation(async (_query, variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (
         operation === "getPublicGardenPool" &&
         (variables as { garden?: string }).garden === OTHER_GARDEN.toLowerCase()

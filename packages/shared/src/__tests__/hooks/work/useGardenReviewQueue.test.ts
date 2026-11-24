@@ -3,6 +3,7 @@
  */
 
 import { waitFor } from "@testing-library/react";
+import { hashFn } from "@wagmi/core/query";
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
@@ -17,6 +18,11 @@ const WORK_LIST = worksKeys.online(GARDEN, DEFAULT_CHAIN_ID);
 const FIRST: GardenReviewQueue = { lastReviewedAt: 100, waiting: [] };
 const SECOND: GardenReviewQueue = { lastReviewedAt: 200, waiting: [] };
 const THIRD: GardenReviewQueue = { lastReviewedAt: 300, waiting: [] };
+const VISIBILITY = {
+  chainId: DEFAULT_CHAIN_ID,
+  excludedWorkUIDs: [],
+  excludedApprovalUIDs: [],
+};
 
 const mocks = vi.hoisted(() => ({ readGardenReviewQueue: vi.fn() }));
 vi.mock("../../../modules/data/eas-review-queue", () => ({
@@ -25,6 +31,10 @@ vi.mock("../../../modules/data/eas-review-queue", () => ({
 
 function queryClientWithWorkList() {
   const queryClient = createTestQueryClient();
+  queryClient.setQueryDefaults(worksKeys.visibility(DEFAULT_CHAIN_ID), {
+    gcTime: Number.POSITIVE_INFINITY,
+  });
+  queryClient.setQueryData(worksKeys.visibility(DEFAULT_CHAIN_ID), VISIBILITY);
   // No screen observes the work list here: keep its entry, so its
   // invalidations and reads still reach the queue.
   queryClient.setQueryDefaults(WORK_LIST, { gcTime: Number.POSITIVE_INFINITY });
@@ -45,7 +55,7 @@ describe("useGardenReviewQueue", () => {
     });
 
     await waitFor(() => expect(result.current).toEqual(FIRST));
-    expect(mocks.readGardenReviewQueue).toHaveBeenCalledWith(GARDEN, { chainId: DEFAULT_CHAIN_ID });
+    expect(mocks.readGardenReviewQueue).toHaveBeenCalledWith(GARDEN, VISIBILITY);
 
     // What a decision and its follow-ups do to the work list.
     await queryClient.invalidateQueries({ queryKey: WORK_LIST });
@@ -55,6 +65,13 @@ describe("useGardenReviewQueue", () => {
     queryClient.setQueryData(WORK_LIST, []);
     await queryClient.fetchQuery({ queryKey: WORK_LIST, queryFn: () => [] });
     await waitFor(() => expect(result.current).toEqual(THIRD));
+    expect(mocks.readGardenReviewQueue).toHaveBeenCalledTimes(3);
+
+    // A wagmi read keeps bigints in its key; refreshing or reading it is not the work list.
+    const wagmiRead = ["readContract", { args: [1n] }];
+    queryClient.setQueryDefaults(["readContract"], { queryKeyHashFn: hashFn });
+    await queryClient.fetchQuery({ queryKey: wagmiRead, queryFn: () => 1n });
+    await queryClient.invalidateQueries({ queryKey: wagmiRead });
     expect(mocks.readGardenReviewQueue).toHaveBeenCalledTimes(3);
   });
 

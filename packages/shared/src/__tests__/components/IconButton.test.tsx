@@ -100,4 +100,31 @@ describe("IconButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it("draws a link that holds its glyph as the icon button through asChild", () => {
+    const onClick = vi.fn();
+    render(
+      <IconButton
+        asChild
+        aria-label="Open on OpenSea"
+        emphasis="secondary"
+        size="sm"
+        onClick={onClick}
+      >
+        <a href="https://opensea.io/" target="_blank" rel="noreferrer">
+          <svg data-testid="icon" />
+        </a>
+      </IconButton>
+    );
+    const link = screen.getByRole("link", { name: "Open on OpenSea" });
+    expect(link).toHaveClass("gg-icon-button");
+    expect(link).toHaveAttribute("href", "https://opensea.io/");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("data-emphasis", "secondary");
+    expect(link).toHaveAttribute("data-size", "sm");
+    expect(link).not.toHaveAttribute("type");
+    expect(link).toContainElement(screen.getByTestId("icon"));
+    fireEvent.click(link);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });

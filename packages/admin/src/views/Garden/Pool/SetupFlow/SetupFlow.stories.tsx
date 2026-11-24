@@ -61,7 +61,7 @@ export const FirstRun: Story = {
     await expect(dialog.getByRole("button", { name: "Next" })).toBeDisabled();
     await userEvent.type(
       await dialog.findByRole("textbox", { name: "What this pool is for" }),
-      "Neighbourly help in Rio"
+      "Neighborly help in Rio"
     );
     await expect(dialog.getByRole("button", { name: "Next" })).toBeEnabled();
   },

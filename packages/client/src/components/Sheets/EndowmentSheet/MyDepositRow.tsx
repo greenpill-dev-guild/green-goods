@@ -3,6 +3,7 @@ import {
   useFormattedAmountInput,
 } from "@green-goods/shared/components/Form/FormattedAmountInput";
 import { Button } from "@green-goods/shared/components/Button";
+import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { Address } from "@green-goods/shared/types/domain";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import {
@@ -16,6 +17,7 @@ import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
+import { RiBankLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
@@ -26,16 +28,23 @@ export interface MyDepositRowProps {
   gardenAddress: Address;
 }
 
+/**
+ * One of the reader's endowment deposits, on the shared item row: the asset, the shares it
+ * holds, and what can be withdrawn on the right, with no action on the row. The row opens its
+ * page beneath it, where the withdrawal happens.
+ */
 export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
   const isOnline = useOnlineStatus();
   const withdrawMutation = useVaultWithdraw();
+  const [open, setOpen] = useState(false);
   const [amountInput, setAmountInput] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
 
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
   const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
+  const pageId = `vault-deposit-${deposit.id}`;
   const { parsedAmount: amount, formatErrorId: inputError } = useFormattedAmountInput(
     amountInput,
     assetDecimals
@@ -70,76 +79,83 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
   };
 
   return (
-    <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-text-strong-950">{assetSymbol}</p>
-        <p className="text-xs text-text-sub-600">
-          {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
-          {formatTokenAmount(maxWithdrawable, assetDecimals)} {assetSymbol}
-        </p>
-      </div>
+    <div className="flex flex-col gap-2">
+      <ItemRow
+        lead={{ kind: "icon", icon: <RiBankLine /> }}
+        title={assetSymbol}
+        details={[
+          `${formatMessage({ id: "app.treasury.myShares" })}: ${formatTokenAmount(deposit.shares, 18)}`,
+        ]}
+        amount={{
+          value: `${formatTokenAmount(maxWithdrawable, assetDecimals, 4, undefined, true)} ${assetSymbol}`,
+          caption: formatMessage({ id: "app.treasury.availableBalance" }),
+        }}
+        onOpen={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls={pageId}
+      />
 
-      <p className="mb-2 text-xs text-text-soft-400">
-        {formatMessage({ id: "app.treasury.myShares" })}: {formatTokenAmount(deposit.shares, 18)}
-      </p>
+      {open ? (
+        <div id={pageId} className="gg-card gg-item-row-page p-3">
+          <FormattedAmountInput
+            value={amountInput}
+            onValueChange={setAmountInput}
+            placeholder={`0.0 ${assetSymbol}`}
+            aria-label={formatMessage({ id: "app.treasury.withdrawAmount" })}
+            error={inputError ? formatMessage({ id: inputError }) : undefined}
+            inputClassName={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-on-surface/20 ${
+              inputError
+                ? "border-error-base focus:border-error-base"
+                : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-on-surface"
+            }`}
+            errorClassName="mt-1 text-xs text-error-dark"
+            endSlot={
+              <Button
+                type="button"
+                emphasis="secondary"
+                size="sm"
+                onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
+              >
+                {formatMessage({ id: "app.treasury.max" })}
+              </Button>
+            }
+          />
 
-      <FormattedAmountInput
-        value={amountInput}
-        onValueChange={setAmountInput}
-        placeholder={`0.0 ${assetSymbol}`}
-        aria-label={formatMessage({ id: "app.treasury.withdrawAmount" })}
-        error={inputError ? formatMessage({ id: inputError }) : undefined}
-        inputClassName={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-on-surface/20 ${
-          inputError
-            ? "border-error-base focus:border-error-base"
-            : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-on-surface"
-        }`}
-        errorClassName="mt-1 text-xs text-error-dark"
-        endSlot={
           <Button
             type="button"
             emphasis="secondary"
-            size="sm"
-            onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
+            onClick={() => setShowWithdrawConfirm(true)}
+            loading={withdrawMutation.isPending}
+            disabled={
+              !withdrawMutation.isPending &&
+              (!isOnline || parsedAmount <= 0n || parsedAmount > maxWithdrawable)
+            }
+            className="mt-2 w-full"
           >
-            {formatMessage({ id: "app.treasury.max" })}
+            {formatMessage({ id: "app.treasury.withdraw" })}
           </Button>
-        }
-      />
 
-      <Button
-        type="button"
-        emphasis="secondary"
-        onClick={() => setShowWithdrawConfirm(true)}
-        loading={withdrawMutation.isPending}
-        disabled={
-          !withdrawMutation.isPending &&
-          (!isOnline || parsedAmount <= 0n || parsedAmount > maxWithdrawable)
-        }
-        className="mt-2 w-full"
-      >
-        {formatMessage({ id: "app.treasury.withdraw" })}
-      </Button>
-
-      <ConfirmDialog
-        isOpen={showWithdrawConfirm}
-        onClose={() => setShowWithdrawConfirm(false)}
-        title={formatMessage({ id: "app.treasury.confirmWithdrawTitle" })}
-        description={formatMessage(
-          { id: "app.treasury.confirmWithdrawDescription" },
-          {
-            amount: formatTokenAmount(parsedAmount, assetDecimals),
-            asset: assetSymbol,
-          }
-        )}
-        confirmLabel={formatMessage({ id: "app.treasury.confirmWithdrawAction" })}
-        variant="warning"
-        isLoading={withdrawMutation.isPending}
-        onConfirm={() => {
-          setShowWithdrawConfirm(false);
-          executeWithdraw();
-        }}
-      />
+          <ConfirmDialog
+            isOpen={showWithdrawConfirm}
+            onClose={() => setShowWithdrawConfirm(false)}
+            title={formatMessage({ id: "app.treasury.confirmWithdrawTitle" })}
+            description={formatMessage(
+              { id: "app.treasury.confirmWithdrawDescription" },
+              {
+                amount: formatTokenAmount(parsedAmount, assetDecimals),
+                asset: assetSymbol,
+              }
+            )}
+            confirmLabel={formatMessage({ id: "app.treasury.confirmWithdrawAction" })}
+            variant="warning"
+            isLoading={withdrawMutation.isPending}
+            onConfirm={() => {
+              setShowWithdrawConfirm(false);
+              executeWithdraw();
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -5,9 +5,12 @@ import { logger } from "../app/logger";
 import { jobQueueDB } from "../job-queue/db";
 import { holdWorkClaims } from "../job-queue/work-claims";
 import { holdingSend } from "../job-queue/send-guards";
-import { MAX_RETRIES } from "../job-queue/queue-policy";
+import { hasRecordedSend, MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
+import { trackJobPermanentlyFailed, trackJobProcessed } from "../job-queue/job-analytics";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
+import { findTakeUpOf } from "../job-queue/take-up-hold";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import { isHeicFile, PendingHeicConversionError } from "./work-attachments";
 import {
   type QueuedWorkSubmission,
@@ -41,6 +44,30 @@ export function queuedOutcome(
   };
 }
 
+/** A send already on record that could not be checked now: it is still awaiting confirmation. */
+export function uncheckedOutcome(
+  queued: QueuedWorkSubmission,
+  sender: TransactionSender | null
+): SubmitWorkOutcome {
+  return {
+    ...queuedOutcome(queued, sender, "connection-unconfirmed"),
+    kind: "awaiting-confirmation",
+  } as SubmitWorkOutcome;
+}
+
+/**
+ * Without the offline queue a send that cannot go out now fails, and says nothing was
+ * sent, unless a send is already on record: that one only waits for its check.
+ */
+async function refuseForConnection(
+  queued: QueuedWorkSubmission,
+  ports: SubmitWorkPorts
+): Promise<SubmitWorkOutcome> {
+  const job = await jobQueueDB.getJob(queued.jobId);
+  if (job && hasRecordedSend(job)) return uncheckedOutcome(queued, ports.sender);
+  throw new ConnectionNeededError();
+}
+
 function rejectTerminalWork(job: Job | undefined, onTerminalUnsentFailure?: () => void) {
   if (!job) return;
   const checkpoint = (job.payload as WorkJobPayload).uploadCheckpoint;
@@ -72,8 +99,8 @@ function heldElsewhere(queued: QueuedWorkSubmission, ports: SubmitWorkPorts): Su
  * wakes background preparation, which would otherwise claim the work first and
  * leave it for Upload all, so preparation is held back until this Submit has
  * sent the work or left it queued; it then prepares whatever is left. The
- * draft is held the same way: a send that completes here leaves it to the
- * composer, which retires it once it has the outcome.
+ * draft is held the same way: whatever the send does here, it is left to the
+ * composer, which retires it once the queue holds the work.
  */
 export async function submitAdmittedWork(
   input: ResolvedSubmitWorkCommand,
@@ -97,6 +124,7 @@ async function admitAndSend(
   // so a draft the person changes afterwards is never mistaken for what was sent.
   const drafted = await draftContentOf(input);
   const queued = await ports.queue.admit!(input);
+  input.onAdmitted?.();
   if (queued.newlyAdmitted && drafted !== undefined)
     await noteQueuedDraftContent(queued.jobId, drafted);
   const completed = await jobQueueDB.getWorkCompletion(
@@ -120,12 +148,12 @@ async function admitAndSend(
       checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
     );
     // Submitting again after declining the prompt is the person asking to send it.
-    const canCheckWalletBroadcast =
-      input.retainSubmission && input.authMode === "wallet" && checkpoint?.transactionHash;
-    if (
-      (awaiting && !canCheckWalletBroadcast) ||
-      (!awaiting && !existing?.meta?.requiresExplicitSend)
-    )
+    // A retained send is checked again: a wallet's by its transaction, any other
+    // session's by the queue, which settles a recorded send rather than sending a second copy.
+    const canCheckRetainedSend =
+      input.retainSubmission &&
+      (input.authMode !== "wallet" || Boolean(checkpoint?.transactionHash));
+    if ((awaiting && !canCheckRetainedSend) || (!awaiting && !existing?.meta?.requiresExplicitSend))
       return {
         ...queuedOutcome(queued, ports.sender),
         kind: awaiting ? "awaiting-confirmation" : "queued",
@@ -133,8 +161,7 @@ async function admitAndSend(
   }
   // Admission is durable; on an unconfirmed connection the work waits in the queue.
   if (!(await ports.connectivity.confirm())) {
-    if (!input.allowOfflineQueue)
-      throw new Error("Offline queue is disabled for this submission surface");
+    if (!input.allowOfflineQueue) return refuseForConnection(queued, ports);
     return queuedOutcome(
       queued,
       ports.sender,
@@ -157,6 +184,17 @@ async function admitAndSend(
       )
         throw new Error(result.error);
       if (result.error === "already-processing") return heldElsewhere(queued, ports);
+      if (!input.allowOfflineQueue && result.error !== "awaiting-confirmation") {
+        // Without the offline queue no later pass sends it, so this Submit fails
+        // and the work waits for the next one. The explicit send lifted its hold
+        // for the queue's retries; it is held again.
+        await jobQueueDB.amendJob(queued.jobId, (job) => {
+          job.meta = { ...job.meta, requiresExplicitSend: true };
+        });
+        if (result.error === "offline" || result.error === "connection-unconfirmed")
+          return refuseForConnection(queued, ports);
+        throw new Error(result.error ?? "submission-failed");
+      }
     }
     return result.success && result.txHash
       ? ({
@@ -208,6 +246,9 @@ async function admitAndSend(
         ...queuedOutcome(queued, ports.sender),
         kind: "awaiting-confirmation",
       } as SubmitWorkOutcome;
+    // Work for a promise this account is still taking up waits, queued, for the take-up.
+    if (!checkpoint?.transactionHash && (await findTakeUpOf(job, jobQueueDB)))
+      return queuedOutcome(queued, ports.sender);
     // A photo picked before the decoder could load converts in storage first, and
     // the send reads the stored JPEG. Until it can convert, the work waits queued.
     let images = input.images;
@@ -226,6 +267,7 @@ async function admitAndSend(
       // A draft is cleanup state after admission. Its write may fail without losing the durable job checkpoint.
       await input.onCheckpoint?.(value).catch(() => undefined);
     };
+    const startedAt = Date.now();
     try {
       const txHash = await holdingSend(job.id, () =>
         ports.direct.submitWork(
@@ -265,6 +307,7 @@ async function admitAndSend(
       forgetWorkBroadcast(job.id);
       await jobQueueDB.deleteJob(job.id).catch(() => undefined);
       jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash });
+      trackJobProcessed(job.kind, Date.now() - startedAt, job.attempts + 1);
       return {
         kind: "direct",
         txHash,
@@ -278,6 +321,12 @@ async function admitAndSend(
         if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
         await jobQueueDB.updateJob(job);
         await jobQueueDB.markJobTerminalFailed(job.id, "work-transaction-reverted");
+        // The stored job's count moved, not this copy's: count the try that ended it.
+        trackJobPermanentlyFailed({
+          ...job,
+          lastError: "work-transaction-reverted",
+          attempts: job.attempts + 1,
+        });
         throw error;
       }
       const cause = error instanceof Error && error.cause ? error.cause : error;
@@ -315,10 +364,9 @@ async function admitAndSend(
         if (!input.allowOfflineQueue) throw error;
         return queuedOutcome(queued, ports.sender);
       }
-      await jobQueueDB.markJobTerminalFailed(
-        job.id,
-        error instanceof Error ? error.message : "submission-failed"
-      );
+      const lastError = error instanceof Error ? error.message : "submission-failed";
+      await jobQueueDB.markJobTerminalFailed(job.id, lastError);
+      trackJobPermanentlyFailed({ ...job, lastError, attempts: job.attempts + 1 });
       if (failure.kind === "not-sent") input.onTerminalUnsentFailure?.();
       throw error;
     }

@@ -143,12 +143,7 @@ export function FormattedAmountInput({
         id={errorRegionId}
         role={error ? "alert" : undefined}
         tabIndex={error ? 0 : undefined}
-        className={cn(errorClassName)}
-        style={{
-          minBlockSize: "var(--form-feedback-block-size, 2lh)",
-          flexShrink: 0,
-          overflowWrap: "anywhere",
-        }}
+        className={cn("gg-field-message", errorClassName)}
       >
         {error}
       </p>

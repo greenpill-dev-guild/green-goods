@@ -1,7 +1,16 @@
-import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
+import {
+  PUBLIC_AGENT_ROUTES,
+  validatePublicUploadSignRequest,
+} from "@green-goods/shared/public-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "../api/server";
 import { InMemoryPublicRateLimiter, resolveAllowedOrigins } from "../api/public-protection";
+import { initAgentAnalytics, resetAgentAnalyticsForTests } from "../services/analytics";
+import {
+  DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
+  DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
+} from "../services/pinata-upload-signer";
+import { mockPostHog } from "./setup";
 
 const ORIGIN = "https://greengoods.app";
 const LOCAL_ADMIN_ORIGIN = "https://127.0.0.1:3002";
@@ -222,6 +231,30 @@ describe("upload signing API", () => {
     });
   });
 
+  it("signs the documents work and proof carry by default, and still refuses a web page", () => {
+    const config = {
+      allowedMimeTypes: DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
+      maxFileSize: DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
+      isAddress: (value: unknown) => typeof value === "string" && /^0x[0-9a-f]{40}$/i.test(value),
+    };
+    for (const [filename, mimeType] of [
+      ["certificate.pdf", "application/pdf"],
+      ["report.md", "text/markdown"],
+      ["notes.txt", "text/plain"],
+      ["permit.doc", "application/msword"],
+      ["permit.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    ]) {
+      expect(validatePublicUploadSignRequest(validRequest({ filename, mimeType }), config).ok).toBe(
+        true
+      );
+    }
+    expect(
+      validatePublicUploadSignRequest(
+        validRequest({ filename: "page.html", mimeType: "text/html" }),
+        config
+      ).ok
+    ).toBe(false);
+  });
   it("rejects invalid upload contract fields before signing", async () => {
     const fetchMock = vi.fn<typeof fetch>();
     const app = createServer(
@@ -354,5 +387,87 @@ describe("upload signing API", () => {
     expect(first.status).toBe(200);
     expect(second.status).toBe(429);
     expect((await second.json()).errorCode).toBe("rate_limited");
+  });
+
+  it("records one outcome per signing request, and none for a refused origin or a request past its quota (PRD-1561)", async () => {
+    resetAgentAnalyticsForTests();
+    mockPostHog.capture.mockReset();
+    initAgentAnalytics({
+      apiKey: "phc_agent_test",
+      enabled: true,
+      testGardens: validRequest().gardenAddress,
+    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ data: "https://uploads.pinata.test/v3/files/signed" }), {
+        status: 200,
+      })
+    );
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        uploadSigning: { pinataJwt: "pinata-secret", rateLimit: 2, fetch: fetchMock },
+      },
+      { logger: false }
+    );
+    const sign = (body: unknown, headers = jsonHeaders()) =>
+      app.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+
+    expect(
+      (await sign(validRequest(), jsonHeaders({ origin: "https://evil.example" }))).status
+    ).toBe(403);
+    expect((await sign(validRequest({ mimeType: "text/html" }))).status).toBe(400);
+    expect((await sign(validRequest())).status).toBe(200);
+    // Malformed and valid requests spend the caller's quota before they are recorded, so a flood
+    // past it records nothing.
+    expect((await sign(validRequest({ size: -1 }))).status).toBe(429);
+    expect((await sign(validRequest())).status).toBe(429);
+    const unconfigured = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        uploadSigning: { fetch: fetchMock },
+      },
+      { logger: false }
+    );
+    const outage = await unconfigured.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(validRequest()),
+    });
+    expect(outage.status).toBe(503);
+
+    try {
+      expect(
+        mockPostHog.capture.mock.calls.map(([{ event, properties }]) => ({ event, ...properties }))
+      ).toMatchObject([
+        { event: "upload_sign_ended", outcome: "failed", reason: "invalid_request" },
+        {
+          event: "upload_sign_ended",
+          outcome: "confirmed",
+          reason: undefined,
+          category: "file_upload",
+          mime_type: "image/png",
+          schema_version: 1,
+          is_test_garden: true,
+        },
+        // An outage is recorded with what was to be uploaded, and its garden.
+        {
+          event: "upload_sign_ended",
+          outcome: "failed",
+          reason: "provider_unavailable",
+          category: "file_upload",
+          mime_type: "image/png",
+          is_test_garden: true,
+        },
+      ]);
+    } finally {
+      resetAgentAnalyticsForTests();
+    }
   });
 });

@@ -71,7 +71,7 @@ suffixes, no verbs. The milestones carry the phase, so the name must not.
 | `Account Recovery Hardening` | `Ship Account Recovery` | A project is a thing, not a task |
 
 **Summary** (≤255 chars, shown in every project list) — *who* can *do what*, plus the one
-distinctive mechanic, in the vocabulary the person using it would recognise. No chain names, no
+distinctive mechanic, in the vocabulary the person using it would recognize. No chain names, no
 vendors, no other project's deliverable. If it reads like an architecture caption, rewrite it.
 
 > **Commitment Pooling** — "Per-garden pools where communities name needs, members promise help,
@@ -217,7 +217,7 @@ the design. The full register stays in the spec, linked below the list.
 
 ## Related
 Upstream/downstream projects. State the seam explicitly: what this project owns
-versus what the neighbour owns.
+versus what the neighbor owns.
 ```
 
 ## Field rules

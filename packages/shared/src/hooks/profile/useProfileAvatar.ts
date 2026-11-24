@@ -1,3 +1,4 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import {
   createAccountMessageSigner,
   resolveAccountFactoryArgs,
@@ -10,14 +11,22 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { profileAvatarKeys } from "../../config/query-keys/identity";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useAuth } from "../auth/useAuth";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useEnsAvatar } from "../blockchain/useEnsAvatar";
+import { useEnsName } from "../blockchain/useEnsName";
 import { uploadFileToIPFS } from "../../modules/data/ipfs/upload";
+import {
+  recordSendAct,
+  type SendActEndingDetail,
+  sendActEnding,
+} from "../../modules/app/sendActAnalytics";
 import {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
   loadProfileAvatarDraft,
   normalizeProfileAvatarFile,
+  ProfileAvatarTransportError,
   publishProfileAvatar,
   profileAvatarTransport,
   resolveProfileAvatar,
@@ -26,6 +35,12 @@ import {
   type ProfileAvatarResolution,
 } from "../../modules/profile-avatar";
 import type { ProfileAvatarRecord } from "../../public-contracts/profile-avatar";
+import { useIntl } from "react-intl";
+import { useUploadPolicy } from "../work/useUploadPolicy";
+import {
+  assertWorkUploadConsent,
+  UploadPolicyCancelledError,
+} from "../../modules/work/upload-policy";
 
 export type ProfileAvatarEditorStage =
   | "idle"
@@ -41,12 +56,38 @@ export type ProfileAvatarEditorOptions = {
   factoryData?: `0x${string}`;
 };
 
-export function useProfileAvatar(address?: Address | null, chainId = DEFAULT_CHAIN_ID) {
+export interface ProfileAvatarReadOptions {
+  /**
+   * The photo of one row in a list of people. Its read goes out with the list's other rows, 50
+   * to a request on the batch route's own budget, so a long roster never spends the
+   * single-read budget the photo editor needs. The record shares the account's one cache entry.
+   * The row looks up an ENS avatar only for someone with an ENS name and no profile photo, so
+   * most rows make no ENS call of their own: the name is the one the row's address display
+   * already reads.
+   */
+  list?: boolean;
+}
+
+/** A save the server may have taken, which a read could not prove, may still have landed. */
+function profileAvatarSaveEnding(error: unknown): SendActEndingDetail {
+  if (error instanceof ProfileAvatarTransportError && error.isAmbiguous)
+    return { outcome: "confirming", parsedErrorFamily: "ProfileAvatarSaveUnconfirmed" };
+  return sendActEnding(error);
+}
+
+export function useProfileAvatar(
+  address?: Address | null,
+  chainId = DEFAULT_CHAIN_ID,
+  { list = false }: ProfileAvatarReadOptions = {}
+) {
   const primaryAddress = usePrimaryAddress();
   const targetAddress = address ?? primaryAddress;
   return useQuery({
     queryKey: profileAvatarKeys.record(chainId, targetAddress ?? ""),
-    queryFn: () => profileAvatarTransport.get(chainId, targetAddress!),
+    queryFn: () =>
+      list
+        ? profileAvatarTransport.getListed(chainId, targetAddress!)
+        : profileAvatarTransport.get(chainId, targetAddress!),
     enabled: Boolean(targetAddress),
   });
 }
@@ -54,21 +95,31 @@ export function useProfileAvatar(address?: Address | null, chainId = DEFAULT_CHA
 export function useResolvedProfileAvatar(
   address?: Address | null,
   fallbackAvatarUri?: string | null,
-  chainId = DEFAULT_CHAIN_ID
+  chainId = DEFAULT_CHAIN_ID,
+  options: ProfileAvatarReadOptions = {}
 ): ProfileAvatarResolution & {
   record: ProfileAvatarRecord | null;
   isLoading: boolean;
   error: Error | null;
 } {
-  const avatar = useProfileAvatar(address, chainId);
+  const avatar = useProfileAvatar(address, chainId, options);
   const primaryAddress = usePrimaryAddress();
   const targetAddress = address ?? primaryAddress;
-  const ens = useEnsAvatar(targetAddress, { enabled: Boolean(targetAddress) });
-  const resolved = resolveProfileAvatar(avatar.data?.avatarUri, ens.data, fallbackAvatarUri);
+  const list = options.list === true;
+  const profilePhoto = avatar.data?.avatarUri;
+  // In a list, the ENS name query is the one the row's address display already runs.
+  const ensName = useEnsName(list ? targetAddress : null);
+  const ensAvatarWanted = list
+    ? Boolean(ensName.data) && !avatar.isLoading && !profilePhoto
+    : Boolean(targetAddress);
+  const ens = useEnsAvatar(targetAddress, { enabled: ensAvatarWanted });
+  // A list row waits on ENS only while an ENS photo could still be the one it shows.
+  const waitingOnEns = list ? !profilePhoto && (ensName.isLoading || ens.isLoading) : ens.isLoading;
+  const resolved = resolveProfileAvatar(profilePhoto, ens.data, fallbackAvatarUri);
   return {
     ...resolved,
     record: avatar.data ?? null,
-    isLoading: avatar.isLoading || ens.isLoading,
+    isLoading: avatar.isLoading || waitingOnEns,
     error: (avatar.error ?? ens.error) as Error | null,
   };
 }
@@ -80,6 +131,8 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
   const chainId = editorOptions?.chainId ?? defaultChainId;
   const address = usePrimaryAddress() as Address | null;
   const auth = useAuth();
+  const { locale } = useIntl();
+  const { request: requestUploadPolicy, prompt: uploadPolicy } = useUploadPolicy(address, locale);
   const queryClient = useQueryClient();
   const { signMessageAsync } = useSignMessage();
   const avatar = useProfileAvatar(address, chainId);
@@ -136,14 +189,15 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
     (message: string) =>
       createAccountMessageSigner({
         authMode: auth.authMode,
+        walletRestore: auth.walletRestore,
         signMessage: signMessageAsync,
         account: auth.smartAccountClient?.account,
       })(message),
-    [auth.authMode, auth.smartAccountClient, signMessageAsync]
+    [auth.authMode, auth.walletRestore, auth.smartAccountClient, signMessageAsync]
   );
 
   const getFactoryArgs = useCallback(async () => {
-    if (auth.authMode !== "passkey") return undefined;
+    if (!isSmartAccountAuthMode(auth.authMode)) return undefined;
     return resolveAccountFactoryArgs(
       auth.smartAccountClient?.account,
       editorOptions?.factory && editorOptions.factoryData
@@ -157,6 +211,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
 
   const publish = useCallback(
     async (input: { file?: File | null; action: "set" | "clear"; cid?: string }) => {
+      if (auth.authMode === "wallet" && auth.walletRestore) refuseWithoutWallet();
       if (!address) throw new Error("Reconnect before publishing your profile photo.");
       const generation = ++draftLoadGeneration.current;
       const operationIdentity = editorIdentity;
@@ -167,6 +222,11 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
       setIsSaving(true);
       setStage("idle");
       try {
+        if (input.action === "set") {
+          const consent = await requestUploadPolicy();
+          if (!isCurrentOperation()) throw new UploadPolicyCancelledError();
+          assertWorkUploadConsent(consent, address);
+        }
         const record = await publishProfileAvatar(chainId, address, input, {
           get: profileAvatarTransport.get,
           save: profileAvatarTransport.save,
@@ -179,6 +239,14 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
             if (isCurrentOperation()) setStage(nextStage);
           },
           getFactoryArgs,
+          // The signature and the save are the act; a photo already in place records none.
+          recordSend: (run) =>
+            recordSendAct(
+              { act: "profile_avatar", operation: input.action, authMode: auth.authMode, chainId },
+              run,
+              () => "confirmed",
+              profileAvatarSaveEnding
+            ),
         });
         queryClient.setQueryData(profileAvatarKeys.record(chainId, address), record);
         if (isCurrentOperation()) {
@@ -188,6 +256,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
         }
         return record;
       } catch (caught) {
+        if (caught instanceof UploadPolicyCancelledError) throw caught;
         if (isCurrentOperation()) {
           const restored = await loadDraft();
           if (restored) {
@@ -202,7 +271,18 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
         if (isCurrentOperation()) setIsSaving(false);
       }
     },
-    [address, chainId, editorIdentity, getFactoryArgs, loadDraft, queryClient, sign]
+    [
+      address,
+      chainId,
+      editorIdentity,
+      auth.authMode,
+      auth.walletRestore,
+      getFactoryArgs,
+      loadDraft,
+      queryClient,
+      sign,
+      requestUploadPolicy,
+    ]
   );
 
   const mutation = useMutation({
@@ -249,6 +329,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
 
   return {
     address,
+    uploadPolicy,
     record: avatar.data ?? null,
     draft,
     stage,

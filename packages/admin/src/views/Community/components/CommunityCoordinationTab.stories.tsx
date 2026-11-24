@@ -19,6 +19,9 @@ const meta = {
     canManage: true,
     community: { weightScheme: 0 } as CommunityCoordinationTabProps["community"],
     pools: storyPools,
+    poolsRead: true,
+    poolsUnread: false,
+    rereadPools: fn(),
     createPools: fn(),
     isCreatingPools: false,
   },
@@ -29,3 +32,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Connected: Story = {};
 export const NeedsPools: Story = { args: { pools: [] } };
+/** The pool list is still being read: nothing is called missing yet. */
+export const ReadingPools: Story = { args: { pools: [], poolsRead: false } };
+/** The first read failed: Retry instead of a missing pool or Create Pools. */
+export const PoolsUnread: Story = { args: { pools: [], poolsRead: false, poolsUnread: true } };

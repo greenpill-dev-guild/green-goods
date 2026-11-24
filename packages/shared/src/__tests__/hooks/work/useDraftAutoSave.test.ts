@@ -1,8 +1,10 @@
 /** @vitest-environment happy-dom */
+import { webcrypto } from "node:crypto";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../../hooks/work/useDraftAutoSave";
+import { cleanPhoto, photoFile } from "../../test-utils/photo-fixtures";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mocks = vi.hoisted(() => ({
@@ -10,6 +12,10 @@ const mocks = vi.hoisted(() => ({
   persistent: vi.fn(),
   returnToDraft: vi.fn(),
   queue: { discardJob: vi.fn() },
+}));
+vi.mock("react-intl", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-intl")>()),
+  useIntl: () => ({ formatMessage: ({ id }: { id: string }) => id }),
 }));
 vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: "0x1111111111111111111111111111111111111111" }),
@@ -22,7 +28,6 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({ jobQueue: mocks.
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 11155111 }));
 vi.mock("../../../modules/job-queue/draft-db", () => ({
   draftDB: { saveSnapshot: mocks.save },
-  hasMeaningfulDraftDetails: (data: object) => Object.keys(data).length > 0,
 }));
 vi.mock("../../../utils/storage/quota", () => ({ requestPersistentStorageOnce: mocks.persistent }));
 const emptyImages: File[] = [];
@@ -66,6 +71,45 @@ describe("complete draft autosave", () => {
       await vi.advanceTimersByTimeAsync(1);
     });
     expect(mocks.save.mock.calls[0][2]).toBe("resumed");
+  });
+  it.each([
+    ["a photo", { images: [new File(["jpeg"], "photo.jpg", { type: "image/jpeg" })] }],
+    ["a video", { images: [new File(["mp4"], "clip.mp4", { type: "video/mp4" })] }],
+    ["a voice note", { audioNotes: [new File(["audio"], "note.webm", { type: "audio/webm" })] }],
+    ["words", { feedback: "Turned the east beds" }],
+    ["an answer", { details: { plants: "12" } }],
+    ["time spent", { timeSpentMinutes: 30 }],
+    ["a shared location", { location: { lat: 6.2, lng: 7.1 } }],
+  ])("starts no draft for a garden and an action alone, then one with %s and carries them", async (_content, content) => {
+    // The flow chooses a garden and one tap an action before the member has done anything, so
+    // opening Submit Work, tapping a tile and leaving must not leave a draft behind (DL-148).
+    const garden = "0x2222222222222222222222222222222222222222";
+    const { images = emptyImages, ...fields } = content as Record<string, never> & {
+      images?: File[];
+    };
+    const { rerender } = renderHookWithQueryClient(
+      ({ added }) =>
+        useDraftAutoSave(
+          { ...base, feedback: "", gardenAddress: garden, actionUID: 7, ...(added ? fields : {}) },
+          added ? images : emptyImages
+        ),
+      { initialProps: { added: false } }
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeDraftId: null,
+      draftSaveState: "idle",
+    });
+
+    rerender({ added: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(mocks.save.mock.calls[0][3]).toMatchObject({ gardenAddress: garden, actionUID: 7 });
   });
   it("saves the initial snapshot and debounces subsequent text edits", async () => {
     const { rerender } = renderHookWithQueryClient(
@@ -239,6 +283,12 @@ describe("complete draft autosave", () => {
 });
 
 describe("missing attachment choices", () => {
+  beforeEach(() => {
+    // Photos are binary, so they are hashed with real WebCrypto, not the setup's text-only stand-in.
+    vi.stubGlobal("crypto", { ...crypto, subtle: webcrypto.subtle });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
   it("reselection retains identity and order, and removal cannot revive an earlier missing entry", async () => {
     vi.useRealTimers();
     const { identifyWorkFile } = await import("../../../modules/work/work-attachments");
@@ -255,7 +305,7 @@ describe("missing attachment choices", () => {
     await act(async () => {
       await result.current.reselectMissingAttachment(
         "replace",
-        new File(["replacement"], "new.jpg", { type: "image/jpeg" })
+        photoFile(cleanPhoto("image/jpeg", { label: "replacement" }), "new.jpg", "image/jpeg")
       );
     });
     const state = useWorkFlowStore.getState();
@@ -280,7 +330,7 @@ describe("missing attachment choices", () => {
     await act(async () => {
       await result.current.reselectMissingAttachment(
         "missing",
-        new File(["jpeg"], "found.jpg", { type: "image/jpeg" })
+        photoFile(cleanPhoto("image/jpeg", { label: "found" }), "found.jpg", "image/jpeg")
       );
     });
     expect(useWorkFlowStore.getState().images.map((file) => file.name)).toEqual([

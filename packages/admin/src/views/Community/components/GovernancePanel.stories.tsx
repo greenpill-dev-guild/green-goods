@@ -8,14 +8,14 @@ import { GovernancePanel } from "./GovernancePanel";
 
 const SAMPLE_POOL: GardenSignalPool = {
   poolAddress: "0x1234567890abcdef1234567890abcdef12345678",
-  poolType: PoolType.Hypercert,
+  poolType: PoolType.HypercertSignal,
   gardenAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
   communityAddress: "0xfedcba0987654321fedcba0987654321fedcba09",
 };
 
 const ACTION_POOL: GardenSignalPool = {
   poolAddress: "0x9999999999999999999999999999999999999999",
-  poolType: PoolType.Action,
+  poolType: PoolType.ActionSignal,
   gardenAddress: SAMPLE_POOL.gardenAddress,
   communityAddress: SAMPLE_POOL.communityAddress,
 };
@@ -31,7 +31,7 @@ const meta: Meta<typeof GovernancePanel> = {
       description: {
         component:
           "Integration story. Composes the Tier 3 conviction " +
-          "components (WeightAllocator + ProposalCardConviction + ConvictionMeter) with " +
+          "components (WeightAllocator + ConvictionMeter) with " +
           "the Tier-5 adapter hooks (useConvictionProposalsForPool + " +
           "useConvictionWeightAllocator). " +
           "The hooks fetch from the on-chain registry; in Storybook with no live " +

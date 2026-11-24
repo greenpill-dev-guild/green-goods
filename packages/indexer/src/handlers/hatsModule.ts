@@ -1,13 +1,40 @@
-import { indexer, type Garden } from "envio";
+import { indexer, type EvmEvent, type Garden } from "envio";
 import type { Address } from "viem";
 
-import { addUniqueAddress, GARDEN_ROLE, normalizeAddress, removeAddress } from "./shared";
+import {
+  addUniqueAddress,
+  GARDEN_ROLE,
+  getTxHash,
+  normalizeAddress,
+  removeAddress,
+} from "./shared";
 import {
   createDefaultGarden,
   createDefaultKarmaProjectAccess,
   type EventContext,
 } from "./entity-defaults";
 import { getKarmaProjectAccessId } from "./ids";
+
+function recordRoleEvent(
+  context: EventContext,
+  event: EvmEvent<"HatsModule", "RoleGranted" | "RoleRevoked">
+) {
+  const role = Number(event.params.role);
+  if (role < GARDEN_ROLE.Gardener || role > GARDEN_ROLE.Community) return;
+  const txHash = getTxHash(event.transaction);
+  context.GardenRoleEvent.set({
+    id: `${event.chainId}-${txHash}-${event.logIndex}`,
+    chainId: event.chainId,
+    garden: normalizeAddress(event.params.garden),
+    account: normalizeAddress(event.params.account),
+    role,
+    action: event.eventName === "RoleGranted" ? "GRANTED" : "REVOKED",
+    timestamp: event.block.timestamp,
+    blockNumber: BigInt(event.block.number),
+    logIndex: event.logIndex,
+    txHash,
+  });
+}
 
 function markKarmaAccessPending(garden: Garden, account: Address, role: number): Garden {
   if (role !== GARDEN_ROLE.Steward && role !== GARDEN_ROLE.Owner) return garden;
@@ -47,11 +74,52 @@ async function setPendingAccessAggregate(
   });
 }
 
-// ============================================================================
 // HATS MODULE EVENT HANDLERS
-// ============================================================================
+
+indexer.onEvent(
+  { contract: "HatsModule", event: "ProtocolRoleHatsUpdated" },
+  async ({ event, context }) => {
+    const id = `${event.chainId}:${event.srcAddress.toLowerCase()}`;
+    const previous = await context.ProtocolRoleConfiguration.get(id);
+    if (
+      previous &&
+      (previous.blockNumber > event.block.number ||
+        (previous.blockNumber === event.block.number && previous.logIndex > event.logIndex))
+    )
+      return;
+    context.ProtocolRoleConfiguration.set({
+      id,
+      chainId: event.chainId,
+      module: event.srcAddress.toLowerCase(),
+      teamHat: event.params.team,
+      productLeadHat: event.params.productLead,
+      agentsHat: event.params.agents,
+      deployerHat: event.params.deployer,
+      updatedAt: event.block.timestamp,
+      blockNumber: event.block.number,
+      logIndex: event.logIndex,
+    });
+  }
+);
+
+indexer.onEvent({ contract: "HatsModule", event: "RoleManaged" }, async ({ event, context }) => {
+  context.GardenRoleOperation.set({
+    id: `${event.chainId}:${event.transaction.hash.toLowerCase()}:${event.logIndex}`,
+    chainId: event.chainId,
+    garden: event.params.garden.toLowerCase(),
+    actor: event.params.actor.toLowerCase(),
+    account: event.params.account.toLowerCase(),
+    role: Number(event.params.role),
+    granted: event.params.granted,
+    transactionHash: event.transaction.hash,
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+    logIndex: event.logIndex,
+  });
+});
 
 indexer.onEvent({ contract: "HatsModule", event: "RoleGranted" }, async ({ event, context }) => {
+  recordRoleEvent(context, event);
   const gardenId = event.params.garden;
   const account = event.params.account;
   const role = Number(event.params.role);
@@ -150,6 +218,7 @@ indexer.onEvent({ contract: "HatsModule", event: "RoleGranted" }, async ({ event
 });
 
 indexer.onEvent({ contract: "HatsModule", event: "RoleRevoked" }, async ({ event, context }) => {
+  recordRoleEvent(context, event);
   const gardenId = event.params.garden;
   const account = event.params.account;
   const role = Number(event.params.role);

@@ -23,10 +23,11 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import type { FabConfig, CanvasMobilePrimaryAction } from "../../components";
 import {
+  type FabConfig,
+  type CanvasMobilePrimaryAction,
   EmptyStateShell,
-  WorkbenchRow,
+  WorkbenchCard,
   FabProvider,
   RefreshActionProvider,
   useCanvasResponsiveFab,
@@ -150,23 +151,28 @@ describe("Canvas Primitives", () => {
     cleanup();
   });
 
-  it("renders workbench rows as buttons when actionable", async () => {
+  it("renders workbench cards on the shared card surface, as buttons when actionable", async () => {
     const onClick = vi.fn();
 
     render(
-      <WorkbenchRow
-        eyebrow="Work"
-        title="Review greenhouse update"
-        description="Action 12 · 0x1234...5678"
-        meta={["Pending", "2m ago"]}
-        statusLabel="Pending"
+      <WorkbenchCard
+        eyebrow="Agroforestry"
+        title="Native canopy planting"
+        description="Restoring shade trees along the eastern ridge."
+        meta={["Upcoming", "8 fields"]}
+        statusLabel="Upcoming"
         statusTone="pending"
         leadingIcon={StubIcon}
         onClick={onClick}
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /Review greenhouse update/i }));
+    const card = screen.getByRole("button", { name: /Native canopy planting/i });
+    // The shared card surface (DL-102), not the glass residue it replaced (DL-108).
+    expect(card).toHaveClass("gg-card");
+    expect(card).not.toHaveClass("glass-raised");
+
+    await user.click(card);
     expect(onClick).toHaveBeenCalledOnce();
   });
 
@@ -214,7 +220,7 @@ describe("Canvas Primitives", () => {
     // Per handoff sheet-system + admin-design-revamp Tier 5: FAB is registered
     // at every breakpoint <1024px so the floating-pill layer in NavigationBar
     // can render it. The hook ALSO returns a CanvasMobilePrimaryAction for
-    // views that want a content-zone affordance (Hub stage rail) — both
+    // views that want a content-zone affordance (Review stage rail) — both
     // surfaces stay live so phones don't lose creation flows.
     expect(screen.getByTestId("fab-config-state")).toHaveTextContent("mounted");
     await user.click(screen.getByRole("button", { name: /submit work/i }));

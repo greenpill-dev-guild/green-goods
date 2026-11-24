@@ -18,7 +18,7 @@ abstract contract SettlementPlans is SettlementAdmin {
         nonReentrant
         returns (uint256 payoutPlanId)
     {
-        return SettlementPlanLib.createCommitmentPayoutPlan(
+        payoutPlanId = SettlementPlanLib.createCommitmentPayoutPlan(
             _planState,
             _settlementAccounts,
             SettlementPlanLib.RuntimeConfig({
@@ -44,21 +44,12 @@ abstract contract SettlementPlans is SettlementAdmin {
         nonReentrant
     {
         SettlementPlanLib.setContributorPayouts(
-            _planState,
-            _settlementAccounts,
-            hatsModule,
-            DESTINATION_EVM_CHAIN_ID,
-            payoutPlanId,
-            gardenRetainedAmount,
-            payouts,
-            reasonCID
+            _planState, _settlementAccounts, _planConfig(), payoutPlanId, gardenRetainedAmount, payouts, reasonCID
         );
     }
 
     function finalizeCommitmentPayoutPlan(uint256 payoutPlanId) external override nonReentrant {
-        SettlementPlanLib.finalizeCommitmentPayoutPlan(
-            _planState, _settlementAccounts, hatsModule, commitmentPoolingModule, DESTINATION_EVM_CHAIN_ID, payoutPlanId
-        );
+        SettlementPlanLib.finalizeCommitmentPayoutPlan(_planState, _settlementAccounts, _planConfig(), payoutPlanId);
         SettlementFundingLib.closeIfPlanComplete(_planState, payoutPlanId);
     }
 
@@ -97,9 +88,15 @@ abstract contract SettlementPlans is SettlementAdmin {
         if (created) _nextDisbursementId = disbursementId + 1;
     }
 
+    function _planConfig() private view returns (SettlementPlanLib.RuntimeConfig memory) {
+        return SettlementPlanLib.RuntimeConfig(hatsModule, commitmentPoolingModule, gDollarToken, DESTINATION_EVM_CHAIN_ID);
+    }
+
     function _preparationConfig() private view returns (SettlementPlanLib.PreparationConfig memory) {
         return SettlementPlanLib.PreparationConfig({
             hatsModule: hatsModule,
+            poolingModule: commitmentPoolingModule,
+            gDollarToken: gDollarToken,
             destinationEvmChainId: DESTINATION_EVM_CHAIN_ID,
             paused: paused,
             gardenerDeliveryEnabled: gardenerDeliveryEnabled

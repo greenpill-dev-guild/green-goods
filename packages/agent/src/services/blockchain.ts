@@ -116,10 +116,6 @@ const EAS_ATTESTED_EVENT = parseAbiItem(
 /** How long to wait for the work attestation receipt before failing the approval flow. */
 const WORK_RECEIPT_TIMEOUT_MS = 120_000;
 
-// ============================================================================
-// BLOCKCHAIN CLASS
-// ============================================================================
-
 class Blockchain {
   private chain: Chain;
   private chainId: number;
@@ -139,14 +135,9 @@ class Blockchain {
     });
   }
 
-  // ==========================================================================
-  // SUBMISSIONS
-  // ==========================================================================
-
   async submitWork(params: SubmitWorkParams): Promise<{ txHash: Hex; workUID: Hex }> {
     const { submitWorkBot } = await import("@green-goods/shared/modules/work/bot-submission");
     const account = privateKeyToAccount(params.privateKey);
-
     const walletClient = createWalletClient({
       account,
       chain: this.chain,
@@ -161,6 +152,7 @@ class Blockchain {
         title: params.workData.title,
         timeSpentMinutes: params.workData.timeSpentMinutes ?? 0,
         feedback: params.workData.feedback,
+        uploadConsent: params.workData.uploadConsent,
         media: [],
         details: {
           plantSelection: params.workData.plantSelection,
@@ -233,10 +225,6 @@ class Blockchain {
 
     return tx;
   }
-
-  // ==========================================================================
-  // VERIFICATION
-  // ==========================================================================
 
   async isOperator(gardenAddress: string, userAddress: string): Promise<VerificationResult> {
     const cacheKey = `${gardenAddress}:${userAddress}:operator`;
@@ -335,10 +323,6 @@ class Blockchain {
     }
   }
 
-  // ==========================================================================
-  // UTILITIES
-  // ==========================================================================
-
   async getTransactionConfirmation(txHash: Hex): Promise<TransactionConfirmation> {
     try {
       const receipt = await this.publicClient.getTransactionReceipt({ hash: txHash });
@@ -403,9 +387,7 @@ class Blockchain {
   }
 }
 
-// ============================================================================
 // CHAIN-AWARE FUNDING PROOF HELPERS
-// ============================================================================
 
 type FundingReceiptClient = {
   getTransactionReceipt: (args: { hash: Hex }) => Promise<{
@@ -561,10 +543,6 @@ export async function readVaultShareBalanceOnChain(
   return typeof result === "bigint" ? result : BigInt(String(result ?? "0"));
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
 let _blockchain: Blockchain | null = null;
 
 /**
@@ -600,7 +578,6 @@ export function resetBlockchain(): void {
   _blockchain = null;
 }
 
-// Re-export convenience functions
 export const submitWork = (params: SubmitWorkParams) => getBlockchain().submitWork(params);
 export const submitApproval = (params: SubmitApprovalParams) =>
   getBlockchain().submitApproval(params);

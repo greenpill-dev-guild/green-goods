@@ -50,6 +50,7 @@ export type SeedStoryPhase =
   | "sending"
   | "declined"
   | "refused"
+  | "overCeilings"
   | "unconfirmed"
   | "partial"
   | "finishLater"
@@ -90,6 +91,8 @@ export function storySeedCopies(phase: SeedStoryPhase, total = 10): SeedCopyProg
       return cleared(all("not-sent", "declined"));
     case "refused":
       return cleared(all("not-sent", "refused"));
+    case "overCeilings":
+      return cleared(all("not-sent", "over-ceilings"));
     case "unconfirmed":
       return all("not-sent", "failed");
     case "partial":

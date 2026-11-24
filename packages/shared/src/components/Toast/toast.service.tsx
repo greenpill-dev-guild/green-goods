@@ -6,8 +6,9 @@ import { useUIStore } from "../../stores/useUIStore";
 import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
 import { Button } from "../Button";
-import { createToastDismissQueue } from "./toast.queue";
 import { ToastStatusIcon } from "./ToastStatusIcon";
+import { BELOW_TOP_BAR_MARGIN } from "./toast.placement";
+import { createToastDismissQueue } from "./toast.queue";
 
 type ToastFn = typeof toast.success;
 
@@ -56,8 +57,10 @@ export interface ToastDescriptor {
   dismissible?: boolean;
   /** Whether to render an explicit close (X) button. Defaults to false. */
   closable?: boolean;
-  /** Callback invoked when the toast is dismissed (via tap, X button, or programmatic dismiss). */
+  /** Runs when the member dismisses the toast (tap or X), never on `toastService.dismiss`. */
   onDismiss?: () => void;
+  /** Start under the installed app's top bar, so its controls stay usable (PRD-1505). */
+  belowTopBar?: boolean;
 }
 
 export interface ToastTranslator {
@@ -133,7 +136,7 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
 };
 
 // The shared Button carries its own finger box (48px in the app, 44px in the
-// cockpit; DL-031), so the action keeps the surface's sm height and only widens
+// Hub; DL-031), so the action keeps the surface's sm height and only widens
 // to a 44px minimum for one-word labels. Its green is text on a surface, so it
 // takes the text role (DL-053): the action fill green read 3.45:1 on the dark
 // toast.
@@ -297,30 +300,20 @@ function getDiagnostics(error: unknown, devMessage?: string) {
   if (!error && !devMessage) {
     return undefined;
   }
-
-  if (error instanceof Error) {
-    const summary = `${error.name}: ${error.message}`;
-    return devMessage ? `${summary} | ${devMessage}` : summary;
-  }
-
-  if (typeof error === "string") {
-    return devMessage ? `${error} | ${devMessage}` : error;
-  }
-
+  const withDevMessage = (summary: string) => (devMessage ? `${summary} | ${devMessage}` : summary);
+  if (error instanceof Error) return withDevMessage(`${error.name}: ${error.message}`);
+  if (typeof error === "string") return withDevMessage(error);
   if (error && typeof error === "object") {
     const maybeMessage = (error as { message?: unknown }).message;
     if (typeof maybeMessage === "string" && maybeMessage.trim().length > 0) {
-      return devMessage ? `${maybeMessage} | ${devMessage}` : maybeMessage;
+      return withDevMessage(maybeMessage);
     }
-
     try {
-      const serialized = JSON.stringify(error);
-      return devMessage ? `${serialized} | ${devMessage}` : serialized;
+      return withDevMessage(JSON.stringify(error));
     } catch {
       return devMessage ?? "[toast] encountered an unknown error payload";
     }
   }
-
   return devMessage;
 }
 
@@ -592,6 +585,7 @@ function ToastMessage({
       <div className="flex items-center gap-3" style={{ flexWrap: "wrap" }}>
         {action ? (
           <Button
+            data-piece-control
             type="button"
             emphasis="tertiary"
             size="sm"
@@ -605,13 +599,11 @@ function ToastMessage({
         {/* Debug mode: copy error button */}
         {onCopyError ? (
           <Button
+            data-piece-control
             type="button"
             emphasis="tertiary"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering dismiss
-              onCopyError();
-            }}
+            onClick={onCopyError}
             style={ACTION_BUTTON_STYLE}
             data-testid="toast-copy-error"
           >
@@ -697,6 +689,7 @@ function showToast(descriptor: ToastDescriptor) {
     // The message draws its status icon on the title's line (D23), so the
     // library's own icon column stays empty under any Toaster.
     icon: null,
+    ...(descriptor.belowTopBar ? { style: { marginTop: BELOW_TOP_BAR_MARGIN } } : {}),
   };
 
   // Prepare clipboard text for debug mode

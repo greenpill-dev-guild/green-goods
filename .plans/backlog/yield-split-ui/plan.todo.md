@@ -112,7 +112,7 @@ Implementation rule: compute from `10000 - protocolTreasuryBps`, round the direc
 - `packages/shared/src/types/gardens-community.ts` - preset types/helpers as needed
 - `packages/shared/src/hooks/index.ts` and `packages/shared/src/index.ts` - public exports
 - `packages/shared/src/i18n/{en,es,pt}.json` - direct funding, hypercert, and Protocol Treasury copy
-- `packages/admin/src/components/Garden/GardenYieldCard.tsx` - live config and Phase 3 preset entry point
+- `packages/admin/src/views/Garden/Vault.tsx` (`GardenVaultView`) - live config and Phase 3 preset entry point; `GardenYieldCard` was removed unused in #1252 on 2026-10-24
 - `packages/admin/src/views/Community/components/CommunityTab.tsx` - current split rail and permission prop
 - `packages/admin/src/components/Vault/PositionCard.tsx` - `splitYield`, pending, and escrowed status
 - `packages/client/src/components/Dialogs/ConvictionDrawer.tsx` - live read-only split config
@@ -154,7 +154,7 @@ State/API lane:
 
 UI lane:
 
-- `bun run --cwd packages/admin test src/__tests__/components/Garden/GardenYieldCard.yield-split.test.tsx src/__tests__/components/Vault/PositionCard.yield-split.test.tsx`
+- `bun run --cwd packages/admin test src/__tests__/views/GardenVaultView.yield-split.test.tsx src/__tests__/components/Vault/PositionCard.yield-split.test.tsx`
 - `bun run --cwd packages/client test src/__tests__/components/Dialogs/ConvictionDrawer.yield-split.test.tsx`
 - `bun run lint:vocab`
 - `bun run check:design-tokens`

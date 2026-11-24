@@ -6,8 +6,12 @@ import {
   calculateUnknownSplitFeeBuffer,
   type PoolFundingCalculationInput,
   type PoolFundingDisbursement,
+  type PoolFundingFeePolicy,
+  type SettlementUnavailableReason,
   selectExceededTransferLimit,
   selectPoolFundingSnapshot,
+  selectQueuedTransferBlock,
+  selectTransferBlock,
 } from "../modules/commitment-pooling/pool-funding";
 
 const SAFE = "0x1111111111111111111111111111111111111111" as const;
@@ -27,6 +31,7 @@ function disbursement(overrides: Partial<PoolFundingDisbursement> = {}): PoolFun
     amount: 100n,
     state: "QUEUED",
     executionKey: null,
+    attempt: 1,
     ...overrides,
   };
 }
@@ -46,6 +51,7 @@ function input(overrides: Partial<PoolFundingCalculationInput> = {}): PoolFundin
     fundings: [],
     disbursements: [],
     executions: [],
+    commandExecutors: [],
     readiness: {
       accountConfigured: true,
       accountActive: true,
@@ -636,6 +642,77 @@ describe("selectExceededTransferLimit", () => {
     };
   }
 
+  /**
+   * Queued transfer #8 of 900 and a whole read of it: every limit at 2,000, no fee,
+   * a policy that allows any fee up to the amount, and nothing holding the Safe.
+   */
+  function queuedRead({
+    quote = { fee: 0n, senderPays: true },
+    limits = {},
+    reasons = [],
+    feePolicy = { maxFeeBps: 10_000, maxFeeAmount: 2_000n },
+    recordedOnCelo = false,
+    executorPaused = false,
+    dispatched = recordedOnCelo,
+    commandExecutor = { paused: executorPaused },
+    indexAttempt = 0,
+    indexState,
+    batchId = null,
+  }: {
+    quote?: { fee: bigint | null; senderPays: boolean | null } | null;
+    limits?: Parameters<typeof fundingRead>[0];
+    reasons?: readonly SettlementUnavailableReason[];
+    feePolicy?: PoolFundingFeePolicy | null;
+    /** Celo has stored a failed execution of the transfer's current command. */
+    recordedOnCelo?: boolean;
+    executorPaused?: boolean | null;
+    /** The transfer's command went out, so a send of it is a resend. */
+    dispatched?: boolean;
+    /** The executor that command was recorded for; null when the read couldn't show it. */
+    commandExecutor?: { paused: boolean | null } | null;
+    /** The attempt the index lists for the transfer. */
+    indexAttempt?: number;
+    /** The index row's state when it isn't the queued or dispatched one `dispatched` implies; it keeps its command. */
+    indexState?: "QUEUED" | "FAILED";
+    batchId?: bigint | null;
+  }) {
+    const read = fundingRead({
+      cap: 2_000n,
+      period: 2_000n,
+      roles: 2_000n,
+      balance: 2_000n,
+      ...limits,
+    });
+    const executionKey = `0x${"cd".repeat(32)}` as const;
+    return {
+      ...read,
+      snapshot: {
+        ...read.snapshot!,
+        disbursements: [
+          {
+            id: "42161-8",
+            disbursementId: 8n,
+            state: indexState ?? (dispatched ? "DISPATCHED" : "QUEUED"),
+            executionKey: dispatched || indexState ? executionKey : null,
+            attempt: indexAttempt,
+            batchId,
+          },
+        ] as PoolFundingDisbursement[],
+        executions: recordedOnCelo
+          ? [{ executionKey, status: "FAILED", createdAt: 1, acknowledgmentSent: false }]
+          : [],
+        executorPaused,
+        commandExecutors:
+          dispatched && commandExecutor
+            ? [{ executionKey, executor: null, paused: commandExecutor.paused }]
+            : [],
+        feeQuotes: quote ? [{ id: "42161-8", amount: 900n, recipient: null, ...quote }] : [],
+        feePolicy,
+        settlementUnavailableReasons: [...reasons],
+      },
+    };
+  }
+
   it.each([
     ["lets an amount equal to every limit through", {}, 1_000n, null],
     ["names the per-transfer cap", { cap: 500n }, 501n, "transfer_cap"],
@@ -666,5 +743,267 @@ describe("selectExceededTransferLimit", () => {
     ["passes before the first read", { unread: true }, 1n, null],
   ] as const)("%s", (_name, read, amount, expected) => {
     expect(selectExceededTransferLimit(fundingRead(read), amount)).toBe(expected);
+  });
+
+  // Celo refuses only after the CCIP fee is spent, so a send waits for a whole read.
+  it.each([
+    ["a whole read that fits", {}, 1_000n, null],
+    ["a limit the amount is over", { cap: 500n }, 501n, "transfer_cap"],
+    ["no read yet", { unread: true }, 1n, "limits_unread"],
+    ["a snapshot left by a failed refresh", { isError: true }, 1n, "limits_unread"],
+    ["a stale balance", { hasStaleBalance: true }, 1n, "limits_unread"],
+    ["an unread balance", { balance: null }, 1n, "limits_unread"],
+    ["an unread cap", { cap: null }, 1n, "limits_unread"],
+    ["an unread period allowance", { period: null }, 1n, "limits_unread"],
+    ["an unread Safe allowance", { roles: null }, 1n, "limits_unread"],
+  ] as const)("selectTransferBlock: %s", (_name, read, amount, expected) => {
+    expect(selectTransferBlock(fundingRead(read), amount)).toBe(expected);
+  });
+
+  // A dispatch spends the CCIP fee, so it also needs the transfer's own quote: Celo debits
+  // the amount plus a sender-paid fee, and refuses one the receiver would pay.
+  it.each([
+    ["a quote with no fee", { fee: 0n, senderPays: false }, { cap: 1_000n }, null],
+    ["a debit that just fits", { fee: 100n, senderPays: true }, { cap: 1_000n }, null],
+    ["a fee over the cap", { fee: 101n, senderPays: true }, { cap: 1_000n }, "transfer_cap"],
+    ["a fee over the balance", { fee: 101n, senderPays: true }, { balance: 1_000n }, "balance"],
+    [
+      "a fee over the period",
+      { fee: 101n, senderPays: true },
+      { period: 1_000n },
+      "period_allowance",
+    ],
+    ["a fee beside the Safe allowance", { fee: 101n, senderPays: true }, { roles: 900n }, null],
+    ["a receiver-paid fee", { fee: 1n, senderPays: false }, {}, "limits_unread"],
+    ["an unread fee", { fee: null, senderPays: true }, {}, "limits_unread"],
+    ["unread fee terms", { fee: 1n, senderPays: null }, {}, "limits_unread"],
+    ["no quote", null, {}, "limits_unread"],
+  ] as const)("selectQueuedTransferBlock: %s", (_name, quote, limits, expected) => {
+    expect(
+      selectQueuedTransferBlock(queuedRead({ quote, limits }), { disbursementId: 8n, amount: 900n })
+    ).toBe(expected);
+  });
+
+  // Celo refuses these apart from any limit, and only after the CCIP fee is spent.
+  it.each([
+    ["an inactive route", { reasons: ["inactive_route"] }, "inactive_route"],
+    ["a paused executor", { reasons: ["executor_paused"] }, "executor_paused"],
+    ["a paused token", { reasons: ["token_paused"] }, "token_paused"],
+    ["an executor nobody could read", { reasons: ["executor_unreadable"] }, "executor_unreadable"],
+    ["a token nobody could read", { reasons: ["token_unreadable"] }, "token_unreadable"],
+    [
+      "a pause ahead of a limit the amount is over",
+      { reasons: ["token_paused"], limits: { cap: 500n } },
+      "token_paused",
+    ],
+    [
+      "a pause the read shows beside a limit it couldn't read",
+      { reasons: ["executor_paused"], limits: { cap: null } },
+      "executor_paused",
+    ],
+    [
+      "an inactive route the read shows beside a stale balance",
+      { reasons: ["inactive_route"], limits: { hasStaleBalance: true } },
+      "inactive_route",
+    ],
+    [
+      "nothing a snapshot kept from a failed refresh says, not even a pause",
+      { reasons: ["token_paused"], limits: { isError: true } },
+      "limits_unread",
+    ],
+    [
+      "a fee over the policy's share of the amount",
+      { quote: { fee: 10n, senderPays: true }, feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n } },
+      "fee_policy_breach",
+    ],
+    [
+      "a fee over the policy's flat ceiling",
+      { quote: { fee: 10n, senderPays: true }, feePolicy: { maxFeeBps: 10_000, maxFeeAmount: 9n } },
+      "fee_policy_breach",
+    ],
+    [
+      "a fee exactly at the policy",
+      { quote: { fee: 9n, senderPays: true }, feePolicy: { maxFeeBps: 100, maxFeeAmount: 9n } },
+      null,
+    ],
+    [
+      "no fee under a policy that allows none",
+      { feePolicy: { maxFeeBps: 0, maxFeeAmount: 0n } },
+      null,
+    ],
+    ["an unread fee policy", { feePolicy: null }, "fee_policy_unavailable"],
+    ["another transfer's fee over the policy", { reasons: ["fee_policy_breach"] }, null],
+  ] as const)("selectQueuedTransferBlock holds %s", (_name, read, expected) => {
+    expect(selectQueuedTransferBlock(queuedRead(read), { disbursementId: 8n, amount: 900n })).toBe(
+      expected
+    );
+  });
+
+  // Celo answers a command it already recorded without a preflight or a debit, so a
+  // resend there only waits on the executor, which refuses every message while paused.
+  it.each([
+    [
+      "a fee over the policy",
+      { quote: { fee: 10n, senderPays: true }, feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n } },
+      null,
+    ],
+    ["an inactive route", { reasons: ["inactive_route"] }, null],
+    ["a paused token", { reasons: ["token_paused"] }, null],
+    ["a limit the amount is over", { limits: { cap: 500n } }, null],
+    ["a limit nobody could read", { limits: { period: null } }, null],
+    ["a paused executor", { executorPaused: true }, "executor_paused"],
+    ["an executor nobody could read", { executorPaused: null }, "executor_unreadable"],
+    ["a snapshot kept from a failed refresh", { limits: { isError: true } }, "limits_unread"],
+  ] as const)("selectQueuedTransferBlock, for a command Celo already recorded: %s", (_name, read, expected) => {
+    expect(
+      selectQueuedTransferBlock(queuedRead({ ...read, recordedOnCelo: true }), {
+        disbursementId: 8n,
+        amount: 900n,
+      })
+    ).toBe(expected);
+  });
+
+  // During a route change's grace window a resend goes to the executor its command was
+  // recorded for, which may not be the current one the Safe's readiness describes.
+  it.each([
+    [
+      "a paused previous executor, while the current one runs",
+      { commandExecutor: { paused: true } },
+      "executor_paused",
+    ],
+    [
+      "nothing for a paused current executor the command doesn't go to",
+      { reasons: ["executor_paused"], executorPaused: true, commandExecutor: { paused: false } },
+      null,
+    ],
+    [
+      "a recorded executor nobody could read",
+      { commandExecutor: { paused: null } },
+      "executor_unreadable",
+    ],
+    [
+      "a command whose executor the read couldn't show",
+      { commandExecutor: null },
+      "executor_unreadable",
+    ],
+  ] as const)("selectQueuedTransferBlock, for a resend, holds %s", (_name, read, expected) => {
+    for (const recordedOnCelo of [false, true]) {
+      expect(
+        selectQueuedTransferBlock(queuedRead({ ...read, dispatched: true, recordedOnCelo }), {
+          disbursementId: 8n,
+          amount: 900n,
+        })
+      ).toBe(expected);
+    }
+  });
+
+  it("selectQueuedTransferBlock: holds a resend the caller's read shows requeued, until the index agrees", () => {
+    // The index still lists the old command; the caller's read already has the transfer
+    // queued, whose dispatch goes to the current executor, not the recorded one.
+    const read = queuedRead({ dispatched: true, commandExecutor: { paused: false } });
+    expect(
+      selectQueuedTransferBlock(read, { disbursementId: 8n, amount: 900n, state: "QUEUED" })
+    ).toBe("limits_unread");
+    expect(
+      selectQueuedTransferBlock(read, { disbursementId: 8n, amount: 900n, state: "DISPATCHED" })
+    ).toBe(null);
+  });
+
+  it("selectQueuedTransferBlock: holds a resend the index is one attempt behind on, until it catches up", () => {
+    // Attempt 1 failed on Celo, and the transfer was requeued and dispatched again from outside
+    // the panel. The index still lists attempt 1, whose command Celo recorded, so the duplicate
+    // branch would let the resend through; it carries attempt 2's command, which Celo hasn't
+    // recorded, and could be refused after the CCIP fee is spent.
+    const read = queuedRead({
+      dispatched: true,
+      recordedOnCelo: true,
+      commandExecutor: { paused: false },
+      indexAttempt: 0,
+    });
+    const send = (attempt: number) =>
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "DISPATCHED",
+        attempt,
+      });
+    expect(send(1)).toBe("limits_unread");
+    expect(send(0)).toBe(null);
+  });
+
+  it("selectQueuedTransferBlock: holds a send while the index shows the last attempt failed and not yet its requeue", () => {
+    // The index recorded Celo's failure of attempt 0 and keeps its command, which Celo recorded.
+    // The chain has the transfer requeued at attempt 1, and maybe dispatched again: either send
+    // carries a command Celo hasn't seen, so the recorded one can't vouch for it.
+    const read = queuedRead({ recordedOnCelo: true, indexState: "FAILED", indexAttempt: 0 });
+    for (const state of ["DISPATCHED", "QUEUED"]) {
+      expect(
+        selectQueuedTransferBlock(read, { disbursementId: 8n, amount: 900n, state, attempt: 1 })
+      ).toBe("limits_unread");
+    }
+  });
+
+  it("selectQueuedTransferBlock: checks a first dispatch in full even when an earlier command was recorded", () => {
+    // A requeued transfer the index has caught up on still carries its old, recorded command.
+    // A dispatch sends a new one, so it gets the preflight: here, a fee over the policy.
+    const read = queuedRead({
+      recordedOnCelo: true,
+      indexState: "QUEUED",
+      indexAttempt: 1,
+      quote: { fee: 10n, senderPays: true },
+      feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n },
+    });
+    expect(
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "QUEUED",
+        attempt: 1,
+      })
+    ).toBe("fee_policy_breach");
+  });
+
+  it("selectQueuedTransferBlock: leaves batch members' attempts alone, since the index gives them the batch's", () => {
+    // A disbursement requeued once and later batched is at attempt 1 on chain, while the index
+    // copies the new batch's attempt 0 onto it. Comparing them would hold it for good.
+    const read = queuedRead({ batchId: 3n, indexAttempt: 0 });
+    expect(
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "QUEUED",
+        attempt: 1,
+        batchId: 3n,
+      })
+    ).toBe(null);
+  });
+
+  it("selectQueuedTransferBlock: compares attempts for a transfer the chain shows out of its old batch", () => {
+    // A requeue takes a transfer out of its batch on chain, but the index keeps the old batch id.
+    // Batch membership comes from the caller's read, so a lagging row still gets compared.
+    const read = queuedRead({
+      dispatched: true,
+      recordedOnCelo: true,
+      commandExecutor: { paused: false },
+      batchId: 3n,
+      indexAttempt: 1,
+    });
+    expect(
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "DISPATCHED",
+        attempt: 2,
+        batchId: null,
+      })
+    ).toBe("limits_unread");
+  });
+
+  it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {
+    const funding = queuedRead({});
+    funding.snapshot.disbursements = [];
+    expect(selectQueuedTransferBlock(funding, { disbursementId: 8n, amount: 1n })).toBe(
+      "limits_unread"
+    );
   });
 });

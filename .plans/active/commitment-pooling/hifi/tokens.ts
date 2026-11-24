@@ -165,8 +165,8 @@ export const HIFI_CSS = `
 .hf .ic.s{width:16px;height:16px}
 .hf .ic.l{width:24px;height:24px}
 
-/* cards — radius by role, mirroring the real kit: list/detail = CardBase
-   rounded-2xl (24px); stat/surface = 20px; inset/action = 16px. */
+/* cards: radius by role. The real kit's one card surface (.gg-card, DL-102) is
+   24px and its item rows 16px; the 20px surface step is this prototype's own. */
 .hf .card{background:var(--card);border:1px solid var(--ln);border-radius:24px;padding:14px;
   display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(14,18,27,.04)}
 .hf .card.flat{box-shadow:none}

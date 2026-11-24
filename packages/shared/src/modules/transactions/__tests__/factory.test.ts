@@ -15,7 +15,6 @@ import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock
 
 vi.mock("@wagmi/core", () => ({
   writeContract: vi.fn().mockResolvedValue(MOCK_TX_HASH),
-  waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
 }));
 
 // ============================================
@@ -59,7 +58,24 @@ describe("createTransactionSender", () => {
 
       expect(sender).toBeInstanceOf(PasskeySender);
       expect(sender.authMode).toBe("passkey");
+      expect(sender.batches?.execute).toBeTypeOf("function");
+      expect(sender.batches?.reconcile).toBeTypeOf("function");
+      expect(sender.batches?.list).toBeTypeOf("function");
       expect(sender.supportsSponsorship).toBe(true);
+    });
+
+    it("sends an email account through the same sponsored smart-account sender", () => {
+      const sender = createTransactionSender({
+        authMode: "openfort",
+        smartAccountClient: mockSmartAccountClient,
+      });
+
+      expect(sender).toBeInstanceOf(PasskeySender);
+      expect(sender.authMode).toBe("passkey");
+      expect(sender.supportsSponsorship).toBe(true);
+      expect(() =>
+        createTransactionSender({ authMode: "openfort", wagmiConfig: mockWagmiConfig })
+      ).toThrow("smartAccountClient is required");
     });
 
     it("fails closed when smartAccountClient is missing even with wallet dependencies", () => {
@@ -135,6 +151,8 @@ describe("createTransactionSender", () => {
 
       expect(sender).toBeInstanceOf(WalletSender);
       expect(sender.authMode).toBe("wallet");
+      expect(sender.batches?.execute).toBeTypeOf("function");
+      expect(sender.batches?.reconcile).toBeTypeOf("function");
     });
 
     it("throws when wagmiConfig is missing for wallet mode", () => {

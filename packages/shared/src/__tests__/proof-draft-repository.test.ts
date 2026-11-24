@@ -1,8 +1,10 @@
 import "fake-indexeddb/auto";
 import { draftDB } from "../modules/job-queue/draft-db";
-import { proofDraftRepository } from "../modules/commitment-pooling/proof-draft-repository";
+import {
+  proofDraftRepository,
+  createProofDraftRepository,
+} from "../modules/commitment-pooling/proof-draft-repository";
 import { describe, expect, it, vi } from "vitest";
-import { createProofDraftRepository } from "../modules/commitment-pooling/proof-draft-repository";
 import { useCommitmentProofDraftStore } from "../stores/useCommitmentProofDraftStore";
 
 describe("ProofDraftRepository", () => {

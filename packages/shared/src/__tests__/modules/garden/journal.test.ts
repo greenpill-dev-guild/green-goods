@@ -1,0 +1,619 @@
+/**
+ * Home journal tests: which works Recent Activity and the Highlights carousel show, which
+ * seasons and campaigns lead the carousel, which promises Take Part offers, and the one state
+ * each section reads in, so loading, a failure and "nothing saved offline" are never mistaken
+ * for "nothing here" (DL-127, decisions 23, 27 and 32).
+ */
+
+import { describe, expect, it } from "vitest";
+import type { DueClock } from "../../../modules/commitment-pooling/due-dates";
+import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
+import type {
+  CommitmentCycleRecord,
+  CommitmentReadModel,
+} from "../../../modules/commitment-pooling/types-core";
+import {
+  cycleDaysLeft,
+  type GardenWorkRead,
+  JOURNAL_PREVIEW_COUNT,
+  type JournalQueryRead,
+  openCycles,
+  type PoolSectionRead,
+  poolSectionState,
+  isOneTapTakeUp,
+  oneTapAsks,
+  isTakeableBy,
+  NO_TAKE_UPS,
+  recentActivityState,
+  takePartEmptyReason,
+  takePartEntries,
+  takePartPromises,
+  viewerTakeUps,
+} from "../../../modules/garden/journal";
+import type { Address, Work } from "../../../types/domain";
+import {
+  claimFixture,
+  cycleFixture,
+  commitmentFixture,
+} from "../../test-utils/commitment-pooling-fixtures";
+
+const READER = "0xa11ce00000000000000000000000000000000001" as Address;
+/** The chain's clock every take-up rule reads, in Unix seconds. */
+const NOW = 1_800_000_000n;
+const CLOCK: DueClock = { now: NOW, cycleEndTimes: new Map() };
+const NEIGHBOUR = "0xb0b0000000000000000000000000000000000002" as Address;
+const DAY_MS = 86_400_000;
+const NOW_MS = Date.UTC(2026, 9, 25, 12);
+
+function work(id: string, createdAt: number, overrides: Partial<Work> = {}): Work {
+  return {
+    id,
+    title: `Work ${id}`,
+    actionUID: 1,
+    gardenerAddress: NEIGHBOUR,
+    gardenAddress: "0x5000000000000000000000000000000000000001",
+    feedback: "",
+    metadata: "bafy-work",
+    media: [`https://example.test/${id}.jpg`],
+    createdAt,
+    status: "pending",
+    ...overrides,
+  };
+}
+
+/** A read of the garden's work, live and answered, unless told otherwise. */
+function workRead(works: Work[], overrides: Partial<GardenWorkRead> = {}): GardenWorkRead {
+  return {
+    works,
+    availability: works.length > 0 ? "available" : "empty",
+    isError: false,
+    isPaused: false,
+    ...overrides,
+  };
+}
+
+const uploading = work("job-1", 900, { status: "uploading", media: [] });
+const pending = work("0x04", 800, { status: "pending" });
+const approved = work("0x03", 700, { status: "approved", media: [] });
+const rejected = work("0x02", 600, { status: "rejected" });
+const older = work("0x01", 500, { status: "approved" });
+
+describe("Recent Activity", () => {
+  it("shows the garden's three newest works and leaves the member's unsent uploads to Continue", () => {
+    const state = recentActivityState(workRead([older, uploading, rejected, pending, approved]));
+
+    expect(state).toEqual({
+      status: "ready",
+      items: [pending, approved, rejected],
+      savedAt: null,
+    });
+    expect(JOURNAL_PREVIEW_COUNT).toBe(3);
+  });
+
+  it("says when an offline copy was saved, and only then", () => {
+    const savedAt = NOW_MS - DAY_MS;
+    const state = recentActivityState(
+      workRead([pending], { isPaused: true, lastSuccessfulRefresh: savedAt })
+    );
+
+    expect(state).toEqual({ status: "ready", items: [pending], savedAt });
+  });
+
+  it.each<[string, string, GardenWorkRead]>([
+    ["the read has not answered yet", "loading", workRead([], { availability: "unavailable" })],
+    [
+      "a failed read with nothing to show",
+      "error",
+      workRead([], { availability: "unavailable", isError: true }),
+    ],
+    ["a garden with no work", "empty", workRead([])],
+    // The member's own upload is not the garden's activity: Continue shows it.
+    [
+      "the member's unsent upload alone",
+      "empty",
+      workRead([uploading], { availability: "available" }),
+    ],
+    [
+      "offline with nothing saved",
+      "offline",
+      workRead([uploading], { availability: "partial", isPaused: true }),
+    ],
+    ["offline with a saved read of an empty garden", "empty", workRead([], { isPaused: true })],
+  ])("reads %s as %s", (_case, status, read) => {
+    expect(recentActivityState(read).status).toBe(status);
+  });
+});
+
+function cycle(overrides: Partial<CommitmentCycleRecord>): CommitmentCycleRecord {
+  return cycleFixture({ state: "OPEN", endTime: null, ...overrides });
+}
+
+describe("Highlights' seasons and campaigns", () => {
+  it("keeps the open cycles, the season first, in the Pool tab's order otherwise", () => {
+    const campaignB = cycle({ id: "c-9", cycleId: 9n, cycleType: "CAMPAIGN" });
+    const campaignA = cycle({ id: "c-8", cycleId: 8n, cycleType: "CAMPAIGN" });
+    const season = cycle({ id: "c-7", cycleId: 7n, cycleType: "SEASON" });
+    const seeded = cycle({ id: "c-6", cycleId: 6n, cycleType: "CAMPAIGN", state: "SEEDED" });
+    const ended = cycle({ id: "c-5", cycleId: 5n, state: "RECONCILED" });
+    const cancelled = cycle({ id: "c-4", cycleId: 4n, cycleType: "CAMPAIGN", state: "CANCELLED" });
+
+    const open = openCycles([campaignB, seeded, campaignA, ended, season, cancelled], NOW, NOW_MS);
+
+    expect(open.map(({ cycle }) => cycle.id)).toEqual(["c-7", "c-9", "c-8"]);
+  });
+
+  // DL-162: an Open season or campaign past its end on the chain's clock has ended though no
+  // steward has closed it, so What's Open stops offering it at the second its promises fall due.
+  it("drops an open cycle past its end on the chain's clock, though no steward has closed it", () => {
+    const season = cycle({ id: "c-7", cycleId: 7n, cycleType: "SEASON", endTime: NOW - 1n });
+    const campaign = cycle({ id: "c-9", cycleId: 9n, cycleType: "CAMPAIGN", endTime: NOW - 1n });
+    const lastSecond = cycle({ id: "c-8", cycleId: 8n, cycleType: "CAMPAIGN", endTime: NOW });
+
+    const open = openCycles([season, campaign, lastSecond], NOW, NOW_MS);
+
+    expect(open.map(({ cycle }) => cycle.id)).toEqual(["c-8"]);
+  });
+
+  it("counts the days left to a cycle's end, the last part of a day as one", () => {
+    const seconds = (ms: number) => BigInt(Math.floor(ms / 1000));
+
+    expect(cycleDaysLeft(seconds(NOW_MS + 104 * DAY_MS), NOW_MS)).toBe(104);
+    expect(cycleDaysLeft(seconds(NOW_MS + 40.2 * DAY_MS), NOW_MS)).toBe(41);
+    expect(cycleDaysLeft(seconds(NOW_MS + 2 * 3_600_000), NOW_MS)).toBe(1);
+    // No end date, or an end already passed while the cycle is still open, says no count.
+    expect(cycleDaysLeft(null, NOW_MS)).toBeNull();
+    expect(cycleDaysLeft(seconds(NOW_MS), NOW_MS)).toBeNull();
+    expect(cycleDaysLeft(seconds(NOW_MS - DAY_MS), NOW_MS)).toBeNull();
+
+    const [open] = openCycles(
+      [cycle({ endTime: seconds(NOW_MS + 3 * DAY_MS) })],
+      seconds(NOW_MS),
+      NOW_MS
+    );
+    expect(open?.daysLeft).toBe(3);
+  });
+});
+
+const answered: JournalQueryRead = { hasData: true, isError: false, dataUpdatedAt: NOW_MS };
+const unanswered: JournalQueryRead = { hasData: false, isError: false, dataUpdatedAt: 0 };
+const failed: JournalQueryRead = { hasData: false, isError: true, dataUpdatedAt: 0 };
+
+function poolRead(overrides: Partial<PoolSectionRead<string>> = {}): PoolSectionRead<string> {
+  return {
+    available: true,
+    isOnline: true,
+    pools: { ...answered, hasPool: true },
+    list: answered,
+    items: ["open"],
+    ...overrides,
+  };
+}
+
+describe("a section read from the garden's pool", () => {
+  it.each<[string, string, Partial<PoolSectionRead<string>>]>([
+    ["a chain where promises do not run", "unavailable", { available: false }],
+    [
+      "a pool lookup that has not answered",
+      "loading",
+      { pools: { ...unanswered, hasPool: false } },
+    ],
+    ["a failed pool lookup", "error", { pools: { ...failed, hasPool: false } }],
+    ["a garden with no pool", "empty", { pools: { ...answered, hasPool: false } }],
+    ["a list that has not answered", "loading", { list: unanswered }],
+    ["a failed list", "error", { list: failed }],
+    // Offline with nothing saved is a wait, even when the last try failed.
+    ["offline with nothing saved", "offline", { isOnline: false, list: failed }],
+    [
+      "offline before the pool lookup was saved",
+      "offline",
+      { isOnline: false, pools: { ...unanswered, hasPool: false } },
+    ],
+    ["a pool with nothing open", "empty", { items: [] }],
+  ])("reads %s as %s", (_case, status, overrides) => {
+    expect(poolSectionState(poolRead(overrides)).status).toBe(status);
+  });
+
+  it("shows what it has, and says when an offline copy was read", () => {
+    expect(poolSectionState(poolRead())).toEqual({
+      status: "ready",
+      items: ["open"],
+      savedAt: null,
+    });
+    expect(
+      poolSectionState(poolRead({ isOnline: false, list: { ...answered, dataUpdatedAt: 42 } }))
+    ).toEqual({ status: "ready", items: ["open"], savedAt: 42 });
+  });
+});
+
+function promise(id: number, overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel {
+  return commitmentFixture({
+    id: `42161-${id}`,
+    commitmentId: BigInt(id),
+    direction: "OFFER",
+    onchainState: "OFFERED",
+    derivedState: "OFFERED",
+    creator: NEIGHBOUR,
+    leadProvider: NEIGHBOUR,
+    counterparty: null,
+    metadataCID: null,
+    ...overrides,
+  });
+}
+
+const NO_METADATA = new Map<string, CommitmentMetadataV1>();
+
+describe("Take Part", () => {
+  it("offers the promises open to take up that the reader did not make", () => {
+    const openOffer = promise(9);
+    const openAsk = promise(8, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+    });
+    const readersOwn = promise(7, { creator: READER, leadProvider: READER });
+    const takenUp = promise(6, {
+      onchainState: "ACCEPTED",
+      derivedState: "ACTIVE",
+      counterparty: READER,
+    });
+    // Published open on chain but past its deadline: it reads as lapsed.
+    const lapsed = promise(5, { derivedState: "EXPIRED" });
+    const kept = promise(4, { onchainState: "FULFILLED", derivedState: "FULFILLED" });
+
+    const offered = takePartPromises(
+      [openOffer, openAsk, readersOwn, takenUp, lapsed, kept],
+      READER,
+      NO_TAKE_UPS,
+      CLOCK
+    );
+
+    expect(offered.map((item) => item.commitmentId)).toEqual([9n, 8n]);
+    // Signed out, nothing is anyone's own, so every open promise is listed.
+    expect(takePartPromises([openOffer, readersOwn], null, NO_TAKE_UPS, CLOCK)).toHaveLength(2);
+  });
+
+  it("says why nothing is listed: no open promise, or only the reader's own (DL-132)", () => {
+    const input = (commitments: CommitmentReadModel[]) => ({
+      commitments,
+      metadataByCID: NO_METADATA,
+      viewer: READER,
+      poolOpen: true,
+      takeUps: NO_TAKE_UPS,
+      clock: CLOCK,
+    });
+    const readersOwn = promise(7, { creator: READER, leadProvider: READER });
+    const kept = promise(4, { onchainState: "FULFILLED", derivedState: "FULFILLED" });
+
+    expect(takePartEmptyReason(input([]))).toBe("none");
+    expect(takePartEmptyReason(input([kept]))).toBe("none");
+    expect(takePartEmptyReason(input([readersOwn, kept]))).toBe("yours");
+    // Another's open offer is listed, so there is nothing to explain.
+    expect(takePartEmptyReason(input([readersOwn, promise(9)]))).toBe("none");
+    // Another's ask the reader asked to take up, or has queued, is not the reader's own yet: the
+    // request may be declined and the send may fail, so the row never calls it "yours".
+    const othersAsk = promise(8, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+    });
+    const requested = { ...NO_TAKE_UPS, requested: new Set(["8"]) };
+    const queued = { ...NO_TAKE_UPS, queued: new Set(["8"]) };
+    expect(takePartEmptyReason({ ...input([othersAsk]), takeUps: requested })).toBe("none");
+    expect(takePartEmptyReason({ ...input([othersAsk, readersOwn]), takeUps: queued })).toBe(
+      "none"
+    );
+    // A pool that is not open takes nothing up, whoever made its promises.
+    expect(takePartEmptyReason({ ...input([readersOwn]), poolOpen: false })).toBe("none");
+  });
+
+  it("folds copies of one set into one row, as the Pool tab does", () => {
+    const metadata = new Map<string, CommitmentMetadataV1>([
+      ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
+    ]);
+    const copy = (id: number) =>
+      promise(id, {
+        direction: "REQUEST",
+        onchainState: "REQUESTED",
+        derivedState: "REQUESTED",
+        metadataCID: "cid-set",
+      });
+
+    const entries = takePartEntries({
+      commitments: [promise(30), copy(29), copy(28), promise(27), promise(26), promise(25)],
+      metadataByCID: metadata,
+      viewer: READER,
+      poolOpen: true,
+      clock: CLOCK,
+      takeUps: NO_TAKE_UPS,
+    });
+
+    expect(
+      entries.map((entry) =>
+        entry.kind === "single" ? entry.row.commitment.commitmentId : entry.group.displayGroupId
+      )
+    ).toEqual([30n, "set-1", 27n, 26n, 25n]);
+    const [first] = entries;
+    expect(first?.kind === "single" && first.row).toMatchObject({
+      seat: "bystander",
+      needsYou: false,
+    });
+  });
+
+  it("stands a group for its first copy the reader could take up", () => {
+    const metadata = new Map<string, CommitmentMetadataV1>([
+      ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
+    ]);
+    const copy = (id: number, state: "REQUESTED" | "FULFILLED") =>
+      promise(id, {
+        direction: "REQUEST",
+        onchainState: state,
+        derivedState: state,
+        metadataCID: "cid-set",
+      });
+
+    // The newer copy was kept; the older one is still asked for.
+    const entries = takePartEntries({
+      commitments: [copy(41, "FULFILLED"), copy(40, "REQUESTED")],
+      metadataByCID: metadata,
+      viewer: READER,
+      poolOpen: true,
+      clock: CLOCK,
+      takeUps: NO_TAKE_UPS,
+    });
+
+    expect(entries.map((entry) => [entry.kind, entry.copy?.commitmentId])).toEqual([
+      ["group", 40n],
+    ]);
+  });
+
+  // PRD-1492: Take Part said "1 available" for a reviewed group whose page held its act with
+  // "None are available right now": another member's request was waiting on the one open copy.
+  it("lists a reviewed group while a copy nobody has asked for is left, counted as its page counts it", () => {
+    const metadata = new Map<string, CommitmentMetadataV1>([
+      ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
+    ]);
+    const reviewedCopy = (id: number) =>
+      promise(id, {
+        direction: "REQUEST",
+        onchainState: "REQUESTED",
+        derivedState: "REQUESTED",
+        claimMode: "APPROVAL_GATED",
+        metadataCID: "cid-set",
+      });
+    const entriesWhile = (askedFor: ReadonlySet<string> | null) =>
+      takePartEntries({
+        commitments: [reviewedCopy(41), reviewedCopy(40)],
+        metadataByCID: metadata,
+        viewer: READER,
+        poolOpen: true,
+        clock: CLOCK,
+        takeUps: { ...NO_TAKE_UPS, askedFor },
+      });
+
+    // A neighbor asked for copy 40: copy 41 is still free, and the row says one waits on a steward.
+    const [listed] = entriesWhile(new Set(["40"]));
+    expect(listed?.copy.commitmentId).toBe(41n);
+    expect(listed?.kind === "group" && listed.availabilityKnown).toBe(true);
+    expect(listed?.kind === "group" && listed.group.counts).toMatchObject({
+      available: 1,
+      requested: 1,
+    });
+    // Both asked for: nothing is left to ask for, so Take Part lists nothing, as the page holds.
+    expect(entriesWhile(new Set(["40", "41"]))).toEqual([]);
+    // Requests that could not be read leave the group listed, its availability unknown as on
+    // its page, never "2 available".
+    const [unread] = entriesWhile(null);
+    expect(unread?.kind === "group" && unread.availabilityKnown).toBe(false);
+    // A single reviewed ask stays listed beside a neighbor's request: a steward chooses between
+    // asks on one promise, while a group sends each ask to its own copy (D5).
+    const reviewedAsk = promise(50, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      claimMode: "APPROVAL_GATED",
+    });
+    expect(
+      takePartEntries({
+        commitments: [reviewedAsk],
+        metadataByCID: metadata,
+        viewer: READER,
+        poolOpen: true,
+        clock: CLOCK,
+        takeUps: { ...NO_TAKE_UPS, askedFor: new Set(["50"]) },
+      }).map((entry) => entry.copy.commitmentId)
+    ).toEqual([50n]);
+  });
+
+  it("takes nothing up while the pool is not open, as the promise page's take-up gate reads it", () => {
+    const entries = takePartEntries({
+      commitments: [
+        promise(9),
+        promise(8, { direction: "REQUEST", onchainState: "REQUESTED", derivedState: "REQUESTED" }),
+      ],
+      metadataByCID: NO_METADATA,
+      viewer: READER,
+      poolOpen: false,
+      clock: CLOCK,
+      takeUps: NO_TAKE_UPS,
+    });
+
+    expect(entries).toEqual([]);
+  });
+});
+
+describe("the reader's own take-ups (#1292's review, decision 18)", () => {
+  const gatedAsk = (id: number) =>
+    promise(id, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      claimMode: "APPROVAL_GATED",
+    });
+  const ask = (id: number, overrides: Partial<CommitmentReadModel> = {}) =>
+    promise(id, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      claimMode: "OPEN",
+      ...overrides,
+    });
+  const request = (id: number, state: "PENDING" | "ACCEPTED" | "DECLINED", by = READER) =>
+    claimFixture({ commitmentId: BigInt(id), claimant: by, state });
+  const listed = (commitments: CommitmentReadModel[], takeUps: ReturnType<typeof viewerTakeUps>) =>
+    takePartEntries({
+      commitments,
+      metadataByCID: NO_METADATA,
+      viewer: READER,
+      poolOpen: true,
+      clock: CLOCK,
+      takeUps,
+    }).map((entry) => entry.copy.commitmentId);
+
+  it.each<[string, Parameters<typeof viewerTakeUps>[0], bigint[]]>([
+    [
+      "without the asks the reader asked for, whoever made the request",
+      {
+        viewer: READER,
+        pendingRequests: [
+          request(8, "PENDING"),
+          // A steward asked for their garden: the reader made the request, the garden claims.
+          claimFixture({
+            commitmentId: 7n,
+            claimant: NEIGHBOUR,
+            requestedBy: READER,
+            state: "PENDING",
+          }),
+        ],
+        queued: new Set(),
+      },
+      [9n],
+    ],
+    [
+      "with the asks only a neighbor asked for",
+      { viewer: READER, pendingRequests: [request(8, "PENDING", NEIGHBOUR)], queued: new Set() },
+      [9n, 8n, 7n],
+    ],
+    [
+      // Failed ones included: a take-up stays on the phone until it is sent again or discarded.
+      "without the promise the reader is taking up from this phone",
+      { viewer: READER, pendingRequests: [], queued: new Set(["9"]) },
+      [8n, 7n],
+    ],
+    [
+      "with a declined ask, which is open to ask again",
+      { viewer: READER, pendingRequests: [request(8, "DECLINED")], queued: new Set() },
+      [9n, 8n, 7n],
+    ],
+  ])("lists Take Part %s", (_case, input, expected) => {
+    expect(listed([ask(9), gatedAsk(8), gatedAsk(7)], viewerTakeUps(input))).toEqual(expected);
+  });
+
+  it("keeps every request waiting on a steward, anyone's, and none it could not read", () => {
+    const pendingRequests = [
+      request(8, "PENDING", NEIGHBOUR),
+      request(7, "PENDING"),
+      request(6, "DECLINED", NEIGHBOUR),
+    ];
+    const read = viewerTakeUps({ viewer: READER, pendingRequests, queued: new Set() });
+
+    expect([...(read.askedFor ?? [])]).toEqual(["8", "7"]);
+    // The reader's own request is still theirs to follow on its page.
+    expect([...read.requested]).toEqual(["7"]);
+    expect(
+      viewerTakeUps({ viewer: READER, pendingRequests, queued: new Set(), requestsRead: false })
+        .askedFor
+    ).toBeNull();
+  });
+
+  it("leaves an accepted request's promise out: a steward made it the reader's own", () => {
+    const accepted = gatedAsk(8);
+    const yours = {
+      ...accepted,
+      onchainState: "ACCEPTED",
+      derivedState: "ACTIVE",
+      leadProvider: READER,
+      counterparty: READER,
+    } satisfies CommitmentReadModel;
+    const takeUps = viewerTakeUps({
+      viewer: READER,
+      pendingRequests: [request(8, "ACCEPTED")],
+      queued: new Set(),
+    });
+
+    expect(listed([ask(9), yours], takeUps)).toEqual([9n]);
+    expect(isTakeableBy(yours, READER, takeUps, CLOCK)).toBe(false);
+  });
+
+  it("lists in one tap only the asks the chain hands the reader at once", () => {
+    const none = viewerTakeUps({ viewer: READER, pendingRequests: [], queued: new Set() });
+    const oneTap = (commitment: CommitmentReadModel, takeUps = none) =>
+      isOneTapTakeUp(commitment, READER, takeUps, CLOCK);
+
+    expect(oneTap(ask(9))).toBe(true);
+    // A steward of the pool's garden accepts or declines a gated take-up, so it never takes one tap.
+    expect(oneTap(gatedAsk(8))).toBe(false);
+    // An offer is taken up to receive it; nobody logs work to take one up.
+    expect(oneTap(promise(7, { claimMode: "OPEN" }))).toBe(false);
+    // Only a garden's stewards claim a garden-type ask, for their garden.
+    expect(oneTap(ask(6, { claimType: "GARDEN" }))).toBe(false);
+    expect(oneTap(ask(5, { creator: READER }))).toBe(false);
+    expect(oneTap(ask(4), { ...none, queued: new Set(["4"]) })).toBe(false);
+  });
+
+  it("hands Submit Work's Start step the one-tap asks only, one per set", () => {
+    const metadata = new Map<string, CommitmentMetadataV1>([
+      ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
+    ]);
+    const asks = oneTapAsks({
+      commitments: [
+        ask(9),
+        gatedAsk(8),
+        // Asked for by the reader, and no steward has answered.
+        gatedAsk(7),
+        ask(6, { metadataCID: "cid-set" }),
+        ask(5, { metadataCID: "cid-set" }),
+        ask(4),
+      ],
+      metadataByCID: metadata,
+      viewer: READER,
+      poolOpen: true,
+      clock: CLOCK,
+      takeUps: viewerTakeUps({
+        viewer: READER,
+        pendingRequests: [request(7, "PENDING")],
+        queued: new Set(["4"]),
+      }),
+    });
+
+    expect(asks.map((each) => each.commitmentId)).toEqual([9n, 6n]);
+  });
+});
+
+describe("a promise past its due date", () => {
+  const ask = (id: number, dueDate: bigint) =>
+    promise(id, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      claimMode: "OPEN",
+      dueDate,
+    });
+
+  it("is offered for take-up nowhere on Home, while one due later today still is", () => {
+    const input = {
+      commitments: [ask(9, NOW - 86_400n), ask(8, NOW), ask(7, NOW + 6n * 3_600n)],
+      metadataByCID: NO_METADATA,
+      viewer: READER,
+      poolOpen: true,
+      takeUps: NO_TAKE_UPS,
+      clock: CLOCK,
+    };
+    const listed = (read: typeof input) =>
+      takePartEntries(read).map((entry) => entry.copy.commitmentId);
+
+    // The chain lets anyone expire a promise only after its due second, so one due now counts.
+    expect(listed(input)).toEqual([8n, 7n]);
+    expect(oneTapAsks(input).map((copy) => copy.commitmentId)).toEqual([8n, 7n]);
+    expect(listed({ ...input, clock: { ...CLOCK, now: NOW + 1n } })).toEqual([7n]);
+  });
+});

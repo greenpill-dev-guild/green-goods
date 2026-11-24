@@ -8,6 +8,8 @@
  * Per react-patterns Rule 7: serialize objects in keys for stable references.
  */
 
+import type { Address } from "../../types/domain";
+
 export interface PublicFieldNotesOptions {
   gardenAddress?: string;
   volume?: number;
@@ -40,6 +42,24 @@ export const publicKeys = {
   /** Single public garden detail by slug or address. */
   gardenDetail: (slugOrAddress: string, chainId: number) =>
     ["greengoods", "public", "gardenDetail", slugOrAddress.toLowerCase(), chainId] as const,
+
+  /** One garden's passport of promises, vouchers and payments. */
+  gardenPassport: (garden: Address | undefined, chainId: number) =>
+    ["greengoods", "public", "gardenPassport", garden?.toLowerCase() ?? "none", chainId] as const,
+
+  gardenCertificateMetadata: (
+    gardenId: string,
+    chainId: number,
+    records: readonly { id: string; metadataUri?: string }[]
+  ) =>
+    [
+      "greengoods",
+      "public",
+      "gardenCertificateMetadata",
+      gardenId.toLowerCase(),
+      chainId,
+      records.map(({ id, metadataUri }) => [id, metadataUri]),
+    ] as const,
 
   /** Field notes feed (paginated). */
   fieldNotes: (chainId: number, opts: PublicFieldNotesOptions = {}) =>

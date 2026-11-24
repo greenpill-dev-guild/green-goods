@@ -16,6 +16,42 @@ export const PASSKEY_RP_NAME = "Green Goods";
 
 export const PASSKEY_NAME_MIN_LENGTH = 3;
 export const PASSKEY_NAME_MAX_LENGTH = 64;
+export const PASSKEY_DISPLAY_NAMES_METHOD = "pks_getDisplayNames";
+export const PASSKEY_DISPLAY_NAMES_BATCH_LIMIT = 64;
+
+export const LEGACY_PASSKEY_PROFILE = "kernel-0.3.1-legacy" as const;
+export const KERNEL_033_PASSKEY_PROFILE = "kernel-0.3.3" as const;
+/** Older clients must not interpret a 0.3.3 credential with their fixed 0.3.1 recipe. */
+export const PASSKEY_ACCOUNT_PROFILE_VERSION = 1;
+export type PasskeyDirectoryAccountProfile =
+  | typeof LEGACY_PASSKEY_PROFILE
+  | typeof KERNEL_033_PASSKEY_PROFILE;
+
+/** The sites that create Kernel 0.3.3 accounts: beta, and alpha for experiments before beta. */
+const KERNEL_033_REGISTRATION_HOSTS = [
+  "beta.greengoods.app",
+  "beta.admin.greengoods.app",
+  "beta.hub.greengoods.app",
+  "alpha.greengoods.app",
+  "alpha.hub.greengoods.app",
+];
+
+/** Defaults apply only at creation; an account's recorded recipe never follows its current site. */
+export function getDefaultPasskeyRegistrationProfile(
+  hostname: string
+): PasskeyDirectoryAccountProfile {
+  return KERNEL_033_REGISTRATION_HOSTS.includes(hostname.toLowerCase())
+    ? KERNEL_033_PASSKEY_PROFILE
+    : LEGACY_PASSKEY_PROFILE;
+}
+
+export function parsePasskeyDirectoryAccountProfile(
+  value: unknown
+): PasskeyDirectoryAccountProfile {
+  if (value === undefined || value === LEGACY_PASSKEY_PROFILE) return LEGACY_PASSKEY_PROFILE;
+  if (value === KERNEL_033_PASSKEY_PROFILE) return value;
+  throw new Error("Unknown passkey account profile");
+}
 
 /**
  * The form in which an account name is stored and compared: trimmed, without a leading "@",
@@ -37,9 +73,26 @@ export function isRegistrablePasskeyName(name: string): boolean {
   return true;
 }
 
+/** Generated sign-in identifiers are never used as people's display names. */
+export function displayablePasskeyName(name?: string | null): string | null {
+  const label = name?.trim();
+  return label && !/^user_\d+$/i.test(label) ? label : null;
+}
+
 export type PasskeyDirectoryCredential = {
-  /** Credential ID as the browser reports it, base64url without padding. */
+  /** Missing on older directory records, which always used Kernel 0.3.1. */
+  accountProfile?: PasskeyDirectoryAccountProfile;
+  /**
+   * The ID the account was made with. Kernel hashes this exact string into the account address,
+   * so it is never re-encoded: base64url for a directory sign-up, possibly hex for an adopted
+   * hosted account.
+   */
   id: string;
+  /**
+   * The browser's credential ID, base64url without padding. It names the bytes the ceremony
+   * asks for; without it, both readings of `id` are tried.
+   */
+  signingId?: string;
   /** Uncompressed P-256 public key as hex, with the 0x04 point prefix. */
   publicKey: `0x${string}`;
   /** The domain the passkey was created under. A browser offers it only for this domain. */

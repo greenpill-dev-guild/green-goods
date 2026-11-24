@@ -1,3 +1,7 @@
+import {
+  DOCUMENTATION_ASSESSMENT,
+  DOCUMENTATION_ASSESSMENT_ACTIONS,
+} from "../../../../../shared/.storybook/documentationAssessment";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
@@ -172,6 +176,21 @@ export const PeriodOutOfOrder: Story = {
         >
           <Story />
         </WithAssessmentStore>
+      </WithSeededClient>
+    ),
+  ],
+};
+
+export const Documentation: Story = {
+  decorators: [
+    (Story) => (
+      <WithAssessmentStore seed={{ ...DOCUMENTATION_ASSESSMENT, domain: Domain.AGRO }}>
+        <Story />
+      </WithAssessmentStore>
+    ),
+    (Story) => (
+      <WithSeededClient actions={DOCUMENTATION_ASSESSMENT_ACTIONS}>
+        <Story />
       </WithSeededClient>
     ),
   ],

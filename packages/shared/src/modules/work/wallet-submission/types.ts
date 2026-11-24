@@ -1,8 +1,14 @@
 import type { WorkUploadCheckpoint } from "../../../types/domain";
+import type { LiveSendStageReport } from "../../transactions/send-stage";
+
+/**
+ * Where an online Submit stands. Its send's two stages are the shared ones (`send-stage`): the
+ * wallet is asked, then the network confirms. It never reports a Safe's signers as a stage.
+ */
 export type WalletSubmissionStage =
   | "validating"
   | "uploading"
-  | "confirming"
+  | Exclude<LiveSendStageReport["stage"], "safe-signers">
   | "syncing"
   | "complete";
 
@@ -30,11 +36,6 @@ export type ApprovalWalletLifecycleEvent =
 
 export interface ApprovalSubmissionOptions extends WalletSubmissionOptions {
   onLifecycle?: (event: ApprovalWalletLifecycleEvent) => void;
-}
-
-export interface BatchApprovalOptions {
-  onProgress?: OnProgressCallback;
-  txTimeout?: number;
 }
 
 /**

@@ -2,6 +2,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import {
   type CommitmentClaimRequestRecord,
   type CommitmentReadModel,
+  type ServiceAccessSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 
 import { type ClaimContext, ClaimContextSheet, type ClaimGardenOption } from "./ClaimContextSheet";
@@ -10,6 +11,7 @@ import { CommitmentClaimPanel } from "./CommitmentClaimPanel";
 
 export interface CommitmentClaimsProps {
   commitment: CommitmentReadModel;
+  acceptancePolicy?: ServiceAccessSnapshot["acceptancePolicy"];
   viewer: Address | null;
   /** The reader's own most recent request, if any. */
   ownRequest: CommitmentClaimRequestRecord | null;
@@ -38,6 +40,7 @@ export interface CommitmentClaimsProps {
  */
 export function CommitmentClaims({
   commitment,
+  acceptancePolicy,
   viewer,
   ownRequest,
   pendingRequests,
@@ -54,6 +57,10 @@ export function CommitmentClaims({
   onAccept,
   onDecline,
 }: CommitmentClaimsProps) {
+  const earned = acceptancePolicy?.kind === "earned" ? acceptancePolicy.earned : null;
+  const canAccept =
+    !earned ||
+    (earned.status === "bound" && earned.terms !== null && earned.modulePaused === false);
   return (
     <>
       {ownRequest && viewer ? (
@@ -72,6 +79,7 @@ export function CommitmentClaims({
         <ClaimDecisionPanel
           requests={pendingRequests}
           isPending={isDeciding}
+          canAccept={canAccept}
           onAccept={onAccept}
           onDecline={onDecline}
         />

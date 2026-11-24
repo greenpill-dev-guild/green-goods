@@ -86,7 +86,7 @@ export const greenGoodsExtensionSchema = z.object({
   sdgs: z.array(z.number().int().min(1).max(17)),
   capitals: z.array(z.string().min(1)),
   outcomes: outcomeMetricsSchema,
-  domain: z.string(),
+  domain: z.string().optional(),
   karmaGapProjectId: z.string().optional(),
   protocolVersion: z.string().min(1),
 });

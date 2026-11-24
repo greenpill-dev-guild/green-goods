@@ -176,22 +176,9 @@ describe("useTimeout", () => {
       });
 
       unmount();
+      expect(vi.getTimerCount()).toBe(0);
 
       vi.advanceTimersByTime(10000);
-      expect(callback).not.toHaveBeenCalled();
-    });
-
-    it("does not execute callback after unmount", () => {
-      const callback = vi.fn();
-      const { result, unmount } = renderHook(() => useTimeout());
-
-      act(() => {
-        result.current.set(callback, 100);
-      });
-
-      unmount();
-
-      vi.advanceTimersByTime(200);
       expect(callback).not.toHaveBeenCalled();
     });
   });

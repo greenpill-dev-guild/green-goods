@@ -2,7 +2,7 @@
  * SiteHeader Component Tests
  *
  * Tests the public website header for the editorial public browser:
- * - Desktop: nav order Gardens / Impact / Vaults / Fund / Actions + Install/Open App CTA
+ * - Desktop: nav order Gardens / Impact / Fund / Actions + Install/Open App CTA
  * - Mobile: hamburger button (aria-expanded toggling)
  * - Drawer: opens, closes on Escape, mirrors nav + Install/Open App
  * - Wallet connect is intentionally absent from public header chrome
@@ -143,17 +143,20 @@ describe("SiteHeader", () => {
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("nav order is Gardens / Impact / Fund / Actions", () => {
+  it("nav lists only Gardens / Impact / Fund / Actions, in that order", () => {
     renderHeader();
-    const navs = screen.getAllByRole("navigation");
-    const desktopNav = navs[0];
-    const links = Array.from(desktopNav.querySelectorAll("a")).map(
-      (link) => link.textContent ?? ""
-    );
-    const navOrder = links.filter((label) =>
-      ["Gardens", "Impact", "Fund", "Actions"].includes(label)
-    );
-    expect(navOrder).toEqual(["Gardens", "Impact", "Fund", "Actions"]);
+    const desktopNav = screen.getByRole("navigation", { name: "Main navigation" });
+    // Strategy is shared by direct link, so the header does not list it.
+    expect(
+      within(desktopNav)
+        .getAllByRole("link")
+        .map((link) => [link.textContent, link.getAttribute("href")])
+    ).toEqual([
+      ["Gardens", "/gardens"],
+      ["Impact", "/impact"],
+      ["Fund", "/fund"],
+      ["Actions", "/actions"],
+    ]);
   });
 
   it("renders Open App when the PWA is already installed", () => {
@@ -242,6 +245,12 @@ describe("SiteHeader", () => {
     const drawer = screen.getByRole("dialog");
     expect(drawer).toBeInTheDocument();
     expect(drawer.getAttribute("aria-modal")).toBe("true");
+    // The drawer mirrors the header's links, so it leaves Strategy out too.
+    expect(within(drawer).getByRole("link", { name: "Actions" })).toHaveAttribute(
+      "href",
+      "/actions"
+    );
+    expect(within(drawer).queryByRole("link", { name: "Strategy" })).not.toBeInTheDocument();
     expect(document.documentElement).toHaveClass("modal-open");
     expect(document.body.style.position).toBe("fixed");
     // Drawer mirrors the install CTA, not Connect Wallet.
@@ -320,15 +329,6 @@ describe("SiteHeader", () => {
     await waitFor(() => expect(screen.getByRole("link", { name: "Green Goods" })).toHaveFocus());
   });
 
-  it("renders transparent on home (`/`) so the header floats over the hero image", () => {
-    renderHeader("/");
-    const header = document.querySelector("header");
-    expect(header).not.toBeNull();
-    expect(header!.getAttribute("data-variant")).toBe("transparent");
-    expect(header!.className).toMatch(/bg-transparent/);
-    expect(header!.className).not.toMatch(/backdrop-blur/);
-  });
-
   it("renders transparent on every public route (not just home)", () => {
     for (const route of ["/", "/gardens", "/impact", "/vaults", "/fund", "/actions"]) {
       cleanup();
@@ -339,6 +339,7 @@ describe("SiteHeader", () => {
         "transparent"
       );
       expect(header!.className, `expected bg-transparent on ${route}`).toMatch(/bg-transparent/);
+      expect(header!.className).not.toMatch(/backdrop-blur/);
     }
   });
 

@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-08",
+  "file": "green-goods-os-pitch.pptx",
+  "sha256": "0e7eaac46d7a953ef0d566fb527e1762092c38ef69de5db7af709f269ecf5b35",
+  "slides": 18,
+  "native_tables": 8,
+  "native_shape_objects": 113,
+  "embedded_media": 1,
+  "speaker_notes_on_every_slide": true,
+  "package_integrity": "pass",
+  "layout_findings": 0,
+  "layout_warnings": 0,
+  "artifact_tool_reimport_passed": true,
+  "rendered_and_visually_inspected_slides": [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18
+  ],
+  "render_engine": "Artifact Tool, final PPTX reimport, 1280x720",
+  "native_powerpoint_or_google_slides_tested": false,
+  "economics": "Independently recalculated in bundled Python; assumptions remain unvalidated"
+}

@@ -57,16 +57,42 @@ export type {
 
 export {
   isRegistrablePasskeyName,
+  displayablePasskeyName,
+  PASSKEY_DISPLAY_NAMES_METHOD,
+  PASSKEY_DISPLAY_NAMES_BATCH_LIMIT,
   normalizePasskeyName,
   PASSKEY_NAME_MAX_LENGTH,
   PASSKEY_NAME_MIN_LENGTH,
   PASSKEY_RP_ID,
   PASSKEY_RP_NAME,
   type PasskeyDirectoryCredential,
+  LEGACY_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
+  PASSKEY_ACCOUNT_PROFILE_VERSION,
+  getDefaultPasskeyRegistrationProfile,
+  parsePasskeyDirectoryAccountProfile,
+  type PasskeyDirectoryAccountProfile,
 } from "./passkey-directory";
+
+export { type PasskeyAssertionBytes, verifyPasskeyAssertionBytes } from "./passkey-assertion";
+export {
+  type OpenfortRecoveryApiError,
+  type OpenfortRecoveryApiErrorCode,
+  type OpenfortRecoverySessionResponse,
+} from "./openfort-recovery";
+export {
+  classifyTestTraffic,
+  normalizeTelemetryAddress,
+  parseTestTrafficAddresses,
+  TELEMETRY_UNKNOWN,
+  type TelemetrySegmentation,
+  type TestTrafficFlag,
+} from "./telemetry-segmentation";
 
 export * from "./core";
 export * from "./saved-offers";
+export * from "./voucher-awards";
+export * from "./service-issuer-desk";
 
 export function validateProviderProofEntry(entry: ProviderProofEntry): string[] {
   const errors: string[] = [];

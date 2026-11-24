@@ -21,13 +21,21 @@ import { SETTLEMENT_ENABLED } from "../../config/app";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
-import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
+import {
+  hasRecordedSend,
+  isTerminallyFailedJob,
+  recordedSendAwaiting,
+} from "../../modules/job-queue/queue-policy";
+import { creationRefusalOf } from "../../modules/commitment-pooling/creation-standing";
 import {
   CONSIDERATION_RAIL_ORDINAL,
   type CommitmentJobKind,
   type ConfirmationJobPayload,
+  type CreationRefusal,
 } from "../../modules/commitment-pooling/job-types";
 import {
   COMMITMENT_JOB_KINDS,
@@ -66,8 +74,15 @@ export interface PendingCommitmentCreation {
   waitingForMembership: boolean;
   /** An unsent reward is retained for a later release; recorded sends still reconcile. */
   settlementDeferred?: boolean;
+  /** An unsent reward held because the garden's settlement account isn't active. */
+  waitingForSettlementAccount?: boolean;
   /** Gave up after its attempts; retry or discard are the member's call. */
   failed: boolean;
+  /**
+   * Why the queue refused it before it was sent: an action it names had closed, or its season or
+   * campaign had ended. It is never sent, so Discard is the only way out. Set only on a failed one.
+   */
+  refusal?: CreationRefusal;
   /**
    * Whether throwing it away is safe. A creation whose transaction was already
    * broadcast keeps its record so a retry can recover the commitment instead
@@ -95,6 +110,8 @@ export interface PendingCommitmentAct {
   confirmationAction?: ConfirmationJobPayload["action"];
   /** Why the last flush left it waiting, when the queue recorded a reason. */
   waitingReason: string | null;
+  /** Its send on record is a Safe proposal, waiting for the Safe's signers (PRD-1564). */
+  awaiting?: "safe-signers";
   /** Whether throwing it away is safe (its transaction was never sent). */
   discardable: boolean;
   /** Why its last send failed; absent when none has, and once it is tried again. */
@@ -108,7 +125,8 @@ export type CommitmentFailureReason =
   | "membershipLost"
   | "commitmentClosed"
   | "identityConflict"
-  | "unavailable";
+  | "unavailable"
+  | "uploadPolicyRequired";
 
 export interface FailedCommitmentJob {
   jobId: string;
@@ -149,11 +167,32 @@ export interface CommitmentQueueState {
    */
   linkedWorkIds: ReadonlySet<string>;
   /**
+   * Promises this member is taking up from this phone, by decimal id: a claim
+   * queued, sending, or failed and not yet discarded. A promise listed here is
+   * not offered for taking up again.
+   */
+  takeUpIds: ReadonlySet<string>;
+  /**
+   * Sent work whose link to its promise gave up, by client work id and, for work sent from this
+   * phone, by its record id (lowercased), so Your Work's row names the stage that stopped.
+   */
+  failedLinkWorkIds: ReadonlySet<string>;
+  /**
    * The queue could not be read. Distinct from "nothing is queued": a surface
    * that treats a failed read as an empty queue re-enables an act already
    * taken and reports no failures when it cannot see any.
    */
   isUnavailable: boolean;
+  /**
+   * The queue's first read is still in flight, so nothing is known to be queued
+   * or not yet. A surface that offers an act waits rather than read it as empty.
+   */
+  isLoading: boolean;
+  /**
+   * The queue is being read again, a cached answer's included, or a failed read waits to be tried
+   * again (the app is away): what it says may still change.
+   */
+  isFetching: boolean;
   refresh: () => void;
 }
 
@@ -168,6 +207,8 @@ function explainTerminalFailure(
   lastError?: string
 ): Pick<FailedCommitmentJob, "reason" | "retryable"> {
   if (!lastError) return { reason: null, retryable: true };
+  if (lastError === "unavailable:upload-policy-required")
+    return { reason: "uploadPolicyRequired", retryable: true };
   if (lastError.startsWith("unavailable:")) return { reason: "unavailable", retryable: true };
   if (!lastError.startsWith("identity_conflict:")) return { reason: null, retryable: true };
 
@@ -222,6 +263,31 @@ function pendingActWaitingReason(job: Job): string | null {
   return typeof reason === "string" && reason !== "awaiting-confirmation" ? reason : null;
 }
 
+interface QueueRead {
+  jobs: Job[];
+  /** The record id of each sent work whose link gave up, lowercased. */
+  failedLinkRecordIds: string[];
+}
+
+/**
+ * A sent work's row names it by its record id, which its link does not keep. The work's
+ * completion on this phone does, for work sent from here.
+ */
+async function recordIdsOfFailedLinks(jobs: Job[], viewer: Address): Promise<string[]> {
+  const ids: string[] = [];
+  for (const job of jobs) {
+    const { clientWorkId } = job.payload as { clientWorkId?: string };
+    if (job.kind !== "workLink" || !clientWorkId || !isTerminallyFailedJob(job)) continue;
+    const completion = await jobQueueDB.getWorkCompletion(
+      viewer,
+      job.chainId ?? DEFAULT_CHAIN_ID,
+      clientWorkId
+    );
+    if (completion?.workUID) ids.push(completion.workUID.toLowerCase());
+  }
+  return ids;
+}
+
 export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueueState {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => commitmentPoolingKeys.queueState(viewer), [viewer]);
@@ -232,10 +298,14 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
   const query = useQuery({
     queryKey,
     enabled: Boolean(viewer),
-    queryFn: async () => {
+    queryFn: async (): Promise<QueueRead> => {
       const all = await jobQueue.getJobs(viewer as string);
-      return all.filter((job) => COMMITMENT_JOB_KINDS.includes(job.kind as never));
+      const jobs = all.filter((job) => COMMITMENT_JOB_KINDS.includes(job.kind as never));
+      return { jobs, failedLinkRecordIds: await recordIdsOfFailedLinks(jobs, viewer as Address) };
     },
+    // The queue is this phone's own storage, so no read of it waits for a connection: not a
+    // first read, nor another try of a failed one. Offline, the queue still answers.
+    networkMode: "always",
     staleTime: Number.POSITIVE_INFINITY,
     // The event bus is in-process, so a second tab never hears the first one
     // queue something. Without this it would keep offering an act already
@@ -256,7 +326,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
   ]);
 
   return useMemo(() => {
-    const jobs: Job[] = query.data ?? [];
+    const jobs: Job[] = query.data?.jobs ?? [];
+    const failedLinkWorkIds = new Set<string>(query.data?.failedLinkRecordIds);
     const pendingCommitmentIds = new Set<string>();
     const failedCommitmentIds = new Set<string>();
     const failedJobs = new Map<string, FailedCommitmentJob>();
@@ -264,6 +335,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const pendingCreates: PendingCommitmentCreation[] = [];
     const proofJobs: Job[] = [];
     const linkedWorkIds = new Set<string>();
+    const takeUpIds = new Set<string>();
     let failedCount = 0;
     let hasPendingCreate = false;
     // Add and Send's send waits behind its proof. Until the proof lands the
@@ -281,6 +353,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
         if (link.clientWorkId) linkedWorkIds.add(link.clientWorkId);
       }
       const commitmentId = commitmentIdOf(job);
+      if (job.kind === "claim" && commitmentId) takeUpIds.add(commitmentId);
       const failed = isTerminallyFailedJob(job);
       if (job.kind === "commitment") {
         const payload = job.payload as {
@@ -292,6 +365,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           targetUnits?: bigint | string;
           consideration?: { rail: number };
         };
+        const refusal = failed ? creationRefusalOf(job.lastError) : null;
         pendingCreates.push({
           jobId: job.id,
           chainId: job.chainId ?? 0,
@@ -305,7 +379,10 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
             !SETTLEMENT_ENABLED &&
             payload.consideration?.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT &&
             isDiscardableJob(job),
+          waitingForSettlementAccount:
+            SETTLEMENT_ENABLED && !failed && job.meta?.waitingReason === "settlement-unavailable",
           failed,
+          ...(refusal ? { refusal } : {}),
           discardable: isDiscardableJob(job),
           ...(payload.metadata?.displayGroup && payload.dueDate
             ? { groupDueDate: String(payload.dueDate) }
@@ -317,6 +394,10 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           sendFailure: failed ? undefined : explainFailedSend(job.lastError),
           createdAt: job.createdAt,
         });
+      }
+      if (failed && job.kind === "workLink") {
+        const { clientWorkId } = job.payload as { clientWorkId?: string };
+        if (clientWorkId) failedLinkWorkIds.add(clientWorkId);
       }
       if (failed) {
         failedCount += 1;
@@ -335,6 +416,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       if (commitmentId) {
         pendingCommitmentIds.add(commitmentId);
         if (waitsForQueuedProof(job)) continue;
+        const awaiting = recordedSendAwaiting(job);
         pendingActs.set(commitmentId, {
           jobId: job.id,
           kind: job.kind as CommitmentJobKind,
@@ -342,6 +424,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
             ? { confirmationAction: (job.payload as ConfirmationJobPayload).action }
             : {}),
           waitingReason: pendingActWaitingReason(job),
+          ...(awaiting ? { awaiting } : {}),
           discardable: isDiscardableJob(job),
           sendFailure: explainFailedSend(job.lastError),
           createdAt: job.createdAt,
@@ -361,8 +444,14 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       pendingCreates,
       proofJobs,
       linkedWorkIds,
+      takeUpIds,
+      failedLinkWorkIds,
       isUnavailable: Boolean(viewer) && query.isError,
+      // Pending covers a first read that is running or paused; without a reader nothing runs.
+      isLoading: Boolean(viewer) && query.isPending,
+      // TanStack reports a read that waits to be tried again paused, not fetching.
+      isFetching: Boolean(viewer) && query.fetchStatus !== "idle",
       refresh,
     };
-  }, [query.data, query.isError, viewer, refresh]);
+  }, [query.data, query.isError, query.isPending, query.fetchStatus, viewer, refresh]);
 }

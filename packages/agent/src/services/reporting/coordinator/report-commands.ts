@@ -4,19 +4,29 @@ import {
   reportContentDigest,
   reportSummaryDigest,
 } from "@green-goods/shared/modules/agent-reporting";
-import { grantPublicationConsent } from "../consent";
-import { invalidateConfirmation, recordConfirmation } from "../confirmations";
-import { type ReportingCopyKey, reportingText } from "../copy";
+import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
+import { awaitingSafeSigners, chainCheckStopped } from "../check-notices";
+import { grantPublicationConsent, hasPublicationConsent } from "../consent";
+import { currentConfirmation, invalidateConfirmation, recordConfirmation } from "../confirmations";
+import type { ReportingCopyKey } from "../copy";
 import type { DraftRecord } from "../drafts";
 import { enqueueJob } from "../jobs";
+import { operationForSubject } from "../operations";
 import { setParticipantLocale } from "../participants";
 import { retryPreparation } from "../preparation";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
+import type { ReportingCore } from "../runtime";
+import { sendSigningLink, signingLinkLapsed, signingLinkOpen } from "../signing-links";
 import type { ChatCommand } from "./commands";
-import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
+import {
+  commitContentChange,
+  commitLifecycle,
+  EDITABLE_STATES,
+  lifecycleState,
+} from "./draft-commit";
 import { askEditMenu } from "./edit-menu";
 import { askGarden, askJoin, sayJoin } from "./garden-step";
-import { askAnotherGarden, gardenLabel, promptNextStep } from "./prompting";
+import { askAnotherGarden, askGrantChoice, gardenLabel, promptNextStep } from "./prompting";
 import type { TurnExternal } from "./report-work";
 import type { TurnWriter } from "./writer";
 
@@ -24,7 +34,7 @@ const STATE_COPY: Record<string, ReportingCopyKey> = {
   collecting: "state.collecting",
   review: "state.review",
   authority: "state.authority",
-  grantChoice: "state.authority",
+  grantChoice: "state.choice",
   preparing: "state.preparing",
   preparationFailed: "state.preparing",
   awaitingWallet: "state.signature",
@@ -126,6 +136,57 @@ export function recordDraftConfirmation(
   });
 }
 
+/** The languages the chat speaks, each offered by its own name. */
+const LANGUAGES = [
+  { locale: "en", label: "language.en" },
+  { locale: "es", label: "language.es" },
+  { locale: "pt", label: "language.pt" },
+] as const;
+
+/**
+ * LANG on its own asks which language to use. A choice sends LANG with that language, so it stays
+ * good whatever question is open, and the open question is left as it was.
+ */
+function askLanguage(writer: TurnWriter): void {
+  const buttons = writer.usesButtons();
+  writer.sayWithCommands(
+    "language.ask",
+    { how: buttons ? "" : writer.text("language.askWords") },
+    buttons
+      ? LANGUAGES.map(({ locale, label }) => ({
+          word: `lang ${locale}`,
+          label: writer.text(label),
+        }))
+      : []
+  );
+}
+
+/**
+ * What a report that can no longer change answers: that it is being published, or, once the chain
+ * check ended without finding it, that the check stopped and where to turn.
+ */
+export function frozenReply(core: ReportingCore, draft: DraftRecord): ReportingCopyKey {
+  return chainCheckStopped(core, { draftId: draft.id }) ?? "report.frozen";
+}
+
+/**
+ * RETRY for a report waiting on its owner's signature sends a fresh way to give it, whether or not
+ * the last link has expired: a page link for a prepared report, or the choice of how to publish
+ * again for one waiting on that choice. False when the report waits for something else.
+ */
+function resendSigning(writer: TurnWriter, draft: DraftRecord): boolean {
+  const { core } = writer;
+  const state = lifecycleState(draft);
+  const garden = draft.content.garden;
+  if (state === "grantChoice" && garden) {
+    askGrantChoice(writer, draft, garden.address);
+    return true;
+  }
+  if (state !== "awaitingWallet") return false;
+  const operation = operationForSubject(core, { draftId: draft.id });
+  return operation?.state === "prepared" && sendSigningLink(core, writer, draft, operation);
+}
+
 function cancelDraft(writer: TurnWriter): void {
   const { core, ctx } = writer;
   const draft = ctx.draft;
@@ -133,7 +194,7 @@ function cancelDraft(writer: TurnWriter): void {
   const { refused } = commitLifecycle(core, draft, [{ type: "CANCEL" }], {
     participantAction: true,
   });
-  if (refused.length > 0) return writer.say("report.frozen");
+  if (refused.length > 0) return writer.say(frozenReply(core, draft));
   closeConversationPrompt(core, ctx.conversationId);
   invalidateConfirmation(core, { draftId: draft.id });
   enqueueJob(core, {
@@ -143,6 +204,26 @@ function cancelDraft(writer: TurnWriter): void {
     payload: { scope: "draft" },
   });
   writer.say("report.cancelled");
+}
+
+/** Only unsent reports with an older agreement can return to confirmation. */
+function needsPolicyRenewal(core: TurnWriter["core"], draft: DraftRecord): boolean {
+  if (!EDITABLE_STATES.has(lifecycleState(draft))) return false;
+  if (operationForSubject(core, { draftId: draft.id })?.failureCode === "policy_changed")
+    return true;
+  const confirmation = currentConfirmation(core, { draftId: draft.id });
+  if (!confirmation || confirmation.revision !== draft.revision) return false;
+  const { summaryDigest } = confirmation;
+  return (
+    hasPublicationConsent(core, draft.id, draft.revision, summaryDigest) &&
+    !hasPublicationConsent(
+      core,
+      draft.id,
+      draft.revision,
+      summaryDigest,
+      WORK_UPLOAD_POLICY_VERSION
+    )
+  );
 }
 
 export function handleReportCommand(
@@ -159,12 +240,12 @@ export function handleReportCommand(
       return cancelDraft(writer);
     case "edit":
       if (draft && EDITABLE_STATES.has(lifecycleState(draft))) return askEditMenu(writer, draft);
-      return writer.say(draft ? "report.frozen" : "report.noStatus");
+      return writer.say(draft ? frozenReply(core, draft) : "report.noStatus");
     case "garden":
       // The same question EDIT reaches through its menu, one word away.
       if (draft && EDITABLE_STATES.has(lifecycleState(draft)))
         return askGarden(writer, draft, ctx.account?.address ?? null);
-      return writer.say(draft ? "report.frozen" : "report.noStatus");
+      return writer.say(draft ? frozenReply(core, draft) : "report.noStatus");
     case "join": {
       const account = ctx.account?.address;
       if (!account) return writer.say("link.notLinked");
@@ -177,13 +258,34 @@ export function handleReportCommand(
       return writer.say(draft ? "report.resumeFirst" : "report.newStarted");
     case "status": {
       if (!draft) return writer.say("report.noStatus");
-      const state = STATE_COPY[lifecycleState(draft)] ?? "state.publishing";
+      const stopped =
+        chainCheckStopped(core, { draftId: draft.id }) ??
+        awaitingSafeSigners(core, { draftId: draft.id });
+      if (stopped) return writer.say(stopped);
+      // An open question about how to publish is what the report waits on, link or no link, while
+      // the report is still at that choice. A permission page can move it on without an answer.
+      const lifecycle = lifecycleState(draft);
+      const choosing = ctx.prompt?.kind === "grant_choice" && lifecycle === "grantChoice";
+      if (!choosing && signingLinkLapsed(core, draft)) return writer.say("publish.linkExpired");
+      // After the choice, a report waits on the page its link opens.
+      const state =
+        lifecycle === "grantChoice" && !choosing && signingLinkOpen(core, draft.id)
+          ? "state.signature"
+          : (STATE_COPY[lifecycle] ?? "state.publishing");
       return writer.say("report.status", {
         garden: gardenLabel(core.gardens, draft.content.garden?.address),
         state: writer.text(state),
       });
     }
     case "retry": {
+      if (draft && needsPolicyRenewal(core, draft)) {
+        const reopened = commitContentChange(core, draft, {
+          content: draft.content,
+          cause: "upload-policy-renewed",
+          sourceEventId: ctx.event.id,
+        });
+        return promptNextStep(writer, reopened, external.catalog);
+      }
       if (draft && retryPreparation(core, draft.id)) return writer.say("publish.sending");
       if (draft && lifecycleState(draft) === "authority") {
         enqueueJob(core, {
@@ -193,15 +295,15 @@ export function handleReportCommand(
         });
         return;
       }
+      if (draft && resendSigning(writer, draft)) return;
       return handleReportCommand(writer, { kind: "status" }, external);
     }
     case "locale":
+      if (!command.locale) return askLanguage(writer);
       if (ctx.binding) setParticipantLocale(core, ctx.binding.participantId, command.locale);
-      writer.reply(
-        { text: reportingText(command.locale, "help", { support: core.settings.supportContact }) },
-        "help"
-      );
-      return;
+      // Every reply from here on, this one's included, is in the language just chosen.
+      ctx.locale = command.locale;
+      return writer.say("help");
     default:
       return writer.say("help");
   }

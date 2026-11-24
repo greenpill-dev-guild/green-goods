@@ -46,7 +46,17 @@ describe("agent Sentry", () => {
         dsn: "https://example@sentry.io/1",
         environment: "production",
         release: "green-goods-agent@test",
-        sendDefaultPii: false,
+        dataCollection: expect.objectContaining({
+          userInfo: false,
+          cookies: false,
+          httpBodies: [],
+          genAI: { inputs: false, outputs: false },
+          mcp: { inputs: false, outputs: false },
+          databaseQueryData: false,
+          queues: false,
+          graphQL: { document: false, variables: false },
+        }),
+        traceLifecycle: "static",
         tracesSampleRate: 0.05,
       })
     );

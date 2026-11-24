@@ -206,7 +206,7 @@ function validateRootGuide() {
     "BLOCKING_RULES",
     "rule-11-undeclared-shared-import",
     "includeAdvisory: false",
-    "Default lint ignores this file",
+    "RATCHETED_RULES",
   ]) {
     if (!patternGate.includes(marker)) {
       fail(`scripts/quality/check-react-patterns.js: missing high-signal gate marker: ${marker}`);
@@ -351,9 +351,6 @@ function validateGuideReferences() {
       requiredTerms: [
         "packages/admin/DESIGN.md",
         "CanvasLayout",
-        "DashboardLayout",
-        "Sidebar",
-        "Header",
         "AppBar",
         "NavigationBar",
         "GardenChip",
@@ -365,8 +362,8 @@ function validateGuideReferences() {
         "RightSheet",
         "BottomSheet",
         "PageHeader",
-        "ListToolbar",
-        "SortSelect",
+        "AdminSearchToolbar",
+        "AdminSortSelect",
         "Card",
         "Alert",
         "StatusBadge",
@@ -390,8 +387,8 @@ function validateGuideReferences() {
         "Card",
         "DialogShell",
         "FormField",
-        "ListToolbar",
-        "SortSelect",
+        "ItemRow",
+        "MediaCard",
         "StatusBadge",
       ],
     },
@@ -482,7 +479,7 @@ function validateRepoDerivedGuidanceFacts() {
     "tests/fixtures/contract-helpers.ts",
     "tests/helpers/test-utils.ts",
     "tests/helpers/test-config.ts",
-    "tests/mocks/pimlico-handlers.ts",
+    "tests/specs/client.passkey.spec.ts",
     "scripts/dev/test-e2e.js",
   ]) {
     if (!exists(relPath) || !testsReadme.includes(relPath)) {

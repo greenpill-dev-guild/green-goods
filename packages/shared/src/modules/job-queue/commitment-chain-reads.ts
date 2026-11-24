@@ -1,4 +1,5 @@
 import {
+  type Config,
   getBlock as wagmiGetBlock,
   getBytecode as wagmiGetBytecode,
   getTransaction as wagmiGetTransaction,
@@ -6,15 +7,19 @@ import {
   getTransactionReceipt as wagmiGetTransactionReceipt,
   readContract as wagmiReadContract,
   simulateContract as wagmiSimulateContract,
-  type Config,
 } from "@wagmi/core";
-import { decodeEventLog, keccak256, toBytes, type Hex } from "viem";
+import { decodeEventLog, type Hex, keccak256, toBytes } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
-import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import type { Address } from "../../types/domain";
-import { CommitmentPoolingModuleABI, GardenAccountABI } from "../../utils/blockchain/contracts";
+import {
+  ActionRegistryABI,
+  CommitmentPoolingModuleABI,
+  GardenAccountABI,
+  getNetworkContracts,
+} from "../../utils/blockchain/contracts";
 import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
 import { logger } from "../app/logger";
+import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import { createSendChainReads, type SendChainReads } from "./send-chain-reads";
 
 export type CommitmentChainReads = Pick<
@@ -27,9 +32,14 @@ export type CommitmentChainReads = Pick<
   | "readEvidenceAttached"
   | "readWorkLinkPayloadHash"
   | "readWorkLinkCommitmentState"
+  | "readSettlementAccountActive"
+  | "readActionWindow"
+  | "readCycleWindow"
   | "hasMembership"
 > &
   SendChainReads & {
+    /** Verifies the claimant's current reward revision; an unread binding must block a send. */
+    assertClaimRewardAgreed: (commitmentId: bigint, claimant: Address) => Promise<void>;
     /**
      * Runs an act's call without sending it. A wallet estimates inside its own
      * send, after the queue records the intent, so a refusal found there would
@@ -42,6 +52,11 @@ export type CommitmentChainReads = Pick<
       account: Address;
       chainId: number;
     }) => Promise<void>;
+    /**
+     * Whether this transaction was mined and reverted. False while it is pending or unknown, and
+     * when the read fails: only a revert proves it made nothing.
+     */
+    transactionReverted?: (transactionHash: Hex) => Promise<boolean>;
     /**
      * Whether this transaction's receipt holds the module's WorkLinked event for
      * this link, made by this caller's operation key. The event carries the key,
@@ -68,6 +83,43 @@ export type CommitmentChainReads = Pick<
   };
 
 const sameHex = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
+
+/** `ICommitmentPoolingModule.CycleState` by ordinal, in the app's words for a cycle's state. */
+const CYCLE_STATE_BY_ORDINAL = [
+  "UNKNOWN",
+  "SEEDED",
+  "OPEN",
+  "RECONCILED",
+  "COMPOSTED",
+  "CANCELLED",
+] as const;
+
+/** The one settlement read a queued reward needs, so the queue doesn't load the module's ABI. */
+const SETTLEMENT_ACCOUNT_ABI = [
+  {
+    type: "function",
+    name: "settlementAccountOf",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [
+      {
+        type: "tuple",
+        components: [
+          { name: "chainId", type: "uint64" },
+          { name: "account", type: "address" },
+          { name: "active", type: "bool" },
+          { name: "recoveryOwners", type: "address[3]" },
+          { name: "rolesModifier", type: "address" },
+          { name: "roleKey", type: "bytes32" },
+          { name: "allowanceKey", type: "bytes32" },
+          { name: "permissionsConfigHash", type: "bytes32" },
+          { name: "recoveryConfigHash", type: "bytes32" },
+          { name: "recoveryThreshold", type: "uint8" },
+        ],
+      },
+    ],
+  },
+] as const;
 
 export interface CommitmentChainReadOptions {
   chainId: number;
@@ -100,6 +152,18 @@ export function createCommitmentChainReads({
   const wagmiConfig = config ?? getWagmiConfig();
 
   return {
+    assertClaimRewardAgreed: async (commitmentId, claimant) => {
+      // Claims reach this reader at execution time; keep it out of the queue's startup graph.
+      const { assertEarnedRewardAgreed } = await import("../commitment-pooling/earned-agreement");
+      await assertEarnedRewardAgreed(
+        { chainId, core: moduleAddress, commitmentId, claimant },
+        (request) =>
+          readContract(wagmiConfig, { ...request, chainId } as Parameters<
+            typeof wagmiReadContract
+          >[1]),
+        "broadcast"
+      );
+    },
     ...createSendChainReads({
       chainId,
       getBlock,
@@ -156,6 +220,26 @@ export function createCommitmentChainReads({
         args: [commitmentId],
         chainId,
       })) as { creationPayloadHash: Hex; poolId: bigint; creator: Address },
+    readActionWindow: async (actionUID) => {
+      const action = (await readContract(wagmiConfig, {
+        address: getNetworkContracts(chainId).actionRegistry,
+        abi: ActionRegistryABI,
+        functionName: "getAction",
+        args: [actionUID],
+        chainId,
+      })) as { startTime: bigint; endTime: bigint };
+      return { startTime: action.startTime, endTime: action.endTime };
+    },
+    readCycleWindow: async (cycleId) => {
+      const cycle = (await readContract(wagmiConfig, {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getCycle",
+        args: [cycleId],
+        chainId,
+      })) as { state: number; endTime: bigint };
+      return { state: CYCLE_STATE_BY_ORDINAL[cycle.state] ?? "UNKNOWN", endTime: cycle.endTime };
+    },
     readEvidenceAttached: async (commitmentId, cid) =>
       (await readContract(wagmiConfig, {
         address: moduleAddress,
@@ -182,6 +266,24 @@ export function createCommitmentChainReads({
       })) as { state: number; contributorsFrozen: boolean };
       return { state: value.state, contributorsFrozen: value.contributorsFrozen };
     },
+    readSettlementAccountActive: async (garden) => {
+      try {
+        const account = await readContract(wagmiConfig, {
+          address: getNetworkContracts(chainId).settlementModule,
+          abi: SETTLEMENT_ACCOUNT_ABI,
+          functionName: "settlementAccountOf",
+          args: [garden],
+          chainId,
+        });
+        return account.active === true;
+      } catch (error) {
+        logger.warn("Settlement account read failed closed", {
+          chainId,
+          errorType: error instanceof Error ? error.name : "UnknownError",
+        });
+        return null;
+      }
+    },
     simulateSend: async (call) => {
       await simulateContract(wagmiConfig, {
         address: call.address,
@@ -191,6 +293,17 @@ export function createCommitmentChainReads({
         account: call.account,
         chainId: call.chainId,
       } as Parameters<typeof wagmiSimulateContract>[1]);
+    },
+    transactionReverted: async (transactionHash) => {
+      try {
+        const receipt = await getTransactionReceipt(wagmiConfig, {
+          hash: transactionHash,
+          chainId,
+        });
+        return receipt.status === "reverted";
+      } catch {
+        return false;
+      }
     },
     transactionMadeWorkLink: async (transactionHash, link) => {
       const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });

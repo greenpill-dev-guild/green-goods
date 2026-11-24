@@ -9,6 +9,7 @@ import {
   selectSettlementEligibility,
   selectSettlementPayoutKind,
   selectSettlementWorkflow,
+  settlementProgressKey,
 } from "../modules/commitment-pooling/settlement-workflow";
 import type { Address } from "../types/domain";
 import { availableCapability, commitmentFixture } from "./test-utils/commitment-pooling-fixtures";
@@ -101,6 +102,8 @@ function input(overrides: Partial<SettlementWorkflowInput> = {}): SettlementWork
     isOnline: true,
     chainRead: "ready",
     isActing: false,
+    proposalPending: false,
+    transferBlock: () => null,
     now: 1_756_000_000,
     ...overrides,
   };
@@ -456,6 +459,107 @@ describe("authority and connection gates", () => {
     );
     expect(paused.blockers).toEqual(["source-paused"]);
     expect(paused.disbursements[0]?.actions.dispatch).toBe(false);
+  });
+
+  it("offers nothing while a Safe proposal is out, so it can't be proposed twice", () => {
+    const creating = selectSettlementWorkflow(input({ proposalPending: true }));
+    expect(creating.nextAction).toBeNull();
+    expect(creating.blockers).toEqual(["proposal-pending"]);
+
+    const prepared = plan({
+      finalized: true,
+      status: "PENDING",
+      beneficiaryDisbursementId: 40n,
+      preparedPayoutCount: 1,
+    });
+    const queued = selectSettlementWorkflow(
+      input({ plan: prepared, disbursements: [disbursement()], proposalPending: true })
+    );
+    expect(queued.nextAction).toBeNull();
+    expect(queued.disbursements[0]?.actions).toEqual({
+      dispatch: false,
+      retry: false,
+      requeue: false,
+      cancel: false,
+    });
+  });
+
+  it("won't spend a CCIP fee on a dispatch the paying Safe can't be shown to send", () => {
+    const prepared = plan({
+      finalized: true,
+      status: "PENDING",
+      beneficiaryDisbursementId: 40n,
+      preparedPayoutCount: 1,
+    });
+    const unread = selectSettlementWorkflow(
+      input({
+        plan: prepared,
+        disbursements: [disbursement()],
+        transferBlock: () => "limits_unread",
+      })
+    );
+    expect(unread.blockers).toEqual(["funding-unread"]);
+    expect(unread.nextAction).toBeNull();
+    expect(unread.disbursements[0]?.actions).toMatchObject({ dispatch: false, cancel: true });
+
+    const over = selectSettlementWorkflow(
+      input({ plan: prepared, disbursements: [disbursement()], transferBlock: () => "balance" })
+    );
+    expect(over.blockers).toEqual(["funding-over-limit"]);
+
+    // Celo would refuse it whatever the Safe's limits say, so the step names that, not a limit.
+    const paused = selectSettlementWorkflow(
+      input({
+        plan: prepared,
+        disbursements: [disbursement()],
+        transferBlock: () => "executor_paused",
+      })
+    );
+    expect(paused.blockers).toEqual(["executor_paused"]);
+    expect(paused.disbursements[0]?.actions.dispatch).toBe(false);
+
+    // A resend spends the fee too, and says why it is held to a reader who could send it.
+    const dispatchedInput = input({
+      plan: prepared,
+      disbursements: [disbursement({ state: "DISPATCHED", dispatchedAt: 1_755_999_000 })],
+      transferBlock: () => "fee_policy_breach",
+    });
+    const dispatched = selectSettlementWorkflow(dispatchedInput);
+    expect(dispatched.disbursements[0]).toMatchObject({
+      actions: { retry: false },
+      retryBlocker: "fee_policy_breach",
+    });
+    const watching = selectSettlementWorkflow({
+      ...dispatchedInput,
+      authority: { ...dispatchedInput.authority, canDispatchOrRetry: false },
+    });
+    expect(watching.disbursements[0]?.retryBlocker).toBeNull();
+
+    // A new attempt on a failed one moves nothing until it's dispatched.
+    const failed = selectSettlementWorkflow(
+      input({
+        plan: prepared,
+        disbursements: [disbursement({ state: "FAILED" })],
+        transferBlock: () => "limits_unread",
+      })
+    );
+    expect(failed.blockers).toEqual([]);
+    expect(failed.disbursements[0]).toMatchObject({
+      actions: { requeue: true, cancel: true },
+      retryBlocker: null,
+    });
+  });
+
+  it("keys a read on what a step changes, not on when it was read", () => {
+    const read = { payoutPlanId: null, plan: null, rows: [], disbursements: [] };
+    expect(settlementProgressKey(read)).toBe(settlementProgressKey({ ...read }));
+    expect(settlementProgressKey({ ...read, payoutPlanId: 7n, plan: plan() })).not.toBe(
+      settlementProgressKey(read)
+    );
+    const queued = { ...read, disbursements: [disbursement()] };
+    expect(
+      settlementProgressKey({ ...read, disbursements: [disbursement({ state: "DISPATCHED" })] })
+    ).not.toBe(settlementProgressKey(queued));
   });
 
   it("names a disconnected wallet, an offline device, an in-flight act and an unread chain", () => {

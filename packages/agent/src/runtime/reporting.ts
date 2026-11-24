@@ -16,6 +16,7 @@ import { type ControlName, ensureControls, INITIAL_CONTROLS } from "../services/
 import { inTransaction, openReportingDatabase } from "../services/reporting/database";
 import { type DelegatedSender, executeDelegated } from "../services/reporting/delegated";
 import { watchOwnerAttempt } from "../services/reporting/owner-attempt-watch";
+import { watchSigningLinkJob } from "../services/reporting/signing-links";
 import { type GrantDeps, reconcileGrant } from "../services/reporting/grants";
 import type { ReportInterpreter } from "../services/reporting/interpretation";
 import type { JobKind } from "../services/reporting/jobs";
@@ -98,6 +99,9 @@ export interface ReportingRuntime {
   messaging: MessagingRouteDeps;
   tickOnce(): Promise<TickSummary>;
   start(): void;
+  /** Stops new work at once, leaving the database open; shutdown calls it before anything else. */
+  quiesce(): void;
+  /** Quiesces, waits for the unit in hand, then closes the database. */
   stop(): Promise<void>;
 }
 
@@ -155,6 +159,7 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
         job
       ),
     watch_owner_attempt: async (job) => watchOwnerAttempt(core, job),
+    watch_signing_link: async (job) => watchSigningLinkJob(core, job),
     reconcile_operation: (job) =>
       reconcileOperation({ core, chain: options.chain, scanWindowBlocks: 50_000n }, job),
     review_list: (job) => listPendingReviews(reviewDeps, job),
@@ -194,6 +199,8 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
     retention_sweep: (job) => sweepRetention({ core, media }, job),
     ...options.jobs?.(core),
   };
+  // Aborted by `stop()`: the pass in flight finishes the unit in hand and claims nothing more.
+  const stopping = new AbortController();
   const workerDeps = {
     core,
     catalog: options.catalog,
@@ -202,10 +209,18 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
     transport: options.transport,
     jobs,
     workerId: options.workerId ?? `agent-${process.pid}`,
+    stopping: stopping.signal,
   };
 
   let timer: ReturnType<typeof setInterval> | null = null;
   let running: Promise<TickSummary> | null = null;
+  // Synchronous, so shutdown can call it before awaiting anything: no new pass starts, and the
+  // pass in flight claims nothing after its current unit. The database stays open for routes.
+  const quiesce = () => {
+    if (timer) clearInterval(timer);
+    timer = null;
+    stopping.abort();
+  };
   const tickOnce = async (): Promise<TickSummary> => {
     // One pass at a time: an overlapping interval waits for the pass already in flight.
     if (running) return running;
@@ -245,9 +260,9 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
       }, config.workerIntervalMs);
       log.info({ intervalMs: config.workerIntervalMs }, "Reporting worker started");
     },
+    quiesce,
     async stop() {
-      if (timer) clearInterval(timer);
-      timer = null;
+      quiesce();
       await running?.catch(() => undefined);
       core.db.close();
     },

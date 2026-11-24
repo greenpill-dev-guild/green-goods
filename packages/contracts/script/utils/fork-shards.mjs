@@ -18,6 +18,8 @@ const HATS_MODULE_REHEARSAL_ADDRESS_INPUTS = [
 ];
 // Arbitrum state the CookieJarModule upgrade was rehearsed against: 17 DAI jars, all capped at 0.01.
 const COOKIE_JAR_MODULE_REHEARSAL_BLOCK = "506680000";
+// Arbitrum state the YieldResolver upgrade was rehearsed against: 34 jars, no split yet.
+const YIELD_RESOLVER_REHEARSAL_BLOCK = "519945000";
 const DEFAULTS = {
   ARBITRUM_RPC_URL: "https://arbitrum-one.public.blastapi.io",
   ARBITRUM_FORK_BLOCK_NUMBER: "466388412",
@@ -25,17 +27,34 @@ const DEFAULTS = {
   SEPOLIA_FORK_BLOCK_NUMBER: "10917257",
   ETHEREUM_RPC_URL: "https://ethereum.drpc.org",
   ETHEREUM_FORK_BLOCK_NUMBER: "25170563",
-  // Celo's public node. Only the settlement-lane shard forks Celo, and it is read-only.
+  // Celo's public node. The settlement-lane shard and the Celo release proofs fork it read-only.
   CELO_RPC_URL: "https://forno.celo.org",
   CELO_FORK_BLOCK_NUMBER: "74700818",
+  // Gnosis' public node serves the voucher suites' pinned historical state.
+  GNOSIS_RPC_URL: "https://rpc.gnosischain.com",
 };
+// Forge's default test gas limit, 1 << 30 in v1.7.1.
+const VOUCHER_GAS_LIMIT = String(2 ** 30);
+// Production-profile artifacts the Gnosis voucher journeys deploy through ERC1967 proxies.
+const VOUCHER_PRODUCTION_TARGETS = [
+  "lib/tokenbound/lib/openzeppelin-contracts/contracts/governance/TimelockController.sol",
+  "lib/tokenbound/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol",
+  "src/modules/CommitmentPooling.sol",
+  "src/modules/GnosisVoucherAdapter.sol",
+  "src/modules/GnosisVoucherEscrow.sol",
+  "src/modules/Hats.sol",
+  "src/modules/VoucherEntitlementModule.sol",
+  "src/modules/VoucherRedemptionModule.sol",
+  "src/registries/Action.sol",
+  "src/registries/Commitment.sol",
+];
 
 export const SHARDS = {
   arbitrum: {
     chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
-      "test/fork/{ArbitrumActionRegistry,ArbitrumAssessmentReleaseSequence,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+      "test/fork/{ArbitrumActionRegistry,ArbitrumAssessmentReleaseSequence,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRewardPayer,ArbitrumRewardSafe,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
     testEnv: {
       HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "488774048",
       HATS_MODULE_UPGRADE_GARDEN_COUNT: "18",
@@ -63,12 +82,27 @@ export const SHARDS = {
     requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
     requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
   },
+  "conviction-sync-activation-arbitrum": {
+    chain: "ARBITRUM",
+    description:
+      "PRD-1377 conviction sync activation rehearsal; passes only before the Hats upgrade and pool authorizations",
+    glob: "test/fork/ArbitrumConvictionSyncActivation.t.sol",
+    requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
+    requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
+  },
   "cookie-jar-module-upgrade-arbitrum": {
     chain: "ARBITRUM",
     description:
       "Current-state Arbitrum rehearsal of the live CookieJarModule UUPS upgrade and its per-asset claim limits",
     glob: "test/fork/ArbitrumCookieJarModuleUpgrade.t.sol",
     testEnv: { COOKIE_JAR_MODULE_UPGRADE_FORK_BLOCK_NUMBER: COOKIE_JAR_MODULE_REHEARSAL_BLOCK },
+  },
+  "yield-resolver-upgrade-arbitrum": {
+    chain: "ARBITRUM",
+    description:
+      "Current-state Arbitrum rehearsal of the live YieldResolver UUPS upgrade and its Cookie Jar deposits",
+    glob: "test/fork/ArbitrumYieldResolverUpgrade.t.sol",
+    testEnv: { YIELD_RESOLVER_UPGRADE_FORK_BLOCK_NUMBER: YIELD_RESOLVER_REHEARSAL_BLOCK },
   },
   "hats-module-upgrade-sepolia": {
     chain: "SEPOLIA",
@@ -103,8 +137,11 @@ export const SHARDS = {
     chain: "ARBITRUM",
     description: "Arbitrum Octant, Aave strategy, vault, yield splitter, CookieJar, and GreenWill readiness coverage",
     glob:
-      "test/fork/{ArbitrumAaveStrategy,ArbitrumCookieJar,ArbitrumCookieJarModuleUpgrade,ArbitrumGreenWillSupport,ArbitrumOctantVault,ArbitrumVaultYieldE2E,ArbitrumYieldSplitterCore,e2e/ArbitrumExtendedE2E}.t.sol",
-    testEnv: { COOKIE_JAR_MODULE_UPGRADE_FORK_BLOCK_NUMBER: COOKIE_JAR_MODULE_REHEARSAL_BLOCK },
+      "test/fork/{ArbitrumAaveStrategy,ArbitrumCookieJar,ArbitrumCookieJarModuleUpgrade,ArbitrumGreenWillSupport,ArbitrumOctantVault,ArbitrumVaultYieldE2E,ArbitrumYieldResolverUpgrade,ArbitrumYieldSplitterCore,e2e/ArbitrumExtendedE2E}.t.sol",
+    testEnv: {
+      COOKIE_JAR_MODULE_UPGRADE_FORK_BLOCK_NUMBER: COOKIE_JAR_MODULE_REHEARSAL_BLOCK,
+      YIELD_RESOLVER_UPGRADE_FORK_BLOCK_NUMBER: YIELD_RESOLVER_REHEARSAL_BLOCK,
+    },
     extraRuns: [
       {
         profile: "e2e",
@@ -121,13 +158,34 @@ export const SHARDS = {
     runner: "run-garden-account-release.ts",
   },
   "garden-roles": {
-    description: "Pinned Celo Roles permission proof with reviewed Safe bindings and isolated transactions",
-    glob: "test/fork/CeloGardenRolesPermission.t.sol",
+    description:
+      "Pinned Celo Roles permission and personal service deposit proofs with reviewed Safe bindings and isolated transactions",
+    glob: "test/fork/{CeloGardenRolesPermission,CeloPersonalServiceDeposit}.t.sol",
     runner: "run-garden-roles-proof.ts",
+  },
+  "gnosis-vouchers": {
+    description:
+      "Gnosis voucher pilot, purchase, redemption, reserve and steward Safe suites against published CLC, Hats, HSG and Safe bytecode",
+    // Each suite selects its own pinned Gnosis (and Arbitrum) forks, so no process fork is set.
+    glob: "test/fork/{GnosisStewardSafe,GnosisVoucherPilot,GnosisVoucherPurchase,GnosisVoucherRedemption,GnosisVoucherReserve}.t.sol",
+    productionTargets: VOUCHER_PRODUCTION_TARGETS,
+    // The journey and member-project setUps load about twenty production artifacts through
+    // cheatcodes in one call frame. Memory expansion takes them past the fork profile's 120M
+    // harness ceiling (MemoryOOG), so this shard runs at Forge's default ceiling, the one these
+    // suites were proven under. The ceiling bounds the test harness, not production gas.
+    testEnv: { FOUNDRY_GAS_LIMIT: VOUCHER_GAS_LIMIT },
   },
 };
 
-export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant", "garden-account-release", "garden-roles"];
+export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant", "garden-account-release", "garden-roles", "gnosis-vouchers"];
+
+// Fork files deliberately outside every CI shard. Each needs a reason; anything else must join one.
+export const MANUAL_FORK_FILES = {
+  "test/fork/ArbitrumAuditHardening.t.sol": "Audit-hardening release proof requires the pinned Arbitrum block and private exact predecessor, candidate Safe packet and garden inventory files; run explicitly before packet approval, including the cold six-proposal role-revocation case.",
+  "test/fork/CeloHats.t.sol": "Legacy unpinned probe of Celo Hats tree 31; it reads the latest block and skips without CELO_RPC_URL.",
+  "test/fork/ArbitrumConvictionSyncActivation.t.sol": "PRD-1377 conviction sync rehearsal against current Arbitrum state; it needs a fresh reviewed block, the live garden count and the live Hats implementation. It asserts the pre-activation state, so it passes only before the Hats upgrade and pool authorizations: run the conviction-sync-activation-arbitrum shard by hand before them.",
+  "test/fork/ArbitrumHatsProtocolDelegation.t.sol": "PRD-615 release proof requires a reviewed current-state block and private exact Safe packet/prerequisite files; run explicitly before packet approval, with the seven-call rehearsal recorded in private release evidence.",
+};
 
 function loadEnv() {
   loadDotenv({ path: path.resolve(process.cwd(), "../../.env"), override: false, quiet: true });
@@ -172,8 +230,6 @@ function runForge(args, { profile = "fork", capture = false, envOverrides = {} }
 
 function commonArgs() {
   const verbosity = process.env.FORK_TEST_VERBOSITY || DEFAULT_VERBOSITY;
-  const forkRetries = process.env.FORK_TEST_RETRIES || DEFAULT_FORK_RETRIES;
-  const forkRetryBackoff = process.env.FORK_TEST_RETRY_BACKOFF;
   const args = [
     "--no-match-test",
     NO_MATCH_TEST,
@@ -181,10 +237,6 @@ function commonArgs() {
     process.env.FORK_TEST_THREADS || DEFAULT_THREADS,
     "--suppress-successful-traces",
   ];
-  if (forkRetries && forkRetries !== "0") {
-    args.push("--fork-retries", forkRetries);
-    if (forkRetryBackoff) args.push("--fork-retry-backoff", forkRetryBackoff);
-  }
   if (verbosity) args.push(verbosity);
   return args;
 }
@@ -199,6 +251,15 @@ function forkArgsForChain(chain, profile = "fork") {
   const blockNumber = env[`${chain}_FORK_BLOCK_NUMBER`] || env[`${chain}_BLOCK_NUMBER`];
   const args = ["--fork-url", rpc];
   if (blockNumber) args.push("--fork-block-number", blockNumber);
+  // Forge accepts the retry flags only beside --fork-url, so they belong to the process fork. A
+  // shard without one (gnosis-vouchers) opens its pinned forks in Solidity, and those forks keep
+  // Forge's default retry policy (8 retries from an 800 ms backoff in v1.7.1).
+  const forkRetries = process.env.FORK_TEST_RETRIES || DEFAULT_FORK_RETRIES;
+  if (forkRetries !== "0") {
+    args.push("--fork-retries", forkRetries);
+    const forkRetryBackoff = process.env.FORK_TEST_RETRY_BACKOFF;
+    if (forkRetryBackoff) args.push("--fork-retry-backoff", forkRetryBackoff);
+  }
   return args;
 }
 
@@ -240,28 +301,49 @@ function runShard(name) {
     if (result.status !== 0) process.exit(result.status ?? 1);
     return;
   }
-  const forkArgs = forkArgsForChain(shard.chain);
-  if (forkArgs.length) {
+  if (shard.productionTargets) {
+    console.log(`[fork-shard] ${name}: building production-profile artifacts the suites deploy`);
+    const build = spawnSync("bun", ["script/utils/build-target.ts", ...shard.productionTargets], {
+      env: { ...forgeEnv(), FOUNDRY_PROFILE: "production" },
+      stdio: "inherit",
+    });
+    if (build.error) throw build.error;
+    if (build.status !== 0) process.exit(build.status ?? 1);
+  }
+  const [mainRun, ...extraRuns] = shardForgeRuns(name);
+  if (mainRun.args.includes("--fork-url")) {
     console.log(`[fork-shard] ${name}: using pinned ${shard.chain.toLowerCase()} process fork`);
   }
-  runForge(["test", "--match-path", shard.glob, ...forkArgs, ...commonArgs()], {
-    envOverrides: shard.testEnv,
-  });
+  runForge(mainRun.args, mainRun.options);
 
-  for (const extraRun of shard.extraRuns || []) {
+  for (const extraRun of extraRuns) {
     console.log(`[fork-shard] ${name}: ${extraRun.description}`);
-    const extraForkArgs = forkArgsForChain(extraRun.chain || shard.chain, extraRun.profile || "fork");
-    const args = [
+    runForge(extraRun.args, extraRun.options);
+  }
+}
+
+/** The `forge test` runs a generic shard makes. Runner shards assemble their own commands. */
+export function shardForgeRuns(name) {
+  const shard = SHARDS[name];
+  if (shard.runner) return [];
+  const mainRun = {
+    args: ["test", "--match-path", shard.glob, ...forkArgsForChain(shard.chain), ...commonArgs()],
+    options: { envOverrides: shard.testEnv },
+  };
+  const extraRuns = (shard.extraRuns || []).map((extraRun) => ({
+    description: extraRun.description,
+    args: [
       "test",
       "--match-path",
       extraRun.glob,
       "--match-test",
       extraRun.matchTest,
-      ...extraForkArgs,
+      ...forkArgsForChain(extraRun.chain || shard.chain, extraRun.profile || "fork"),
       ...commonArgs(),
-    ];
-    runForge(args, { profile: extraRun.profile });
-  }
+    ],
+    options: { profile: extraRun.profile },
+  }));
+  return [mainRun, ...extraRuns];
 }
 
 function listShard(name) {

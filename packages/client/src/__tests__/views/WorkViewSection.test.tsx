@@ -17,8 +17,19 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
 }));
 vi.mock("react-intl", () => ({
   useIntl: () => ({
-    formatMessage: ({ defaultMessage }: { defaultMessage?: string }) => defaultMessage ?? "",
+    formatMessage: (
+      { defaultMessage }: { defaultMessage?: string },
+      values: Record<string, string> = {}
+    ) =>
+      (defaultMessage ?? "").replace(
+        /\{(\w+)\}/g,
+        (_, name: string) => values[name] ?? `{${name}}`
+      ),
+    formatDate: () => "3 Nov 2026",
   }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useAddressDisplayName", () => ({
+  useAddressDisplayName: () => ({ preferredName: "Ana", display: "Ana" }),
 }));
 
 vi.mock("@green-goods/shared/utils/form/normalizers", async (importOriginal) => {
@@ -101,7 +112,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
         effectiveStatus: "sync_failed" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Upload didn't work");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Your work didn't send");
   });
 
   it("shows 'Saved on your device' title for syncing status", () => {
@@ -178,15 +189,20 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     );
   });
 
-  it("shows steward-specific title for approved status", () => {
+  it.each([
+    "pending",
+    "approved",
+  ] as const)("names the work, who sent it and when for a steward (%s)", (status) => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
         viewingMode: "steward",
-        effectiveStatus: "approved" as WorkDisplayStatus,
+        effectiveStatus: status as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Work approved");
+    // The work's own name, where the page once said "Evaluate Work" for every submission.
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Test Action");
+    expect(screen.getByTestId("work-info")).toHaveTextContent("Ana sent this on 3 Nov 2026.");
   });
 
   it("shows the review's feedback on a decided work", () => {
@@ -215,6 +231,33 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.queryByText(/Review feedback/)).not.toBeInTheDocument();
+  });
+
+  // PRD-1505: a queued work's page said "Details: Not available", though its details were saved
+  // with it. Its metadata is the queue's record (`jobToWork`), which names no schema version.
+  it("shows the details a queued work saved on the device", () => {
+    const queued = JSON.stringify({
+      clientWorkId: "client-1",
+      submissionState: "ready",
+      details: { plantCount: 12, species: ["Oak", "Ash"], _location: { lat: 1, lng: 2 } },
+      timeSpentMinutes: 45,
+      tags: ["hedge"],
+    });
+    render(
+      createElement(WorkViewSection, {
+        ...baseProps,
+        work: { ...mockWork, id: "0xoffline_1", metadata: queued } as any,
+        workMetadata: JSON.parse(queued),
+        viewingMode: "gardener",
+        effectiveStatus: "offline" as WorkDisplayStatus,
+      })
+    );
+    expect(screen.getByText("Time spent: 45m")).toBeInTheDocument();
+    expect(screen.getByText("Plant Count: 12")).toBeInTheDocument();
+    expect(screen.getByText("Species: Oak, Ash")).toBeInTheDocument();
+    expect(screen.getByText("Tags: hedge")).toBeInTheDocument();
+    expect(screen.queryByText(/Not available/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/location/i)).not.toBeInTheDocument();
   });
 
   it("shows gardener-specific info for pending status", () => {

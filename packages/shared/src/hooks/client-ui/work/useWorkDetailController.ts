@@ -2,12 +2,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { createQueueToasts } from "../../../components/Toast/presets/queue";
 import { toastService } from "../../../components/Toast/toast.service";
+import { logger } from "../../../modules/app/logger";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
+import type { JobSendPhase } from "../../../modules/job-queue/ports";
+import { recordedSendAwaiting } from "../../../modules/job-queue/queue-policy";
+import { takeUpOf } from "../../../modules/job-queue/take-up-hold";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { readWorkByUID } from "../../../modules/work/work-list";
-import { resolveGardenWorkRows } from "../../../modules/work/local-status-overlay";
+import {
+  type OverlayWork,
+  resolveGardenWorkRows,
+} from "../../../modules/work/local-status-overlay";
 import { connectivityStore } from "../../../stores/connectivity";
 import { useDashboardNavigation } from "../useDashboardNavigation";
 import { isUserAddress } from "../../../utils/blockchain/address";
@@ -27,10 +36,31 @@ import { useGardenPermissions } from "../../garden/useGardenPermissions";
 import { useWorkApprovalActions } from "../../work/useWorkApprovalActions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
+import { useWorkVisibility } from "../../work/useWorkVisibility";
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
-import type { WorkDisplayStatus } from "../../../types/domain";
+import { isCancelledTxError } from "../../../utils/errors/tx-error-classifier";
+import { WALLET_RECONNECT_REQUIRED } from "../../../utils/errors/unsent-failures";
+import type { Work, WorkDisplayStatus } from "../../../types/domain";
 
 export type WorkViewingMode = "steward" | "gardener" | "viewer";
+
+/**
+ * The work a notification row carried in the route's state, when it is this route's work in
+ * this route's garden. History state outlives the screen that wrote it, so it is read as
+ * untrusted input.
+ */
+function carriedRouteWork(
+  candidate: unknown,
+  workId: string | undefined,
+  gardenId: string | undefined
+): Work | undefined {
+  if (!candidate || typeof candidate !== "object" || !workId || !gardenId) return undefined;
+  const { id, gardenAddress, status, media } = candidate as Partial<Work>;
+  if (typeof id !== "string" || typeof gardenAddress !== "string") return undefined;
+  if (typeof status !== "string" || !Array.isArray(media)) return undefined;
+  if (id.toLowerCase() !== workId.toLowerCase()) return undefined;
+  return gardenAddress.toLowerCase() === gardenId.toLowerCase() ? (candidate as Work) : undefined;
+}
 
 export function useWorkDetailController() {
   const intl = useIntl();
@@ -43,6 +73,7 @@ export function useWorkDetailController() {
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
   const chainId = DEFAULT_CHAIN_ID;
+  const visibility = useWorkVisibility(chainId);
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
   const garden = gardens.find((candidate) => candidate.id === gardenId);
@@ -55,20 +86,43 @@ export function useWorkDetailController() {
     offline: true,
   });
   const listedWork = works.find((candidate) => candidate.id === (workId || ""));
-  const routeStatus = (location.state as { workStatus?: WorkDisplayStatus } | null | undefined)
-    ?.workStatus;
+  const routeState = location.state as
+    | { workStatus?: WorkDisplayStatus; work?: unknown }
+    | null
+    | undefined;
+  const routeStatus = routeState?.workStatus;
+  // A notification row can open a work outside the garden's loaded page, and offline the direct
+  // read below is paused, so the record the row carried opens it when nothing fresher has.
+  const routeWork = carriedRouteWork(routeState?.work, workId, gardenId);
   const workByUID = useQuery({
     queryKey: worksKeys.byUID(workId ?? "", chainId),
-    queryFn: () => readWorkByUID(workId!, chainId),
-    enabled: !listedWork && !!workId && isValidAttestationId(workId) && isOnline,
+    queryFn: () => readWorkByUID(workId!, chainId, visibility.snapshot),
+    enabled:
+      visibility.isReady && !listedWork && !!workId && isValidAttestationId(workId) && isOnline,
+  });
+  // A direct read of older work may be stale too. Use the same saved decision
+  // as the garden list while the indexer catches up.
+  const decisionOverlayKey = worksKeys.merged(gardenId || "", chainId);
+  const { data: decisionOverlay } = useQuery<OverlayWork[], Error, OverlayWork | undefined>({
+    queryKey: decisionOverlayKey,
+    queryFn: () => queryClient.getQueryData<OverlayWork[]>(decisionOverlayKey) ?? [],
+    enabled: false,
+    select: (rows) => rows.find((row) => row.id === workId),
   });
   const fetchedWork = useMemo(() => {
     const row = workByUID.data;
     if (!row || row.gardenAddress.toLowerCase() !== gardenId.toLowerCase()) return undefined;
     const saved = routeStatus ? [{ ...row, status: routeStatus }] : undefined;
-    return resolveGardenWorkRows({ remote: [row], saved, overlay: undefined }).rows[0];
-  }, [workByUID.data, gardenId, routeStatus]);
-  const work = listedWork ?? fetchedWork;
+    return resolveGardenWorkRows({
+      remote: [row],
+      saved,
+      overlay: decisionOverlay ? [decisionOverlay] : undefined,
+    }).rows[0];
+  }, [workByUID.data, gardenId, routeStatus, decisionOverlay]);
+  // Online, the direct read decides: a carried row may be stale (another steward decided the work),
+  // so it never stands in, and never offers a decision, before that read answers.
+  const candidate = listedWork ?? fetchedWork ?? (isOnline ? undefined : routeWork);
+  const work = candidate && visibility.isVisible(candidate.id) ? candidate : undefined;
   const metadata = useWorkMetadata(work?.metadata);
   const matchedAction = useMemo(() => {
     if (!work) return null;
@@ -78,6 +132,10 @@ export function useWorkDetailController() {
   const transactionSender = useTransactionSender();
   const permissions = useGardenPermissions();
   const [isRetrying, setIsRetrying] = useState(false);
+  // The work's own send reports its stage on its row, through the queue (PRD-1552). A promise
+  // taken up in the same tap is another job that Upload now sends first, so its stage is followed
+  // here, for the button to say while the work waits on it.
+  const [takeUpStage, setTakeUpStage] = useState<JobSendPhase["stage"] | null>(null);
 
   const viewingMode = useMemo<WorkViewingMode>(() => {
     if (!garden || !work) return "viewer";
@@ -121,6 +179,54 @@ export function useWorkDetailController() {
       context: "work upload",
     });
 
+  /**
+   * One toast answers an Upload now that did not send, in the app's words, never the error's
+   * (DL-177). A send the queue gave up on already raised the queue's own failure toast; this one
+   * takes its place under the same id, so the page shows one toast that points at the page's own
+   * Upload now. A send the queue held without failing is not called a failure: one whose answer
+   * was lost, or that is already being sent (by this tab's sync or another tab), is being
+   * checked, and any other is not sent yet and still saved.
+   */
+  const reportUploadNowOutcome = (
+    { error, skipped }: { error?: string; skipped?: boolean },
+    { safeSigners = false }: { safeSigners?: boolean } = {}
+  ) => {
+    // A Safe only proposed it: it is not being checked, it waits for the Safe's signers (PRD-1564).
+    if (skipped && safeSigners && error === "awaiting-confirmation") {
+      const { label, detail } = SEND_STAGE_WORDS["safe-signers"];
+      toastService.info({
+        id: "work-upload",
+        title: intl.formatMessage(label),
+        message: intl.formatMessage(detail),
+        devMessage: error,
+        context: "work upload",
+      });
+      return;
+    }
+    if (skipped) {
+      const checking = error === "awaiting-confirmation" || error === "already-processing";
+      toastService.info({
+        id: "work-upload",
+        title: intl.formatMessage({
+          id: checking ? "app.home.work.checking.title" : "app.home.work.held.title",
+        }),
+        message: intl.formatMessage({
+          id: checking ? "app.home.work.checking.message" : "app.home.work.held.message",
+        }),
+        devMessage: error,
+        context: "work upload",
+      });
+      return;
+    }
+    toastService.error({
+      id: "work-upload",
+      title: intl.formatMessage({ id: "app.home.work.retryFailed", defaultMessage: "Didn't send" }),
+      message: intl.formatMessage({ id: "app.home.work.retryStillSaved" }),
+      devMessage: error,
+      context: "work upload",
+    });
+  };
+
   const retry = async () => {
     if (!transactionSender || !work) return;
     setIsRetrying(true);
@@ -133,30 +239,78 @@ export function useWorkDetailController() {
       // The queue refuses a work that reverted or used up its retries, so the
       // tap gives it its retries back first. Without this, Upload now on either
       // one answers with the refusal instead of sending.
-      const queued = await jobQueue.getJobs(user?.id ?? work.gardenerAddress, { synced: false });
+      const owner = user?.id ?? work.gardenerAddress;
+      const queued = await jobQueue.getJobs(owner, { synced: false });
       const job = queued.find((candidate) => candidate.id === work.id);
       if (job && ["failed", "reverted"].includes(queuedUploadStatus(job).state))
         await jobQueue.retryJob(work.id);
+      // Work for a promise taken up in the same tap goes after that take-up (decision 18), so
+      // Upload now sends the take-up first, on a fresh run of tries, and the work once it lands.
+      const takeUp = job ? takeUpOf(job, queued) : null;
+      if (takeUp) {
+        await jobQueue.retryJob(takeUp.id);
+        const taken = await jobQueue.processJob(takeUp.id, {
+          transactionSender,
+          explicit: true,
+          onPhase: (phase) => setTakeUpStage(phase.stage),
+        });
+        if (!taken.success) {
+          // A wallet that has not answered was already asked to reconnect by its own prompt.
+          if (
+            isCancelledTxError(taken.error) ||
+            taken.error === "send-cancelled" ||
+            taken.error === WALLET_RECONNECT_REQUIRED
+          )
+            return;
+          if (taken.error === "offline" || taken.error === "connection-unconfirmed") {
+            reportNotSent();
+            return;
+          }
+          // Still on its way: membership being read, or a send awaiting its receipt.
+          if (taken.skipped) {
+            toastService.info({
+              id: "take-up",
+              title: intl.formatMessage({ id: "app.home.work.takeUpQueued.title" }),
+              message: intl.formatMessage({ id: "app.home.work.takeUpQueued.message" }),
+              context: "work upload",
+            });
+            return;
+          }
+          // Refused. The queue raises its own take-up toast after it reads the work waiting on
+          // the take-up, which can land after this one; raising that same toast here means
+          // either order leaves one toast in the same words.
+          createQueueToasts(intl.formatMessage).takeUpFailed();
+          return;
+        }
+        // The take-up landed. The work's own send starts with its uploads, not a stage.
+        setTakeUpStage(null);
+      }
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
-      // Declining the prompt is not a failure; the work stays ready to send.
-      if (result.error === "send-cancelled") return;
+      // Declining the prompt is not a failure; the work stays ready to send. A wallet that has
+      // not answered was already asked to reconnect by its own prompt.
+      if (result.error === "send-cancelled" || result.error === WALLET_RECONNECT_REQUIRED) return;
       if (result.error === "offline" || result.error === "connection-unconfirmed") {
         reportNotSent();
         return;
       }
       if (!result.success) {
-        toastService.error({
-          title: intl.formatMessage({
-            id: "app.home.work.retryFailed",
-            defaultMessage: "Upload failed",
-          }),
-          message:
-            result.error ||
-            intl.formatMessage({
-              id: "app.home.work.retryFailedMessage",
-              defaultMessage: "Please try again.",
-            }),
-          context: "work upload",
+        // A send a Safe only proposed says so on its record, whichever try sent it (PRD-1564). A
+        // read that fails says checking: the send is on record, so it never reads as failed.
+        const held =
+          result.error === "awaiting-confirmation"
+            ? await jobQueue
+                .getJobs(owner, { synced: false })
+                .then((jobs) => jobs.find(({ id }) => id === work.id))
+                .catch((error: unknown) => {
+                  logger.warn("[WorkDetail] Could not read the held work's send record", {
+                    error,
+                    workId: work.id,
+                  });
+                  return undefined;
+                })
+            : undefined;
+        reportUploadNowOutcome(result, {
+          safeSigners: Boolean(held && recordedSendAwaiting(held) === "safe-signers"),
         });
         return;
       }
@@ -174,22 +328,11 @@ export function useWorkDetailController() {
         context: "work upload",
       });
     } catch (error) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.work.retryError",
-          defaultMessage: "Couldn't send your work",
-        }),
-        message:
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage({
-                id: "app.home.work.unknownError",
-                defaultMessage: "Something went wrong",
-              }),
-        context: "work upload",
-      });
+      logger.error("[WorkDetail] Upload now failed", { error, workId: work.id });
+      reportUploadNowOutcome({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsRetrying(false);
+      setTakeUpStage(null);
     }
   };
 
@@ -265,9 +408,13 @@ export function useWorkDetailController() {
     garden,
     gardenId,
     gardensLoading,
-    workLoading: !listedWork && (workByUID.isLoading || worksLoading || queuedLoading),
-    workLoadError: !listedWork && workByUID.isError,
-    retryWorkLoad: workByUID.refetch,
+    workLoading:
+      !work && (workByUID.isLoading || worksLoading || queuedLoading || visibility.isLoading),
+    workLoadError: !work && (workByUID.isError || (!visibility.isReady && !visibility.isLoading)),
+    retryWorkLoad: async () => {
+      await visibility.refetch();
+      return workByUID.refetch();
+    },
     isActionExpired: matchedAction ? matchedAction.endTime <= Date.now() : false,
     isOfflineWork,
     isOnline,
@@ -277,6 +424,7 @@ export function useWorkDetailController() {
     onChainWorkId,
     retry,
     retryMetadata: metadata.retryFetch,
+    takeUpStage,
     share,
     viewAttestation,
     viewingMode,

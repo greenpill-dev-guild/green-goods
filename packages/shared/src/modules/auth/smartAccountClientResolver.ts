@@ -47,14 +47,18 @@ export function assertSmartAccountClient(
   }
 }
 
-/** A credential never leaves this session; discarded capabilities fail even after their build finishes. */
-export function createSmartAccountClientResolver(input: {
-  credential: P256Credential;
+/**
+ * A credential never leaves this session; discarded capabilities fail even after their build
+ * finishes. The credential is the passkey for passkey sessions and the owner key's address for
+ * email sessions: whatever the session's builder needs to rebuild its account per chain.
+ */
+export function createSmartAccountClientResolver<TCredential = P256Credential>(input: {
+  credential: TCredential;
   primaryClient: SmartAccountClient;
   primaryChainId: number;
   expectedAddress: Address;
   buildSmartAccount: (
-    credential: P256Credential,
+    credential: TCredential,
     chainId: number
   ) => Promise<{ client: SmartAccountClient; address: Address }>;
 }): SmartAccountClientResolver {

@@ -1,9 +1,11 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { useFunderLeaderboard } from "@green-goods/shared/hooks/vault/useFunderLeaderboard";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 import { FunderRow } from "./FunderRow";
 
 const DEFAULT_VISIBLE = 3;
@@ -15,18 +17,14 @@ export function ImpactFunders() {
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
+      <AdminCard className="sm:p-5">
         <div className="h-5 w-40 rounded skeleton-shimmer" />
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 flex flex-col gap-(--gg-list-gap)">
           {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-14 rounded-lg skeleton-shimmer"
-              style={{ animationDelay: `${i * 0.08}s` }}
-            />
+            <ItemRowSkeleton key={i} lead="avatar" />
           ))}
         </div>
-      </section>
+      </AdminCard>
     );
   }
 
@@ -36,21 +34,20 @@ export function ImpactFunders() {
 
   const visibleFunders = expanded ? funders : funders.slice(0, DEFAULT_VISIBLE);
   const hasMore = funders.length > DEFAULT_VISIBLE;
-  const maxYield = funders[0]?.totalYieldGenerated ?? 0n;
 
   return (
-    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
+    <AdminCard className="sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-heading text-title-md font-semibold text-text-strong">
+          <h2 className="font-heading type-title-md font-semibold text-text-strong">
             {formatMessage({ id: "app.funders.impactFundersTitle" })}
           </h2>
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({ id: "app.funders.impactFundersSubtitle" })}
           </p>
         </div>
         {totalProtocolYield > 0n && (
-          <span className="shrink-0 rounded-full bg-success-lighter px-2.5 py-1 body-xs font-semibold text-success-dark">
+          <span className="shrink-0 rounded-full bg-success-lighter px-2.5 py-1 type-meta font-semibold text-success-dark">
             {formatMessage(
               { id: "app.funders.yieldGenerated" },
               { amount: formatTokenAmount(totalProtocolYield) }
@@ -59,29 +56,38 @@ export function ImpactFunders() {
         )}
       </div>
 
-      <div className="mt-3 space-y-2">
+      <ul className="mt-3 flex flex-col gap-(--gg-list-gap)">
         {visibleFunders.map((funder) => (
-          <FunderRow key={funder.address} funder={funder} maxYield={maxYield} />
+          <li key={funder.address}>
+            <FunderRow funder={funder} />
+          </li>
         ))}
-      </div>
+      </ul>
 
       {hasMore && (
-        <AdminButton
-          variant="outlined"
-          size="sm"
+        <Button
+          type="button"
+          emphasis="secondary"
+          size="compact"
           className="mt-3 w-full"
           onClick={() => setExpanded((prev) => !prev)}
-          leadingIcon={expanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
+          leadingIcon={
+            expanded ? (
+              <RiArrowUpSLine className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <RiArrowDownSLine className="h-4 w-4" aria-hidden="true" />
+            )
+          }
         >
           {expanded
             ? formatMessage({ id: "app.funders.collapse" })
             : formatMessage({ id: "app.funders.viewAll" }, { count: funders.length })}
-        </AdminButton>
+        </Button>
       )}
 
-      <p className="mt-3 body-xs text-text-sub">
+      <p className="mt-3 type-meta text-text-sub">
         {formatMessage({ id: "app.funders.contextExplainer" })}
       </p>
-    </section>
+    </AdminCard>
   );
 }

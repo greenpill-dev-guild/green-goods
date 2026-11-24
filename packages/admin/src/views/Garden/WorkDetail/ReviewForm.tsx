@@ -1,14 +1,15 @@
+import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { AudioRecorder } from "@green-goods/shared/components/Audio/AudioRecorder";
+import { Button } from "@green-goods/shared/components/Button";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import { useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
+import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
+import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useReviewBatch, useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import {
   Confidence,
   VerificationMethod,
@@ -19,14 +20,22 @@ import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
+import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
-import { formatEnsAddressName } from "@/components/EnsAddressText";
-import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
-import { ReviewSummary, type WorkApprovalFormData, workApprovalSchema } from "./helpers";
+import {
+  isBlockedNoticeState,
+  ReviewBlockedNotice,
+  ReviewDecisionSubject,
+  ReviewSummary,
+  reviewFormState,
+  uploadReviewNotes,
+  type WorkApprovalFormData,
+  workApprovalSchema,
+} from "./helpers";
+import { StagedReviewNotice } from "./StagedReviewNotice";
 
 const REJECT_REASON_SUGGESTION_IDS = [
   "app.work.detail.rejectDialog.suggestion.photos",
@@ -42,6 +51,8 @@ interface ReviewFormProps {
   canReview: boolean;
   canApproveOrReject: boolean;
   isReviewed: boolean;
+  /** Its decisions could not be read: Approve and Reject wait until its status is known. */
+  statusUnread?: boolean;
   layout?: "page" | "sheet";
   onSuccess?: (approved: boolean) => void;
 }
@@ -53,17 +64,15 @@ export function ReviewForm({
   canReview,
   canApproveOrReject,
   isReviewed,
+  statusUnread = false,
   layout = "page",
   onSuccess,
 }: ReviewFormProps) {
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const primaryAddress = usePrimaryAddress();
-  const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
-  const { data: gardenerProtocolName } = useGreenGoodsEnsName(work.gardenerAddress);
-  const gardenerDisplayName = formatEnsAddressName(
-    work.gardenerAddress,
-    gardenerProtocolName || gardenerEnsName
-  );
+  const { display, preferredName } = useAddressDisplayName(work.gardenerAddress);
+  const gardenerIdentity = { name: display, address: preferredName ? work.gardenerAddress : null };
 
   const workTitle = localizeCanonicalActionTitle(
     toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
@@ -73,7 +82,7 @@ export function ReviewForm({
   const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
   const isOwnSubmission = compareAddresses(primaryAddress, work.gardenerAddress);
 
-  const { control, watch, getValues } = useForm<WorkApprovalFormData>({
+  const { control, watch, getValues, setValue } = useForm<WorkApprovalFormData>({
     resolver: zodResolver(workApprovalSchema),
     defaultValues: {
       confidence: Confidence.NONE,
@@ -89,17 +98,63 @@ export function ReviewForm({
   // Audio recording state
   const [reviewAudioFile, setReviewAudioFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittingAction, setSubmittingAction] = useState<"approve" | "reject" | null>(null);
+  const [submittingAction, setSubmittingAction] = useState<"approve" | "reject" | "batch" | null>(
+    null
+  );
   const [isRejectDialogOpen, setRejectDialogOpen] = useState(false);
 
   const approvalMutation = useWorkApproval();
+  const reviewBatch = useReviewBatch(work.gardenAddress);
+  const stagedReview = reviewBatch.reviewFor(work.id);
+  const isHeld = reviewBatch.isHeld(work.id);
+  // Sending from here skips the journal, so it waits to learn whether this work is held. It also
+  // shares the batch's lock, which would hand it the batch's result as its own.
+  const isDecisionPaused = isSubmitting || reviewBatch.isSettlingHold || reviewBatch.isSending;
+
+  // A decision is sent after its note uploads. If a read says meanwhile that the work's status is
+  // unknown, or that it is decided, the decision started earlier is not sent. The layout effect
+  // runs within the commit that changes them, so no later task reads the old answer. The reason
+  // dialog closes too, so it cannot reopen by itself when the form comes back.
+  // Each time the form cannot decide, or shows another work, the epoch moves on: a decision is
+  // sent only while its epoch stands, so one dropped once stays dropped when the work comes back.
+  const decisionEpoch = useRef({
+    epoch: 0,
+    workId: work.id,
+    allowed: !statusUnread && !isReviewed,
+  });
+  useLayoutEffect(() => {
+    const allowed = !statusUnread && !isReviewed;
+    const previous = decisionEpoch.current;
+    const moved = !allowed || previous.workId !== work.id;
+    decisionEpoch.current = {
+      epoch: moved ? previous.epoch + 1 : previous.epoch,
+      workId: work.id,
+      allowed,
+    };
+    if (!allowed) setRejectDialogOpen(false);
+  }, [work.id, statusUnread, isReviewed]);
+  // A form that closes drops the decision it was preparing: it never sends, nor closes whatever
+  // inspector is open by the time its note finishes uploading.
+  useLayoutEffect(
+    () => () => {
+      const last = decisionEpoch.current;
+      decisionEpoch.current = { epoch: last.epoch + 1, workId: "", allowed: false };
+    },
+    []
+  );
 
   /**
-   * Sends the decision. A rejection always carries the steward's reason as its
-   * feedback (DL-048); an approval keeps the optional Feedback field. Resolves
-   * false when nothing was sent, so the reason dialog stays open for a retry.
+   * Sends the decision, or keeps it for the batch. A rejection always carries
+   * the steward's reason as its feedback (DL-048); an approval keeps the
+   * optional Feedback field. An audio note uploads now either way, so a batch
+   * keeps only its link. Resolves false when nothing was sent or kept, so the
+   * reason dialog stays open for a retry.
    */
-  const handleApprovalSubmit = async (approved: boolean, reason?: string): Promise<boolean> => {
+  const handleApprovalSubmit = async (
+    approved: boolean,
+    reason?: string,
+    toBatch = false
+  ): Promise<boolean> => {
     // Validate form data manually since approval/rejection isn't a form field
     const formData = {
       confidence: approved ? confidence : Confidence.NONE,
@@ -110,32 +165,21 @@ export function ReviewForm({
     // An approval needs a confidence level; a rejection needs a reason.
     if (approved ? formData.confidence < Confidence.LOW : !formData.feedback) return false;
 
-    setSubmittingAction(approved ? "approve" : "reject");
+    const startedIn = decisionEpoch.current.epoch;
+    const stillDecidable = () => {
+      const now = decisionEpoch.current;
+      return now.epoch === startedIn && now.workId === work.id && now.allowed;
+    };
+    setSubmittingAction(toBatch ? "batch" : approved ? "approve" : "reject");
     setIsSubmitting(true);
 
     try {
-      // Build review notes CID if audio exists
       let reviewNotesCID: string | undefined;
 
       if (reviewAudioFile) {
-        // IPFS upload chain: audio file -> IPFS CID -> JSON envelope -> IPFS CID
+        if (!(await authorizeUpload())) return false;
         try {
-          const { cid: audioCid } = await uploadFileToIPFS(reviewAudioFile, {
-            source: "WorkDetail.reviewNotes",
-          });
-
-          const reviewNotesJson: Record<string, unknown> = {
-            schemaVersion: "review_notes_v1",
-            audioNoteCids: [audioCid],
-            reviewerComments: formData.feedback || "",
-          };
-
-          const { cid: jsonCid } = await uploadJSONToIPFS(reviewNotesJson, {
-            source: "WorkDetail.reviewNotes",
-            metadataType: "review_notes",
-          });
-
-          reviewNotesCID = jsonCid;
+          reviewNotesCID = await uploadReviewNotes(reviewAudioFile, formData.feedback || "");
         } catch (uploadError) {
           logger.error("Failed to upload review notes to IPFS", {
             error: uploadError,
@@ -146,11 +190,11 @@ export function ReviewForm({
             title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
             message: formatMessage({ id: "app.toast.approval.errorWallet.message" }),
           });
-          setIsSubmitting(false);
-          setSubmittingAction(null);
           return false;
         }
       }
+
+      if (!stillDecidable()) return false;
 
       const draft: WorkApprovalDraft = {
         actionUID: work.actionUID,
@@ -162,11 +206,15 @@ export function ReviewForm({
         reviewNotesCID,
       };
 
-      await approvalMutation.mutateAsync({ draft, work });
+      if (toBatch) reviewBatch.stage(draft);
+      else await approvalMutation.mutateAsync({ draft, work, stillDecidable });
 
-      onSuccess?.(approved);
+      // A decision that went out still counts as sent; only a form that still shows its work closes.
+      if (decisionEpoch.current.workId === work.id) onSuccess?.(approved);
       return true;
     } catch (error) {
+      // Withdrawn because the work could no longer be decided: the form already says why.
+      if (!stillDecidable()) return false;
       const { message: formattedMessage, parsed } = parseAndFormatError(error);
 
       logger.error("Work approval submission failed", {
@@ -200,24 +248,36 @@ export function ReviewForm({
     }
   };
 
-  const blockedState = isReviewed
-    ? "reviewed"
-    : isOwnSubmission
-      ? "self-review"
-      : isActionExpired
-        ? "expired"
-        : canReview && !canApproveOrReject
-          ? "role-blocked"
-          : canReview
-            ? "actionable"
-            : "no-permission";
+  const finishReject = async (reason: string, toBatch: boolean) => {
+    if (await handleApprovalSubmit(false, reason, toBatch)) setRejectDialogOpen(false);
+  };
+
+  // The batch kept the words, so they come back. A recording only stays if this form still holds it.
+  const handleRemoveFromBatch = () => {
+    if (!stagedReview) return;
+    const { approved, confidence, feedback } = stagedReview.draft;
+    if (approved) setValue("confidence", confidence);
+    setValue("feedback", feedback ?? "");
+    reviewBatch.unstage(work.id);
+  };
+
+  const blockedState = reviewFormState({
+    isReviewed,
+    isStatusUnread: statusUnread,
+    isHeld,
+    isStaged: Boolean(stagedReview),
+    isOwnSubmission,
+    isActionExpired,
+    canReview,
+    canApproveOrReject,
+  });
 
   return (
     <div className={layout === "page" ? "lg:col-span-2" : undefined}>
       <div className={layout === "page" ? "lg:sticky lg:top-24" : undefined}>
         <ErrorBoundary context="WorkDetail.ReviewForm">
           <section className="surface-inset sm:p-6">
-            <h3 className="text-title-md font-semibold text-text-strong">
+            <h3 className="type-title-md font-semibold text-text-strong">
               {blockedState === "reviewed"
                 ? formatMessage({ id: "app.work.detail.reviewSummary" })
                 : formatMessage({ id: "app.work.detail.stewardReview" })}
@@ -225,64 +285,28 @@ export function ReviewForm({
 
             {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
-            ) : blockedState === "self-review" ? (
-              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
-                <p className="body-sm font-medium text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.selfReviewTitle",
-                    defaultMessage: "Independent review required",
-                  })}
-                </p>
-                <p className="mt-1 body-sm text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.selfReviewMessage",
-                    defaultMessage:
-                      "You submitted this work. Another garden steward must approve or reject it.",
-                  })}
-                </p>
-              </div>
-            ) : blockedState === "expired" ? (
-              <div className="mt-4 rounded-xl border border-warning-light bg-warning-lighter/70 p-4">
-                <p className="body-sm font-medium text-warning-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.expiredTitle",
-                    defaultMessage: "Action expired",
-                  })}
-                </p>
-                <p className="mt-1 body-sm text-warning-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.expiredMessage",
-                    defaultMessage:
-                      "This action is no longer active, so new approval decisions are blocked.",
-                  })}
-                </p>
-              </div>
-            ) : blockedState === "role-blocked" ? (
-              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
-                <p className="body-sm font-medium text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.stewardTitle",
-                    defaultMessage: "Owner or steward access required",
-                  })}
-                </p>
-                <p className="mt-1 body-sm text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.stewardMessage",
-                    defaultMessage:
-                      "Only garden owners or stewards can approve or reject work for this garden.",
-                  })}
-                </p>
-              </div>
+            ) : isBlockedNoticeState(blockedState) ? (
+              <ReviewBlockedNotice state={blockedState} />
+            ) : blockedState === "held" ? (
+              reviewBatch.holdFeedback && (
+                <TxHoldFeedback {...reviewBatch.holdFeedback} className="mt-4" />
+              )
+            ) : blockedState === "staged" && stagedReview ? (
+              <StagedReviewNotice
+                review={stagedReview}
+                disabled={reviewBatch.isSending}
+                onRemove={handleRemoveFromBatch}
+              />
             ) : blockedState === "actionable" ? (
               <form onSubmit={(e) => e.preventDefault()} className="mt-4 space-y-5">
                 {/* Confidence Selector */}
                 <div>
                   <span
-                    className="mb-1.5 block body-sm font-medium text-text-strong"
+                    className="mb-1.5 block type-body font-medium text-text-strong"
                     id="confidence-label"
                   >
                     {formatMessage({ id: "app.work.detail.confidenceLevel" })}
-                    <span className="ml-1 label-xs text-text-soft">
+                    <span className="ml-1 type-label-sm text-text-soft">
                       ({formatMessage({ id: "app.work.detail.requiredForApproval" })})
                     </span>
                   </span>
@@ -299,7 +323,7 @@ export function ReviewForm({
                     )}
                   />
                   {needsConfidence ? (
-                    <p className="mt-1.5 body-xs text-text-soft" data-slot="approval-hint">
+                    <p className="mt-1.5 type-meta text-text-soft" data-slot="approval-hint">
                       {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
                     </p>
                   ) : null}
@@ -309,10 +333,10 @@ export function ReviewForm({
                 <div>
                   <label
                     htmlFor="feedback"
-                    className="mb-1.5 block body-sm font-medium text-text-strong"
+                    className="mb-1.5 block type-body font-medium text-text-strong"
                   >
                     {formatMessage({ id: "app.work.detail.feedback" })}
-                    <span className="ml-1 label-xs text-text-soft">
+                    <span className="ml-1 type-label-sm text-text-soft">
                       ({formatMessage({ id: "app.common.optional" })})
                     </span>
                   </label>
@@ -335,16 +359,16 @@ export function ReviewForm({
 
                 {/* Audio Recorder */}
                 <div>
-                  <span className="mb-1.5 block body-sm font-medium text-text-strong">
+                  <span className="mb-1.5 block type-body font-medium text-text-strong">
                     {formatMessage({ id: "app.work.detail.audioReviewNote" })}
-                    <span className="ml-1 label-xs text-text-soft">
+                    <span className="ml-1 type-label-sm text-text-soft">
                       ({formatMessage({ id: "app.common.optional" })})
                     </span>
                   </span>
                   {reviewAudioFile ? (
                     <div className="flex items-center gap-2">
                       <span
-                        className="flex-1 truncate body-sm text-text-sub"
+                        className="flex-1 truncate type-body text-text-sub"
                         title={reviewAudioFile.name}
                       >
                         {reviewAudioFile.name}
@@ -352,7 +376,7 @@ export function ReviewForm({
                       <button
                         type="button"
                         onClick={() => setReviewAudioFile(null)}
-                        className="body-xs text-error-base hover:text-error-dark"
+                        className="type-meta text-error-base hover:text-error-dark"
                       >
                         {formatMessage({ id: "app.common.remove" })}
                       </button>
@@ -364,7 +388,7 @@ export function ReviewForm({
 
                 {/* Cascade awareness — who this decision affects */}
                 <div className="rounded-md border border-information-light bg-information-lighter p-3">
-                  <p className="body-xs text-information-dark">
+                  <p className="type-meta text-information-dark">
                     <span className="font-medium">
                       {formatMessage({
                         id: "app.work.detail.cascade.heading",
@@ -379,7 +403,7 @@ export function ReviewForm({
                           "{gardener} will see this decision. This counts toward {garden}'s impact record.",
                       },
                       {
-                        gardener: gardenerDisplayName,
+                        gardener: <ReviewDecisionSubject {...gardenerIdentity} />,
                         garden: gardenName,
                       }
                     )}
@@ -389,37 +413,53 @@ export function ReviewForm({
                 {/* Decision row — M3 button hierarchy: Reject reads clearly
                     destructive but secondary (outlined, error color role);
                     Approve is the filled primary and sits rightmost. */}
-                <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
-                  <AdminButton
-                    type="button"
-                    variant="outlinedDanger"
-                    onClick={() => setRejectDialogOpen(true)}
-                    disabled={isSubmitting}
-                    loading={isSubmitting && submittingAction === "reject"}
-                    data-action="reject"
-                  >
-                    {formatMessage({ id: "app.work.detail.reject" })}
-                  </AdminButton>
-                  <AdminButton
-                    type="button"
-                    variant="filled"
-                    onClick={() => void handleApprovalSubmit(true)}
-                    disabled={isSubmitting || needsConfidence}
-                    loading={isSubmitting && submittingAction === "approve"}
-                    data-action="approve"
-                  >
-                    {formatMessage({ id: "app.work.detail.approve" })}
-                  </AdminButton>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                  {reviewBatch.available ? (
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="sm"
+                      onClick={() => void handleApprovalSubmit(true, undefined, true)}
+                      disabled={isDecisionPaused || needsConfidence}
+                      loading={isSubmitting && submittingAction === "batch"}
+                      data-action="add-to-batch"
+                    >
+                      {formatMessage({ id: "app.work.batch.add" })}
+                    </Button>
+                  ) : null}
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      tone="danger"
+                      size="sm"
+                      onClick={() => setRejectDialogOpen(true)}
+                      disabled={isDecisionPaused}
+                      loading={isSubmitting && submittingAction === "reject"}
+                      data-action="reject"
+                    >
+                      {formatMessage({ id: "app.work.detail.reject" })}
+                    </Button>
+                    <Button
+                      type="button"
+                      emphasis="primary"
+                      size="sm"
+                      onClick={() => void handleApprovalSubmit(true)}
+                      disabled={isDecisionPaused || needsConfidence}
+                      loading={isSubmitting && submittingAction === "approve"}
+                      data-action="approve"
+                    >
+                      {formatMessage({ id: "app.work.detail.approve" })}
+                    </Button>
+                  </div>
                 </div>
 
                 <AdminReasonDialog
                   isOpen={isRejectDialogOpen}
                   onClose={() => setRejectDialogOpen(false)}
-                  onConfirm={async (reason) => {
-                    if (await handleApprovalSubmit(false, reason)) setRejectDialogOpen(false);
-                  }}
+                  onConfirm={(reason) => finishReject(reason, false)}
                   title={formatMessage({ id: "app.work.detail.rejectDialog.title" })}
-                  target={`${workTitle} · ${gardenerDisplayName}`}
+                  target={<ReviewDecisionSubject {...gardenerIdentity} title={workTitle} />}
                   description={formatMessage(
                     { id: "app.work.detail.rejectDialog.description" },
                     { garden: gardenName }
@@ -433,10 +473,18 @@ export function ReviewForm({
                   confirmLabel={formatMessage({ id: "app.work.detail.rejectDialog.confirm" })}
                   variant="danger"
                   isLoading={isSubmitting && submittingAction === "reject"}
+                  alternative={
+                    reviewBatch.available
+                      ? {
+                          label: formatMessage({ id: "app.work.batch.add" }),
+                          onConfirm: (reason) => finishReject(reason, true),
+                        }
+                      : undefined
+                  }
                 />
               </form>
             ) : (
-              <p className="mt-4 body-sm text-text-soft">
+              <p className="mt-4 type-body text-text-soft">
                 {formatMessage({ id: "app.work.detail.noPermission" })}
               </p>
             )}

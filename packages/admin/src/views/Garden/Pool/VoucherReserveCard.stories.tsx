@@ -1,0 +1,170 @@
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
+import { SERVICE_ISSUER_ROUTES } from "@green-goods/shared/commitment-pooling";
+import type { Meta, StoryObj } from "@storybook/react";
+import type { ComponentType } from "react";
+import { IntlProvider } from "react-intl";
+import { expect, screen, userEvent, within } from "storybook/test";
+import { VoucherReserveCard } from "./VoucherReserveCard";
+import {
+  STORY_GREEN_GOODS_SAFE,
+  STORY_GREEN_GOODS_VOUCHERS,
+  STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_SHORT,
+  STORY_TECH_AND_SUN_VOUCHERS,
+  nameVoucherMembers,
+} from "./poolStoryVouchers";
+
+function inLocale(locale: "es" | "pt") {
+  return (Story: ComponentType) => (
+    <IntlProvider locale={locale} messages={locale === "es" ? esMessages : ptMessages}>
+      <Story />
+    </IntlProvider>
+  );
+}
+
+const meta: Meta<typeof VoucherReserveCard> = {
+  title: "Admin/Pool/VoucherReserveCard",
+  component: VoucherReserveCard,
+  tags: ["autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Your Reserve (PRD-1297 surface 6, `SIssuer`), in the rail of an issuing garden's Promises tab under Review Promises. It leads with three numbers: the vouchers in reserve, kept apart from bookings, the rewards promised from them, and the bookings open. The funding garden's allowance, the service terms, the Safe's approvals read from the Safe, and the published cap fold under Reserve details. When the allowance can't cover a promised reward, the reward waits and Raise Allowance… repairs it. Balances and Riverside Commons are fictional.",
+      },
+    },
+  },
+  args: {
+    reserve: STORY_TECH_AND_SUN_VOUCHERS.reserve!,
+    safe: STORY_TECH_AND_SUN_SAFE,
+    disabled: false,
+    tone: "garden",
+    onRaiseAllowance: async () => undefined,
+  },
+  beforeEach: nameVoucherMembers,
+  decorators: [
+    (Story) => (
+      <div className="max-w-md p-4" data-tone="garden">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export default meta;
+type Story = StoryObj<typeof VoucherReserveCard>;
+
+/** Tech and Sun's reserve: 8 in reserve, 3 promised, 3 booked; the rest folded until opened. */
+export const TechAndSun: Story = {
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(
+      card.getAllByTestId("voucher-reserve-stat").map((tile) => tile.textContent)
+    ).toEqual(["In reserve8", "Promised3", "Booked3"]);
+    await expect(card.getByText("Allowance for Riverside Commons")).not.toBeVisible();
+  },
+};
+
+/** Green Goods' reserve, where the Safe signs two of five. */
+export const GreenGoods: Story = {
+  args: {
+    reserve: STORY_GREEN_GOODS_VOUCHERS.reserve!,
+    safe: STORY_GREEN_GOODS_SAFE,
+  },
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await userEvent.click(card.getByText("Reserve details"));
+    await expect(card.getByText("Your Safe signs each one, 2 of 5 signatures")).toBeVisible();
+  },
+};
+
+/** Riverside Commons' allowance is used up: Lina's reward waits, and the card offers the repair. */
+export const ReserveShort: Story = {
+  args: { reserve: STORY_TECH_AND_SUN_SHORT.reserve! },
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(card.getByText("Lina’s reward of 2 vouchers is waiting.")).toBeVisible();
+    await expect(card.getByRole("button", { name: "Raise Allowance…" })).toBeEnabled();
+  },
+};
+
+/** Raising it: the dialog starts at the garden's 4 again plus the 2 that wait, and creates no vouchers. */
+export const RaiseAllowance: Story = {
+  args: { reserve: STORY_TECH_AND_SUN_SHORT.reserve! },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Raise Allowance…" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await expect(dialog.getByLabelText("New allowance")).toHaveValue("6");
+    await expect(dialog.getByText("Your Safe needs 1 signature.")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Raise Allowance" })).toBeEnabled();
+  },
+};
+
+/** One voucher is left, short of Lina's 2: the card says how much is left, not that it's used up. */
+export const AllowanceShortOfReward: Story = {
+  args: {
+    reserve: {
+      ...STORY_TECH_AND_SUN_SHORT.reserve!,
+      allowance: { ...STORY_TECH_AND_SUN_SHORT.reserve!.allowance, left: 1_000_000n },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(
+      card.getByText(
+        "The allowance for Riverside Commons has 1 left, less than the reward needs.",
+        { exact: false }
+      )
+    ).toBeVisible();
+    await expect(card.queryByText("is used up", { exact: false })).toBeNull();
+  },
+};
+
+/**
+ * A reserve the live issuer catalog knows: Award Vouchers sits in the card's header, beside a
+ * subtitle that says the card also awards past work. Fixture data; the award desk itself needs
+ * the Agent and is not opened here.
+ */
+export const AwardsAvailable: Story = {
+  args: {
+    reserve: {
+      ...STORY_TECH_AND_SUN_VOUCHERS.reserve!,
+      issuer: {
+        ...STORY_TECH_AND_SUN_VOUCHERS.reserve!.issuer,
+        safe: SERVICE_ISSUER_ROUTES[0]!.assets[0]!.ownerReserve,
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(card.getByRole("button", { name: "Award Vouchers" })).toBeEnabled();
+    await expect(
+      card.getByText("Vouchers you can send as rewards or award for past work", { exact: false })
+    ).toBeVisible();
+  },
+};
+
+/** The Safe can't be read: the card says the Safe signs each booking, without a count. */
+export const SafeUnread: Story = {
+  args: {
+    safe: {
+      ...STORY_TECH_AND_SUN_SAFE,
+      status: "unavailable",
+      threshold: null,
+      owners: null,
+      signers: null,
+    },
+  },
+};
+
+export const ReserveShortEs: Story = {
+  args: { reserve: STORY_TECH_AND_SUN_SHORT.reserve! },
+  decorators: [inLocale("es")],
+};
+
+export const ReserveShortPt: Story = {
+  args: { reserve: STORY_TECH_AND_SUN_SHORT.reserve! },
+  decorators: [inLocale("pt")],
+};

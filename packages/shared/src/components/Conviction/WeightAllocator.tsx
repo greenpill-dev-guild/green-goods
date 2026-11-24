@@ -78,10 +78,10 @@ export function WeightAllocator({
       )}
     >
       <header className="flex items-baseline justify-between">
-        <h3 className="text-title-md font-semibold text-text-strong">My voting weight</h3>
+        <h3 className="type-title-md text-text-strong">My voting weight</h3>
         <p
           className={cn(
-            "text-label-md font-medium tabular-nums",
+            "type-label-sm font-medium tabular-nums",
             isOverBudget ? "text-error-dark" : "text-text-sub"
           )}
           aria-live="polite"
@@ -136,12 +136,12 @@ function AllocatorRow({ proposal, value, disabled, onChange }: AllocatorRowProps
     <li data-slot="allocator-row" data-proposal-id={proposal.id} className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <span
-          className="min-w-0 flex-1 truncate text-label-md font-medium text-text-strong"
+          className="min-w-0 flex-1 truncate type-label-sm font-medium text-text-strong"
           title={proposal.title}
         >
           {proposal.title}
         </span>
-        <label className="inline-flex items-center gap-1 text-label-sm font-medium text-text-sub">
+        <label className="inline-flex items-center gap-1 type-meta-sm font-medium text-text-sub">
           <input
             type="number"
             min={0}

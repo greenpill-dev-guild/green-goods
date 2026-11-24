@@ -55,6 +55,19 @@ export function getRelativeTimeParts(
 }
 
 /**
+ * The style an age is written in for its unit. The short form a card's detail line takes
+ * ("2 hr. ago", "hace 2 h", "há 2 h") shortens seconds to weeks, but a month and a year keep
+ * their full word in every language ("1 month ago", "hace 1 mes", "há 1 mês"): Spanish shortens a
+ * month to "m", which reads as minutes beside "hace 1 min", and a year to "a" (PRD-1492).
+ */
+export function relativeTimeStyle(
+  unit: Intl.RelativeTimeFormatUnit,
+  style: "long" | "short"
+): "long" | "short" {
+  return style === "short" && (unit === "month" || unit === "year") ? "long" : style;
+}
+
+/**
  * Format a timestamp to relative time (e.g., "2 hours ago", "3 days ago")
  *
  * Accepts seconds or milliseconds. Falls back to "just now" for very recent events.

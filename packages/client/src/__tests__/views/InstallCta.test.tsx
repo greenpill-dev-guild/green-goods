@@ -130,7 +130,7 @@ describe("InstallCta", () => {
     render(wrap(createElement(InstallCta)));
 
     expect(screen.getByText("Install Green Goods")).toBeInTheDocument();
-    expect(screen.getByText(/open in chrome/i)).toBeInTheDocument();
+    expect(screen.getByText(/in chrome, open the menu/i)).toBeInTheDocument();
   });
 
   it("shows iOS instructions when platform is iOS", () => {

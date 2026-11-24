@@ -15,6 +15,12 @@ import {
   getCommitmentPools,
 } from "./data-pools";
 
+/**
+ * The pooling reads behind every member screen, bound to one GraphQL reader. The voucher
+ * booking's reads have a repository of their own (`service-access-read-repository`): this one
+ * is built at import time by the hooks the installed app starts with, so it carries only what
+ * those screens read.
+ */
 export function createCommitmentPoolingReadRepository(reader: GraphQLReader) {
   return {
     getCommitments: (input: Parameters<typeof getCommitments>[0]) => getCommitments(input, reader),

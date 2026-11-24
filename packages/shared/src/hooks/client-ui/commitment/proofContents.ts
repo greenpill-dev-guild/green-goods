@@ -5,11 +5,12 @@
  * @module hooks/client-ui/commitment/proofContents
  */
 
-import { isVideoFile } from "../../../modules/work/media-processing";
+import { isVideoFile, isWorkDocument } from "../../../modules/work/media-processing";
 
 export interface ProofContents {
   photos: number;
   videos: number;
+  documents: number;
   voiceNotes: number;
   links: number;
   words: boolean;
@@ -23,9 +24,11 @@ export function proofContentsOf(proof: {
 }): ProofContents {
   const media = proof.media ?? [];
   const videos = media.filter((file) => isVideoFile(file)).length;
+  const documents = media.filter((file) => isWorkDocument(file)).length;
   return {
-    photos: media.length - videos,
+    photos: media.length - videos - documents,
     videos,
+    documents,
     voiceNotes: proof.audioNotes?.length ?? 0,
     links: proof.links?.length ?? 0,
     words: Boolean(proof.note?.trim()),

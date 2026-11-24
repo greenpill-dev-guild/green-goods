@@ -80,3 +80,23 @@ export const EndSeasonOfflineDuringReview: Story = {
     await expect(dialog).toHaveTextContent("“Season of First Rains” in Rocinha’s pool");
   },
 };
+
+const documentationPool = storyPoolConsole({
+  cycleNames: new Map([["12", { status: "resolved", name: "Autumn Planting" }]]),
+});
+export const DocumentationEnd: Story = {
+  args: {
+    pool: documentationPool,
+    target: { gardenName: "Riverside Commons Garden", isProtocol: false },
+  },
+};
+export const DocumentationArchive: Story = {
+  args: {
+    pool: documentationPool,
+    target: { gardenName: "Riverside Commons Garden", isProtocol: false },
+    cycleDialog: {
+      kind: "archive",
+      cycle: storyCycle({ state: "RECONCILED", liveCommitmentCount: 0n }),
+    },
+  },
+};

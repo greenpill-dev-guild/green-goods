@@ -192,9 +192,10 @@ export const Mobile: Story = {
       expect(paths[1].getBoundingClientRect().top).toBeGreaterThan(
         paths[0].getBoundingClientRect().bottom
       );
+      // On a phone the provenance line ends the footer, below both rows of links.
       const footer = canvasElement.querySelector("footer")!;
-      expect(footer.querySelector("nav")!.getBoundingClientRect().top).toBeGreaterThan(
-        footer.querySelector("p")!.getBoundingClientRect().bottom
+      expect(footer.querySelector("p")!.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+        footer.querySelector("nav")!.getBoundingClientRect().bottom
       );
       expect(canvasElement.scrollWidth).toBeLessThanOrEqual(375);
     });

@@ -33,6 +33,10 @@ import {
 } from "../../modules/work/submit-work-command";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import {
+  ConnectionNeededError,
+  WalletReconnectRequiredError,
+} from "../../utils/errors/unsent-failures";
+import {
   createMockAction,
   createMockWorkDraft,
   MOCK_ADDRESSES,
@@ -133,9 +137,57 @@ describe("submitWork", () => {
   it("rejects an offline wallet before enqueue when queue fallback is disabled", async () => {
     const { ports, enqueue } = createPorts({ online: false });
     await expect(submitWork({ ...baseCommand, allowOfflineQueue: false }, ports)).rejects.toThrow(
-      "Offline queue is disabled for this submission surface"
+      ConnectionNeededError
     );
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { authMode: "wallet", online: false, sender: undefined, refusal: ConnectionNeededError },
+    { authMode: "passkey", online: false, sender: undefined, refusal: ConnectionNeededError },
+    { authMode: "embedded", online: true, sender: null, refusal: "submission-sender-unavailable" },
+  ] as const)("refuses a retained $authMode submission it cannot send now, before admitting it", async ({
+    authMode,
+    online,
+    sender,
+    refusal,
+  }) => {
+    const { ports, process, direct } = createPorts({ online, sender });
+    const admit = vi.fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>();
+    ports.queue.admit = admit;
+    await expect(
+      submitWork(
+        { ...baseCommand, authMode, allowOfflineQueue: false, retainSubmission: true },
+        ports
+      )
+    ).rejects.toThrow(refusal);
+    expect(admit).not.toHaveBeenCalled();
+    expect(process).not.toHaveBeenCalled();
+    expect(direct).not.toHaveBeenCalled();
+  });
+
+  it("keeps a retained send on record awaiting, unchecked, while the connection is unconfirmed", async () => {
+    const { ports, process, direct } = createPorts({ online: false });
+    const admit = vi.fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>();
+    ports.queue.admit = admit;
+    ports.queue.sendOnRecord = async (input) => ({
+      jobId: "job-sent",
+      clientWorkId: input.clientWorkId,
+      txHash: QUEUED_HASH,
+    });
+    await expect(
+      submitWork(
+        { ...baseCommand, authMode: "passkey", allowOfflineQueue: false, retainSubmission: true },
+        ports
+      )
+    ).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+      reason: "connection-unconfirmed",
+      jobId: "job-sent",
+    });
+    expect(admit).not.toHaveBeenCalled();
+    expect(process).not.toHaveBeenCalled();
+    expect(direct).not.toHaveBeenCalled();
   });
 
   it("queues an offline wallet without simulation or inline processing", async () => {
@@ -150,7 +202,7 @@ describe("submitWork", () => {
 
   it("submits an online wallet directly and forwards wallet stages", async () => {
     const direct = vi.fn<SubmitWorkPorts["direct"]["submitWork"]>(async (_input, onStage) => {
-      onStage?.("confirming", "Confirm in your wallet...");
+      onStage?.("wallet", "Confirm in your wallet");
       return DIRECT_HASH;
     });
     const { ports, enqueue, onWalletStage } = createPorts({ direct });
@@ -158,8 +210,82 @@ describe("submitWork", () => {
       kind: "direct",
       txHash: DIRECT_HASH,
     });
-    expect(onWalletStage).toHaveBeenCalledWith("confirming", "Confirm in your wallet...");
+    expect(onWalletStage).toHaveBeenCalledWith("wallet", "Confirm in your wallet");
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  // PRD-1499: the App opens on a remembered wallet account before its wallet answers.
+  describe("a wallet that has not answered", () => {
+    function unansweredWallet() {
+      const sender = createMockTransactionSender({ authMode: "wallet" });
+      sender.readyToSign = () => false;
+      sender.assertReadyToSign = vi.fn(() => {
+        throw new WalletReconnectRequiredError(true);
+      });
+      return sender;
+    }
+
+    it.each([
+      { path: "admitted to the queue", admits: true },
+      { path: "sent directly", admits: false },
+    ])("is asked to reconnect before the work is $path", async ({ admits }) => {
+      const { ports, enqueue, direct, onWalletStage } = createPorts({ sender: unansweredWallet() });
+      const admit = vi.fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>();
+      if (admits) ports.queue.admit = admit;
+
+      await expect(submitWork(baseCommand, ports)).rejects.toBeInstanceOf(
+        WalletReconnectRequiredError
+      );
+      expect(admit).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalled();
+      expect(direct).not.toHaveBeenCalled();
+      expect(onWalletStage).not.toHaveBeenCalled();
+    });
+
+    it("still saves offline work on the device, where nothing needs the wallet yet", async () => {
+      const { ports, enqueue, direct } = createPorts({ online: false, sender: unansweredWallet() });
+      await expect(submitWork(baseCommand, ports)).resolves.toMatchObject({ kind: "queued" });
+      expect(enqueue).toHaveBeenCalledOnce();
+      expect(direct).not.toHaveBeenCalled();
+    });
+
+    it("admits work to wait on a connection the browser reports but the origin has not confirmed", async () => {
+      const sender = unansweredWallet();
+      const { ports } = createPorts({ sender });
+      ports.connectivity = { isOnline: () => true, confirm: async () => false };
+      // Stop at admission: what follows it is the queued path's own concern.
+      const admit = vi
+        .fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>()
+        .mockRejectedValue(new Error("admitted"));
+      ports.queue.admit = admit;
+
+      await expect(submitWork(baseCommand, ports)).rejects.toThrow("admitted");
+      expect(admit).toHaveBeenCalledOnce();
+      expect(sender.assertReadyToSign).not.toHaveBeenCalled();
+    });
+
+    it("goes on to check a resumed submission whose send is already on record", async () => {
+      const sender = unansweredWallet();
+      const { ports } = createPorts({ sender });
+      const admit = vi
+        .fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>()
+        .mockRejectedValue(new Error("admitted"));
+      ports.queue.admit = admit;
+      const resumed = {
+        ...baseCommand,
+        draft: createMockWorkDraft({
+          uploadCheckpoint: {
+            submittedAt: "2026-11-15",
+            files: {},
+            transactionHash: `0x${"cd".repeat(32)}`,
+          },
+        }),
+      };
+
+      await expect(submitWork(resumed, ports)).rejects.toThrow("admitted");
+      expect(admit).toHaveBeenCalledOnce();
+      expect(sender.assertReadyToSign).not.toHaveBeenCalled();
+    });
   });
 
   it("queues transient upload failures for retry", async () => {
@@ -242,11 +368,11 @@ describe("submitWork", () => {
     "passkey",
     "embedded",
     null,
-  ] as const)("rejects %s mode before simulation when queue fallback is disabled", async (authMode) => {
+  ] as const)("rejects %s mode without durable admission when queue fallback is disabled", async (authMode) => {
     const { ports, simulate, enqueue } = createPorts();
     await expect(
       submitWork({ ...baseCommand, authMode, allowOfflineQueue: false }, ports)
-    ).rejects.toThrow("Offline queue is disabled for this submission surface");
+    ).rejects.toThrow("submission-requires-admission");
     expect(simulate).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
   });

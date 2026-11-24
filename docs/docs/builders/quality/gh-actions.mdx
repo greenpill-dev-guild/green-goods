@@ -9,6 +9,7 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
+  - .github/workflows/agents-doctor.yml
   - .github/workflows/ci-gate.yml
   - .github/workflows/client.yml
   - .github/workflows/codeql-cache-prune.yml
@@ -16,20 +17,25 @@ generated_from:
   - .github/workflows/contracts-nightly.yml
   - .github/workflows/contracts.yml
   - .github/workflows/coverage-nightly.yml
+  - .github/workflows/dependabot-sync-publish.yml
+  - .github/workflows/dependabot-sync.yml
   - .github/workflows/design.yml
   - .github/workflows/docs.yml
   - .github/workflows/indexer.yml
+  - .github/workflows/merge-gate.yml
   - .github/workflows/ontology.yml
+  - .github/workflows/pull-request-edited.yml
   - .github/workflows/release.yml
   - .github/workflows/shared.yml
   - .github/workflows/supply-chain-guardrails.yml
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:0bc6c820a4611bc6c519b1294900462455791da62b00b7451cc2803673b31d1c"
+source_digest: "sha256:4caa9f4933122266c8288dbf85b1ce0a6b7dbe1655e75757e54496c7fddbb205"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
+  - .github/workflows/agents-doctor.yml
   - .github/workflows/ci-gate.yml
   - .github/workflows/client.yml
   - .github/workflows/codeql-cache-prune.yml
@@ -37,10 +43,14 @@ source_of_truth:
   - .github/workflows/contracts-nightly.yml
   - .github/workflows/contracts.yml
   - .github/workflows/coverage-nightly.yml
+  - .github/workflows/dependabot-sync-publish.yml
+  - .github/workflows/dependabot-sync.yml
   - .github/workflows/design.yml
   - .github/workflows/docs.yml
   - .github/workflows/indexer.yml
+  - .github/workflows/merge-gate.yml
   - .github/workflows/ontology.yml
+  - .github/workflows/pull-request-edited.yml
   - .github/workflows/release.yml
   - .github/workflows/shared.yml
   - .github/workflows/supply-chain-guardrails.yml
@@ -54,32 +64,37 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # CI & GitHub Actions
 
-16 workflows run the repository's continuous integration. Only CI Gate is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from `scripts/data/workflow-catalog.json`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.
+21 workflows run the repository's continuous integration. Only CI Gate is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from `scripts/data/workflow-catalog.json`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.
 
 ## Workflows
 
 | Workflow | Purpose | Runs on | Required |
 |---|---|---|---|
-| [Admin](#admin) | Builds and tests the steward cockpit when admin code, the shared code it imports, or the shared test support changes. | pull requests that touch its paths (29 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
-| [Agent](#agent) | Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes. | pull requests that touch its paths (15 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Admin](#admin) | Builds and tests the Green Goods Hub when admin code, the shared code it imports, or the shared test support changes. | pull requests that touch its paths (29 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Agent](#agent) | Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes. | pull requests that touch its paths (16 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Agents Doctor](#agents-doctor) | Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. A broken contract fails the job (the guild workflow's ci mode), and CI Gate waits for it on those paths; warnings only report. | pull requests that touch its paths (8 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [CI Gate](#ci-gate) | The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection. | every pull request | Yes |
-| [Client](#client) | Builds, tests, and runs the client Playwright project for the public site and the installed PWA. | pull requests that touch its paths (36 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Client](#client) | Builds, tests, and runs the client Playwright project for the Green Goods Website and App. | pull requests that touch its paths (37 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [CodeQL Cache Prune](#codeql-cache-prune) | Deletes stale CodeQL overlay databases from the Actions cache so they cannot evict the Foundry caches the contracts jobs rely on. | pushes to `develop`; a schedule (`37 * * * *` UTC); manual dispatch | No |
 | [Contracts Manual](#contracts-manual) | Runs a chosen contracts operation (fork readiness, the CI lane, or both) on demand by calling the Contracts workflow. | manual dispatch | No |
 | [Contracts Nightly](#contracts-nightly) | The deep fuzz and invariant lane: pull-request CI runs the capped test profile for speed, and this run restores full depth through the ci profile. | a schedule (`17 3 * * *` UTC); manual dispatch | No |
-| [Contracts](#contracts) | Compiles, lints, and tests the Solidity packages and the contract script suite. | pull requests that touch its paths (9 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow | No |
-| [Coverage Nightly](#coverage-nightly) | Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures. | pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch | No |
-| [Design](#design) | Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
-| [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (78 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Contracts](#contracts) | Compiles, lints, and tests the Solidity packages and the contract script suite. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow | No |
+| [Coverage Nightly](#coverage-nightly) | Enforces the measured coverage floors across the packages. Client and Admin pull requests hold their floors too; Shared's sharded pull request tests run plain, so this lane is its only coverage check. | pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch | No |
+| [Dependabot Sync Publish](#dependabot-sync-publish) | Publishes repair data from a successful Dependabot Sync run. It validates the origin run, associated PR and current head, executes only trusted default-branch code, and writes a fast-forward repair commit. | completion of another workflow | No |
+| [Dependabot Sync](#dependabot-sync) | Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs; refreshes generated docs for pinned GitHub Actions updates. Preparation has read-only permissions and lifecycle scripts disabled. | every pull request | No |
+| [Design](#design) | Checks the design system and its voice: Storybook, story coverage, DesignMD token parity, banned vocabulary, em dashes, and brand voice parity, with optional Chromatic publishing. | pull requests that touch its paths (55 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (102 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Indexer](#indexer) | Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths | No |
-| [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (93 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Merge Gate](#merge-gate) | Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical. | the start and completion of another workflow; comments on issues and pull requests; pushes to `develop` | No |
+| [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Pull Request Edited](#pull-request-edited) | Marks an edit to a pull request's title, body or base so the Merge Gate, running from develop on its completion, decides again. It holds no permissions and runs nothing from the pull request. | edits to a pull request's title, body or base | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
-| [Supply Chain Guardrails](#supply-chain-guardrails) | Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Supply Chain Guardrails](#supply-chain-guardrails) | Six lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; regrowth on every pull request and develop push, failing comments the purge removed and report-style markdown that a change adds; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 
 ### Admin {#admin}
 
-Builds and tests the steward cockpit when admin code, the shared code it imports, or the shared test support changes.
+Builds and tests the Green Goods Hub when admin code, the shared code it imports, or the shared test support changes.
 
 - **Use it when:** A change under packages/admin or the shared UI and hooks it depends on.
 - **Runs on:** pull requests that touch its paths (29 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
@@ -92,10 +107,20 @@ Builds and tests the steward cockpit when admin code, the shared code it imports
 Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes.
 
 - **Use it when:** Bot, webhook, or public API changes.
-- **Runs on:** pull requests that touch its paths (15 path filters); pushes to `main` and `develop` that touch its paths.
+- **Runs on:** pull requests that touch its paths (16 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `lint-typecheck-build`, `test`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/agent.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/agent.yml)
+
+### Agents Doctor {#agents-doctor}
+
+Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. A broken contract fails the job (the guild workflow's ci mode), and CI Gate waits for it on those paths; warnings only report.
+
+- **Use it when:** Changes to AGENTS.md, CLAUDE.md, .agents, .claude, .codex, CODEOWNERS or the PR template.
+- **Runs on:** pull requests that touch its paths (8 path filters); pushes to `main` and `develop` that touch its paths.
+- **Jobs:** `agents-doctor`.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
+- **File:** [.github/workflows/agents-doctor.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/agents-doctor.yml)
 
 ### CI Gate {#ci-gate}
 
@@ -109,10 +134,10 @@ The one required status. It derives the workflows a pull request's changed files
 
 ### Client {#client}
 
-Builds, tests, and runs the client Playwright project for the public site and the installed PWA.
+Builds, tests, and runs the client Playwright project for the Green Goods Website and App.
 
 - **Use it when:** Client views, routes, service worker, PWA packaging, or the shared UI they render.
-- **Runs on:** pull requests that touch its paths (36 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Runs on:** pull requests that touch its paths (37 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `e2e`, `lighthouse`, `lint-build`, `sourcemaps`, `test`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/client.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/client.yml)
@@ -152,27 +177,47 @@ The deep fuzz and invariant lane: pull-request CI runs the capped test profile f
 Compiles, lints, and tests the Solidity packages and the contract script suite.
 
 - **Use it when:** Any change under packages/contracts or the contract scripts; the manual workflow calls it with an operation name.
-- **Runs on:** pull requests that touch its paths (9 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow.
+- **Runs on:** pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow.
 - **Jobs:** `fork-readiness-arbitrum`, `fork-readiness-core`, `lint-build`, `realism-audit`, `unit`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/contracts.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/contracts.yml)
 
 ### Coverage Nightly {#coverage-nightly}
 
-Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures.
+Enforces the measured coverage floors across the packages. Client and Admin pull requests hold their floors too; Shared's sharded pull request tests run plain, so this lane is its only coverage check.
 
 - **Use it when:** Nightly at 08:43 UTC and after every push to main.
 - **Runs on:** pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch.
-- **Jobs:** `coverage`.
+- **Jobs:** `contracts`, `coverage`.
 - **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/coverage-nightly.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/coverage-nightly.yml)
 
+### Dependabot Sync Publish {#dependabot-sync-publish}
+
+Publishes repair data from a successful Dependabot Sync run. It validates the origin run, associated PR and current head, executes only trusted default-branch code, and writes a fast-forward repair commit.
+
+- **Use it when:** Completion of Dependabot Sync with a repair artifact for a same-repository package or GitHub Actions PR. The built-in token requires approval for follow-up PR CI; see scripts/README.md for credential options.
+- **Runs on:** completion of another workflow.
+- **Jobs:** `publish`.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
+- **File:** [.github/workflows/dependabot-sync-publish.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/dependabot-sync-publish.yml)
+
+### Dependabot Sync {#dependabot-sync}
+
+Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs; refreshes generated docs for pinned GitHub Actions updates. Preparation has read-only permissions and lifecycle scripts disabled.
+
+- **Use it when:** An opened, reopened, or updated same-repository Dependabot Bun, npm or GitHub Actions PR. CI Gate requires the no-repair verification job to succeed; a skipped job blocks the head even after its repair artifact is deleted. Dependabot Sync Publish writes any repair on a new head.
+- **Runs on:** every pull request.
+- **Jobs:** `prepare`, `synchronized`.
+- **Required status:** no, but the CI Gate waits for same-repository pull requests authored by `dependabot[bot]`.
+- **File:** [.github/workflows/dependabot-sync.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/dependabot-sync.yml)
+
 ### Design {#design}
 
-Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing.
+Checks the design system and its voice: Storybook, story coverage, DesignMD token parity, banned vocabulary, em dashes, and brand voice parity, with optional Chromatic publishing.
 
-- **Use it when:** Shared components, styles, tokens, any DESIGN.md, or the docs stylesheet. Dispatch it with publish_chromatic to publish Storybook.
-- **Runs on:** pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Use it when:** Shared components, styles, tokens, any DESIGN.md, the docs stylesheet, the i18n catalogs, or the brand voice page and the files that restate it. Dispatch it with publish_chromatic to publish Storybook.
+- **Runs on:** pull requests that touch its paths (55 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `design-guardrails`, `storybook`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/design.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/design.yml)
@@ -182,7 +227,7 @@ Checks the design system: Storybook, story coverage, and DesignMD token parity, 
 Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site.
 
 - **Use it when:** Anything under docs/, the generator scripts, the skills catalog, or a source a projection reads.
-- **Runs on:** pull requests that touch its paths (78 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Runs on:** pull requests that touch its paths (102 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `build`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/docs.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/docs.yml)
@@ -197,15 +242,35 @@ Builds and tests the Envio indexer handlers against the contract ABIs and deploy
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/indexer.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/indexer.yml)
 
+### Merge Gate {#merge-gate}
+
+Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical.
+
+- **Use it when:** Every pull request into develop, when CI Gate starts and finishes and when a comment that holds or held a merge-gate marker is written, edited or deleted; any merge-gate: comment asks for a fresh decision. Every push to develop runs it; one that changes what the gate reads holds every open pull request, then decides each again. It blocks nothing until the develop ruleset requires the status, which is the owner's step.
+- **Runs on:** the start and completion of another workflow; comments on issues and pull requests; pushes to `develop`.
+- **Jobs:** `detect`, `gate`.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
+- **File:** [.github/workflows/merge-gate.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/merge-gate.yml)
+
 ### Ontology {#ontology}
 
 Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current.
 
 - **Use it when:** Ontology edits, the data model and entity matrix projections, or a source the sidecar points at.
-- **Runs on:** pull requests that touch its paths (93 path filters); pushes to `main` and `develop` that touch its paths.
+- **Runs on:** pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `ontology-drift`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/ontology.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/ontology.yml)
+
+### Pull Request Edited {#pull-request-edited}
+
+Marks an edit to a pull request's title, body or base so the Merge Gate, running from develop on its completion, decides again. It holds no permissions and runs nothing from the pull request.
+
+- **Use it when:** Every edit to a pull request's title, body or base.
+- **Runs on:** edits to a pull request's title, body or base.
+- **Jobs:** `mark`.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
+- **File:** [.github/workflows/pull-request-edited.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/pull-request-edited.yml)
 
 ### Release {#release}
 
@@ -229,11 +294,11 @@ Typechecks and tests the shared package: hooks, providers, protocol modules, and
 
 ### Supply Chain Guardrails {#supply-chain-guardrails}
 
-Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.
+Six lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; regrowth on every pull request and develop push, failing comments the purge removed and report-style markdown that a change adds; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.
 
-- **Use it when:** Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.
-- **Runs on:** pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
-- **Jobs:** `audit`, `changes`, `format`, `guidance`, `parity`.
+- **Use it when:** Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Formatting, dead code and regrowth run every time; each other lane runs only when its own paths change.
+- **Runs on:** pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Jobs:** `audit`, `changes`, `dead-code`, `format`, `guidance`, `parity`, `regrowth`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/supply-chain-guardrails.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/supply-chain-guardrails.yml)
 
@@ -246,5 +311,5 @@ The workflows call these root scripts, so running one locally reproduces that st
 | <CopyCommand command="bun run build" /> | `bun run --cwd packages/contracts build && bun run --cwd packages/shared build && bun run --cwd packages/indexer build && bun run --cwd packages/client build && bun run --cwd packages/admin build` |
 | <CopyCommand command="bun run check" /> | `node scripts/dev/ci-local.js` |
 | <CopyCommand command="bun run format" /> | `node scripts/dev/package-commands.mjs root format` |
-| <CopyCommand command="bun run lint" /> | `node scripts/quality/check-react-patterns.js && bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script --deny-warnings && bun run --cwd packages/contracts lint --check` |
+| <CopyCommand command="bun run lint" /> | `node scripts/quality/check-react-patterns.js && bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/indexer/test packages/agent/src packages/contracts/script tests --deny-warnings && bun run --cwd packages/contracts lint --check` |
 | <CopyCommand command="bun run test" /> | `node scripts/dev/test.js` |

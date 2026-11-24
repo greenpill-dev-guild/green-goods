@@ -51,6 +51,24 @@ contract MockGardensModuleForYieldResolver {
     }
 }
 
+/// @notice Answers any call without taking tokens, as a Safe with a loose fallback handler can
+contract JarThatTakesNothing {
+    fallback() external payable { }
+}
+
+/// @notice Reports success after pulling only half of what it was offered
+contract JarThatTakesHalf {
+    ERC20 private immutable token;
+
+    constructor(ERC20 _token) {
+        token = _token;
+    }
+
+    function deposit(uint256 amount) external payable {
+        token.transferFrom(msg.sender, address(this), amount / 2);
+    }
+}
+
 /// @title YieldResolverTest
 /// @notice Unit tests for YieldResolver contract
 contract YieldResolverTest is Test {
@@ -77,7 +95,7 @@ contract YieldResolverTest is Test {
         // Deploy mocks
         weth = new MockWETH();
         vault = new MockOctantVaultForYield(address(weth));
-        cookieJar = new MockCookieJar();
+        cookieJar = new MockCookieJar(address(weth));
         marketplace = new MockHypercertMarketplace();
         jbTerminal = new MockJBMultiTerminalForYield();
         hatsModule = new MockHatsModule();
@@ -329,19 +347,86 @@ contract YieldResolverTest is Test {
     // Split Yield — Cookie Jar Routing
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_splitYield_cookieJarReceivesERC20() public {
+    /// @dev A real jar pays only from its ledger, so its token balance alone would prove nothing.
+    function testYieldResolver_routedYieldCanBeWithdrawnFromTheJar() public {
         uint256 amount = 10_000;
-        _fundVaultAndMintShares(amount);
+        _prepareSplitEntirelyToCookieJar(amount);
 
-        vm.prank(owner);
-        yieldSplitter.setMinYieldThreshold(0);
-        vm.prank(owner);
-        yieldSplitter.setSplitRatio(garden, 10_000, 0, 0);
-
+        vm.expectEmit(true, true, true, true, address(yieldSplitter));
+        emit YieldResolver.YieldToCookieJar(garden, address(weth), amount, address(cookieJar));
+        vm.expectEmit(true, true, true, true, address(yieldSplitter));
+        emit YieldResolver.YieldSplit(garden, address(weth), amount, 0, 0, amount);
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
-        // Cookie jar should hold the WETH
-        assertEq(weth.balanceOf(address(cookieJar)), amount, "Cookie jar should hold WETH");
+        assertEq(cookieJar.currencyHeldByJar(), amount, "Cookie jar should book the yield");
+        assertEq(weth.allowance(address(yieldSplitter), address(cookieJar)), 0, "No allowance should remain");
+
+        address gardener = makeAddr("gardener");
+        vm.prank(gardener);
+        cookieJar.withdraw(amount, "seed purchase");
+        assertEq(weth.balanceOf(gardener), amount, "Gardener should be paid the routed yield");
+    }
+
+    function testYieldResolver_treasuryTakesYieldWhenJarRefusesDeposit() public {
+        cookieJar.setRefusesDeposits(true);
+        _assertTreasuryTakesYieldInsteadOf(address(cookieJar));
+    }
+
+    /// @dev try/catch cannot catch a call to an address with no code, so the split has to check first.
+    function testYieldResolver_treasuryTakesYieldWhenJarHasNoCode() public {
+        _assertTreasuryTakesYieldInsteadOf(makeAddr("jarWithNoCode"));
+    }
+
+    /// @dev The call succeeds but nothing moves, so the tokens would sit in the resolver unaccounted for.
+    function testYieldResolver_treasuryTakesYieldWhenJarTakesNothing() public {
+        _assertTreasuryTakesYieldInsteadOf(address(new JarThatTakesNothing()));
+    }
+
+    /// @dev Paying the treasury the full amount here would spend balances pooled for other gardens.
+    function testYieldResolver_treasuryTakesOnlyWhatAPartialJarLeaves() public {
+        uint256 amount = 10_000;
+        uint256 pooledForOtherGardens = 1000;
+        JarThatTakesHalf jar = new JarThatTakesHalf(weth);
+        _prepareSplitEntirelyToCookieJar(amount);
+        weth.mint(address(yieldSplitter), pooledForOtherGardens);
+        vm.prank(owner);
+        yieldSplitter.setCookieJar(garden, address(jar));
+
+        vm.expectEmit(true, true, true, true, address(yieldSplitter));
+        emit YieldResolver.YieldSplit(garden, address(weth), amount / 2, 0, amount / 2, amount);
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(weth.balanceOf(address(jar)), amount / 2, "Jar should hold what it pulled");
+        assertEq(weth.balanceOf(treasury), amount / 2, "Treasury should take only the rest");
+        assertEq(weth.balanceOf(address(yieldSplitter)), pooledForOtherGardens, "Pooled balances should stay");
+        assertEq(weth.allowance(address(yieldSplitter), address(jar)), 0, "No allowance should remain");
+    }
+
+    function _prepareSplitEntirelyToCookieJar(uint256 amount) internal {
+        _fundVaultAndMintShares(amount);
+        vm.startPrank(owner);
+        yieldSplitter.setMinYieldThreshold(0);
+        yieldSplitter.setSplitRatio(garden, 10_000, 0, 0);
+        vm.stopPrank();
+    }
+
+    function _assertTreasuryTakesYieldInsteadOf(address jar) internal {
+        uint256 amount = 10_000;
+        _prepareSplitEntirelyToCookieJar(amount);
+        vm.prank(owner);
+        yieldSplitter.setCookieJar(garden, jar);
+
+        vm.expectEmit(true, true, true, true, address(yieldSplitter));
+        emit YieldResolver.YieldToTreasury(garden, address(weth), amount, treasury, "cookieJar");
+        // The split must not report the refused portion as the jar's, and its fields must still add up.
+        vm.expectEmit(true, true, true, true, address(yieldSplitter));
+        emit YieldResolver.YieldSplit(garden, address(weth), 0, 0, amount, amount);
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(weth.balanceOf(treasury), amount, "Treasury should take the yield");
+        assertEq(weth.balanceOf(jar), 0, "Jar should hold nothing");
+        assertEq(weth.balanceOf(address(yieldSplitter)), 0, "Resolver should hold nothing");
+        assertEq(weth.allowance(address(yieldSplitter), jar), 0, "No allowance should remain");
     }
 
     function test_splitYield_noCookieJar_fallsBackToTreasury() public {
@@ -737,7 +822,7 @@ contract YieldResolverTest is Test {
         address gardenB = address(0x101);
         address treasuryB = address(0x201);
         MockOctantVaultForYield vaultB = new MockOctantVaultForYield(address(weth));
-        MockCookieJar cookieJarB = new MockCookieJar();
+        MockCookieJar cookieJarB = new MockCookieJar(address(weth));
 
         vm.startPrank(owner);
         yieldSplitter.setCookieJar(gardenB, address(cookieJarB));
@@ -787,7 +872,7 @@ contract YieldResolverTest is Test {
         address gardenB = address(0x101);
         address treasuryB = address(0x201);
         MockOctantVaultForYield vaultB = new MockOctantVaultForYield(address(weth));
-        MockCookieJar cookieJarB = new MockCookieJar();
+        MockCookieJar cookieJarB = new MockCookieJar(address(weth));
 
         vm.startPrank(owner);
         yieldSplitter.setCookieJar(gardenB, address(cookieJarB));
@@ -1130,7 +1215,7 @@ contract YieldResolverTest is Test {
 
         vm.startPrank(owner);
         yieldSplitter.setGardenVault(gardenB, address(weth), address(vault));
-        yieldSplitter.setCookieJar(gardenB, address(new MockCookieJar()));
+        yieldSplitter.setCookieJar(gardenB, address(new MockCookieJar(address(weth))));
         yieldSplitter.setGardenTreasury(gardenB, address(0x201));
         vm.stopPrank();
 
@@ -1400,7 +1485,7 @@ contract YieldResolverFailureTest is Test {
     function setUp() public {
         weth = new MockWETH();
         vault = new MockOctantVaultForYield(address(weth));
-        cookieJar = new MockCookieJar();
+        cookieJar = new MockCookieJar(address(weth));
         marketplace = new MockHypercertMarketplace();
         jbTerminal = new MockJBMultiTerminalForYield();
         hatsModule = new MockHatsModule();
@@ -1646,7 +1731,7 @@ contract YieldResolverConvictionTest is Test {
         // Deploy mocks
         weth = new MockWETH();
         vault = new MockOctantVaultForYield(address(weth));
-        cookieJar = new MockCookieJar();
+        cookieJar = new MockCookieJar(address(weth));
         marketplace = new MockHypercertMarketplace();
         jbTerminal = new MockJBMultiTerminalForYield();
         hatsModule = new MockHatsModule();
@@ -2008,7 +2093,7 @@ contract YieldResolverWithExchangeTest is Test {
         // Deploy mocks
         weth = new MockWETH();
         vault = new MockOctantVaultForYield(address(weth));
-        cookieJar = new MockCookieJar();
+        cookieJar = new MockCookieJar(address(weth));
         jbTerminal = new MockJBMultiTerminalForYield();
         hatsModule = new MockHatsModule();
         cvStrategy = new MockCVStrategy();

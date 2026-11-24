@@ -21,6 +21,8 @@ const TEST_WALLET = "0x3333333333333333333333333333333333333333" as const;
 
 const mockOpenWallet = vi.fn();
 const mockLoginWithWallet = vi.fn();
+const mockSignOut = vi.fn();
+const authMode = vi.hoisted(() => ({ current: "wallet" as "wallet" | "passkey" }));
 const mockClaimMutate = vi.fn();
 const mockDepositMutate = vi.fn();
 const mockClaimReset = vi.fn();
@@ -29,6 +31,15 @@ const mockUseCampaignCookieJar = vi.fn();
 const mockUseCampaignCookieJarCampaigns = vi.fn();
 const mockUsePublicGardens = vi.fn();
 const mockUseUser = vi.fn();
+const mockDepositPlan = vi.fn();
+const QUIET_PLAN = {
+  signatures: null,
+  signatureLine: null,
+  isHeld: false,
+  isPaused: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null,
+};
 let claimError: Error | null = null;
 let depositError: Error | null = null;
 
@@ -65,8 +76,8 @@ vi.mock("@/routes/WalletRuntimeProviders", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("wagmi", () => ({
-  useBalance: () => ({ data: { formatted: "42", symbol: "GOOD" } }),
+vi.mock("@green-goods/shared/hooks/blockchain/useErc20Balance", () => ({
+  useErc20Balance: () => ({ data: { formatted: "42", symbol: "GOOD" } }),
 }));
 
 vi.mock("@green-goods/shared/components/Alert", async () => {
@@ -77,6 +88,7 @@ vi.mock("@green-goods/shared/components/Alert", async () => {
 
 vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
   classifyTxError: (error: Error | null) => ({
+    kind: error?.message === "unconfirmed" ? "unconfirmed" : "failed",
     severity: "error",
     rawMessage: error?.message ?? "",
     messageKey: "app.transaction.error.generic",
@@ -96,7 +108,9 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
 
 vi.mock("@green-goods/shared/components/Display/ImageWithFallback", async () => {
   return {
-    ImageWithFallback: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
+    ImageWithFallback: ({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+      <img alt={alt} {...props} />
+    ),
   };
 });
 
@@ -109,6 +123,7 @@ vi.mock("@green-goods/shared/utils/blockchain/address", () => ({
 }));
 
 vi.mock("@green-goods/shared/components/feedback/TxInlineFeedback", () => ({
+  TxHoldFeedback: ({ detail }: { detail: string }) => <p>{detail}</p>,
   TxInlineFeedback: ({
     visible,
     title,
@@ -132,7 +147,11 @@ vi.mock("@green-goods/shared/providers/AppKitProvider", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
-  useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+  useAuth: () => ({
+    loginWithWallet: mockLoginWithWallet,
+    signOut: mockSignOut,
+    authMode: authMode.current,
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar", () => ({
@@ -149,6 +168,10 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar", () => ({
     error: claimError,
     reset: mockClaimReset,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
+  useDepositPlan: (...args: unknown[]) => mockDepositPlan(...args),
 }));
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns", () => ({
@@ -181,6 +204,7 @@ describe("CookiesPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    mockDepositPlan.mockReturnValue(QUIET_PLAN);
     claimError = null;
     depositError = null;
     mockUseUser.mockReturnValue({ primaryAddress: TEST_WALLET });
@@ -258,6 +282,27 @@ describe("CookiesPage", () => {
     expect(await screen.findByText(/This cookie jar could not be loaded/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Check claim access" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Add funds" })).toBeNull();
+  });
+
+  // PUB-041: Disconnect ends the wallet session it names, instead of opening wallet management.
+  it("disconnects the connected wallet from its status line", async () => {
+    const user = userEvent.setup();
+    renderPage("/cookies");
+    await user.click(await screen.findByRole("button", { name: "Disconnect" }));
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    expect(mockOpenWallet).not.toHaveBeenCalled();
+  });
+
+  // A passkey account is the whole app's session: this page never signs it out.
+  it("offers no Disconnect to a passkey account", async () => {
+    authMode.current = "passkey";
+    try {
+      renderPage("/cookies");
+      expect(await screen.findByText(/Connected as/)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Disconnect" })).toBeNull();
+    } finally {
+      authMode.current = "wallet";
+    }
   });
 
   it("shows public cookie jars without requiring an explore action", async () => {
@@ -475,6 +520,70 @@ describe("CookiesPage", () => {
       },
       expect.any(Object)
     );
+  });
+
+  it("plans a deposit for this campaign jar and pauses it while an earlier one is unknown", async () => {
+    const user = userEvent.setup();
+    mockDepositPlan.mockReturnValue({
+      ...QUIET_PLAN,
+      signatureLine: "2 signatures",
+      isHeld: true,
+      isPaused: true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message: "Deposits here are paused.",
+        detail: "This jar holds 3 DAI now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: vi.fn(),
+        onMoveOn: vi.fn(),
+      },
+    });
+
+    renderPage();
+
+    await user.type(await screen.findByLabelText("Deposit amount"), "2.5");
+
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
+    expect(screen.getByText(/This jar holds 3 DAI now/)).toBeInTheDocument();
+    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+    expect(mockDepositPlan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        amount: 2500000000000000000n,
+        target: { kind: "jar", address: TEST_JAR, asset: TEST_TOKEN },
+      })
+    );
+  });
+
+  it("clears the amount when a held deposit proves it landed", async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    const amount = await screen.findByLabelText("Deposit amount");
+    await user.type(amount, "2.5");
+    expect(amount).toHaveValue("2.5");
+
+    act(() => mockDepositPlan.mock.lastCall?.[0].onLanded());
+
+    expect(amount).toHaveValue("");
+  });
+
+  it("leaves an unknown deposit to the hold notice, but not an unknown claim", async () => {
+    mockDepositPlan.mockReturnValue({ ...QUIET_PLAN, unconfirmedIsHeld: true });
+    depositError = new Error("unconfirmed");
+
+    const { unmount } = renderPage();
+
+    await screen.findByLabelText("Deposit amount");
+    expect(screen.queryByRole("alert")).toBeNull();
+    unmount();
+
+    depositError = null;
+    claimError = new Error("unconfirmed");
+    renderPage();
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
   it("surfaces failed transaction state inline", async () => {

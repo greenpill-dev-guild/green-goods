@@ -20,6 +20,11 @@ import type {
 export interface CommitmentReadModel {
   /** Indexed action terms; null/absent while any grouping term remains unread or unknown. */
   requirements?: readonly { actionUID: bigint; requiredCount: number }[] | null;
+  /**
+   * Each requirement's approved work count, in `requirements`' order: how far a promise's target
+   * per action is reviewed (PRD-1538). Null/absent while any count is unread.
+   */
+  requirementsApproved?: readonly number[] | null;
   id: string;
   chainId: number;
   commitmentId: bigint;
@@ -77,6 +82,11 @@ export interface CommitmentReadModel {
    * comparing this field directly.
    */
   counterparty?: Address | null;
+  /**
+   * When it was taken up (`CommitmentAccepted`), in seconds, kept when a later state wins.
+   * Null before anyone takes it up.
+   */
+  acceptanceAt?: number | null;
   /** Who recorded this on someone else's behalf. Null until creation is seen. */
   recordedBy?: Address | null;
   /**

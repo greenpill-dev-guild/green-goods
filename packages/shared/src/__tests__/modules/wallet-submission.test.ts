@@ -8,12 +8,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Must mock before imports
 vi.mock("@wagmi/core", () => ({
+  estimateGas: vi.fn(),
   getAccount: vi.fn(),
   getBlock: vi.fn(),
   getWalletClient: vi.fn(),
   getPublicClient: vi.fn(),
-  waitForTransactionReceipt: vi.fn(),
 }));
+vi.mock("../../modules/transactions/receipt-wait", () => ({ waitForReceipt: vi.fn() }));
 
 vi.mock("../../config/appkit", () => ({
   getWagmiConfig: () => ({}),
@@ -115,6 +116,7 @@ vi.mock("../../config/query-keys", () => ({
 
 import * as wagmiCore from "@wagmi/core";
 import { encodeEventTopics, type WalletClient } from "viem";
+import { waitForReceipt } from "../../modules/transactions/receipt-wait";
 import { worksKeys } from "../../config/query-keys/work";
 import { queryClient } from "../../config/react-query";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
@@ -122,11 +124,7 @@ import type { EASWork } from "../../types/eas-responses";
 import { EASABI } from "../../utils/blockchain/contracts";
 import * as polling from "../../utils/blockchain/polling";
 
-import {
-  submitApprovalDirectly,
-  submitBatchApprovalsDirectly,
-  submitWorkDirectly,
-} from "../../modules/work/wallet-submission";
+import { submitApprovalDirectly, submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import * as encoders from "../../utils/eas/encoders";
 import { mock } from "../test-utils/render-helpers";
@@ -145,6 +143,7 @@ describe("wallet-submission", () => {
     mockEnsureWagmiWalletChain.mockResolvedValue(undefined);
     mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
     mock(wagmiCore.getAccount).mockReturnValue({ address: "0xUserAddress" } as any);
+    mock(wagmiCore.estimateGas).mockResolvedValue(1_000_000n);
   });
 
   afterEach(() => {
@@ -167,7 +166,7 @@ describe("wallet-submission", () => {
     ];
 
     it("reconciles an already broadcast transaction before uploading or sending again", async () => {
-      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ status: "success" } as any);
+      mock(waitForReceipt).mockResolvedValue({ status: "success" } as any);
       await expect(
         submitWorkDirectly(
           mockWorkDraft,
@@ -195,7 +194,7 @@ describe("wallet-submission", () => {
       mock(mockWalletClient.sendTransaction!).mockResolvedValue(
         "0xTransactionHash" as `0x${string}`
       );
-      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      mock(waitForReceipt).mockResolvedValue({} as any);
 
       // Execute
       const result = await submitWorkDirectly(
@@ -239,9 +238,9 @@ describe("wallet-submission", () => {
           chain: expect.objectContaining({ id: mockChainId }),
         })
       );
-      expect(wagmiCore.waitForTransactionReceipt).toHaveBeenCalledWith(
+      expect(waitForReceipt).toHaveBeenCalledWith(
         {},
-        { hash: "0xTransactionHash", chainId: mockChainId }
+        { hash: "0xTransactionHash", chainId: mockChainId, timeout: 120_000 }
       );
     });
 
@@ -263,7 +262,7 @@ describe("wallet-submission", () => {
       const listed = () =>
         keys.map((key) => queryClient.getQueryData<EASWork[]>(key)?.map((work) => work.id));
       const send = (logs: unknown[]) => {
-        mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ logs } as any);
+        mock(waitForReceipt).mockResolvedValue({ logs } as any);
         return submitWorkDirectly(mockWorkDraft, garden, 123, "Test Action", mockChainId, []);
       };
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
@@ -367,7 +366,7 @@ describe("wallet-submission", () => {
       mock(mockWalletClient.sendTransaction!).mockResolvedValue(
         "0xTransactionHash" as `0x${string}`
       );
-      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      mock(waitForReceipt).mockResolvedValue({} as any);
       const onCheckpoint = vi.fn(async (_checkpoint: object) => undefined);
       const send = (draft: WorkDraft) =>
         submitWorkDirectly(draft, "0xGardenAddress", 123, "Test Action", mockChainId, mockImages, {
@@ -565,7 +564,7 @@ describe("wallet-submission", () => {
       mock(mockWalletClient.sendTransaction!).mockResolvedValue(
         "0xApprovalTxHash" as `0x${string}`
       );
-      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      mock(waitForReceipt).mockResolvedValue({} as any);
       const onLifecycle = vi.fn();
 
       // Execute
@@ -582,16 +581,26 @@ describe("wallet-submission", () => {
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
       expect(encoders.encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, mockChainId);
+      // The resolver's Karma update runs inside try/catch: the wallet gets the estimate plus 50%.
+      expect(wagmiCore.estimateGas).toHaveBeenCalledWith(
+        {},
+        expect.objectContaining({
+          account: "0xUserAddress",
+          chainId: mockChainId,
+          to: "0xEASAddress",
+        })
+      );
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "0xEASAddress",
           value: 0n,
+          gas: 1_500_000n,
           chain: expect.objectContaining({ id: mockChainId }),
         })
       );
-      expect(wagmiCore.waitForTransactionReceipt).toHaveBeenCalledWith(
+      expect(waitForReceipt).toHaveBeenCalledWith(
         {},
-        { hash: "0xApprovalTxHash", chainId: mockChainId }
+        { hash: "0xApprovalTxHash", chainId: mockChainId, timeout: 60_000 }
       );
       expect(onLifecycle.mock.calls).toEqual([
         [{ stage: "handoff" }],
@@ -608,7 +617,7 @@ describe("wallet-submission", () => {
       mock(mockWalletClient.sendTransaction!).mockResolvedValue(
         "0xApprovalTxHash" as `0x${string}`
       );
-      mock(wagmiCore.waitForTransactionReceipt).mockImplementation(() => new Promise(() => {}));
+      mock(waitForReceipt).mockImplementation(() => new Promise(() => {}));
       const onLifecycle = vi.fn();
 
       const result = await submitApprovalDirectly(
@@ -636,7 +645,7 @@ describe("wallet-submission", () => {
         "0xApprovalTxHash" as `0x${string}`
       );
       const receiptError = new Error("Transaction execution reverted");
-      mock(wagmiCore.waitForTransactionReceipt).mockRejectedValue(receiptError);
+      mock(waitForReceipt).mockRejectedValue(receiptError);
 
       try {
         await submitApprovalDirectly(
@@ -653,8 +662,8 @@ describe("wallet-submission", () => {
     });
 
     it("rejects a mined-but-reverted receipt instead of reporting it confirmed", async () => {
-      // waitForTransactionReceipt resolves with the receipt on revert rather
-      // than throwing, so "a receipt arrived" is not proof the write landed.
+      // waitForReceipt resolves with the receipt on revert rather than
+      // throwing, so "a receipt arrived" is not proof the write landed.
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkApprovalData).mockReturnValue(
         "0xEncodedApprovalData" as `0x${string}`
@@ -662,7 +671,7 @@ describe("wallet-submission", () => {
       mock(mockWalletClient.sendTransaction!).mockResolvedValue(
         "0xApprovalTxHash" as `0x${string}`
       );
-      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ status: "reverted" } as any);
+      mock(waitForReceipt).mockResolvedValue({ status: "reverted" } as any);
 
       await expect(
         submitApprovalDirectly(
@@ -709,50 +718,6 @@ describe("wallet-submission", () => {
         expect((error as Error).message).toBe("User rejected the request");
         expect((error as Error).cause).toBe(original);
       }
-    });
-  });
-
-  describe("submitBatchApprovalsDirectly", () => {
-    const mockApprovalDraft: WorkApprovalDraft = {
-      workUID: "0xWorkUID",
-      actionUID: 456,
-      approved: true,
-      feedback: "Great work!",
-      confidence: 2,
-      verificationMethod: 1,
-    };
-
-    it("switches to the target chain and submits with the target chain", async () => {
-      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      mock(encoders.encodeWorkApprovalData).mockReturnValue(
-        "0xEncodedApprovalData" as `0x${string}`
-      );
-      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
-        "0xBatchApprovalTxHash" as `0x${string}`
-      );
-      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
-
-      const result = await submitBatchApprovalsDirectly(
-        [
-          {
-            draft: mockApprovalDraft,
-            gardenAddress: "0xGardenAddress",
-            gardenerAddress: "0xGardenerAddress",
-          },
-        ],
-        mockChainId
-      );
-
-      expect(result).toBe("0xBatchApprovalTxHash");
-      expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
-      expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
-      expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "0xEASAddress",
-          value: 0n,
-          chain: expect.objectContaining({ id: mockChainId }),
-        })
-      );
     });
   });
 });

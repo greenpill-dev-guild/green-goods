@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
@@ -5,6 +6,7 @@ import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   type CommitmentClaimRequestRecord,
   type CommitmentReadModel,
+  selectClaimSupersededBy,
   useCommitmentReason,
 } from "@green-goods/shared/commitment-pooling";
 import { RiArrowLeftLine, RiRefreshLine } from "@remixicon/react";
@@ -23,11 +25,24 @@ export interface CommitmentClaimPanelProps {
 }
 
 /**
+ * What the reader is told about their request: a promise withdrawn or lapsed before anyone took it
+ * up never reads as taken up by someone else.
+ */
+function requestOutcome(request: CommitmentClaimRequestRecord) {
+  const supersededBy = selectClaimSupersededBy(request);
+  if (supersededBy === "canceled") return "WITHDRAWN";
+  if (supersededBy === "expired") return "EXPIRED";
+  return request.state;
+}
+
+/**
  * The reader's own claim request, in its exact lifecycle.
  *
  * Pending keeps the commitment available to everyone else eligible. Declined
  * shows the steward's reason and offers a fresh request, never a retry of the
- * old record. Superseded says someone else took it up and offers the way out.
+ * old record. Superseded says someone else took it up, or that the promise was
+ * withdrawn or lapsed before anyone did, and offers the way out; a withdrawal
+ * shows the reason it was withdrawn with.
  * Accepted names the provider, which for a garden claim is the garden, with
  * the steward who asked shown beside it: the two identities are different
  * things and are never collapsed.
@@ -42,9 +57,16 @@ export function CommitmentClaimPanel({
   onBackToBrowse,
 }: CommitmentClaimPanelProps) {
   const { formatMessage, formatDate } = useIntl();
-  const { reason, isUnavailable } = useCommitmentReason(
-    request.state === "DECLINED" ? request.reasonCID : null
-  );
+  const outcome = requestOutcome(request);
+  // A declined request carries the steward's own reason; a withdrawn promise carries the one
+  // given when it was withdrawn, which closed the request with it.
+  const reasonCID =
+    outcome === "DECLINED"
+      ? request.reasonCID
+      : outcome === "WITHDRAWN"
+        ? commitment.cancelReasonCID
+        : null;
+  const { reason, isLoading: reasonLoading } = useCommitmentReason(reasonCID);
   const isGardenClaim = request.claimType === "GARDEN";
   const requestedByYou = request.requestedBy.toLowerCase() === viewer.toLowerCase();
   const state = request.state;
@@ -65,22 +87,22 @@ export function CommitmentClaimPanel({
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-sm font-medium text-text-strong-950">
-          {formatMessage({ id: `app.claim.${state}.title` })}
+          {formatMessage({ id: `app.claim.${outcome}.title` })}
         </h3>
         <StatusBadge size="sm" variant={tone}>
-          {formatMessage({ id: `app.claim.${state}.chip` })}
+          {formatMessage({ id: `app.claim.${outcome}.chip` })}
         </StatusBadge>
       </div>
       <p className="mt-1 text-sm leading-relaxed text-text-sub-600">
         {formatMessage({
-          id: isGardenClaim ? `app.claim.${state}.bodyGarden` : `app.claim.${state}.body`,
+          id: isGardenClaim ? `app.claim.${outcome}.bodyGarden` : `app.claim.${outcome}.body`,
         })}
       </p>
 
-      <dl className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3 text-sm">
+      <FactList frame="inset" className="mt-3 border-t border-stroke-soft-200">
         {isGardenClaim ? (
           <>
-            <Row
+            <FactRow
               label={formatMessage({
                 id: state === "ACCEPTED" ? "app.claim.row.provider" : "app.claim.row.claimant",
               })}
@@ -93,7 +115,7 @@ export function CommitmentClaimPanel({
                 </span>
               }
             />
-            <Row
+            <FactRow
               label={formatMessage({ id: "app.claim.row.askedBy" })}
               value={
                 requestedByYou ? (
@@ -105,26 +127,24 @@ export function CommitmentClaimPanel({
             />
           </>
         ) : null}
-        <Row
+        <FactRow
           label={formatMessage({ id: "app.claim.row.asked" })}
           value={formatDate(new Date(request.requestedAt * 1000), {
             month: "short",
             day: "numeric",
           })}
         />
-        {state === "DECLINED" ? (
-          <Row
+        {outcome === "DECLINED" || outcome === "WITHDRAWN" ? (
+          <FactRow
             label={formatMessage({ id: "app.claim.row.reason" })}
             value={
               reason?.reason ??
-              (isUnavailable || !request.reasonCID
-                ? "—"
-                : formatMessage({ id: "app.claim.row.reasonLoading" }))
+              (reasonLoading ? formatMessage({ id: "app.claim.row.reasonLoading" }) : "—")
             }
           />
         ) : null}
         {state !== "PENDING" && request.resolvedAt ? (
-          <Row
+          <FactRow
             label={formatMessage({ id: "app.claim.row.resolved" })}
             value={formatDate(new Date(request.resolvedAt * 1000), {
               month: "short",
@@ -132,7 +152,7 @@ export function CommitmentClaimPanel({
             })}
           />
         ) : null}
-      </dl>
+      </FactList>
 
       {state === "DECLINED" && canAskAgain ? (
         <Button
@@ -162,14 +182,5 @@ export function CommitmentClaimPanel({
         </Button>
       ) : null}
     </section>
-  );
-}
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="shrink-0 text-xs text-text-soft-400">{label}</dt>
-      <dd className="min-w-0 text-right text-text-strong-950">{value}</dd>
-    </div>
   );
 }

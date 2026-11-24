@@ -13,18 +13,17 @@ on:
     paths:
       - "AGENTS.md"
       - "CLAUDE.md"
-      - "DESIGN.md"
+      - "DESIGN*.md"
       - "package.json"
       - ".claude/skills/design/**"
-      - "docs/DESIGN.md"
+      - "docs/DESIGN*.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/index.mdx"
       - "docs/src/css/custom.css"
       - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
-      - "packages/admin/DESIGN.md"
+      - "packages/*/DESIGN*.md"
       - "packages/admin/src/**"
-      - "packages/client/DESIGN*.md"
       - "packages/client/src/**"
       - "packages/shared/AGENTS.md"
       - "packages/shared/package.json"
@@ -54,23 +53,34 @@ on:
       - ".github/actions/setup-js/action.yml"
       - ".github/actions/setup-playwright/action.yml"
       - "scripts/dev/playwright-setup.test.mjs"
+      - ".claude/brand-voice-guidelines.md"
+      - "README.md"
+      - "docs/docs/community/how-it-works.mdx"
+      - "docs/docs/community/welcome.mdx"
+      - "docs/docs/community/why-we-build.mdx"
+      - "docs/docs/reference/brand-voice.mdx"
+      - "docs/docusaurus.config.ts"
+      - "docs/releases/2.0.0/announcement.md"
+      - "docs/releases/2.0.0/release-notes.md"
+      - "packages/client/index.html"
+      - "packages/shared/src/config/app.ts"
+      - "scripts/quality/check-guidance-links.mjs"
       - ".github/workflows/design.yml"
   pull_request:
     paths:
       - "AGENTS.md"
       - "CLAUDE.md"
-      - "DESIGN.md"
+      - "DESIGN*.md"
       - "package.json"
       - ".claude/skills/design/**"
-      - "docs/DESIGN.md"
+      - "docs/DESIGN*.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/index.mdx"
       - "docs/src/css/custom.css"
       - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
-      - "packages/admin/DESIGN.md"
+      - "packages/*/DESIGN*.md"
       - "packages/admin/src/**"
-      - "packages/client/DESIGN*.md"
       - "packages/client/src/**"
       - "packages/shared/AGENTS.md"
       - "packages/shared/package.json"
@@ -100,6 +110,18 @@ on:
       - ".github/actions/setup-js/action.yml"
       - ".github/actions/setup-playwright/action.yml"
       - "scripts/dev/playwright-setup.test.mjs"
+      - ".claude/brand-voice-guidelines.md"
+      - "README.md"
+      - "docs/docs/community/how-it-works.mdx"
+      - "docs/docs/community/welcome.mdx"
+      - "docs/docs/community/why-we-build.mdx"
+      - "docs/docs/reference/brand-voice.mdx"
+      - "docs/docusaurus.config.ts"
+      - "docs/releases/2.0.0/announcement.md"
+      - "docs/releases/2.0.0/release-notes.md"
+      - "packages/client/index.html"
+      - "packages/shared/src/config/app.ts"
+      - "scripts/quality/check-guidance-links.mjs"
       - ".github/workflows/design.yml"
 
 permissions:
@@ -134,15 +156,22 @@ jobs:
       - name: Check docs design parity
         run: bun run check --only docs-design-parity
 
+      - name: Check brand voice parity
+        run: bun run check --only brand-voice-parity
+
       - name: Run design guardrail tests
-        run: node --test scripts/design/check-guidance-examples.test.mjs scripts/design/token-usage.test.mjs scripts/design/md-generate.test.mjs scripts/dev/playwright-setup.test.mjs
+        run: node --test scripts/design/check-guidance-examples.test.mjs scripts/design/token-usage.test.mjs scripts/design/md-generate.test.mjs scripts/design/check-vocab.test.mjs scripts/dev/playwright-setup.test.mjs
 
       - name: Check banned vocabulary
         run: bun run check --only vocabulary
 
+      - name: Check em dashes
+        run: bun run check --only em-dashes
+
   storybook:
     name: Storybook
-    runs-on: ubuntu-latest
+    # Playwright 1.60 cannot install Chromium on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     env:
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
     steps:
@@ -174,7 +203,7 @@ jobs:
 
       - name: Upload client PWA token audit
         if: ${{ always() && !cancelled() && steps.pwa_audit_file.outputs.present == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: client-pwa-token-audit
           path: output/design/client-pwa-token-audit.md
@@ -194,7 +223,7 @@ jobs:
         run: bun run --filter @green-goods/shared build-storybook
 
       - name: Upload Storybook artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: storybook-static
           path: packages/shared/storybook-static

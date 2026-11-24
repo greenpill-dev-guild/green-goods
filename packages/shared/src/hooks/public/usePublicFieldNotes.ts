@@ -8,17 +8,18 @@
  *   - **EAS** (`getWorks`, then `readApprovedWorks`): the Work attestations
  *     that become public field notes.
  *
- * No auth path — every approved on-chain `Work` attestation is treated as
- * public for v1. Pending and rejected work is not.
+ * No auth path. Approved Work is public unless the explicit record-review
+ * policy identifies a test or holds it pending review. Pending and rejected
+ * approval decisions also stay out.
  *
  * ### Indexer-scope gaps surfaced here
  *
  * - **No `public-readable` flag** on action submissions (Work attestations).
- *   Approval is the only gate in v1; per the plan's open question, an opt-in
+ *   Approval and the explicit record-review policy gate publication; an opt-in
  *   flag at the action level may land later. When it does, the queryFn should
  *   add a `where` clause filtering on that flag.
  * - **No volume binding** at the indexer/EAS level. The `volume` option is
- *   accepted for forward-compat with the Seasons primitive but currently
+ *   accepted for forward-compat with a network program-period record but currently
  *   filters by the hardcoded Season One window from `usePublicVolume`.
  * - **EAS pagination** is `LIMIT/OFFSET` style after a single full fetch —
  *   the EAS GraphQL surface used here does not offer native cursors; treat
@@ -34,7 +35,7 @@ import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { readApprovedWorks } from "../../modules/work/work-list";
+import { readPublicApprovedWorks } from "./publicReportingRecords";
 import type { Address } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import type { PublicFieldNote } from "./usePublicGardenDetail";
@@ -106,7 +107,7 @@ export function usePublicFieldNotes(opts: UsePublicFieldNotesOptions = {}) {
         recipient = ids;
       }
 
-      const { works, partial } = await readApprovedWorks(
+      const { works, partial } = await readPublicApprovedWorks(
         await getWorks(recipient, chainId),
         chainId
       );

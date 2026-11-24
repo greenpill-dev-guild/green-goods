@@ -2,6 +2,7 @@ import type { OntologyChainCapability } from "../../ontology/types";
 import type { Address } from "../../types/domain";
 import { isDemoPoolingActive } from "./demo/demo-mode";
 import type {
+  CommitmentClaimRequestRecord,
   CommitmentDerivedState,
   CommitmentPoolingAvailability,
   CommitmentReadModel,
@@ -41,6 +42,11 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export function isSameAccount(left: Address | null | undefined, right: Address): boolean {
   if (!left || left === ZERO_ADDRESS) return false;
   return left.toLowerCase() === right.toLowerCase();
+}
+
+/** The account in a seat, or null when the seat is absent, empty or the zero address. */
+function seatHolder(account: Address | null | undefined): Address | null {
+  return account && account !== ZERO_ADDRESS ? account : null;
 }
 
 /**
@@ -133,6 +139,32 @@ export function selectCommitmentSeat(input: {
     return "confirmer";
   }
   return "bystander";
+}
+
+/**
+ * The other person on a commitment, as its row names them: whoever is on the far side from
+ * the reader's seat. A provider reads the person they do it for; a confirmer or a helper reads
+ * the person who does it, and nobody before anyone has taken it up, since the one who asked is
+ * often the reader. A reader with no seat (a steward's list, a visitor) reads whoever does it,
+ * else whoever asked. Null when nobody is there yet, the zero address included.
+ *
+ * The provider is the lead provider once one is set: on a request taken up as a garden
+ * claim, the counterparty is the garden's account, not the person (the Hub's
+ * CommitmentPeople reads it the same way).
+ */
+export function selectCommitmentOtherParty(input: {
+  commitment: Pick<CommitmentReadModel, "creator" | "leadProvider" | "counterparty" | "direction">;
+  seat?: CommitmentSeat | null;
+}): Address | null {
+  const { commitment, seat } = input;
+  const isRequest = commitment.direction === "REQUEST";
+  const creator = seatHolder(commitment.creator);
+  const counterparty = seatHolder(commitment.counterparty);
+  const provider = seatHolder(commitment.leadProvider) ?? (isRequest ? counterparty : creator);
+  const receiver = isRequest ? creator : counterparty;
+  if (seat === "provider") return receiver;
+  if (seat === "confirmer" || seat === "contributor") return provider;
+  return provider ?? receiver;
 }
 
 /**
@@ -327,6 +359,24 @@ export function selectClaimPreflight(input: {
     blockers.push("protocol-self-target");
   }
   return { allowed: blockers.length === 0, blockers };
+}
+
+/** What closed a superseded claim request: a take-up, or the promise ending before one. */
+export type ClaimSupersededBy = "taken-up" | "canceled" | "expired";
+
+/**
+ * Why the index superseded a claim request, or null when it did not. A request still pending when
+ * its promise is taken up, canceled or runs out of time closes as superseded, and its resolution
+ * code says which. A code this read does not know reads as a take-up, the case superseding first
+ * named.
+ */
+export function selectClaimSupersededBy(
+  claim: Pick<CommitmentClaimRequestRecord, "state" | "resolutionCode">
+): ClaimSupersededBy | null {
+  if (claim.state !== "SUPERSEDED") return null;
+  if (claim.resolutionCode === "COMMITMENT_CANCELLED") return "canceled";
+  if (claim.resolutionCode === "COMMITMENT_EXPIRED") return "expired";
+  return "taken-up";
 }
 
 export function selectContributorRemoval(input: {

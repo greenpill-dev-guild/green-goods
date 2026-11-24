@@ -1,11 +1,18 @@
-import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useResolvedWorkDetail } from "@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail";
 import { trackWorkApprovalPresentationFailed } from "@green-goods/shared/modules/app/analytics-events";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
+import type { Work, WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
-import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
+import {
+  RiCheckboxCircleLine,
+  RiCloseLine,
+  RiErrorWarningLine,
+  RiQuestionLine,
+  RiSearchLine,
+  RiTimeLine,
+} from "@remixicon/react";
 import { useCallback, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
@@ -15,14 +22,17 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
-import { MediaEvidence } from "@/views/Hub/components/MediaEvidence";
+import { MediaEvidence } from "@/views/Review/components/MediaEvidence";
 import { ReviewForm } from "./ReviewForm";
 import { SubmissionDetails } from "./SubmissionDetails";
-import { localizeActionForDisplay, localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
+import {
+  localizeActionForDisplay,
+  localizeCanonicalActionTitle,
+} from "@/components/Action/actionDisplay";
 
 type WorkDetailLayout = "page" | "sheet";
 
-function parseHubContext(search: string) {
+function parseReviewContext(search: string) {
   const params = new URLSearchParams(search);
   const view = params.get("view");
   const sort = params.get("sort");
@@ -34,7 +44,18 @@ function parseHubContext(search: string) {
   } as const;
 }
 
-function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
+function isDecided(work: Work) {
+  return work.status === "approved" || work.status === "rejected";
+}
+
+function WorkDetailStatusBadge({
+  status,
+  statusUnread = false,
+}: {
+  status: WorkDisplayStatus;
+  /** Its decisions could not be read: it says so, never Pending. */
+  statusUnread?: boolean;
+}) {
   const { formatMessage } = useIntl();
 
   const statusConfig = {
@@ -53,15 +74,24 @@ function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
       color: "bg-error-lighter text-error-dark",
       icon: RiCloseLine,
     },
+    unread: {
+      label: formatMessage({
+        id: "hub.garden.calendar.status.unknown",
+        defaultMessage: "Status unread",
+      }),
+      color: "bg-bg-weak text-text-sub",
+      icon: RiQuestionLine,
+    },
   } as const;
 
-  const displayStatus = status === "approved" || status === "rejected" ? status : "pending";
+  const displayStatus =
+    status === "approved" || status === "rejected" ? status : statusUnread ? "unread" : "pending";
   const config = statusConfig[displayStatus];
   const StatusIcon = config.icon;
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 label-xs ${config.color}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 type-label-sm ${config.color}`}
     >
       <StatusIcon className="h-3 w-3" />
       {config.label}
@@ -71,14 +101,48 @@ function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
 
 export interface WorkDetailPanelProps {
   workId: string;
+  /**
+   * Opened from a Review day whose read could not say this work's status, or has not yet. The
+   * garden's own read can say so too; either holds the decision.
+   */
+  statusUnread?: boolean;
+  /**
+   * The work as a fresher read has it decided, such as the Review day it was opened from: it
+   * outranks a garden copy that still says pending, so a decided work is never offered again.
+   */
+  decidedWork?: Work;
   layout?: WorkDetailLayout;
   onSuccess?: () => void;
 }
 
-export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDetailPanelProps) {
+export function WorkDetailPanel({
+  workId,
+  statusUnread: openedUnread = false,
+  decidedWork,
+  layout = "page",
+  onSuccess,
+}: WorkDetailPanelProps) {
   const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
-  const { garden, work, action, canReview, canApproveOrReject, isReviewed, metadata } = resolved;
+  const { garden, action, canReview, canApproveOrReject, metadata } = resolved;
+  const decided =
+    decidedWork && decidedWork.id === resolved.work?.id && isDecided(decidedWork)
+      ? decidedWork
+      : undefined;
+  const work = decided ?? resolved.work;
+  const isReviewed = Boolean(decided) || resolved.isReviewed;
+  // Unread where it was opened (a day still being read), or in the garden's own read.
+  const statusUnread = openedUnread || resolved.statusUnread;
+  // The voice notes and documents come from the metadata file, read after the work itself.
+  // Offline, the read waits for the connection and a retry cannot run, so it is not a failure.
+  const evidenceState =
+    resolved.metadataStatus === "loading"
+      ? "loading"
+      : resolved.metadataStatus === "unavailable"
+        ? "offline"
+        : resolved.metadataStatus === "error"
+          ? "failed"
+          : undefined;
   const resolutionStatusRef = useRef(resolved.resolutionStatus);
   useEffect(() => {
     resolutionStatusRef.current = resolved.resolutionStatus;
@@ -150,35 +214,29 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
     );
   }
 
-  if (resolved.isError) {
-    const message = formatMessage({ id: "app.work.detail.loadError" });
-    if (layout === "sheet") {
-      return (
-        <div className="p-1">
-          <Alert variant="error">{message}</Alert>
-        </div>
-      );
-    }
-
-    return (
-      <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6">
-        <Alert variant="error">{message}</Alert>
-      </CanvasRouteContent>
+  if (resolved.isError || resolved.isNotFound || !work || !garden) {
+    // A missing work is announced as a failure too: the link named a work that is not there.
+    const state = resolved.isError ? (
+      <EmptyState
+        tone="error"
+        icon={<RiErrorWarningLine />}
+        title={formatMessage({ id: "app.work.detail.loadError.title" })}
+        description={formatMessage({ id: "app.work.detail.loadError.description" })}
+      />
+    ) : (
+      <EmptyState
+        tone="error"
+        icon={<RiSearchLine />}
+        title={formatMessage({ id: "app.work.detail.notFound" })}
+      />
     );
-  }
-
-  if (resolved.isNotFound || !work || !garden) {
     if (layout === "sheet") {
-      return (
-        <div className="p-1">
-          <Alert variant="error">{formatMessage({ id: "app.work.detail.notFound" })}</Alert>
-        </div>
-      );
+      return <div className="p-1">{state}</div>;
     }
 
     return (
       <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6">
-        <Alert variant="error">{formatMessage({ id: "app.work.detail.notFound" })}</Alert>
+        {state}
       </CanvasRouteContent>
     );
   }
@@ -192,7 +250,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
   // The dialog title already names the work, so the topline carries only its status.
   const sheetTopline = (
     <div className="flex flex-wrap items-center gap-2 px-1">
-      <WorkDetailStatusBadge status={work.status} />
+      <WorkDetailStatusBadge status={work.status} statusUnread={statusUnread} />
     </div>
   );
 
@@ -210,6 +268,9 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
               <MediaEvidence
                 media={work.media}
                 audioNoteCids={resolved.audioNoteCids}
+                documents={resolved.documents}
+                evidenceState={evidenceState}
+                onRetryEvidence={resolved.retryMetadata}
                 actionTitle={localizedActionTitle}
               />
             </section>
@@ -230,6 +291,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
               canReview={canReview}
               canApproveOrReject={canApproveOrReject}
               isReviewed={isReviewed}
+              statusUnread={statusUnread}
               layout="sheet"
               onSuccess={handleReviewSuccess}
             />
@@ -247,6 +309,9 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
             <MediaEvidence
               media={work.media}
               audioNoteCids={resolved.audioNoteCids}
+              documents={resolved.documents}
+              evidenceState={evidenceState}
+              onRetryEvidence={resolved.retryMetadata}
               actionTitle={localizedActionTitle}
             />
           </section>
@@ -268,6 +333,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
           canReview={canReview}
           canApproveOrReject={canApproveOrReject}
           isReviewed={isReviewed}
+          statusUnread={statusUnread}
           layout="page"
           onSuccess={handleReviewSuccess}
         />
@@ -290,15 +356,15 @@ export default function WorkDetail() {
   const localizedWorkTitle = workTitle
     ? localizeCanonicalActionTitle(workTitle, formatMessage)
     : undefined;
-  // The Hub's filters come from the router, which says when they change. Read from
+  // Review's filters come from the router, which says when they change. Read from
   // window.location while rendering they name no reactive value, so the compiled app would keep
   // the first work's filters for as long as this view stays mounted.
-  const hubContext = parseHubContext(search);
+  const reviewContext = parseReviewContext(search);
 
   const baseHeaderProps = {
     backLink: {
-      to: adminRoutes.hub(hubContext),
-      label: formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" }),
+      to: adminRoutes.review(reviewContext),
+      label: formatMessage({ id: "hub.nav.review", defaultMessage: "Review" }),
     },
     sticky: true,
   } as const;
@@ -331,7 +397,12 @@ export default function WorkDetail() {
           formatMessage({ id: "app.work.detail.loadingDescription" })
         }
         metadata={
-          resolved.work ? <WorkDetailStatusBadge status={resolved.work.status} /> : undefined
+          resolved.work ? (
+            <WorkDetailStatusBadge
+              status={resolved.work.status}
+              statusUnread={resolved.statusUnread}
+            />
+          ) : undefined
         }
         {...baseHeaderProps}
       />

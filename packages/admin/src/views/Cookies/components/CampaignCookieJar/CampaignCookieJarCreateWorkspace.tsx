@@ -74,7 +74,7 @@ export function CampaignCookieJarCreateWorkspace({
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
-  const { isDeployer, loading: roleLoading } = useRole();
+  const { isProtocolTeam, loading: roleLoading } = useRole();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens(chainId);
   const {
     factoryAddress,
@@ -200,7 +200,7 @@ export function CampaignCookieJarCreateWorkspace({
     allowlistCount: aggregation.allowlist.length,
     invalidAddressCount: aggregation.invalidAddresses.length,
     metadataUrlsValid,
-    isDeployer,
+    isProtocolTeam,
   });
   const payoutLabel =
     parsedClaimAmount && tokenSymbol
@@ -348,13 +348,13 @@ export function CampaignCookieJarCreateWorkspace({
     preventRouteChange: createJar.isPending,
   });
   const title = formatMessage({
-    id: "cockpit.community.cookies.dialogTitle",
+    id: "hub.community.cookies.dialogTitle",
     defaultMessage: "Create Cookie Jar",
   });
   const form: CampaignCookieJarCreateFormProps = {
     formatMessage,
     moduleConfigured,
-    isDeployer,
+    isProtocolTeam,
     roleLoading,
     createPending: createJar.isPending,
     gardensLoading,
@@ -457,7 +457,7 @@ export function CampaignCookieJarCreateWorkspace({
               isLast={stepIndex === steps.length - 1}
               phase={phase}
               sendLabel={formatMessage({
-                id: "cockpit.community.cookies.create",
+                id: "hub.community.cookies.create",
                 defaultMessage: "Create Cookie Jar",
               })}
               note={<SingleSendNote phase={phase} />}
@@ -468,7 +468,7 @@ export function CampaignCookieJarCreateWorkspace({
                 createdJarAddress
                   ? {
                       label: formatMessage({
-                        id: "cockpit.community.cookies.createAnother",
+                        id: "hub.community.cookies.createAnother",
                         defaultMessage: "Create Another",
                       }),
                       onClick: startAnother,

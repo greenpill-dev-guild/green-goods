@@ -8,13 +8,18 @@ import {
   demoViewer,
   isDemoPoolingActive,
 } from "../modules/commitment-pooling/demo/demo-mode";
-import { getCommitments } from "../modules/commitment-pooling/demo/demo-reads";
+import {
+  getCommitmentActivity,
+  getCommitments,
+} from "../modules/commitment-pooling/demo/demo-reads";
 import {
   buildDemoWorld,
   DEMO_GARDEN,
   DEMO_GARDEN_POOL_ID,
   ROSA,
 } from "../modules/commitment-pooling/demo/demo-world";
+import { DEMO_PROTOCOL_POOL_ID } from "../modules/commitment-pooling/demo/demo-builders";
+import { deriveGardenNotifications } from "../modules/garden/notifications";
 import { queryClient } from "../config/react-query";
 import { DEV_MOCK_AUTH_ADDRESSES } from "../providers/DevAuthProvider";
 import type { Address } from "../types/domain";
@@ -49,6 +54,29 @@ describe("demo pooling mode", () => {
     visit("");
     window.sessionStorage.setItem("greengoods_dev_mock_auth", "user");
     expect(demoViewer()).toBe(DEV_MOCK_AUTH_ADDRESSES.user);
+  });
+
+  it("times every promise the world shows taken up, so the bell lists its maker's", () => {
+    const viewer = DEV_MOCK_AUTH_ADDRESSES.deployer;
+    const { commitments } = buildDemoWorld(viewer);
+
+    // The indexer writes the taker and the acceptance time together.
+    for (const commitment of commitments) {
+      if (commitment.counterparty) expect(commitment.acceptanceAt).toEqual(expect.any(Number));
+      else expect(commitment.acceptanceAt ?? null).toBeNull();
+    }
+    const takenUp = deriveGardenNotifications({
+      account: viewer,
+      canReviewWork: false,
+      canDecideTakeUps: false,
+      works: [],
+      commitments: commitments.filter(({ poolId }) => poolId === DEMO_GARDEN_POOL_ID),
+      takeUpRequests: [],
+    }).filter((event) => event.kind === "promiseTakenUp");
+    // 1007 is the viewer's garden-work offer that Rosa took up.
+    expect(takenUp.map((event) => event.id)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^takenUp:\d+-1007:\d+$/)])
+    );
   });
 
   it("answers from the real reader unless the flag is on", async () => {
@@ -94,6 +122,59 @@ describe("demo pooling mode", () => {
       state: "READY_FOR_CONFIRMATION",
     });
     expect(gardenClaims.map((row) => row.commitmentId)).toEqual([1020n]);
+  });
+
+  it("reads withdrawn promises' activity by pool, newest first, a page at a time", async () => {
+    visit("?mockPooling=1");
+    const all = await getCommitmentActivity({ chainId: 42161, poolId: DEMO_GARDEN_POOL_ID });
+    expect(all.length).toBeGreaterThan(3);
+    expect(new Set(all.map((row) => row.eventType))).toContain("CANCELLED");
+    for (const [newer, older] of all.slice(0, -1).map((row, i) => [row, all[i + 1]] as const)) {
+      expect(
+        newer.timestamp > older.timestamp ||
+          (newer.timestamp === older.timestamp && newer.id > older.id)
+      ).toBe(true);
+    }
+    expect(await getCommitmentActivity({ chainId: 42161, poolId: DEMO_PROTOCOL_POOL_ID })).toEqual(
+      []
+    );
+    const first = await getCommitmentActivity({
+      chainId: 42161,
+      poolId: DEMO_GARDEN_POOL_ID,
+      limit: 2,
+    });
+    const byOffset = await getCommitmentActivity({
+      chainId: 42161,
+      poolId: DEMO_GARDEN_POOL_ID,
+      limit: 2,
+      offset: 2,
+    });
+    const byCursor = await getCommitmentActivity({
+      chainId: 42161,
+      poolId: DEMO_GARDEN_POOL_ID,
+      limit: 2,
+      before: first[1],
+    });
+    expect(first).toEqual(all.slice(0, 2));
+    expect(byOffset).toEqual(all.slice(2, 4));
+    expect(byCursor).toEqual(all.slice(2, 4));
+    // The two newest rows share a timestamp, so a cursor at the first must keep the second by id.
+    expect(all[0].timestamp).toBe(all[1].timestamp);
+    expect(
+      await getCommitmentActivity({
+        chainId: 42161,
+        poolId: DEMO_GARDEN_POOL_ID,
+        limit: 1,
+        before: all[0],
+      })
+    ).toEqual(all.slice(1, 2));
+    expect(
+      await getCommitmentActivity({
+        chainId: 42161,
+        poolId: DEMO_GARDEN_POOL_ID,
+        cycleId: 999_999n,
+      })
+    ).toEqual([]);
   });
 });
 

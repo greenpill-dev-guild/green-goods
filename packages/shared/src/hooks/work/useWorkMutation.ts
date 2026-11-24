@@ -1,6 +1,12 @@
 import { connectivityStore } from "../../stores/connectivity";
 import { useIntl } from "react-intl";
-import { showWorkSubmissionFailure } from "./workSubmissionFeedback";
+import {
+  recordWorkSubmissionFailure,
+  recordWorkSubmissionOutcome,
+  recordWorkSubmissionStart,
+  showWorkStillConfirming,
+  showWorkSubmissionFailure,
+} from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 import { draftDB } from "../../modules/job-queue/draft-db";
@@ -15,13 +21,13 @@ import {
   workToasts,
 } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import {
-  trackWorkSubmissionStarted,
-  trackWorkSubmissionSuccess,
-  trackWorkWalletRequestStarted,
-} from "../../modules/app/analytics-events";
+import { trackWorkWalletRequestStarted } from "../../modules/app/analytics-events";
 import { addBreadcrumb } from "../../modules/app/error-tracking";
-import { isOfflineTxHash } from "../../modules/job-queue/queue-policy";
+import {
+  hasRecordedSend,
+  hasRevertedWorkSend,
+  isOfflineTxHash,
+} from "../../modules/job-queue/queue-policy";
 import {
   createDefaultSubmitWorkPorts,
   submitWork,
@@ -34,26 +40,21 @@ import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { gardensKeys } from "../../config/query-keys/garden";
 import { worksKeys } from "../../config/query-keys/work";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
-import type { UseWorkMutationOptions } from "./useWorkMutation.types";
+import type { UseWorkMutationOptions, WorkMutationOrigin as Origin } from "./useWorkMutation.types";
+import { useUploadPolicy } from "./useUploadPolicy";
+import {
+  assertWorkUploadConsent,
+  UploadPolicyCancelledError,
+} from "../../modules/work/upload-policy";
 
 export type { UseWorkMutationOptions } from "./useWorkMutation.types";
 
-/**
- * Hook to manage work submission mutation
- *
- * Handles:
- * - Auth mode branching (wallet vs passkey)
- * - Online/offline detection
- * - Toast notifications
- * - Job queue integration
- *
- * @param options - Configuration options
- * @returns Mutation instance
- */
+/** Checks upload consent and owns a Work submission through queue admission, sending and recovery. */
 export function useWorkMutation(options: UseWorkMutationOptions) {
   const {
     authMode,
@@ -71,6 +72,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     dependencies,
   } = options;
   const intl = useIntl();
+  const uploadPolicy = useUploadPolicy(userAddress, intl.locale);
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
@@ -78,15 +80,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const session = useRef({ identity, generation: 0 });
   if (session.current.identity !== identity)
     session.current = { identity, generation: session.current.generation + 1 };
-  type Variables = { draft: WorkDraft; images: File[] };
-  type Origin = {
-    identity: string;
-    generation: number;
-    activeDraftId: string | null | undefined;
-    journeyId: string;
-    clientWorkId?: string;
-    outcome?: SubmitWorkOutcome;
-  };
+  type Variables = { draft: WorkDraft; images: File[]; beforeAdmission?: () => Promise<boolean> };
   const origins = useRef(new WeakMap<Variables, Origin>());
   const ownsSession = (origin: Origin | undefined) =>
     Boolean(
@@ -107,6 +101,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   );
   const lastSubmissionOutcomeRef = useRef<SubmitWorkOutcome | null>(null);
   const retainedSubmission = useRef<{ scope: string; id: string } | null>(null);
+  const journeyWork = useRef<{ scope: string; id: string } | null>(null);
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
@@ -120,6 +115,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
         queryClient.invalidateQueries({
           queryKey: worksKeys.merged(lastGardenRef.current, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: gardensKeys.memberReadinessForGarden(lastGardenRef.current, chainId),
         });
       }
     }, [queryClient, chainId]),
@@ -175,9 +173,23 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
       const submission = retainSubmission ? retainedSubmission.current : null;
       origin.clientWorkId = submission?.id;
+      // A draft names its work, but autosave keeps none when there is nothing to save, as when the
+      // flow chose a garden's only action and nothing was added. Such work keeps one identity for
+      // its journey, so a Submit after a declined prompt reaches the work the queue already holds
+      // instead of admitting a second copy that could also be sent.
+      let journeyWorkId: string | undefined;
+      if (completeClientFlow && !submission && !persistedDraft?.clientWorkId) {
+        const scope = `${origin.identity}:${origin.generation}:${origin.journeyId}:${gardenAddress}:${actionUID}`;
+        if (journeyWork.current?.scope !== scope)
+          journeyWork.current = { scope, id: crypto.randomUUID() };
+        journeyWorkId = journeyWork.current.id;
+      }
+      const consentedDraft = { ...draft };
+      if (origin.uploadConsent) consentedDraft.uploadConsent = origin.uploadConsent;
       const outcome = await submitWork(
         {
           ...persistence,
+          ...(journeyWorkId ? { clientWorkId: journeyWorkId } : {}),
           ...(submission
             ? {
                 clientWorkId: submission.id,
@@ -190,13 +202,16 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           assertOwnership: () => {
             if (!ownsSession(origin)) throw new Error("submission-ownership-changed");
           },
+          onAdmitted: () => {
+            origin.admitted = true;
+          },
           authMode,
           gardenAddress,
           actionUID,
           actions,
           userAddress,
           chainId,
-          draft,
+          draft: consentedDraft,
           images,
           allowOfflineQueue,
           retainSubmission,
@@ -207,7 +222,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           onWalletStage: (stage, message) => {
             if (!ownsFlow(origin)) return;
             if (
-              stage === "confirming" &&
+              stage === "wallet" &&
               walletRequestStartedJourneyRef.current !== workSubmissionJourneyId
             ) {
               walletRequestStartedJourneyRef.current = workSubmissionJourneyId;
@@ -224,7 +239,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             if (stage === "complete") {
               walletProgressToasts.success();
             } else {
-              showWalletProgress(stage, message);
+              showWalletProgress(stage, message, intl.formatMessage);
             }
             onProgress?.(stage, message);
           },
@@ -255,6 +270,17 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         journeyId: flow.ensureWorkSubmissionJourneyId(),
       };
       origins.current.set(variables, origin);
+      const work = { kind: "work", payload: variables.draft };
+      const hasSubmissionContext = userAddress && gardenAddress && typeof actionUID === "number";
+      if (hasSubmissionContext && (!hasRecordedSend(work) || hasRevertedWorkSend(work))) {
+        const receipt = await uploadPolicy.request();
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError("flow-left");
+        assertWorkUploadConsent(receipt, userAddress);
+        origin.uploadConsent = receipt;
+        if (variables.beforeAdmission && !(await variables.beforeAdmission()))
+          throw new UploadPolicyCancelledError("before-admission");
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError("flow-left");
+      }
       const workSubmissionJourneyId = origin.journeyId;
 
       if (DEBUG_ENABLED && variables) {
@@ -277,7 +303,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         imageCount: variables?.images.length ?? 0,
         workSubmissionJourneyId,
       });
-      trackWorkSubmissionStarted({
+      recordWorkSubmissionStart({
         actionUID: actionUID ?? 0,
         authMode,
         imageCount: variables?.images.length ?? 0,
@@ -346,19 +372,18 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
     onSuccess: (txHash, variables) => {
       const origin = origins.current.get(variables);
-      if (!origin || !ownsFlow(origin)) return;
+      if (!origin || !ownsSession(origin)) return;
+      // The ending is recorded even when the person has left the flow (PRD-1495).
+      recordWorkSubmissionOutcome(origin, txHash, options);
+      if (!ownsFlow(origin)) return;
       const isOfflineHash = typeof txHash === "string" && isOfflineTxHash(txHash);
-      const workSubmissionJourneyId = origin.journeyId;
 
       const awaiting = origin.outcome?.kind === "awaiting-confirmation";
-      if (awaiting) {
-        walletProgressToasts.dismiss();
-        toastService.info({
-          title: intl.formatMessage({ id: "app.work.awaitingConfirmation" }),
-          message: intl.formatMessage({ id: "app.work.confirmationExplanation" }),
-          context: "work",
-        });
-      }
+      // A send on record whose check could not run now says so, not that it is being checked.
+      const unchecked =
+        origin.outcome?.kind === "awaiting-confirmation" &&
+        origin.outcome.reason === "connection-unconfirmed";
+      if (awaiting) showWorkStillConfirming(intl, unchecked);
       if (!awaiting) hapticSuccess();
       // Offline already said "Saved offline"; an unstable connection says why nothing was sent.
       if (origin.outcome?.kind === "queued" && origin.outcome.reason === "connection-unconfirmed")
@@ -367,17 +392,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           title: intl.formatMessage({ id: "app.offline.degraded" }),
           message: intl.formatMessage({ id: "app.work.queuedConnectionUnconfirmed" }),
           context: "work",
-        });
-
-      // Confirmation checks have not established a successful submission yet.
-      if (!awaiting)
-        trackWorkSubmissionSuccess({
-          actionUID: actionUID ?? 0,
-          authMode,
-          wasOffline: isOfflineHash,
-          workSubmissionJourneyId,
-          chainId,
-          submissionPhase: "success",
         });
 
       if (completeClientFlow) {
@@ -400,6 +414,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         queryClient.invalidateQueries({
           queryKey: worksKeys.merged(gardenAddress, chainId),
         });
+        // A sent work can move its gardener's readiness in the Gardeners view.
+        queryClient.invalidateQueries({
+          queryKey: gardensKeys.memberReadinessForGarden(gardenAddress, chainId),
+        });
 
         lastGardenRef.current = gardenAddress;
         scheduleFollowUp();
@@ -419,7 +437,14 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
     onError: (error: unknown, variables, context) => {
       const origin = origins.current.get(variables);
-      if (!origin || !ownsFlow(origin)) return;
+      if (!origin || !ownsSession(origin)) return;
+      // The ending is recorded even when the person has left the flow (PRD-1495).
+      if (!ownsFlow(origin)) return recordWorkSubmissionFailure(error, options, origin, variables);
+      if (error instanceof UploadPolicyCancelledError) {
+        recordWorkSubmissionFailure(error, options, origin, variables);
+        onError?.(error);
+        return;
+      }
       const previous = lastSubmissionOutcomeRef.current;
       if (
         error instanceof WorkTransactionReverted &&
@@ -462,6 +487,12 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         workSubmissionJourneyId,
       });
 
+      // The queue holds admitted work whatever its send did, and Your Work's Pending offers it
+      // again, so its draft is retired as after a send: resuming it would be a second copy of the
+      // same work. Only work the queue never took keeps its draft for another Submit.
+      if (completeClientFlow && origin.admitted)
+        useWorkFlowStore.getState().setSubmissionCompleted(true);
+
       onError?.(error);
     },
     onSettled: (_data, _error, variables) => {
@@ -471,8 +502,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
   return {
     ...useSafeMutation(mutation),
+    uploadPolicy: uploadPolicy.prompt,
     reset: () => {
       retainedSubmission.current = null;
+      journeyWork.current = null;
       lastSubmissionOutcomeRef.current = null;
       setLastSubmissionOutcome(null);
       mutation.reset();

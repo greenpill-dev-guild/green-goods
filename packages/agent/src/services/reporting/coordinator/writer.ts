@@ -1,4 +1,4 @@
-import { drawsChoiceButtons } from "../channels";
+import { drawsChoiceButtons, offersCommandMenu } from "../channels";
 import { type CopyValues, type ReportingCopyKey, reportingText } from "../copy";
 import { enqueueReply } from "../outbox";
 import type { ParticipantBinding } from "../participants";
@@ -7,6 +7,20 @@ import type { ReportingCore } from "../runtime";
 import type { OutboundLink, OutboundMessage } from "../transport";
 import { commandReplyId } from "./commands";
 import type { TurnContext } from "./context";
+
+/**
+ * Replies that point to the command menu on a channel that has one: help, and the account replies
+ * that name the account command to send next. Their copy holds a `{menu}` placeholder, which stays
+ * empty on a channel without a menu.
+ */
+const MENU_HINTS: Partial<Record<ReportingCopyKey, ReportingCopyKey>> = {
+  help: "menu.commands",
+  "chat.welcomeLinked": "menu.account",
+  "link.already": "menu.account",
+  "link.notLinked": "menu.account",
+  "link.disconnected": "menu.account",
+  "link.offerDeclined": "menu.account",
+};
 
 export interface ReplyTarget {
   conversationId: string;
@@ -24,6 +38,7 @@ export interface ReplyTarget {
  */
 export class ConversationWriter {
   private replyIndex = 0;
+  private lead: string[] = [];
 
   constructor(
     readonly core: ReportingCore,
@@ -32,24 +47,57 @@ export class ConversationWriter {
 
   /** Whether this conversation's channel draws choices as buttons, so no code needs typing. */
   usesButtons(): boolean {
+    const realm = this.realm();
+    return realm ? drawsChoiceButtons(realm) : false;
+  }
+
+  /** Whether this conversation's channel lists the bot's commands in a menu. */
+  hasCommandMenu(): boolean {
+    const realm = this.realm();
+    return realm ? offersCommandMenu(realm) : false;
+  }
+
+  private realm(): string | null {
     const row = this.core.db
       .query("SELECT provider_realm FROM conversations WHERE id = $id")
       .get({ id: this.target.conversationId }) as { provider_realm: string } | null;
-    return row ? drawsChoiceButtons(row.provider_realm) : false;
+    return row?.provider_realm ?? null;
   }
 
   text(key: ReportingCopyKey, values: CopyValues = {}): string {
+    const hint = MENU_HINTS[key];
     return reportingText(this.target.locale, key, {
       support: this.core.settings.supportContact,
+      ...(hint ? { menu: this.hasCommandMenu() ? this.text(hint) : "" } : {}),
       ...values,
     });
+  }
+
+  /**
+   * Words that open the next reply, so what was understood goes out with the question that
+   * follows it instead of as a message of its own.
+   */
+  preface(text: string): void {
+    this.lead.push(text);
+  }
+
+  /** Sends words still waiting for a reply as a message of their own. */
+  flushPreface(): void {
+    if (this.lead.length === 0) return;
+    const text = this.lead.join("\n");
+    this.lead = [];
+    this.enqueue({ text }, "preface");
   }
 
   /**
    * A link in a reply opens one of the reporting pages, where an account signs. Those need the
    * person's own browser, so the reply says so and offers the link to copy.
    */
-  reply(message: OutboundMessage, kind: string, promptId?: string, operationId?: string): void {
+  reply(given: OutboundMessage, kind: string, promptId?: string, operationId?: string): void {
+    const message = this.lead.length
+      ? { ...given, text: `${this.lead.join("\n")}\n\n${given.text}` }
+      : given;
+    this.lead = [];
     this.enqueue(
       message.link
         ? {

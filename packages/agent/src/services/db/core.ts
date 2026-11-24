@@ -27,6 +27,8 @@ import { passkeyDirectoryQueries } from "./passkey-directory";
 import * as pendingWork from "./pending-work";
 import * as profileAvatars from "./profile-avatars";
 import * as savedOffers from "./saved-offers";
+import { createVoucherAwardStore } from "./voucher-awards";
+import { createServiceIssuerDeskStore } from "./service-issuer-desk";
 import { initSchema } from "./schema";
 import * as sessions from "./sessions";
 import * as users from "./users";
@@ -38,9 +40,7 @@ import type { Address } from "@green-goods/shared/types";
 import type { SavedOfferCipher } from "../saved-offers";
 import type { GardenJoinRequestCipher } from "../garden-join-requests";
 
-// ============================================================================
-// DATABASE CLASS
-// ============================================================================
+// Database connection and query delegation.
 
 class DB {
   private db: Database;
@@ -57,10 +57,6 @@ class DB {
     this.db.run("PRAGMA foreign_keys = ON");
     initSchema(this.db);
   }
-
-  // ===========================================================================
-  // USERS
-  // ===========================================================================
 
   async getUser(platform: Platform, platformId: string) {
     return users.getUser(this.db, platform, platformId);
@@ -82,10 +78,6 @@ class DB {
     return users.getOperatorForGarden(this.db, gardenAddress);
   }
 
-  // ===========================================================================
-  // SESSIONS
-  // ===========================================================================
-
   async getSession(platform: Platform, platformId: string) {
     return sessions.getSession(this.db, platform, platformId);
   }
@@ -97,10 +89,6 @@ class DB {
   async clearSession(platform: Platform, platformId: string) {
     return sessions.clearSession(this.db, platform, platformId);
   }
-
-  // ===========================================================================
-  // PENDING WORK
-  // ===========================================================================
 
   async addPendingWork(work: Omit<PendingWork, "createdAt">) {
     return pendingWork.addPendingWork(this.db, work);
@@ -118,10 +106,6 @@ class DB {
     return pendingWork.removePendingWork(this.db, id);
   }
 
-  // ===========================================================================
-  // IDEMPOTENCY
-  // ===========================================================================
-
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | undefined> {
     return idempotency.getIdempotencyRecord(this.db, key);
   }
@@ -134,9 +118,7 @@ class DB {
     return idempotency.completeIdempotencyKey(this.db, key, response);
   }
 
-  // ===========================================================================
   // CHAT MESSAGES (silent topic capture)
-  // ===========================================================================
 
   async addChatMessage(
     input: NewChatMessageInput,
@@ -168,10 +150,6 @@ class DB {
   async sweepStaleChatMessages(cutoffMs: number) {
     return chatMessages.sweepStaleChatMessages(this.db, cutoffMs);
   }
-
-  // ===========================================================================
-  // FUNDING INTENTS
-  // ===========================================================================
 
   async createFundingIntent(record: FundingIntentRecord) {
     return fundingIntents.createFundingIntent(this.db, record);
@@ -210,10 +188,6 @@ class DB {
 
   passkeyDirectory = () => passkeyDirectoryQueries(this.db);
 
-  // ===========================================================================
-  // PROFILE AVATARS
-  // ===========================================================================
-
   async getProfileAvatar(
     chainId: number,
     address: Address
@@ -230,10 +204,6 @@ class DB {
   }) {
     return profileAvatars.compareAndSwapProfileAvatar(this.db, input);
   }
-
-  // ===========================================================================
-  // SAVED OFFERS
-  // ===========================================================================
 
   async listSavedOffers(cipher: SavedOfferCipher, chainId: number, owner: Address) {
     return savedOffers.listSavedOffers(this.db, cipher, chainId, owner);
@@ -302,6 +272,10 @@ class DB {
     );
   }
 
+  async countPendingGardenJoinRequests(...scope: gardenJoinRequests.PendingCountScope) {
+    return gardenJoinRequests.countPendingGardenJoinRequests(this.db, ...scope);
+  }
+
   async resolveGardenJoinRequest(
     cipher: GardenJoinRequestCipher,
     input: Parameters<typeof gardenJoinRequests.resolveGardenJoinRequest>[2]
@@ -341,18 +315,17 @@ class DB {
     return gardenJoinRequests.sweepGardenJoinRequests(this.db, nowIso);
   }
 
-  // ===========================================================================
-  // LIFECYCLE
-  // ===========================================================================
+  // Lifecycle and durable coordination stores.
 
   async close(): Promise<void> {
     this.db.close();
   }
+
+  voucherAwardStore = () => createVoucherAwardStore(this.db);
+  serviceIssuerDeskStore = () => createServiceIssuerDeskStore(this.db);
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
+// Singleton access and public query delegates.
 
 let _db: DB | null = null;
 
@@ -370,7 +343,6 @@ export function getDB(): DB {
   return _db;
 }
 
-// Re-export convenience functions
 export const getUser = (platform: Platform, platformId: string) =>
   getDB().getUser(platform, platformId);
 export const createUser = (input: CreateUserInput) => getDB().createUser(input);
@@ -465,16 +437,14 @@ export const createGardenJoinRequest = (
 ) => getDB().createGardenJoinRequest(cipher, id, input);
 export const getGardenJoinRequestMine = (...args: Parameters<DB["getGardenJoinRequestMine"]>) =>
   getDB().getGardenJoinRequestMine(...args);
-export const getGardenJoinRequestById = (
-  cipher: GardenJoinRequestCipher,
-  gardenAddress: PublicAddress,
-  requestId: string
-) => getDB().getGardenJoinRequestById(cipher, gardenAddress, requestId);
+export const getGardenJoinRequestById = (...args: Parameters<DB["getGardenJoinRequestById"]>) =>
+  getDB().getGardenJoinRequestById(...args);
 export const listPendingGardenJoinRequests = (
-  cipher: GardenJoinRequestCipher,
-  gardenAddress: PublicAddress,
-  options?: Parameters<DB["listPendingGardenJoinRequests"]>[2]
-) => getDB().listPendingGardenJoinRequests(cipher, gardenAddress, options);
+  ...args: Parameters<DB["listPendingGardenJoinRequests"]>
+) => getDB().listPendingGardenJoinRequests(...args);
+export const countPendingGardenJoinRequests = (
+  ...args: Parameters<DB["countPendingGardenJoinRequests"]>
+) => getDB().countPendingGardenJoinRequests(...args);
 export const resolveGardenJoinRequest = (
   cipher: GardenJoinRequestCipher,
   input: Parameters<DB["resolveGardenJoinRequest"]>[1]

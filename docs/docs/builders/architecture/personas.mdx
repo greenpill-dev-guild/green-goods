@@ -9,7 +9,7 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:1763a6b1779d10d75d860bcc3ae1f16fb4dde29c256120b8c103402a53b4c377"
+source_digest: "sha256:d667b8cd3fde4d8f38a522b08f5391e851012bde5d0d5066ed93ff23a06b036f"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -18,43 +18,43 @@ source_of_truth:
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # Personas and Surfaces
 
-Green Goods is built for five kinds of people. Each one is tied to an on-chain hat, which is how the contracts know who may do what. This page says who each of them is, what they do, when they do it, and on which surface. It is generated from the ontology, so it stays in step with the product's own vocabulary. Read it before the work-submission trace, which names these actors at every step.
+Green Goods is built for five kinds of people and organizations. Each kind has an on-chain hat, which the contracts check before a role-gated act such as submitting or approving work; giving to a garden needs no hat. This page says who each of them is, what they do, when they do it, and on which surface. It is generated from the ontology, so it stays in step with the product's own vocabulary. Read it before the work-submission trace, which names these actors at every step.
 
 ## At a glance
 
 | Persona | In one line | Works in |
 |---|---|---|
-| [Gardener](#gardener) | A person doing and documenting the work | Client app, Messaging agent |
-| [Steward](#steward) | A person stewarding Garden operations | Admin cockpit, Client app, Messaging agent |
-| [Evaluator](#evaluator) | A person shaping assessment and impact rigor | Admin cockpit, Public site |
-| [Funder](#funder) | A person or organization supporting the work | Client app, Public site |
-| [Community Member](#community-member) | A local person affected by the work | Client app, Public site |
+| [Gardener](#gardener) | A person doing and documenting the work | Green Goods App, Messaging agent |
+| [Steward](#steward) | A person stewarding garden operations | Green Goods Hub, Green Goods App, Messaging agent |
+| [Evaluator](#evaluator) | A person shaping assessment and impact rigor | Green Goods Hub, Green Goods Website |
+| [Funder](#funder) | A person or organization supporting the work | Green Goods App, Green Goods Website |
+| [Community Member](#community-member) | A local person affected by the work | Green Goods App, Green Goods Website |
 
 The surfaces are:
 
-- **Admin cockpit**: the steward cockpit at admin.greengoods.app, where gardens, actions, reviews, and pools are run.
-- **Client app**: the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field.
+- **Green Goods Hub**: the steward workspace at admin.greengoods.app, where gardens, actions, reviews, and pools are run.
+- **Green Goods App**: the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field.
 - **Messaging agent**: the Telegram bot, for people who would rather message than install anything.
-- **Public site**: the browser website at greengoods.app, where anyone reads gardens and impact and can fund them.
+- **Green Goods Website**: the browser website at greengoods.app, where anyone reads gardens and impact and can fund them.
 
 ## Gardener {#gardener}
 
 Gardeners are the people in the field: planting, cleaning, teaching, repairing. Many work from a phone with a weak signal and have never held a crypto wallet, so they sign in with a passkey and the app keeps working offline. Green Goods begins with evidence captured by people caring for a place.
 
 - **On-chain role:** the `gardener` hat.
-- **Definition:** A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits.
+- **Definition:** A person doing regenerative work in a garden. Submits work, holds gardener Hats, receives credit toward Hypercerts and yield splits.
 - **Also called:** field contributor.
 - **Not the same as:** Commitment Contributor.
 
 | When | What they do | Where |
 |---|---|---|
-| Getting started | Install the app and sign in with a passkey. No wallet or seed phrase is needed. [Guide](/community/gardener-guide/installing-and-updating). | Client app |
-| Joining a garden | Join an open garden directly, or ask to join and wait for a steward to accept. [Guide](/community/gardener-guide/joining-a-garden). | Client app |
-| After doing the work | Pick the action, add photos and details, and submit. A submission made offline waits in a queue and uploads when the connection returns. [Guide](/community/gardener-guide/uploading-your-work). | Client app |
-| When messaging is easier | Choose the garden in a chat with the Telegram bot, describe the work in a text or voice message, and confirm it. The bot holds the submission until a steward approves or rejects it there. Choosing a garden in the chat is not membership: the gardener still has to be a member of it. | Messaging agent |
-| While a steward reviews | Follow each submission from pending to approved or rejected, and read the steward's feedback. [Guide](/community/gardener-guide/track-status-and-attestations). | Client app |
-| When the garden pays an allowance | Claim from the garden's cookie jar, up to its cap. | Client app |
-| When neighbours make promises | Follow the garden's commitments, confirm one a neighbour has kept, and record work toward one. *Deployed, not switched on yet.* | Client app |
+| Getting started | Install the app and sign in with a passkey. No wallet or seed phrase is needed. [Guide](/community/gardener-guide/installing-and-updating). | Green Goods App |
+| Joining a garden | Join an open garden directly, or ask to join and wait for a steward to accept. [Guide](/community/gardener-guide/joining-a-garden). | Green Goods App |
+| After doing the work | Pick the action, add photos and details, and submit. A submission made offline waits in a queue and uploads when the connection returns. [Guide](/community/gardener-guide/uploading-your-work). | Green Goods App |
+| When messaging is easier | Report in a private chat with the Telegram bot: describe the work, send photos, answer a few quick questions, then check the summary and confirm. Publishing needs a linked Green Goods account with a gardener, steward or owner role in the garden; the bot asks for the link if the chat has none. The gardener signs each report on a Green Goods page, unless their passkey account has allowed reporting in chat for that garden. The report becomes the same work record the app makes, and stewards review it the same way. [Guide](/community/gardener-guide/report-in-chat). | Messaging agent |
+| While a steward reviews | Follow each submission from pending to approved or rejected, and read the steward's feedback. [Guide](/community/gardener-guide/track-status-and-attestations). | Green Goods App |
+| When the garden pays an allowance | Claim from the garden's cookie jar, up to its cap. | Green Goods App |
+| When neighbors make promises | Follow the garden's commitments, confirm one a neighbor has kept, and record work toward one. | Green Goods App |
 
 <details>
 <summary>Where this lives in the code</summary>
@@ -62,10 +62,10 @@ Gardeners are the people in the field: planting, cleaning, teaching, repairing. 
 - **Getting started**: `packages/client/src/views/Login`
 - **Joining a garden**: `packages/client/src/components/Features/Garden/JoinGardenButton.tsx`, `packages/client/src/components/Features/Garden/GardenJoinRequestDialog.tsx`
 - **After doing the work**: `packages/client/src/views/Garden`, `packages/shared/src/modules/job-queue`
-- **When messaging is easier**: `packages/agent/src/handlers/join.ts`, `packages/agent/src/handlers/submit.ts`
+- **When messaging is easier**: `packages/agent/src/platforms/telegram-reporting.ts`, `packages/agent/src/services/reporting/coordinator/report-message.ts`, `packages/agent/src/services/reporting/authority.ts`, `packages/client/src/views/Public/AgentReporting/CeremonyView.tsx`
 - **While a steward reviews**: `packages/client/src/views/Home/WorkDashboard`
 - **When the garden pays an allowance**: `packages/client/src/views/Home/WalletSheet/CookieJarTab.tsx`
-- **When neighbours make promises**: `packages/client/src/views/Home/CommitmentsSheet`, `packages/client/src/views/Garden/WorkCommitmentSelection.tsx`
+- **When neighbors make promises**: `packages/client/src/views/Home/CommitmentsSheet`, `packages/client/src/views/Garden/Start.tsx`
 
 </details>
 
@@ -74,34 +74,34 @@ Gardeners are the people in the field: planting, cleaning, teaching, repairing. 
 Stewards run a garden day to day. They are usually a chapter lead or a program manager: the person who decides what work counts, reviews what comes in, and keeps the garden's roles and money in order. An owner holds the garden itself and can do everything a steward can. Stewards turn community policy into accountable review and coordination.
 
 - **On-chain role:** the `steward` hat.
-- **Definition:** A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).
+- **Definition:** A person who stewards a garden — creates actions, approves work, configures the vault and the Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).
 - **Also called:** Garden Steward, Garden Operator, operator.
 - **Not the same as:** Evaluator.
 
 | When | What they do | Where |
 |---|---|---|
-| Starting a garden | Create the garden with its name, place and first roles. This needs deployer authority, and whoever creates the garden becomes its owner. [Guide](/community/steward-guide/creating-a-garden). | Admin cockpit |
-| Before work starts | Define the actions gardeners can document. [Guide](/community/steward-guide/managing-actions). | Admin cockpit |
-| Before a reporting period | Write the assessment that sets the baseline, the method and the outcomes to look for. [Guide](/community/evaluator-guide/making-an-assessment). | Admin cockpit |
-| As work comes in | Review each submission's evidence, then approve it or reject it with feedback. [Guide](/community/steward-guide/reviewing-work). | Admin cockpit, Client app |
-| When work arrives by message | List what gardeners sent through the Telegram bot and approve or reject each one there. An approval records the work and its approval together. | Messaging agent |
-| As people join | Accept requests to join, grant and revoke roles, and decide whether anyone may join without asking. | Admin cockpit, Client app |
-| When money arrives | Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the cockpit's cookie jar screens create campaign jars, which are a separate thing. [Guide](/community/steward-guide/funding-and-governance). | Admin cockpit |
-| When neighbours make promises | Run the commitment pool: set it up, seed it, confirm commitments, and close them. [Guide](/community/steward-guide/commitment-pooling). | Admin cockpit |
-| At the end of a period | Bundle approved work into an impact certificate that funders can hold a share of. *Still being built.* [Guide](/community/steward-guide/creating-impact-certificates). | Admin cockpit |
+| Starting a garden | Create the garden with its name, place and first roles. This needs permission from the Green Goods team, and whoever creates the garden becomes its owner. [Guide](/community/steward-guide/creating-a-garden). | Green Goods Hub |
+| Before work starts | Define the actions gardeners can document. [Guide](/community/steward-guide/managing-actions). | Green Goods Hub |
+| Before a reporting period | Write the assessment that sets the baseline, the method and the outcomes to look for. [Guide](/community/evaluator-guide/making-an-assessment). | Green Goods Hub |
+| As work comes in | Review each submission's evidence, then approve it or reject it with feedback. [Guide](/community/steward-guide/reviewing-work). | Green Goods Hub, Green Goods App |
+| When messaging is easier | Send REVIEW in a private chat with the Telegram bot to see up to 10 pieces of work waiting in gardens the account stewards or owns, from the app or the chat. Pick one, approve or reject it, confirm the summary, and sign the decision on a Green Goods page. Each decision is signed on its own. [Guide](/community/steward-guide/reviewing-work). | Messaging agent |
+| As people join | Accept requests to join, grant and revoke roles, and decide whether anyone may join without asking. | Green Goods Hub, Green Goods App |
+| When money arrives | Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the Hub's cookie jar screens create campaign jars, which are a separate thing. [Guide](/community/steward-guide/funding-and-governance). | Green Goods Hub |
+| When neighbors make promises | Run the commitment pool: set it up, seed it, confirm commitments, and close them. [Guide](/community/steward-guide/open-a-pool). | Green Goods Hub |
+| At the end of a period | Bundle approved work into an impact certificate that funders can hold a share of. *Still being built.* [Guide](/community/steward-guide/creating-impact-certificates). | Green Goods Hub |
 
 <details>
 <summary>Where this lives in the code</summary>
 
 - **Starting a garden**: `packages/admin/src/views/Garden/CreateGarden.tsx`
 - **Before work starts**: `packages/admin/src/views/Actions`
-- **Before a reporting period**: `packages/admin/src/views/Hub/CreateAssessment.tsx`
-- **As work comes in**: `packages/admin/src/views/Hub`, `packages/client/src/views/Home/WorkDashboard`
-- **When work arrives by message**: `packages/agent/src/handlers/pending.ts`, `packages/agent/src/handlers/approve.ts`, `packages/agent/src/handlers/reject.ts`
+- **Before a reporting period**: `packages/admin/src/views/Review/CreateAssessment.tsx`
+- **As work comes in**: `packages/admin/src/views/Review`, `packages/client/src/views/Home/WorkDashboard`
+- **When messaging is easier**: `packages/agent/src/services/reporting/review-jobs.ts`, `packages/agent/src/services/reporting/coordinator/review-steps.ts`, `packages/client/src/views/Public/AgentReporting/CeremonyView.tsx`
 - **As people join**: `packages/admin/src/views/Community/components/CommunityJoinRequests.tsx`, `packages/admin/src/components/Garden/ManageMembersDialog.tsx`, `packages/admin/src/components/Garden/GardenSettingsEditor.tsx`, `packages/client/src/components/Features/Garden/GardenJoinRequestsQueue.tsx`
 - **When money arrives**: `packages/admin/src/views/Garden/Vault.tsx`, `packages/admin/src/components/Vault/PositionCard.tsx`, `packages/admin/src/views/Community/components/CommunityPayoutsTab.tsx`, `packages/admin/src/views/Cookies`
-- **When neighbours make promises**: `packages/admin/src/views/Garden/Pool`
-- **At the end of a period**: `packages/admin/src/views/Hub/CreateHypercert.tsx`
+- **When neighbors make promises**: `packages/admin/src/views/Garden/Pool`
+- **At the end of a period**: `packages/admin/src/views/Review/CreateHypercert.tsx`
 
 </details>
 
@@ -110,38 +110,39 @@ Stewards run a garden day to day. They are usually a chapter lead or a program m
 Evaluators bring the method. They are people with domain expertise, such as an agronomist or a researcher, who help a garden say what it will measure and whether the result holds up. They do not approve or reject work; that stays with stewards. Evaluators help communities frame baselines, methods, outcomes, and defensible claims.
 
 - **On-chain role:** the `evaluator` hat.
-- **Definition:** A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards.
+- **Definition:** A person who authors or strengthens assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted work; that authority belongs to stewards.
 - **Also called:** impact assessor.
 - **Not the same as:** Steward, Work approver.
 
 | When | What they do | Where |
 |---|---|---|
-| Before a reporting period | Write or strengthen an assessment: the baseline, the method and the outcomes to look for. [Guide](/community/evaluator-guide/making-an-assessment). | Admin cockpit |
-| As evidence builds | Read the garden's approved work and its record to judge whether the claimed outcomes hold. | Admin cockpit, Public site |
+| Before a reporting period | Write or strengthen an assessment: the baseline, the method and the outcomes to look for. [Guide](/community/evaluator-guide/making-an-assessment). | Green Goods Hub |
+| As evidence builds | Read the garden's approved work and its record to judge whether the claimed outcomes hold. | Green Goods Hub, Green Goods Website |
 
 <details>
 <summary>Where this lives in the code</summary>
 
-- **Before a reporting period**: `packages/admin/src/views/Hub/CreateAssessment.tsx`
-- **As evidence builds**: `packages/admin/src/views/Hub`, `packages/client/src/views/Public/GardenDetail.tsx`
+- **Before a reporting period**: `packages/admin/src/views/Review/CreateAssessment.tsx`
+- **As evidence builds**: `packages/admin/src/views/Review`, `packages/client/src/views/Public/GardenDetail.tsx`
 
 </details>
 
 ## Funder {#funder}
 
-Funders are people and organizations who want their money to follow verified work. They need to see the evidence before they give and to check on it afterwards, without learning how any of it works underneath. Funding connects credible evidence to durable community capacity.
+Funders are the people and organizations who support a garden: individuals and diaspora supporters, grantmakers, institutions, and crypto ecosystem funds. Some give directly, some endow, and some fund through a grant or partnership. They all want to see the reviewed record before they give and to check on it afterwards, without learning how any of it works underneath. Funding connects credible evidence to durable community capacity.
 
 - **On-chain role:** the `funder` hat.
-- **Definition:** A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits.
+- **Definition:** A person or organization who funds a garden's work, from an individual or diaspora supporter to a grantmaker, institution, or crypto ecosystem fund. A funder donates to the garden's cookie jar, endows its vault, or backs the garden through a grant or partnership. A donation is a gift with nothing to withdraw. An endowment is a vault deposit the funder can redeem, less any strategy or contract loss; its yield is donated onward through the garden's configured splits, never paid to the funder. Giving needs no role; a steward or owner may grant the funder Hat, which makes its holder a garden member.
 - **Also called:** supporter.
 - **Not the same as:** Community Member.
 
 | When | What they do | Where |
 |---|---|---|
-| Deciding where to give | Browse gardens and read their approved work and impact. | Public site |
-| Giving directly | Donate to a garden's cookie jar. This is direct support and creates no position to withdraw. [Guide](/community/funder-guide/donating-to-a-garden). | Public site |
-| Giving for the long term | Endow a garden: deposit into its vault, keep a position they can withdraw, and let the yield support the work. [Guide](/community/funder-guide/funding-a-garden). | Client app, Public site |
-| Any time afterwards | Check an endowment and withdraw part or all of it. [Guide](/community/funder-guide/withdraw-from-a-vault). | Client app, Public site |
+| Deciding where to give | Browse gardens and read their approved work and impact. | Green Goods Website |
+| Giving directly | Donate to a garden's cookie jar. This is direct support and creates no position to withdraw. [Guide](/community/funder-guide/donating-to-a-garden). | Green Goods Website |
+| Giving for the long term | Endow a garden: deposit into its vault, keep a position they can withdraw, and let the yield support the work. [Guide](/community/funder-guide/funding-a-garden). | Green Goods App, Green Goods Website |
+| Any time afterwards | Check an endowment and withdraw part or all of it. [Guide](/community/funder-guide/withdraw-from-a-vault). | Green Goods App, Green Goods Website |
+| Through a grant or partnership | Talk with Green Goods about a garden's work and funding needs, then follow its approved work on the Green Goods Website. The grant itself is arranged outside the app. | Green Goods Website |
 
 <details>
 <summary>Where this lives in the code</summary>
@@ -150,23 +151,24 @@ Funders are people and organizations who want their money to follow verified wor
 - **Giving directly**: `packages/client/src/views/Public/Fund.tsx`
 - **Giving for the long term**: `packages/client/src/views/Public/Fund.tsx`, `packages/client/src/components/Sheets/EndowmentSheet`
 - **Any time afterwards**: `packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx`, `packages/client/src/components/Sheets/EndowmentSheet`
+- **Through a grant or partnership**: `packages/client/src/components/Public/PublicGetInTouch.tsx`
 
 </details>
 
 ## Community Member {#community-member}
 
-Community members live with the results. They are residents and neighbours who may never submit work themselves, yet they are the people the work is for. Community voice should shape needs and accountability, not sit outside the record.
+Community members live with the results. They are residents and neighbors who may never submit work themselves, yet they are the people the work is for. Community voice should shape needs and accountability, not sit outside the record.
 
 - **On-chain role:** the `community` hat.
-- **Definition:** A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.
+- **Definition:** A local resident affected by a garden's work. Signals or attests that work exists and is healthy, and helps prioritize future actions through public signal and conviction flows.
 - **Also called:** resident.
 - **Not the same as:** Gardener.
 
 | When | What they do | Where |
 |---|---|---|
-| Any time | Read what a garden has done: its work, its field notes and its impact. | Public site |
-| When a garden asks what to back | Signal support for the impact certificates that matter most to them, in a garden that has governance turned on. *Still being built.* | Client app |
-| When something is missing | Name a community need so stewards and funders can respond to it. *Planned, not built yet.* | — |
+| Any time | Read what a garden has done: its work, its field notes and its impact. | Green Goods Website |
+| When a garden asks what to back | Signal support for the impact certificates that matter most to them, in a garden that has governance turned on. *Still being built.* | Green Goods App |
+| When something is missing | Name a community need so stewards and funders can respond to it. *Planned, not built yet.* | None |
 
 <details>
 <summary>Where this lives in the code</summary>
@@ -178,6 +180,6 @@ Community members live with the results. They are residents and neighbours who m
 
 ## The owner
 
-The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.
+The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the steward surfaces.
 
 Which surfaces may *name* a persona, in copy and in data, is a separate vocabulary rule. The [formal ontology](/reference/ontology#personas) carries it in its surfaces column.

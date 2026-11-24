@@ -3,13 +3,22 @@
  * hosted passkey server about a name.
  */
 
+import {
+  createPasskeyKernelAccount,
+  supportsPasskeyAccountProfile,
+} from "@green-goods/shared/modules/auth/passkey-kernel-account";
+import { createPublicClient, http, type Chain, zeroAddress } from "viem";
 import * as db from "./db";
-import type {
-  PasskeyInsertResult,
-  PendingPasskeyRegistration,
-  StoredPasskey,
+import {
+  type PasskeyChallengePurpose,
+  type PasskeyInsertResult,
+  type PendingPasskeyRegistration,
+  type StoredPasskey,
+  type PasskeyAddressRecord,
+  storedPasskeyPublicKey,
 } from "./db/passkey-directory";
-import type { HostedPasskeyNameCheck, PasskeyDirectoryStore } from "./passkey-directory";
+import type { PasskeyDirectoryStore } from "./passkey-directory";
+import { createPasskeyDisplayNames } from "./passkey-display-names";
 
 /** A sign-up waits on this answer, and the app asks again by itself when it gets none. */
 const HOSTED_LOOKUP_TIMEOUT_MS = 4_000;
@@ -18,13 +27,13 @@ const HOSTED_LOOKUP_TIMEOUT_MS = 4_000;
  * Ask the hosted passkey server whether it holds a name. Accounts created before the directory
  * live only there, and their names must stay taken.
  */
-export function createHostedPasskeyNameCheck(options: {
+export function createHostedPasskeyLookup(options: {
   /** The hosted server's JSON-RPC address, including its API key. */
   rpcUrl: string;
   /** An origin the hosted server recognizes; it refuses requests without one. */
   origin: string;
   fetch?: typeof fetch;
-}): HostedPasskeyNameCheck {
+}): (userName: string) => Promise<unknown[]> {
   const request = options.fetch ?? fetch;
   return async (userName) => {
     const response = await request(options.rpcUrl, {
@@ -47,11 +56,11 @@ export function createHostedPasskeyNameCheck(options: {
     if (!response.ok) {
       throw new Error(`Hosted passkey lookup answered ${response.status}`);
     }
-    const body = (await response.json()) as { result?: unknown } | null;
+    const body = (await response.json().catch(() => null)) as { result?: unknown } | null;
     if (!Array.isArray(body?.result)) {
       throw new Error("Hosted passkey lookup returned no result");
     }
-    return body.result.length > 0;
+    return body.result;
   };
 }
 
@@ -64,13 +73,15 @@ export class MemoryPasskeyDirectoryStore implements PasskeyDirectoryStore {
   }
 
   async insert(passkey: StoredPasskey): Promise<PasskeyInsertResult> {
+    const publicKey = storedPasskeyPublicKey(passkey.publicKey);
     if (this.passkeys.has(passkey.userName)) return { ok: false, reason: "name_taken" };
+    // One account, its exact ID string with its key, holds one name.
     for (const existing of this.passkeys.values()) {
-      if (existing.credentialId === passkey.credentialId) {
+      if (existing.credentialId === passkey.credentialId && existing.publicKey === publicKey) {
         return { ok: false, reason: "credential_exists" };
       }
     }
-    this.passkeys.set(passkey.userName, passkey);
+    this.passkeys.set(passkey.userName, { ...passkey, publicKey });
     return { ok: true };
   }
 
@@ -81,12 +92,13 @@ export class MemoryPasskeyDirectoryStore implements PasskeyDirectoryStore {
 
   async takeChallenge(
     challenge: string,
-    now: number
+    now: number,
+    purpose: PasskeyChallengePurpose
   ): Promise<PendingPasskeyRegistration | undefined> {
     this.dropExpired(now);
     const pending = this.challenges.get(challenge);
     this.challenges.delete(challenge);
-    return pending;
+    return pending?.purpose === purpose ? pending : undefined;
   }
 
   private dropExpired(now: number): void {
@@ -104,6 +116,39 @@ export function createSqlitePasskeyDirectoryStore(): PasskeyDirectoryStore {
     findByName: async (userName) => queries().findByName(userName),
     insert: async (passkey) => queries().insert(passkey),
     saveChallenge: async (pending, now) => queries().saveChallenge(pending, now),
-    takeChallenge: async (challenge, now) => queries().takeChallenge(challenge, now),
+    takeChallenge: async (challenge, now, purpose) =>
+      queries().takeChallenge(challenge, now, purpose),
+  };
+}
+
+export function createSqlitePasskeyDisplayNames(chain: Chain, rpcUrl: string) {
+  const client = createPublicClient({
+    chain,
+    transport: http(rpcUrl, { batch: true, retryCount: 0, timeout: 5_000 }),
+  });
+  const store = db.getDB().passkeyDirectory();
+  const deriveAddress = async (record: PasskeyAddressRecord) => {
+    if (!supportsPasskeyAccountProfile(record.accountProfile, chain.id)) return null;
+    const account = await createPasskeyKernelAccount({
+      client,
+      chainId: chain.id,
+      credential: {
+        id: record.credentialId,
+        signingId: record.credentialKey,
+        publicKey: record.publicKey,
+      },
+      profile: record.accountProfile,
+      rpId: record.rpId,
+      getFn: async () => {
+        throw new Error("Display name lookup cannot sign");
+      },
+    });
+    if (account.address === zeroAddress) throw new Error("Passkey account address unavailable");
+    return account.address;
+  };
+  // Only directory records are verified. Old hosted lookup cache entries cannot establish ownership.
+  return {
+    chainId: chain.id,
+    lookup: createPasskeyDisplayNames(store.readAddressRecords, deriveAddress),
   };
 }

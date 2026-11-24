@@ -11,6 +11,7 @@ interface IArbitrumCookieJarLike {
     function deposit(uint256 amount) external payable;
     function withdraw(uint256 amount, string calldata purpose) external;
     function maxWithdrawal() external view returns (uint256);
+    function currencyHeldByJar() external view returns (uint256);
 }
 
 contract ArbitrumCookieJarForkTest is AaveOctantForkBase {
@@ -85,7 +86,7 @@ contract ArbitrumCookieJarForkTest is AaveOctantForkBase {
         assertEq(IERC20(WETH).balanceOf(forkGardener), beforeEmptyPurpose, "empty purpose should not transfer");
     }
 
-    function test_fork_routesLiveAaveYieldToRealDaiJar() public {
+    function testForkArbitrum_routedAaveYieldCanBeWithdrawnFromRealDaiJar() public {
         cookieJarModule.addSupportedAsset(DAI);
         address daiGarden = _mintTestGarden("CookieJar Arbitrum DAI Yield Garden", 0x0F);
 
@@ -118,6 +119,13 @@ contract ArbitrumCookieJarForkTest is AaveOctantForkBase {
 
         assertGt(jarDelta, 0, "live DAI jar should receive yield");
         assertEq(yieldSplitter.gardenShares(daiGarden, vault), 0, "all garden shares should be redeemed");
+        assertEq(IArbitrumCookieJarLike(jar).currencyHeldByJar(), jarDelta, "live DAI jar should book the yield");
+
+        _grantGardenRole(daiGarden, forkGardener, IHatsModule.GardenRole.Gardener);
+        uint256 beforeBal = IERC20(DAI).balanceOf(forkGardener);
+        vm.prank(forkGardener);
+        IArbitrumCookieJarLike(jar).withdraw(jarDelta, "routed-yield");
+        assertEq(IERC20(DAI).balanceOf(forkGardener) - beforeBal, jarDelta, "hats wearer should withdraw the routed yield");
     }
 
     function _requireWethJar() internal returns (address jar) {

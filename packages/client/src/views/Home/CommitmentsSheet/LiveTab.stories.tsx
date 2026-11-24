@@ -1,0 +1,205 @@
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import {
+  type CommitmentPoolRecord,
+  type CommitmentsInbox,
+  type InboxCommitment,
+  type ServiceOfferLine,
+  useServiceOfferLines,
+} from "@green-goods/shared/commitment-pooling";
+import type { Decorator, Meta, StoryObj } from "@storybook/react";
+import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
+
+import {
+  STORY_GROUP_METADATA,
+  STORY_GROUP_TITLE,
+  storyGroup,
+} from "@/components/Features/Commitments/promiseGroupStoryFixtures";
+import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
+import {
+  withClientAppRuntime,
+  withRouter,
+  withSeededQueryClient,
+} from "../../../../../shared/.storybook/decorators";
+import { LiveTab } from "./LiveTab";
+
+const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+/** The sheet's body hands scrolling to the tab, so the tab needs a column to fill. */
+const withSheetBody: Decorator = (Story) => (
+  <div className="flex h-dvh min-h-0 flex-col">
+    <Story />
+  </div>
+);
+
+function inbox(live: InboxCommitment[]): CommitmentsInbox {
+  return {
+    live,
+    settled: [],
+    liveActCount: 0,
+    settledActCount: 0,
+    totalActCount: 0,
+    availability: { status: "available", capability: {} },
+    isLoading: false,
+    isError: false,
+    failedJobCount: 0,
+    failedCommitmentIds: new Set<string>(),
+    unlistedFailureCount: 0,
+    hasPendingCreate: false,
+    queueUnavailable: false,
+    refetch: fn(),
+  } as unknown as CommitmentsInbox;
+}
+
+/** Ten open offers of one promise as their creator reads them, none of them taken up. */
+const tenOffers: InboxCommitment[] = storyGroup({
+  available: 10,
+  overrides: {
+    direction: "OFFER",
+    onchainState: "OFFERED",
+    derivedState: "OFFERED",
+    state: "OFFERED",
+  },
+}).group.children.map((commitment) => ({ commitment, seat: "provider", needsYou: false }));
+
+/** Each copy is a service that takes one Tech and Sun voucher, and the reader holds two. */
+const serviceLines = new Map<string, ServiceOfferLine>(
+  tenOffers.map((row) => [
+    row.commitment.commitmentId.toString(),
+    {
+      promisedBy: "Tech and Sun",
+      gender: "feminine",
+      takes: { units: 1_000_000n, decimals: 6 },
+      booking: { kind: "hold", held: 2_000_000n, decimals: 6 },
+    },
+  ])
+);
+
+/**
+ * The Live tab of the Promises sheet, in the active garden. Fictional data from the
+ * group fixtures.
+ */
+const meta: Meta<typeof LiveTab> = {
+  title: "Client/Commitments/PromisesLiveTab",
+  component: LiveTab,
+  tags: ["autodocs", "storybook-ci"],
+  globals: { viewport: { value: "mobile" } },
+  parameters: { layout: "fullscreen" },
+  beforeEach: () => {
+    mocked(useServiceOfferLines).mockReturnValue(serviceLines);
+    return resetHookMocks(useServiceOfferLines);
+  },
+  decorators: [
+    withSheetBody,
+    withSeededQueryClient(
+      Array.from(
+        STORY_GROUP_METADATA,
+        ([cid, metadata]) => [queryKeys.commitmentPooling.metadata(cid), metadata] as const
+      )
+    ),
+    withRouter(["/home"]),
+    withClientAppRuntime,
+  ],
+  args: {
+    inbox: inbox(tenOffers),
+    pools: [{ poolId: 7n, garden: GARDEN }] as unknown as CommitmentPoolRecord[],
+    gardens: [],
+    sendsFromTap: false,
+    direction: "all",
+    onDirectionChange: fn(),
+    onOpenCommitment: fn(),
+    cycleId: null,
+    gardenHeadings: false,
+    covered: false,
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof LiveTab>;
+
+/**
+ * Identical open copies are one row with their number on the tile (DL-150), and the row opens
+ * a half sheet of the ten, each its own row into its own promise. A service's fold says what a
+ * booking takes beside its count (DL-166); each copy's row adds what the reader holds.
+ */
+export const IdenticalCopies: Story = {
+  play: async ({ canvasElement, args }) => {
+    const fold = within(canvasElement).getByRole("button", {
+      name: /A group of 10 separate promises/,
+    });
+    await expect(fold).toHaveTextContent("Offered");
+    await expect(fold).toHaveTextContent("Takes 1 Tech and Sun voucher");
+    await expect(fold).toHaveTextContent("10 promises");
+    await expectItemRowsFit(canvasElement);
+    await userEvent.click(fold);
+
+    const copies = await screen.findByRole("dialog", { name: STORY_GROUP_TITLE });
+    await expect(copies).toHaveAttribute("data-sheet-size", "half");
+    const rows = within(copies).getAllByRole("button", { name: new RegExp(STORY_GROUP_TITLE) });
+    await expect(rows).toHaveLength(10);
+    await userEvent.click(rows[0] as HTMLElement);
+    await expect(args.onOpenCommitment).toHaveBeenCalledWith(GARDEN, 101n);
+  },
+};
+
+/** A copy someone took up is its own row: it has its own person and its own progress. */
+export const TakenCopyKeepsItsRow: Story = {
+  args: {
+    inbox: inbox([
+      ...tenOffers.slice(0, 3),
+      {
+        commitment: {
+          ...(tenOffers[3] as InboxCommitment).commitment,
+          onchainState: "ACCEPTED",
+          derivedState: "ACTIVE",
+          state: "ACCEPTED",
+        },
+        seat: "provider",
+        needsYou: true,
+      },
+    ]),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("button", { name: /A group of 3 separate promises/ })
+    ).toBeVisible();
+    await expect(canvas.getByText("Needs you")).toBeVisible();
+    await expectItemRowsFit(canvasElement);
+  },
+};
+
+/** The reader's take-up request on someone's ask, waiting on a steward's yes, heads the list. */
+const askWaitingOnSteward: InboxCommitment = {
+  commitment: {
+    ...storyGroup({
+      available: 2,
+      overrides: {
+        direction: "REQUEST",
+        onchainState: "REQUESTED",
+        derivedState: "REQUESTED",
+        state: "REQUESTED",
+      },
+    }).group.children[0],
+    id: "42161-501",
+    commitmentId: 501n,
+  } as InboxCommitment["commitment"],
+  seat: "bystander",
+  needsYou: false,
+};
+
+/** Your Promises lists a take-up request under its own heading until a steward answers it. */
+export const WaitingOnSteward: Story = {
+  args: { waiting: [askWaitingOnSteward] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const section = canvas
+      .getByRole("heading", { name: "Waiting on a Steward" })
+      .closest("section");
+    await expect(section).not.toBeNull();
+    await expect(within(section as HTMLElement).getByRole("status")).toHaveTextContent(
+      "Waiting for review"
+    );
+    await expectItemRowsFit(canvasElement);
+  },
+};

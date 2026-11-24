@@ -29,6 +29,13 @@ Six runners cover the stack, and one selector decides which of them your change 
 This page is the map, the everyday loop, and the commands per surface; the runners' own excellent
 docs cover everything deeper.
 
+```mermaid
+flowchart LR
+  A[Changed behavior] --> B[Focused proof]
+  B --> C[Selected push checks]
+  C --> D[Current commit CI]
+```
+
 ## The test map
 
 | Runner | What it proves | Where it lives | Learn it |

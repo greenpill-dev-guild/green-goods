@@ -9,8 +9,10 @@ import { InMemoryPublicRateLimiter } from "../../../api/public-protection";
 import { resolveAuthority } from "../../../services/reporting/authority";
 import type { AccountProofVerifier } from "../../../services/reporting/browser-access";
 import { watchOwnerAttempt } from "../../../services/reporting/owner-attempt-watch";
+import { watchSigningLinkJob } from "../../../services/reporting/signing-links";
 import { createFilesystemMediaStore } from "../../../services/reporting/media-store";
 import { processMedia } from "../../../services/reporting/media/process";
+import { modelMeter } from "../../../services/reporting/model-spend";
 import type { OpenAIConfig } from "../../../services/reporting/openai-responses";
 import { prepareOperation } from "../../../services/reporting/preparation";
 import { reconcileOperation } from "../../../services/reporting/reconciliation";
@@ -42,6 +44,8 @@ import {
   type TickSummary,
 } from "../../../services/reporting/worker";
 import type { ReportingGarden } from "../../../services/reporting/gardens";
+import type { ReportInterpreter } from "../../../services/reporting/interpretation";
+import type { QuestionProfile } from "../../../services/reporting/questions";
 import {
   type FixedGardens,
   FixtureCatalog,
@@ -81,6 +85,10 @@ export interface HarnessOptions {
   /** The gardens the directory lists; TAS and Aiyeloja Family Garden by default. */
   gardens?: ReportingGarden[];
   settings?: Partial<ReportingSettings>;
+  /** The model a turn reads with, in place of the scripted fixture: a real adapter over recorded replies. */
+  interpreter?: ReportInterpreter;
+  /** How activities' fields are asked; the built-in question profiles when left out. */
+  questions?: readonly QuestionProfile[];
   jobs?: (harness: Harness) => ReportingWorkerDeps["jobs"];
 }
 
@@ -122,6 +130,7 @@ export class Harness {
     ensureControls(this.core, {
       intake: true,
       model_processing: false,
+      dialogue_planner: false,
       documents: true,
       voice: false,
       publication: true,
@@ -181,6 +190,7 @@ export class Harness {
         ...this.options.settings,
       },
       gardens: this.gardens,
+      ...(this.options.questions ? { questions: this.options.questions } : {}),
     };
   }
 
@@ -194,7 +204,7 @@ export class Harness {
     return {
       core: this.core,
       catalog: this.catalog,
-      interpreter: this.interpreter,
+      interpreter: this.options.interpreter ?? this.interpreter,
       interpretationTimeoutMs: 2_000,
       transport: this.transport,
       jobs: {
@@ -216,6 +226,7 @@ export class Harness {
             job
           ),
         watch_owner_attempt: async (job) => watchOwnerAttempt(this.core, job),
+        watch_signing_link: async (job) => watchSigningLinkJob(this.core, job),
         review_list: (job) => listPendingReviews(this.reviewDeps(), job),
         reconcile_grant: (job) =>
           reconcileGrant({ core: this.core, chain: this.chain, ...this.grantDeps() }, job),
@@ -324,4 +335,14 @@ export function summaryToken(texts: readonly string[]): string {
     .find(Boolean);
   if (!token) throw new Error("No summary token was sent");
   return token;
+}
+
+/** Records far more than a day's model spend cap, so model processing stays off until 00:00 UTC. */
+export function spendDailyModelCap(core: ReportingCore): void {
+  modelMeter(core)({
+    provider: "openai",
+    model: "gpt-4.1-mini-2025-04-14",
+    purpose: "extraction",
+    reserve: {},
+  })({ outcome: "answered", usage: { inputTokens: 1_000_000_000 } });
 }

@@ -63,6 +63,9 @@ const COMPRESSION_PROFILES = {
 
 type CompressionProfile = keyof typeof COMPRESSION_PROFILES;
 
+/** A browser's own default quality for a canvas JPEG. */
+const REDRAW_QUALITY = 0.92;
+
 /**
  * Intelligent Image Compressor using browser-image-compression
  * Provides automatic compression with intelligent settings based on file size and content
@@ -338,6 +341,34 @@ class ImageCompressor {
   shouldCompress(file: File, thresholdKB: number = 500): boolean {
     const fileSizeKB = file.size / 1024;
     return fileSizeKB > thresholdKB && file.type.startsWith("image/");
+  }
+
+  /**
+   * Draw a photo again through a canvas, at its own size and in its own type.
+   * A canvas writes no metadata, so this is how a photo whose file structure
+   * cannot be read, but which a browser still draws, can be published. It runs
+   * on the main thread, because the library's worker loads its code from a
+   * CDN. Null where there is no canvas, as in the Agent, or when the browser
+   * cannot decode the file either.
+   */
+  async redraw(file: File): Promise<File | null> {
+    if (typeof document === "undefined" && typeof OffscreenCanvas === "undefined") return null;
+    try {
+      const { file: redrawn } = await this.compressImage(file, {
+        maxSizeMB: Number.POSITIVE_INFINITY,
+        maxWidthOrHeight: undefined,
+        initialQuality: REDRAW_QUALITY,
+        alwaysKeepResolution: true,
+        useWebWorker: false,
+      });
+      return new File([redrawn], file.name, {
+        type: redrawn.type || file.type,
+        lastModified: file.lastModified,
+      });
+    } catch {
+      // compressImage has reported the failure; the caller refuses the photo.
+      return null;
+    }
   }
 
   /**

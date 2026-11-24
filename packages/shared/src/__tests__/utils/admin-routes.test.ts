@@ -1,22 +1,60 @@
 import { describe, expect, it } from "vitest";
-import { adminRoutes, resolveCampaignCookieJarsRoute } from "../../utils/navigation/admin-routes";
+import {
+  adminRoutes,
+  getAdminWorkspaceForPath,
+  resolveCampaignCookieJarsRoute,
+} from "../../utils/navigation/admin-routes";
 
 describe("adminRoutes", () => {
-  it("builds route-backed Hub work detail links with garden and sort context", () => {
+  it.each([
+    [adminRoutes.gardenPool({ gardenId: "0xAAA" }), "/garden/pool?gardenId=0xAAA", "garden"],
+    [
+      adminRoutes.gardenPoolSeed({ gardenId: "0xAAA" }),
+      "/garden/pool/seed?gardenId=0xAAA",
+      "garden",
+    ],
+    [
+      adminRoutes.gardenPoolCommitment("9", { gardenId: "0xAAA" }),
+      "/garden/pool/9?gardenId=0xAAA",
+      "garden",
+    ],
+    [adminRoutes.reviewConfirm({ gardenId: "0xAAA" }), "/review/confirm?gardenId=0xAAA", "review"],
+    [
+      adminRoutes.reviewConfirmDetail("9", { gardenId: "0xAAA" }),
+      "/review/confirm/9?gardenId=0xAAA",
+      "review",
+    ],
+    [
+      adminRoutes.communityCoordination({ gardenId: "0xAAA" }),
+      "/community/coordination?gardenId=0xAAA",
+      "community",
+    ],
+  ] as const)("builds %s in the owning workspace", (href, expected, workspace) => {
+    expect(href).toBe(expected);
+    expect(getAdminWorkspaceForPath(href.split("?")[0])).toBe(workspace);
+  });
+
+  it("builds route-backed Review work detail links with garden and sort context", () => {
     expect(
-      adminRoutes.hubWorkDetail("work-123", {
+      adminRoutes.reviewWorkDetail("work-123", {
         gardenId: "0x0000000000000000000000000000000000000abc",
         sort: "newest",
       })
-    ).toBe("/hub/work/work-123?gardenId=0x0000000000000000000000000000000000000abc&sort=newest");
+    ).toBe("/review/work/work-123?gardenId=0x0000000000000000000000000000000000000abc&sort=newest");
   });
 
-  it("does not preserve legacy Hub item query state", () => {
+  it("does not preserve legacy Review item query state", () => {
     const legacyContext = { sort: "newest", item: "old-item" } as unknown as Parameters<
-      typeof adminRoutes.hubWork
+      typeof adminRoutes.reviewWork
     >[0];
 
-    expect(adminRoutes.hubWork(legacyContext)).toBe("/hub/work?sort=newest");
+    expect(adminRoutes.reviewWork(legacyContext)).toBe("/review/work?sort=newest");
+  });
+
+  it("keeps a create flow's item, the one thing a Review URL's item may hold (DL-140)", () => {
+    expect(adminRoutes.reviewAssess({ sort: "newest", item: "create-assessment" })).toBe(
+      "/review/assess?sort=newest&item=create-assessment"
+    );
   });
 
   // A work opened from the Approved scope closes back onto it, so the scope
@@ -24,32 +62,32 @@ describe("adminRoutes", () => {
   it.each([
     [
       "the Approved list",
-      () => adminRoutes.hubWork({ sort: "newest", scope: "approved" }),
-      "/hub/work?sort=newest&scope=approved",
+      () => adminRoutes.reviewWork({ sort: "newest", scope: "approved" }),
+      "/review/work?sort=newest&scope=approved",
     ],
     [
       "a work opened from Approved",
-      () => adminRoutes.hubWorkDetail("work-123", { sort: "newest", scope: "approved" }),
-      "/hub/work/work-123?sort=newest&scope=approved",
+      () => adminRoutes.reviewWorkDetail("work-123", { sort: "newest", scope: "approved" }),
+      "/review/work/work-123?sort=newest&scope=approved",
     ],
     [
       "the Pending list",
-      () => adminRoutes.hubWork({ sort: "newest", scope: "pending" }),
-      "/hub/work?sort=newest",
+      () => adminRoutes.reviewWork({ sort: "newest", scope: "pending" }),
+      "/review/work?sort=newest",
     ],
   ] as const)("carries the Work scope in the link to %s", (_label, build, expected) => {
     expect(build()).toBe(expected);
   });
 
   it("opens an assessment's record under the Assessments tab", () => {
-    expect(adminRoutes.hubAssessDetail("0xabc/1", { gardenId: "0xgarden" })).toBe(
-      "/hub/assess/0xabc%2F1?gardenId=0xgarden"
+    expect(adminRoutes.reviewAssessDetail("0xabc/1", { gardenId: "0xgarden" })).toBe(
+      "/review/assess/0xabc%2F1?gardenId=0xgarden"
     );
   });
 
-  it("encodes Hub confirm commitment ids as path segments", () => {
-    expect(adminRoutes.hubConfirmDetail("allocation:0xabc/1")).toBe(
-      "/hub/confirm/allocation%3A0xabc%2F1"
+  it("encodes Review confirm commitment ids as path segments", () => {
+    expect(adminRoutes.reviewConfirmDetail("allocation:0xabc/1")).toBe(
+      "/review/confirm/allocation%3A0xabc%2F1"
     );
   });
 

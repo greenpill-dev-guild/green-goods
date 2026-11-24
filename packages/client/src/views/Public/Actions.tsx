@@ -1,4 +1,7 @@
-import type { Action } from "@green-goods/shared/types/domain";
+import { getDomainStyle } from "@green-goods/shared/config/domain";
+import { DOMAIN_TOKEN_SLUG, type Action } from "@green-goods/shared/types/domain";
+import { ALL_DOMAINS, DOMAIN_LABELS } from "@green-goods/shared/utils/domain";
+import { parseIPFSReference, resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -32,16 +35,13 @@ interface DomainEntry {
 
 const DOMAINS: readonly DomainEntry[] = [
   { id: "all", filterId: "all", labelId: "public.actions.domain.all", defaultLabel: "All" },
-  { id: "solar", filterId: "0", labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
-  { id: "agro", filterId: "1", labelId: "app.domain.tab.agro", defaultLabel: "Agroforestry" },
-  {
-    id: "education",
-    filterId: "2",
-    labelId: "app.domain.tab.education",
-    defaultLabel: "Education",
-  },
-  { id: "waste", filterId: "3", labelId: "app.domain.tab.waste", defaultLabel: "Waste" },
-] as const;
+  ...ALL_DOMAINS.map((domain) => ({
+    id: DOMAIN_TOKEN_SLUG[domain],
+    filterId: String(domain),
+    labelId: DOMAIN_LABELS[domain].id,
+    defaultLabel: DOMAIN_LABELS[domain].defaultMessage,
+  })),
+];
 
 interface DomainExplainer {
   id: Exclude<EditorialDomain, "all">;
@@ -50,10 +50,6 @@ interface DomainExplainer {
   defaultTitle: string;
   bodyId: string;
   defaultBody: string;
-  /** Tailwind utility for the top accent bar; uses domain ink tokens. */
-  accentClass: string;
-  /** Tailwind utility for the numeral tint; uses domain ink tokens. */
-  numeralClass: string;
 }
 
 interface CapitalEntry {
@@ -140,8 +136,6 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     bodyId: "public.actions.domains.solar.body",
     defaultBody:
       "Small installations, microgrid maintenance, and battery upkeep, plus the people learning to keep them running smoothly.",
-    accentClass: "bg-domain-solar",
-    numeralClass: "text-domain-solar",
   },
   {
     id: "agro",
@@ -151,8 +145,6 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     bodyId: "public.actions.domains.agro.body",
     defaultBody:
       "Tree planting, soil stewardship, and harvest records, rebuilding land while keeping it productive over growing seasons.",
-    accentClass: "bg-domain-agro",
-    numeralClass: "text-domain-agro",
   },
   {
     id: "education",
@@ -162,8 +154,6 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     bodyId: "public.actions.domains.education.body",
     defaultBody:
       "Workshops, learning circles, and shared curriculum that carry regenerative practice from one generation to the next.",
-    accentClass: "bg-domain-education",
-    numeralClass: "text-domain-education",
   },
   {
     id: "waste",
@@ -173,10 +163,14 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     bodyId: "public.actions.domains.waste.body",
     defaultBody:
       "Recycling streams, composting, and reuse projects that close material loops, keeping things out of local landfills.",
-    accentClass: "bg-domain-waste",
-    numeralClass: "text-domain-waste",
   },
 ] as const;
+
+/** The gateway link to an action's published instructions; none for a fallback or no reference. */
+function actionSourceHref(action: Action | null): string | undefined {
+  if (!action?.instructions || action.instructionsFallback) return undefined;
+  return parseIPFSReference(action.instructions) ? resolveIPFSUrl(action.instructions) : undefined;
+}
 
 /**
  * Actions — readable public Action library.
@@ -195,6 +189,8 @@ export default function ActionsGallery() {
   const [activeAction, setActiveAction] = useState<Action | null>(null);
   // The open template reads in the visitor's language, as its card does.
   const displayAction = activeAction ? localizeAction(activeAction, locale) : null;
+  // Its source is the instructions it was published with, when the record names them (PUB-055).
+  const sourceHref = actionSourceHref(activeAction);
   const { ref: domainsRef, revealed: domainsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: capitalsRef, revealed: capitalsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: guideRef, revealed: guideRevealed } = useInViewReveal<HTMLElement>();
@@ -239,7 +235,7 @@ export default function ActionsGallery() {
         lede={formatMessage({
           id: "public.actions.heroLede",
           defaultMessage:
-            "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
+            "Actions are the templates gardens use to document work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
         })}
       />
 
@@ -269,8 +265,11 @@ export default function ActionsGallery() {
           <ul className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-8 xl:grid-cols-4">
             {DOMAIN_EXPLAINERS.map((domain) => (
               <li key={domain.id} className="flex flex-col gap-4">
-                <span aria-hidden="true" className={cn("h-[3px] w-12", domain.accentClass)} />
-                <EditorialNumeral className={domain.numeralClass}>
+                <span
+                  aria-hidden="true"
+                  className={cn("h-[3px] w-12", getDomainStyle(domain.id)?.colors.fill)}
+                />
+                <EditorialNumeral className={getDomainStyle(domain.id)?.colors.text}>
                   {domain.numeral}
                 </EditorialNumeral>
                 <h3 className="font-serif text-2xl font-normal leading-[1.05] tracking-[-0.012em] text-text-strong-950 md:text-3xl">
@@ -364,7 +363,7 @@ export default function ActionsGallery() {
             <EditorialHeading id="public-actions-grid-title">
               {formatMessage({
                 id: "public.actions.gridTitle",
-                defaultMessage: "Templates Gardens use to plan and document Work.",
+                defaultMessage: "Templates gardens use to plan and document work.",
               })}
             </EditorialHeading>
           </header>
@@ -429,12 +428,10 @@ export default function ActionsGallery() {
           open
           onClose={() => setActiveAction(null)}
           title={displayAction.title}
+          sourceHref={sourceHref}
           subtitle={formatMessage({
-            id: `app.domain.tab.${typeof displayAction.domain === "string" ? displayAction.domain : domainSlug(displayAction.domain)}`,
-            defaultMessage:
-              typeof displayAction.domain === "string"
-                ? displayAction.domain
-                : domainSlug(displayAction.domain),
+            id: getDomainStyle(displayAction.domain)?.labelId ?? "app.domain.tab.unknown",
+            defaultMessage: getDomainStyle(displayAction.domain)?.defaultLabel ?? "unknown",
           })}
         >
           {displayAction.media[0] ? (
@@ -451,20 +448,4 @@ export default function ActionsGallery() {
       ) : null}
     </>
   );
-}
-
-function domainSlug(domain: number | null): string {
-  if (domain === null) return "unknown";
-  switch (domain) {
-    case 0:
-      return "solar";
-    case 1:
-      return "agro";
-    case 2:
-      return "education";
-    case 3:
-      return "waste";
-    default:
-      return "unknown";
-  }
 }

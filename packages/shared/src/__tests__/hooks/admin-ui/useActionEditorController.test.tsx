@@ -10,6 +10,8 @@ import { useActionEditorController } from "../../../hooks/admin-ui/actions/useAc
 
 const mocks = vi.hoisted(() => ({
   assertReady: vi.fn(),
+  actionInstructions: "",
+  registrationScope: "11155111:owner",
   pendingEdits: [] as unknown[],
   reconcileEdits: vi.fn(),
   clearCompletedEdits: vi.fn(),
@@ -28,8 +30,27 @@ const mocks = vi.hoisted(() => ({
   uploadFile: vi.fn(),
 }));
 
+const batch = vi.hoisted(() => ({
+  available: false,
+  journaled: false,
+  hold: null as unknown,
+  holdFeedback: null as unknown,
+  saved: [] as unknown[],
+  lastReadAt: 0,
+  isSettlingHold: false,
+  isSending: false,
+  send: vi.fn(),
+  order: vi.fn(),
+  checkAgain: vi.fn(),
+  moveOn: vi.fn(),
+}));
+
 const originalStart = new Date("2026-08-01T00:00:00.000Z");
 const originalEnd = new Date("2026-08-31T00:00:00.000Z");
+
+vi.mock("../../../hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
+}));
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
@@ -61,7 +82,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
         slug: "original-action",
         startTime: originalStart.getTime(),
         endTime: originalEnd.getTime(),
-        instructions: "",
+        instructions: mocks.actionInstructions,
         translations: {},
       },
     ],
@@ -72,7 +93,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
 vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
     isLoading: false,
-    registrationScope: "11155111:owner",
+    registrationScope: mocks.registrationScope,
     pendingEdits: mocks.pendingEdits,
     reconcileEdits: mocks.reconcileEdits,
     clearCompletedEdits: mocks.clearCompletedEdits,
@@ -82,6 +103,10 @@ vi.mock("../../../hooks/action/useActionOperations", () => ({
     updateActionStartTime: mocks.updateStartTime,
     updateActionTitle: mocks.updateTitle,
   }),
+}));
+
+vi.mock("../../../hooks/action/useActionEditBatch", () => ({
+  useActionEditBatch: () => batch,
 }));
 
 vi.mock("../../../modules/data/ipfs/resolve", () => ({
@@ -102,7 +127,7 @@ vi.mock("../../../components/Toast/toast.service", () => ({
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
-  logger: { error: mocks.loggerError },
+  logger: { error: mocks.loggerError, warn: vi.fn() },
 }));
 
 vi.mock("../../../stores/useSheetOrchestratorStore", () => ({
@@ -151,6 +176,8 @@ describe("useActionEditorController", () => {
   });
 
   beforeEach(() => {
+    mocks.actionInstructions = "";
+    mocks.registrationScope = "11155111:owner";
     mocks.pendingEdits = [];
     mocks.reconcileEdits.mockReset();
     vi.clearAllMocks();
@@ -161,6 +188,15 @@ describe("useActionEditorController", () => {
     mocks.updateInstructions.mockResolvedValue({ success: true });
     mocks.updateStartTime.mockResolvedValue({ success: true });
     mocks.updateTitle.mockResolvedValue({ success: true });
+    Object.assign(batch, {
+      available: false,
+      journaled: false,
+      hold: null,
+      holdFeedback: null,
+      saved: [],
+      lastReadAt: 0,
+    });
+    batch.order.mockImplementation(async (changes: unknown[]) => changes);
   });
 
   it("updates changed fields through the production operations seam", async () => {
@@ -345,5 +381,168 @@ describe("useActionEditorController", () => {
     });
     expect(mocks.navigate).not.toHaveBeenCalled();
     expect(mocks.clearDraft).not.toHaveBeenCalled();
+  });
+
+  const UPDATED = {
+    title: "Updated action",
+    startTime: new Date("2026-10-01T00:00:00.000Z"),
+    endTime: new Date("2026-10-31T00:00:00.000Z"),
+  };
+  const UPDATED_CHANGES = [
+    { field: "title", value: UPDATED.title },
+    { field: "startTime", value: UPDATED.startTime.getTime() / 1000 },
+    { field: "endTime", value: UPDATED.endTime.getTime() / 1000 },
+  ];
+  const WRITES = [mocks.updateTitle, mocks.updateStartTime, mocks.updateEndTime];
+
+  async function renderEditor() {
+    const view = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() =>
+      expect(view.result.current.form.getValues("title")).toBe("Original action")
+    );
+    return view;
+  }
+
+  it("uploads the instructions before anything is written, so a failed upload sends nothing", async () => {
+    mocks.uploadFile.mockRejectedValueOnce(new Error("upload failed"));
+    const view = await renderEditor();
+    act(() => view.result.current.setIsEditingInstructions(true));
+
+    await act(() => view.result.current.submit(UPDATED));
+
+    for (const write of WRITES) expect(write).not.toHaveBeenCalled();
+    expect(mocks.toastError).toHaveBeenCalledOnce();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it("sends every change as one group where a batch can go", async () => {
+    batch.available = true;
+    mocks.uploadFile.mockResolvedValueOnce({ cid: "bafy-new" });
+    batch.send.mockResolvedValueOnce({ status: "saved", transactionHash: "0xab" });
+    const view = await renderEditor();
+    act(() => view.result.current.setIsEditingInstructions(true));
+
+    await act(() => view.result.current.submit(UPDATED));
+
+    expect(batch.send).toHaveBeenCalledOnce();
+    expect(batch.send).toHaveBeenCalledWith(
+      [...UPDATED_CHANGES, { field: "instructions", value: "bafy-new" }],
+      { onSaved: expect.any(Function) }
+    );
+    for (const write of [...WRITES, mocks.updateInstructions]) expect(write).not.toHaveBeenCalled();
+    expect(mocks.navigate).toHaveBeenCalledWith("/actions/action-42");
+    expect(mocks.clearDraft).toHaveBeenCalledWith("/actions/action-42/edit");
+  });
+
+  it("never sends a held save again: after a reload, the read that proves it finishes the edit", async () => {
+    let saved: Record<string, unknown> | null = null;
+    mocks.setDraft.mockImplementation((_path, value) => {
+      saved = value;
+    });
+    mocks.restoreDraft.mockImplementation(() => (saved ? { formState: saved } : null));
+    mocks.clearDraft.mockImplementation(() => {
+      saved = null;
+    });
+    batch.available = true;
+    batch.send.mockResolvedValueOnce({ status: "unknown" });
+    const first = await renderEditor();
+    act(() => first.result.current.form.reset(UPDATED));
+    await act(() => first.result.current.submit(UPDATED));
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(mocks.toastError).not.toHaveBeenCalled();
+
+    // The page reloads while the save is still held, so Save waits.
+    first.unmount();
+    batch.hold = { operationIds: ["held"], fields: ["title"], attempted: [], onChain: [] };
+    const restored = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() =>
+      expect(restored.result.current.form.getValues("title")).toBe(UPDATED.title)
+    );
+    await act(() => restored.result.current.submit(UPDATED));
+
+    // Checking again finds that it landed.
+    Object.assign(batch, { hold: null, saved: UPDATED_CHANGES, lastReadAt: 1 });
+    restored.rerender();
+
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith("/actions/action-42"));
+    expect(batch.send).toHaveBeenCalledOnce();
+    for (const write of WRITES) expect(write).not.toHaveBeenCalled();
+    expect(saved).toBeNull();
+  });
+
+  it("keeps a plain wallet's proven fields across reload and journals only the remaining edit", async () => {
+    let saved: Record<string, unknown> | null = null;
+    mocks.setDraft.mockImplementation((_path, value) => {
+      saved = value;
+    });
+    mocks.restoreDraft.mockImplementation(() => (saved ? { formState: saved } : null));
+    batch.journaled = true;
+    batch.send.mockImplementationOnce(async (changes, { onSaved }) => {
+      onSaved([changes[0]]);
+      return { status: "not-saved" };
+    });
+    const first = await renderEditor();
+    act(() => first.result.current.form.reset(UPDATED));
+    await act(() => first.result.current.submit(UPDATED));
+    first.unmount();
+    const restored = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() =>
+      expect(restored.result.current.form.getValues("title")).toBe(UPDATED.title)
+    );
+    batch.send.mockResolvedValueOnce({ status: "saved", transactionHash: "0xab" });
+    await act(() => restored.result.current.submit(UPDATED));
+    expect(batch.send.mock.calls[1][0]).toEqual(UPDATED_CHANGES.slice(1));
+    for (const write of WRITES) expect(write).not.toHaveBeenCalled();
+  });
+
+  it("keeps remaining draft fields when a partial save refreshes the action metadata", async () => {
+    batch.journaled = true;
+    batch.send.mockImplementationOnce(async (changes, { onSaved }) => {
+      onSaved([changes[0]]);
+      return { status: "not-saved" };
+    });
+    const view = await renderEditor();
+    act(() => view.result.current.form.reset(UPDATED));
+    await act(() => view.result.current.submit(UPDATED));
+    mocks.actionInstructions = "bafy-refreshed";
+    view.rerender();
+    expect(view.result.current.form.getValues()).toEqual(UPDATED);
+    expect(mocks.getFileByHash).not.toHaveBeenCalled();
+
+    // A different account owns a different attempt and must initialize its editor.
+    mocks.registrationScope = "11155111:other-owner";
+    mocks.actionInstructions = "";
+    view.rerender();
+    await waitFor(() =>
+      expect(view.result.current.form.getValues("title")).toBe("Original action")
+    );
+  });
+
+  it("never bypasses wallet recovery when a sequential edit exceeds its ceilings", async () => {
+    batch.journaled = true;
+    batch.send.mockResolvedValue({ status: "not-batchable" });
+    const view = await renderEditor();
+    await act(() => view.result.current.submit(UPDATED));
+    for (const write of WRITES) expect(write).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a rail without journal support", false],
+    ["an edit past its batch ceilings", true],
+  ])("sends %s one write at a time, in the order the registry accepts", async (_case, available) => {
+    batch.available = available;
+    batch.send.mockResolvedValueOnce({ status: "not-batchable" });
+    batch.order.mockImplementation(async (changes: unknown[]) => [...changes].reverse());
+    const view = await renderEditor();
+
+    await act(() => view.result.current.submit(UPDATED));
+
+    expect(batch.order).toHaveBeenCalledWith(UPDATED_CHANGES);
+    const sentAt = (write: (typeof WRITES)[number]) => write.mock.invocationCallOrder[0];
+    expect(sentAt(mocks.updateEndTime)).toBeLessThan(sentAt(mocks.updateStartTime));
+    expect(sentAt(mocks.updateStartTime)).toBeLessThan(sentAt(mocks.updateTitle));
+    expect(mocks.navigate).toHaveBeenCalledWith("/actions/action-42");
   });
 });

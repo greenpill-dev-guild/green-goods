@@ -4,6 +4,7 @@ import { GraphQLClient, type RequestDocument } from "graphql-request";
 import { getEasGraphqlUrl, getIndexerUrl } from "../../config/blockchain";
 import { trackGraphQLError } from "../app/error-tracking";
 import { connectivityStore } from "../../stores/connectivity";
+import { withCombinedAbortSignal } from "../../utils/abort-signals";
 
 /** Vite environment interface for indexer URL access */
 interface ViteEnv {
@@ -33,22 +34,34 @@ export class TimeoutError extends Error {
 export function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number = GRAPHQL_TIMEOUT_MS,
-  operationName: string = "Operation"
+  operationName: string = "Operation",
+  signal?: AbortSignal
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
       reject(new TimeoutError(`${operationName} timed out after ${timeoutMs}ms`, timeoutMs));
     }, timeoutMs);
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(signal?.reason);
+    };
 
     promise
       .then((result) => {
-        clearTimeout(timeoutId);
+        cleanup();
         resolve(result);
       })
       .catch((error) => {
-        clearTimeout(timeoutId);
+        cleanup();
         reject(error);
       });
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) onAbort();
   });
 }
 
@@ -56,7 +69,8 @@ export interface GraphQLReader {
   query<TData, TVariables extends Record<string, unknown> = Record<string, unknown>>(
     document: TypedDocumentNode<TData, TVariables> | RequestDocument,
     variables?: TVariables,
-    operationName?: string
+    operationName?: string,
+    signal?: AbortSignal
   ): Promise<{ data: TData; error?: undefined } | { data?: undefined; error: Error }>;
 }
 
@@ -82,24 +96,39 @@ export class GQLClient implements GraphQLReader {
   async query<TData, TVariables extends Record<string, unknown> = Record<string, unknown>>(
     document: TypedDocumentNode<TData, TVariables> | RequestDocument,
     variables?: TVariables,
-    operationName?: string
+    operationName?: string,
+    signal?: AbortSignal
   ): Promise<{ data: TData; error?: undefined } | { data?: undefined; error: Error }> {
+    const startedAt = Date.now();
+    const controller = new AbortController();
     try {
+      signal?.throwIfAborted();
       // Cast to RequestDocument for graphql-request compatibility.
       // TypedDocumentNode is a subtype that includes the same runtime structure.
       const data = await withTimeout(
-        this.client.request<TData>(
-          document as RequestDocument,
-          variables as Record<string, unknown>
+        withCombinedAbortSignal([controller.signal, signal], (requestSignal) =>
+          this.client.request<TData>({
+            document: document as RequestDocument,
+            variables,
+            signal: requestSignal,
+          })
         ),
         GRAPHQL_TIMEOUT_MS,
-        operationName
+        operationName,
+        signal
       );
       return { data };
     } catch (error) {
+      // Stop the HTTP request before a timed-out garden read releases its slot.
+      if (error instanceof TimeoutError) controller.abort(error);
       const normalizedError = error instanceof Error ? error : new Error(String(error));
+      if (signal?.aborted) return { error: normalizedError };
 
-      if (connectivityStore.getStatusSnapshot().state !== "offline") {
+      // A device that changes networks breaks requests to every service; only a
+      // failure on a connection that stayed steady for the whole request is a
+      // failure of this one.
+      void connectivityStore.failedOnSteadyConnection(startedAt).then((steady) => {
+        if (!steady) return;
         trackGraphQLError(normalizedError, {
           source: "GQLClient.query",
           userAction: operationName
@@ -113,7 +142,7 @@ export class GQLClient implements GraphQLReader {
             is_offline: false,
           },
         });
-      }
+      });
 
       return { error: normalizedError };
     }

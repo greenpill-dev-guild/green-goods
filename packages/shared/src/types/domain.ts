@@ -1,6 +1,14 @@
-import type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+import type {
+  ApproximateWorkLocation,
+  WorkUploadCheckpoint,
+  WorkUploadConsent,
+} from "./work-media";
 
-export type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+export type {
+  ApproximateWorkLocation,
+  WorkUploadCheckpoint,
+  WorkUploadConsent,
+} from "./work-media";
 
 /**
  * Green Goods Domain Types
@@ -49,22 +57,20 @@ export enum Domain {
   WASTE = 3,
 }
 
-/**
- * CSS color values for each action domain, referencing the shared domain
- * palette in `packages/shared/src/styles/theme.css`. Single source of truth
- * for solar=amber, agro=moss, edu=harbour blue, waste=terracotta across
- * public editorial, client PWA, and admin work filters.
- *
- * Use with inline styles: `style={{ borderLeftColor: DOMAIN_COLORS[domain] }}`.
- * For Tailwind utilities, prefer the matching `bg-domain-*`, `text-domain-*`,
- * and `border-domain-*` classes generated from the same tokens.
- */
-export const DOMAIN_COLORS: Record<Domain, string> = {
-  [Domain.SOLAR]: "rgb(var(--domain-solar-rgb))",
-  [Domain.AGRO]: "rgb(var(--domain-agro-rgb))",
-  [Domain.EDU]: "rgb(var(--domain-education-rgb))",
-  [Domain.WASTE]: "rgb(var(--domain-waste-rgb))",
-};
+/** Design-token spelling; distinct from action slug prefixes and hypercert words. */
+export const DOMAIN_TOKEN_SLUG = {
+  [Domain.SOLAR]: "solar",
+  [Domain.AGRO]: "agro",
+  [Domain.EDU]: "education",
+  [Domain.WASTE]: "waste",
+} as const satisfies Record<Domain, string>;
+
+export type DomainTokenSlug = (typeof DOMAIN_TOKEN_SLUG)[Domain];
+
+/** Inline CSS colors from the shared palette in styles/theme.css. */
+export const DOMAIN_COLORS = Object.fromEntries(
+  Object.entries(DOMAIN_TOKEN_SLUG).map(([id, slug]) => [id, `rgb(var(--domain-${slug}-rgb))`])
+) as Record<Domain, string>;
 
 /**
  * Cynefin complexity framework phase — classifies the operating environment
@@ -126,6 +132,22 @@ export interface GardenerCard {
   avatar?: string | null;
   /** First indexed gardener-role assignment in milliseconds; unknown for steward-only members. */
   registeredAt: number | null;
+}
+
+/** Recorded membership in one garden. Dates are milliseconds, independent of account creation. */
+export interface GardenMemberHistory {
+  garden: Address;
+  account: Address;
+  joinedAt: number | null;
+  /** Start of the current uninterrupted membership; null after the last role is removed. */
+  memberSince: number | null;
+  roleSince: Partial<Record<import("../utils/blockchain/garden-roles").GardenRole, number>>;
+  /**
+   * Every role with any recorded grant or revocation in this garden, held now or not. A missing
+   * sub-role outside it was never minted; one inside it was taken away. Set only when every role
+   * event was read; absent means the history is unknown.
+   */
+  recordedRoles?: import("../utils/blockchain/garden-roles").GardenRole[];
 }
 
 // ============================================
@@ -372,6 +394,7 @@ export type WorkDisplayStatus =
  * @see Work for the final on-chain work record
  */
 export interface WorkSubmission {
+  uploadConsent?: WorkUploadConsent;
   location?: ApproximateWorkLocation;
   uploadCheckpoint?: WorkUploadCheckpoint;
   actionUID: number;
@@ -424,35 +447,7 @@ export interface Work extends WorkCard {
   reviewFeedback?: string;
 }
 
-/**
- * Work metadata v2 — generic, domain-aware.
- * Stored as JSON on IPFS, CID referenced in EAS attestation.
- */
-export interface WorkMetadata {
-  attachments?: Array<{ cid: string; type: string }>;
-  schemaVersion: "work_metadata_v2";
-  domain: Domain;
-  actionSlug: string;
-  timeSpentMinutes: number;
-  details: Record<string, unknown>;
-  tags?: string[];
-  audioNoteCids?: string[];
-  clientWorkId: string;
-  submittedAt: string;
-  /** Optional GPS location (coarse, user-triggered) */
-  location?: ApproximateWorkLocation | null;
-}
-
-/**
- * Work metadata v1 — old shape for legacy works.
- * Kept for backward compatibility with existing attestations.
- */
-export interface WorkMetadataV1 {
-  clientWorkId?: string;
-  plantCount: number;
-  plantSelection: string[];
-  timeSpentMinutes?: number;
-}
+export type { WorkMetadata, WorkMetadataV1 } from "./work-media";
 
 // ============================================
 // Work Approval Types

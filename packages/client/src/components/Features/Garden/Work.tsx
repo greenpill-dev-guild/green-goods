@@ -1,8 +1,9 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { WorkCardSkeleton } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
-import { useActiveOfflineGarden } from "@green-goods/shared/hooks/offline/useOfflineContent";
+import { useOfflineGardenInView } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import {
   type GardenWorkSort,
   useGardenWorkListView,
@@ -12,7 +13,6 @@ import { RiErrorWarningLine, RiInboxLine, RiRefreshLine } from "@remixicon/react
 import React, { forwardRef, memo, type UIEvent, useCallback, useEffect } from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
-import { EmptyState } from "@/components/Communication";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { GardenListHeader, GardenListHeaderLoading } from "./GardenListHeader";
@@ -21,6 +21,7 @@ interface GardenWorkProps {
   actions: Action[];
   works: Work[];
   gardenId?: string;
+  domainMask?: number;
   chainId?: number;
   readState?: {
     isError: boolean;
@@ -40,11 +41,18 @@ interface GardenWorkProps {
 
   onRefresh?: () => void;
   handleScroll?: (event: UIEvent<HTMLUListElement>) => void;
+  /**
+   * Where a work's page returns on its Back: the garden's own page by default, or Home when
+   * this list is the Work sheet over it (DL-128).
+   */
+  returnTo?: string;
 }
 
 /** A phone shows about five cards; loading shows as many placeholders. */
 const SKELETON_CARDS = 5;
-const GRID = "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 w-full";
+/** Work rows, 12px apart (the one list gap, F11). */
+const GRID =
+  "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-(--gg-list-gap) w-full";
 const SORT_LABEL_IDS: Record<GardenWorkSort, string> = {
   pending: "app.garden.work.sort.pending",
   newest: "app.garden.work.sort.newest",
@@ -55,6 +63,7 @@ const SORT_ORDER: GardenWorkSort[] = ["pending", "newest", "oldest"];
 interface WorkListProps {
   sorted: Work[];
   actionById: Map<string, Action>;
+  returnTo?: string;
 }
 
 interface WorkListItemProps {
@@ -63,6 +72,7 @@ interface WorkListItemProps {
   sorted: Work[];
   actionById: Map<string, Action>;
   navigate: (path: string, options?: { state?: unknown }) => void;
+  returnTo?: string;
 }
 
 const WorkListItem = memo(function WorkListItem({
@@ -71,18 +81,18 @@ const WorkListItem = memo(function WorkListItem({
   sorted,
   actionById,
   navigate,
+  returnTo,
 }: WorkListItemProps) {
   const work = sorted[index];
   const action = actionById.get(String(work.actionUID));
   const onOpen = useCallback(
     () =>
       navigate(`/home/${work.gardenAddress}/work/${work.id}`, {
-        state: {
-          from: "garden",
-          returnTo: `/home/${work.gardenAddress}`,
-        },
+        state: returnTo
+          ? { from: "home", returnTo }
+          : { from: "garden", returnTo: `/home/${work.gardenAddress}` },
       }),
-    [navigate, work.gardenAddress, work.id]
+    [navigate, returnTo, work.gardenAddress, work.id]
   );
   return (
     <li style={style} className="cv-work-card">
@@ -96,7 +106,7 @@ const WorkListItem = memo(function WorkListItem({
   );
 });
 
-const WorkList = ({ sorted, actionById }: WorkListProps) => {
+const WorkList = ({ sorted, actionById, returnTo }: WorkListProps) => {
   const navigate = useNavigateToTop();
   return sorted.map((_, index) => (
     <WorkListItem
@@ -105,6 +115,7 @@ const WorkList = ({ sorted, actionById }: WorkListProps) => {
       sorted={sorted}
       actionById={actionById}
       navigate={navigate}
+      returnTo={returnTo}
     />
   ));
 };
@@ -120,14 +131,16 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       availability: availabilityProp,
       lastSuccessfulRefresh: updatedProp,
       gardenId,
+      domainMask,
       readState,
       onRefresh,
       handleScroll,
+      returnTo,
     },
     ref
   ) => {
     const intl = useIntl();
-    useActiveOfflineGarden(gardenId);
+    useOfflineGardenInView(gardenId);
     const workFetchStatus =
       statusProp ?? (readState?.isError ? "error" : readState?.isLoading ? "pending" : "success");
     const isOffline = readState?.isPaused ?? offlineProp;
@@ -159,7 +172,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       : null;
 
     // Type and Sort narrow and order the list (D31); Pending is today's order.
-    const view = useGardenWorkListView(works, actions);
+    const view = useGardenWorkListView(works, actions, domainMask);
     const typeAllLabel = intl.formatMessage({ id: "app.garden.work.type.all" });
     const sortLabel = (sort: GardenWorkSort) => intl.formatMessage({ id: SORT_LABEL_IDS[sort] });
     // Oldest first needs the garden's whole history, since its oldest work is on
@@ -175,16 +188,12 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       if (readsHistory && !isLoadingOlder) loadOlderWork?.();
     }, [readsHistory, isLoadingOlder, loadOlderWork]);
     // While a saved copy stands in for live data, its line takes the count's place.
-    // The count is the bare number, so the filters beside it have room; screen
-    // readers still hear what it counts.
-    const countLine = intl.formatMessage(
-      { id: "app.garden.work.count" },
-      { count: view.works.length }
-    );
+    // The count names what it counts ("20 submissions"), as Your Work's does (DL-166);
+    // the filters beside it give way first.
     const status = readsHistory
       ? intl.formatMessage({ id: "app.garden.work.loading" })
-      : (context ?? intl.formatNumber(view.works.length));
-    const srStatus = readsHistory || context ? undefined : countLine;
+      : (context ??
+        intl.formatMessage({ id: "app.garden.work.count" }, { count: view.works.length }));
 
     // Loading keeps the loaded layout (D28): the header row with the loading line
     // where the count lands and a placeholder where each filter goes, then cards
@@ -213,7 +222,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       );
     }
 
-    // Type appears only when the work here spans two or more actions.
+    // Type appears only when the work here spans two or more supported actions.
     const filters = hasRows ? (
       <>
         {view.typeOptions.length > 0 ? (
@@ -254,9 +263,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
     // sheet placement), so switching tabs never moves the icon and title.
     return (
       <div>
-        {hasRows || context ? (
-          <GardenListHeader status={status} srStatus={srStatus} filters={filters} />
-        ) : null}
+        {hasRows || context ? <GardenListHeader status={status} filters={filters} /> : null}
         <ul
           ref={ref}
           onScroll={handleScroll}
@@ -339,7 +346,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
               </li>
             ))
           ) : hasRows ? (
-            <WorkList sorted={view.works} actionById={view.actionById} />
+            <WorkList sorted={view.works} actionById={view.actionById} returnTo={returnTo} />
           ) : null}
           {hasRows && !readsHistory && readState?.hasOlderWork && !isOffline && loadOlderWork && (
             <li className="col-span-full flex justify-center">

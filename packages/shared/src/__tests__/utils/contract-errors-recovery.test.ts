@@ -5,7 +5,12 @@
  */
 
 import { ChainNotConfiguredError, ConnectorChainMismatchError } from "@wagmi/core";
-import { ChainMismatchError, SwitchChainError, UserRejectedRequestError } from "viem";
+import {
+  ChainMismatchError,
+  SwitchChainError,
+  toFunctionSelector,
+  UserRejectedRequestError,
+} from "viem";
 import { arbitrum } from "viem/chains";
 import { describe, expect, it, vi } from "vitest";
 
@@ -19,10 +24,92 @@ import en from "../../i18n/en.json";
 import es from "../../i18n/es.json";
 import pt from "../../i18n/pt.json";
 import { WalletChainMismatchError } from "../../modules/transactions/chain-guard";
-import { parseAndFormatError, parseContractError } from "../../utils/errors/contract-errors";
+import {
+  type ParsedContractError,
+  parseAndFormatError,
+  parseContractError,
+} from "../../utils/errors/contract-errors";
+import { JarReviewChangedError } from "../../utils/errors/hats-cookie-jar-errors";
 import { classifyTxError, isCancelledTxError } from "../../utils/errors/tx-error-classifier";
+import {
+  ConnectionNeededError,
+  WalletReconnectRequiredError,
+} from "../../utils/errors/unsent-failures";
+import { VOUCHER_ENTITLEMENT_ERRORS } from "../../utils/errors/voucher-entitlement-errors";
 
 describe("contract error recovery fields", () => {
+  it.each(
+    Object.entries(VOUCHER_ENTITLEMENT_ERRORS)
+  )("localizes entitlement error %s and its recovery", (selector, info) => {
+    const parsed = parseContractError(
+      new Error(`reverted with the following signature: ${selector}`)
+    );
+    expect(parsed.name).toBe(info.name);
+    expect(parsed.messageKey).toBe(info.messageKey);
+    expect(parsed.messageKey).toBeTruthy();
+    for (const catalog of [en, es, pt]) {
+      const messages = catalog as Record<string, string>;
+      expect(messages[parsed.messageKey!]).toBeTruthy();
+      if (info.action) {
+        expect(parsed.actionKey).toBeTruthy();
+        expect(messages[parsed.actionKey!]).toBeTruthy();
+      }
+    }
+    expect((es as Record<string, string>)[parsed.messageKey!]).not.toBe(info.message);
+    expect((pt as Record<string, string>)[parsed.messageKey!]).not.toBe(info.message);
+  });
+
+  /** A title, a message and a next step in every language, and English that matches en.json. */
+  function expectJarCopyInEveryLanguage(parsed: ParsedContractError) {
+    for (const key of [parsed.titleKey, parsed.messageKey, parsed.actionKey]) {
+      for (const catalog of [en, es, pt] as Record<string, string>[]) {
+        expect(catalog[key ?? ""], key).toEqual(expect.any(String));
+      }
+    }
+    const english = en as Record<string, string>;
+    expect([parsed.message, parsed.action]).toEqual([
+      english[parsed.messageKey!],
+      english[parsed.actionKey!],
+    ]);
+  }
+
+  // The signatures a Hats jar declares; each selector is derived here, never copied.
+  it.each([
+    "NotOwner()",
+    "NotOperator()",
+    "InvalidPolicy()",
+    "InvalidOperationalLimits()",
+    "PolicyNotReady(uint256)",
+    "UnexpectedPolicy()",
+    "ProposerNoLongerOwner()",
+    "InsufficientCredit()",
+    "InsufficientSurplus()",
+  ])("names the Hats jar refusal %s in every language", (signature) => {
+    const parsed = parseContractError(
+      new Error(`reverted with the following signature: ${toFunctionSelector(signature)}`)
+    );
+    expect(parsed).toMatchObject({
+      name: signature.slice(0, signature.indexOf("(")),
+      isKnown: true,
+    });
+    expectJarCopyInEveryLanguage(parsed);
+  });
+
+  it.each([
+    "recipient",
+    "pendingPolicy",
+    "jarOrHat",
+  ] as const)("asks for a fresh review when the jar's %s changed", (change) => {
+    const parsed = parseContractError(new JarReviewChangedError(change));
+    expect(parsed).toMatchObject({
+      titleKey: "app.errors.hatsJar.outOfDate.title",
+      actionKey: "app.errors.hatsJar.outOfDate.action",
+      isKnown: true,
+      recoverable: false,
+    });
+    expectJarCopyInEveryLanguage(parsed);
+  });
+
   describe("recoverable field", () => {
     it("should mark NotGardenMember as not recoverable", () => {
       const result = parseContractError("0x8cb4ae3b");
@@ -278,6 +365,13 @@ describe("contract error recovery fields", () => {
       expect(parseContractError(new Error("You are offline")).name).toBe("Offline");
     });
 
+    it("reads a send refused for its connection as nothing sent, never as saved", () => {
+      const { title, message, parsed } = parseAndFormatError(new ConnectionNeededError());
+      expect(parsed.name).toBe("ConnectionNeeded");
+      expect(title).toBe("Connection Needed");
+      expect(message).toBe("Nothing was sent. Check your connection, then try again.");
+    });
+
     it("names copy that exists in every language, and falls back to the same English", () => {
       const declinedSwitch = new WalletChainMismatchError({
         targetChainId: ARBITRUM,
@@ -288,6 +382,8 @@ describe("contract error recovery fields", () => {
         parseContractError(declinedSwitch.message),
         parseContractError(loggedConflict),
         parseContractError("You are offline"),
+        parseContractError(new ConnectionNeededError()),
+        parseContractError(new WalletReconnectRequiredError(false)),
       ];
       for (const parsed of parsedErrors) {
         for (const key of [parsed.titleKey, parsed.messageKey]) {

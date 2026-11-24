@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
 import { useRefreshAction } from "@green-goods/shared/components/Canvas/RefreshActionContext";
 import { WorkbenchCard } from "@green-goods/shared/components/Canvas/WorkbenchCard";
@@ -13,7 +14,9 @@ import {
 import { useActionsController } from "@green-goods/shared/hooks/admin-ui/actions/useActionsController";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
-import { AdminButton } from "@/components/AdminButton";
+import { RiFileListLine } from "@remixicon/react";
+import { useCallback, useMemo } from "react";
+import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
@@ -24,9 +27,6 @@ import {
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-import { RiFileListLine } from "@remixicon/react";
-import { useCallback, useMemo } from "react";
-import { useIntl } from "react-intl";
 import { ActionsSheetDescriptor } from "./ActionsSheetDescriptor";
 
 export default function Actions() {
@@ -34,17 +34,31 @@ export default function Actions() {
   const actions = useActionsController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const { isRefreshing, refetch } = actions;
+  const selectedDomain = actions.filters.domain;
+  const activeDomainTab = selectedDomain === undefined ? "all" : String(selectedDomain);
 
   const headerStats = useMemo(() => {
     if (actions.isLoading) return [];
     return buildActionsHeaderStats({
-      totalCount: actions.actions.length,
-      domainsCovered: new Set(
-        actions.actions.map((action) => action.domain).filter((domain) => domain !== null)
-      ).size,
+      // A tab's total sits on this line, not on the tab, and follows the tab (DL-134).
+      totalCount: actions.domainCounts[activeDomainTab] ?? 0,
+      // How many domains the registry covers says nothing about one domain's tab.
+      domainsCovered:
+        selectedDomain === undefined
+          ? new Set(
+              actions.actions.map((action) => action.domain).filter((domain) => domain !== null)
+            ).size
+          : undefined,
       formatMessage: intl.formatMessage,
     });
-  }, [actions.actions, actions.isLoading, intl.formatMessage]);
+  }, [
+    actions.actions,
+    actions.domainCounts,
+    actions.isLoading,
+    activeDomainTab,
+    intl.formatMessage,
+    selectedDomain,
+  ]);
 
   const handleRefresh = useCallback(() => {
     void refetch();
@@ -68,7 +82,7 @@ export default function Actions() {
       <CanvasRouteHeader
         title={intl.formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
         description={intl.formatMessage({
-          id: "cockpit.actions.description",
+          id: "hub.actions.description",
           defaultMessage:
             "Scan the registry, review lifecycle status, and maintain submission requirements.",
         })}
@@ -104,24 +118,22 @@ export default function Actions() {
         {actions.showToolbar ? (
           <AdminTabRail
             ariaLabel={intl.formatMessage({
-              id: "cockpit.actions.domainSwitcher",
+              id: "hub.actions.domainSwitcher",
               defaultMessage: "Filter actions by domain",
             })}
-            activeId={actions.filters.domain === undefined ? "all" : String(actions.filters.domain)}
+            activeId={activeDomainTab}
             onChange={(next) => actions.setFilter("domain", next === "all" ? undefined : next)}
             tabs={[
               {
                 id: "all",
                 label: intl.formatMessage({
-                  id: "cockpit.actions.stage.all",
+                  id: "hub.actions.stage.all",
                   defaultMessage: "All",
                 }),
-                count: actions.domainCounts.all || undefined,
               },
               ...DOMAIN_FILTER_OPTIONS.map((option) => ({
                 id: String(option.value),
                 label: intl.formatMessage({ id: option.labelId }),
-                count: actions.domainCounts[option.value] || undefined,
               })),
             ]}
           />
@@ -160,12 +172,12 @@ export default function Actions() {
               })}
               action={
                 actions.canManageActions ? (
-                  <AdminButton onClick={actions.openCreateAction}>
+                  <Button type="button" size="sm" onClick={actions.openCreateAction}>
                     {intl.formatMessage({
                       id: "app.actions.createFirst",
                       defaultMessage: "Create Your First Action",
                     })}
-                  </AdminButton>
+                  </Button>
                 ) : undefined
               }
             />
@@ -183,12 +195,12 @@ export default function Actions() {
                 defaultMessage: "No actions match your filters",
               })}
               action={
-                <AdminButton variant="outlined" onClick={actions.resetFilters}>
+                <Button type="button" emphasis="secondary" size="sm" onClick={actions.resetFilters}>
                   {intl.formatMessage({
                     id: "admin.actions.resetFilters",
                     defaultMessage: "Reset Filters",
                   })}
-                </AdminButton>
+                </Button>
               }
             />
           </AdminCard>
@@ -235,7 +247,7 @@ export default function Actions() {
                   meta={[
                     intl.formatMessage(
                       {
-                        id: "cockpit.actions.inputsCount",
+                        id: "hub.actions.inputsCount",
                         defaultMessage: "{count} {count, plural, one {field} other {fields}}",
                       },
                       { count: displayAction.inputs.length }
@@ -243,7 +255,7 @@ export default function Actions() {
                     capitalsSummary,
                   ].filter(Boolean)}
                   statusLabel={intl.formatMessage({
-                    id: `cockpit.actions.status.${stage}`,
+                    id: `hub.actions.status.${stage}`,
                     defaultMessage:
                       stage === "active"
                         ? "Active"

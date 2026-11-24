@@ -7,11 +7,13 @@ import {
   useRefreshAction,
 } from "@green-goods/shared/components/Canvas/RefreshActionContext";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
+import { FIXTURE_IMAGE_BANNER } from "../../../../shared/.storybook/fixtures";
 import { AppBar } from "./AppBar";
 
+// The Hub hands the chip the selected garden's banner for its avatar (DL-124).
 const gardens = [
-  { id: "g1", name: "Rio Claro Community Garden" },
-  { id: "g2", name: "Jardim Botafogo" },
+  { id: "g1", name: "Rio Claro Community Garden", bannerImage: FIXTURE_IMAGE_BANNER },
+  { id: "g2", name: "Jardim Botafogo", bannerImage: "" },
 ];
 
 const gardenChipElement = (
@@ -32,11 +34,11 @@ const meta = {
     docs: {
       description: {
         component:
-          "Admin fork of the Canvas AppBar (Cockpit M3, finished). 56px transparent bar over the canvas wash: garden switcher pill on the left, 40px round icon buttons with the neutral ink state-layer hover on the right, closing with the 28px profile avatar circle.",
+          "Admin fork of the Canvas AppBar (Hub M3, finished). 56px transparent bar over the canvas wash: garden switcher pill on the left, 40px round icon buttons with the neutral ink state-layer hover on the right, closing with the 28px profile avatar circle.",
       },
     },
   },
-  decorators: [withCanvasFrame({ heightClassName: "min-h-[240px]", workspace: "hub" })],
+  decorators: [withCanvasFrame({ heightClassName: "min-h-[240px]", workspace: "review" })],
   args: {
     gardenChip: gardenChipElement,
     onOpenSearch: fn(),
@@ -70,8 +72,8 @@ export const SheetContext: Story = {
 };
 
 const longNamedGardens = [
-  { id: "g1", name: "Green Goods Community Garden" },
-  { id: "g2", name: "TAS HUB" },
+  { id: "g1", name: "Green Goods Community Garden", bannerImage: "" },
+  { id: "g2", name: "TAS HUB", bannerImage: FIXTURE_IMAGE_BANNER },
 ];
 
 function WithRefresh({ children }: { children: ReactNode }) {

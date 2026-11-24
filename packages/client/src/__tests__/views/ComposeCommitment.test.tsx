@@ -10,6 +10,7 @@
  * @vitest-environment happy-dom
  */
 
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -101,6 +102,12 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha Community Garden" }] }),
 }));
 
+// An action the list doesn't hold is read by its id; here that read never answers.
+vi.mock("@green-goods/shared/hooks/action/useAction", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/hooks/action/useAction")>()),
+  useActionsByUID: () => [],
+}));
+
 vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
   useHasRole: () => ({ hasRole: false, isLoading: false }),
 }));
@@ -137,6 +144,22 @@ const next = () => screen.getByRole("button", { name: "Next" });
 async function place(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(screen.getByRole("button", { name: "Read to the end" }));
   await user.click(screen.getByRole("button", { name }));
+}
+
+/** A ride request, named and counted, on the step that asks who can take it up. */
+async function walkRequestToWhoCanTakeItUp(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Name it"), "Ride to the market");
+  await user.click(next());
+  await user.click(screen.getByRole("button", { name: "rides" }));
+}
+
+/** The review's answer to who can take it up. */
+function reviewedWhoCanTakeItUp() {
+  const row = screen
+    .getByText("Who can take this up")
+    .closest<HTMLElement>('[data-component="FactRow"]');
+  if (!row) throw new Error("The review has no row for who can take it up");
+  return within(row).getByRole("definition");
 }
 
 /** A service offer, named and counted, through to the review. */
@@ -338,20 +361,40 @@ describe("ComposeCommitment", () => {
       "aria-pressed",
       "true"
     );
-    await user.type(screen.getByLabelText("Name it"), "Ride to the market");
+    await walkRequestToWhoCanTakeItUp(user);
+    // Open is the default; the stewards' choice is the asker's opt-in (DL-131).
+    const open = screen.getByRole("radio", { name: /Any neighbor in this garden/ });
+    const gated = screen.getByRole("radio", { name: /A neighbor your stewards choose/ });
+    expect(open).toBeChecked();
+    expect(gated).not.toBeChecked();
+    await user.click(gated);
     await user.click(next());
-    await user.click(screen.getByRole("button", { name: "rides" }));
-    await user.click(screen.getByRole("radio", { name: /Stewards review who takes it/ }));
     await user.click(next());
-    await user.click(next());
+    expect(reviewedWhoCanTakeItUp()).toHaveTextContent("A neighbor your stewards choose");
     await place(user, "Make This Request");
 
+    // Placed approval-gated, taking it up records a pending claim for the
+    // stewards to decide rather than accepting it (ClaimsLib.requestClaim).
     const call = mockEnqueue.mock.calls[0]?.[0] as {
       payload: { direction: number; claimMode: number; commitmentType: number };
     };
     expect(call.payload.direction).toBe(1);
     expect(call.payload.claimMode).toBe(1);
     expect(call.payload.commitmentType).toBe(1);
+  });
+
+  it("leaves a request open to any neighbor unless the asker opts in", async () => {
+    const user = userEvent.setup();
+    render("request");
+
+    await walkRequestToWhoCanTakeItUp(user);
+    await user.click(next());
+    await user.click(next());
+    expect(reviewedWhoCanTakeItUp()).toHaveTextContent("Any neighbor in this garden");
+    await place(user, "Make This Request");
+
+    const call = mockEnqueue.mock.calls[0]?.[0] as { payload: { claimMode: number } };
+    expect(call.payload.claimMode).toBe(0);
   });
 
   it("offers the open season and keeps running on its own as a choice", async () => {
@@ -574,6 +617,46 @@ describe("ComposeCommitment", () => {
     expect(call.payload.commitmentType).toBe(1);
   });
 
+  it("returns to Home when Home's + opened it, by Done and by Back (DL-181)", async () => {
+    const user = userEvent.setup();
+    function Home() {
+      const dashboardNavigation = useDashboardNavigation();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            dashboardNavigation.open(`/home/${GARDEN}/commitments/new?direction=offer`)
+          }
+        >
+          Offer or Request
+        </button>
+      );
+    }
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/home"]}>
+        <Routes>
+          <Route path="/home" element={<Home />} />
+          <Route path="/home/:id" element={<Outlet />}>
+            <Route index element={<p>Back on the pool</p>} />
+            <Route path="commitments/new" element={<ComposeCommitment />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+    const fromHome = () => user.click(screen.getByRole("button", { name: "Offer or Request" }));
+
+    await fromHome();
+    await walkServiceToReview(user);
+    await place(user, "Make This Offer");
+    await user.click(await screen.findByRole("button", { name: "Done" }));
+    expect(screen.getByRole("button", { name: "Offer or Request" })).toBeInTheDocument();
+
+    await fromHome();
+    await user.click(screen.getByRole("button", { name: "Go back" }));
+    expect(screen.getByRole("button", { name: "Offer or Request" })).toBeInTheDocument();
+    expect(screen.queryByText("Back on the pool")).not.toBeInTheDocument();
+  });
+
   it("tells a member on a dead connection that it is saved, not sent", async () => {
     const user = userEvent.setup();
     mockUseOffline.mockReturnValue({ isOnline: false });
@@ -661,6 +744,42 @@ describe("ComposeCommitment", () => {
     expect(next()).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Remove Harvest" }));
+    await user.click(screen.getByRole("button", { name: /Prune/ }));
+    expect(next()).toBeEnabled();
+  });
+
+  it("marks a resumed action it can't find, and holds the step until it goes", async () => {
+    // Saved from a list that held this action; the list now doesn't, and its window can't be read.
+    useCommitmentComposerDraftStore.getState().saveDraft(
+      commitmentComposerDraftKey({
+        chainId: 42161,
+        viewer: VIEWER,
+        garden: GARDEN,
+        direction: "OFFER",
+      }),
+      {
+        values: {
+          title: "Mulch the north beds",
+          kind: "GARDEN_WORK",
+          requirements: [{ actionUID: "77", requiredCount: 1 }],
+        },
+        clientCommitmentId: "draft-mulch",
+      },
+      NOW - DAY_MS
+    );
+    const user = userEvent.setup();
+    render("offer");
+    await user.click(screen.getByRole("button", { name: "Resume Draft" }));
+    await user.click(next());
+
+    const rows = screen.getByRole("list", { name: "Chosen actions" });
+    expect(within(rows).getByText("Not checked yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(/We can't yet check that every action you chose still takes work/)
+    ).toBeInTheDocument();
+    expect(next()).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Remove #77" }));
     await user.click(screen.getByRole("button", { name: /Prune/ }));
     expect(next()).toBeEnabled();
   });

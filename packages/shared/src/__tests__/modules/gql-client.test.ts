@@ -3,28 +3,70 @@
  *
  * Tests for the GraphQL client wrapper class.
  */
-import { describe, expect, it } from "vitest";
+import { getEventListeners } from "node:events";
+import { describe, expect, it, vi } from "vitest";
 import {
   createEasClient,
   createIndexerClient,
   GQLClient,
   GRAPHQL_TIMEOUT_MS,
   greenGoodsIndexer,
-  TimeoutError,
 } from "../../modules/data/graphql-client";
+import { withoutAbortSignalAny } from "../test-utils/abort-signal-any";
+
+const GARDENS_QUERY = "query Gardens { gardens { id } }";
 
 describe("GQLClient", () => {
-  describe("constructor", () => {
-    it("creates client with provided URL", () => {
-      const client = new GQLClient("https://test.example.com/graphql");
-
-      expect(client).toBeDefined();
-      expect(typeof client.query).toBe("function");
-      expect(typeof client.request).toBe("function");
-    });
-  });
-
   describe("query method", () => {
+    // Public garden reads pass their own signal. On Chrome 111–115 and iOS 16.4–17.3 that read
+    // threw "AbortSignal.any is not a function" before it reached the network.
+    it("reads with a caller's signal where AbortSignal.any is missing, leaving no listener on it", async () => {
+      vi.mocked(fetch).mockResolvedValue(
+        new Response(JSON.stringify({ data: { gardens: [] } }), {
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+      const caller = new AbortController();
+      const client = new GQLClient("https://indexer.test/graphql");
+
+      const result = await withoutAbortSignalAny(() =>
+        client.query(GARDENS_QUERY, {}, "Gardens", caller.signal)
+      );
+
+      expect(result).toEqual({ data: { gardens: [] } });
+      // A paged read hands one signal to every page, so no page may leave a listener on it.
+      expect(getEventListeners(caller.signal, "abort")).toHaveLength(0);
+    });
+
+    it.each([
+      [
+        "the caller aborts",
+        (caller: AbortController) => caller.abort(new Error("garden deadline")),
+      ],
+      ["the read times out", () => vi.advanceTimersByTimeAsync(GRAPHQL_TIMEOUT_MS)],
+    ])("stops the request when %s where AbortSignal.any is missing", async (_when, stop) => {
+      vi.useFakeTimers();
+      try {
+        vi.mocked(fetch).mockReturnValue(new Promise<Response>(() => {}));
+        const caller = new AbortController();
+        const client = new GQLClient("https://indexer.test/graphql");
+
+        const result = await withoutAbortSignalAny(async () => {
+          const read = client.query(GARDENS_QUERY, {}, "Gardens", caller.signal);
+          await vi.advanceTimersByTimeAsync(0);
+          await stop(caller);
+          return read;
+        });
+
+        expect(fetch).toHaveBeenCalledOnce();
+        const [, init] = vi.mocked(fetch).mock.calls[0];
+        expect(result.error).toBeInstanceOf(Error);
+        expect(init?.signal?.reason).toBe(result.error);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("returns error object when query fails with network error", async () => {
       // Create a client pointing to a non-existent server
       const client = new GQLClient("https://invalid.nonexistent.localhost/graphql");
@@ -35,16 +77,6 @@ describe("GQLClient", () => {
       expect(result.data).toBeUndefined();
       expect(result.error).toBeDefined();
       expect(result.error).toBeInstanceOf(Error);
-    });
-
-    it("handles variables parameter", async () => {
-      const client = new GQLClient("https://invalid.nonexistent.localhost/graphql");
-      const mockDocument = { kind: "Document", definitions: [] } as any;
-
-      // Should not throw on call, even if the network fails
-      const result = await client.query(mockDocument, { id: "123" }, "TestOperation");
-
-      expect(result.error).toBeDefined();
     });
   });
 
@@ -95,33 +127,5 @@ describe("Factory functions", () => {
       expect(greenGoodsIndexer).toBeInstanceOf(GQLClient);
       expect(typeof greenGoodsIndexer.query).toBe("function");
     });
-  });
-});
-
-describe("TimeoutError", () => {
-  it("is an Error with timeout property", () => {
-    const error = new TimeoutError("Test timed out", 5000);
-
-    expect(error.name).toBe("TimeoutError");
-    expect(error.message).toBe("Test timed out");
-    expect(error.timeoutMs).toBe(5000);
-    expect(error).toBeInstanceOf(Error);
-  });
-});
-
-describe("GRAPHQL_TIMEOUT_MS", () => {
-  it("is set to 12 seconds", () => {
-    expect(GRAPHQL_TIMEOUT_MS).toBe(12_000);
-  });
-});
-
-describe("modules/graphql-client", () => {
-  it("creates EAS client and indexer", () => {
-    const client = createEasClient();
-    expect(client).toBeDefined();
-    expect(typeof client.query).toBe("function");
-
-    expect(greenGoodsIndexer).toBeDefined();
-    expect(typeof greenGoodsIndexer.query).toBe("function");
   });
 });

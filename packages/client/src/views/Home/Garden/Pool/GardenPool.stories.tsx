@@ -1,4 +1,7 @@
-import type { PendingCommitmentCreation } from "@green-goods/shared/commitment-pooling";
+import {
+  type PendingCommitmentCreation,
+  useCommitmentMetadata,
+} from "@green-goods/shared/commitment-pooling";
 import { GardenTab } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import { useGardenPoolController } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
 import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
@@ -19,8 +22,14 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
-import { FIXTURE_IMAGE_BANNER } from "../../../../../../shared/.storybook/fixtures";
+import FIXTURE_IMAGE_BANNER from "../../../../../../shared/.storybook/fixture-art/documentation-seedlings-generated.jpg?url";
+import { daysAgo } from "../../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
+import {
+  STORY_GROUP_METADATA,
+  STORY_GROUP_TITLE,
+  storyGroup,
+} from "@/components/Features/Commitments/promiseGroupStoryFixtures";
 import { StandardTabs } from "@/components/Navigation";
 import { buildGardenTabs } from "../gardenTabs";
 import { GardenPool } from "./GardenPool";
@@ -35,8 +44,8 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
   // As on the page: the spacer under the fixed header is the header's measured height.
   const [measureHeader, headerHeight] = useElementHeight();
   return (
-    <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-bg-white-0">
-      <div ref={measureHeader} className="fixed left-0 right-0 top-0 z-20 bg-bg-white-0">
+    <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-bg-canvas">
+      <div ref={measureHeader} className="fixed left-0 right-0 top-0 z-20 bg-bg-canvas">
         <div className="relative h-36 w-full overflow-hidden rounded-b-2xl">
           <img
             src={FIXTURE_IMAGE_BANNER}
@@ -44,7 +53,7 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         </div>
-        <div className="mt-3 flex flex-col gap-1.5 bg-bg-white-0 px-4 pb-3">
+        <div className="mt-3 flex flex-col gap-1.5 px-4 pb-3">
           <h1 className="line-clamp-2 text-2xl font-bold">Riverside Commons Garden</h1>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
@@ -57,7 +66,7 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
             </div>
           </div>
         </div>
-        <div className="sticky left-0 right-0 top-0 z-10 w-full bg-bg-white-0 shadow-sm">
+        <div className="sticky left-0 right-0 top-0 z-10 w-full bg-bg-canvas shadow-sm">
           <StandardTabs
             tabs={buildGardenTabs(intl, { hasPool: true })}
             activeTab={GardenTab.Pool}
@@ -169,7 +178,8 @@ export const QueuedCreation: Story = {
 
 /**
  * The same request for a wallet reader after its send failed on the wallet's network. Nothing
- * sends it for them, so the row says it was not sent, names the network, and offers both acts.
+ * sends it for them, so the row says it was not sent, leads its details with why (the network
+ * to switch to) so a phone keeps it in view, gives its units after it, and offers both acts.
  */
 export const QueuedCreationWalletNotSent: Story = {
   tags: ["storybook-ci"],
@@ -188,7 +198,14 @@ export const QueuedCreationWalletNotSent: Story = {
       canvasElement.querySelector("[data-component=PendingCreationRow]") as HTMLElement
     );
     await expect(row.getByText("Not sent")).toBeVisible();
-    await expect(row.getByText(/needs to be on Arbitrum One/)).toBeVisible();
+    // At the story's phone width the line keeps one row and drops from its end, so the
+    // reason must sit on that row; the units follow it, and the line holds both on hover.
+    const reason = row.getByText(/needs to be on Arbitrum One/);
+    const line = reason.closest(".gg-item-row-details") as HTMLElement;
+    await expect(reason.getBoundingClientRect().top).toBeLessThan(
+      line.getBoundingClientRect().bottom
+    );
+    await expect(line).toHaveAttribute("title", expect.stringMatching(/Arbitrum One.*6 hours/));
     await expect(row.queryByText(/sends when you are connected/i)).toBeNull();
     await expect(row.getByRole("button", { name: "Send Now" })).toBeEnabled();
     await expect(row.getByRole("button", { name: "Discard" })).toBeEnabled();
@@ -203,10 +220,70 @@ export const QueuedCreationWalletChecking: Story = {
   ),
 };
 
+/**
+ * A request the queue refused: its season ended before it was sent, so the chain could no
+ * longer keep it. It never sends, so the row leads with why and offers only Discard (DL-172).
+ */
+export const QueuedCreationRefused: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: withQueuedRequest({ ...QUEUED_REQUEST, failed: true, refusal: "cycle-ended" }, false),
+  play: async ({ canvasElement }) => {
+    const row = within(
+      canvasElement.querySelector("[data-component=PendingCreationRow]") as HTMLElement
+    );
+    await expect(row.getByText("Didn't send")).toBeVisible();
+    await expect(row.getByText(/Its season or campaign ended before it was sent/)).toBeVisible();
+    await expect(row.queryByRole("button", { name: "Try Again" })).toBeNull();
+    await expect(row.getByRole("button", { name: "Discard" })).toBeEnabled();
+  },
+};
+
 export const Settled: Story = {
   beforeEach: withController(
     gardenPoolControllerFixture(SETTLED_PROMISES, { liveness: "settled" })
   ),
+};
+
+/** Four copies of one set, three untaken and one in progress, all due by now. */
+const LAPSED_SET = storyGroup({
+  available: 3,
+  inProgress: 1,
+  // A week before Storybook's fixed now: past, so anyone may expire a copy nobody took up.
+  overrides: { dueDate: BigInt(daysAgo(7)) },
+});
+
+/**
+ * A set past its due date that nobody has expired yet. Its untaken copies are still requested on
+ * chain, but anyone may expire them, so the row counts them as ended and none as available, as
+ * the group's page does (PRD-1347), and its pill says Past due, as a single past-due promise's
+ * does (DL-176).
+ */
+export const LapsedSet: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: () => {
+    mocked(useGardenPoolController).mockReturnValue(
+      gardenPoolControllerFixture(
+        LAPSED_SET.group.children.map((commitment) => ({
+          title: STORY_GROUP_TITLE,
+          row: { commitment, seat: null, needsYou: false },
+        }))
+      )
+    );
+    // The set's words name its group, so the tab folds its copies into one row.
+    mocked(useCommitmentMetadata).mockReturnValue({
+      byCID: STORY_GROUP_METADATA,
+      isLoading: false,
+    });
+    return resetHookMocks(useGardenPoolController, useCommitmentMetadata);
+  },
+  play: async ({ canvasElement }) => {
+    const row = within(canvasElement).getByRole("button", {
+      name: /A group of 4 separate promises/,
+    });
+    await expect(within(row).getByRole("status")).toHaveTextContent("Past due");
+    await expect(row).toHaveTextContent(/1 in progress, 3 ended/);
+    await expect(row).not.toHaveTextContent("None available");
+  },
 };
 
 export const SeasonSelected: Story = {
@@ -260,9 +337,11 @@ export const Loading: Story = {
     // No ⓘ while loading: it would slide as the line becomes the count. No + either.
     await expect(canvas.queryByRole("button", { name: "What this pool is for" })).toBeNull();
     await expect(canvas.queryByRole("button", { name: "Offer or Request" })).toBeNull();
-    const rows = canvasElement.querySelectorAll("[data-skeleton=commitment-row]");
+    // The item row's own frame, led by the icon tile the promises arrive with.
+    const rows = canvasElement.querySelectorAll("[data-skeleton=item-row]");
     await expect(rows).toHaveLength(4);
     await expect(rows[0].getBoundingClientRect().height).toBe(88);
+    await expect(rows[0].querySelector(".gg-item-row-tile")).not.toBeNull();
   },
 };
 

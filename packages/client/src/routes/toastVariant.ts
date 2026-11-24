@@ -3,11 +3,14 @@ export type ClientToastViewportVariant = "default" | "editorial";
 const PUBLIC_EDITORIAL_ROUTE_PREFIXES = [
   "/actions",
   "/cookies",
+  "/contact",
   "/fund",
   "/gardens",
   "/glossary",
   "/impact",
   "/landing",
+  "/privacy",
+  "/strategy",
   "/vaults",
 ] as const;
 

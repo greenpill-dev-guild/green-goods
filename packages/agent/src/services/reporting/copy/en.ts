@@ -9,11 +9,11 @@ export const EN_REPORTING_COPY = {
   "link.copyButton": "Copy link",
   "link.copyAddress": "Copy address",
   "chat.welcomeLinked":
-    "Hi! This chat is connected to {account}.{gardens}\nTell me what you worked on, in your own words, and send photos if you have them. To use a different account, send SWITCH.",
+    "Hi! This chat is connected to {account}.{gardens}\nTell me what you worked on, in your own words, and send photos if you have them. To use a different account, send SWITCH.{menu}",
   "chat.hello": "Hi! Your report is still open, so here's where we were.",
-  "link.notLinked": "This chat isn't connected to an account. Send CONNECT to link one.",
+  "link.notLinked": "This chat isn't connected to an account. Send CONNECT to link one.{menu}",
   "link.disconnected":
-    "Done. This chat is no longer connected to {account}, and any chat reporting permission you approved for it is paused. Send CONNECT to link an account.",
+    "Done. This chat is no longer connected to {account}, and any chat reporting permission you approved for it is paused. Send CONNECT to link an account.{menu}",
   "link.disconnectBusy":
     "A report or review is on its way out with this account, so I can't disconnect it yet. Finish or cancel it, then send DISCONNECT again.",
   "link.disconnectHint":
@@ -30,21 +30,33 @@ export const EN_REPORTING_COPY = {
   "report.fieldLead": "{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
+    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report. What you send before you answer is held unread: I delete it at once if you say no, and after {hours} hours if you don't answer.\n\nBy agreeing, you accept the sharing rules, version {version}: https://www.greengoods.app/terms. Share only your own material or material you have permission to publish, with permission from every identifiable adult shown. Do not send identifiable children, sensitive personal information, abuse, hate, threats, sexual or unlawful content, fraud or spam. Confirmed reports become public on Arbitrum and IPFS; independent copies may remain permanently.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
   "consent.processors": " and may use AI to understand them",
   "consent.agree": "I agree",
   "consent.decline": "No thanks",
   "consent.declined":
     "Okay. I won't process your messages, and I've removed what you sent. Contact {support} if you change your mind.",
+  "consent.grantedPlain": "Thank you!",
   "consent.granted": "Thank you! Tell me about the work you did. You can send text and photos.",
   "consent.stopped":
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• DISCONNECT unlinks your account from this chat, and SWITCH links a different one.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. RECOVER reconnects an account after losing chat access.\n• ACCOUNT shows which account this chat uses, DISCONNECT unlinks it, and SWITCH links a different one.\n• LANGUAGE lets you choose English, Spanish or Portuguese.\n• STOP stops processing, DELETE removes unpublished data.{menu}\nSupport: {support}",
+  "menu.commands": "\n• Tap Menu, next to where you type, to see these commands.",
+  "menu.account":
+    " Account commands are in the Menu too: /account, /connect, /switch and /disconnect.",
+  "language.ask": "Which language would you like me to use?{how}",
+  "language.askWords": " Send LANG EN (English), LANG ES (Español) or LANG PT (Português).",
+  "language.en": "English",
+  "language.es": "Español",
+  "language.pt": "Português",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
+  "media.photosAdded": "{count} photos added to your report.",
+  "media.stillAdding":
+    "I'm still adding your files. I'll show you the summary as soon as they're in.",
   "media.fileRead": "I read your file and added what I could to your report.",
   "media.fileKept": "I saved your file privately. I'll ask you for the details instead.",
   "media.tooLarge": "That file is larger than 10 MB, so I can't use it. Your report is saved.",
@@ -109,6 +121,30 @@ export const EN_REPORTING_COPY = {
     "Got it: {action} at {garden}. 1 quick question, then a summary to check.",
   "report.actionAdoptedMany":
     "Got it: {action} at {garden}. {count} quick questions, then a summary to check.",
+  "question.milestoneType": "What did you install or finish?",
+  "question.milestoneSolar": "How much solar capacity did you install, in kW? For example, 5 kW.",
+  "question.milestoneBattery":
+    "How much battery capacity did you add, in kWh? For example, 10 kWh.",
+  "question.milestoneInternet": "What speed is the connection now, in Mbps? For example, 50 Mbps.",
+  "question.milestoneRetrofit": "How many retrofits did you finish?",
+  "question.milestoneCommissioning": "How many systems did you test and hand over?",
+  "question.seedlingsPlanted": "How many seedlings did you plant?",
+  "question.seedlingsAndSpecies": "How many seedlings did you plant, and which species?",
+  "question.participants": "How many people took part?",
+  "question.speciesTags": "Which species did you plant?",
+  "report.descriptionStale":
+    "\nYour description still says {was}. Send EDIT to change its wording.",
+  "suggest.last": "Same as last time: {action} at {garden}?",
+  "suggest.lastGarden": "Same garden as last time: {garden}?",
+  "suggest.lastAction": "Same activity as last time: {action}?",
+  "suggest.use": "Yes",
+  "suggest.change": "Something else",
+  "suggest.never": "Don't suggest this",
+  "suggest.off": "Okay, I won't suggest it again.",
+  "report.accepted": "I have:{facts}",
+  "report.factNew": "\n• {title}: {now}",
+  "report.factChanged": "\n• {title}: {now} (was {was})",
+  "report.factTime": "Time spent",
   "report.askAction": "Which activity in {garden} best matches your work?",
   "report.moreChoices": "More options",
   "report.noActions":
@@ -131,6 +167,8 @@ export const EN_REPORTING_COPY = {
   "report.askEvidence": "Please send {count} photo(s) of the work.",
   "report.evidenceLimit":
     "This activity accepts up to {maximum} photos, so I didn't add the last one.",
+  "report.photosKept":
+    "This activity accepts up to {maximum} photos, so your report keeps the first {maximum} you sent.",
   "report.photoAdded": "Photo received ({have} so far).",
   "report.conflict":
     "You told me “{current}” for {field}, but “{proposed}” was suggested from {source}. Which is right?",
@@ -142,6 +180,7 @@ export const EN_REPORTING_COPY = {
   "report.invalid.ambiguous_number":
     "Did you mean a whole number or a decimal? Please write it without a thousands separator, for example 1200 or 1.2.",
   "report.invalid.negative": "Please reply with a number of zero or more.",
+  "report.invalid.whole_number": "Please reply with a whole number of one or more, for example 2.",
   "report.invalid.unit_mismatch":
     "This is counted in {unit}, but you wrote {stated}. Could you give it in {unit}?",
   "report.invalid.unit_required": "Please include the unit, for example 2 hours or 30 minutes.",
@@ -156,7 +195,7 @@ export const EN_REPORTING_COPY = {
   "review.summaryCodeInstruction":
     "Reply CONFIRM {token} to record it, EDIT to change it, or CANCEL.",
   "report.summary":
-    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\n{instruction}",
+    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\nBy confirming, you agree to make this exact report public and confirm you have permission to share its content and every identifiable adult shown. It contains no identifiable children or sensitive personal information.\n\n{instruction}",
   "report.summaryAccount": "\nIt will be published by your account {account}.",
   "report.confirm": "Confirm",
   "report.edit": "Edit",
@@ -168,12 +207,11 @@ export const EN_REPORTING_COPY = {
   "edit.feedback": "Description",
   "report.editPrompt":
     "What would you like to change? Just tell me, for example: “time was 3 hours”.",
-  "report.cancelled": "Report cancelled. Unpublished content will be removed.",
+  "report.cancelled": "Report canceled. Unpublished content will be removed.",
   "report.cancelHint": "To cancel this report, reply CANCEL.",
   "report.nothingToCancel": "There's no report in progress.",
   "report.confirmToken": "To publish, reply CONFIRM {token}.",
-  "report.frozen":
-    "This report is being published, so I can't change it now. I've kept your message and will use it if publishing doesn't complete.",
+  "report.frozen": "This report is being published, so I can't change it now.",
   "report.alreadyPublished": "That report is already published. Send NEW to start another report.",
   "report.newStarted": "New report started. Tell me about the work you did.",
   "report.resumeFirst":
@@ -184,6 +222,7 @@ export const EN_REPORTING_COPY = {
   "state.authority": "waiting for account checks",
   "state.preparing": "being prepared for publishing",
   "state.signature": "waiting for your signature",
+  "state.choice": "waiting for you to choose how to publish it",
   "state.publishing": "being published",
   "report.noStatus": "You don't have a report in progress. Describe your work to start one.",
   "report.expired":
@@ -209,7 +248,7 @@ export const EN_REPORTING_COPY = {
     "Hi! I help you report garden work on Green Goods. Want to connect your account first, so I can show your gardens? You can also just tell me what you did, and I'll ask you to connect when you publish.",
   "link.offerLabel": "Connect account",
   "link.offerDeclined":
-    "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.",
+    "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.{menu}",
   "link.connect":
     "To connect your Green Goods account (wallet or passkey), verify it here. The link expires in 10 minutes and never moves funds.",
   "link.connectNamed":
@@ -217,7 +256,7 @@ export const EN_REPORTING_COPY = {
   "link.connectNamedNoGardens":
     "I don't see {account} in a garden yet.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
   "link.already":
-    "This chat is connected to {account}.{gardens}\nTo use a different account, send SWITCH.",
+    "This chat is connected to {account}.{gardens}\nTo use a different account, send SWITCH.{menu}",
   "link.pairFailed":
     "That code doesn't match an open verification. Check the code on the Green Goods page.",
   "link.accountMismatch":
@@ -225,7 +264,7 @@ export const EN_REPORTING_COPY = {
   "link.accountTaken":
     "That account is already linked to another chat. If it's yours, send RECOVER from the chat you want to use. Support: {support}",
   "publish.consent":
-    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. {instruction}",
+    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. By publishing, you agree to make this exact report public and confirm you have permission to share its content and every identifiable adult shown. It contains no identifiable children or sensitive personal information. {instruction}",
   "publish.publish": "Publish",
   "publish.signLink": "Open this page to review and sign the exact publication with your {kind}.",
   "publish.signLabel": "Review and publish",
@@ -244,6 +283,17 @@ export const EN_REPORTING_COPY = {
     "Your publication was sent but I can't confirm it on chain yet. I won't send it twice; I'll tell you when I know.",
   "publish.unknown":
     "I didn't hear back from your wallet, so I can't tell yet whether it was sent. I won't send it again; I'm checking the chain and will tell you what I find.",
+  "publish.unconfirmed":
+    "I've checked the chain and still can't find your report, so I've stopped checking. I won't send it again. If it doesn't show in the garden, write to {support}.",
+  "publish.linkExpired":
+    "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.",
+  "publish.stillConfirming": "{stillConfirming} I'll message you when your report is published.",
+  "publish.safeSigners":
+    "{safeSigners}. {safeSignersDetail} I'll message you when your report is published.",
+  "publish.publishedChecking":
+    "Your report is published. The Green Goods team is checking its record, so I can't send the link yet. You don't need to sign or send anything again.",
+  "publish.attestationUnread":
+    "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your report doesn't show in the garden, write to {support}.",
   "publish.rejected":
     "The signature was declined, so nothing was published. Here is your report again; confirm it when you're ready.",
   "publish.reverted":
@@ -263,7 +313,10 @@ export const EN_REPORTING_COPY = {
     "The reporting permission for this garden is used up for now. I'll ask you to publish with your passkey instead.",
   "review.pendingList": "Work waiting for your review in {garden}. Choose one to start:",
   "review.none": "There's no work waiting for your review.",
-  "review.askDecision": "Do you approve or reject “{title}” by {gardener}?",
+  "review.resumeFirst":
+    "You have a review in progress. Send CANCEL to discard it or keep going with it.",
+  "review.askDecision":
+    "Do you approve or reject “{title}” by {gardener}? You can give your confidence and feedback in the same reply.",
   "review.approve": "Approve",
   "review.reject": "Reject",
   "review.askConfidence": "How confident are you in this work?",
@@ -292,7 +345,7 @@ export const EN_REPORTING_COPY = {
   "review.frozen": "This review can't be changed now because it is already being recorded.",
   "review.confirmToken":
     "To record your review, reply CONFIRM {token} exactly as shown in the summary.",
-  "review.cancelled": "Review cancelled. Nothing was recorded.",
+  "review.cancelled": "Review canceled. Nothing was recorded.",
   "review.signLink": "Open this page to check and sign your decision with your {kind}.",
   "review.signLabel": "Check and sign",
   "review.grantLink":
@@ -301,6 +354,17 @@ export const EN_REPORTING_COPY = {
   "review.rejectedBeforeSend":
     "The signature was declined, so your review wasn't recorded. Here it is again; confirm it when you're ready.",
   "review.reverted": "Recording your review failed on chain. Check it and confirm again to retry.",
+  "review.unconfirmed":
+    "I've checked the chain and still can't find your review, so I've stopped checking. I won't send it again. If it doesn't show on the work, write to {support}.",
+  "review.stillConfirming": "{stillConfirming} I'll message you when your review is recorded.",
+  "review.safeSigners":
+    "{safeSigners}. {safeSignersDetail} I'll message you when your review is recorded.",
+  "review.recordedChecking":
+    "Your review is recorded. The Green Goods team is checking its record, so I can't send the link yet. You don't need to sign or send anything again.",
+  "review.linkExpired":
+    "Your signing link expired before anything was sent, so your review wasn't recorded. Your decision is saved; reply RETRY for a new link.",
+  "review.attestationUnread":
+    "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your review doesn't show on the work, write to {support}.",
   "recovery.started":
     "To move your Green Goods account to this chat, open this page and verify the account you used before. The link expires in 10 minutes.",
   "recovery.code": "Enter this code on the Green Goods recovery page: {code}",

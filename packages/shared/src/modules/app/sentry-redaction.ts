@@ -27,6 +27,27 @@ export type RedactedSentryValue =
   | RedactedSentryValue[]
   | { [key: string]: RedactedSentryValue };
 
+export function createSentryDataCollection() {
+  const privateFields = ["forwarded", "-ip", "remote-", "via", "-user"];
+
+  return {
+    userInfo: false,
+    cookies: false,
+    httpHeaders: {
+      request: { deny: privateFields },
+      response: { deny: privateFields },
+    },
+    httpBodies: [],
+    urlQueryParams: { deny: privateFields },
+    genAI: { inputs: false, outputs: false },
+    mcp: { inputs: false, outputs: false },
+    databaseQueryData: false,
+    queues: false,
+    graphQL: { document: false, variables: false },
+    frameContextLines: 7,
+  };
+}
+
 export function redactSentryString(value: string): string {
   return redactPrivatePaths(withoutQuotedRequest(value))
     .replace(JWT_PATTERN, REDACTED_TOKEN)

@@ -1,11 +1,12 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { SeedTrayRow } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import type { Action, Address } from "@green-goods/shared/types/domain";
 import { Fragment, type ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { PersonName } from "@/components/PersonName";
@@ -40,6 +41,8 @@ export interface SeedStepReviewProps {
   /** Without a registered protocol pool the Green Goods team fallback reads off. */
   protocolRegistered: boolean;
   price: GoodDollarPriceState;
+  /** Whether a USDC match can be declared here; one that can't is not shown as promised. */
+  usdcMatchAvailable: boolean;
   capacity: SeedReviewCapacity;
   submitError: string | null;
   /** The device queue could not be read; creating will still try. */
@@ -68,6 +71,7 @@ export function SeedStepReview({
   cycleOptions,
   protocolRegistered,
   price,
+  usdcMatchAvailable,
   capacity,
   submitError,
   queueUnavailable,
@@ -88,61 +92,58 @@ export function SeedStepReview({
     <section className={`min-w-0 space-y-1.5 ${wide ? "sm:col-span-2" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <AdminCardTitle as="h4">{heading}</AdminCardTitle>
-        <AdminButton
+        <Button
           type="button"
-          variant="text"
-          size="sm"
+          emphasis="tertiary"
+          size="compact"
           disabled={!editable}
           aria-label={formatMessage(
-            { id: "cockpit.garden.pool.seed.review.editSection", defaultMessage: "Edit {section}" },
+            { id: "hub.garden.pool.seed.review.editSection", defaultMessage: "Edit {section}" },
             { section: heading }
           )}
           onClick={() => onEditStep(step)}
         >
           {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
-        </AdminButton>
+        </Button>
       </div>
-      <dl className="space-y-1">
+      <FactList frame="inset">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-4 body-sm">
-            <dt className="max-w-[55%] shrink-0 text-text-soft">{label}</dt>
-            <dd className="min-w-0 break-words text-right text-text-strong">{value}</dd>
-          </div>
+          <FactRow key={label} label={label} value={value} />
         ))}
-      </dl>
+      </FactList>
     </section>
   );
 
   const kindLabel =
     values.kind === "GARDEN_WORK"
       ? formatMessage({
-          id: "cockpit.garden.pool.seed.work.gardenWork",
+          id: "hub.garden.pool.seed.work.gardenWork",
           defaultMessage: "Garden work",
         })
       : values.kind === "SERVICE"
         ? formatMessage({
-            id: "cockpit.garden.pool.seed.work.support",
+            id: "hub.garden.pool.seed.work.support",
             defaultMessage: "Support",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.seed.kind.seasonCampaign",
-            defaultMessage: "Season / campaign commitment",
+            id: "hub.garden.pool.seed.kind.seasonCampaign",
+            defaultMessage: "Season / campaign promise",
           });
   const directionLabel =
     values.direction === "REQUEST"
       ? formatMessage({
-          id: "cockpit.garden.pool.seed.direction.request",
-          defaultMessage: "The pool requests",
+          id: "hub.garden.pool.seed.direction.request",
+          defaultMessage: "The pool asks",
         })
       : formatMessage({
-          id: "cockpit.garden.pool.seed.direction.offer",
+          id: "hub.garden.pool.seed.direction.offer",
           defaultMessage: "The pool offers",
         });
   const each = `${values.targetUnits} ${unit}`;
   const confirmers =
     values.confirmers.length === 0 ? (
       formatMessage({
-        id: "cockpit.garden.pool.seed.review.ordinary",
+        id: "hub.garden.pool.seed.review.ordinary",
         defaultMessage: "Ordinary rule",
       })
     ) : (
@@ -155,14 +156,14 @@ export function SeedStepReview({
         ))}
         {formatMessage(
           {
-            id: "cockpit.garden.pool.seed.review.mustConfirm",
+            id: "hub.garden.pool.seed.review.mustConfirm",
             defaultMessage: " · {threshold} must confirm",
           },
           { threshold: values.confirmationThreshold }
         )}
       </>
     );
-  const reward = rewardFacts({ values, count, price, locale, formatMessage });
+  const reward = rewardFacts({ values, count, price, locale, formatMessage, usdcMatchAvailable });
 
   return (
     <div className="space-y-4" data-testid="seed-review">
@@ -183,18 +184,18 @@ export function SeedStepReview({
       <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-2">
         {section(
           "what",
-          formatMessage({ id: "cockpit.garden.pool.seed.step.what", defaultMessage: "What" }),
+          formatMessage({ id: "hub.garden.pool.seed.step.what", defaultMessage: "What" }),
           [
             [
-              formatMessage({ id: "cockpit.garden.pool.seed.cycle", defaultMessage: "Cycle" }),
+              formatMessage({ id: "hub.garden.pool.seed.cycle", defaultMessage: "Cycle" }),
               cycleLabel,
             ],
             [
-              formatMessage({ id: "cockpit.garden.pool.seed.kind", defaultMessage: "Type" }),
+              formatMessage({ id: "hub.garden.pool.seed.kind", defaultMessage: "Type" }),
               `${kindLabel} · ${directionLabel}`,
             ],
             [
-              formatMessage({ id: "cockpit.garden.pool.seed.titleField", defaultMessage: "Title" }),
+              formatMessage({ id: "hub.garden.pool.seed.titleField", defaultMessage: "Title" }),
               values.title,
             ],
           ]
@@ -202,18 +203,18 @@ export function SeedStepReview({
         {section(
           "howMuch",
           formatMessage({
-            id: "cockpit.garden.pool.seed.step.howMuch",
+            id: "hub.garden.pool.seed.step.howMuch",
             defaultMessage: "How Much",
           }),
           [
             [
               formatMessage({
-                id: "cockpit.garden.pool.seed.review.promises",
+                id: "hub.garden.pool.seed.review.promises",
                 defaultMessage: "Promises",
               }),
               formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.review.promisesValue",
+                  id: "hub.garden.pool.seed.review.promisesValue",
                   defaultMessage: "{count, plural, one {1} other {# separate}}",
                 },
                 { count }
@@ -221,30 +222,30 @@ export function SeedStepReview({
             ],
             [
               formatMessage({
-                id: "cockpit.garden.pool.seed.review.eachAsks",
+                id: "hub.garden.pool.seed.review.eachAsks",
                 defaultMessage: "Each asks for",
               }),
               each,
             ],
             [
-              formatMessage({ id: "cockpit.garden.pool.seed.review.due", defaultMessage: "Due" }),
+              formatMessage({ id: "hub.garden.pool.seed.review.due", defaultMessage: "Due" }),
               formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.review.dueValue",
+                  id: "hub.garden.pool.seed.review.dueValue",
                   defaultMessage: "{date}{count, plural, one {} other {, for every promise}}",
                 },
                 { date: formatDueDate(dueDateAfter(now, values.dueInDays), locale), count }
               ),
             ],
             [
-              formatMessage({ id: "cockpit.garden.pool.seed.review.team", defaultMessage: "Team" }),
+              formatMessage({ id: "hub.garden.pool.seed.review.team", defaultMessage: "Team" }),
               values.openTeam
                 ? formatMessage({
-                    id: "cockpit.garden.pool.seed.team.open",
+                    id: "hub.garden.pool.seed.team.open",
                     defaultMessage: "Open team",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.seed.team.lead",
+                    id: "hub.garden.pool.seed.team.lead",
                     defaultMessage: "Lead-managed team",
                   }),
             ],
@@ -252,7 +253,7 @@ export function SeedStepReview({
               ? [
                   [
                     formatMessage({
-                      id: "cockpit.garden.pool.seed.requirements",
+                      id: "hub.garden.pool.seed.requirements",
                       defaultMessage: "Actions this needs",
                     }),
                     values.requirements
@@ -271,44 +272,45 @@ export function SeedStepReview({
         {section(
           "proof",
           formatMessage({
-            id: "cockpit.garden.pool.seed.step.proof",
+            id: "hub.garden.pool.seed.step.proof",
             defaultMessage: "Proof & Confirmation",
           }),
           [
             [
               formatMessage({
-                id: "cockpit.garden.pool.seed.confirmers",
+                id: "hub.garden.pool.seed.confirmers",
                 defaultMessage: "Confirmers",
               }),
               confirmers,
             ],
             [
               formatMessage({
-                id: "cockpit.garden.pool.seed.review.fallback",
+                id: "hub.garden.pool.seed.review.fallback",
                 defaultMessage: "Green Goods team fallback",
               }),
               protocolRegistered && values.protocolFallbackEnabled
                 ? formatMessage({
-                    id: "cockpit.garden.pool.seed.review.fallbackOn",
+                    id: "hub.garden.pool.seed.review.fallbackOn",
                     defaultMessage: "On · reason required if used",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.seed.review.fallbackOff",
+                    id: "hub.garden.pool.seed.review.fallbackOff",
                     defaultMessage: "Off",
                   }),
             ],
             [
               formatMessage({
-                id: "cockpit.garden.pool.seed.claimMode",
+                id: "hub.garden.pool.seed.claimMode",
                 defaultMessage: "Claim mode",
               }),
               values.claimMode === "APPROVAL_GATED"
                 ? formatMessage({
-                    id: "cockpit.garden.pool.seed.review.claimGated",
-                    defaultMessage: "Steward-reviewed: each ask waits for your approval",
+                    id: "hub.garden.pool.seed.review.claimGated",
+                    defaultMessage:
+                      "Steward-reviewed: whoever asks to take one up waits for your approval",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.seed.review.claimOpen",
+                    id: "hub.garden.pool.seed.review.claimOpen",
                     defaultMessage: "Open: anyone in the garden may take one",
                   }),
             ],
@@ -316,7 +318,7 @@ export function SeedStepReview({
         )}
         {section(
           "proof",
-          formatMessage({ id: "cockpit.garden.pool.seed.rewardRow", defaultMessage: "Reward" }),
+          formatMessage({ id: "hub.garden.pool.seed.rewardRow", defaultMessage: "Reward" }),
           reward,
           count <= 1
         )}
@@ -324,18 +326,18 @@ export function SeedStepReview({
           ? section(
               "howMuch",
               formatMessage({
-                id: "cockpit.garden.pool.seed.review.grouping",
+                id: "hub.garden.pool.seed.review.grouping",
                 defaultMessage: "Grouping",
               }),
               [
                 [
                   formatMessage({
-                    id: "cockpit.garden.pool.seed.review.shownAs",
+                    id: "hub.garden.pool.seed.review.shownAs",
                     defaultMessage: "Shown as",
                   }),
                   formatMessage(
                     {
-                      id: "cockpit.garden.pool.seed.review.shownAsValue",
+                      id: "hub.garden.pool.seed.review.shownAsValue",
                       defaultMessage: "One group: {title} · {count} promises · {each} each",
                     },
                     { title: values.title, count, each }
@@ -343,11 +345,11 @@ export function SeedStepReview({
                 ],
                 [
                   formatMessage({
-                    id: "cockpit.garden.pool.seed.review.eachPromise",
+                    id: "hub.garden.pool.seed.review.eachPromise",
                     defaultMessage: "Each promise",
                   }),
                   formatMessage({
-                    id: "cockpit.garden.pool.seed.review.eachPromiseValue",
+                    id: "hub.garden.pool.seed.review.eachPromiseValue",
                     defaultMessage: "Its own take-up, proof, confirmation and history",
                   }),
                 ],
@@ -360,9 +362,9 @@ export function SeedStepReview({
         <Alert variant="error">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.seed.tray.roomOver",
+              id: "hub.garden.pool.seed.tray.roomOver",
               defaultMessage:
-                "These offers are more than you can hold at once. You have room for {room, plural, =0 {no more} other {# more}} under the pool's commitment limit of {cap} per person. Remove an offer, change it to a request, or raise the limit in the pool settings.",
+                "These offers are more than you can hold at once. You have room for {room, plural, =0 {no more} other {# more}} under the pool's promise limit of {cap} per person. Remove an offer, change it to a request, or raise the limit in the pool settings.",
             },
             { room: capacity.room ?? 0, cap: capacity.cap ?? 0 }
           )}
@@ -371,9 +373,9 @@ export function SeedStepReview({
         <Alert variant="info">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.seed.tray.roomFull",
+              id: "hub.garden.pool.seed.tray.roomFull",
               defaultMessage:
-                "That is as many offers as you can hold at once: the pool's commitment limit is {cap} per person. A request takes none of that room.",
+                "That is as many offers as you can hold at once: the pool's promise limit is {cap} per person. A request takes none of that room.",
             },
             { cap: capacity.cap ?? 0 }
           )}
@@ -383,7 +385,7 @@ export function SeedStepReview({
       {queueUnavailable ? (
         <Alert variant="warning">
           {formatMessage({
-            id: "cockpit.garden.pool.seed.queueUnavailable",
+            id: "hub.garden.pool.seed.queueUnavailable",
             defaultMessage: "The queue on this device could not be read; seeding will still try.",
           })}
         </Alert>

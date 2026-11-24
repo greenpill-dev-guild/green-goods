@@ -10,7 +10,6 @@ import { createActor, fromPromise } from "xstate";
 import { TransactionRevertedError, type TxResult } from "../../modules/transactions/types";
 
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
-import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================
 // Test Helpers
@@ -32,7 +31,7 @@ async function waitFor(
       if (Date.now() - start >= timeout) {
         throw new Error(`waitFor timed out after ${timeout}ms`);
       }
-      await flushPromises();
+      await Promise.resolve();
     }
   }
 }
@@ -583,6 +582,35 @@ describe("workflows/createGardenMachine", () => {
       });
 
       expect(actor.getSnapshot().context.retryCount).toBe(2);
+      actor.stop();
+    });
+
+    it("recovers a failed mint on retry and resets its hash and attempts on close", async () => {
+      const submit = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("First failure"))
+        .mockResolvedValueOnce({ hash: "0xabc123", sponsored: false });
+      const actor = createActor(
+        createGardenMachine.provide({
+          actors: { submitGarden: fromPromise<TxResult, void>(submit) },
+        })
+      );
+      actor.start();
+      actor.send({ type: "OPEN" });
+      actor.send({ type: "REVIEW", formStatus: makeFormStatus({ isReviewReady: true }) });
+      actor.send({ type: "SUBMIT", formStatus: makeFormStatus({ isReviewReady: true }) });
+      await waitFor(() => expect(actor.getSnapshot().value).toBe("error"));
+      expect(actor.getSnapshot().context.error).toBe("First failure");
+      expect(actor.getSnapshot().context.retryCount).toBe(1);
+      actor.send({ type: "RETRY" });
+      await waitFor(() => expect(actor.getSnapshot().value).toBe("success"));
+      expect(submit).toHaveBeenCalledTimes(2);
+      expect(actor.getSnapshot().context.txHash).toBe("0xabc123");
+      expect(actor.getSnapshot().context.retryCount).toBe(0);
+      actor.send({ type: "CLOSE" });
+      expect(actor.getSnapshot().value).toBe("idle");
+      expect(actor.getSnapshot().context.txHash).toBeUndefined();
+      expect(actor.getSnapshot().context.retryCount).toBe(0);
       actor.stop();
     });
 

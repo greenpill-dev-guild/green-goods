@@ -13,6 +13,7 @@
  */
 
 import { refusedForWalletNetwork } from "../../utils/errors/wallet-network-refusal";
+import { BatchNotSubmittedError } from "../transactions/batch-types";
 import { isWorkSubmissionCancelled } from "./work-confirmation";
 
 export type SendFailure = { kind: "not-sent"; cancelled: boolean } | { kind: "may-have-sent" };
@@ -73,8 +74,8 @@ function refusedWhileEstimating(error: unknown): boolean {
 /**
  * The sender's own refusal for who is connected. It compares the connected
  * address with the one the send is for before it asks the wallet anything, so
- * nothing was signed or broadcast. A bundle records its jobs' intents before
- * the batch makes that check.
+ * nothing was signed or broadcast. A wallet's batch checks once more just after
+ * its jobs' intents are recorded.
  */
 function refusedForConnectedAccount(error: unknown): boolean {
   const seen = new Set<object>();
@@ -95,7 +96,10 @@ export function classifySendFailure(
   // An acknowledged broadcast outranks everything, including a sender that
   // never reported its intent.
   if (context.broadcastKnown) return { kind: "may-have-sent" };
-  if (!context.intentRecorded) return { kind: "not-sent", cancelled };
+  // The sender proved the request never went out: one call of a bundle can have
+  // its intent on record when another's could not be written.
+  if (!context.intentRecorded || error instanceof BatchNotSubmittedError)
+    return { kind: "not-sent", cancelled };
   if (
     cancelled ||
     hasNetworkRefusal(error) ||

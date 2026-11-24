@@ -22,7 +22,7 @@ Compare principal protection, liquidity, custody/compliance, yield mechanism and
 | AC-4 | On-flow rebalance triggers + Gelato keeper safety net hold debt allocation inside preset bands under adversarial flow sequence | `contracts` | Forge integration test + keeper simulation log in `artifacts/` |
 | AC-5 | Existing vault auto-migrates to Conservative on upgrade in a single atomic tx; no withdrawal lockup during migration | `contracts` | Fork test against live mainnet vault state; upgrade path green |
 | AC-6 | Hats V2 roles wired: `PRESET_ADMIN` owns `PresetRegistry`; `OPERATOR` switches presets (48h timelock); `PAUSER` pauses vault | `state_api` | Hat role assignment persisted; role-gated call matrix covered by tests |
-| AC-7 | `useVaultOperations` / `useVaultPreset` extensions render queued withdrawal, buffer %, preset badge, 48h countdown in `VaultPositionCard` | `ui` | Admin Storybook stories + Chrome MCP spot-check across Conservative / Balanced / pending-switch states |
+| AC-7 | `useVaultOperations` / `useVaultPreset` extensions render queued withdrawal, buffer %, preset badge, 48h countdown on the endowment position's item row and its page (`PositionCard`, DL-113; `VaultPositionCard` was removed unused in #1252 on 2026-10-24) | `ui` | Admin Storybook stories + Chrome MCP spot-check across Conservative / Balanced / pending-switch states |
 | AC-8 | External audit complete and clean before production deployment | `qa_pass_1` | Audit report recorded in `artifacts/` after activation; deploy tx + block explorer link |
 | AC-9 | Rolling **30-day APY ≥ 5%** sustained on at least one mainnet Octant Vault post-deploy | `qa_pass_2` | On-chain NAV snapshots at deploy + 30 days; APY computed from `totalAssets` delta; evidence in `history[]` |
 
@@ -30,7 +30,7 @@ Compare principal protection, liquidity, custody/compliance, yield mechanism and
 
 - Unit: `PresetRegistry`, `RedemptionQueue`, `RebalancePolicy` (library), Morpho + Ondo strategy adapters; `useVaultOperations` / `useVaultPreset` hooks.
 - Integration: Forge tests against mainnet fork (Aave V3, Morpho Metamorpho, Ondo USDY); Gelato keeper dry-run against simulated flow sequence; upgrade path from current live vault state.
-- E2E / Playwright: admin preset picker with 48h countdown + cancel; queued-withdrawal state in `VaultPositionCard` across Conservative / Balanced / pending-switch.
+- E2E / Playwright: admin preset picker with 48h countdown + cancel; queued-withdrawal state on the endowment position's page (`PositionCard`) across Conservative / Balanced / pending-switch.
 - Manual checks:
   - Audit engagement booked before the implementation freeze (bundling decisions re-evaluated at activation).
   - `PRESET_ADMIN` / `OPERATOR` / `PAUSER` Hat IDs minted to intended signers.

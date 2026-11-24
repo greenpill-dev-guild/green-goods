@@ -104,6 +104,7 @@ const {
       canCreateGarden: true,
       isLoaded: true,
       isError: false,
+      deploymentPermissionsError: false,
       hasStaleBaseList: false,
     } as EligibleAdminGardensResult,
   },
@@ -319,7 +320,6 @@ vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () =>
   useAdminLoginController: () => ({
     mode: "entry",
     changeMode: vi.fn(),
-    createAccountByName: vi.fn(),
     username: "",
     setUsername: vi.fn(),
     error: null,
@@ -327,8 +327,11 @@ vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () =>
     canSignInByName: false,
     hasStoredCredential: false,
     storedUsername: null,
-    signInByName: vi.fn(),
+    continueByName: vi.fn(),
     signInWithStoredPasskey: vi.fn(),
+    // Email sign-in off: the entry keeps a wallet second.
+    codeSignIn: { enabled: false },
+    walletReleaseStalled: false,
   }),
 }));
 
@@ -376,15 +379,33 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenDerivedState", () => ({
         onAction: () => openSection("work", "queue"),
       },
     ],
-    activityEvents: [
+    activityEvents: [],
+    reviewQueue: {
+      waitingByBand: { under2d: 0, days2to7: 0, weeks1to2: 0, over2w: 0 },
+      waitingByBandComplete: true,
+      waitingOverWeekCount: 0,
+    },
+  }),
+}));
+
+// The Hub bell's changes since this device last showed the sheet (PRD-1536).
+vi.mock("@green-goods/shared/hooks/garden/useGardenNotifications", () => ({
+  useHubGardenChanges: () => ({
+    changes: [
       {
-        id: "activity-1",
-        title: "Impact report minted",
-        description: "Hypercert created",
-        timestamp: Date.now(),
-        href: "/garden/impact/hypercerts/hc-1",
+        kind: "joined",
+        id: "role:r1",
+        at: Math.floor(Date.now() / 1000),
+        isNew: true,
+        account: "0x3333333333333333333333333333333333333333",
+        role: "gardener",
       },
     ],
+    canManage: true,
+    joinRequestsWaiting: undefined,
+    isLoading: false,
+    isError: false,
+    markSeen: () => {},
   }),
 }));
 
@@ -449,37 +470,6 @@ vi.mock("@green-goods/shared/utils/relativeTime", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared/utils/relativeTime")>();
   return { ...actual, formatRelativeTime: () => "5 minutes ago" };
 });
-vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
-  useAuth: () => mockAuthState.current,
-}));
-vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
-  useAdminGardenWorkspaceSelection: () => ({
-    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
-    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
-    setSelectedGarden: mockSetSelectedGarden,
-    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
-      id: garden.id,
-      name: garden.name,
-      location: garden.location,
-    })),
-    handleSelectGarden: vi.fn(),
-  }),
-}));
-vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
-  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-}));
-vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
-  useGardenUrlSync: mockUseGardenUrlSync,
-}));
-vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
-  useEffectiveToolbarPermissions: () => ({
-    showWork: true,
-    showGarden: true,
-    showCommunity: true,
-    showActions: true,
-    isLoading: false,
-  }),
-}));
 vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useResolvedProfileAvatar: () => ({
     avatarUri: "https://cdn.example/avatar.webp",
@@ -556,6 +546,7 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
       isError: false,
+      deploymentPermissionsError: false,
       hasStaleBaseList: false,
     };
     mockUseGardenUrlSync.mockReturnValue({
@@ -576,6 +567,29 @@ describe("CanvasLayout", () => {
     });
   });
 
+  it.each([
+    "/review",
+    "/garden",
+    "/community",
+  ])("redirects %s to home after the wallet loses every eligible garden", async (route) => {
+    mockEligibleAdminGardens.current = {
+      ...mockEligibleAdminGardens.current,
+      eligibleGardens: [],
+      resolvedDefaultGarden: null,
+    };
+    const router = createMemoryRouter(
+      [
+        { path: "/", element: <div>Access home</div> },
+        { path: "*", element: <CanvasLayout /> },
+      ],
+      { initialEntries: [route] }
+    );
+    renderWithProviders(<RouterProvider router={router} />);
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    expect(router.state.historyAction).toBe("REPLACE");
+    router.dispose();
+  });
+
   it("mounts canvas state sync hooks and exposes Actions in the toolbar", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/actions"]}>
@@ -590,8 +604,8 @@ describe("CanvasLayout", () => {
   });
 
   it.each([
-    ["/hub/work/attestation-1", "/hub"],
-    ["/hub/work/submit", "/hub"],
+    ["/review/work/attestation-1", "/review"],
+    ["/review/work/submit", "/review"],
     ["/community/endowment/vault", "/community"],
     ["/garden/impact/hypercerts/hc-123", "/garden"],
     ["/actions/action-1", "/actions"],
@@ -606,37 +620,64 @@ describe("CanvasLayout", () => {
     expect(screen.getByTestId("active-path")).toHaveTextContent(expectedActivePath);
   });
 
-  it("keeps NavigationBar props stable across Hub tab route changes", async () => {
+  it("keeps NavigationBar props stable across Review tab route changes", async () => {
     const router = createMemoryRouter([{ path: "*", element: <CanvasLayout /> }], {
-      initialEntries: ["/hub/work"],
+      initialEntries: ["/review/work"],
     });
 
     renderWithProviders(<RouterProvider router={router} />);
 
-    expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");
+    expect(screen.getByTestId("active-path")).toHaveTextContent("/review");
     expect(mockNavigationBarProps).toHaveBeenCalledTimes(1);
     const firstProps = mockNavigationBarProps.mock.calls[0]?.[0];
 
     await act(async () => {
-      await router.navigate("/hub/assess");
+      await router.navigate("/review/assess");
     });
     await act(async () => {
-      await router.navigate("/hub/certify");
+      await router.navigate("/review/certify");
     });
     await act(async () => {
-      await router.navigate("/hub/confirm");
+      await router.navigate("/review/confirm");
     });
 
-    expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");
+    expect(screen.getByTestId("active-path")).toHaveTextContent("/review");
     expect(mockNavigationBarProps).toHaveBeenCalledTimes(1);
     expect(mockNavigationBarProps.mock.calls[0]?.[0].slots).toBe(firstProps.slots);
-    expect(mockNavigationBarProps.mock.calls[0]?.[0].activePath).toBe("/hub");
+    expect(mockNavigationBarProps.mock.calls[0]?.[0].activePath).toBe("/review");
     expect(mockNavigationBarProps.mock.calls[0]?.[0].onNavigate).toBe(firstProps.onNavigate);
+  });
+
+  // One chip on both surfaces: the Hub's avatar is the garden's banner too (DL-124).
+  it("hands the chip the selected garden's banner for its avatar", () => {
+    mockEligibleAdminGardens.current = {
+      ...mockEligibleAdminGardens.current,
+      resolvedDefaultGarden: {
+        ...createGardenFixture(),
+        bannerImage: "https://cdn.example/garden-one.webp",
+      },
+    };
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/review"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    expect(mockGardenChipProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        selectedGarden: {
+          id: "garden-1",
+          name: "Garden One",
+          bannerImage: "https://cdn.example/garden-one.webp",
+        },
+      })
+    );
   });
 
   it("renders AppBar above the main workspace and keeps NavigationBar pure", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -681,12 +722,13 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
       isError: false,
+      deploymentPermissionsError: false,
       hasStaleBaseList: false,
     };
 
     renderWithProviders(
       <MemoryRouter
-        initialEntries={["/hub/work?gardenAddress=0x1111111111111111111111111111111111111111"]}
+        initialEntries={["/review/work?gardenAddress=0x1111111111111111111111111111111111111111"]}
       >
         <CanvasLayout />
       </MemoryRouter>
@@ -714,7 +756,7 @@ describe("CanvasLayout", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -745,7 +787,7 @@ describe("CanvasLayout", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -778,7 +820,7 @@ describe("CanvasLayout", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -794,7 +836,7 @@ describe("CanvasLayout", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -806,7 +848,7 @@ describe("CanvasLayout", () => {
     });
     expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-loading", "false");
     expect(screen.getByText("3 work submissions need review")).toBeInTheDocument();
-    expect(screen.getByText("Impact report minted")).toBeInTheDocument();
+    expect(screen.getByText(/joined as Gardener/)).toBeInTheDocument();
   });
 
   it("keeps notifications empty until a garden detail record exists", async () => {
@@ -818,13 +860,14 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
       isError: false,
+      deploymentPermissionsError: false,
       hasStaleBaseList: false,
     };
 
     const user = userEvent.setup();
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -841,7 +884,7 @@ describe("CanvasLayout", () => {
     useSheetOrchestratorStore.getState().openSheet("right", "legacy-right-panel");
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -852,9 +895,24 @@ describe("CanvasLayout", () => {
     expect(screen.queryByTestId("admin-side-sheet-content")).not.toBeInTheDocument();
   });
 
+  it("rings the skip link in the Hub's focus role, not the browser's own ring", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/review"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    // One solid 2px ring in the workspace tone, 2px off the link's fill (DL-098).
+    const skipLink = screen.getByRole("link", { name: "Skip to Content" });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    expect(skipLink.className).toContain("focus-visible:outline-2");
+    expect(skipLink.className).toContain("focus-visible:outline-offset-2");
+    expect(skipLink.className).toContain("focus-visible:outline-[rgb(var(--tone-focus-ring,");
+  });
+
   it("does not apply pl-20 padding on main content", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -866,7 +924,7 @@ describe("CanvasLayout", () => {
 
   it("applies bottom padding for nav clearance", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -877,7 +935,7 @@ describe("CanvasLayout", () => {
 
   it("takes its side gutter and width cap from the shell tokens, never a fixed value", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -908,7 +966,7 @@ describe("CanvasLayout", () => {
   });
 });
 
-function renderCanvasShell(initialEntry = "/hub/work") {
+function renderCanvasShell(initialEntry = "/review/work") {
   const router = createMemoryRouter([{ path: "*", element: <CanvasShell /> }], {
     initialEntries: [initialEntry],
   });
@@ -930,10 +988,12 @@ describe("CanvasShell access states", () => {
   it("renders the shared disconnected state for direct canvas bookmarks", () => {
     mockAdminAccessState.current = { status: "disconnected" };
 
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
-    expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
+    // The signed-out Hub is the boot screen's connect surface, with no top bar (PRD-1491).
+    expect(screen.getByRole("heading", { name: "Connect to continue" })).toBeInTheDocument();
+    expect(screen.queryByTestId("top-context-bar")).toBeNull();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
   });
 
@@ -941,17 +1001,17 @@ describe("CanvasShell access states", () => {
     const signOut = vi.fn();
     mockAdminAccessState.current = { status: "embedded-wallet", signOut };
 
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(screen.getByTestId("wallet-required-shell")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /sign out & connect wallet/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign out & sign in again/i })).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
   });
 
   it("renders the shared no-access state for direct canvas bookmarks", () => {
     mockAdminAccessState.current = { status: "no-access", canCreateGarden: false };
 
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
@@ -960,7 +1020,7 @@ describe("CanvasShell access states", () => {
   it("renders the shared indexer-error state for direct canvas bookmarks", () => {
     mockAdminAccessState.current = { status: "indexer-error" };
 
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(screen.getByTestId("canvas-indexer-error")).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
@@ -970,13 +1030,13 @@ describe("CanvasShell access states", () => {
     // The act is sent from a dialog that closes as soon as it lands, so anything
     // mounted there is gone before the indexer catches up. The shell outlives it.
     // What the refresh does is proven in shared's commitment-completion-refresh test.
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(mockCommitmentCompletionRefresh).toHaveBeenCalled();
   });
 
   it("keeps CanvasLayout as the ready shell for direct canvas bookmarks", () => {
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(mockEnsureBaseLists).toHaveBeenCalled();
     expect(screen.getByText("Page Transition")).toBeInTheDocument();

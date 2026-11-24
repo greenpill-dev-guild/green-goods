@@ -1,18 +1,20 @@
-import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
+import { getRelativeTimeParts, relativeTimeStyle } from "@green-goods/shared/utils/relativeTime";
 import type { IntlShape } from "react-intl";
 
-/** How long ago, in the reader's language: "2 hours ago", "yesterday", "just now". */
+/**
+ * How long ago, in the reader's language and the short form every card's details take:
+ * "2 hr. ago", "hace 2 h", "há 2 h", "just now", with a month and a year in full
+ * (`relativeTimeStyle`). Always a number, never "yesterday", so these rows word an age as the
+ * work row does.
+ */
 export function formatAgo(intl: IntlShape, at: number): string {
   const parts = getRelativeTimeParts(at);
   return parts
-    ? intl.formatRelativeTime(parts.value, parts.unit, { numeric: "auto" })
+    ? intl.formatRelativeTime(parts.value, parts.unit, {
+        numeric: "always",
+        style: relativeTimeStyle(parts.unit, "short"),
+      })
     : intl.formatMessage({ id: "app.pending.meta.justNow", defaultMessage: "just now" });
-}
-
-/** The same, standing alone at the start of a line: "Yesterday". */
-export function formatAgoStandalone(intl: IntlShape, at: number): string {
-  const text = formatAgo(intl, at);
-  return text.charAt(0).toLocaleUpperCase(intl.locale) + text.slice(1);
 }
 
 /** A day on a row's meta line: "Oct 2". */

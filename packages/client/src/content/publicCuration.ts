@@ -58,7 +58,7 @@ export const publicCuration: PublicCuration = {
     "0x26c32e54f23af9f9fcc757414c76e56e3fb176e2": "public.gardenNarrative.vida",
     "0xfda72ce1d75b735d6595e5814ddf23b97516caef": "public.gardenNarrative.rifai",
   },
-  heroImagePath: "/images/hero-home.webp",
+  heroImagePath: "/images/hero-home-optimized.avif",
   viewHeroImages: {
     gardens: "/images/hero-garden.webp",
     impact: "/images/hero-impact.webp",

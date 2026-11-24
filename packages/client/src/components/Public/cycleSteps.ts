@@ -26,7 +26,7 @@ export const CYCLE_STEP_MESSAGES: Record<
     },
   },
   commitment: {
-    title: { id: "public.impact.pipeline.step.commitment.title", defaultMessage: "Commitment" },
+    title: { id: "public.impact.pipeline.step.commitment.title", defaultMessage: "Promise" },
     description: {
       id: "public.impact.pipeline.step.commitment.description",
       defaultMessage:
@@ -46,7 +46,7 @@ export const CYCLE_STEP_MESSAGES: Record<
     description: {
       id: "public.impact.pipeline.step.learnings.description",
       defaultMessage:
-        "Compare the evidence with the starting conditions. Assessments help explain what changed.",
+        "Compare the evidence with the starting conditions. Assessments record the baseline and evidence standards.",
     },
   },
 };

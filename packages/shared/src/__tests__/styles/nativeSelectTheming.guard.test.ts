@@ -14,7 +14,7 @@
  *   tokens that flip, which `--neutral-0` / `--neutral-950` do not.
  *
  * The rule is deliberately written against `select option` rather than a single
- * control class: the cockpit fields, the shared `gg-control-select`, and the sort
+ * control class: the Hub fields, the shared `gg-control-select`, and the sort
  * rails are three different components and only the element is common. The
  * combinator is descendant, not child — an <optgroup> reparents its options, and
  * a child combinator silently skipped every grouped row.

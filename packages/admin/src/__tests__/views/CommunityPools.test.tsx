@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   ownPools: null as OwnPoolsView | null,
   navigate: vi.fn(),
   confirmQueueProps: [] as CommitmentsToConfirm[],
+  loadIssuerDrafts: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
@@ -39,6 +40,17 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
       ReturnType<UserModule["useUser"]>,
       "primaryAddress"
     >,
+}));
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useServiceIssuerDesk: () => ({
+    records: [],
+    isLimited: false,
+    load: { mutateAsync: mocks.loadIssuerDrafts, isPending: false, isError: false },
+    save: { isPending: false, isError: false },
+    send: { isPending: false, isError: false },
+  }),
 }));
 
 vi.mock(
@@ -107,7 +119,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useSettlementOperationsControll
     sourcePaused: null,
     owner: null,
     isSettlementOwner: false,
-    isDeployer: false,
+    isProtocolTeam: false,
     canConfigureDelivery: false,
     showControl: false,
     isLoading: false,
@@ -120,6 +132,9 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useSettlementOperationsControll
   }),
 }));
 
+vi.mock("@/views/Community/components/GardenCreatorsCard", () => ({
+  GardenCreatorsPanel: () => <div data-testid="garden-creators" />,
+}));
 vi.mock("@/views/Community/components/ProtocolFundingOperationsPanel", () => ({
   ProtocolFundingOperationsPanel: ({
     renderLayout,
@@ -134,8 +149,8 @@ vi.mock("react-router-dom", async (importOriginal) => {
 });
 
 // The confirm queue is tested on its own; here it only needs to prove what it was handed.
-vi.mock("@/views/Hub/components/HubConfirmQueue", () => ({
-  HubConfirmQueue: ({ toConfirm }: { toConfirm: CommitmentsToConfirm }) => {
+vi.mock("@/views/Review/components/ReviewConfirmQueue", () => ({
+  ReviewConfirmQueue: ({ toConfirm }: { toConfirm: CommitmentsToConfirm }) => {
     mocks.confirmQueueProps.push(toConfirm);
     return <div data-testid="protocol-confirm-queue" />;
   },
@@ -156,6 +171,7 @@ function renderPools(garden: string = GARDEN, canManage = true) {
 describe("CommunityPools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.loadIssuerDrafts.mockResolvedValue([]);
     mocks.confirmQueueProps = [];
     mocks.protocolPool = {
       poolId: 1n,
@@ -188,6 +204,7 @@ describe("CommunityPools", () => {
     expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
     expect(screen.queryByTestId("protocol-pool")).not.toBeInTheDocument();
     expect(screen.queryByTestId("protocol-confirm-queue")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("garden-creators")).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(mocks.confirmQueueProps).toEqual([]);
   });
@@ -197,8 +214,11 @@ describe("CommunityPools", () => {
     expect(screen.getByTestId("protocol-pool")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-funding-operations")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-confirm-queue")).toBeInTheDocument();
+    expect(screen.getByTestId("garden-creators")).toBeInTheDocument();
     // The protocol pool's console is that garden's own Promises tab, not embedded here.
     expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load Drafts" })).toBeInTheDocument();
+    expect(mocks.loadIssuerDrafts).not.toHaveBeenCalled();
   });
 
   it("knows the protocol garden by its pool's type when the chain read fails", () => {
@@ -294,7 +314,7 @@ describe("CommunityPools", () => {
     renderPools(GARDEN);
     const card = screen.getByTestId("current-garden-pool");
     expect(within(card).getByText("Rocinha")).toBeInTheDocument();
-    expect(within(card).getByText(/taking commitments/i)).toBeInTheDocument();
+    expect(within(card).getByText(/taking promises/i)).toBeInTheDocument();
     fireEvent.click(within(card).getByRole("button", { name: /open the pool console/i }));
     expect(mocks.navigate).toHaveBeenCalledWith(
       expect.stringMatching(/^\/garden\/pool\?gardenId=/)

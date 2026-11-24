@@ -16,7 +16,6 @@ vi.mock("../../../utils/app/browser", () => ({
   canTriggerInstallPrompt: vi.fn(),
 }));
 
-import type { InstallScenario } from "../../../hooks/app/useInstallGuidance";
 import { useInstallGuidance as useInstallGuidanceOptions } from "../../../hooks/app/useInstallGuidance";
 import type { Platform } from "../../../utils/app/pwa";
 import {
@@ -319,22 +318,6 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.scenario).toBe("manual-install-available");
       expect(result.current.manualInstructions).toBeDefined();
       expect(result.current.manualInstructions![0].icon).toBe("menu");
-    });
-  });
-
-  describe("scenario type safety", () => {
-    it("all scenarios are valid InstallScenario types", () => {
-      const validScenarios: InstallScenario[] = [
-        "native-prompt-available",
-        "manual-install-available",
-        "wrong-browser",
-        "in-app-browser",
-        "installing",
-        "already-installed",
-        "desktop",
-        "unsupported",
-      ];
-      expect(validScenarios).toHaveLength(8);
     });
   });
 });

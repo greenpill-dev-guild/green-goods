@@ -6,6 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolingModule.sol";
+import { ICommitmentServiceOffers } from "../../src/interfaces/ICommitmentServiceOffers.sol";
 import { ISettlementModule } from "../../src/interfaces/ISettlementModule.sol";
 import { SettlementModule } from "../../src/modules/SettlementModule.sol";
 
@@ -140,6 +141,34 @@ contract SettlementPayerMockPooling {
         _pendingClaims;
     bytes32 public canonicalRecognitionHash;
     bool public commitmentReadsDisabled;
+
+    /// @notice This legacy fixture models the upgraded core's explicit unopted defaults.
+    function serviceOfferProtocolVersion() external pure returns (uint16) {
+        return 1;
+    }
+
+    function getServiceOfferTerms(uint256) external pure returns (ICommitmentServiceOffers.ServiceOfferTerms memory terms) {
+        return terms;
+    }
+
+    function getServiceClaimConsent(
+        uint256,
+        address
+    )
+        external
+        pure
+        returns (ICommitmentServiceOffers.ServiceClaimConsent memory consent)
+    {
+        return consent;
+    }
+
+    function getAcceptedServiceTerms(uint256)
+        external
+        pure
+        returns (ICommitmentServiceOffers.AcceptedServiceTerms memory terms)
+    {
+        return terms;
+    }
 
     function setCommitmentReadsDisabled(bool disabled) external {
         commitmentReadsDisabled = disabled;

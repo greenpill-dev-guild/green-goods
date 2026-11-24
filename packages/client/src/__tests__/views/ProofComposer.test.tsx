@@ -7,16 +7,17 @@
  * @vitest-environment happy-dom
  */
 
-import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import { proofComposerControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, within } from "../test-utils";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const PROVIDER_GARDEN = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 
 const mockUseController = vi.fn();
 let controller: ProofComposerController;
@@ -56,6 +57,18 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) 
   };
 });
 
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useGardens: () => ({
+      data: [
+        { id: GARDEN, name: "Riverside Commons", bannerImage: "" },
+        { id: PROVIDER_GARDEN, name: "Hilltop Garden", bannerImage: "" },
+      ],
+    }),
+  };
+});
+
 const { ProofComposer } = await import("../../views/Home/Garden/Proof");
 
 function PromiseDestination() {
@@ -65,6 +78,7 @@ function PromiseDestination() {
     <>
       <p>Back on the promise</p>
       {state?.from === "dashboard" ? <p>Its Back reopens Your Work</p> : null}
+      {state?.proofDirectEntry ? <p>Its Back goes to the garden</p> : null}
       <button onClick={() => navigate(-1)}>Native Back</button>
     </>
   );
@@ -79,6 +93,7 @@ const ENTRIES = {
     { pathname: PROOF, state: { proofOrigin: `/home/${GARDEN}/commitments/9` } },
   ],
   dashboard: [{ pathname: PROOF, state: { from: "dashboard" } }],
+  home: ["/origin", { pathname: PROOF, state: { from: "home" } }],
 };
 
 const render = (openedFrom: keyof typeof ENTRIES = "direct") =>
@@ -127,6 +142,39 @@ describe("ProofComposer", () => {
       routeGarden: GARDEN,
       onOpenYourWork: expect.any(Function),
     });
+  });
+
+  // Afo on PRD-1522: adding proof named no garden on any step. The line sits right under Media's
+  // info card, above the pinned promise.
+  it("names the garden under Media's info card, its first step, and not after it", async () => {
+    const user = userEvent.setup();
+    const { container } = render();
+    const line = screen.getByTestId("submission-garden");
+    expect(line).toHaveTextContent("Adding proof in Riverside Commons");
+    expect(line.previousElementSibling).toBe(
+      container.querySelector('[data-component="FormInfo"]')
+    );
+
+    await user.click(forward("Details"));
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+    await user.click(forward("Review Proof"));
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+  });
+
+  // Review of #1731: a provider can open the promise from the payer's garden page, and the proof
+  // goes to the provider's garden.
+  it("names the garden the proof is sent to, not the page it was opened from", () => {
+    controller = {
+      ...controller,
+      commitment: controller.commitment && {
+        ...controller.commitment,
+        providerGarden: PROVIDER_GARDEN,
+      },
+    };
+    render();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent(
+      "Adding proof in Hilltop Garden"
+    );
   });
 
   it("renders controller states without exposing the form", () => {
@@ -240,11 +288,11 @@ describe("ProofComposer", () => {
 
     expect(forward("Review Proof")).toBeDisabled();
     expect(
-      screen.getByText("Add a photo, a voice note, a link or a few words first.")
+      screen.getByText("Add media, a voice note, a link or a few words first.")
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Needed if you add nothing else. Or add a link below, or go back for a photo."
+        "Needed if you add nothing else. Or add a link below, or go back to add media."
       )
     ).toBeInTheDocument();
   });
@@ -264,6 +312,23 @@ describe("ProofComposer", () => {
     expect(controller.setSendToo).toHaveBeenCalledWith(false);
     await user.click(forward("Add and Send"));
     expect(controller.submit).toHaveBeenCalledTimes(1);
+  });
+
+  it("says one signature when the proof and confirmation send together", async () => {
+    const user = userEvent.setup();
+    controller = {
+      ...controller,
+      canSendToo: true,
+      sendToo: true,
+      sendsProofWithItsSend: true,
+    };
+    render();
+    await reachReview(user);
+
+    expect(
+      screen.getByText("Sign once to add the proof and send it for confirmation.")
+    ).toBeVisible();
+    expect(screen.queryByText(/sign twice/)).not.toBeInTheDocument();
   });
 
   it("tells a teammate who sends it, with no switch", async () => {
@@ -290,7 +355,7 @@ describe("ProofComposer", () => {
     render();
     await reachReview(user);
 
-    expect(screen.getByText(/It waits on this phone, photos and all/)).toBeInTheDocument();
+    expect(screen.getByText(/Your media and notes stay on this phone/)).toBeInTheDocument();
     await user.click(forward("Add This Proof"));
     expect(controller.submit).toHaveBeenCalledTimes(1);
   });
@@ -322,8 +387,20 @@ describe("ProofComposer", () => {
     render();
 
     expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
+    expect(screen.getByText("Its Back goes to the garden")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Native Back" }));
     expect(screen.queryByText("Nothing added yet")).not.toBeInTheDocument();
+  });
+
+  it("hands a draft reopened from Home to its promise, whose Back returns Home", async () => {
+    const user = userEvent.setup();
+    controller = { ...controller, landing: "queued" };
+    render("home");
+
+    expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
+    expect(screen.queryByText("Its Back goes to the garden")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Native Back" }));
+    expect(screen.getByText("Real origin")).toBeInTheDocument();
   });
 
   it("hands a draft reopened from Your Work to its promise, whose Back reopens Your Work", async () => {
@@ -332,6 +409,36 @@ describe("ProofComposer", () => {
 
     expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
     expect(screen.getByText("Its Back reopens Your Work")).toBeInTheDocument();
+  });
+
+  it("opens on Media under the four step markers, with Start already checked (DL-153)", () => {
+    render();
+
+    const [start, media, details, review] = within(
+      screen.getByRole("list", { name: "Steps" })
+    ).getAllByRole("listitem");
+    expect(start).not.toHaveAttribute("aria-current");
+    // A done step trades its number for a tick, and says so to a screen reader.
+    expect(start).toHaveTextContent(/^Start, Done$/);
+    expect(start.querySelector("svg")).not.toBeNull();
+    expect(media).toHaveAttribute("aria-current", "step");
+    expect(details).toHaveTextContent("3");
+    expect(review).toHaveTextContent("4");
+    expect(screen.getByText("Show What Was Done", { selector: "h6" })).toBeInTheDocument();
+  });
+
+  it("goes back a step with Back, and leaves for the promise from Media", async () => {
+    const user = userEvent.setup();
+    render("promise");
+    await user.click(forward("Details"));
+    expect(screen.getByText("Enter Details", { selector: "h6" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go back" }));
+    expect(screen.getByText("Show What Was Done", { selector: "h6" })).toBeInTheDocument();
+    expect(forward("Details")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go back" }));
+    expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
   });
 
   it("opens the promise from the pinned card and returns to the same step", async () => {

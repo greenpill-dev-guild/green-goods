@@ -103,7 +103,7 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     title: { id: "public.reporting.published.title", defaultMessage: "Published" },
     body: {
       id: "public.reporting.published.body",
-      defaultMessage: "It is recorded on-chain. You can close this page.",
+      defaultMessage: "It's on the garden's public record now. You can close this page.",
     },
   },
   not_sent: {

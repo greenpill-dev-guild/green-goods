@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-24T06:09:21.243Z",
+  "baseCommit": "6327e48cb35346d5f81dfb218481f7ffaac7ab6a",
+  "status": "selected-local-checks-passed",
+  "implementationFiles": {
+    "packages/contracts/script/cli/operations.mjs": "6001456df0ab0d49268a9aea4ea726efc1ae9079fcfd7c2ddb1e40a5b29c2e40",
+    "packages/contracts/script/deploy/source-upgrade-release.ts": "583b0f8b98c6e25f337d293b5038cf498ec389efcf3c0fd73b5484842fa6bcd6",
+    "packages/contracts/script/utils/source-upgrade-operator.test.ts": "e319ad4fd51ce3ca75f2afdae9bb376f14a303e54e11e75d6917dc1e38f876cf",
+    "packages/contracts/script/utils/source-upgrade-execution.ts": "149da8af8d60cd562a9e1f899e0e5a28f63bb0fa59d00c2b9de357ee385a8e11",
+    "packages/contracts/script/utils/source-upgrade-safe-execution.ts": "a000326088beb7537a464bb36f90ea1e248ac1166070ab7016763713af3f7b38",
+    "packages/contracts/script/utils/source-upgrade-execution-types.ts": "618263d64662aac4af5a02055aaa10300f00583773f59eefc8ff236032ed80c5",
+    "packages/contracts/script/utils/source-upgrade-operator.ts": "ccf9da7c0c2ab65154730b0ca1055eff40044248d37abb8811ab630507eaf3ee",
+    "packages/contracts/script/utils/source-upgrade-execution-store.ts": "805892bb399f736534f61e24855fc2d3cac2438216ee4844396c7f592caebc63",
+    "packages/contracts/script/utils/source-upgrade-safe-signing.ts": "236da1562c37e884a9f7cded56b4f3314346f73a44bedd0f20f128e5bbfd4e55",
+    "packages/contracts/script/utils/source-upgrade-safe-signing.fixtures.ts": "eff0f8c95cff6ec804f8c24941a1518c4e7b45c8f8b876dcf4edb986ff834c9b",
+    "packages/contracts/script/utils/source-upgrade-execution-store.test.ts": "acd9ab667aa0c4ecc1e2cd20082ea33952d0040f182dff21a0ea42bd0faeed45",
+    "packages/contracts/script/utils/source-upgrade-safe-signing.test.ts": "c9c507ab7803f69c6f70544a2a9fe9c2fbda2fc153f058a2c23e5e5b1f0f268b",
+    "packages/contracts/script/utils/source-upgrade-execution.test.ts": "e83005965e2be995cfecd81415fd5f652630738e7e63c21a7e8317c038e4d1dd",
+    "packages/contracts/script/utils/source-upgrade-execution-claim.ts": "96bf705ebf8c53fb24e217bea7e639448c213dcaf02a3044e0d29ddc2a11c0f2",
+    "packages/contracts/script/utils/source-upgrade-safe-operator.ts": "603ba97b0413c6557a0bc335b3312397fae20bd25d486447d3ef40cb6f1f8d21"
+  },
+  "contractVerifier": {
+    "passed": true,
+    "seconds": 415,
+    "solidityPassed": 2211,
+    "soliditySuites": 171,
+    "productionGasPassed": 3,
+    "cliPassed": 37,
+    "scriptPassed": 706,
+    "scriptFiles": 52,
+    "inputsFrozenAt": "2026-10-24T05:56:40.898Z",
+    "completedAt": "2026-10-24T06:03:35.581Z",
+    "inputPhase": "All final current inputs copied from absolute source paths before the complete verifier starts"
+  },
+  "focusedNewCases": 13,
+  "typesPassed": true,
+  "lintErrors": 0,
+  "sourceStructurePassed": true,
+  "castSigning": {
+    "isolatedEncryptedSyntheticKeystore": true,
+    "operatorCredentialsAccessed": false
+  },
+  "pinnedBinaryConformance": {
+    "startedAt": "2026-10-24T05:16:16.365Z",
+    "completedAt": "2026-10-24T05:16:17.735Z",
+    "class": "Observed pinned singleton runtime behind synthetic EIP-1167 fixture proxy; five synthetic owners; local Cast unlocked adapter for impersonated outer deployer; no live fork or real-owner signature claim",
+    "singletonRuntimeHash": "0x180193227186ccb85316c94db1f0d156ed932b14712cfaac78901899178572dc",
+    "owners": 5,
+    "threshold": 2,
+    "typedDataSignatures": 2,
+    "readOnlySignedCall": true,
+    "executionSuccess": true,
+    "indexedSafeReceiptVerified": true,
+    "exactSafeHash": "0x689cc3ef999dd9a187605ffd12c23153e06618150fd2c71585a2d28647e9ab96",
+    "outer": {
+      "from": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "nonce": 1040,
+      "gasLimit": "2000000",
+      "maxFeePerGas": "50000000",
+      "maxPriorityFeePerGas": "0"
+    },
+    "replayRejected": true,
+    "liveBroadcast": false
+  },
+  "receiptRegression": {
+    "oldDecoderFailed": true,
+    "indexedAndLegacySuccessSupported": true,
+    "indexedFailureRejected": true
+  },
+  "scope": {
+    "solidityChanged": false,
+    "authorityOrThresholdChanged": false,
+    "budgetsChanged": false,
+    "activationIncluded": false,
+    "dependenciesChanged": false
+  },
+  "liveBroadcast": false,
+  "liveOwnerSignature": false,
+  "currentHeadNetworkRehearsal": "Pending normal-terminal execution; tool RPC proxy previously returned HTTP 403",
+  "publication": "Pending normal-terminal current-head push hook and remote verification",
+  "abiArtifactsPassed": true,
+  "testQualityPassed": true,
+  "docs": {
+    "authorityPassed": 81,
+    "unitPassed": 99,
+    "defaultTimeout": true,
+    "generatedProjections": 17,
+    "build": "passed; 77 indexed routes"
+  },
+  "previousContractVerifier": {
+    "passed": true,
+    "seconds": 517,
+    "solidityPassed": 2211,
+    "soliditySuites": 171,
+    "productionGasPassed": 3,
+    "cliPassed": 37,
+    "scriptPassed": 705,
+    "scriptFiles": 52,
+    "inputPhase": "Corrected absolute source copy during production-gas compile, before Node CLI or Vitest script tests; no Solidity/compiler/lint inputs changed",
+    "initialSelfCopySuperseded": true
+  },
+  "ownerIdentityIsolationPassed": true
+}

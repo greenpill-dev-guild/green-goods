@@ -1,35 +1,39 @@
+import { type Hex } from "viem";
+import type { Address } from "../../types/domain";
+import type { Job } from "../../types/job-queue";
+import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { logger } from "../app/logger";
+import { readCreationStanding } from "../commitment-pooling/creation-standing";
+import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
+import { EarnedRewardWaiting } from "../commitment-pooling/earned-agreement-error";
+import {
+  type ClaimJobPayload,
+  type CommitmentCreationPayload,
+  type CommitmentSeriesJobPayload,
+  commitmentJobPrerequisite,
+  executeCommitmentJob,
+  toCommitmentJob,
+  type WorkLinkJobPayload,
+} from "../commitment-pooling/jobs";
+import {
+  type DeferredWorkIdentityResolution,
+  resolveDeferredWorkIdentity,
+} from "../commitment-pooling/work-identity";
+import { isCanonicalTransactionHash } from "../transactions/confirmation";
+import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
+import type { StrandedCommitmentLookup } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
   reconcileWorkTransaction,
   retainedWorkBroadcastReference,
 } from "../work/work-confirmation";
-import type { StrandedCommitmentLookup } from "../work/stranded-intent";
-import type { Job } from "../../types/job-queue";
-import type { TransactionSender } from "../transactions/types";
-import { jobQueueDB } from "./db";
-import { hasRecordedSend, recordsSends } from "./queue-policy";
-import { type Hex } from "viem";
-import {
-  commitmentJobPrerequisite,
-  executeCommitmentJob,
-  toCommitmentJob,
-  type CommitmentCreationPayload,
-  type CommitmentSeriesJobPayload,
-  type WorkLinkJobPayload,
-} from "../commitment-pooling/jobs";
-import {
-  resolveDeferredWorkIdentity,
-  type DeferredWorkIdentityResolution,
-} from "../commitment-pooling/work-identity";
-import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
-import { publishPendingEvidence } from "./evidence-publisher";
-import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { logger } from "../app/logger";
-import { createCommitmentChainReads, type CommitmentChainReads } from "./commitment-chain-reads";
 import { buildCommitmentContractCall } from "./commitment-call-builder";
+import { type CommitmentChainReads, createCommitmentChainReads } from "./commitment-chain-reads";
 import { sendRecordedAct, settleActSend, waitingForRecordedSend } from "./commitment-send-record";
+import { jobQueueDB } from "./db";
+import { publishPendingEvidence } from "./evidence-publisher";
+import { hasRecordedSend, recordsSends } from "./queue-policy";
 import { observeTransactionNonce } from "./send-guards";
-import type { Address } from "../../types/domain";
 
 type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
 
@@ -71,6 +75,26 @@ export type CommitmentQueueExecution =
 
 /** As many tries as any other job gets, so a dead gateway cannot queue forever. */
 const MAX_METADATA_ATTEMPTS = 5;
+
+/** Whether this job's call goes out in one atomic request with `earlier`'s, after it. */
+function goesAfter(sender: TransactionSender, earlier: string, jobId: string): boolean {
+  const order = sender.bundledWith ?? [];
+  const at = order.indexOf(earlier);
+  return at >= 0 && at < order.indexOf(jobId);
+}
+
+// ICommitmentPoolingModule.ClaimType.Individual; the payload carries the Solidity ordinal.
+const CLAIM_TYPE_INDIVIDUAL = 1;
+
+/** A creation whose words wait in the job, unpublished, with no send of it on record. */
+function carriesUnpublishedWords(job: Job): boolean {
+  const payload = job.payload as Partial<CommitmentCreationPayload>;
+  return (
+    Boolean(payload.metadata) &&
+    !payload.metadataCID &&
+    typeof job.meta?.submittedTxHash !== "string"
+  );
+}
 
 /**
  * Publish a commitment's words, if it was composed before they could be.
@@ -138,6 +162,20 @@ async function publishPendingCommitmentMetadata(
   }
 }
 
+/**
+ * Whether a creation kept as submitted ended without landing: its transaction reverted, or
+ * another took the nonce it used. A read that cannot say leaves it waiting.
+ */
+async function keptCreationEnded(job: Job, reads: CommitmentChainReads): Promise<boolean> {
+  const hash = job.meta?.submittedTxHash;
+  if (job.kind !== "commitment" && job.kind !== "commitmentSeries") return false;
+  if (typeof hash !== "string" || !isCanonicalTransactionHash(hash)) return false;
+  if (await reads.transactionReverted?.(hash)) return true;
+  const nonce = job.meta?.submittedTxNonce;
+  if (typeof nonce !== "number" || !reads.transactionSuperseded) return false;
+  return reads.transactionSuperseded(hash, job.userAddress as Address, nonce).catch(() => false);
+}
+
 export async function executeCommitmentQueueJob(
   jobId: string,
   job: Job,
@@ -155,16 +193,40 @@ export async function executeCommitmentQueueJob(
   const store = deps.store ?? jobQueueDB;
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
   const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
+  // A creation kept as submitted when its receipt outlasted the queue's limit (PRD-1551) made
+  // nothing if that transaction then reverted, or can never land once another took its nonce
+  // (a cancel or a replacement). Its hash is cleared so the creation can go again, as one that
+  // ended so inside the wait always could; the chain is still asked for it first, so a
+  // replacement that landed is recovered, not sent twice. One pending or unknown keeps waiting.
+  if (await keptCreationEnded(job, chainReads)) {
+    const { submittedTxHash: _ended, submittedTxNonce: _nonce, ...meta } = job.meta ?? {};
+    job.meta = meta;
+    await store.updateJob({ ...job });
+  }
   if (recordsSends(job.kind) && (hasRecordedSend(job) || retainedWorkBroadcastReference(jobId))) {
     return settleActSend(jobId, job, chainId, sender, store, chainReads, deps);
   }
   // Add and Send's second act goes after its proof: sent first, it would settle
   // the team before the proof and its credit were on the record. A proof that
   // landed has left the queue; one that was discarded took this send with it.
+  // In one request with its proof, after it, the send lands with it or not at all.
   const proofJobId = commitmentJobPrerequisite(job.kind, job.payload);
-  if (proofJobId && job.kind !== "workLink") {
+  const ridesWithProof = proofJobId !== null && goesAfter(sender, proofJobId, jobId);
+  if (proofJobId && job.kind !== "workLink" && !ridesWithProof) {
     const proof = await store.getJob(proofJobId);
     if (proof && !proof.synced) return { status: "waiting", reason: "proof-not-landed" };
+  }
+  // Words composed offline ride the job and are published only when the promise sends, and no send
+  // can go before they are, so nothing of such a promise is on the chain yet. One the chain can no
+  // longer keep is refused before its words are published; one whose standing can't be read waits
+  // with them unpublished.
+  if (job.kind === "commitment" && carriesUnpublishedWords(job)) {
+    const standing = await readCreationStanding(
+      job.payload as CommitmentCreationPayload,
+      chainReads
+    );
+    if (standing === "unreadable") return { status: "waiting", reason: "windows-unavailable" };
+    if (standing !== "open") return { status: "unavailable", reason: standing };
   }
   const publishEvidence = deps.publishEvidence ?? publishPendingEvidence;
   const published =
@@ -223,6 +285,17 @@ export async function executeCommitmentQueueJob(
       ...chainReads,
       resolveSeriesId: (clientSeriesId) => store.getSeriesIdByClientId(clientSeriesId),
       send: async ({ kind, payload, moduleAddress: target, chainId: targetChain }) => {
+        const claim = kind === "claim" ? (payload as ClaimJobPayload) : null;
+        const beforeBroadcast = claim
+          ? () =>
+              chainReads.assertClaimRewardAgreed(
+                claim.commitmentId,
+                claim.kind === CLAIM_TYPE_INDIVIDUAL
+                  ? (job.userAddress as Address)
+                  : claim.gardenContext
+              )
+          : undefined;
+        await beforeBroadcast?.();
         const built = buildCommitmentContractCall(kind, payload);
         const call = {
           address: target,
@@ -234,16 +307,39 @@ export async function executeCommitmentQueueJob(
           args: built.args,
           chainId: targetChain,
         };
-        if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
+        // A creation keeps the transaction it sent rather than a send record. One whose receipt
+        // outlasted the queue's limit went out all the same: kept as submitted, the next pass
+        // waits for the chain to show it instead of sending it again.
+        if (!recordsSends(job.kind)) {
+          try {
+            return (await sender.sendContractCall(call)).hash;
+          } catch (error) {
+            if (!(error instanceof ReceiptWaitLimitError && error.hash)) throw error;
+            // Keep the nonce it used while the network holds it: only that can later show
+            // another transaction took its place.
+            const nonce = await chainReads.readTransactionNonce?.(error.hash).catch(() => null);
+            if (typeof nonce === "number") job.meta = { ...job.meta, submittedTxNonce: nonce };
+            return error.hash;
+          }
+        }
         // A wallet estimates inside its own send, after the intent is recorded;
-        // asking the chain first keeps a refusal a refusal.
-        await chainReads.simulateSend?.({
-          address: target,
-          functionName: built.functionName,
-          args: built.args,
-          account: job.userAddress as Address,
-          chainId: targetChain,
-        });
+        // asking the chain first keeps a refusal a refusal. A send riding with its
+        // proof could only revert alone (`EvidenceRequired`); its request is
+        // simulated whole before anything is signed.
+        try {
+          if (!ridesWithProof)
+            await chainReads.simulateSend?.({
+              address: target,
+              functionName: built.functionName,
+              args: built.args,
+              account: job.userAddress as Address,
+              chainId: targetChain,
+            });
+        } catch (simulationError) {
+          // Reward state may have changed since preflight. Only that dependency waits.
+          await beforeBroadcast?.();
+          throw simulationError;
+        }
         // Read after the simulation, and again just before the intent, after any
         // prompt: nothing this send does can land in that block or before, so an
         // earlier ask never passes for this one. The first read must succeed; a
@@ -254,6 +350,7 @@ export async function executeCommitmentQueueJob(
           return await sendRecordedAct(jobId, job, call, sender, store, {
             readChainHead: chainReads.readChainHead,
             headBeforeSend: firstHead,
+            beforeBroadcast,
           });
         } catch (error) {
           // Its receipt did not come in time: keep the nonce the transaction
@@ -267,9 +364,19 @@ export async function executeCommitmentQueueJob(
   } catch (error) {
     const waiting = waitingForRecordedSend(error);
     if (waiting) return waiting;
+    if (error instanceof EarnedRewardWaiting && !hasRecordedSend(job))
+      return { status: "waiting", reason: error.reason };
+    // A creation's UserOperation that outlasted the limit names no transaction to keep, but it
+    // went out and may still land: it waits, spending no attempt. The next pass asks the chain
+    // for the creation first, and the contract keeps one per request key (PRD-1551).
+    if (!recordsSends(job.kind) && error instanceof ReceiptWaitLimitError && !error.hash)
+      return { status: "waiting", reason: "awaiting-confirmation" };
     throw error;
   }
 
+  // A promise the chain can no longer keep is given up on, as on anything outside the queue:
+  // nothing about it conflicts with the chain, and sending it again cannot help.
+  if (result.status === "refused") return { status: "unavailable", reason: result.reason };
   if (result.status === "recovered") {
     if (result.entityId !== undefined && job.kind === "commitmentSeries") {
       await store.storeClientSeriesIdMapping(

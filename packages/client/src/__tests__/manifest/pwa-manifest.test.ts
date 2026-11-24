@@ -1,6 +1,44 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createPwaManifestBranding, resolvePwaManifestFlavor } from "../../config/pwaManifest";
 import { PWA_MANIFEST_ID } from "../../config/pwaRouting";
+
+const STYLES = resolve(process.cwd(), "../shared/src/styles");
+const THEME_SOURCE = readFileSync(resolve(STYLES, "theme.css"), "utf8");
+// theme.css reads the DesignMD tokens from the generated stylesheet it imports.
+const TOKEN_SOURCES = [
+  THEME_SOURCE,
+  readFileSync(resolve(STYLES, "design-md.generated.css"), "utf8"),
+];
+
+/** Hex for a custom property that holds an `R G B` triple directly or through var(). */
+function resolveRgbHex(varName: string): string {
+  for (const source of TOKEN_SOURCES) {
+    const value = source.match(new RegExp(`${varName}:\\s*([^;]+);`))?.[1];
+    const reference = value?.match(/^var\((--[\w-]+)/)?.[1];
+    if (reference) return resolveRgbHex(reference);
+    const triple = value?.match(/^(\d+) (\d+) (\d+)/);
+    if (triple) {
+      return `#${triple
+        .slice(1, 4)
+        .map((channel) => Number(channel).toString(16).padStart(2, "0"))
+        .join("")}`;
+    }
+  }
+  throw new Error(`Missing ${varName} triple in the shared styles`);
+}
+
+/** The installed app's canvas per theme, read from the app scope blocks in theme.css. */
+function appCanvasHex(theme: "light" | "dark"): string {
+  const scope =
+    theme === "dark"
+      ? /\[data-surface="app"\] \[data-theme="dark"\] \{([^}]*)\}/
+      : /\n\[data-surface="app"\] \{([^}]*)\}/;
+  const value = THEME_SOURCE.match(scope)?.[1]?.match(/--bg-canvas:\s*var\((--[\w-]+)/)?.[1];
+  if (!value) throw new Error(`Missing the app's ${theme} --bg-canvas in theme.css`);
+  return resolveRgbHex(value);
+}
 
 describe("PWA manifest branding", () => {
   it("keeps production on the existing Green Goods install identity", () => {
@@ -9,11 +47,6 @@ describe("PWA manifest branding", () => {
     expect(branding.manifestId).toBe(PWA_MANIFEST_ID);
     expect(branding.name).toBe("Green Goods");
     expect(branding.shortName).toBe("Green Goods");
-    expect(branding.themeColor).toBe("#fff");
-    expect(branding.backgroundColor).toBe("#fff");
-    // The per-scheme status bar tints mirror the app canvas (bg-white-0).
-    expect(branding.htmlThemeColorLight).toBe("#ffffff");
-    expect(branding.htmlThemeColorDark).toBe("#0c0a09");
     expect(branding.browserIcon).toBe("icon-192.png");
     expect(branding.manifestIcons.map((icon) => icon.src)).toEqual([
       "images/android-icon-72x72.png",
@@ -22,6 +55,20 @@ describe("PWA manifest branding", () => {
       "icon-512.png",
       "maskable-icon-512.png",
     ]);
+  });
+
+  it("tints the browser chrome with the ground each presentation paints", () => {
+    const branding = createPwaManifestBranding("production");
+
+    // The website's status bar stays on its white canvas in either theme.
+    expect(branding.htmlThemeColorLight).toBe("#ffffff");
+    expect(branding.htmlThemeColorDark).toBe("#0c0a09");
+    // The installed app's status bar and its manifest take the canvas theme.css
+    // paints for the app: linen in light, the warm dark floor in dark.
+    expect(branding.appThemeColorLight.toLowerCase()).toBe(appCanvasHex("light"));
+    expect(branding.appThemeColorDark.toLowerCase()).toBe(appCanvasHex("dark"));
+    expect(branding.themeColor).toBe(branding.appThemeColorLight);
+    expect(branding.backgroundColor).toBe(branding.appThemeColorLight);
   });
 
   it("presents the staging build as the beta app", () => {
@@ -38,9 +85,12 @@ describe("PWA manifest branding", () => {
     expect(branding.themeColor).not.toBe(createPwaManifestBranding("production").themeColor);
     expect(branding.themeColor).toBe("#111b13");
     expect(branding.backgroundColor).toBe("#111b13");
-    // One color for both schemes, so beta stays pinned under either selection.
+    // One color for both schemes and presentations, so beta stays pinned under
+    // either selection.
     expect(branding.htmlThemeColorLight).toBe("#111b13");
     expect(branding.htmlThemeColorDark).toBe("#111b13");
+    expect(branding.appThemeColorLight).toBe("#111b13");
+    expect(branding.appThemeColorDark).toBe("#111b13");
     expect(branding.browserIcon).toBe("staging-icon-192.png");
     expect(branding.shortcutIcon).toBe("staging-icon-192.png");
     expect(branding.manifestIcons.map((icon) => icon.src)).toEqual([
@@ -55,6 +105,46 @@ describe("PWA manifest branding", () => {
       sizes: "180x180",
       src: "staging-apple-icon.png",
     });
+  });
+
+  it("presents the alpha build as its own app beside beta and production", () => {
+    const alpha = createPwaManifestBranding("alpha");
+    const beta = createPwaManifestBranding("staging");
+
+    expect(alpha.manifestId).toBe("/?gg_pwa=alpha");
+    expect(alpha.manifestId).not.toBe(beta.manifestId);
+    expect(alpha.manifestId).not.toBe(PWA_MANIFEST_ID);
+    expect(alpha.name).toBe("Green Goods Alpha");
+    expect(alpha.shortName).not.toBe(beta.shortName);
+    // Colour tells alpha from beta: violet where beta is dark green.
+    expect(alpha.themeColor).toBe("#5B2CC9");
+    expect(alpha.backgroundColor).toBe("#5B2CC9");
+    expect(alpha.themeColor).not.toBe(beta.themeColor);
+    // Every icon is alpha's own, and each one is shipped.
+    const icons = [
+      alpha.browserIcon,
+      alpha.shortcutIcon,
+      alpha.msTileImage,
+      ...alpha.manifestIcons.map((icon) => icon.src),
+      ...alpha.appleTouchIcons.map((icon) => icon.src),
+      ...alpha.includeAssets.filter((asset) => asset.endsWith(".png")),
+    ];
+    for (const icon of icons) {
+      expect(icon).toContain("alpha-");
+      expect(existsSync(resolve(process.cwd(), "public", icon)), icon).toBe(true);
+    }
+  });
+
+  it("brands every build of the alpha branch as alpha", () => {
+    expect(
+      resolvePwaManifestFlavor({ VERCEL_GIT_COMMIT_REF: "alpha", VERCEL_ENV: "preview" })
+    ).toBe("alpha");
+    expect(resolvePwaManifestFlavor({ PWA_MANIFEST_FLAVOR: "alpha" })).toBe("alpha");
+    expect(resolvePwaManifestFlavor({ VERCEL_GIT_COMMIT_REF: "develop" })).toBe("production");
+    // A deployment signal naming alpha off the alpha branch passes to the next signal, as before.
+    expect(resolvePwaManifestFlavor({ SENTRY_ENVIRONMENT: "alpha", APP_ENV: "staging" })).toBe(
+      "staging"
+    );
   });
 
   it("uses Vercel's custom environment signal for staging builds", () => {

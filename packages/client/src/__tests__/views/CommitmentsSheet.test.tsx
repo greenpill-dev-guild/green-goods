@@ -9,10 +9,11 @@
  * @vitest-environment happy-dom
  */
 
+import { commitmentFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, renderWithProviders, screen } from "../test-utils";
+import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
 /** Rows navigate into a commitment, so the sheet needs a router around it. */
@@ -20,18 +21,63 @@ const render = (ui: React.ReactElement) =>
   renderWithProviders(<MemoryRouter initialEntries={["/home"]}>{ui}</MemoryRouter>);
 
 const mockNavigate = vi.fn();
+/** Set by a test that walks the real routes rather than only recording where it would go. */
+let navigatesForReal = false;
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return { ...actual, useNavigate: () => mockNavigate };
+  return {
+    ...actual,
+    useNavigate: () => {
+      const navigate = actual.useNavigate();
+      return navigatesForReal ? navigate : mockNavigate;
+    },
+  };
 });
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
+const OTHER = "0x2222222222222222222222222222222222222222" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
 const mockUseCommitmentsInbox = vi.fn();
 const mockUseCommitmentsToConfirm = vi.fn();
+/** What each listed service offer's booking takes; the reads are proven in Shared. */
+const mockUseServiceOfferLines = vi.fn();
+/** Each listed booking's own read, keyed as the promise page reads it: nothing answered yet. */
+const mockUseServiceAccessReads = vi.fn((keys: readonly unknown[]) =>
+  keys.map(() => ({ data: undefined }) as { data?: unknown })
+);
+const mockUseCommitmentCycles = vi.fn();
 const mockUseOffline = vi.fn();
+/** The garden the chip on Home has chosen; null before a member has one. */
+let mockActiveGarden: { id: string; name: string } | null = null;
+const mockInScope = (gardens: readonly (string | null | undefined)[]) =>
+  !mockActiveGarden || gardens.some((garden) => garden?.toLowerCase() === mockActiveGarden?.id);
+
+/** A season and a campaign in the garden's pool, as the rail reads them. */
+function cycle(cycleId: bigint, cycleType: "SEASON" | "CAMPAIGN") {
+  return {
+    id: `42161-c${cycleId}`,
+    cycleId,
+    poolId: 7n,
+    cycleType,
+    state: "OPEN",
+    startTime: null,
+    endTime: null,
+    liveCommitmentCount: 1n,
+    commitmentsFulfilled: 0n,
+    commitmentsDue: 1n,
+  };
+}
+const CYCLE_NAMES = new Map([
+  ["1", { status: "resolved", name: "Autumn Planting" }],
+  ["2", { status: "resolved", name: "Seed Swap Weekend" }],
+]);
+const HUB_DAY = "Four-hour hub day";
+const HUB_DAY_CID = "bafy-hub-day";
+const HUB_DAY_METADATA = new Map([[HUB_DAY_CID, { version: 1, title: HUB_DAY }]]);
+/** The promises' words as read so far. */
+let mockMetadata = HUB_DAY_METADATA;
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
@@ -128,15 +174,47 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => 
   useCommitmentJobs: () => ({ sendsFromTap: mockSendsFromTap() }),
 }));
 
+/** The pools' pending take-up requests: answered and empty unless a case says otherwise. */
+const mockUsePoolClaimRequests = vi.fn(() => ({
+  rows: [],
+  isLoading: false,
+  isError: false,
+  refetch: vi.fn(),
+}));
+
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  usePoolClaimRequests: () => mockUsePoolClaimRequests(),
   useCommitmentPools: () => ({ pools: [{ poolId: 7n, garden: GARDEN }] }),
   useCommitmentSeries: () => ({ series: [] }),
-  useCommitmentsInbox: () => mockUseCommitmentsInbox(),
-  useCommitmentsToConfirm: () => mockUseCommitmentsToConfirm(),
+  useCommitmentCycles: (...args: unknown[]) => mockUseCommitmentCycles(...args),
+  useCommitmentCycleNames: () => ({ byCycleId: CYCLE_NAMES, isLoading: false }),
+  useCommitmentMetadata: () => ({ byCID: mockMetadata, isLoading: false }),
+  useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
+  useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
+  useServiceOfferLines: (...args: unknown[]) => mockUseServiceOfferLines(...args),
+  useServiceAccessReads: (keys: readonly unknown[]) => mockUseServiceAccessReads(keys),
+}));
+
+// The launcher reads the same two hooks from their own leaves.
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentsInbox", () => ({
+  useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
+}));
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm", () => ({
+  useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
+}));
+
+// The scope rule is proven in Shared; here the active garden's own promises show.
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({
+    gardenId: mockActiveGarden?.id ?? null,
+    garden: mockActiveGarden,
+    inScope: mockInScope,
+  }),
 }));
 
 const { CommitmentsSheet } = await import("../../views/Home/CommitmentsSheet");
+const { CommitmentsSheetLauncher } = await import("../../views/Home/CommitmentsSheet/Launcher");
 
 describe("CommitmentsSheet", () => {
   beforeEach(() => {
@@ -145,6 +223,352 @@ describe("CommitmentsSheet", () => {
     mockSendsFromTap.mockReturnValue(false);
     mockUseCommitmentsInbox.mockReturnValue(inbox());
     mockUseCommitmentsToConfirm.mockReturnValue(toConfirm());
+    mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
+    mockUseServiceOfferLines.mockReturnValue(new Map());
+    mockUseServiceAccessReads.mockImplementation((keys: readonly unknown[]) =>
+      keys.map(() => ({ data: undefined }))
+    );
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    mockActiveGarden = null;
+    navigatesForReal = false;
+    mockMetadata = HUB_DAY_METADATA;
+  });
+
+  describe("identical open copies (DL-150)", () => {
+    /** Ten offers of one hub day, as a garden's creator reads them. */
+    const tenOffers = Array.from({ length: 10 }, (_, index) => ({
+      commitment: commitmentFixture({
+        id: `42161-${63 + index}`,
+        commitmentId: BigInt(63 + index),
+        poolId: 7n,
+        creator: VIEWER,
+        direction: "OFFER",
+        onchainState: "OFFERED",
+        derivedState: "OFFERED",
+        metadataCID: HUB_DAY_CID,
+      }),
+      seat: "provider" as const,
+      needsYou: false,
+    }));
+    const copiesSheet = () => screen.getByRole("dialog", { name: HUB_DAY });
+    const copyRows = () =>
+      within(copiesSheet()).getAllByRole("button", { name: new RegExp(HUB_DAY) });
+
+    beforeEach(() => {
+      mockUseCommitmentsInbox.mockReturnValue(inbox({ live: tenOffers }));
+      // Each hub day is a service that takes one Tech and Sun voucher, and the reader holds two.
+      mockUseServiceOfferLines.mockReturnValue(
+        new Map(
+          tenOffers.map((row) => [
+            row.commitment.commitmentId.toString(),
+            {
+              promisedBy: "Tech and Sun",
+              gender: "feminine",
+              takes: { units: 1_000_000n, decimals: 6 },
+              booking: { kind: "hold", held: 2_000_000n, decimals: 6 },
+            },
+          ])
+        )
+      );
+    });
+
+    it("lists ten as one row with a count that opens the ten, each into its own page", async () => {
+      const user = userEvent.setup();
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+      const fold = screen.getByRole("button", { name: /A group of 10 separate promises/ });
+      expect(fold).toHaveTextContent(HUB_DAY);
+      expect(fold).toHaveTextContent("Offered");
+      // The price leads the line and the tile's number is still said in it, not only to screen
+      // readers (DL-166); what the reader holds waits for the copies' own rows.
+      const foldLine = fold.querySelector(".gg-item-row-details");
+      expect(foldLine).toHaveTextContent("Takes 1 Tech and Sun voucher");
+      expect(foldLine).toHaveTextContent("10 promises");
+      expect(foldLine).not.toHaveTextContent("You hold");
+      expect(screen.getAllByRole("button", { name: new RegExp(HUB_DAY) })).toHaveLength(1);
+      await user.click(fold);
+
+      expect(copiesSheet()).toHaveAccessibleDescription("A group of 10 separate promises");
+      expect(copyRows()).toHaveLength(10);
+      expect(copyRows()[0]).toHaveTextContent("Takes 1 Tech and Sun voucher");
+      expect(copyRows()[0]).toHaveTextContent("You hold 2");
+      await user.click(copyRows()[2] as HTMLElement);
+      expect(mockNavigate).toHaveBeenCalledWith(
+        `/home/${GARDEN}/commitments/65`,
+        expect.objectContaining({ viewTransition: false })
+      );
+    });
+
+    it("folds to its plain line when the copies' prices or bookings differ, each copy keeping its own", async () => {
+      const user = userEvent.setup();
+      const line = (units: bigint, booking: "hold" | "exchange") => ({
+        promisedBy: "Tech and Sun",
+        gender: "feminine",
+        takes: { units, decimals: 6 },
+        booking:
+          booking === "hold"
+            ? { kind: "hold", held: 2_000_000n, decimals: 6 }
+            : { kind: "exchange" },
+      });
+      const lines = (of: (index: number) => ReturnType<typeof line>) =>
+        new Map(tenOffers.map((row, index) => [row.commitment.commitmentId.toString(), of(index)]));
+      // Prices differ: the fold says neither the first copy's price nor its booking.
+      mockUseServiceOfferLines.mockReturnValue(
+        lines((index) => line(index === 0 ? 1_000_000n : 2_000_000n, "hold"))
+      );
+      const view = render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+      const fold = () => screen.getByRole("button", { name: /A group of 10 separate promises/ });
+      const foldLine = () => fold().querySelector(".gg-item-row-details");
+      expect(fold()).not.toHaveAttribute("data-service");
+      expect(foldLine()).not.toHaveTextContent("Takes");
+      expect(foldLine()).not.toHaveTextContent("You hold");
+      expect(foldLine()).toHaveTextContent("10 promises");
+      // The same price, but one copy the reader can book and the rest to exchange for: the same.
+      mockUseServiceOfferLines.mockReturnValue(
+        lines((index) => line(1_000_000n, index === 0 ? "hold" : "exchange"))
+      );
+      view.rerender(
+        <MemoryRouter initialEntries={["/home"]}>
+          <CommitmentsSheet isOpen onClose={vi.fn()} />
+        </MemoryRouter>
+      );
+      expect(fold()).not.toHaveAttribute("data-service");
+      expect(foldLine()).not.toHaveTextContent("You hold");
+      expect(foldLine()).toHaveTextContent("10 promises");
+      await user.click(fold());
+      expect(copyRows()[0]).toHaveTextContent("Takes 1 Tech and Sun voucher");
+      expect(copyRows()[0]).toHaveTextContent("You hold 2");
+      expect(copyRows()[1]).toHaveTextContent("Exchange first");
+    });
+
+    it("keeps the list open when the copies' words arrive after it opened", async () => {
+      const user = userEvent.setup();
+      mockMetadata = new Map();
+      const onClose = vi.fn();
+      const view = render(<CommitmentsSheet isOpen onClose={onClose} />);
+      await user.click(screen.getByRole("button", { name: /A group of 10 separate promises/ }));
+      expect(screen.getByRole("dialog", { name: "A promise" })).toBeInTheDocument();
+
+      // The words change what folds the copies, not which copies the reader opened.
+      mockMetadata = HUB_DAY_METADATA;
+      view.rerender(
+        <MemoryRouter>
+          <CommitmentsSheet isOpen onClose={onClose} />
+        </MemoryRouter>
+      );
+
+      expect(copyRows()).toHaveLength(10);
+    });
+
+    it("reopens the list on top, with focus and Escape its own, on the way back from a copy", async () => {
+      const user = userEvent.setup();
+      navigatesForReal = true;
+      function GoBack() {
+        const navigate = useNavigate();
+        return <button onClick={() => navigate(-1)}>Back from the page</button>;
+      }
+      renderWithProviders(
+        <MemoryRouter initialEntries={["/home"]}>
+          <CommitmentsSheet isOpen onClose={vi.fn()} />
+          <GoBack />
+        </MemoryRouter>
+      );
+
+      await user.click(screen.getByRole("button", { name: /A group of 10 separate promises/ }));
+      await user.click(copyRows()[0] as HTMLElement);
+      // The page covers both sheets.
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: "Back from the page" }));
+
+      const copies = await screen.findByRole("dialog", { name: HUB_DAY });
+      expect(copies).toContainElement(document.activeElement as HTMLElement);
+      expect(copies.dataset.entryMotion).toBe("instant");
+      // The sheet under it is what's hidden from assistive tech, not the list.
+      expect(screen.queryByRole("dialog", { name: "Your Promises" })).not.toBeInTheDocument();
+
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Escape" });
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: HUB_DAY })).not.toBeInTheDocument()
+      );
+      expect(screen.getByRole("dialog", { name: "Your Promises" })).toBeInTheDocument();
+    });
+  });
+
+  describe("in the active garden", () => {
+    const row = (commitmentId: bigint, cycleId: bigint, unitLabel: string) => ({
+      commitment: commitment({
+        id: `42161-${commitmentId}`,
+        commitmentId,
+        cycleId,
+        unitLabel,
+      }),
+      seat: "provider" as const,
+      needsYou: false,
+    });
+
+    beforeEach(() => {
+      mockActiveGarden = { id: GARDEN, name: "Rocinha Community Garden" };
+    });
+
+    it("names the garden under its title and reads only that garden's promises", () => {
+      mockUseCommitmentsInbox.mockReturnValue(inbox({ live: [row(9n, 1n, "hours")] }));
+
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+      // The garden line takes the description's place, so the header keeps its height.
+      const sheet = screen.getByRole("dialog", { name: "Your Promises" });
+      expect(sheet).toHaveAccessibleDescription("In Rocinha Community Garden");
+      expect(screen.queryByText("Offered, asked for, taken up.")).not.toBeInTheDocument();
+      // Both reads take the active garden's scope, so the tabs and the launcher agree.
+      expect(mockUseCommitmentsInbox).toHaveBeenCalledWith(
+        expect.objectContaining({ inScope: mockInScope })
+      );
+      expect(mockUseCommitmentsToConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ inScope: mockInScope })
+      );
+      // The header names the garden once; no group heading repeats it over the rows.
+      expect(screen.getAllByText(/Rocinha Community Garden/)).toHaveLength(1);
+      expect(screen.getByText("3 hours")).toBeInTheDocument();
+    });
+
+    it("carries the garden's seasons and campaigns at its top, each filtering the list", async () => {
+      const user = userEvent.setup();
+      mockUseCommitmentCycles.mockReturnValue({
+        cycles: [cycle(1n, "SEASON"), cycle(2n, "CAMPAIGN")],
+      });
+      mockUseCommitmentsInbox.mockReturnValue(
+        inbox({ live: [row(9n, 1n, "hours"), row(10n, 2n, "rides")] })
+      );
+
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+      // The rail reads the active garden's pool, as its Pool tab did.
+      expect(mockUseCommitmentCycles).toHaveBeenCalledWith(
+        expect.objectContaining({ poolId: 7n }),
+        expect.anything()
+      );
+      const rail = screen.getByRole("group", { name: "Seasons and campaigns" });
+      await user.click(
+        within(rail).getByRole("button", { name: "Show promises in Autumn Planting" })
+      );
+      expect(screen.getByText("3 hours")).toBeInTheDocument();
+      expect(screen.queryByText("3 rides")).not.toBeInTheDocument();
+
+      // Tapped again, the card shows every promise.
+      await user.click(
+        within(rail).getByRole("button", { name: "Showing Autumn Planting. Show all promises" })
+      );
+      expect(screen.getByText("3 rides")).toBeInTheDocument();
+
+      // Its ⓘ opens the details, whose Show Its Promises filters the sheet.
+      await user.click(screen.getByRole("button", { name: "About Seed Swap Weekend" }));
+      const details = screen.getByRole("dialog", { name: "Seed Swap Weekend" });
+      await user.click(within(details).getByRole("button", { name: "Show Its Promises" }));
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "Seed Swap Weekend" })).not.toBeInTheDocument()
+      );
+      expect(screen.getByText("3 rides")).toBeInTheDocument();
+      expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
+    });
+
+    it("says a season holds nothing in History or To confirm when its filter empties them", async () => {
+      const user = userEvent.setup();
+      mockUseCommitmentCycles.mockReturnValue({
+        cycles: [cycle(1n, "SEASON"), cycle(2n, "CAMPAIGN")],
+      });
+      const kept = row(9n, 1n, "hours");
+      mockUseCommitmentsInbox.mockReturnValue(
+        inbox({
+          settled: [
+            {
+              ...kept,
+              commitment: {
+                ...kept.commitment,
+                derivedState: "FULFILLED",
+                onchainState: "FULFILLED",
+              },
+            },
+          ],
+        })
+      );
+      mockUseCommitmentsToConfirm.mockReturnValue(
+        toConfirm({
+          isSteward: true,
+          count: 1,
+          groups: [
+            {
+              garden: GARDEN,
+              gardenName: "Rocinha Community Garden",
+              rows: [{ ...row(11n, 1n, "rides"), seat: "confirmer", needsYou: true }],
+            },
+          ],
+        })
+      );
+
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+      await user.click(screen.getByRole("tab", { name: /history/i }));
+      await user.click(screen.getByRole("button", { name: "Show promises in Seed Swap Weekend" }));
+      expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
+      expect(screen.getByText("Nothing settled yet")).toBeInTheDocument();
+
+      // The filter stays as the tabs change, and To confirm says the same of the campaign.
+      await user.click(screen.getByRole("tab", { name: /to confirm/i }));
+      expect(screen.queryByText("3 rides")).not.toBeInTheDocument();
+      expect(screen.getByText("Nothing waiting for the garden")).toBeInTheDocument();
+    });
+
+    it("opens filtered to a season when Home asks for its promises", () => {
+      mockUseCommitmentCycles.mockReturnValue({
+        cycles: [cycle(1n, "SEASON"), cycle(2n, "CAMPAIGN")],
+      });
+      mockUseCommitmentsInbox.mockReturnValue(
+        inbox({ live: [row(9n, 1n, "hours"), row(10n, 2n, "rides")] })
+      );
+      useUIStore.getState().openCommitmentsSheet({ cycleId: "2" });
+
+      try {
+        render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+        expect(
+          screen.getByRole("button", { name: "Showing Seed Swap Weekend. Show all promises" })
+        ).toHaveAttribute("aria-pressed", "true");
+        expect(screen.getByText("3 rides")).toBeInTheDocument();
+        expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
+      } finally {
+        useUIStore.getState().closeCommitmentsSheet();
+        useUIStore.setState({ commitmentsSheetOpening: undefined });
+      }
+    });
+
+    it("counts on its launcher what the garden's tabs count, and nothing from elsewhere", () => {
+      const waiting = { commitment: commitment(), seat: "confirmer" as const, needsYou: true };
+      mockUseCommitmentsInbox.mockReturnValue(inbox({ totalActCount: 2 }));
+      // The tab lists the garden's own confirmations; fallbacks and disputes are the Hub's.
+      mockUseCommitmentsToConfirm.mockReturnValue(
+        toConfirm({
+          count: 3,
+          groups: [{ garden: GARDEN, gardenName: "Rocinha Community Garden", rows: [waiting] }],
+          fallback: [{ commitment: commitment({ id: "42161-20", commitmentId: 20n }) }],
+          disputed: [{ commitment: commitment({ id: "42161-21", commitmentId: 21n }) }],
+        })
+      );
+
+      render(<CommitmentsSheetLauncher onClick={vi.fn()} />);
+
+      expect(screen.getByTestId("commitments-notification-badge")).toHaveTextContent("3");
+      expect(mockUseCommitmentsInbox).toHaveBeenCalledWith(
+        expect.objectContaining({ inScope: mockInScope })
+      );
+      expect(mockUseCommitmentsToConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ inScope: mockInScope })
+      );
+    });
   });
 
   describe("the To confirm tab", () => {
@@ -240,6 +664,102 @@ describe("CommitmentsSheet", () => {
       await user.click(screen.getByRole("button", { name: /try again/i }));
       expect(refetch).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("gives a take-up request waiting on a steward its service line too", () => {
+    const offer = commitmentFixture({
+      id: "42161-70",
+      commitmentId: 70n,
+      poolId: 7n,
+      creator: OTHER,
+      direction: "OFFER",
+      onchainState: "OFFERED",
+      derivedState: "OFFERED",
+      metadataCID: HUB_DAY_CID,
+    });
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [
+        {
+          claim: { requestedBy: VIEWER, claimant: VIEWER, gardenContext: GARDEN },
+          commitment: offer,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof mockUsePoolClaimRequests>);
+    mockUseServiceOfferLines.mockReturnValue(
+      new Map([
+        [
+          "70",
+          {
+            promisedBy: "Tech and Sun",
+            gender: "feminine",
+            takes: { units: 1_000_000n, decimals: 6 },
+            booking: { kind: "hold", held: 2_000_000n, decimals: 6 },
+          },
+        ],
+      ])
+    );
+    render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+    const row = screen.getByRole("button", { name: new RegExp(HUB_DAY) });
+    expect(row).toHaveTextContent("Waiting for review");
+    expect(row).toHaveTextContent("Takes 1 Tech and Sun voucher");
+    // The waiting request is read for its line with the live list, not left out of it.
+    expect(mockUseServiceOfferLines).toHaveBeenCalledWith({
+      chainId: expect.any(Number),
+      offers: [offer],
+    });
+  });
+
+  it("says Needs you on a booking whose deposit waits on the reader, in its own row", async () => {
+    const { bookingStorySnapshot } = await import(
+      "../../../../shared/.storybook/voucherBookingFixtures"
+    );
+    const offer = commitmentFixture({
+      id: "42161-70",
+      commitmentId: 70n,
+      poolId: 7n,
+      creator: OTHER,
+      direction: "OFFER",
+      claimMode: "APPROVAL_GATED",
+      claimType: "INDIVIDUAL",
+      onchainState: "OFFERED",
+      derivedState: "OFFERED",
+      metadataCID: HUB_DAY_CID,
+    });
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [
+        {
+          claim: { requestedBy: VIEWER, claimant: VIEWER, gardenContext: GARDEN },
+          commitment: offer,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof mockUsePoolClaimRequests>);
+    // Each read answers for the promise it was asked about, as the live read does.
+    mockUseServiceAccessReads.mockImplementation((keys: readonly unknown[]) =>
+      keys.map((key) => ({
+        data: {
+          ...bookingStorySnapshot("hubDay", "readyToDeposit"),
+          key: key as ReturnType<typeof bookingStorySnapshot>["key"],
+        },
+      }))
+    );
+    render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+    const row = screen.getByRole("button", { name: new RegExp(HUB_DAY) });
+    expect(row).toHaveTextContent("Needs you");
+    expect(row).not.toHaveTextContent("Waiting for review");
+    // The Live tab counts what its rows say needs the reader (DL-129), the booking included.
+    expect(screen.getByTestId("tab-live")).toHaveTextContent("1");
+    // The booking is read as the promise page reads it: this offer, for this reader.
+    expect(mockUseServiceAccessReads).toHaveBeenLastCalledWith([
+      expect.objectContaining({ commitmentId: 70n, buyer: VIEWER, sourceChainId: 42161 }),
+    ]);
   });
 
   it("opens a row's commitment in its garden without dismissing the dashboard", async () => {
@@ -375,9 +895,10 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
-    expect(
-      screen.getByText("We could not load what is still moving. Your promises are safe.")
-    ).toBeInTheDocument();
+    // The failure is announced, with the line saying nothing was lost under its title.
+    const failure = screen.getByRole("alert");
+    expect(failure).toHaveTextContent("We could not load what is still moving");
+    expect(failure).toHaveTextContent("Your promises are safe.");
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
@@ -398,7 +919,34 @@ describe("CommitmentsSheet", () => {
     expect(screen.getByText("Nothing moving right now")).toBeInTheDocument();
   });
 
-  it("puts what needs the reader ahead of their relationship on a row", () => {
+  it("never says nothing is moving before the take-up requests answer, and retries a failed read", async () => {
+    const refetch = vi.fn();
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [],
+      isLoading: true,
+      isError: false,
+      refetch,
+    });
+    const { unmount } = render(<CommitmentsSheet isOpen onClose={() => {}} />);
+
+    expect(screen.getByText("Gathering what is still moving…")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing moving right now")).not.toBeInTheDocument();
+    unmount();
+
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [],
+      isLoading: false,
+      isError: true,
+      refetch,
+    });
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
+
+    expect(screen.queryByText("Nothing moving right now")).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalled();
+  });
+
+  it("puts what needs the reader in the row's one pill, in place of its state", () => {
     mockUseCommitmentsInbox.mockReturnValue(
       inbox({
         live: [{ commitment: commitment(), seat: "provider", needsYou: true }],
@@ -409,32 +957,45 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
-    // A row carries one qualifier: what needs the reader outranks how they are involved.
+    // A row carries one pill: what needs the reader outranks where the promise stands.
     expect(screen.getByText("Needs you")).toBeInTheDocument();
+    expect(screen.queryByText("In progress")).not.toBeInTheDocument();
     expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
     expect(screen.getByText("3 hours")).toBeInTheDocument();
     expect(screen.getByText("Rocinha Community Garden")).toBeInTheDocument();
-    expect(screen.getByText("In progress")).toBeInTheDocument();
   });
 
-  it("reads the same commitment differently from the other side", () => {
+  it("names the person on the other side, read from the reader's seat", () => {
+    const taken = commitment({ creator: VIEWER, leadProvider: VIEWER, counterparty: OTHER });
     mockUseCommitmentsInbox.mockReturnValue(
-      inbox({ live: [{ commitment: commitment(), seat: "confirmer", needsYou: false }] })
+      inbox({ live: [{ commitment: taken, seat: "provider", needsYou: false }] })
     );
+    const { unmount } = render(<CommitmentsSheet isOpen onClose={() => {}} />);
+    // The one who offered it reads who took it up.
+    expect(screen.getByText("0x22...222")).toBeInTheDocument();
+    unmount();
 
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({ live: [{ commitment: taken, seat: "confirmer", needsYou: false }] })
+    );
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
-
-    expect(screen.getByText("You took this up")).toBeInTheDocument();
-    expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
+    // The one who took it up reads who offered it, never their own name.
+    expect(screen.getByText("0x11...111")).toBeInTheDocument();
+    expect(screen.queryByText("0x22...222")).not.toBeInTheDocument();
   });
 
-  it("never says a member did work they only helped with", async () => {
+  it("never names a member who only helped as the one who did the work", async () => {
     const user = userEvent.setup();
     mockUseCommitmentsInbox.mockReturnValue(
       inbox({
         settled: [
           {
-            commitment: commitment({ derivedState: "FULFILLED", onchainState: "FULFILLED" }),
+            commitment: commitment({
+              derivedState: "FULFILLED",
+              onchainState: "FULFILLED",
+              creator: OTHER,
+              leadProvider: OTHER,
+            }),
             seat: "contributor",
             needsYou: false,
           },
@@ -445,9 +1006,10 @@ describe("CommitmentsSheet", () => {
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
     await user.click(screen.getByTestId("tab-over-time"));
 
-    // Kept, the relationship is told in the past tense.
-    expect(screen.getByText("You helped with this")).toBeInTheDocument();
-    expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
+    // A helper reads the lead who did it; how they helped is told on the promise.
+    expect(screen.getByText("Kept")).toBeInTheDocument();
+    expect(screen.getByText("0x22...222")).toBeInTheDocument();
+    expect(screen.queryByText("You did this")).not.toBeInTheDocument();
   });
 
   it("says the queue could not be read rather than showing a short list", () => {
@@ -491,7 +1053,7 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(screen.getByText("Didn't send")).toBeInTheDocument();
-    expect(screen.queryByText(/could not be sent after several tries/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/promise could not be sent/i)).not.toBeInTheDocument();
   });
 
   it("still speaks for a failure no row could carry", () => {
@@ -499,7 +1061,10 @@ describe("CommitmentsSheet", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox({ failedJobCount: 1, unlistedFailureCount: 1 }));
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
-    expect(screen.getByText(/could not be sent after several tries/i)).toBeInTheDocument();
+    // A promise the queue refused counts here too, so the line says only that it didn't go.
+    expect(
+      screen.getByText("1 promise could not be sent. Nothing else is affected.")
+    ).toBeInTheDocument();
   });
 
   it("says a commitment made offline is still on its way", () => {

@@ -16,11 +16,21 @@ import {
   resolveChannelSubject,
   retireLookupVersion,
 } from "../../services/reporting/identity-store";
+import { acceptInboundEvent } from "../../services/reporting/inbox";
+import { enqueueJob } from "../../services/reporting/jobs";
+import { dispatchOutbox } from "../../services/reporting/outbox";
 import {
   acquireConversationLease,
   holdsLease,
   renewConversationLease,
 } from "../../services/reporting/leases";
+import type {
+  OutboundRequest,
+  OutboundResult,
+  OutboundTransport,
+  RetiredQuestion,
+} from "../../services/reporting/transport";
+import { tick } from "../../services/reporting/worker";
 import { TestBrowser } from "./support/browser";
 import {
   adaAccount,
@@ -96,11 +106,11 @@ describe("stale work", () => {
     expect(revisions).toEqual([before?.revision, (before?.revision ?? 0) + 1]);
     const after = currentDraft();
     expect(after?.content.title).toBe("Fence planting");
-    // The gardener stated 12 earlier; a model reading never silently replaces it.
-    expect(after?.content.details.seedlings).toBe(12);
-    expect(after?.content.conflicts.map((conflict) => conflict.field)).toEqual([
-      "details.seedlings",
-    ]);
+    // The correction is the gardener's own words, read on the replanned revision; the model's
+    // matching reading adds nothing and disputes nothing.
+    expect(after?.content.details.seedlings).toBe(14);
+    expect(after?.content.provenance["details.seedlings"]?.gardenerStated).toBe(true);
+    expect(after?.content.conflicts).toEqual([]);
     expect(replies.at(-1)).toContain("14");
     expect(
       one<{ n: number }>(
@@ -165,6 +175,146 @@ describe("stale work", () => {
         }
       )
     ).toEqual({ n: 1 });
+  });
+});
+
+describe("shutdown", () => {
+  it("finishes the turn in hand with its model result and leaves the rest for the next pass", async () => {
+    await reportUntilSummary(harness);
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "shutdown" });
+    const stopping = new AbortController();
+    harness.interpreter.responses = [correction];
+    // The process is told to stop while the first turn waits on the model.
+    harness.interpreter.duringCall = () => stopping.abort();
+    await harness.post(harness.message(ADA, { text: "Actually it was 14 seedlings" }));
+    await harness.post(harness.message(ADA, { text: "It took two hours" }));
+    enqueueJob(harness.core, {
+      kind: "retention_sweep",
+      subjectId: "retention",
+      dedupeKey: "retention:shutdown",
+    });
+    const sent = harness.transport.sent.length;
+    const pending = () =>
+      one<{ n: number }>(
+        "SELECT count(*) AS n FROM inbox_events WHERE kind = 'message' AND state = 'pending'"
+      ).n;
+
+    expect(await tick({ ...harness.deps(), stopping: stopping.signal })).toEqual({
+      statuses: 0,
+      turns: 1,
+      jobs: 0,
+      sent: 0,
+    });
+    // The turn in hand was finished, with the gardener's correction.
+    expect(currentDraft()?.content.details.seedlings).toBe(14);
+    expect(pending()).toBe(1);
+    expect(
+      one("SELECT state, lease_holder FROM processing_jobs WHERE dedupe_key = 'retention:shutdown'")
+    ).toEqual({ state: "pending", lease_holder: null });
+    expect(harness.transport.sent.length).toBe(sent);
+
+    // The next process takes up the message, the job and the replies the stop left waiting.
+    await harness.drain();
+    expect(pending()).toBe(0);
+    expect(
+      one("SELECT state FROM processing_jobs WHERE dedupe_key = 'retention:shutdown'")
+    ).toEqual({ state: "succeeded" });
+    expect(harness.transport.sent.length).toBeGreaterThan(sent);
+  });
+});
+
+/**
+ * A channel that can edit what it sent, recording each send and when each edit settles. Sends go
+ * through the harness's transport, so provider message IDs stay unique.
+ */
+class EditingTransport implements OutboundTransport {
+  readonly events: string[] = [];
+
+  constructor(
+    private readonly sender: OutboundTransport,
+    private readonly edit: () => Promise<void>
+  ) {}
+
+  async send(request: OutboundRequest): Promise<OutboundResult> {
+    this.events.push(`sent: ${request.message.text.split("\n")[0]}`);
+    return this.sender.send(request);
+  }
+
+  async retireChoices(question: RetiredQuestion): Promise<void> {
+    this.events.push(`retiring ${question.providerMessageId}: ${question.message?.text}`);
+    await this.edit();
+    this.events.push("retired");
+  }
+}
+
+describe("taking a replaced question's buttons off", () => {
+  it.each([
+    ["slow", () => new Promise<void>((resolve) => setTimeout(resolve, 50))],
+    [
+      "failing",
+      async () => {
+        throw new Error("Bot API unavailable");
+      },
+    ],
+  ])("holds up no reply after it when the edit is %s", async (kind, edit) => {
+    await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(ADA, "I agree");
+    // The next question and a reply after it wait to go out in the same pass.
+    setControl(harness.core, "outbound_messages", false, { actor: "test", reason: "hold" });
+    await harness.say(ADA, "1");
+    await harness.say(ADA, "STATUS");
+    setControl(harness.core, "outbound_messages", true, { actor: "test", reason: "release" });
+    const { id: gardenQuestion } = one<{ id: string }>(
+      `SELECT a.provider_message_id AS id FROM delivery_outbox o
+       JOIN delivery_attempts a ON a.outbox_id = o.id WHERE o.reply_kind = 'prompt:select_garden'`
+    );
+
+    const transport = new EditingTransport(harness.transport, edit);
+    expect(await dispatchOutbox(harness.core, transport)).toEqual({ sent: 2, held: false });
+    // The status reply goes out while the garden question's edit is still under way, and a
+    // failed edit neither stops the pass nor reaches the reply.
+    expect(transport.events).toEqual([
+      "sent: Which activity in TAS best matches your work?",
+      // The question goes with its sent text, so a channel can keep its links.
+      `retiring ${gardenQuestion}: Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden`,
+      "sent: Your report for TAS is still being filled in.",
+      ...(kind === "slow" ? ["retired"] : []),
+    ]);
+  });
+});
+
+describe("shutdown during the garden refresh", () => {
+  it("takes up no delivery status once a stop arrives while the gardens are read", async () => {
+    acceptInboundEvent(harness.core, {
+      kind: "delivery_status",
+      providerRealm: ADA.realm,
+      eventId: "status-during-stop",
+      providerMessageId: "out-1",
+      status: "delivered",
+      occurredAt: harness.clock.now(),
+    });
+    const stopping = new AbortController();
+    const refresh = harness.gardens.refresh.bind(harness.gardens);
+    harness.gardens.refresh = async (...args) => {
+      stopping.abort();
+      return refresh(...args);
+    };
+    const pending = () =>
+      one<{ n: number }>(
+        "SELECT count(*) AS n FROM inbox_events WHERE kind = 'delivery_status' AND state = 'pending'"
+      ).n;
+
+    expect(await tick({ ...harness.deps(), stopping: stopping.signal })).toEqual({
+      statuses: 0,
+      turns: 0,
+      jobs: 0,
+      sent: 0,
+    });
+    expect(pending()).toBe(1);
+
+    harness.gardens.refresh = refresh;
+    await harness.drain();
+    expect(pending()).toBe(0);
   });
 });
 

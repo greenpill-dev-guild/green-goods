@@ -2,10 +2,11 @@
  * @vitest-environment happy-dom
  */
 
-import type { ResolvedEvidence } from "@green-goods/shared/commitment-pooling";
+import type { CommitmentReadModel, ResolvedEvidence } from "@green-goods/shared/commitment-pooling";
 import { commitmentFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, within } from "../test-utils";
 
 const mocks = vi.hoisted(() => ({ evidence: [] as ResolvedEvidence[] }));
 
@@ -18,6 +19,7 @@ const { ConfirmSheet } = await import("../../views/Home/Garden/Commitment/Confir
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const PROVIDER = "0x2222222222222222222222222222222222222222" as const;
+const STEWARD = "0x3333333333333333333333333333333333333333" as const;
 
 function evidence(cid: string): ResolvedEvidence {
   return {
@@ -32,11 +34,19 @@ function evidence(cid: string): ResolvedEvidence {
   };
 }
 
-function renderSheet(indexedEvidenceCount: number) {
-  return renderWithProviders(
+function sheet(
+  indexedEvidenceCount: number,
+  overrides: Partial<CommitmentReadModel> = {},
+  open = true,
+  startInNotYet = false,
+  props: { canConfirm?: boolean; onOpenChange?: (open: boolean) => void } = {}
+) {
+  return (
     <ConfirmSheet
-      open
-      onOpenChange={vi.fn()}
+      open={open}
+      startInNotYet={startInNotYet}
+      canConfirm={props.canConfirm ?? true}
+      onOpenChange={props.onOpenChange ?? vi.fn()}
       commitment={commitmentFixture({
         creator: PROVIDER,
         leadProvider: PROVIDER,
@@ -44,6 +54,7 @@ function renderSheet(indexedEvidenceCount: number) {
         derivedState: "READY_FOR_CONFIRMATION",
         onchainState: "READY_FOR_CONFIRMATION",
         evidenceCount: indexedEvidenceCount,
+        ...overrides,
       })}
       requirements={[]}
       contributors={[]}
@@ -58,6 +69,10 @@ function renderSheet(indexedEvidenceCount: number) {
       onDone={vi.fn()}
     />
   );
+}
+
+function renderSheet(indexedEvidenceCount: number, overrides: Partial<CommitmentReadModel> = {}) {
+  return renderWithProviders(sheet(indexedEvidenceCount, overrides));
 }
 
 describe("ConfirmSheet proof summary", () => {
@@ -104,5 +119,90 @@ describe("ConfirmSheet proof summary", () => {
 
     expect(screen.getByText("2 items")).toBeInTheDocument();
     expect(screen.queryByText("No proof has been attached yet.")).not.toBeInTheDocument();
+  });
+});
+
+describe("ConfirmSheet words for a request that is not garden work", () => {
+  it("asks whether the promise was kept, never whether help arrived", async () => {
+    // A course a garden asked members to complete is the same kind of record as a ride
+    // someone asked for, so the sheet asks in the promise's own words.
+    renderSheet(1, {
+      direction: "REQUEST",
+      commitmentType: "SUPPORT_SERVICE",
+      creator: VIEWER,
+      counterparty: PROVIDER,
+    });
+
+    const sheet = screen.getByRole("dialog", { name: "Promise kept?" });
+    expect(within(sheet).getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+    expect(within(sheet).queryByText(/help/i)).toBeNull();
+
+    await userEvent.setup().click(within(sheet).getByRole("button", { name: "Not Yet" }));
+    expect(
+      within(sheet).getByRole("button", { name: "It hasn't happened yet" })
+    ).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Not finished yet" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("textbox")).toHaveAttribute(
+      "placeholder",
+      "The last part is still to come…"
+    );
+  });
+});
+
+describe("ConfirmSheet words for a request with named confirmers", () => {
+  it("says the reader confirms by asking only when nobody is named", () => {
+    // Named confirmers replace the default confirmer on the contract, so a named reader confirms
+    // because they were named, even when they also asked.
+    const request = {
+      direction: "REQUEST",
+      commitmentType: "SUPPORT_SERVICE",
+      counterparty: PROVIDER,
+    } as const;
+    const { rerender } = renderWithProviders(
+      sheet(1, { ...request, creator: STEWARD, confirmers: [VIEWER, STEWARD] })
+    );
+    const summary = () => document.querySelector('[data-component="ConfirmSummary"]');
+
+    expect(summary()).toHaveTextContent("took this up. You are named to confirm it.");
+    expect(summary()).not.toHaveTextContent("You asked");
+    expect(screen.getByText(/The named people do\./)).toBeInTheDocument();
+    expect(screen.queryByText(/The person who asked does\./)).toBeNull();
+
+    rerender(sheet(1, { ...request, creator: VIEWER, confirmers: [VIEWER, STEWARD] }));
+    expect(summary()).toHaveTextContent("took this up. You are named to confirm it.");
+    expect(summary()).not.toHaveTextContent("You asked");
+
+    rerender(sheet(1, { ...request, creator: VIEWER, confirmers: [] }));
+    expect(summary()).toHaveTextContent("took this up. You asked for it, so you confirm it.");
+    expect(screen.getByText(/The person who asked does\./)).toBeInTheDocument();
+  });
+});
+
+describe("ConfirmSheet for a reader who can only report a problem", () => {
+  it("keeps them on the Not Yet form, and Back closes the sheet", async () => {
+    // Reporting is granted more widely than confirming: the person who asked may report a promise
+    // that names other confirmers, and the contract would reject their confirmation.
+    const onOpenChange = vi.fn();
+    renderWithProviders(sheet(1, {}, true, true, { canConfirm: false, onOpenChange }));
+
+    expect(screen.getByRole("button", { name: "Send to the Stewards" })).toBeInTheDocument();
+    expect(screen.queryByText(/This is yours to confirm/)).toBeNull();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Back" }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.queryByRole("button", { name: "Confirm It Was Kept" })).toBeNull();
+  });
+});
+
+describe("ConfirmSheet opening", () => {
+  it("opens Confirm It Was Kept on its ask after Report a Problem closed from the page", () => {
+    const { rerender } = renderWithProviders(sheet(0, {}, true, true));
+    expect(screen.getByRole("button", { name: "Send to the Stewards" })).toBeInTheDocument();
+    // The page closes the sheet itself once the report is sent, so the dialog never says so.
+    rerender(sheet(0, {}, false, true));
+    rerender(sheet(0, {}, true, false));
+    expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send to the Stewards" })).toBeNull();
   });
 });

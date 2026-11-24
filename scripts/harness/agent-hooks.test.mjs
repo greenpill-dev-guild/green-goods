@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { evaluateCommand } from "./command-policy.mjs";
+import { commandValues, evaluateCommand } from "./command-policy.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const claude = JSON.parse(readFileSync(join(root, ".claude/settings.json"), "utf8"));
@@ -83,6 +83,26 @@ const harmless = [
   "cat <<'DOC'\nvercel --prod\nbun test\ncat .env\nDOC\nbun run test",
   "python3 - <<'PY'\nlabels = ['PRODUCTION DEPLOYMENT', 'Production/mainnet']\nPY",
   "# deploy mainnet\nbun run test # bun test",
+  // Lookups name a command without running it.
+  "command -v bun test", "command -V bun test", "command -pv bun test",
+  // Bun's global options before a subcommand that is not `test`, and wrappers around safe commands.
+  // Bun reads a separate word after an option as the subcommand: these run package scripts.
+  "bun --cwd packages/shared test", "bun --port 3000 test", "bun --cwd packages/shared run test",
+  "bun --bun run test", "env -S 'bun run test'", "xargs -n 1 bun run test", "xargs -I{} echo {}",
+  "fly status", "fly releases -a green-goods",
+  // A broadcast whose last network is a test network, and a release rehearsal, stay unprompted.
+  "bun run contracts -- deploy core --network sepolia --mode broadcast",
+  "bun run contracts -- deploy core --network=localhost --mode=broadcast",
+  "bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --network sepolia --broadcast",
+  "bun run contracts -- release source-upgrades --mode broadcast --mode simulate --plan plan.json",
+  // Help and explain never broadcast; a broadcast flag outside the contracts package needs a live network.
+  "bun run contracts -- release operator --help",
+  "bun run contracts -- release source-upgrades --mode broadcast --explain",
+  "bun run contracts -- help release operator",
+  "node scripts/tool.mjs --mode broadcast",
+  "bun run test -- --mode broadcast",
+  "bun run lint packages/contracts/script/release-operator.ts",
+  "bun script/deploy.ts core -n sepolia -b",
 ];
 for (const command of harmless) {
   test(`harmless shell input: ${command.split("\n")[0]}`, () => {
@@ -103,6 +123,13 @@ for (const command of [
   "rg 'secret' .env", "grep -e 'secret' .env", "sed -n '1p' .env", "cat 0<.env",
   "cat .env.secrets", "cat .env.production.local",
   "cat <<'DOC'\nbun run test\nDOC\nbun test",
+  // Path-qualified wrappers and package-runner call strings: the floor reads them, the guards do not yet.
+  "/usr/bin/env bun test", "/usr/bin/timeout 5 bun test", "npm exec --call 'bun test'", "npx --call='bun test'",
+  "npx -c cat <.env",
+  // Bun's global options before the subcommand, env's split string and xargs: the floor reads them.
+  "bun --bun test", "bun --cwd=packages/shared test", "bun --smol test src", "bun -- test", "env -S 'bun test'",
+  "env -S'bun test'", "env -iS 'bun test'", "env -uDISPLAY bun test", "env -uSSH_AUTH_SOCK bun test", "env --split-string='bun test --watch'", "printf a | xargs bun test",
+  "xargs -n 1 bun test < files.txt", "xargs -J % bun test", "xargs -R 1 bun test",
 ]) {
   test(`restricted command: ${command.split("\n")[0]}`, () => {
     for (const harness of ["claude", "codex"]) {
@@ -113,15 +140,18 @@ for (const command of [
 
 test("deployment and direct Forge enforcement retain the harness differences", () => {
   // The contracts package retired its deploy scripts, so the direct script stands in for one.
-  for (const command of ["vercel --prod", "bun script/deploy.ts core --network mainnet --broadcast", "bun run contracts upgrade --network mainnet"]) {
+  for (const command of ["vercel --prod", "npx -c 'vercel --prod'", "bun script/deploy.ts core --network mainnet --broadcast", "bun run contracts upgrade --network mainnet"]) {
     const warning = commandHooks("claude", command);
     assert.ok(warning.every((result) => result.code === 0));
     assert.ok(warning.some((result) => /PRODUCTION DEPLOYMENT/.test(result.output)));
     assert.ok(commandHooks("codex", command).some((result) => result.code === 2));
   }
-  for (const command of ["forge build", "forge test", "fly deploy"]) {
-    assert.ok(commandHooks("claude", command).every((result) => result.code === 0));
-    assert.ok(commandHooks("codex", command).some((result) => result.code === 2));
+  // Claude's floor warns where the shared guards ask, as for the deployments above.
+  for (const command of ["forge build", "forge test", "fly deploy", "flyctl deploy"]) {
+    const warning = commandHooks("claude", command);
+    assert.ok(warning.every((result) => result.code === 0), command);
+    assert.ok(warning.some((result) => /forge build\/test|PRODUCTION DEPLOYMENT/.test(result.output)), command);
+    assert.ok(commandHooks("codex", command).some((result) => result.code === 2), command);
   }
 });
 
@@ -153,5 +183,166 @@ test("unsupported shell programs are explicitly partial and events never certify
       assert.equal(result.code, 0);
       assert.match(result.output, /no policy decision/i);
     }
+  }
+});
+
+// .agents/policy.json declares these rules for the machine-wide guards. This repository's own
+// hooks stay their floor where those guards are absent (cloud sessions, other contributors), so
+// every declared rule keeps an enforcer here, in the harnesses named, with the matching action.
+const policy = JSON.parse(readFileSync(join(root, ".agents/policy.json"), "utf8"));
+const production = { claude: "warn", codex: "block" };
+const commandFloor = {
+  "bun-test": {
+    samples: ["bun test", "MODE=qa bun test", "timeout 600 bun test", "/opt/homebrew/bin/bun test"],
+    claude: "block",
+    codex: "block",
+  },
+  "forge-direct": { samples: ["forge build", "forge test"], claude: "warn", codex: "block" },
+  "vercel-prod": { samples: ["vercel --prod", "npx vercel@62.1.0 --prod"], ...production },
+  "fly-deploy": { samples: ["fly deploy"], ...production },
+  "mainnet-deploy": {
+    samples: ["bun script/deploy.ts core --network mainnet --broadcast", "bash scripts/deploy-mainnet.sh", "bun script/deploy-mainnet.ts --broadcast"],
+    ...production,
+  },
+  "mainnet-contracts": {
+    samples: ["bun run contracts upgrade --network mainnet", "bun run contracts --network mainnet upgrade all"],
+    ...production,
+  },
+  "production-broadcast": {
+    samples: [
+      "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast",
+      "bun run contracts -- ens migrate --network=mainnet --mode=broadcast",
+      "bun run contracts -- deploy core --network gnosis --mode broadcast",
+      "bun run contracts -- ens deploy-mainnet --network mainnet --mode broadcast",
+      "bun script/deploy/backfill-pools.ts --network arbitrum --broadcast",
+      "bun script/upgrade.ts signal-pool-yield-wiring --network sepolia --network arbitrum --broadcast",
+      // The networkless release operations act on the live chains, in every live mode.
+      "bun run contracts -- release source-upgrades --mode broadcast --plan plan.json --step 1",
+      "bun run contracts -- release downstream --mode broadcast --manifest manifest.json",
+      "bun run contracts -- release source-upgrades --mode broadcast-safe --plan plan.json",
+      "bun run contracts -- release source-upgrades --mode sign-safe --plan plan.json",
+      "bun run contracts -- release source-upgrades --mode simulate --mode broadcast --plan plan.json",
+      "bun run contracts -- release operator --stage garden-roles --commit 0123456789abcdef0123456789abcdef01234567",
+      "bun script/release-operator.ts --commit 0123456789abcdef0123456789abcdef01234567",
+      // The deploy parser's short spellings, the last network winning, and overrides that pick the chain.
+      "bun script/deploy.ts core -n arbitrum -b",
+      "bun script/deploy.ts core --network sepolia -n arbitrum --broadcast",
+      "bun script/migrate-vaults.ts --network=sepolia --broadcast --rpc-url https://arb.example --chain-id 42161",
+      // The source-upgrade script's own live flags, and the tsx launcher.
+      "bun script/deploy/source-upgrade-release.ts --broadcast-safe --plan plan.json",
+      "bun script/deploy/source-upgrade-release.ts --sign-safe --plan plan.json",
+      "npx tsx script/migrate-vaults.ts --broadcast",
+    ],
+    ...production,
+  },
+};
+const critical = { claude: "notice", codex: "notice" };
+const pathFloor = {
+  // .env.example, not .env.local: the secret-file rule would block a .env.local by itself.
+  "package-env": { file: "packages/client/.env.example", claude: "block", codex: "block" },
+  "client-hooks": { file: "packages/client/src/hooks/useThing.ts", claude: "block", codex: "block" },
+  "admin-hooks": { file: "packages/admin/src/hooks/useThing.ts", claude: "block", codex: "block" },
+  "critical-contracts": { file: "packages/contracts/src/Garden.sol", ...critical },
+  "critical-auth-provider": { file: "packages/shared/src/providers/Auth.tsx", ...critical },
+  "critical-job-queue-provider": { file: "packages/shared/src/providers/JobQueue.tsx", ...critical },
+  "critical-work-provider": { file: "packages/shared/src/providers/Work.tsx", ...critical },
+  "critical-job-queue": { file: "packages/shared/src/modules/job-queue/send.ts", ...critical },
+  "critical-auth-hooks": { file: "packages/shared/src/hooks/auth/useThing.ts", ...critical },
+  "critical-work-hooks": { file: "packages/shared/src/hooks/work/useThing.ts", ...critical },
+  "critical-vault-hooks": { file: "packages/shared/src/hooks/vault/useThing.ts", ...critical },
+  "critical-blockchain-hooks": { file: "packages/shared/src/hooks/blockchain/useThing.ts", ...critical },
+  "config-manifests": { file: "packages/client/package.json", codex: "notice" },
+  "config-lockfile": { file: "bun.lock", codex: "notice" },
+  "config-workflows": { file: ".github/workflows/client.yml", codex: "notice" },
+  "config-codex": { file: ".codex/hooks.json", codex: "notice" },
+  "config-claude": { file: ".claude/settings.json", codex: "notice" },
+  "config-agents": { file: ".agents/policy.json", codex: "notice" },
+};
+// Files no path rule may name, so an over-broad glob fails here.
+const ordinaryFiles = ["README.md", "docs/docs/index.mdx", "packages/client/src/views/Home.tsx", "packages/shared/src/utils/format.ts"];
+// The floor's counterpart of each policy action: Claude's hook only warns where the guard asks.
+const floorKind = {
+  block: { claude: "block", codex: "block" },
+  ask: { claude: "warn", codex: "block" },
+  notice: { claude: "notice", codex: "notice" },
+};
+const noticeText = { claude: /CRITICAL SURFACE/, codex: /Green Goods edit context/ };
+const hasJq = spawnSync("jq", ["--version"]).status === 0;
+
+// The shared guards' glob rule: ** spans folders, * and ? stay inside one.
+function globRegex(glob) {
+  const source = glob.replace(/\*\*\/|\*\*|\*|\?|[.+^${}()|[\]\\]/g, (token) =>
+    ({ "**/": "(?:.*/)?", "**": ".*", "*": "[^/]*", "?": "[^/]" })[token] ?? `\\${token}`);
+  return new RegExp(`^${source}$`);
+}
+
+function policyMatches(rule, command) {
+  return commandValues(command).some((values) => Array.isArray(rule.prefix)
+    ? rule.prefix.every((word, index) => values[index] === word)
+    : new RegExp(rule.pattern).test(values.filter(Boolean).join(" ")));
+}
+
+function editHooks(harness, file) {
+  if (harness === "codex") {
+    const patch = `*** Begin Patch\n*** Update File: ${file}\n*** End Patch`;
+    return codex.hooks.PreToolUse.filter((entry) => /apply_patch/.test(entry.matcher)).flatMap((entry) => entry.hooks)
+      .map((hook) => invoke(hook.command, { tool_name: "apply_patch", tool_input: { command: patch }, cwd: root }));
+  }
+  // Claude Code runs a hook only when its `if` condition names the tool and matches the path.
+  const absolute = join(root, file);
+  return claude.hooks.PreToolUse.filter((entry) => /Write/.test(entry.matcher)).flatMap((entry) => entry.hooks)
+    .filter((hook) => {
+      const condition = /^([\w|]+)\((.+)\)$/.exec(hook.if ?? "");
+      return !hook.if || (condition[1].split("|").includes("Write") && globRegex(condition[2]).test(absolute));
+    })
+    .map((hook) => invoke(hook.command, { tool_name: "Write", tool_input: { file_path: absolute } }));
+}
+
+function assertFloor(harness, want, results, label, notice = /\S/) {
+  if (want === "block") {
+    assert.ok(results.some((result) => result.code === 2 && /BLOCKED/.test(result.output)), `${label} must block`);
+    return;
+  }
+  assert.ok(results.every((result) => result.code === 0), `${label} must not block`);
+  assert.ok(results.some((result) => notice.test(result.output)), `${label} must say why`);
+}
+
+test("every .agents/policy.json rule keeps an enforcer in this repository's own hooks", (t) => {
+  assert.deepEqual(policy.commands.map((rule) => rule.id).sort(), Object.keys(commandFloor).sort());
+  assert.deepEqual(policy.paths.map((rule) => rule.id).sort(), Object.keys(pathFloor).sort());
+  for (const rule of policy.commands) {
+    const floor = commandFloor[rule.id];
+    assert.ok(floor.claude || floor.codex, `${rule.id} has no floor enforcer`);
+    for (const sample of floor.samples) {
+      assert.ok(policyMatches(rule, sample), `${rule.id} must match ${sample}`);
+      for (const harness of ["claude", "codex"]) {
+        if (!floor[harness]) continue;
+        assert.equal(floor[harness], floorKind[rule.action][harness], `${rule.id}: ${rule.action} needs a ${harness} ${floorKind[rule.action][harness]}`);
+        const results = commandHooks(harness, sample);
+        assertFloor(harness, floor[harness], results, `${harness} ${sample}`);
+        assert.ok(results.some((result) => result.output.includes(rule.message)), `${harness} ${sample}: same message as ${rule.id}`);
+      }
+    }
+  }
+  for (const rule of policy.paths) {
+    const floor = pathFloor[rule.id];
+    assert.ok(floor.claude || floor.codex, `${rule.id} has no floor enforcer`);
+    assert.ok(globRegex(rule.glob).test(floor.file), `${rule.id} must match ${floor.file}`);
+    for (const file of ordinaryFiles) assert.equal(globRegex(rule.glob).test(file), false, `${rule.id} must not match ${file}`);
+    for (const harness of ["claude", "codex"]) {
+      if (!floor[harness]) continue;
+      assert.equal(floor[harness], floorKind[rule.action][harness], `${rule.id}: ${rule.action} needs a ${harness} ${floorKind[rule.action][harness]}`);
+      if (harness === "codex" && !hasJq) {
+        t.diagnostic(`jq is not installed, so the Codex edit hooks do nothing here: ${rule.id} is unchecked for Codex`);
+        continue;
+      }
+      assertFloor(harness, floor[harness], editHooks(harness, floor.file), `${harness} ${floor.file}`, noticeText[harness]);
+    }
+  }
+});
+
+test("no .agents/policy.json command rule fires on harmless input", () => {
+  for (const command of harmless) {
+    for (const rule of policy.commands) assert.equal(policyMatches(rule, command), false, `${rule.id}: ${command}`);
   }
 });

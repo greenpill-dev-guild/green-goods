@@ -19,7 +19,6 @@ import { MOCK_CONTRACT_ABI } from "../../test-utils/transaction-fakes";
 
 const mockWriteContractAsync = vi.fn();
 const mockSendUserOperation = vi.fn();
-const mockWaitForUserOperationReceipt = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn().mockResolvedValue({ status: "success" });
 
 const mockSmartAccountClient = {
@@ -30,6 +29,7 @@ const mockSmartAccountClient = {
     userOpHash: hash,
     sender: MOCK_ADDRESSES.smartAccount,
     success: true,
+    logs: [],
     receipt: { status: "success", transactionHash: MOCK_TX_HASH },
   })),
 };
@@ -51,6 +51,12 @@ vi.mock("../../../hooks/auth/useUser", () => ({
   }),
 }));
 
+// The account and connector fixtures below both use Arbitrum independently of
+// the chain selected by the test runner's environment.
+vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
+  useCurrentChain: () => 42161,
+}));
+
 // Mock wagmi
 vi.mock("wagmi", () => ({
   useWriteContract: () => ({
@@ -59,11 +65,14 @@ vi.mock("wagmi", () => ({
   useConfig: () => ({}),
 }));
 
-// Mock @wagmi/core (waitForTransactionReceipt used in wallet mode)
+// The wallet sender's receipt wait
+vi.mock("../../../modules/transactions/receipt-wait", () => ({
+  waitForReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
+}));
+
 vi.mock("@wagmi/core", async (importOriginal) => ({
   ConnectorNotConnectedError: (await importOriginal<typeof import("@wagmi/core")>())
     .ConnectorNotConnectedError,
-  waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
   // A connected wallet says which network it is on through its connector; the
   // network guard no longer takes the stored chainId for it. It also says who
   // it is: a send is for the address connected when it starts.
@@ -109,20 +118,10 @@ describe("useContractTxSender", () => {
     mockSmartAccountRef = mockSmartAccountClient;
     mockResolverAvailable = true;
     mockSendUserOperation.mockResolvedValue(MOCK_TX_HASH);
-    mockSendUserOperation.mockResolvedValue(MOCK_TX_HASH);
-    mockWaitForUserOperationReceipt.mockResolvedValue({
-      success: true,
-      receipt: { transactionHash: MOCK_TX_HASH },
-    });
     mockWriteContractAsync.mockResolvedValue(MOCK_TX_HASH);
     mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
   });
   afterEach(() => vi.unstubAllEnvs());
-
-  it("returns a function", () => {
-    const { result } = renderHookWithQueryClient(() => useContractTxSender());
-    expect(typeof result.current).toBe("function");
-  });
 
   // ------------------------------------------
   // Passkey mode (smart account)
@@ -247,7 +246,12 @@ describe("useContractTxSender", () => {
       expect(mockWaitForTransactionReceipt).toHaveBeenCalledOnce();
       expect(mockWaitForTransactionReceipt).toHaveBeenCalledWith(
         {},
-        { hash: MOCK_TX_HASH, chainId: 42161, onReplaced: expect.any(Function) }
+        {
+          hash: MOCK_TX_HASH,
+          chainId: 42161,
+          timeout: 120_000,
+          onReplaced: expect.any(Function),
+        }
       );
     });
 

@@ -9,15 +9,20 @@
  * its queued job, so a copy whose answer was lost is read back from the chain
  * before anything is sent again, and none can become a second commitment.
  * Past the group's deadline it sends nothing: the chain would still create the
- * copies, due before anyone could take one up.
+ * copies, due before anyone could take one up. A bundle past a passkey's
+ * ceilings sends nothing either, and the next press asks once per copy.
  *
  * @module hooks/admin-ui/pool/useFinishCreating
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { recordedSendAct, type SendActContext } from "../../../modules/app/sendActAnalytics";
+import { copiesActEnding } from "../../../modules/commitment-pooling/send-act-outcome";
 import { SETTLEMENT_ENABLED } from "../../../config/app";
+import { creationRefusalOf } from "../../../modules/commitment-pooling/creation-standing";
 import { isDiscardableJob } from "../../../modules/job-queue/job-recovery";
+import { isTerminallyFailedJob } from "../../../modules/job-queue/queue-policy";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
@@ -60,14 +65,45 @@ function waitingCopiesByGroup(
 
 const NOTHING_WAITING: ReadonlyMap<string, readonly string[]> = new Map();
 
-/** Leave unsent rewards in the visible queue; a recorded send still needs recovery. */
+/**
+ * Leave unsent rewards in the visible queue; a recorded send still needs recovery. A copy the
+ * queue refused (an action it names closed, its season ended) can't be finished either, so it
+ * leaves the group's count and lists on its own, where Discard clears it.
+ */
 function canFinishCreation(job: Job): boolean {
+  if (isTerminallyFailedJob(job) && creationRefusalOf(job.lastError)) return false;
   const payload = job.payload as Partial<CommitmentCreationPayload> | undefined;
   return (
     SETTLEMENT_ENABLED ||
     payload?.consideration?.rail !== CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT ||
     !isDiscardableJob(job)
   );
+}
+
+/**
+ * Each group's copies queued on this device and still sendable, under the queue's key so whatever
+ * refreshes the queue refreshes this read. The group row counts them, and a copy's own inspector
+ * leaves its terms to the group while any wait (PRD-1548).
+ */
+export function useQueuedGroupCopies(input: {
+  chainId: number;
+  owner: Address | null;
+}): ReadonlyMap<string, readonly string[]> {
+  const { chainId, owner } = input;
+  const waitingQuery = useQuery({
+    queryKey: commitmentPoolingKeys.queuedGroupCopies(owner, chainId),
+    enabled: Boolean(owner),
+    queryFn: async () =>
+      waitingCopiesByGroup(
+        (await jobQueue.getJobs(owner as string, { kind: "commitment", synced: false })).filter(
+          canFinishCreation
+        ),
+        chainId
+      ),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnWindowFocus: "always",
+  });
+  return waitingQuery.data ?? NOTHING_WAITING;
 }
 
 export interface FinishCreatingController {
@@ -90,20 +126,8 @@ export function useFinishCreating(input: {
   const queryClient = useQueryClient();
   const [sendingGroupId, setSendingGroupId] = useState<string | null>(null);
   const [copies, setCopies] = useState<readonly SeedCopyProgress[] | null>(null);
-  // Under the queue's key: whatever refreshes the queue refreshes this read.
-  const waitingQuery = useQuery({
-    queryKey: commitmentPoolingKeys.queuedGroupCopies(owner, chainId),
-    enabled: Boolean(owner),
-    queryFn: async () =>
-      waitingCopiesByGroup(
-        (await jobQueue.getJobs(owner as string, { kind: "commitment", synced: false })).filter(
-          canFinishCreation
-        ),
-        chainId
-      ),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnWindowFocus: "always",
-  });
+  const [pastCeilings, setPastCeilings] = useState(false);
+  const waiting = useQueuedGroupCopies({ chainId, owner });
 
   const finish = useCallback<FinishCreatingController["finish"]>(
     async (displayGroupId) => {
@@ -141,7 +165,16 @@ export function useFinishCreating(input: {
       const latest = new Map<string, SeedCopyProgress>();
       setSendingGroupId(displayGroupId);
       try {
-        const ended = await sendCreationCopies({
+        const act: SendActContext = {
+          act: "pool_finish_creating",
+          authMode: sender.authMode,
+          chainId,
+        };
+        const ended = await recordedSendAct(
+          act,
+          sendCreationCopies,
+          copiesActEnding
+        )({
           copies: waiting,
           queue: jobQueue,
           sender,
@@ -153,7 +186,9 @@ export function useFinishCreating(input: {
           },
           // The group already exists: a declined prompt leaves its copies waiting.
           clearable: () => false,
+          oneByOne: pastCeilings,
         });
+        if (ended.some((copy) => copy.miss === "over-ceilings")) setPastCeilings(true);
         return copiesToRetry(ended).length > 0 ? "left" : "sent";
       } finally {
         setSendingGroupId(null);
@@ -164,8 +199,8 @@ export function useFinishCreating(input: {
         ]);
       }
     },
-    [owner, sender, chainId, queryClient]
+    [owner, sender, chainId, queryClient, pastCeilings]
   );
 
-  return { waiting: waitingQuery.data ?? NOTHING_WAITING, sendingGroupId, copies, finish };
+  return { waiting, sendingGroupId, copies, finish };
 }

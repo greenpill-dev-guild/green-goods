@@ -12,7 +12,7 @@ type BackLinkConfig = {
 type PageHeaderProps = {
   title: string;
   /**
-   * Optional caps meta label (label-md, 12px) rendered above the title (route
+   * Optional caps meta label (type-label-sm, 12px) rendered above the title (route
    * name, breadcrumb, stage context). Per Tier 2a of the admin design handoff —
    * see audit §5 decision row "5.4.4 / IA". Use it to communicate *which*
    * surface a member is on without re-declaring chrome (Frontend Rule 17).
@@ -100,7 +100,7 @@ export function PageHeader({
           {eyebrow ? (
             <div
               data-region="route-header-eyebrow"
-              className="text-label-md font-semibold uppercase tracking-[0.08em] text-text-soft"
+              className="type-label-sm font-semibold uppercase tracking-[0.08em] text-text-soft"
             >
               {eyebrow}
             </div>
@@ -110,7 +110,7 @@ export function PageHeader({
               header stays a waypoint, not a headline (2026-08-25 AD-2; dialog
               titles keep title-large). No responsive display ramp. */}
           <h1
-            className="truncate text-title-md font-semibold leading-[var(--type-title-md-lh)] text-text-strong"
+            className="truncate type-title-md font-semibold text-text-strong"
             title={typeof title === "string" ? title : undefined}
           >
             {title}
@@ -119,7 +119,7 @@ export function PageHeader({
             <p
               className={cn(
                 "line-clamp-2 font-normal text-text-sub",
-                isCanvas ? "text-body-md leading-5" : "body-xs sm:body-sm"
+                isCanvas ? "type-body leading-5" : "type-meta sm:type-body"
               )}
               title={typeof description === "string" ? description : undefined}
             >
@@ -130,7 +130,7 @@ export function PageHeader({
             <div
               className={cn(
                 "text-text-soft",
-                isCanvas ? "pt-1 text-body-sm" : "body-xs sm:body-sm"
+                isCanvas ? "pt-1 type-meta" : "type-meta sm:type-body"
               )}
             >
               {metadata}

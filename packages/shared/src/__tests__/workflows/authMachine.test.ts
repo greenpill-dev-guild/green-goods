@@ -117,6 +117,30 @@ async function startAndSettle(
 // ============================================================================
 
 describe("workflows/authMachine", () => {
+  it.each([
+    "originalAccount",
+    "createIfMissing",
+  ] as const)("carries %s only for the explicit sign-in attempt", async (intent) => {
+    const attempts: unknown[] = [];
+    const machine = createTestMachine().provide({
+      actors: {
+        authenticatePasskey: fromPromise(async ({ input }) => {
+          attempts.push(input);
+          return createMockPasskeySessionResult();
+        }),
+      },
+    });
+    const actor = await startAndSettle(machine);
+    actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME, [intent]: true });
+    await flushPromises();
+    expect(attempts[0]).toMatchObject({ userName: MOCK_USERNAME, [intent]: true });
+    actor.send({ type: "SIGN_OUT" });
+    actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
+    await flushPromises();
+    expect(attempts[1]).toMatchObject({ userName: MOCK_USERNAME, [intent]: false });
+    actor.stop();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockLocalStorage.clear();
@@ -131,6 +155,26 @@ describe("workflows/authMachine", () => {
   // ==========================================================================
 
   describe("initializing state", () => {
+    it("cancels initialization on sign-out and ignores a late restored passkey", async () => {
+      let finishRestore = (_: PasskeySessionResult | null) => {};
+      const machine = createTestMachine({
+        restoreSession: () =>
+          new Promise((resolve) => {
+            finishRestore = resolve;
+          }),
+      });
+      const pending = createActor(machine, { input: { chainId: MOCK_CHAIN_ID } });
+      pending.start();
+      expect(pending.getSnapshot().matches("initializing")).toBe(true);
+      pending.send({ type: "SIGN_OUT" });
+      expect(pending.getSnapshot().matches("unauthenticated")).toBe(true);
+      finishRestore(createMockPasskeySessionResult());
+      await flushPromises();
+      expect(pending.getSnapshot().matches("unauthenticated")).toBe(true);
+      expect(pending.getSnapshot().context.smartAccountAddress).toBeNull();
+      pending.stop();
+    });
+
     it("transitions to unauthenticated when no stored session", async () => {
       const machine = createTestMachine({
         restoreSession: () => Promise.resolve(null),

@@ -5,7 +5,6 @@ import {
   mapCapitalType,
   mapDomainType,
   mapENSNameType,
-  mapPoolType,
   mapWeightScheme,
 } from "../src/handlers/enums";
 
@@ -57,15 +56,6 @@ describe("enum mappers", () => {
 
   it("mapWeightScheme defaults to LINEAR for unknown", () => {
     assert.equal(mapWeightScheme(99n), "LINEAR");
-  });
-
-  it("mapPoolType maps known values", () => {
-    assert.equal(mapPoolType(0n), "HYPERCERT");
-    assert.equal(mapPoolType(1n), "ACTION");
-  });
-
-  it("mapPoolType defaults to HYPERCERT for unknown", () => {
-    assert.equal(mapPoolType(99n), "HYPERCERT");
   });
 
   it("mapENSNameType maps known values", () => {

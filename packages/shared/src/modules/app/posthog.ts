@@ -9,9 +9,11 @@
  *
  */
 
+import type { AuthMode } from "../../types/auth";
 import type { CaptureResult } from "posthog-js";
 
 import { logger } from "./logger";
+import { getTelemetryEnvironment, getTelemetrySegmentation } from "./telemetry-context";
 import { createAnonymousTelemetryIdentity } from "./telemetryIdentity";
 import { getTelemetrySink, isTelemetryReady } from "./telemetry-sink";
 
@@ -25,7 +27,7 @@ const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
  * array of `{ type, value, ... }`) and no longer sets the legacy top-level
  * `$exception_type` / `$exception_message` properties on the `$exception` event.
  *
- * Downstream consumers still read those top-level fields: the `qa-triage-pulse`,
+ * Downstream consumers still read those top-level fields: the `sync-triage-pulse`,
  * `health-watch`, and `bug-intake` cloud routines and the `posthog-questions`
  * HogQL library group/filter on `properties.$exception_type` and
  * `properties.$exception_message`. Since the posthog-js upgrade those queries have
@@ -91,27 +93,14 @@ const MAINNET_CHAIN_IDS = new Set([
   10, // Optimism
 ]);
 
-function isTestnetEnvironment(chainId?: number | null): boolean {
-  const chain = chainId ?? getChainId();
-  if (chain === null) return false;
-  return TESTNET_CHAIN_IDS.has(chain);
-}
-
-function isMainnetEnvironment(chainId?: number | null): boolean {
-  const chain = chainId ?? getChainId();
-  if (chain === null) return false;
-  return MAINNET_CHAIN_IDS.has(chain);
-}
-
 /**
- * Get the environment name based on chain ID.
- * Returns "unknown" if chain ID is not configured, invalid, or not in known chains.
+ * Whether the configured chain is a mainnet or a testnet. Until PRD-1560 events called this
+ * `environment`; that name now holds the deployment environment Sentry reports.
  */
-function getEnvironment(chainId?: number | null): "testnet" | "mainnet" | "unknown" {
-  const chain = chainId ?? getChainId();
-  if (chain === null) return "unknown";
-  if (isTestnetEnvironment(chain)) return "testnet";
-  if (isMainnetEnvironment(chain)) return "mainnet";
+function getNetwork(chainId: number | null): "testnet" | "mainnet" | "unknown" {
+  if (chainId === null) return "unknown";
+  if (TESTNET_CHAIN_IDS.has(chainId)) return "testnet";
+  if (MAINNET_CHAIN_IDS.has(chainId)) return "mainnet";
   return "unknown";
 }
 
@@ -121,13 +110,15 @@ function getEnvironment(chainId?: number | null): "testnet" | "mainnet" | "unkno
  */
 export function getAppContext(): {
   app_version: string;
-  environment: "testnet" | "mainnet" | "unknown";
+  environment: string;
+  network: "testnet" | "mainnet" | "unknown";
   chain_id: number | null;
 } {
   const chainId = getChainId();
   return {
     app_version: getAppVersion(),
-    environment: getEnvironment(chainId),
+    environment: getTelemetryEnvironment(),
+    network: getNetwork(chainId),
     chain_id: chainId,
   };
 }
@@ -279,6 +270,8 @@ export function enrichEventProperties(
 
   return {
     ...properties,
+    // Where the event came from and whether it was ours, read at the moment it happened.
+    ...getTelemetrySegmentation(properties),
     is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
     connection_type:
       typeof navigator !== "undefined"
@@ -317,7 +310,7 @@ export function identify(distinctId: string) {
 export function identifyWithProperties(
   distinctId: string,
   properties: {
-    auth_mode?: "wallet" | "passkey" | "embedded" | null;
+    auth_mode?: AuthMode;
     app?: "client" | "admin";
     chain_id?: number;
     is_pwa?: boolean;
@@ -356,6 +349,9 @@ export function reset() {
   }
   if (IS_DEV || !isTelemetryReady()) return;
   getTelemetrySink().reset?.();
+  // A reset clears registered properties too; put the context back for the next visitor.
+  globalPropertiesRegistered = false;
+  registerGlobalProperties();
 }
 
 /**
@@ -531,11 +527,13 @@ export function registerGlobalProperties(): boolean {
 
   const context = getAppContext();
 
-  // Register super properties - these are included in all events
+  // Register super properties - these are included in all events, autocaptured ones too.
+  // Read with no event, the garden flag is unknown; a tracked event that names one overrides it.
   getTelemetrySink().register?.({
     app_version: context.app_version,
-    environment: context.environment,
+    network: context.network,
     chain_id: context.chain_id,
+    ...getTelemetrySegmentation(),
   });
 
   globalPropertiesRegistered = true;

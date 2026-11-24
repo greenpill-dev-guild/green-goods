@@ -1,6 +1,6 @@
 import { RiArrowRightLine, RiDeleteBinLine, RiLinkM } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { Button, type ButtonEmphasis, type ButtonSize } from "./Button";
 import { TextInput } from "./Form/ControlPrimitives";
 
@@ -14,6 +14,10 @@ const SIZES: Array<[ButtonSize, number]> = [
 
 const px = (value: string) => Number.parseFloat(value);
 
+/** A token's channel triple ("194 245 218") as the color the browser computes. */
+const channelColor = (scope: Element, token: string) =>
+  `rgb(${getComputedStyle(scope).getPropertyValue(token).trim().split(/\s+/).join(", ")})`;
+
 const meta = {
   title: "Shared/Primitives/Button",
   component: Button,
@@ -22,7 +26,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'The one action button. Emphasis sets fill, outline, and colour; the corner comes from the surface and is the same for every emphasis (DL-026): the 16px field corner in the installed app (DL-029) and the capsule on the public website (DL-089; inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable.',
+          'The one action button. Emphasis sets fill, outline, and color; the corner comes from the surface and is the same for every emphasis (DL-026): the 16px field corner in the installed app (DL-029) and the capsule on the public website (DL-089; inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable.',
       },
     },
   },
@@ -120,8 +124,24 @@ export const EmphasisCatalog: Story = {
         }
       }
     }
+
+    // Keyboard focus rings every button in the surface's one focus role, the danger
+    // button included: a solid 2px ring 2px off the button (DL-098).
+    const ring = channelColor(canvasElement, "--focus-ring");
+    for (const button of Array.from(canvasElement.querySelectorAll("button"))) {
+      await userEvent.tab();
+      await expect(button).toHaveFocus();
+      const style = getComputedStyle(button);
+      await expect(style.outlineColor).toBe(ring);
+      await expect(style.outlineStyle).toBe("solid");
+      await expect(style.outlineWidth).toBe("2px");
+      await expect(style.outlineOffset).toBe("2px");
+    }
   },
 };
+
+/** The catalog in dark, where the app's ring is mint for every emphasis and tone. */
+export const EmphasisCatalogDark: Story = { ...EmphasisCatalog, globals: { theme: "dark" } };
 
 /** A field and its action share one height and one 16px corner (DL-022, DL-029). */
 export const FieldPairing: Story = {

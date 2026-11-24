@@ -11,14 +11,33 @@ const ADDRESS_B = "0x2222222222222222222222222222222222222222" as Address;
 
 const mocks = vi.hoisted(() => ({
   address: "0x1111111111111111111111111111111111111111",
+  walletRestore: null as "restoring" | "failed" | null,
+  consent: vi.fn(),
   clearDraft: vi.fn(),
   loadDraft: vi.fn(),
   getAvatar: vi.fn(),
+  getListed: vi.fn(),
   publishAvatar: vi.fn(),
   saveAvatar: vi.fn(),
   signMessage: vi.fn(),
+  ensNames: {} as Record<string, string>,
+  ensNameLoading: false,
+  ensAvatars: {} as Record<string, string>,
+  ensAvatarCalls: [] as Array<{ address: string | null | undefined; enabled: boolean | undefined }>,
 }));
+vi.mock("react-intl", () => ({ useIntl: () => ({ locale: "en" }) }));
 
+vi.mock("../../../hooks/work/useUploadPolicy", () => ({
+  useUploadPolicy: () => ({ request: mocks.consent, prompt: null }),
+}));
+import { onWalletReconnectAsk } from "../../../modules/auth/wallet-reconnect";
+import { uploadConsent } from "../../test-utils/upload-policy";
+import { captureSendActs } from "../../test-utils/send-acts";
+import {
+  type ProfileAvatarPublishDependencies,
+  ProfileAvatarTransportError,
+} from "../../../modules/profile-avatar/types";
+import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
 vi.mock("wagmi", () => ({
   useSignMessage: () => ({ signMessageAsync: mocks.signMessage }),
 }));
@@ -26,10 +45,32 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => mocks.address,
 }));
 vi.mock("../../../hooks/auth/useAuth", () => ({
-  useAuth: () => ({ authMode: "wallet", smartAccountClient: null }),
+  useAuth: () => ({
+    authMode: "wallet",
+    walletRestore: mocks.walletRestore,
+    smartAccountClient: null,
+  }),
 }));
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => CHAIN_ID,
+}));
+// ENS answers come from the tables above; every avatar lookup records whether it was enabled.
+vi.mock("../../../hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address?: string | null) => ({
+    data: address ? (mocks.ensNames[address.toLowerCase()] ?? null) : undefined,
+    isLoading: address ? mocks.ensNameLoading : false,
+  }),
+}));
+vi.mock("../../../hooks/blockchain/useEnsAvatar", () => ({
+  useEnsAvatar: (address?: string | null, options: { enabled?: boolean } = {}) => {
+    mocks.ensAvatarCalls.push({ address, enabled: options.enabled });
+    return {
+      data:
+        options.enabled && address ? (mocks.ensAvatars[address.toLowerCase()] ?? null) : undefined,
+      isLoading: false,
+      error: null,
+    };
+  },
 }));
 vi.mock("../../../modules/profile-avatar", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../../modules/profile-avatar")>();
@@ -40,12 +81,16 @@ vi.mock("../../../modules/profile-avatar", async (importOriginal) => {
     publishProfileAvatar: mocks.publishAvatar,
     profileAvatarTransport: {
       get: mocks.getAvatar,
+      getListed: mocks.getListed,
       save: mocks.saveAvatar,
     },
   };
 });
 
-import { useProfileAvatarEditor } from "../../../hooks/profile/useProfileAvatar";
+import {
+  useProfileAvatarEditor,
+  useResolvedProfileAvatar,
+} from "../../../hooks/profile/useProfileAvatar";
 
 function createDraft(address: Address) {
   return {
@@ -69,8 +114,34 @@ function createDeferred<T>() {
 }
 
 describe("useProfileAvatarEditor", () => {
+  it.each([
+    "restoring",
+    "failed",
+  ] as const)("asks to reconnect before photo consent or upload when %s", async (walletRestore) => {
+    mocks.walletRestore = walletRestore;
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
+      await act(async () => {
+        await expect(result.current.save(new File(["photo"], "photo.png"))).rejects.toMatchObject({
+          name: "WalletReconnectRequiredError",
+          asked: true,
+        });
+      });
+      expect(asked).toHaveBeenCalledOnce();
+      expect(mocks.consent).not.toHaveBeenCalled();
+      expect(mocks.publishAvatar).not.toHaveBeenCalled();
+      expect(mocks.signMessage).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
+  });
+
   beforeEach(() => {
     mocks.address = ADDRESS_A;
+    mocks.walletRestore = null;
+    mocks.consent.mockReset().mockResolvedValue(uploadConsent(ADDRESS_A));
     mocks.clearDraft.mockReset();
     mocks.loadDraft.mockReset();
     mocks.getAvatar.mockReset();
@@ -86,6 +157,76 @@ describe("useProfileAvatarEditor", () => {
     });
   });
 
+  it("does not publish a profile photo until the sharing rules are accepted", async () => {
+    const waiting = createDeferred<ReturnType<typeof uploadConsent>>();
+    mocks.consent.mockReturnValue(waiting.promise);
+    // The publisher hands its signature and save to `recordSend`, which records the act.
+    mocks.publishAvatar.mockImplementation(
+      (_chainId, _address, _input, dependencies: ProfileAvatarPublishDependencies) =>
+        dependencies.recordSend!(async () => mocks.getAvatar())
+    );
+    const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
+    await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalled());
+    let publishing!: Promise<unknown>;
+    act(() => {
+      publishing = result.current.save(new File(["photo"], "photo.jpg", { type: "image/jpeg" }));
+    });
+    await waitFor(() => expect(mocks.consent).toHaveBeenCalledOnce());
+    expect(mocks.publishAvatar).not.toHaveBeenCalled();
+    const { acts, sent } = await captureSendActs(() =>
+      act(async () => {
+        waiting.resolve(uploadConsent(ADDRESS_A));
+        await publishing;
+      })
+    );
+    expect(mocks.publishAvatar).toHaveBeenCalledOnce();
+    // The act starts once the photo may be shared (PRD-1571).
+    expect(acts).toEqual([
+      ["send_act_started", "profile_avatar", undefined],
+      ["send_act_ended", "profile_avatar", "confirmed"],
+    ]);
+    expect(sent).not.toContain(ADDRESS_A.slice(2).toLowerCase());
+  });
+
+  it("records a save the server may have taken as still confirming (PRD-1571)", async () => {
+    const ambiguous = new ProfileAvatarTransportError("Unknown", undefined, undefined, true);
+    mocks.publishAvatar.mockImplementation(
+      (_chainId, _address, _input, dependencies: ProfileAvatarPublishDependencies) =>
+        dependencies.recordSend!(async () => {
+          throw ambiguous;
+        })
+    );
+    const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
+    await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalled());
+
+    const { acts } = await captureSendActs(() =>
+      act(async () => {
+        await expect(result.current.save(new File(["photo"], "photo.jpg"))).rejects.toBe(ambiguous);
+      })
+    );
+
+    expect(acts).toEqual([
+      ["send_act_started", "profile_avatar", undefined],
+      ["send_act_ended", "profile_avatar", "confirming"],
+    ]);
+  });
+  it("cancels consent without publishing, signing or showing a photo failure", async () => {
+    mocks.consent.mockRejectedValue(new UploadPolicyCancelledError());
+    const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
+    await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalled());
+    const { acts } = await captureSendActs(() =>
+      act(async () => {
+        await expect(result.current.save(new File(["photo"], "photo.jpg"))).rejects.toThrow(
+          "User cancelled upload"
+        );
+      })
+    );
+    expect(acts).toEqual([]);
+    expect(mocks.publishAvatar).not.toHaveBeenCalled();
+    expect(mocks.signMessage).not.toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+    expect(result.current.isSaving).toBe(false);
+  });
   it("ignores an IndexedDB draft that resolves after the account changes", async () => {
     const firstLoad = createDeferred<ReturnType<typeof createDraft>>();
     mocks.loadDraft.mockImplementation((_chainId: number, address: Address) =>
@@ -257,5 +398,64 @@ describe("useProfileAvatarEditor", () => {
 
     expect(result.current.draft?.address).toBe(ADDRESS_B);
     expect(result.current.stage).toBe("idle");
+  });
+});
+
+describe("useResolvedProfileAvatar in a list of people", () => {
+  const listedRecord = (address: Address, avatarUri: string | null) => ({
+    chainId: CHAIN_ID,
+    address,
+    avatarUri,
+    version: avatarUri ? 1 : 0,
+    updatedAt: null,
+  });
+
+  beforeEach(() => {
+    mocks.getListed.mockReset();
+    mocks.ensNames = {};
+    mocks.ensNameLoading = false;
+    mocks.ensAvatars = {};
+    mocks.ensAvatarCalls = [];
+  });
+
+  it("makes no ENS avatar lookup for someone without an ENS name", async () => {
+    mocks.getListed.mockResolvedValue(listedRecord(ADDRESS_A, null));
+    const { result } = renderHookWithQueryClient(() =>
+      useResolvedProfileAvatar(ADDRESS_A, "/images/avatar.png", CHAIN_ID, { list: true })
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.avatarUri).toBe("/images/avatar.png");
+    expect(mocks.ensAvatarCalls.every((call) => call.enabled === false)).toBe(true);
+  });
+
+  it("looks up an ENS-named person's ENS avatar only once their profile shows no photo", async () => {
+    mocks.ensNames[ADDRESS_B] = "bea.eth";
+    mocks.ensAvatars[ADDRESS_B] = "https://example.com/bea.png";
+    const profile = createDeferred<ReturnType<typeof listedRecord>>();
+    mocks.getListed.mockReturnValue(profile.promise);
+    const { result } = renderHookWithQueryClient(() =>
+      useResolvedProfileAvatar(ADDRESS_B, "/images/avatar.png", CHAIN_ID, { list: true })
+    );
+
+    // While the profile read is out, the row waits and asks ENS for nothing.
+    expect(result.current.isLoading).toBe(true);
+    expect(mocks.ensAvatarCalls.every((call) => call.enabled === false)).toBe(true);
+
+    await act(async () => profile.resolve(listedRecord(ADDRESS_B, null)));
+    await waitFor(() => expect(result.current.avatarUri).toBe("https://example.com/bea.png"));
+    expect(mocks.ensAvatarCalls.at(-1)?.enabled).toBe(true);
+  });
+
+  it("shows a profile photo as soon as it arrives, without waiting on the ENS name", async () => {
+    mocks.ensNameLoading = true;
+    mocks.getListed.mockResolvedValue(listedRecord(ADDRESS_A, "ipfs://river"));
+    const { result } = renderHookWithQueryClient(() =>
+      useResolvedProfileAvatar(ADDRESS_A, "/images/avatar.png", CHAIN_ID, { list: true })
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.record?.avatarUri).toBe("ipfs://river");
+    expect(mocks.ensAvatarCalls.every((call) => call.enabled === false)).toBe(true);
   });
 });

@@ -6,6 +6,12 @@ import type {
 } from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
+import {
+  promisePageFixture,
+  PROMISE_PAGE_SEEDS,
+  JOURNEY_NEIGHBOUR,
+} from "../../../../../../shared/.storybook/clientJourneyFixtures";
+import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
 import { ConfirmSheet } from "./ConfirmSheet";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
@@ -102,6 +108,7 @@ const meta: Meta<typeof ConfirmSheet> = {
     // dispute from them. A steward acting only for a claiming garden is the
     // case that hides it; that is the detail screen's call, not the sheet's.
     canNotYet: true,
+    canConfirm: true,
     onConfirm: fn(),
     onNotYet: fn(),
     onDone: fn(),
@@ -153,6 +160,28 @@ export const AskGardenWork: Story = {
   },
 };
 
+/**
+ * A request that is not garden work, read by the person who asked: a course a garden asked
+ * members to complete reads the same as a ride someone asked for, so it asks if it was kept.
+ */
+export const AskSupportRequest: Story = {
+  args: {
+    commitment: commitment({
+      direction: "REQUEST",
+      creator: VIEWER,
+      leadProvider: PROVIDER,
+      counterparty: PROVIDER,
+      targetUnits: 1n,
+      unitLabel: "certificates",
+    }),
+  },
+  play: async () => {
+    await expect(await screen.findByRole("dialog", { name: "Promise kept?" })).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeVisible();
+    await expect(screen.queryByText(/help/i)).not.toBeInTheDocument();
+  },
+};
+
 export const AskCaptured: Story = {
   args: { commitment: commitment({ recordedBy: STEWARD }) },
 };
@@ -165,6 +194,26 @@ export const NamedGroup: Story = {
       confirmationCount: 1,
       confirmationThreshold: 2,
     }),
+  },
+};
+
+/**
+ * A request a steward seeded with named confirmers, read by one of them. They did not ask for
+ * it, and the person who asked does not confirm by asking, so the sheet says neither.
+ */
+export const NamedGroupRequest: Story = {
+  args: {
+    commitment: commitment({
+      direction: "REQUEST",
+      creator: STEWARD,
+      leadProvider: PROVIDER,
+      counterparty: PROVIDER,
+      confirmers: [VIEWER, STEWARD],
+    }),
+  },
+  play: async () => {
+    await expect(await screen.findByText(/The named people do\./)).toBeVisible();
+    await expect(screen.queryByText(/You asked/)).not.toBeInTheDocument();
   },
 };
 
@@ -219,5 +268,35 @@ export const KeptByFallback: Story = {
       confirmationPath: "POOL_FALLBACK",
       fallbackReason: "The counterparty left the garden before confirming.",
     }),
+  },
+};
+
+/** The same fence repair as the proof guide, now read by its independent confirmer. */
+export const Documentation: Story = {
+  decorators: [withSeededQueryClient(PROMISE_PAGE_SEEDS)],
+  args: (() => {
+    const { detail } = promisePageFixture("waiting").controller;
+    return {
+      commitment: {
+        ...detail!.commitment,
+        confirmers: [JOURNEY_NEIGHBOUR, STEWARD],
+        confirmationCount: 1,
+        confirmationThreshold: 2,
+      },
+      contributors: detail!.contributors,
+      evidenceAttributions: detail!.evidenceAttributions,
+      viewer: JOURNEY_NEIGHBOUR,
+    };
+  })(),
+};
+
+export const DocumentationNotYet: Story = {
+  ...Documentation,
+  play: async () => {
+    await userEvent.click(await screen.findByRole("button", { name: "Not Yet" }));
+    await userEvent.type(
+      await screen.findByLabelText("What still needs doing?"),
+      "The replacement slats are secure. Please also check the loose rail beside the compost bay before we call the repair finished."
+    );
   },
 };

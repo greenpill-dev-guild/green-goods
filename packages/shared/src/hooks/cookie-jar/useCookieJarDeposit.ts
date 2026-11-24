@@ -1,179 +1,26 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
-import { useCallback, useRef } from "react";
-import { useIntl } from "react-intl";
-import { toastService } from "../../components/toast";
-import { getWagmiConfig } from "../../config/appkit";
-import { logger } from "../../modules/app/logger";
-import type { CookieJarDepositParams } from "../../types/cookie-jar";
-import type { Address } from "../../types/domain";
-import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
-import { ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis/erc20";
-import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { useUser } from "../auth/useUser";
-import { useCurrentChain } from "../blockchain/useChainConfig";
-import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { useCallback } from "react";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
-import { useSafeMutation } from "../utils/useSafeMutation";
-import { useProgressiveInvalidation } from "../utils/useTimeout";
-
-const ERC20_BALANCE_ABI = [
-  {
-    type: "function",
-    name: "balanceOf",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-] as const;
-
-type TxErrorMode = "toast" | "inline" | "auto";
-
-interface CookieJarMutationOptions {
-  errorMode?: TxErrorMode;
-}
-
-function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
-  return mode !== "inline";
-}
+import type { Address } from "../../types/domain";
+import {
+  type CookieJarMutationOptions,
+  useCookieJarDepositMutation,
+} from "./useCookieJarDepositMutation";
 
 export function useCookieJarDeposit(
   gardenAddress: Address,
   options: CookieJarMutationOptions = {}
 ) {
-  const { formatMessage } = useIntl();
-  const queryClient = useQueryClient();
-  const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
-  const showErrorToast = shouldShowErrorToast(options.errorMode);
-  const sendContractTx = useContractTxSender();
-  const handleError = createMutationErrorHandler({
+  const invalidationKeys = useCallback(
+    (jarAddress: Address, chainId: number) =>
+      queryInvalidation.onCookieJarDeposit(gardenAddress, jarAddress, chainId),
+    [gardenAddress]
+  );
+  return useCookieJarDepositMutation({
+    options,
     source: "useCookieJarDeposit",
     toastContext: "cookie jar deposit",
+    balanceWarning: "[CookieJarDeposit] Balance check failed, proceeding anyway",
+    metadata: { gardenAddress },
+    invalidationKeys,
   });
-  const activeToastId = useRef<string | undefined>(undefined);
-  const lastParamsRef = useRef<{ gardenAddress: string; jarAddress: string }>({
-    gardenAddress,
-    jarAddress: "",
-  });
-  const { start: scheduleFollowUp } = useProgressiveInvalidation(
-    useCallback(() => {
-      if (lastParamsRef.current.gardenAddress && lastParamsRef.current.jarAddress) {
-        queryInvalidation
-          .onCookieJarDeposit(
-            lastParamsRef.current.gardenAddress,
-            lastParamsRef.current.jarAddress,
-            chainId
-          )
-          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-      }
-    }, [queryClient, chainId]),
-    INDEXER_LAG_SCHEDULE_MS
-  );
-
-  const mutation = useMutation({
-    mutationFn: async (params: CookieJarDepositParams) => {
-      if (!primaryAddress) {
-        throw new Error("Connected account required");
-      }
-
-      // Pre-check: verify user has sufficient token balance
-      try {
-        const balanceResult = await readContract(getWagmiConfig(), {
-          address: params.assetAddress,
-          abi: ERC20_BALANCE_ABI,
-          functionName: "balanceOf",
-          args: [primaryAddress as Address],
-          chainId,
-        });
-        const balance = typeof balanceResult === "bigint" ? balanceResult : 0n;
-        if (balance < params.amount) {
-          throw new Error("Insufficient token balance for deposit");
-        }
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("Insufficient token balance")) {
-          throw error;
-        }
-        logger.warn("[CookieJarDeposit] Balance check failed, proceeding anyway", { error });
-      }
-
-      // Check ERC20 allowance and approve if needed
-      let allowance: bigint;
-      try {
-        const allowanceResult = await readContract(getWagmiConfig(), {
-          address: params.assetAddress,
-          abi: ERC20_ALLOWANCE_ABI,
-          functionName: "allowance",
-          args: [primaryAddress as Address, params.jarAddress],
-          chainId,
-        });
-        allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
-      } catch {
-        allowance = 0n;
-      }
-
-      if (allowance < params.amount) {
-        await sendContractTx({
-          address: params.assetAddress,
-          abi: ERC20_ALLOWANCE_ABI,
-          functionName: "approve",
-          args: [params.jarAddress, params.amount],
-        });
-      }
-
-      // Update toast to reflect deposit phase
-      if (activeToastId.current) {
-        toastService.loading({
-          id: activeToastId.current,
-          title: formatMessage({ id: "app.cookieJar.deposit" }),
-          message: formatMessage({ id: "app.cookieJar.depositing" }),
-        });
-      }
-
-      return sendContractTx({
-        address: params.jarAddress,
-        abi: COOKIE_JAR_ABI,
-        functionName: "deposit",
-        args: [params.amount],
-      });
-    },
-    onMutate: () => {
-      const toastId = toastService.loading({
-        title: formatMessage({ id: "app.cookieJar.deposit" }),
-        message: formatMessage({ id: "app.cookieJar.approving" }),
-      });
-      activeToastId.current = toastId;
-      return { toastId };
-    },
-    onSuccess: (_txHash, _params, context) => {
-      if (context?.toastId) toastService.dismiss(context.toastId);
-      toastService.success({
-        title: formatMessage({ id: "app.cookieJar.deposit" }),
-        message: formatMessage({ id: "app.cookieJar.depositSuccess" }),
-      });
-
-      lastParamsRef.current = {
-        gardenAddress,
-        jarAddress: _params.jarAddress,
-      };
-      queryInvalidation
-        .onCookieJarDeposit(gardenAddress, _params.jarAddress, chainId)
-        .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-      scheduleFollowUp();
-    },
-    onError: (error, params, context) => {
-      if (context?.toastId) toastService.dismiss(context.toastId);
-      handleError(error, {
-        metadata: {
-          gardenAddress,
-          jarAddress: params?.jarAddress,
-          assetAddress: params?.assetAddress,
-        },
-        showToast: showErrorToast,
-      });
-    },
-  });
-
-  return useSafeMutation(mutation);
 }

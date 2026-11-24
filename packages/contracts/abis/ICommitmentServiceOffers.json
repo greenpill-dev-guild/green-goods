@@ -1,0 +1,736 @@
+[
+  {
+    "type": "function",
+    "name": "acceptServiceClaim",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyer",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "expectedClaimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getAcceptedServiceTerms",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentServiceOffers.AcceptedServiceTerms",
+        "components": [
+          {
+            "name": "offer",
+            "type": "tuple",
+            "internalType": "struct ICommitmentServiceOffers.ServiceOfferTerms",
+            "components": [
+              {
+                "name": "revision",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "termsHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "terms",
+                "type": "tuple",
+                "internalType": "struct ICommitmentServiceOffers.ServiceOfferTermsInput",
+                "components": [
+                  {
+                    "name": "route",
+                    "type": "uint8",
+                    "internalType": "enum ICommitmentServiceOffers.ServicePaymentRoute"
+                  },
+                  {
+                    "name": "serviceTermsRef",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "remedyTermsRef",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "voucherChainId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "voucherIssuer",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  {
+                    "name": "voucherToken",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  {
+                    "name": "voucherUnits",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "consent",
+            "type": "tuple",
+            "internalType": "struct ICommitmentServiceOffers.ServiceClaimConsent",
+            "components": [
+              {
+                "name": "termsRevision",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "requestNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "buyerGarden",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "voucherHolder",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "termsHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "claimHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              }
+            ]
+          },
+          {
+            "name": "buyer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "serviceRecipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "providerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "serviceUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "unitLabelHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "gdPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getServiceClaimConsent",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentServiceOffers.ServiceClaimConsent",
+        "components": [
+          {
+            "name": "termsRevision",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "requestNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "buyerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "voucherHolder",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "termsHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "claimHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getServiceOfferTerms",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentServiceOffers.ServiceOfferTerms",
+        "components": [
+          {
+            "name": "revision",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "termsHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "terms",
+            "type": "tuple",
+            "internalType": "struct ICommitmentServiceOffers.ServiceOfferTermsInput",
+            "components": [
+              {
+                "name": "route",
+                "type": "uint8",
+                "internalType": "enum ICommitmentServiceOffers.ServicePaymentRoute"
+              },
+              {
+                "name": "serviceTermsRef",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "remedyTermsRef",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "voucherChainId",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "voucherIssuer",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "voucherToken",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "voucherUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "requestServiceClaim",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "request",
+        "type": "tuple",
+        "internalType": "struct ICommitmentServiceOffers.ServiceClaimRequest",
+        "components": [
+          {
+            "name": "buyerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "voucherHolder",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "expectedRevision",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "requestNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "expectedTermsHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "serviceOfferProtocolVersion",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "setServiceOfferTerms",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expectedRevision",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "terms",
+        "type": "tuple",
+        "internalType": "struct ICommitmentServiceOffers.ServiceOfferTermsInput",
+        "components": [
+          {
+            "name": "route",
+            "type": "uint8",
+            "internalType": "enum ICommitmentServiceOffers.ServicePaymentRoute"
+          },
+          {
+            "name": "serviceTermsRef",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "remedyTermsRef",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "voucherChainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "voucherIssuer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "voucherToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "voucherUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "gdPrice",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawServiceClaim",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expectedClaimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "ServiceClaimConsentAccepted",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "revision",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "requestNonce",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ServiceClaimConsentRequested",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "revision",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "requestNonce",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "buyerGarden",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "voucherHolder",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ServiceClaimConsentWithdrawn",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ServiceOfferTermsSet",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "revision",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "termsHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "route",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentServiceOffers.ServicePaymentRoute"
+      },
+      {
+        "name": "gdPrice",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "ActiveServiceClaimExists",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidServiceOfferTerms",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ServiceClaimConsentMismatch",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ServiceClaimNonceMismatch",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "actual",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ServiceClaimPathRequired",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ServiceExchangeUnsupported",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ServiceOfferNotEligible",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ServiceOfferRequired",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ServiceOfferRevisionMismatch",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "actual",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ServiceOfferTermsHashMismatch",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "actual",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ServiceOfferTermsLocked",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  }
+]

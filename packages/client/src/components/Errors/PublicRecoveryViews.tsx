@@ -1,17 +1,8 @@
 import type { ReactNode } from "react";
-import { AppScreenError } from "./AppScreenError";
-import {
-  type RecoveryScreenProps,
-  type RecoveryViews,
-  RecoveryViewsContext,
-} from "./ErrorRecovery";
+import { CeremonyPageError } from "./CeremonyPageError";
+import { type RecoveryViews, RecoveryViewsContext } from "./ErrorRecovery";
 import { PublicPageError } from "./PublicPageError";
 import { PublicSiteError } from "./PublicSiteError";
-
-/** A reporting ceremony page is drawn as the app draws, inside its focused bar. */
-function CeremonyPageError(props: RecoveryScreenProps) {
-  return <AppScreenError shell="focused" {...props} />;
-}
 
 const PUBLIC_RECOVERY_VIEWS: RecoveryViews = {
   frame: PublicSiteError,

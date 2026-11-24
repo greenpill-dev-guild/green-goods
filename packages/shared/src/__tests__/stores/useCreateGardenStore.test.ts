@@ -35,7 +35,7 @@ describe("useCreateGardenStore", () => {
     expect(store.addGardener(MEMBER)).toEqual({ success: true });
     expect(store.addGardener(MEMBER)).toEqual({
       success: false,
-      error: "Address already added as gardener",
+      reason: "already-added",
     });
   });
 

@@ -1,11 +1,14 @@
 /**
  * The steward side of the pool console: who may act, what is past due and
- * still live, and whether an ordinary confirmer can still be reached. Split
- * out of `selectors.ts`, which is at its source-structure cap.
+ * still live, whether an ordinary confirmer can still be reached, and which
+ * ready commitments wait on the steward's own confirmation. Split out of
+ * `selectors.ts`, which is at its source-structure cap.
  */
 import type { Address } from "../../types/domain";
-import { isSameAccount } from "./selectors";
-import type { CommitmentReadModel } from "./types";
+import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
+import { type CycleEndTimes, effectiveDueDate, isPastDue } from "./due-dates";
+import { isSameAccount, selectCommitmentSeat } from "./selectors";
+import type { CommitmentReadModel, FallbackConfirmationCandidate } from "./types";
 
 /**
  * The garden roles that make someone a pool steward: the steward or owner
@@ -28,8 +31,8 @@ const EXPIRABLE_STATES = new Set<string>([
 
 /**
  * Live commitments the chain would let anyone expire: one of the four
- * expirable states, and strictly past its own due date or, when it carries
- * none, its cycle's end (TerminalLib.sol:71-72, `_effectiveDueDate`). A
+ * expirable states, and past due (`isPastDue`): strictly past its own due date
+ * or, when it carries none, its cycle's end (TerminalLib.sol:71-72). A
  * cycle-less, undated commitment is never due.
  *
  * Past due alone never renders Expired: the row stays live until the indexer
@@ -41,20 +44,13 @@ export function selectDueLiveCommitments<
 >(input: {
   commitments: readonly T[];
   /** Decimal cycle id → `endTime`, from the cycles already loaded. */
-  cycleEndTimes: ReadonlyMap<string, bigint | null>;
+  cycleEndTimes: CycleEndTimes;
   /** Unix seconds. */
   now: bigint;
 }): T[] {
-  return input.commitments.filter((commitment) => {
-    if (!EXPIRABLE_STATES.has(commitment.onchainState)) return false;
-    const due =
-      commitment.dueDate !== null && commitment.dueDate !== undefined && commitment.dueDate !== 0n
-        ? commitment.dueDate
-        : commitment.cycleId !== null && commitment.cycleId !== 0n
-          ? (input.cycleEndTimes.get(commitment.cycleId.toString()) ?? null)
-          : null;
-    return due !== null && due !== 0n && input.now > due;
-  });
+  return input.commitments.filter(
+    (commitment) => EXPIRABLE_STATES.has(commitment.onchainState) && isPastDue(commitment, input)
+  );
 }
 
 /**
@@ -64,24 +60,30 @@ export function selectDueLiveCommitments<
  */
 export function selectNextDueBoundary<
   T extends Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">,
->(input: {
-  commitments: readonly T[];
-  cycleEndTimes: ReadonlyMap<string, bigint | null>;
-  now: bigint;
-}): bigint | null {
+>(input: { commitments: readonly T[]; cycleEndTimes: CycleEndTimes; now: bigint }): bigint | null {
   let next: bigint | null = null;
   for (const commitment of input.commitments) {
     if (!EXPIRABLE_STATES.has(commitment.onchainState)) continue;
-    const due =
-      commitment.dueDate !== null && commitment.dueDate !== undefined && commitment.dueDate !== 0n
-        ? commitment.dueDate
-        : commitment.cycleId !== null && commitment.cycleId !== 0n
-          ? (input.cycleEndTimes.get(commitment.cycleId.toString()) ?? null)
-          : null;
-    if (due === null || due === 0n || due < input.now) continue;
+    const due = effectiveDueDate(commitment, input.cycleEndTimes);
+    if (due === null || due < input.now) continue;
     if (next === null || due < next) next = due;
   }
   return next;
+}
+
+/**
+ * The confirmer group as take-up leaves it. `normalizeConfirmers` (AcceptanceLib.sol)
+ * drops the lead and the zero address without emitting a new ConfirmerRuleSet event,
+ * so the indexed group can still list them.
+ */
+export function withEffectiveConfirmers(commitment: CommitmentReadModel): CommitmentReadModel {
+  const { confirmers, leadProvider } = commitment;
+  const effective = confirmers.filter(
+    (confirmer) => confirmer !== ZERO_ADDRESS && !isSameAccount(leadProvider, confirmer)
+  );
+  return effective.length === confirmers.length
+    ? commitment
+    : { ...commitment, confirmers: effective };
 }
 
 /**
@@ -147,6 +149,69 @@ export function selectOrdinaryConfirmer(input: {
     isSameAccount(contributor, account)
   );
   return joined ? null : account;
+}
+
+/**
+ * Whether the chain takes this account's ordinary confirmation on the account
+ * itself rather than on a garden role (CreditLib.sol `isOrdinaryConfirmer`),
+ * after take-up's effective confirmers: the account is named, or with nobody
+ * named it is the Request's creator or the person who took up the Offer. An
+ * Offer a garden took up is confirmed through that garden's steward or owner
+ * Hat, so no account qualifies there. A queued confirmation that passes needs
+ * no membership wait (`membershipNotRequired`). Whether the account is on the
+ * team (`SelfConfirmation`) is a separate check, left to the caller.
+ */
+export function isConfirmerByAccount(
+  commitment: CommitmentReadModel | null | undefined,
+  account: Address | null | undefined
+): boolean {
+  if (!commitment || !account) return false;
+  const { confirmers, direction, counterpartyKind, creator, counterparty } =
+    withEffectiveConfirmers(commitment);
+  if (confirmers.length > 0) {
+    return confirmers.some((confirmer) => isSameAccount(confirmer, account));
+  }
+  if (direction === "REQUEST") return isSameAccount(creator, account);
+  return counterpartyKind !== "GARDEN" && isSameAccount(counterparty, account);
+}
+
+/**
+ * Whether the reader is personally a party. Without the roster this answers
+ * for the named parties only, which is what the personal inbox lists.
+ */
+export function isPersonalParty(commitment: CommitmentReadModel, viewer: Address): boolean {
+  const seat = selectCommitmentSeat({ commitment, contributors: [], viewer });
+  return seat !== null && seat !== "bystander";
+}
+
+/**
+ * The ready commitments among a pool's candidates that wait on the reader's own
+ * account, newest first (`isConfirmerByAccount`): the reader is named, or with
+ * nobody named is the Request's creator or the person who took up the Offer.
+ * Left out: the team (`SelfConfirmation`), an Offer a garden took up (its Hat
+ * confirms, not one account), what the reader already confirmed
+ * (`AlreadyConfirmed`), and what the queue already lists.
+ */
+export function selectOwnConfirmations(input: {
+  candidates: readonly FallbackConfirmationCandidate[];
+  viewer: Address;
+  /** Commitment ids, in decimal, this reader has already confirmed. */
+  confirmed: ReadonlySet<string>;
+  /** Commitment entity ids the queue already lists elsewhere. */
+  listed: ReadonlySet<string>;
+}): CommitmentReadModel[] {
+  const { viewer, confirmed, listed } = input;
+  return input.candidates
+    .flatMap(({ commitment: indexed, activeContributors }) => {
+      const commitment = withEffectiveConfirmers(indexed);
+      if (commitment.onchainState !== "READY_FOR_CONFIRMATION") return [];
+      if (listed.has(commitment.id) || confirmed.has(commitment.commitmentId.toString())) {
+        return [];
+      }
+      if (activeContributors.some((contributor) => isSameAccount(contributor, viewer))) return [];
+      return isConfirmerByAccount(commitment, viewer) ? [commitment] : [];
+    })
+    .sort((left, right) => Number(right.commitmentId - left.commitmentId));
 }
 
 // The act-permission half lives beside this one for file-length reasons; it

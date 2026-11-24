@@ -51,6 +51,18 @@ const mocks = vi.hoisted(() => ({
   useGardenCookieJars: vi.fn(),
   signer: { canSign: true, isResolved: true, owner: undefined as Address | undefined },
   updateLimit: vi.fn(),
+  hatsAdmin: {
+    kind: "legacy",
+    canOperate: false,
+    canGovern: false,
+    policy: {
+      maxClaimCeiling: 20n * 10n ** 18n,
+      minCooldown: 86_400n,
+      dailyBudget: 100n * 10n ** 18n,
+      recoveryRecipient: "0x2222222222222222222222222222222222222222",
+    },
+    mutation: { mutate: vi.fn(), isPending: false },
+  },
   depositModalProps: null as null | { onFixLimit?: (jar: Address) => void },
 }));
 
@@ -70,29 +82,43 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenAccountSigner", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarAdmin", () => ({
+  useHatsCookieJarAdmin: () => mocks.hatsAdmin,
   useCookieJarUpdateMaxWithdrawal: () => ({ mutate: mocks.updateLimit, isPending: false }),
   useCookieJarUpdateInterval: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 // Mock modal components to avoid deep hook dependencies (AuthProvider, wagmi, etc.)
-vi.mock("@/views/Hub/components/CookieJarWithdrawModal", () => ({
+vi.mock("@/views/Review/components/CookieJarWithdrawModal", () => ({
   CookieJarWithdrawModal: () => null,
 }));
-vi.mock("@/views/Hub/components/CookieJarDepositModal", () => ({
-  CookieJarDepositModal: (props: { onFixLimit?: (jar: Address) => void }) => {
+vi.mock("@/views/Review/components/CookieJarDepositModal", () => ({
+  CookieJarDepositModal: (props: { isOpen: boolean; onFixLimit?: (jar: Address) => void }) => {
     mocks.depositModalProps = props;
-    return null;
+    return props.isOpen ? <div role="dialog" aria-label="Fund Cookie Jar" /> : null;
   },
 }));
 
-import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
+import { CookieJarPayoutPanel } from "@/views/Review/components/CookieJarPayoutPanel";
 
-function panel(props: { routeEditLimitJar?: Address } = {}) {
+type PanelProps = {
+  routeEditLimitJar?: Address;
+  allocationCount?: number;
+  allocationCountAtLeast?: boolean;
+};
+
+function panel(props: PanelProps = {}) {
   return <CookieJarPayoutPanel gardenAddress={GARDEN} gardenName="Riverbend Garden" {...props} />;
 }
 
-function renderPanel(props: { routeEditLimitJar?: Address } = {}) {
+function renderPanel(props: PanelProps = {}) {
   return renderWithProviders(panel(props));
+}
+
+/** A jar's row opens its page, where its editors and acts are. */
+async function openJar(name: RegExp) {
+  const row = screen.getByRole("button", { name, expanded: false });
+  await userEvent.setup().click(row);
+  expect(row).toHaveAttribute("aria-expanded", "true");
 }
 
 describe("CookieJarPayoutPanel", () => {
@@ -101,18 +127,65 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [plainJar];
     mocks.read = { ...FINISHED_READ };
     mocks.signer = { canSign: true, isResolved: true, owner: undefined };
+    mocks.hatsAdmin.kind = "legacy";
+    mocks.hatsAdmin.canOperate = false;
+    mocks.hatsAdmin.canGovern = false;
   });
 
-  it("renders each jar as an operational payout card", () => {
+  it("lets a Hat steward manage a replacement without a legacy garden signer", async () => {
+    mocks.jars = [oneCentDaiJar];
+    mocks.signer.canSign = false;
+    mocks.hatsAdmin.kind = "hats";
+    mocks.hatsAdmin.canOperate = true;
+    renderPanel();
+    await openJar(/DAI/);
+
+    expect(screen.getByText("Update payout limits", { selector: "summary" })).toBeVisible();
+    expect(screen.queryByText("Propose payout policy")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /edit claim limit/i })).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Pause payouts and deposits" }));
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText(/connected account that holds the required Hat/i)
+    ).toBeVisible();
+    await user.click(within(dialog).getByRole("button", { name: "Pause payouts and deposits" }));
+    expect(mocks.hatsAdmin.mutation.mutate).toHaveBeenCalledWith(
+      { functionName: "pause", args: [] },
+      expect.anything()
+    );
+    expect(mocks.updateLimit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ allocationCount: 1 }, "1 payout"],
+    [{ allocationCount: 3 }, "3 payouts"],
+    // The history stops at its limit, so a full list is a lower bound.
+    [{ allocationCount: 20, allocationCountAtLeast: true }, "20+ payouts"],
+    // A history that could not be read states no total, never a zero.
+    [{ allocationCount: 0, allocationCountUnread: true }, "Couldn't read the payouts"],
+  ])("says the payout total in the panel's own header line (DL-134): %o", (props, line) => {
+    renderPanel(props);
+
+    expect(
+      screen.getByRole("heading", { name: "Cookie Jars" }).nextElementSibling
+    ).toHaveTextContent(new RegExp(`^${line.replace("+", "\\+")}$`));
+  });
+
+  it("lists each jar as a row that opens its operational page", async () => {
     renderPanel();
 
-    expect(screen.getByText("Active")).toBeInTheDocument();
-    expect(screen.getByText("Jar Balance")).toBeInTheDocument();
+    // The row: the jar's pill, its per-claim limit and its balance, and no act of its own.
+    const row = screen.getByRole("button", { name: /Active/, expanded: false });
+    expect(row).toHaveAccessibleName(/Active.*1 0xasset a claim.*5 0xasset.*Jar Balance/);
+    expect(screen.queryByRole("button", { name: /Deposit/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
+
+    // The page beneath it carries the cooldown and the payout acts.
+    await openJar(/Active/);
     expect(screen.getByText("Withdrawal cooldown")).toBeInTheDocument();
     expect(screen.getByText("1h")).toBeInTheDocument();
     expect(screen.getAllByText(/0xasset/).length).toBeGreaterThan(0);
-
-    // Focused payout actions live on the jar card.
     expect(screen.getByRole("button", { name: /Deposit/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Manage Jars/ })).not.toBeInTheDocument();
@@ -155,6 +228,23 @@ describe("CookieJarPayoutPanel", () => {
     expect(screen.getByText(title)).toBeInTheDocument();
   });
 
+  it.each([
+    ["fails", { error: new Error("RPC timeout") }],
+    ["goes offline", { isPaused: true }],
+  ])("keeps an open deposit mounted when a later jar read %s", async (_state, read) => {
+    const rendered = renderPanel();
+    await openJar(/Active/);
+    await userEvent.setup().click(screen.getByRole("button", { name: /Deposit/ }));
+    expect(screen.getByRole("dialog", { name: "Fund Cookie Jar" })).toBeInTheDocument();
+
+    // A refresh while the steward signs in their wallet loses every jar.
+    mocks.jars = [];
+    mocks.read = { ...FINISHED_READ, ...read };
+    rendered.rerender(panel());
+
+    expect(screen.getByRole("dialog", { name: "Fund Cookie Jar" })).toBeInTheDocument();
+  });
+
   // Until then each jar's amounts use an 18-decimal fallback: this six-decimal jar would misread.
   it("holds the cards until each jar currency's decimals are read", () => {
     mocks.read = { ...FINISHED_READ, hasUnreadDecimals: true };
@@ -167,10 +257,18 @@ describe("CookieJarPayoutPanel", () => {
     reading.unmount();
 
     mocks.read = { ...FINISHED_READ, hasUnreadDecimals: true, isPaused: true };
-    renderPanel();
+    const paused = renderPanel();
 
     expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
     expect(screen.getByText("Cookie jars need a connection")).toBeInTheDocument();
+    paused.unmount();
+
+    // A failed read keeps the fallback for good, so its row, Claim and limit editor stay away too.
+    mocks.read = { ...FINISHED_READ, hasDecimalsReadFailure: true };
+    renderPanel();
+
+    expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
+    expect(screen.getByText("Couldn't read this garden's cookie jars")).toBeInTheDocument();
   });
 
   it("stays loading while a jar read is pending but not yet fetching", () => {
@@ -197,6 +295,7 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [{ ...oneCentDaiJar, balance: 10n ** 15n, maxWithdrawal: 10n * 10n ** 18n }];
     renderPanel();
 
+    expect(screen.getByText("10 DAI a claim")).toBeInTheDocument();
     expect(screen.getByText("Per-claim limit")).toBeInTheDocument();
     expect(screen.getByText("10 DAI")).toBeInTheDocument();
     expect(screen.queryByText("Available now")).not.toBeInTheDocument();
@@ -208,7 +307,10 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [oneCentDaiJar];
     renderPanel();
 
+    // The jar's one pill says its limit is too low to pay out, in place of Active.
     expect(screen.getByText("Limit too low")).toBeInTheDocument();
+    expect(screen.queryByText("Active")).not.toBeInTheDocument();
+    await openJar(/Limit too low/);
     await user.click(screen.getByRole("button", { name: "Edit Per-Claim Limit" }));
 
     expect(screen.getByRole("textbox", { name: "Per-claim limit" })).toHaveValue("10");
@@ -228,10 +330,11 @@ describe("CookieJarPayoutPanel", () => {
     );
   });
 
-  it("keeps Edit visible but disabled for a steward who cannot sign, and names the owner", () => {
+  it("keeps Edit visible but disabled for a steward who cannot sign, and names the owner", async () => {
     mocks.jars = [oneCentDaiJar];
     mocks.signer = { canSign: false, isResolved: true, owner: OWNER };
     renderPanel();
+    await openJar(/DAI/);
 
     expect(screen.getByRole("button", { name: "Edit Per-Claim Limit" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Edit Withdrawal Cooldown" })).toBeDisabled();
@@ -250,10 +353,15 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [plainJar, oneCentDaiJar];
     renderPanel({ routeEditLimitJar: oneCentDaiJar.jarAddress.toLowerCase() as Address });
 
+    // The link opens that jar's page with its limit editor, and leaves the other jar closed.
     expect(screen.getByRole("textbox", { name: "Per-claim limit" })).toHaveValue("10");
+    expect(screen.getByRole("button", { name: /DAI/, expanded: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /0xasset/, expanded: false })).toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("textbox", { name: "Per-claim limit" })).not.toBeInTheDocument();
+    // Closing the editor leaves the page open, so focus returns to its Edit button.
+    expect(screen.getByRole("button", { name: "Edit Per-Claim Limit" })).toHaveFocus();
 
     // "Fix Limit First" in the deposit dialog lands on the same editor.
     act(() => mocks.depositModalProps?.onFixLimit?.(oneCentDaiJar.jarAddress));

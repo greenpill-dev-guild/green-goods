@@ -1,5 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { QueryClient } from "@tanstack/react-query";
+import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
+import { renderWithProviders } from "../test-utils";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RequireRole from "@/routes/RequireRole";
@@ -30,6 +33,7 @@ const messages: Record<string, string> = {
 type RoleOverrides = {
   role?: "deployer" | "steward" | "user";
   loading?: boolean;
+  deploymentPermissionsError?: boolean;
   isDeployer?: boolean;
   isSteward?: boolean;
   stewardGardens?: Array<{ id: string; name: string }>;
@@ -115,6 +119,20 @@ describe("RequireRole", () => {
       screen.getByText("Added to the deployment registry allowlist for contract management")
     ).toBeInTheDocument();
     expect(screen.queryByTestId("dashboard-layout-skeleton")).not.toBeInTheDocument();
+  });
+
+  it("offers a retry, not Unauthorized, when garden-creation permission never answered", () => {
+    mockUseRole.mockReturnValue(
+      buildRoleState({ role: "steward", isSteward: true, deploymentPermissionsError: true })
+    );
+    const invalidateQueries = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+
+    renderWithProviders(<RequireRole allowedRoles={["deployer"]} />);
+
+    expect(screen.queryByText("Unauthorized")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.role.all });
+    invalidateQueries.mockRestore();
   });
 
   it("shows an unauthorized message without user guidance for stewards", () => {

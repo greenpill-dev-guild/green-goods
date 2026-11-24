@@ -7,7 +7,7 @@
  * to standard writeContract from @wagmi/core — meaning transactions are NOT
  * gas-sponsored yet.
  *
- * When EIP-5792 support is available, sendContractCall and sendBatch should
+ * When EIP-5792 support is available, sendContractCall should
  * use sendCalls() with paymasterService capability and poll with
  * getCallsStatus() for completion.
  *
@@ -17,13 +17,16 @@
 import {
   signTypedData as defaultSignTypedData,
   ConnectorNotConnectedError,
+  estimateGas as defaultEstimateGas,
   getAccount as defaultGetAccount,
-  waitForTransactionReceipt as defaultWaitForReceipt,
   writeContract as defaultWriteContract,
   type Config,
 } from "@wagmi/core";
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
+import { type EstimateTransactionGas, walletGasLimit } from "./gas-headroom";
+import { waitForReceipt } from "./receipt-wait";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
@@ -34,6 +37,7 @@ import {
 } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
+  asReceiptWaitLimit,
   TransactionReplacementError,
   assertTypedDataChain,
   TransactionRevertedError,
@@ -46,13 +50,17 @@ import {
 
 /** Injectable wagmi functions for testability */
 export interface EmbeddedSenderDeps {
+  estimateGas?: EstimateTransactionGas;
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
   writeContract: (config: Config, params: Record<string, unknown>) => Promise<Hex>;
-  waitForTransactionReceipt: (
+  /** Resolves with a reverted receipt rather than throwing; defaults to `waitForReceipt`. */
+  waitForTransactionReceipt?: (
     config: Config,
     params: {
       hash: Hex;
       chainId?: number;
+      /** Milliseconds; rejects with viem's timeout error when it passes. */
+      timeout: number;
       onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
     }
   ) => Promise<{ status: string; transactionHash?: Hex }>;
@@ -79,15 +87,15 @@ export class EmbeddedSender implements TransactionSender {
     this.erc7677ProxyUrl = erc7677ProxyUrl;
     this.deps = deps ?? {
       writeContract: defaultWriteContract as unknown as EmbeddedSenderDeps["writeContract"],
-      waitForTransactionReceipt:
-        defaultWaitForReceipt as unknown as EmbeddedSenderDeps["waitForTransactionReceipt"],
       assertWriteSafety: assertLocalArbitrumForkWallet,
     };
+    this.deps.waitForTransactionReceipt ??= waitForReceipt;
     this.deps.signTypedData ??= (config, request) =>
       defaultSignTypedData(config, { ...request.data, account: request.account } as Parameters<
         typeof defaultSignTypedData
       >[1]);
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
+    this.deps.estimateGas ??= (request) => defaultEstimateGas(this.config, request);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
     this.deps.ensureWalletChain ??= (chainId, reason, beforeSwitch) =>
       ensureWagmiWalletChain(this.config, chainId, reason, beforeSwitch);
@@ -160,6 +168,9 @@ export class EmbeddedSender implements TransactionSender {
     const call = this.forSigner(named);
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.readyWallet(call, chainId, options, "write");
+    // A call that asks for headroom gets its limit here; the wallet sizes any other.
+    const gas = await walletGasLimit(call, call.account!, chainId, this.deps.estimateGas!);
+    if (gas !== undefined) await this.assertSigner(call, options);
     await options.onBeforeBroadcast?.();
 
     // The wallet can change network between the guard and the write. viem then
@@ -175,6 +186,7 @@ export class EmbeddedSender implements TransactionSender {
           args: call.args as unknown[],
           chainId,
           ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
+          ...(gas !== undefined ? { gas } : {}),
         }),
       () => this.readyWallet(call, chainId, options, "retry")
     );
@@ -182,14 +194,23 @@ export class EmbeddedSender implements TransactionSender {
     await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
     await options.onBroadcast?.(hash as `0x${string}`);
 
+    // Within the send's limit or else the sender's own: past it the transaction
+    // is out and may still land, so it is never a failure.
+    const limitMs = options.receiptWaitLimitMs || TX_RECEIPT_TIMEOUT_MS;
     let invalidReplacement: "cancelled" | "replaced" | undefined;
-    const receipt = await this.deps.waitForTransactionReceipt(this.config, {
-      hash,
-      chainId,
-      onReplaced: ({ reason }) => {
-        if (reason !== "repriced") invalidReplacement = reason;
-      },
-    });
+    let receipt: Awaited<ReturnType<NonNullable<EmbeddedSenderDeps["waitForTransactionReceipt"]>>>;
+    try {
+      receipt = await this.deps.waitForTransactionReceipt!(this.config, {
+        hash,
+        chainId,
+        timeout: limitMs,
+        onReplaced: ({ reason }) => {
+          if (reason !== "repriced") invalidReplacement = reason;
+        },
+      });
+    } catch (error) {
+      throw asReceiptWaitLimit(error, limitMs, hash);
+    }
     if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {
       throw new TransactionRevertedError(hash, "Transaction reverted on-chain");
@@ -205,20 +226,5 @@ export class EmbeddedSender implements TransactionSender {
     });
 
     return { hash: confirmedHash, sponsored: false };
-  }
-
-  async sendBatch(calls: ContractCall[]): Promise<TxResult> {
-    if (calls.length === 0) {
-      throw new Error("Cannot send empty batch");
-    }
-
-    // TODO: Use EIP-5792 sendCalls for atomic batching when available.
-    // For now, send calls sequentially.
-    let lastResult: TxResult | null = null;
-    for (const call of calls) {
-      lastResult = await this.sendContractCall(call);
-    }
-
-    return lastResult!;
   }
 }

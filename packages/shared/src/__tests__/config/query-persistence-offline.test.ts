@@ -19,7 +19,9 @@ import {
 import { attachQueryPersistence } from "../../providers/QueryPersistence";
 import { GC_TIMES, queryClient } from "../../config/react-query";
 import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
-import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
+import { actionsKeys, batchKeys, gardensKeys } from "../../config/query-keys/garden";
+import { hypercertsKeys } from "../../config/query-keys/hypercert";
 import { worksKeys } from "../../config/query-keys/work";
 
 const shouldDehydrateQuery = createShouldDehydrateQuery({ excludedGroups: ["queue"] });
@@ -34,6 +36,7 @@ describe("durable offline reads", () => {
     ["gardens", gardensKeys.byChain(11155111)],
     ["actions", actionsKeys.byChain(11155111)],
     ["work", worksKeys.online("garden", 11155111)],
+    ["work visibility", worksKeys.visibility(11155111)],
   ])("restores %s after a failed or paused refetch", async (_name, key) => {
     const source = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     source.setQueryData(key, [{ id: "last-known" }]);
@@ -56,12 +59,19 @@ describe("durable offline reads", () => {
     source.clear();
   });
 
-  it("omits never-loaded queries, other namespaces, queue projections and ceremony state", () => {
+  it("omits never-loaded queries, other namespaces, queue projections, ceremony state, held saves, the due clock's calibration and list windows", () => {
     const source = new QueryClient();
     source.getQueryCache().build(source, { queryKey: gardensKeys.byChain(11155111) });
     source.setQueryData(["wallet", "secret"], "session");
     source.setQueryData(["greengoods", "queue"], [{ id: "job" }]);
+    // How far a steward paged a list belongs to that session's screen.
+    source.setQueryData(worksKeys.window("garden", 11155111), 100);
+    source.setQueryData(hypercertsKeys.window("garden", 11155111), 100);
     source.setQueryData(agentReportingKeys.challenge("challenge-1"), "proof_verified");
+    // The batch journal owns a save's outcome; a restored copy could show a hold that has ended.
+    source.setQueryData(batchKeys.hold("domain", "account", 42161), { hold: null });
+    // Restored after the device clock moved, an offset would move the chain's clock with it.
+    source.setQueryData(commitmentPoolingKeys.chainClock(42161), -3_600_000);
     expect(dehydrate(source, { shouldDehydrateQuery }).queries).toEqual([]);
     source.clear();
   });
@@ -149,17 +159,26 @@ describe("reading cache entries", () => {
     for (const query of source.getQueryCache().getAll()) {
       await persistence.persistQuery(source, query.queryKey);
     }
-    expect(storage.length).toBe(4);
+    const visibilityKey = worksKeys.visibility(11155111);
+    const visibility = {
+      chainId: 11155111,
+      excludedWorkUIDs: ["hidden-work"],
+      excludedApprovalUIDs: [],
+    };
+    source.setQueryData(visibilityKey, visibility, { updatedAt: expiredAt });
+    await persistence.persistQuery(source, visibilityKey);
+    expect(storage.length).toBe(5);
 
     const restored = new QueryClient();
     await persistence.restore(restored);
 
+    expect(restored.getQueryData(visibilityKey)).toEqual(visibility);
     expect(restored.getQueryData(workRead)).toEqual([{ id: "kept" }]);
     expect(restored.getQueryData(worksKeys.metadata("bafy-details"))).toEqual({ details: "kept" });
     expect(restored.getQueryData(["greengoods", "platform", "expired"])).toBeUndefined();
     expect(restored.getQueryData(["greengoods", "platform", "fresh"])).toEqual({ ordinary: true });
     // The expired entry left storage during the restore, so nothing is left to collect.
-    expect(storage.length).toBe(3);
+    expect(storage.length).toBe(4);
     await expect(persistence.gc()).resolves.toBe(0);
     source.clear();
     restored.clear();

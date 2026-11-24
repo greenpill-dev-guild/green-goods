@@ -7,6 +7,7 @@
  * @module hooks/client-ui/commitment/useGardenCommitmentController
  */
 
+import { useMemo } from "react";
 import type { Hex } from "viem";
 
 import {
@@ -14,11 +15,13 @@ import {
   canLinkWork,
   selectCommitmentActKind,
 } from "../../../modules/commitment-pooling/acts";
+import { isPastDue } from "../../../modules/commitment-pooling/due-dates";
 import { isCommitmentReasonPinError } from "../../../modules/commitment-pooling/reasons";
 import {
   isCommitmentCreator,
   selectCommitmentSeat,
 } from "../../../modules/commitment-pooling/selectors";
+import { isConfirmerByAccount } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
@@ -35,6 +38,8 @@ import {
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
 import { useCommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
+import { useDueClock } from "../../commitment-pooling/useDueClock";
+import { useWorkVisibility } from "../../work/useWorkVisibility";
 import { useWorks } from "../../work/useWorks";
 import type {
   GardenCommitmentActs,
@@ -68,6 +73,7 @@ export function useGardenCommitmentController(input: {
   const metadata = useCommitmentMetadataFor(commitmentQuery.detail?.commitment);
   const mutation = useCommitmentMutation({ chainId });
   const workGarden = commitmentQuery.detail?.commitment.providerGarden ?? null;
+  const workVisibility = useWorkVisibility(chainId);
   const { works } = useWorks(workGarden ?? "", { offline: true });
   const poolQuery = useCommitmentPool(
     { chainId, poolId: commitmentQuery.detail?.commitment.poolId ?? 0n },
@@ -88,6 +94,9 @@ export function useGardenCommitmentController(input: {
 
   const detail = commitmentQuery.detail;
   const commitment = detail?.commitment;
+  // The chain's clock, ticking when the promise falls due: past it, nothing offers a take-up.
+  const clocked = useMemo(() => (commitment ? [commitment] : []), [commitment]);
+  const due = useDueClock({ chainId, poolId: commitment?.poolId ?? null, commitments: clocked });
   const workDecisions = useCommitmentWorkDecisions({
     chainId,
     garden: commitment?.providerGarden ?? routeGarden,
@@ -129,7 +138,17 @@ export function useGardenCommitmentController(input: {
   const pendingClaimRequests = claimsQuery.claimRequests.filter(
     (request) => request.state === "PENDING"
   );
+  // Whether a take-up request waits is only known once the read answered; until then no
+  // surface may say that none does.
+  const takeUpPending = claimsQuery.isSuccess ? pendingClaimRequests.length > 0 : null;
   const hasPendingClaimRequest = ownRequest?.state === "PENDING";
+  const untaken = Boolean(
+    commitment && (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED")
+  );
+  // Untaken and past due on the chain's clock: only once the due date is known.
+  const pastDue = Boolean(commitment && untaken && due.known && isPastDue(commitment, due.clock));
+  // Untaken and not past due on the chain's clock; never open before the due date is known.
+  const takeUpOpen = untaken && due.known && !pastDue;
   // Who may take this up. On a garden pool the chain gates a personal claim on
   // a role in the route garden. On the protocol pool the claim goes through a
   // garden of the reader's own, the host included for a personal claim, so any
@@ -171,6 +190,8 @@ export function useGardenCommitmentController(input: {
         hasPendingJob: pending || hasPendingClaimRequest || queueState.isUnavailable,
         isCreator: isCommitmentCreator({ commitment, viewer: viewer ?? undefined }),
         isMember: canClaimHere === null ? undefined : canClaimHere,
+        // Until the end of the cycle it falls due with is read, its due date is unknown.
+        clock: due.known ? due.clock : undefined,
       })
     : null;
   const actGarden = commitment ? (commitment.providerGarden as Address | null) : null;
@@ -191,16 +212,19 @@ export function useGardenCommitmentController(input: {
       (work.status === "approved" || work.status === "pending") &&
       !linkedElsewhere.has(work.id.toLowerCase())
   );
-  const membershipNotRequired = Boolean(
+  const named = Boolean(
     viewer && commitment?.confirmers?.some((entry) => entry.toLowerCase() === viewer.toLowerCase())
   );
+  // A named confirmer, a Request's creator or an Offer's taker confirms on their
+  // own account, so a garden role lost before the queue sends must not hold it.
+  const membershipNotRequired = isConfirmerByAccount(commitment, viewer);
   const confirmationGarden = roles.counterpartyGarden ?? routeGarden;
   const canNotYet = Boolean(
     viewer &&
       commitment &&
       (commitment.creator?.toLowerCase() === viewer.toLowerCase() ||
         commitment.counterparty?.toLowerCase() === viewer.toLowerCase() ||
-        membershipNotRequired ||
+        named ||
         roles.stewardsPoolGarden)
   );
   const confirmed =
@@ -229,7 +253,16 @@ export function useGardenCommitmentController(input: {
           gardenAddress: context.garden,
         },
       }),
-    claimPersonal: () => {
+    claimPersonal: async () => {
+      const queued = queueState.pendingActs.get(queueKey);
+      if (queued?.kind === "claim" && queued.waitingReason === "reward-agreement-required") {
+        await jobs.sendQueued({
+          jobId: queued.jobId,
+          commitmentId: requireCommitment().commitmentId,
+          keepDeclined: true,
+        });
+        return queued.jobId;
+      }
       const garden = requireRouteGarden();
       return jobs.enqueue({
         act: "claim",
@@ -312,6 +345,7 @@ export function useGardenCommitmentController(input: {
     metadata,
     pool: poolQuery.pool,
     works,
+    workVisibility,
     actions,
     roles,
     seat,
@@ -330,14 +364,16 @@ export function useGardenCommitmentController(input: {
     },
     ownRequest,
     pendingClaimRequests,
-    canAskAgain: Boolean(
-      commitment &&
-        (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
-        !pending &&
-        !queueState.isUnavailable &&
-        // Every take-up entry point honours the members-only rule, asking again included.
-        canClaimHere === true
-    ),
+    takeUpOpen,
+    pastDue,
+    takeUpPending,
+    canAskAgain:
+      // Asking again is a take-up: never past due, and not before the due date is known.
+      takeUpOpen &&
+      !pending &&
+      !queueState.isUnavailable &&
+      // Every take-up entry point honours the members-only rule, asking again included.
+      canClaimHere === true,
     claimNeedsContext: isProtocolPool,
     membership,
     queue: {
@@ -364,6 +400,10 @@ export function useGardenCommitmentController(input: {
     isQueueing: jobs.isPending,
     isSending: mutation.isPending,
     acts,
-    refetch: commitmentQuery.refetch,
+    refetch: async () => {
+      // A failed read of the cycle the promise falls due with is retried with the page.
+      if (due.isError) due.retry();
+      return commitmentQuery.refetch();
+    },
   };
 }

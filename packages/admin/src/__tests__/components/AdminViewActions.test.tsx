@@ -12,7 +12,7 @@ const actions: ViewAction[] = [
   {
     id: "fund-payout-jar",
     label: "Fund Cookie Jar",
-    labelId: "cockpit.community.action.fundPayoutJar",
+    labelId: "hub.community.action.fundPayoutJar",
     icon: RiHandCoinLine,
     onClick: vi.fn(),
     variant: "secondary",
@@ -20,7 +20,7 @@ const actions: ViewAction[] = [
   {
     id: "add-member",
     label: "Add Member",
-    labelId: "cockpit.community.action.addMember",
+    labelId: "hub.community.action.addMember",
     icon: RiUserAddLine,
     onClick: vi.fn(),
     variant: "primary",
@@ -36,7 +36,7 @@ describe("AdminViewActions", () => {
       </IntlProvider>
     );
 
-    expect(screen.getByRole("button", { name: "Financiar Cookie Jar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Financiar cookie jar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Adicionar membro" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Fund Cookie Jar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Member" })).not.toBeInTheDocument();
@@ -53,7 +53,7 @@ describe("AdminViewActions", () => {
               ...actions[0]!,
               onClick,
               disabled: true,
-              disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+              disabledReasonId: "hub.community.action.fundPayoutJarNoJar",
               disabledReason: "This garden has no payout jar yet.",
             },
           ]}

@@ -21,6 +21,8 @@ import { OfflineContentRow } from "./OfflineContentRow";
 
 interface ApplicationSettings {
   title: string;
+  /** The title's id, which names the setting's control for assistive technology. */
+  titleId: string;
   description: string;
   Option: () => ReactNode;
   Icon: React.ReactNode;
@@ -46,8 +48,21 @@ interface UpdateRow {
 const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 
 /**
+ * A switch's slot: the same control column, the switch at its trailing edge where every control
+ * ends, so its hint wraps at the same line as its siblings' (PRD-1531). On a phone too narrow for
+ * the column the switch stays beside the title, since it is small enough to.
+ */
+const SETTING_SWITCH_SLOT = `flex shrink-0 justify-end ${SETTING_CONTROL_WIDTH} @max-[328px]:w-auto`;
+
+/**
+ * The control's slot: beside the title, and under it on a phone too narrow for both, so a title
+ * or hint is never cut to make room (DL-159). The tab under 328px is a phone under 360px.
+ */
+const SETTING_CONTROL_SLOT = "shrink-0 @max-[328px]:basis-full @max-[328px]:[&>*]:w-full";
+
+/**
  * A select keeps its value on one line. The trigger leaves 66px for the text,
- * and "Português" is a few pixels wider than that in Inter. The shared trigger
+ * and "Português" is about 69px in Plus Jakarta Sans at 14px. The shared trigger
  * wraps a value that does not fit, which broke it across two lines; held on
  * one line it borrows those pixels from the gap before the chevron instead.
  * Radix drops a className given to SelectValue, so the trigger styles the span.
@@ -67,28 +82,31 @@ function SettingRow({
   titleId,
   description,
   control,
+  compact = false,
 }: {
   icon: ReactNode;
   title: string;
   titleId?: string;
   description: ReactNode;
   control: ReactNode;
+  /** A control small enough to stay beside the title at any width: a switch. */
+  compact?: boolean;
 }) {
   return (
     <Card>
-      <div className="flex flex-row items-center gap-3 w-full">
+      <div className="flex flex-row flex-wrap items-center gap-3 w-full">
         <Avatar>
           <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
             {icon}
           </div>
         </Avatar>
-        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1 basis-0">
           <div id={titleId} className="text-sm font-medium truncate">
             {title}
           </div>
           {description}
         </div>
-        <div className="shrink-0">{control}</div>
+        <div className={compact ? SETTING_SWITCH_SLOT : SETTING_CONTROL_SLOT}>{control}</div>
       </div>
     </Card>
   );
@@ -103,6 +121,9 @@ export const AppSettings: React.FC = () => {
   // would do nothing, so the row is not offered at all.
   const canVibrate = isHapticsSupported();
   const [vibrationOn, setVibrationOn] = useState(isHapticsEnabled);
+  // Each control is named by its row's title, so a screen reader hears "Theme", not a bare combo box.
+  const themeTitleId = useId();
+  const languageTitleId = useId();
   const vibrationTitleId = useId();
 
   const handleVibrationChange = (enabled: boolean) => {
@@ -140,6 +161,7 @@ export const AppSettings: React.FC = () => {
           id: "app.settings.theme",
           defaultMessage: "Theme",
         }),
+        titleId: themeTitleId,
         description: intl.formatMessage({
           id: "app.settings.selectTheme",
           defaultMessage: "Choose how the app looks",
@@ -150,7 +172,11 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger size="sm" className={SETTING_SELECT_TRIGGER}>
+            <SelectTrigger
+              size="sm"
+              className={SETTING_SELECT_TRIGGER}
+              aria-labelledby={themeTitleId}
+            >
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -168,6 +194,7 @@ export const AppSettings: React.FC = () => {
           id: "app.settings.language",
           defaultMessage: "Language",
         }),
+        titleId: languageTitleId,
         description: intl.formatMessage(
           {
             id: "app.settings.selectLanguage",
@@ -183,7 +210,11 @@ export const AppSettings: React.FC = () => {
           // Controlled like Theme. With no value the trigger showed the language
           // as its placeholder, in the muted placeholder colour.
           <Select value={locale} onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger size="sm" className={SETTING_SELECT_TRIGGER}>
+            <SelectTrigger
+              size="sm"
+              className={SETTING_SELECT_TRIGGER}
+              aria-labelledby={languageTitleId}
+            >
               <SelectValue
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
               />
@@ -208,6 +239,8 @@ export const AppSettings: React.FC = () => {
       locale,
       switchLanguage,
       availableLocales,
+      themeTitleId,
+      languageTitleId,
     ]
   );
 
@@ -345,18 +378,19 @@ export const AppSettings: React.FC = () => {
   const updateRow = resolveUpdateRow();
 
   return (
-    <>
+    <section className="flex flex-col gap-2">
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.settings",
           defaultMessage: "Settings",
         })}
       </h5>
-      {applicationSettings.map(({ title, Icon, description, Option }) => (
+      {applicationSettings.map(({ title, titleId, Icon, description, Option }) => (
         <SettingRow
           key={title}
           icon={Icon}
           title={title}
+          titleId={titleId}
           description={<div className={SETTING_DESCRIPTION}>{description}</div>}
           control={<Option />}
         />
@@ -367,6 +401,7 @@ export const AppSettings: React.FC = () => {
           icon={<RiVolumeVibrateLine className="w-4" />}
           title={intl.formatMessage({ id: "app.settings.vibration", defaultMessage: "Vibration" })}
           titleId={vibrationTitleId}
+          compact
           description={
             <div className={SETTING_DESCRIPTION}>
               {intl.formatMessage({
@@ -420,6 +455,6 @@ export const AppSettings: React.FC = () => {
           </Button>
         }
       />
-    </>
+    </section>
   );
 };

@@ -98,12 +98,12 @@ const allowedIdenticalLocalizedKeys = new Set([
   // Token symbol and network proper name have no words to translate.
   "app.celoWallet.asset",
   "app.community.weightScheme.linear",
-  // The compact Agro tab label is intentionally the same abbreviation in all locales;
-  // its accessible name uses the translated full domain name.
-  "app.gardenIntro.domain.agroShort",
-  "cockpit.community.stats.pools",
-  // An amount beside the G$ symbol has no words to translate.
-  "cockpit.garden.pool.reward.inGoodDollars",
+  "hub.community.stats.pools",
+  // The G$ symbol, alone or beside an amount, has no words to translate.
+  "app.commitment.reward.goodDollars",
+  "hub.garden.pool.reward.inGoodDollars",
+  "app.voucher.rw.gd",
+  "app.voucher.rw.sh.gd",
   "public.fund.vaults.vaultCount",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
   // and the compact line Your Work and a garden's Promises share drops "Saved" in every
@@ -117,6 +117,7 @@ const allowedIdenticalProductValues = new Set([
   "APR",
   "Cookie Jar",
   "Cookie Jars",
+  "Cookie jar",
   "Cookies",
   "DAI",
   "Decentral Park",
@@ -126,8 +127,12 @@ const allowedIdenticalProductValues = new Set([
   "ENS",
   "ETH",
   "Feedback",
+  // GoodDollar's token symbol, like USDC and WETH below.
+  "G$",
   "GitHub",
   "Green Goods",
+  // The steward surface's name, kept as a name in every language (PRD-1485).
+  "Green Goods Hub",
   // The product noun the team already uses untranslated in Spanish and
   // Portuguese copy ("las pools", "as pools").
   "Pool",
@@ -206,7 +211,9 @@ const localeAllowedIdenticalValues: Record<string, Set<string>> = {
     "Video",
     "error",
   ]),
-  pt: new Set(["Cultural", "Material", "Social", "Status", "hubs"]),
+  // Brazilian Portuguese says "Links" for web links (the catalog's own "cole um link");
+  // Spanish translates it ("Enlaces"), so only Portuguese may keep the English word.
+  pt: new Set(["Cultural", "Links", "Material", "Social", "Status", "hubs"]),
 };
 
 function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: string): boolean {
@@ -528,7 +535,10 @@ describe("i18n locale coverage", () => {
       );
 
       expect(missing, `Missing source message ids:\n${missing.join("\n")}`).toHaveLength(0);
-    }, 30_000);
+      // The first caller parses every Client, Admin and Shared source file for message ids (the
+      // result is cached for the rest), which takes 10 s on a quiet machine and 50 to 140 s while
+      // parallel sessions' gates share the CPU; the limit allows for that and still stops a hang.
+    }, 180_000);
 
     it("pairs each literal id with its literal defaultMessage in every message form", () => {
       const fixture = `
@@ -586,7 +596,7 @@ describe("i18n locale coverage", () => {
         );
 
       expect(drift, `defaultMessage drifted from en.json:\n${drift.join("\n")}`).toHaveLength(0);
-    }, 30_000);
+    }, 180_000);
 
     it("should include known dynamic message id families in all locales", () => {
       const catalogs: Record<string, LocaleCatalog> = { en, es, pt };
@@ -621,6 +631,31 @@ describe("i18n locale coverage", () => {
         .map(([key]) => key);
 
       expect(strays, `Use provisión / provisão instead:\n${strays.join("\n")}`).toEqual([]);
+    });
+
+    // Promise is promesa and promessa on every surface (18 Oct 2026). Compromiso and compromisso
+    // stay right where English still says commitment, so each message is held to its English
+    // source instead of banning a word.
+    it("should say promesa and promessa wherever English says promise", () => {
+      const icuArguments = /\{\s*\w+\s*[,}]/g;
+      const promise = /\bpromis(?:e|es|ed|ing)\b/i;
+      const localized = [
+        { locale: "es", catalog: es as LocaleCatalog, word: /\bprome(?:sa|t)/i },
+        { locale: "pt", catalog: pt as LocaleCatalog, word: /\bprome(?:ssa|t)/i },
+      ];
+      const promised = Object.entries(en as LocaleCatalog).filter(([, value]) =>
+        promise.test(value.replace(icuArguments, " "))
+      );
+      const strays = promised.flatMap(([key]) =>
+        localized
+          .filter(
+            ({ catalog, word }) => !word.test((catalog[key] ?? "").replace(icuArguments, " "))
+          )
+          .map(({ locale }) => `${locale}:${key}`)
+      );
+
+      expect(promised.length).toBeGreaterThan(100);
+      expect(strays, `Use promesa / promessa (or prometer):\n${strays.join("\n")}`).toEqual([]);
     });
   });
 });

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G$ purchase</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="pp-nav"><a class="close" href="SServices.dc.html" aria-label="{{backLabel}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a></div>
+  <div class="scr" style="padding-bottom: {{padBottom}}">
+    <div class="pp-body">
+      <h1 class="pp-title">{{title}}</h1>
+      <p class="pp-place"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg><span>{{cycle}}</span><span aria-hidden="true">·</span><span>{{garden}}</span></p>
+      <section class="pp-band" data-tone="{{bandTone}}" aria-label="{{bandLabel}}">
+        <div class="pp-badges"><span class="gg-badge" data-tone="{{pillTone}}">{{pill}}</span><sc-if value="{{needsYou}}" hint-placeholder-val="{{false}}"><span class="gg-needs">{{needsYouLabel}}</span></sc-if></div>
+        <p>{{bandText}}</p>
+      </section>
+      <sc-if value="{{chainLine}}" hint-placeholder-val="{{false}}">
+        <p class="pp-chain"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg><span>{{chainText}}</span></p>
+      </sc-if>
+      <section class="pp-sec" aria-labelledby="pu-promised">
+        <h2 id="pu-promised">{{promisedTitle}}</h2>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{promised}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="{{f.icon}}"/></svg></span>{{f.k}}</span></dt><dd class="gg-fact-value"><span class="{{f.cls}}">{{f.v}}</span></dd></div></sc-for>
+        </dl>
+        <p class="pp-note">{{note}}</p>
+      </section>
+      <section class="pp-sec" aria-labelledby="pu-service">
+        <div class="pp-head"><h2 id="pu-service">{{serviceTitle}}</h2></div>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="{{f.icon}}"/></svg></span>{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+          <div class="gg-fact-row" data-kind="fact" data-has-action="true"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="#ri-file-list-line"/></svg></span>{{termsLabel}}</span></dt><dd class="gg-fact-value">{{termsVersion}}</dd><dd class="gg-fact-action"><a class="tlink" href="#">{{readTerms}}</a></dd></div>
+        </dl>
+        <h3 class="pp-sub">{{stepsTitle}}</h3>
+        <sc-if value="{{progPhases}}" hint-placeholder-val="{{true}}">
+          <ol class="ladder ph pp-ladder">
+            <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+              <li class="ls {{p.cls}}">
+                <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+                <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                  <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+                </span>
+              </li>
+            </sc-for>
+          </ol>
+        </sc-if>
+        <sc-if value="{{progFlat}}" hint-placeholder-val="{{false}}">
+          <ol class="ladder ph flat pp-ladder">
+            <sc-for list="{{flat}}" as="s" hint-placeholder-count="8">
+              <li class="ls {{s.cls}}"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg></span><span class="lt"><b>{{s.text}}</b><span class="ph">{{s.ph}} · {{s.state}}</span></span></li>
+            </sc-for>
+          </ol>
+        </sc-if>
+        <sc-if value="{{progSummary}}" hint-placeholder-val="{{false}}">
+          <div class="psum pp-psum"><b>{{sumText}}</b><div class="pbar" role="img" aria-label="{{sumText}}"><span style="width: {{sumPct}}%"></span></div></div>
+          <details class="plist pp-plist">
+            <summary>{{showSteps}}</summary>
+            <ol class="ladder ph pp-ladder">
+              <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+                <li class="ls {{p.cls}}">
+                  <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+                  <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                    <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+                  </span>
+                </li>
+              </sc-for>
+            </ol>
+          </details>
+        </sc-if>
+        <sc-if value="{{chainDetails}}" hint-placeholder-val="{{true}}">
+          <details class="tech pp-tech">
+            <summary>{{techLabel}}</summary>
+            <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
+          </details>
+        </sc-if>
+      </section>
+      <section class="pp-sec" aria-labelledby="pu-progress">
+        <h2 id="pu-progress">{{progressTitle}}</h2>
+        <sc-if value="{{hasProgress}}" hint-placeholder-val="{{true}}">
+          <ul class="pp-prog"><li><div class="pr"><span>{{progLabel}}</span><b>{{progCount}}</b></div><div class="bar" role="progressbar" aria-label="{{progLabel}}" aria-valuenow="{{progDone}}" aria-valuemin="0" aria-valuemax="1"><span style="width: {{progPct}}%"></span></div></li></ul>
+        </sc-if>
+        <sc-if value="{{noProgress}}" hint-placeholder-val="{{false}}"><p>{{progNone}}</p></sc-if>
+      </section>
+      <section class="pp-sec" aria-labelledby="pu-history">
+        <h2 id="pu-history">{{historyTitle}}</h2>
+        <ol class="pp-hist">
+          <sc-for list="{{history}}" as="h" hint-placeholder-count="4"><li><span class="dot {{h.cls}}" aria-hidden="true"></span><div><p>{{h.text}}</p><small>{{h.when}}</small></div></li></sc-for>
+        </ol>
+      </section>
+    </div>
+  </div>
+  <sc-if value="{{hasActs}}" hint-placeholder-val="{{false}}">
+    <div class="pp-bar"><div class="pp-acts">
+      <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{false}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+      <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="#">{{secondary}}</a></sc-if>
+    </div></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Waiting for check","Waiting for acceptance","Accepted","Access active","Ready to confirm","Kept, paying out","Paid out","Declined","Refund sent","Refunded","Refund failed","Canceled","Terms changed","Problem reported"],"default":"Waiting for check","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Waiting for check';
+    var dark = this.props.dark ?? false;
+    var price = 450, fee = 0.45, gross = 450.45;
+    var IC = { done: '#ri-check-line', now: '#ri-time-line', warn: '#ri-alert-line', fail: '#ri-close-line', todo: '#ri-checkbox-blank-circle-line' };
+    var ORDER = ['Waiting for check', 'Waiting for acceptance', 'Accepted', 'Access active', 'Ready to confirm', 'Kept, paying out', 'Paid out'];
+    var refund = { 'Declined': 1, 'Refund sent': 1, 'Refunded': 1, 'Refund failed': 1, 'Canceled': 1 }[st];
+    var pos = ORDER.indexOf(st);
+    if (st === 'Terms changed') pos = 1;
+    if (st === 'Problem reported') pos = 3;
+    function sub(text, state, label, date) { return { text: text, cls: state === 'todo' ? '' : state, icon: IC[state], state: label || t('pu.s.' + state), date: date || '' }; }
+    function phase(title, who, subs) {
+      var c = subs.some(function (s) { return s.cls === 'fail'; }) ? 'fail' : subs.some(function (s) { return s.cls === 'warn'; }) ? 'warn'
+        : subs.every(function (s) { return s.cls === 'done'; }) ? 'done' : subs.some(function (s) { return s.cls === 'now' || s.cls === 'done'; }) ? 'now' : 'todo';
+      return { title: title, who: who, subs: subs, cls: c, icon: IC[c] };
+    }
+    var phases = [phase(t('pu.p.paid'), t('pu.who.you'), [sub(t('pu.sub.agreed', { date: t.d('2026-10-22') }), 'done', '', '2026-10-22'), sub(t('pu.sub.sent', { gross: t.g(gross) }), 'done', '', '2026-10-22'),
+      sub(t('pu.sub.checked', { price: t.g(price) }), pos >= 1 || refund ? 'done' : 'now', '', '2026-10-23')])];
+    if (refund) {
+      var declined = st !== 'Canceled';
+      phases.push(phase(declined ? t('pu.p.declined') : t('pu.p.canceled'), declined ? t('pu.who.gg') : t('pu.who.you'), [sub(declined ? t('pu.sub.declined', { date: t.d('2026-10-23') }) : t('pu.sub.canceled', { date: t.d('2026-10-23') }), 'done', '', '2026-10-23')]));
+      var q = st === 'Declined' || st === 'Canceled' ? 'now' : 'done';
+      var sent = st === 'Refund sent' ? 'now' : st === 'Refunded' ? 'done' : st === 'Refund failed' ? 'fail' : 'todo';
+      phases.push(phase(t('pu.p.refund'), t('pu.who.rc'), [sub(t('pu.sub.queued', { price: t.g(price) }), q, '', '2026-10-24'), sub(t('pu.sub.refundSent'), sent, '', '2026-10-24'), sub(t('pu.sub.refunded'), st === 'Refunded' ? 'done' : 'todo', '', '2026-10-25')]));
+    } else {
+      var acc = st === 'Terms changed' ? 'warn' : pos >= 2 ? 'done' : pos === 1 ? 'now' : 'todo';
+      phases.push(phase(t('pu.p.accepted'), t('pu.who.both'), [sub(t('pu.sub.accepted'), acc, '', '2026-10-24'), sub(t('pu.sub.assigned'), pos >= 3 ? 'done' : pos === 2 ? 'now' : 'todo', '', '2026-10-24')]));
+      phases.push(phase(t('pu.p.month'), t('pu.who.gg'), [sub(t('pu.sub.access', { date: t.d('2026-10-24') }), st === 'Problem reported' ? 'warn' : pos >= 3 ? 'done' : pos === 2 ? 'now' : 'todo', st === 'Problem reported' ? t('pu.s.disputed') : '', '2026-10-24'), sub(t('pu.sub.ready', { date: t.d('2026-11-24') }), pos >= 4 && st !== 'Problem reported' ? 'done' : 'todo', '', '2026-11-24')]));
+      phases.push(phase(t('pu.p.kept'), t('pu.who.youThen'), [sub(t('pu.sub.confirmed'), pos >= 5 ? 'done' : pos === 4 ? 'now' : 'todo', '', '2026-11-25'), sub(t('pu.sub.paid', { price: t.g(price) }), pos >= 6 ? 'done' : pos === 5 ? 'now' : 'todo', '', '2026-11-26')]));
+    }
+    // Where the reader's G$ is now, as the first Service Access fact
+    var B = {
+      'Waiting for check': [t.g(gross) + ' G$', t('pu.b.sent')],
+      'Kept, paying out': [t.g(price) + ' G$', t('pu.b.paying')],
+      'Paid out': [t.g(price) + ' G$', t('pu.b.paid')],
+      'Declined': [t.g(price) + ' G$', t('pu.b.owed')], 'Canceled': [t.g(price) + ' G$', t('pu.b.owed')],
+      'Refund sent': [t.g(price) + ' G$', t('pu.b.coming')], 'Refunded': [t.g(price) + ' G$', t('pu.b.back')],
+      'Refund failed': [t.g(price) + ' G$', t('pu.b.failed')], 'Terms changed': [t.g(price) + ' G$', t('pu.b.old')]
+    }[st] || [t.g(price) + ' G$', t('pu.b.held')];
+    var N = {
+      'Waiting for check': ['check', null, 'cancel'],
+      'Waiting for acceptance': ['decide', null, 'cancel'],
+      'Accepted': ['accepted', null, 'report'],
+      'Access active': ['access', null, 'report'],
+      'Ready to confirm': ['confirm', 'confirm', 'report'],
+      'Kept, paying out': ['paying'],
+      'Paid out': ['paid'],
+      'Declined': ['declined'],
+      'Refund sent': ['refundSent'],
+      'Refunded': ['refunded'],
+      'Refund failed': ['refundFailed'],
+      'Canceled': ['canceled'],
+      'Terms changed': ['changed', 'newTerms', 'cancel'],
+      'Problem reported': ['problem', null, 'addDetails']
+    }[st];
+    var vars = { price: t.g(price), fee: t.g(fee), gross: t.g(gross), newPrice: t.g(480), newGross: t.g(480.48), quote: t('pu.quote'),
+      d1: t.d('2026-10-24'), d2: t.d('2026-11-24'), d3: t.d('2026-11-25'), d4: t.d('2026-11-26'), d5: t.d('2026-10-23') };
+    var hasPrimary = !!N[1], hasSecondary = !!N[2];
+    // The status band: the promise's own state in the app's words, marked when it needs the reader
+    var S = { offered: ['sh.st.offered', 'info'], progress: ['sh.st.inProgress', 'info'], awaiting: ['sh.st.awaiting', 'warning'], kept: ['sh.st.kept', 'success'], disputed: ['sh.st.disputed', 'warning'] };
+    var sKey = refund || pos < 2 ? 'offered' : st === 'Problem reported' ? 'disputed' : pos >= 5 ? 'kept' : pos === 4 ? 'awaiting' : 'progress';
+    var needsYou = st === 'Ready to confirm' || st === 'Terms changed';
+    var bandTone = needsYou ? 'attention' : st === 'Paid out' ? 'kept' : (pos < 2 && !refund) || st === 'Refund sent' || st === 'Kept, paying out' ? 'waiting' : 'neutral';
+    // The lab's dials: how progress reads and where chain words appear. The defaults are the pilot's picks.
+    var progKind = this.props.progress ?? 'phases', chainKind = this.props.chain ?? 'details';
+    var flat = [];
+    phases.forEach(function (p) { p.subs.forEach(function (x) { flat.push({ text: x.text, cls: x.cls || 'todo', icon: x.icon, state: x.state, ph: p.title, date: x.date }); }); });
+    var doneCount = flat.filter(function (x) { return x.cls === 'done'; }).length;
+    var accepted = !refund && pos >= 2;
+    var promised = [{ icon: '#ri-seedling-line', k: t('sh.offered'), v: t('pp.u.g'), cls: '' },
+      { icon: '#ri-time-line', k: t('sh.due'), v: accepted ? t('pu.due.until', { date: t.d('2026-11-24') }) : t('pp.due.g'), cls: '' },
+      { icon: '#ri-user-line', k: t('sh.doing'), v: t('who.gg'), cls: '' }];
+    if (accepted) promised.push({ icon: '#ri-shield-check-line', k: t('sh.confirms'), v: t('sh.you'), cls: 'you' });
+    var history = flat.filter(function (x) { return x.cls === 'done' || x.cls === 'now' || x.cls === 'fail' || x.cls === 'warn'; }).reverse().map(function (x, i) {
+      return { text: x.text, when: x.cls === 'done' ? t.d(x.date) : x.state, cls: x.cls === 'done' ? (i === 0 ? 'on' : '') : x.cls === 'fail' ? 'fail' : 'wait' };
+    });
+    var pDone = !refund && pos >= 4 && st !== 'Problem reported' ? 1 : 0;
+    return Object.assign(GGTW(this.props), {
+      progPhases: progKind === 'phases', progFlat: progKind === 'flat', progSummary: progKind === 'summary', flat: flat,
+      sumText: t('pu.sum', { done: t.n(doneCount), total: t.n(flat.length) }), sumPct: String(Math.round(100 * doneCount / Math.max(1, flat.length))), showSteps: t('pu.showSteps'),
+      chainLine: chainKind === 'line', chainText: t('pu.x.held'), chainDetails: chainKind === 'details',
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'),
+      title: t('of.g.title'), cycle: t('pp.cycle.gg'), garden: t('who.gg'),
+      bandLabel: t('sh.where'), bandTone: bandTone, pill: t(S[sKey][0]), pillTone: S[sKey][1], needsYou: needsYou, needsYouLabel: t('sh.needsYou'),
+      bandText: t('pu.n.' + N[0] + '.b', vars),
+      promisedTitle: t('sh.promised'), promised: promised, note: t('of.g.desc'),
+      serviceTitle: t('sh.service'),
+      facts: [{ icon: '#ri-coin-line', k: t('pu.f.payment'), v: B[0], s: B[1] },
+        { icon: '#ri-wallet-3-line', k: t('pu.f.paid'), v: t('pu.f.paidV', { gross: t.g(gross), date: t.d('2026-10-22') }), s: t('pu.f.paidS', { fee: t.g(fee) }) },
+        { icon: '#ri-safe-line', k: t('pu.f.recorded'), v: pos >= 1 || refund ? t.g(price) + ' G$' : t('pu.f.notYet'), s: t('pu.f.recordedS') },
+        { icon: '#ri-arrow-go-back-line', k: t('pu.f.refund'), v: t.g(price) + ' G$', s: t('pu.f.refundS') }],
+      termsLabel: t('c.terms'), termsVersion: t('pp.version', { v: t.n(st === 'Terms changed' ? 4 : 3) }), readTerms: t('c.readTerms'),
+      stepsTitle: t('pu.steps'), phases: phases, techLabel: t('c.tech'), tech: [t('pu.x.held'), t('pu.x.payment'), t('pu.x.record')],
+      progressTitle: t('sh.progress'), hasProgress: accepted, noProgress: !accepted, progNone: t('pu.prog.none'),
+      progLabel: t('pu.prog.month'), progCount: t('sh.prog.count', { done: t.n(pDone), of: t.n(1) }), progDone: String(pDone), progPct: String(pDone * 100),
+      historyTitle: t('sh.history'), history: history,
+      hasActs: hasPrimary || hasSecondary, hasPrimary: hasPrimary, hasSecondary: hasSecondary,
+      primary: hasPrimary ? t('pu.a.' + N[1]) : '', primaryHref: N[1] === 'newTerms' ? 'SPay.dc.html' : '#',
+      secondary: hasSecondary ? t('pu.a.' + N[2]) : '',
+      padBottom: hasPrimary || hasSecondary ? '104px' : '24px'
+    });
+  }
+}
+</script>
+</body>
+</html>

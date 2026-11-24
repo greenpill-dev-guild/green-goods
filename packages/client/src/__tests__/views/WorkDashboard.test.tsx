@@ -12,7 +12,19 @@ const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseMyWorks = vi.fn();
 const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
+let mockReviewerGardensLoading = false;
 let mockProofs: PendingProof[] = [];
+let mockDrafts: Array<Record<string, unknown>> = [];
+let mockActions: Array<{ id: string; title: string }> = [];
+/** The garden the chip on Home has chosen; null before a member has one. */
+let mockActiveGarden: { id: string; name: string } | null = null;
+let mockUploadOptions: unknown;
+/** The gardens each review read asked for: reviewer gardens, and gardens waiting reviews name. */
+let mockNeedsReviewReads: string[][] = [];
+/** Gardens whose review read fails; a read that asks for one of them fails whole. */
+let mockFailedReviewGardens: string[] = [];
+/** The member's gardens, which the chip can switch to; a garden the member left is not one. */
+let mockMemberGardenIds: string[] = [];
 let mockQueueUnreadable = false;
 let mockInitialPendingFilter: string | undefined;
 let mockReturnState: WorkDashboardReturnState | undefined;
@@ -85,6 +97,7 @@ function idleUploads() {
     isPreparing: false,
     isUploading: false,
     waitingDecisionWorkIds: new Set<string>() as ReadonlySet<string>,
+    waitingDecisionGardenIds: [] as string[],
     decisionFor: () => undefined,
     statusOf: () => undefined,
     upload: vi.fn(async () => undefined),
@@ -174,7 +187,20 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOrigi
 });
 
 vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
-  useDrafts: () => ({ drafts: [], draftCount: 0, deleteDraft: vi.fn(), isDeleting: false }),
+  useDrafts: () => ({ drafts: mockDrafts, deleteDraft: vi.fn(), isDeleting: false }),
+  useDraftThumbnail: () => ({ ref: { current: null }, url: null }),
+}));
+
+// The scope rule is proven in Shared; here the active garden's own items show, and so do items
+// in a garden the member left, while another of the member's gardens waits for the chip.
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({
+    garden: mockActiveGarden,
+    inScope: (gardens: readonly (string | null | undefined)[]) =>
+      !mockActiveGarden ||
+      gardens.some((garden) => garden?.toLowerCase() === mockActiveGarden?.id) ||
+      !gardens.some((garden) => garden && mockMemberGardenIds.includes(garden.toLowerCase())),
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/client-ui/commitment/usePendingProof", () => ({
@@ -189,6 +215,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => 
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
     linkedWorkIds: new Set<string>(),
+    failedLinkWorkIds: new Set<string>(),
     refresh: mockQueueRefresh,
   }),
 }));
@@ -198,7 +225,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling", () 
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useActions: () => ({ data: [] }),
+  useActions: () => ({ data: mockActions }),
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useYourWorkCount", () => ({
@@ -222,11 +249,26 @@ vi.mock("@green-goods/shared/hooks/work/useMyWorks", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useReviewerGardenIds", () => ({
-  useReviewerGardenIds: () => ({ reviewerGardenIds: mockReviewerGardenIds, isLoading: false }),
+  useReviewerGardenIds: () => ({
+    reviewerGardenIds: mockReviewerGardenIds,
+    isLoading: mockReviewerGardensLoading,
+  }),
 }));
 
+// A garden's read lists only that garden's works.
 vi.mock("@green-goods/shared/hooks/work/useNeedsReview", () => ({
-  useNeedsReview: () => mockNeedsReviewState,
+  useNeedsReview: (gardenIds: string[]) => {
+    mockNeedsReviewReads.push(gardenIds);
+    const read = new Set(gardenIds.map((garden) => garden.toLowerCase()));
+    const inRead = (item: Work) => read.has(item.gardenAddress.toLowerCase());
+    return {
+      ...mockNeedsReviewState,
+      isError: mockNeedsReviewState.isError || mockFailedReviewGardens.some((g) => read.has(g)),
+      allWorks: mockNeedsReviewState.allWorks.filter(inRead),
+      works: mockNeedsReviewState.works.filter(inRead),
+      decidedHere: mockNeedsReviewState.decidedHere.filter(inRead),
+    };
+  },
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
@@ -269,7 +311,10 @@ vi.mock("@green-goods/shared/hooks/work/useWorkApprovals", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useWorkUploads", () => ({
-  useWorkUploads: () => mockUploads,
+  useWorkUploads: (options: unknown) => {
+    mockUploadOptions = options;
+    return mockUploads;
+  },
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
@@ -282,6 +327,9 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 });
 
 vi.mock("../../components/Cards", () => ({
+  // Which drafts are listed is the subject here; the card's own anatomy has its own tests.
+  DraftCard: ({ actionTitle, onResume }: { actionTitle?: string; onResume: () => void }) =>
+    createElement("button", { type: "button", onClick: onResume }, actionTitle ?? "Untitled"),
   MinimalWorkCard: ({
     work,
     onClick,
@@ -324,7 +372,18 @@ describe("WorkDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
+    mockReviewerGardensLoading = false;
+    mockNeedsReviewReads = [];
+    mockFailedReviewGardens = [];
+    mockMemberGardenIds = [
+      "0x00000000000000000000000000000000000000a1",
+      "0x00000000000000000000000000000000000000b2",
+    ];
     mockProofs = [];
+    mockDrafts = [];
+    mockActions = [];
+    mockActiveGarden = null;
+    mockUploadOptions = undefined;
     mockQueueUnreadable = false;
     mockInitialPendingFilter = undefined;
     mockReturnState = undefined;
@@ -403,6 +462,107 @@ describe("WorkDashboard", () => {
     expect(mockUseMyOnlineWorks).not.toHaveBeenCalled();
   });
 
+  it("names the active garden and lists only its work, the rest waiting until the chip switches", () => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const there = "0x00000000000000000000000000000000000000b2";
+    const proof = (id: string, title: string, savedGarden: string): PendingProof => ({
+      id,
+      source: "queued",
+      commitmentId: 7n,
+      garden: savedGarden as `0x${string}`,
+      savedGarden: savedGarden as `0x${string}`,
+      commitment: null,
+      title,
+      savedAt: Date.now(),
+      contents: { photos: 1, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
+      waitingReason: null,
+      failed: false,
+      sending: false,
+      discardable: true,
+      firstPhoto: null,
+    });
+    const draft = (id: string, actionUID: number, gardenAddress: string) => ({
+      id,
+      actionUID,
+      gardenAddress,
+      images: [],
+      thumbnailUrl: null,
+      currentStep: "media",
+      firstIncompleteStep: "media",
+      updatedAt: Date.now(),
+    });
+    mockActions = [
+      { id: "42161-11", title: "Compost Turn" },
+      { id: "42161-12", title: "Seed Swap" },
+    ];
+    mockReviewerGardenIds = [here, there];
+    mockNeedsReviewState = {
+      ...mockNeedsReviewState,
+      works: [
+        work({ id: "0xreview-here", title: "Review here", gardenAddress: here }),
+        work({ id: "0xreview-there", title: "Review there", gardenAddress: there }),
+      ],
+    };
+    mockUseMyWorks.mockReturnValue({
+      data: [
+        work({ id: "job-here", title: "Queued here", gardenerAddress: "0xabc", status: "syncing" }),
+        work({
+          id: "job-there",
+          title: "Queued there",
+          gardenerAddress: "0xabc",
+          gardenAddress: there,
+          status: "syncing",
+        }),
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+    mockDrafts = [draft("draft-here", 11, here), draft("draft-there", 12, there)];
+    mockProofs = [
+      proof("proof-here", "Proof here", here),
+      proof("proof-there", "Proof there", there),
+    ];
+    const items = {
+      [here]: ["Queued here", "Compost Turn", "Proof here"],
+      [there]: ["Queued there", "Seed Swap", "Proof there"],
+    };
+    const sheet = () => screen.getByRole("dialog", { name: "Your Work" });
+
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    const first = renderDashboard();
+
+    // The garden line takes the description's place under the title.
+    expect(sheet()).toHaveAccessibleDescription("In TAS HUB");
+    for (const title of items[here]) expect(screen.getByText(title)).toBeInTheDocument();
+    for (const title of items[there]) expect(screen.queryByText(title)).not.toBeInTheDocument();
+    // Upload all sends what this list shows, never another garden's work.
+    const { inScope } = mockUploadOptions as { inScope: (gardens: string[]) => boolean };
+    expect(inScope([here])).toBe(true);
+    expect(inScope([there])).toBe(false);
+    // Reviews are read for this garden only, so another garden's slow read never holds the list.
+    expect(mockNeedsReviewReads).toContainEqual([here]);
+    expect(mockNeedsReviewReads.flat()).not.toContain(there);
+    fireEvent.click(screen.getByTestId("tab-toReview"));
+    expect(screen.getByText("Review here")).toBeInTheDocument();
+    expect(screen.queryByText("Review there")).not.toBeInTheDocument();
+    first.unmount();
+
+    // Nothing was lost: switching the chip lists the other garden's.
+    mockActiveGarden = { id: there, name: "Vida Verde" };
+    mockNeedsReviewReads = [];
+    renderDashboard();
+
+    expect(sheet()).toHaveAccessibleDescription("In Vida Verde");
+    expect(mockNeedsReviewReads).toContainEqual([there]);
+    expect(mockNeedsReviewReads.flat()).not.toContain(here);
+    for (const title of items[there]) expect(screen.getByText(title)).toBeInTheDocument();
+    for (const title of items[here]) expect(screen.queryByText(title)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("tab-toReview"));
+    expect(screen.getByText("Review there")).toBeInTheDocument();
+    expect(screen.queryByText("Review here")).not.toBeInTheDocument();
+  });
+
   it("keeps queued submissions visible when review-side queries fail", () => {
     mockNeedsReviewState = { ...mockNeedsReviewState, isError: true, ready: false };
     mockWorkApprovalsState = {
@@ -427,27 +587,175 @@ describe("WorkDashboard", () => {
     expect(screen.queryByText("Loading your work...")).not.toBeInTheDocument();
   });
 
-  it("lists Needs review from the garden reads and files a review made here under Completed", () => {
-    mockReviewerGardenIds = ["0x00000000000000000000000000000000000000a1"];
-    mockNeedsReviewState = {
-      ...mockNeedsReviewState,
-      works: [work({ id: "0xwaiting", title: "Waiting planting" })],
-      decidedHere: [work({ id: "0xdecided", title: "Just approved planting", status: "approved" })],
-    };
-    mockUseMyWorks.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(ok),
+  describe("To Review (DL-149)", () => {
+    const garden = "0x00000000000000000000000000000000000000a1";
+    const waiting = () => [
+      work({ id: "0xwaiting", title: "Waiting planting" }),
+      work({ id: "0xwaiting2", title: "Waiting mulching" }),
+    ];
+    const nothingOfMine = () =>
+      mockUseMyWorks.mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+        refetch: vi.fn(ok),
+      });
+    const toReview = () => screen.getByTestId("tab-toReview");
+
+    it("moves the review queue out of Pending, counted on its own tab beside the member's own", () => {
+      mockReviewerGardenIds = [garden];
+      mockOnPhone = 3;
+      mockNeedsReviewState = {
+        ...mockNeedsReviewState,
+        works: waiting(),
+        decidedHere: [
+          work({ id: "0xdecided", title: "Just approved planting", status: "approved" }),
+        ],
+      };
+
+      renderDashboard();
+
+      // Pending holds the member's own: its count is the Home badge's, and no row is the queue's.
+      expect(screen.getByTestId("tab-pending")).toHaveTextContent("3");
+      expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
+      expect(screen.queryByText("Waiting planting")).not.toBeInTheDocument();
+      expect(screen.getByText("1 item")).toBeInTheDocument();
+      const filter = screen.getByRole("combobox", { name: "Pending work filter" });
+      expect(filter).not.toHaveTextContent("Needs review");
+
+      expect(toReview()).toHaveTextContent("2");
+      fireEvent.click(toReview());
+      expect(screen.getByText("2 to review")).toHaveAttribute("role", "status");
+      const row = screen.getByText("Waiting planting").closest("[data-component='PendingCard']");
+      if (!(row instanceof HTMLElement)) throw new Error("The work to review has no row");
+      expect(within(row).getByText("To review")).toBeInTheDocument();
+      expect(screen.getByText("Waiting mulching")).toBeInTheDocument();
+      expect(screen.queryByText("Queued tree planting")).not.toBeInTheDocument();
+
+      // A review made here files under Completed, as it did from Pending.
+      expect(screen.queryByText("Just approved planting")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("tab-completed"));
+      expect(screen.getByText("Just approved planting")).toBeInTheDocument();
     });
 
-    renderDashboard();
+    it("shows only to someone who may review here, and a return to it gives way once that is known", () => {
+      mockInitialPendingFilter = "all";
+      mockReturnState = {
+        tab: "toReview",
+        pendingFilter: "all",
+        completedFilter: "all",
+        timeFilter: "month",
+        scrollTop: 0,
+      };
+      mockReviewerGardensLoading = true;
+      const view = renderDashboard();
+      // Still read: it holds its place rather than dropping a steward back to Pending.
+      expect(toReview()).toHaveAttribute("aria-current", "true");
+      expect(screen.getByText("Loading your work...")).toBeInTheDocument();
 
-    expect(screen.getByText("Waiting planting")).toBeInTheDocument();
-    expect(screen.queryByText("Just approved planting")).not.toBeInTheDocument();
+      mockReviewerGardensLoading = false;
+      view.rerender(
+        createElement(
+          MemoryRouter,
+          { initialEntries: ["/home"] },
+          createElement(
+            IntlProvider,
+            { locale: "en", messages: en },
+            createElement(WorkDashboard, { onClose: view.onClose })
+          )
+        )
+      );
+      expect(screen.queryByTestId("tab-toReview")).not.toBeInTheDocument();
+      expect(screen.getByTestId("tab-pending")).toHaveAttribute("aria-current", "true");
+      expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
+    });
 
-    fireEvent.click(screen.getByTestId("tab-completed"));
-    expect(screen.getByText("Just approved planting")).toBeInTheDocument();
+    it("stays with nothing waiting, with no count and its own empty state", () => {
+      mockReviewerGardenIds = [garden];
+
+      renderDashboard();
+
+      expect(toReview()).toHaveTextContent(/^To Review$/);
+      fireEvent.click(toReview());
+      expect(screen.getByText("Nothing to review")).toBeInTheDocument();
+      expect(screen.getByText("Work waiting for your review shows up here.")).toBeInTheDocument();
+    });
+
+    it("names no count while older work may wait beyond the rows read, as Home's duty row does", () => {
+      mockReviewerGardenIds = [garden];
+      mockNeedsReviewState = { ...mockNeedsReviewState, works: waiting(), ready: false };
+
+      renderDashboard();
+
+      expect(toReview()).toHaveTextContent(/^To Review$/);
+      fireEvent.click(toReview());
+      expect(screen.getByText("Waiting planting")).toBeInTheDocument();
+      expect(screen.queryByText("2 to review")).not.toBeInTheDocument();
+    });
+
+    it("never calls the queue empty while older work may wait beyond the rows read", () => {
+      mockReviewerGardenIds = [garden];
+      mockNeedsReviewState = { ...mockNeedsReviewState, works: [], ready: false };
+
+      renderDashboard();
+      fireEvent.click(toReview());
+
+      expect(screen.getByText("Nothing to review in recent work")).toBeInTheDocument();
+      expect(screen.queryByText("Nothing to review")).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ["while its read runs", { isLoading: true }, "Loading your work..."],
+      ["when its read fails", { isError: true }, "Unable to load work"],
+    ] as const)("answers by its own read %s, whatever Pending holds", (_case, read, expected) => {
+      mockReviewerGardenIds = [garden];
+      mockNeedsReviewState = { ...mockNeedsReviewState, ...read, ready: false };
+
+      renderDashboard();
+
+      // Pending does not wait on the queue's read.
+      expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
+      expect(screen.queryByText(expected)).not.toBeInTheDocument();
+      fireEvent.click(toReview());
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    });
+
+    it("says when the queue was read while offline, as Pending says of its own", () => {
+      mockIsOnline = false;
+      nothingOfMine();
+      mockReviewerGardenIds = [garden];
+      mockNeedsReviewState = {
+        ...mockNeedsReviewState,
+        works: waiting(),
+        savedAt: Date.now() - 60_000,
+      };
+
+      renderDashboard();
+      fireEvent.click(toReview());
+
+      expect(screen.getByText(/^Offline · /)).toHaveAttribute("role", "status");
+      expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
+    });
+
+    it("opens the work from its row, remembering the tab for Back", async () => {
+      mockReviewerGardenIds = [garden];
+      mockNeedsReviewState = { ...mockNeedsReviewState, works: waiting(), allWorks: waiting() };
+
+      renderDashboard();
+      fireEvent.click(toReview());
+      fireEvent.click(screen.getByText("Waiting planting"));
+
+      await waitFor(() =>
+        expect(mockNavigate).toHaveBeenCalledWith("/home", {
+          replace: true,
+          state: {
+            dashboardEntry: expect.objectContaining({
+              snapshot: expect.objectContaining({ tab: "toReview" }),
+            }),
+          },
+        })
+      );
+    });
   });
 
   it("offers Upload all only in Pending while online, and only with All and To upload", () => {
@@ -466,7 +774,7 @@ describe("WorkDashboard", () => {
 
     const uploadAll = screen.getByTestId("upload-all");
     expect(uploadAll).toHaveTextContent("Upload all");
-    const actions = screen.getByTestId("work-list-actions");
+    const actions = screen.getByTestId("sheet-list-actions");
     expect(within(actions).getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(within(actions).getByTestId("upload-all")).toBe(uploadAll);
     expect(within(actions).queryByRole("combobox", { name: "Pending work filter" })).toBeNull();
@@ -508,6 +816,7 @@ describe("WorkDashboard", () => {
   });
 
   it("marks a decision made here as waiting to upload until Upload all sends it", () => {
+    mockReviewerGardenIds = ["0x00000000000000000000000000000000000000a1"];
     mockNeedsReviewState = {
       ...mockNeedsReviewState,
       decidedHere: [
@@ -520,6 +829,7 @@ describe("WorkDashboard", () => {
       readyCount: 1,
       queuedCount: 1,
       waitingDecisionWorkIds: new Set(["0xdecided"]),
+      waitingDecisionGardenIds: ["0x00000000000000000000000000000000000000a1"],
     };
 
     renderDashboard();
@@ -532,6 +842,72 @@ describe("WorkDashboard", () => {
     expect(screen.queryByRole("button", { name: /Queued approval/ })).not.toBeInTheDocument();
     const sent = screen.getByRole("button", { name: /Sent approval/ });
     expect(within(sent).queryByText("Your review isn't sent yet")).not.toBeInTheDocument();
+  });
+
+  it("lists a review queued for a garden the member left, as the badge counts it", () => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const left = "0x00000000000000000000000000000000000000c3";
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    // The member reviews here only; they reviewed in the other garden before leaving it.
+    mockReviewerGardenIds = [here];
+    mockNeedsReviewState = {
+      ...mockNeedsReviewState,
+      decidedHere: [
+        work({
+          id: "0xLEFT-REVIEW",
+          title: "Review from a garden I left",
+          status: "approved",
+          gardenAddress: left,
+        }),
+      ],
+    };
+    mockUploads = {
+      ...idleUploads(),
+      attentionCount: 1,
+      queuedCount: 1,
+      waitingDecisionWorkIds: new Set(["0xleft-review"]),
+      waitingDecisionGardenIds: [left],
+    };
+    mockOnPhone = 1;
+
+    renderDashboard();
+
+    expect(mockNeedsReviewReads).toContainEqual([left]);
+    const row = screen
+      .getByText("Review from a garden I left")
+      .closest("[data-component='PendingCard']");
+    if (!(row instanceof HTMLElement)) throw new Error("The queued review has no row");
+    expect(within(row).getByText("Your review")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["editing", "Nothing pending"],
+    ["upload", "Unable to load work"],
+  ] as const)("answers an empty %s filter alone for a left garden's failed review read", (filter, expected) => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const left = "0x00000000000000000000000000000000000000c3";
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    mockReviewerGardenIds = [here];
+    // The review waiting to upload names a garden the member left, and that garden won't read.
+    mockFailedReviewGardens = [left];
+    mockUploads = {
+      ...idleUploads(),
+      attentionCount: 1,
+      queuedCount: 1,
+      waitingDecisionWorkIds: new Set(["0xleft-review"]),
+      waitingDecisionGardenIds: [left],
+    };
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+    mockInitialPendingFilter = filter;
+
+    renderDashboard();
+
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
   it("keeps an on-chain submission out of Pending until its review read lands", () => {
@@ -592,7 +968,13 @@ describe("WorkDashboard", () => {
 
   it("says when the list was saved while offline and hides Refresh", () => {
     mockIsOnline = false;
-    mockNeedsReviewState = { ...mockNeedsReviewState, savedAt: Date.now() - 60_000 };
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      lastSuccessfulRefresh: Date.now() - 60_000,
+      refetch: vi.fn(ok),
+    });
 
     renderDashboard();
 
@@ -650,10 +1032,11 @@ describe("WorkDashboard", () => {
         source: "queued",
         commitmentId: 7n,
         garden: "0x00000000000000000000000000000000000000a1",
+        savedGarden: "0x00000000000000000000000000000000000000a1",
         commitment: null,
         title: "Repair the north fence panel",
         savedAt: Date.now(),
-        contents: { photos: 2, videos: 0, voiceNotes: 0, links: 0, words: false },
+        contents: { photos: 2, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
         waitingReason: null,
         failed: false,
         sending: false,
@@ -694,10 +1077,11 @@ describe("WorkDashboard", () => {
         source: "draft",
         commitmentId: 7n,
         garden: "0x00000000000000000000000000000000000000a1",
+        savedGarden: "0x00000000000000000000000000000000000000a1",
         commitment: null,
         title: "Repair the north fence panel",
         savedAt: Date.now(),
-        contents: { photos: 1, videos: 0, voiceNotes: 0, links: 0, words: false },
+        contents: { photos: 1, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
         waitingReason: null,
         failed: false,
         sending: false,
@@ -724,11 +1108,10 @@ describe("WorkDashboard", () => {
 
   it("offers no Retry on a failed load while offline", () => {
     mockIsOnline = false;
-    mockNeedsReviewState = { ...mockNeedsReviewState, isError: true, ready: false };
     mockUseMyWorks.mockReturnValue({
       data: [],
       isLoading: false,
-      isError: false,
+      isError: true,
       refetch: vi.fn(ok),
     });
 
@@ -740,14 +1123,14 @@ describe("WorkDashboard", () => {
   });
 
   it.each([
-    ["needsReview", { isLoading: true }, "Loading your work..."],
-    ["needsReview", { isError: true }, "Unable to load work"],
+    ["review", { isLoading: true }, "Loading your work..."],
+    ["review", { isError: true, data: undefined }, "Unable to load work"],
     // Drafts are on this phone, so their filter never waits on the record.
     ["editing", { isLoading: true }, "Nothing pending"],
   ] as const)("answers an empty %s filter by its own reads, whatever else is listed", (filter, read, expected) => {
     // Your own queued work is listed meanwhile, under another filter.
     mockInitialPendingFilter = filter;
-    mockNeedsReviewState = { ...mockNeedsReviewState, ...read, ready: false };
+    mockMyApprovalsQueryState = { ...mockMyApprovalsQueryState, ...read };
 
     renderDashboard();
 

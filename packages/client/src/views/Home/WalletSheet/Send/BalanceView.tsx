@@ -9,7 +9,7 @@ import {
 } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 
 interface BalanceViewProps {

@@ -10,6 +10,8 @@ const enMessages = {
   "action.rejection": "rejection",
   "action.submission": "submission",
   "approve.gardenerMissing": "❌ Gardener account not found. They may need to run /start first.",
+  "approve.currentTermsRequired":
+    "This report is still saved. Ask the gardener to submit the work again and agree to the current Terms of Use before it can be published.",
   "approve.permission":
     "❌ *Permission Denied*\n\nOnly registered stewards can approve work for this garden.",
   "approve.permissionWithReason":
@@ -37,8 +39,8 @@ const enMessages = {
   "permission.reason.notGardener": "This address is not a gardener in this garden.",
   "permission.reason.notSteward": "This address is not a steward for this garden.",
   "help.basic":
-    '🌿 *Green Goods Bot Help*\n\n*Basic Commands:*\n/start - Create wallet & get started\n/join <address> - Join a garden\n/status - Check your current status\n\n*Submitting Work:*\nSimply send a text or voice message describing your work!\nExample: "I planted 5 trees today"\n\n*Reporting Bugs and Ideas:*\nPost freely in the Bug Reports or Ideas/Feedback topics in the Green Goods chat — the team picks them up automatically.\n\n',
-  "help.footer": "_Need help? Contact @GreenGoodsSupport_",
+    '🌿 *Green Goods Bot Help*\n\n*Basic Commands:*\n/start - Create wallet & get started\n/join <address> - Join a garden\n/status - Check your current status\n\n*Submitting Work:*\nSimply send a text or voice message describing your work!\nExample: "I planted 5 trees today"\n\n*Reporting Bugs and Ideas:*\nPost freely in the Bug Reports or Ideas/Feedback topics in the Green Goods chat. The team picks them up automatically.\n\n',
+  "help.footer": "_Need help? Contact {support}_",
   "help.steward":
     "*Steward Commands:*\n/approve <id> - Approve a work submission\n/reject <id> - Reject a work submission\n/pending - List pending work for your garden\n\n",
   "idempotency.inProgress": "⏳ This {action} is already being processed. Please wait a moment.",
@@ -112,13 +114,15 @@ const enMessages = {
   "status.submissionsRemaining": "Submissions remaining",
   "status.title":
     "📊 *Your Status*\n\n*Wallet:* `{wallet}`\n*Role:* {role}\n*Garden:* {garden}\n*Session:* {session}\n*Submissions remaining:* {remaining}/{limit}",
-  "submit.cancelled": "❌ Submission cancelled.",
+  "submit.cancelled": "❌ Submission canceled.",
   "submit.confirm":
     "📋 *Confirm your submission:*\n\n*Tasks:*\n{tasks}\n\n*Notes:* {notes}\n*Date:* {date}",
   "submit.gardenerOnly": "This action is only available for gardeners.",
   "submit.noTasks":
     '🤔 I couldn\'t identify any work tasks from your message.\n\nTry something like:\n• "I planted 5 trees today"\n• "Removed 10kg of weeds"\n• "Planted 20 tomato seedlings"',
-  "submit.submitButton": "✅ Submit",
+  "submit.submitButton": "Agree and Submit",
+  "submit.uploadTerms":
+    "Read the Terms of Use (https://www.greengoods.app/terms, version {version}). By choosing Agree and Submit, you agree to share this work publicly. Files go to public IPFS and the work goes on a public blockchain. Share only material you have permission to publish, including permission from identifiable adults. Leave out identifiable children and sensitive personal information.",
   "submit.cancelButton": "❌ Cancel",
   "submit.success":
     "✅ *Work submitted for approval!*\n\nID: `{workId}`\n\nAn steward will review your submission soon.",
@@ -146,10 +150,12 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "action.submission": "envío",
     "approve.gardenerMissing":
       "❌ No se encontró la cuenta del jardinero. Puede que necesite ejecutar /start primero.",
+    "approve.currentTermsRequired":
+      "Este reporte sigue guardado. Pide a la persona que vuelva a enviar el trabajo y acepte los Términos de uso vigentes antes de publicarlo.",
     "approve.permission":
-      "❌ *Permiso denegado*\n\nSolo los stewards registrados pueden aprobar trabajo para este jardín.",
+      "❌ *Permiso denegado*\n\nSolo los responsables registrados pueden aprobar trabajo para este jardín.",
     "approve.permissionWithReason":
-      "❌ *Permiso denegado*\n\n{reason}\n\nSolo los stewards registrados pueden aprobar trabajo para este jardín.",
+      "❌ *Permiso denegado*\n\n{reason}\n\nSolo los responsables registrados pueden aprobar trabajo para este jardín.",
     "approve.success":
       "✅ *Trabajo aprobado y atestiguado!*\n\nTx de trabajo: `{workTx}`\nTx de aprobación: `{approvalTx}`",
     "approve.usage": "📍 *Uso:* `/approve <IDTrabajo>`\n\nEjemplo: `/approve abc123`",
@@ -159,11 +165,11 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "common.unsupportedMessageType": "❌ Tipo de mensaje no compatible.",
     "common.unknownAction": "Acción desconocida.",
     "common.unknownCommand": "Comando desconocido: /{command}",
-    "command.approve": "(Stewards) Aprobar un envío de trabajo",
+    "command.approve": "(Responsables) Aprobar un envío de trabajo",
     "command.help": "Mostrar comandos disponibles",
     "command.join": "Unirse a un jardín por dirección de contrato",
-    "command.pending": "(Stewards) Ver envíos de trabajo pendientes",
-    "command.reject": "(Stewards) Rechazar un envío de trabajo",
+    "command.pending": "(Responsables) Ver envíos de trabajo pendientes",
+    "command.reject": "(Responsables) Rechazar un envío de trabajo",
     "command.start": "Crear billetera y empezar",
     "command.status": "Ver tu estado actual y billetera",
     "error.authorization": "No tienes permiso para esta acción.",
@@ -172,12 +178,12 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "error.internal": "Ocurrió un error inesperado. Inténtalo de nuevo.",
     "permission.reason.gardenNotFound": "No se encontró un contrato de jardín en esta dirección.",
     "permission.reason.notGardener": "Esta dirección no es jardinera en este jardín.",
-    "permission.reason.notSteward": "Esta dirección no es steward de este jardín.",
+    "permission.reason.notSteward": "Esta dirección no es responsable de este jardín.",
     "help.basic":
       '🌿 *Ayuda del bot de Green Goods*\n\n*Comandos básicos:*\n/start - Crear billetera y empezar\n/join <address> - Unirse a un jardín\n/status - Ver tu estado actual\n\n*Enviar trabajo:*\nEnvía un texto o mensaje de voz describiendo tu trabajo.\nEjemplo: "Hoy planté 5 árboles"\n\n*Reportar errores e ideas:*\nPublica libremente en los temas de Bug Reports o Ideas/Feedback del chat de Green Goods; el equipo los recoge automáticamente.\n\n',
-    "help.footer": "_¿Necesitas ayuda? Contacta a @GreenGoodsSupport_",
+    "help.footer": "_¿Necesitas ayuda? Contacta a {support}_",
     "help.steward":
-      "*Comandos de steward:*\n/approve <id> - Aprobar un envío de trabajo\n/reject <id> - Rechazar un envío de trabajo\n/pending - Listar trabajo pendiente de tu jardín\n\n",
+      "*Comandos para responsables:*\n/approve <id> - Aprobar un envío de trabajo\n/reject <id> - Rechazar un envío de trabajo\n/pending - Listar trabajo pendiente de tu jardín\n\n",
     "idempotency.inProgress":
       "⏳ Esta acción de {action} ya se está procesando. Espera un momento.",
     "join.invalidAddress":
@@ -197,7 +203,7 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "pending.footer": "Usa `/approve <id>` o `/reject <id>` para procesar.",
     "pending.gardener": "Jardinero",
     "pending.more": "_...y {count} más_\n\n",
-    "pending.stewardOnly": "Este comando solo está disponible para stewards.",
+    "pending.stewardOnly": "Este comando solo está disponible para responsables.",
     "pending.plants": "Plantas",
     "pending.title": "Título",
     "pending.titleHeader": "📋 *Envíos de trabajo pendientes*\n\n",
@@ -223,14 +229,14 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "reject.notify":
       "❌ *Tu trabajo fue rechazado*\n\nID: `{workId}`\nMotivo: {reason}\n\nInténtalo de nuevo con más detalles o fotos.",
     "reject.permission":
-      "❌ *Permiso denegado*\n\nSolo los stewards registrados pueden rechazar trabajo para este jardín.",
+      "❌ *Permiso denegado*\n\nSolo los responsables registrados pueden rechazar trabajo para este jardín.",
     "reject.permissionWithReason":
-      "❌ *Permiso denegado*\n\n{reason}\n\nSolo los stewards registrados pueden rechazar trabajo para este jardín.",
+      "❌ *Permiso denegado*\n\n{reason}\n\nSolo los responsables registrados pueden rechazar trabajo para este jardín.",
     "reject.success": "❌ Trabajo {workId} rechazado.\n\nMotivo: {reason}",
     "reject.usage":
       "📍 *Uso:* `/reject <IDTrabajo> [motivo]`\n\nEjemplo: `/reject abc123 Documentación insuficiente`",
     "role.gardener": "jardinero",
-    "role.steward": "steward",
+    "role.steward": "responsable",
     "session.approving_work": "aprobando trabajo",
     "session.awaiting_details": "esperando detalles",
     "session.awaiting_photo": "esperando foto",
@@ -256,10 +262,12 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "submit.gardenerOnly": "Esta acción solo está disponible para jardineros.",
     "submit.noTasks":
       '🤔 No pude identificar tareas de trabajo en tu mensaje.\n\nPrueba algo como:\n• "Hoy planté 5 árboles"\n• "Retiré 10 kg de maleza"\n• "Planté 20 plántulas de tomate"',
-    "submit.submitButton": "✅ Enviar",
+    "submit.submitButton": "Aceptar y enviar",
+    "submit.uploadTerms":
+      "Lee los Términos de uso (https://www.greengoods.app/terms, versión {version}). Al elegir Aceptar y enviar, aceptas compartir este trabajo públicamente. Los archivos se suben a IPFS público y el trabajo se registra en una cadena de bloques pública. Comparte solo material que tengas permiso para publicar, con el permiso de cada persona adulta identificable. Excluye a menores identificables y datos personales sensibles.",
     "submit.cancelButton": "❌ Cancelar",
     "submit.success":
-      "✅ *Trabajo enviado para aprobación!*\n\nID: `{workId}`\n\nUn steward revisará tu envío pronto.",
+      "✅ *Trabajo enviado para aprobación!*\n\nID: `{workId}`\n\nUn responsable revisará tu envío pronto.",
     "submit.voiceNoTasks":
       '📝 Escuché: "{transcribedText}"\n\n🤔 No pude identificar tareas de trabajo en tu mensaje.\n\nPrueba decir algo como:\n• "Hoy planté 5 árboles"\n• "Retiré 10 kg de maleza"',
     "voice.error":
@@ -278,10 +286,12 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "action.submission": "envio",
     "approve.gardenerMissing":
       "❌ Conta do jardineiro não encontrada. Talvez precise executar /start primeiro.",
+    "approve.currentTermsRequired":
+      "Este relato continua salvo. Peça à pessoa que envie o trabalho novamente e aceite os Termos de Uso atuais antes de publicá-lo.",
     "approve.permission":
-      "❌ *Permissão negada*\n\nSomente stewards registrados podem aprovar trabalho para este jardim.",
+      "❌ *Permissão negada*\n\nSomente responsáveis registrados podem aprovar trabalho para este jardim.",
     "approve.permissionWithReason":
-      "❌ *Permissão negada*\n\n{reason}\n\nSomente stewards registrados podem aprovar trabalho para este jardim.",
+      "❌ *Permissão negada*\n\n{reason}\n\nSomente responsáveis registrados podem aprovar trabalho para este jardim.",
     "approve.success":
       "✅ *Trabalho aprovado e atestado!*\n\nTx do trabalho: `{workTx}`\nTx da aprovação: `{approvalTx}`",
     "approve.usage": "📍 *Uso:* `/approve <IDTrabalho>`\n\nExemplo: `/approve abc123`",
@@ -291,11 +301,11 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "common.unsupportedMessageType": "❌ Tipo de mensagem não compatível.",
     "common.unknownAction": "Ação desconhecida.",
     "common.unknownCommand": "Comando desconhecido: /{command}",
-    "command.approve": "(Stewards) Aprovar um envio de trabalho",
+    "command.approve": "(Responsáveis) Aprovar um envio de trabalho",
     "command.help": "Mostrar comandos disponíveis",
     "command.join": "Entrar em um jardim pelo endereço do contrato",
-    "command.pending": "(Stewards) Ver envios de trabalho pendentes",
-    "command.reject": "(Stewards) Rejeitar um envio de trabalho",
+    "command.pending": "(Responsáveis) Ver envios de trabalho pendentes",
+    "command.reject": "(Responsáveis) Rejeitar um envio de trabalho",
     "command.start": "Criar carteira e começar",
     "command.status": "Ver seu status atual e carteira",
     "error.authorization": "Você não tem permissão para esta ação.",
@@ -304,12 +314,12 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "error.internal": "Ocorreu um erro inesperado. Tente novamente.",
     "permission.reason.gardenNotFound": "Contrato do jardim não encontrado neste endereço.",
     "permission.reason.notGardener": "Este endereço não é jardineiro neste jardim.",
-    "permission.reason.notSteward": "Este endereço não é steward deste jardim.",
+    "permission.reason.notSteward": "Este endereço não é responsável por este jardim.",
     "help.basic":
       '🌿 *Ajuda do bot Green Goods*\n\n*Comandos básicos:*\n/start - Criar carteira e começar\n/join <address> - Entrar em um jardim\n/status - Ver seu status atual\n\n*Enviar trabalho:*\nEnvie um texto ou mensagem de voz descrevendo seu trabalho.\nExemplo: "Plantei 5 árvores hoje"\n\n*Reportar erros e ideias:*\nPublique livremente nos tópicos Bug Reports ou Ideas/Feedback no chat Green Goods; a equipe acompanha automaticamente.\n\n',
-    "help.footer": "_Precisa de ajuda? Contate @GreenGoodsSupport_",
+    "help.footer": "_Precisa de ajuda? Contate {support}_",
     "help.steward":
-      "*Comandos de steward:*\n/approve <id> - Aprovar um envio de trabalho\n/reject <id> - Rejeitar um envio de trabalho\n/pending - Listar trabalhos pendentes do seu jardim\n\n",
+      "*Comandos para responsáveis:*\n/approve <id> - Aprovar um envio de trabalho\n/reject <id> - Rejeitar um envio de trabalho\n/pending - Listar trabalhos pendentes do seu jardim\n\n",
     "idempotency.inProgress":
       "⏳ Esta ação de {action} já está sendo processada. Aguarde um momento.",
     "join.invalidAddress":
@@ -329,7 +339,7 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "pending.footer": "Use `/approve <id>` ou `/reject <id>` para processar.",
     "pending.gardener": "Jardineiro",
     "pending.more": "_...e mais {count}_\n\n",
-    "pending.stewardOnly": "Este comando está disponível apenas para stewards.",
+    "pending.stewardOnly": "Este comando está disponível apenas para responsáveis.",
     "pending.plants": "Plantas",
     "pending.title": "Título",
     "pending.titleHeader": "📋 *Envios de trabalho pendentes*\n\n",
@@ -354,14 +364,14 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "reject.notify":
       "❌ *Seu trabalho foi rejeitado*\n\nID: `{workId}`\nMotivo: {reason}\n\nTente novamente com mais detalhes ou fotos.",
     "reject.permission":
-      "❌ *Permissão negada*\n\nSomente stewards registrados podem rejeitar trabalho para este jardim.",
+      "❌ *Permissão negada*\n\nSomente responsáveis registrados podem rejeitar trabalho para este jardim.",
     "reject.permissionWithReason":
-      "❌ *Permissão negada*\n\n{reason}\n\nSomente stewards registrados podem rejeitar trabalho para este jardim.",
+      "❌ *Permissão negada*\n\n{reason}\n\nSomente responsáveis registrados podem rejeitar trabalho para este jardim.",
     "reject.success": "❌ Trabalho {workId} rejeitado.\n\nMotivo: {reason}",
     "reject.usage":
       "📍 *Uso:* `/reject <IDTrabalho> [motivo]`\n\nExemplo: `/reject abc123 Documentação insuficiente`",
     "role.gardener": "jardineiro",
-    "role.steward": "steward",
+    "role.steward": "responsável",
     "session.approving_work": "aprovando trabalho",
     "session.awaiting_details": "aguardando detalhes",
     "session.awaiting_photo": "aguardando foto",
@@ -387,10 +397,12 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "submit.gardenerOnly": "Esta ação está disponível apenas para jardineiros.",
     "submit.noTasks":
       '🤔 Não consegui identificar tarefas de trabalho na sua mensagem.\n\nTente algo como:\n• "Plantei 5 árvores hoje"\n• "Removi 10 kg de ervas daninhas"\n• "Plantei 20 mudas de tomate"',
-    "submit.submitButton": "✅ Enviar",
+    "submit.submitButton": "Aceitar e enviar",
+    "submit.uploadTerms":
+      "Leia os Termos de Uso (https://www.greengoods.app/terms, versão {version}). Ao escolher Aceitar e enviar, você concorda em compartilhar este trabalho publicamente. Os arquivos vão para o IPFS público e o trabalho é registrado em uma blockchain pública. Compartilhe apenas material que você tem permissão para publicar, com o consentimento de cada pessoa adulta identificável. Não inclua crianças ou adolescentes identificáveis nem dados pessoais sensíveis.",
     "submit.cancelButton": "❌ Cancelar",
     "submit.success":
-      "✅ *Trabalho enviado para aprovação!*\n\nID: `{workId}`\n\nUm steward revisará seu envio em breve.",
+      "✅ *Trabalho enviado para aprovação!*\n\nID: `{workId}`\n\nUm responsável revisará seu envio em breve.",
     "submit.voiceNoTasks":
       '📝 Ouvi: "{transcribedText}"\n\n🤔 Não consegui identificar tarefas de trabalho na sua mensagem.\n\nTente dizer algo como:\n• "Plantei 5 árvores hoje"\n• "Removi 10 kg de ervas daninhas"',
     "voice.error":

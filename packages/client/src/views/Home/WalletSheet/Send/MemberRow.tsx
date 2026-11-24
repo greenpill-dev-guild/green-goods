@@ -1,16 +1,7 @@
+import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
 import type { Address } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
-import {
-  type GardenRole,
-  getRoleColorClasses,
-  getRoleLabel,
-} from "@green-goods/shared/utils/blockchain/garden-roles";
-import { useEnsAvatar } from "@green-goods/shared/hooks/blockchain/useEnsAvatar";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { RiCheckLine } from "@remixicon/react";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { useIntl } from "react-intl";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/Display/Avatar/Avatar";
 
 interface MemberRowProps {
   address: Address;
@@ -25,12 +16,14 @@ interface MemberRowProps {
   onSelect: () => void;
 }
 
-/** Cap visible role badges so a multi-role member never overflows the row. */
-const MAX_BADGES = 2;
+/** The app's own picture for someone who has no photo, as the profile shows it. */
+const DEFAULT_AVATAR = "/images/avatar.png";
 
 /**
- * Presentational recipient row. Identity (name + avatar) resolves lazily via the
- * shared ENS hooks; the wallet address is the always-available fallback.
+ * One person to send to, as a person row (DL-112): their avatar, their name from the shared
+ * address display, their highest role as the chip, and the garden that tells two people
+ * apart as the row's one detail. The chosen recipient wears the open row's border but reads as
+ * pressed: choosing someone to send to is not opening a record.
  */
 export function MemberRow({
   address,
@@ -42,15 +35,6 @@ export function MemberRow({
   onSelect,
 }: MemberRowProps) {
   const { formatMessage } = useIntl();
-  const { data: ensName } = useEnsName(address);
-  const { data: ensAvatar } = useEnsAvatar(address);
-
-  const displayName = formatAddress(address, { ensName });
-  const initials = (ensName ? ensName.replace(/\.eth$/i, "") : address.slice(2))
-    .slice(0, 2)
-    .toUpperCase();
-  const visibleRoles = roles.slice(0, MAX_BADGES);
-  const extraRoles = roles.length - visibleRoles.length;
 
   // "Gardens you share" wins over a plain garden line; the section header owns the
   // garden when `hideGarden` is set (frontend-design Rule 17 — don't restate it).
@@ -62,59 +46,13 @@ export function MemberRow({
       : null;
 
   return (
-    <button
-      type="button"
-      data-pressable="row"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={cn(
-        "flex w-full items-center gap-3 rounded-lg border p-2.5 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-        selected
-          ? "border-primary-on-surface bg-primary-base/10"
-          : "border-stroke-soft-200 bg-bg-white-0 hover:bg-bg-weak-50"
-      )}
-    >
-      <Avatar className="h-10 w-10">
-        {ensAvatar ? <AvatarImage src={ensAvatar} alt="" /> : null}
-        <AvatarFallback className="text-xs font-medium text-text-sub-600">
-          {initials}
-        </AvatarFallback>
-      </Avatar>
-
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-text-strong-950" title={displayName}>
-          {displayName}
-        </p>
-        {contextLine ? (
-          <p className="truncate text-xs text-text-soft-400" title={contextLine}>
-            {contextLine}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="flex shrink-0 items-center gap-1.5">
-        {visibleRoles.map((role) => {
-          const colors = getRoleColorClasses(role);
-          return (
-            <span
-              key={role}
-              className={cn(
-                "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                colors.iconBg,
-                colors.iconText
-              )}
-            >
-              {getRoleLabel(role, formatMessage).singular}
-            </span>
-          );
-        })}
-        {extraRoles > 0 ? (
-          <span className="text-[10px] text-text-soft-400">+{extraRoles}</span>
-        ) : null}
-        {selected ? (
-          <RiCheckLine className="h-4 w-4 shrink-0 text-primary-on-surface" aria-hidden />
-        ) : null}
-      </div>
-    </button>
+    <PersonRow
+      address={address}
+      roles={roles}
+      fallbackAvatar={DEFAULT_AVATAR}
+      details={contextLine ? [contextLine] : undefined}
+      pressed={selected}
+      onOpen={onSelect}
+    />
   );
 }

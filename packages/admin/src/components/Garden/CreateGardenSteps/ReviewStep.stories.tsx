@@ -3,7 +3,7 @@ import { type Address, Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { FIXTURE_IMAGE_BANNER } from "../../../../../shared/.storybook/fixtures";
-import { ReviewStep } from "./ReviewStep";
+import { ReviewStep, type ReviewStepCost } from "./ReviewStep";
 
 interface Seed {
   name?: string;
@@ -61,6 +61,19 @@ const meta: Meta<typeof ReviewStep> = {
 
 export default meta;
 type Story = StoryObj<typeof ReviewStep>;
+
+// The common case: the creator pays the network fee and the Green Goods name fund pays for the name.
+const NAME_FROM_THE_FUND_COST: ReviewStepCost = {
+  estimate: {
+    gasEstimate: 23_868_920n,
+    gasPrice: 20_000_000n,
+    txFee: 477_378_400_000_000n,
+    ccipFee: 0n,
+    nameFunding: "reserve",
+    totalEstimatedFee: 477_378_400_000_000n,
+    formatted: { txFeeEth: "0.000477", ccipFeeEth: "0", totalEth: "0.000477" },
+  },
+};
 
 export const MinimalGarden: Story = {
   decorators: [
@@ -120,6 +133,55 @@ export const WithBanner: Story = {
           bannerImage: FIXTURE_IMAGE_BANNER,
           domains: [Domain.WASTE],
           openJoining: true,
+          gardeners: [],
+          stewards: [],
+        }}
+      >
+        <Story />
+      </WithStoreState>
+    ),
+  ],
+};
+
+/** The Create a Garden guide's capture: a planned team, and the cost the review shows before signing. */
+export const Documentation: Story = {
+  args: { cost: NAME_FROM_THE_FUND_COST },
+  decorators: [
+    (Story) => (
+      <WithStoreState
+        seed={{
+          name: "Riverside Commons Garden",
+          slug: "riverside-commons",
+          description: "Neighbour-led vegetable beds, rainwater care and practical repair work.",
+          location: "Riverside District",
+          domains: [Domain.AGRO, Domain.EDU],
+          openJoining: false,
+          gardeners: [
+            "0x1111111111111111111111111111111111111111",
+            "0x2222222222222222222222222222222222222222",
+          ],
+          stewards: ["0x3333333333333333333333333333333333333333"],
+        }}
+      >
+        <Story />
+      </WithStoreState>
+    ),
+  ],
+};
+
+/** A creator paying the network fee, with the garden's name paid from the Green Goods name fund. */
+export const NameFromTheFund: Story = {
+  args: { cost: NAME_FROM_THE_FUND_COST },
+  decorators: [
+    (Story) => (
+      <WithStoreState
+        seed={{
+          name: "Harbour Seed Library",
+          slug: "harbour-seeds",
+          description: "Seed saving and swap days for neighbourhood growers.",
+          location: "Lisbon, Portugal",
+          domains: [Domain.AGRO],
+          openJoining: false,
           gardeners: [],
           stewards: [],
         }}

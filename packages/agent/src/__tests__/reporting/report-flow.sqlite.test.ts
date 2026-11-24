@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { TestBrowser } from "./support/browser";
+import { reportingText } from "../../services/reporting/copy";
 import { AIYELOJA, planting, snapshot, TAS } from "./support/fixtures";
-import { adaAccount, bolaAccount, latestLink } from "./support/flows";
+import { adaAccount, bolaAccount, latestLink, reportUntilSummary } from "./support/flows";
 import { ADA, Harness, summaryToken } from "./support/harness";
 
 /**
@@ -26,6 +27,53 @@ async function consented(): Promise<string[]> {
 }
 
 describe("story-first reporting", () => {
+  it("asks an existing participant to accept a changed policy before processing more content", async () => {
+    await consented();
+    const db = harness.core.db;
+    db.query("UPDATE consent_records SET notice_version = 'previous-policy'").run();
+    const before = (db.query("SELECT count(*) AS n FROM source_entries").get() as { n: number }).n;
+    const notice = await harness.say(ADA, "Today I weeded the east bed");
+    expect(notice.join("\n")).toContain("version 2026-11-05");
+    expect(notice.join("\n")).toContain("https://www.greengoods.app/terms");
+    expect(db.query("SELECT count(*) AS n FROM source_entries").get()).toEqual({ n: before });
+    await harness.press(ADA, "I agree");
+    expect(
+      db
+        .query(
+          "SELECT notice_version FROM consent_records WHERE purpose = 'processing' ORDER BY rowid DESC LIMIT 1"
+        )
+        .get()
+    ).toEqual({ notice_version: "2026-11-05" });
+  });
+  it("uploads nothing when a confirmed report has only an older policy receipt", async () => {
+    harness.close();
+    harness = new Harness({ settings: { noticeVersion: "previous-policy" } });
+    const { confirmLinkAndPublish } = await import("./support/flows");
+    await confirmLinkAndPublish(harness);
+    await harness.drain();
+    expect(harness.uploader.uploads).toEqual([]);
+  });
+  it.each([
+    ["en", "I agree", "Support:", "unpublished data", "can't be removed"],
+    ["es", "Acepto", "Soporte:", "datos no publicados", "no se pueden"],
+    ["pt", "Concordo", "Suporte:", "dados não publicados", "não podem"],
+  ])("keeps real %s HELP and deletion replies connected to support", async (locale, agree, support, unpublished, permanent) => {
+    const person = { ...ADA, locale };
+    const notice = await harness.say(person, "Today I planted seedlings");
+    expect(notice.join("\n")).toContain("contact@greengoods.app");
+    await harness.press(person, agree);
+
+    const help = (await harness.say(person, "HELP")).join("\n");
+    expect(help).toContain(`${support} contact@greengoods.app`);
+    expect(help).toContain(unpublished);
+    expect(help).toContain("STOP");
+
+    const deleted = (await harness.say(person, "DELETE")).join("\n");
+    expect(deleted).toContain(`${support} contact@greengoods.app`);
+    expect(deleted).toContain("IPFS");
+    expect(deleted).toContain(permanent);
+  });
+
   it("quarantines a first message until consent, then resumes it as the story", async () => {
     const notice = await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
     expect(notice[0]).toContain("Do you agree?");
@@ -72,8 +120,7 @@ describe("story-first reporting", () => {
     const adopted = await harness.press(ADA, "Tree planting");
     // The story gave the description, so three questions are left, and each is numbered against them.
     expect(adopted).toEqual([
-      "Got it: Tree planting at TAS. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
+      "Got it: Tree planting at TAS. 3 quick questions, then a summary to check.\n\n1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     expect(await harness.say(ADA, "twelve")).toEqual([
       "Seedlings planted is a number (seedlings). For example, 12.",
@@ -202,8 +249,7 @@ describe("an amount that needs a choice to mean anything", () => {
     await harness.say(ADA, "1");
     // The activity's choice comes before its unit-less amount, and both are numbered as asked.
     expect(await harness.press(ADA, "Infrastructure Milestone")).toEqual([
-      "Got it: Infrastructure Milestone at TAS. 3 quick questions, then a summary to check.",
-      "1 of 3 · Milestone Type: Select the type of milestone.\n1. Solar kW installed\n2. Battery kWh added",
+      "Got it: Infrastructure Milestone at TAS. 3 quick questions, then a summary to check.\n\n1 of 3 · Milestone Type: Select the type of milestone.\n1. Solar kW installed\n2. Battery kWh added",
     ]);
     expect(await harness.say(ADA, "1")).toEqual([
       "2 of 3 · Milestone Value: Enter the numeric value for this milestone. Send just the number.",
@@ -273,13 +319,13 @@ describe("a reply that is not one of the choices", () => {
       intent: "report_content" | "help" | "status",
       gardenKey: string | null = null
     ) => ({ intent, gardenKey, actionUID: null, facts: [], models: ["fixture-model"] });
-    // The notice says a model may read the messages, names no provider and sends help to the site.
+    // The notice says a model may read the messages and sends help to the shared support mailbox.
     const notice = (await harness.say(ADA, STORY))[0];
     expect(notice).toContain(
       "the messages and files you send here and may use AI to understand them."
     );
-    expect(notice).toContain("HELP for support (greengoods.app)");
-    expect(notice).not.toMatch(/OpenAI|TypeSafe|operated by|@/);
+    expect(notice).toContain("HELP for support (contact@greengoods.app)");
+    expect(notice).not.toMatch(/OpenAI|TypeSafe|operated by/);
     await harness.press(ADA, "I agree");
 
     harness.interpreter.responses = [read("help")];
@@ -288,11 +334,15 @@ describe("a reply that is not one of the choices", () => {
     expect(await harness.say(ADA, "where are we with this?")).toEqual([
       "Your report for your garden is still being filled in.",
     ]);
-    // The garden's one activity is read in the same turn, so the reply moves on to its first field.
-    harness.interpreter.responses = [read("report_content", AIYELOJA.key)];
+    // A model names a garden by the identifier its request gave it: the second one offered. The
+    // garden's one activity is read in the same turn, so the reply moves on to its first field.
+    expect(harness.interpreter.requests.at(-1)?.gardens).toEqual([
+      { key: "g1", label: "TAS" },
+      { key: "g2", label: "Aiyeloja Family Garden" },
+    ]);
+    harness.interpreter.responses = [read("report_content", "g2")];
     expect(await harness.say(ADA, "the family garden")).toEqual([
-      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
+      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.\n\n1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     expect(harness.interpreter.requests.at(-1)?.message.text).toBe("the family garden");
     // Numbers and a choice's own label never go to the model.
@@ -318,6 +368,7 @@ const OWN_GARDEN_QUESTION =
   "Which of your gardens is this report for?\n1. TAS\n2. Aiyeloja Family Garden\n3. Join another garden";
 const OFFER =
   "Hi! I help you report garden work on Green Goods. Want to connect your account first, so I can show your gardens? You can also just tell me what you did, and I'll ask you to connect when you publish.\n1. Connect account";
+const NOT_LINKED = "This chat isn't connected to an account. Send CONNECT to link one.";
 const disconnected = (account: string) =>
   `Done. This chat is no longer connected to ${account}, and any chat reporting permission you approved for it is paused. Send CONNECT to link an account.`;
 
@@ -348,8 +399,7 @@ describe("linking an account before reporting", () => {
     // The account's only garden is taken without a question, and so is that garden's one activity.
     expect(await harness.say(ADA, STORY)).toEqual([
       `Aiyeloja Family Garden ${ONLY_GARDEN}`,
-      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
+      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.\n\n1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     // START no longer offers linking, and must not replace the report's open question.
     expect((await harness.say(ADA, "START"))[0]).toContain("Green Goods reporting:");
@@ -451,14 +501,21 @@ describe("linking an account before reporting", () => {
     await pairAda();
     // START from a linked, idle chat says which account it reports as.
     expect((await harness.say(ADA, "START"))[0]).toContain(`This chat is connected to ${ada}.`);
+    // So does ACCOUNT, with the address to copy, and it sends no verification link.
+    expect(await harness.say(ADA, "ACCOUNT")).toEqual([
+      `This chat is connected to ${ada}.\nI don't see it in a garden yet. A garden you just joined can take a few minutes to show here.\nTo use a different account, send SWITCH.`,
+    ]);
+    expect(harness.transport.last().message).toMatchObject({
+      copy: { label: "Copy address", text: ada },
+    });
+    expect(harness.transport.last().message.link).toBeUndefined();
 
     expect(await harness.say(ADA, "log out")).toEqual([disconnected(ada)]);
     expect(harness.core.db.query("SELECT status FROM account_bindings").all()).toEqual([
       { status: "revoked" },
     ]);
-    expect(await harness.say(ADA, "DISCONNECT")).toEqual([
-      "This chat isn't connected to an account. Send CONNECT to link one.",
-    ]);
+    for (const command of ["DISCONNECT", "ACCOUNT"])
+      expect(await harness.say(ADA, command)).toEqual([NOT_LINKED]);
 
     // The chat is free to link a different account, and the old one is free for another chat.
     // A chat that had an account is told the page will open on it, and how to use another.
@@ -502,5 +559,91 @@ describe("linking an account before reporting", () => {
     expect(await pairAda()).toEqual([
       `Your account ${ada} is now linked.\nI don't see it in a garden yet. A garden you just joined can take a few minutes to show here.`,
     ]);
+  });
+});
+
+describe("commands at an open question", () => {
+  const openQuestion = () =>
+    harness.core.db.query("SELECT kind FROM conversation_prompts WHERE state = 'open'").get();
+  const QUESTIONS = {
+    garden: {
+      reach: () => consented(),
+      kind: "select_garden",
+      status: "Your report for your garden is still being filled in.",
+    },
+    number: {
+      reach: async () => {
+        await consented();
+        await harness.say(ADA, "1");
+        await harness.press(ADA, "Tree planting");
+      },
+      kind: "field",
+      status: "Your report for TAS is still being filled in.",
+    },
+    summary: {
+      reach: () => reportUntilSummary(harness),
+      kind: "confirm_report",
+      status: "Your report for TAS is waiting for your confirmation.",
+    },
+    "edit menu": {
+      reach: async () => {
+        await reportUntilSummary(harness);
+        await harness.say(ADA, "EDIT");
+      },
+      kind: "edit_field",
+      status: "Your report for TAS is waiting for your confirmation.",
+    },
+  };
+
+  /** One reply, the copy in full: a help with no menu line on a channel without a menu. */
+  const only = (key: "help" | "consent.stopped" | "consent.deleted") => [
+    reportingText("en", key, { support: harness.core.settings.supportContact, menu: "" }),
+  ];
+
+  // Both model switches, model processing and voice, are off, as the harness starts. A command is
+  // read before any answer: each of these replies leaves the question open, and STOP or DELETE,
+  // taking turns across the questions, then withdraws consent and closes it.
+  it.each(
+    Object.keys(QUESTIONS).map((question, index) => [question, index % 2 ? "DELETE" : "STOP"])
+  )("reads every command at the %s question before an answer, then %s", async (question, ending) => {
+    const { reach, kind, status } = QUESTIONS[question as keyof typeof QUESTIONS];
+    await reach();
+    const replies = [
+      ["STATUS", status],
+      ["NEW", "You have a report in progress. Send CANCEL to discard it or keep going with it."],
+      ["ACCOUNT", NOT_LINKED],
+      ["DISCONNECT", NOT_LINKED],
+      ["JOIN", NOT_LINKED],
+      [
+        "LANGUAGE",
+        "Which language would you like me to use? Send LANG EN (English), LANG ES (Español) or LANG PT (Português).",
+      ],
+    ];
+    for (const [command, reply] of replies) {
+      expect(await harness.say(ADA, command)).toEqual([reply]);
+      expect(openQuestion()).toEqual({ kind });
+    }
+    expect(await harness.say(ADA, "HELP")).toEqual(only("help"));
+    expect(openQuestion()).toEqual({ kind });
+
+    expect(await harness.say(ADA, ending)).toEqual(
+      only(ending === "STOP" ? "consent.stopped" : "consent.deleted")
+    );
+    expect(openQuestion()).toBeNull();
+    expect(
+      harness.core.db
+        .query(
+          "SELECT count(*) AS n FROM consent_records WHERE purpose = 'processing' AND withdrawn_at IS NULL"
+        )
+        .get()
+    ).toEqual({ n: 0 });
+  });
+
+  it("answers HELP at the consent notice, which still takes its answer", async () => {
+    await harness.say(ADA, STORY);
+    // The notice offers HELP, and its reply reads nothing that was sent.
+    expect(await harness.say(ADA, "HELP")).toEqual(only("help"));
+    expect(openQuestion()).toEqual({ kind: "processing_consent" });
+    expect((await harness.press(ADA, "I agree")).at(-1)).toBe(GARDEN_QUESTION);
   });
 });

@@ -141,7 +141,7 @@ export default function BrandAssets() {
   const baseUrl = useBaseUrl('/');
   return <div className={styles.assets}>
     <div className={styles.kitBar}>
-      <h1>Brand kit</h1>
+      <h1>Brand Kit</h1>
       <a className="button button--primary" href={`${baseUrl}${manifest.wholeKit.url.slice(1)}`} download>
         Download the whole kit <span className={styles.zipSize}>v3 · ZIP</span>
       </a>

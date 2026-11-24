@@ -98,6 +98,11 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // The visible boot frames (`BootSurface.tsx`) carry the story.
   "components/Boot/AdminRoot.tsx",
   "components/Boot/bootAdmin.tsx",
+
+  // The dialogs' header renders only inside a Radix dialog (it names and
+  // describes it); AdminDialog's and AdminSideSheet's stories carry its
+  // centered and phone states, icon and target line included.
+  "components/AdminDialogHeader.tsx",
 ]);
 
 /**
@@ -125,9 +130,9 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Garden/SubmitWork.tsx",
   "Garden/Vault.tsx",
   "Garden/index.tsx",
-  "Hub/CreateAssessment.tsx",
-  "Hub/CreateHypercert.tsx",
-  "Hub/index.tsx",
+  "Review/CreateAssessment.tsx",
+  "Review/CreateHypercert.tsx",
+  "Review/index.tsx",
   "NotFound.tsx",
   "Profile/index.tsx",
 
@@ -140,8 +145,8 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   // `SubmissionDetails` (both of which have dedicated stories).
   "Garden/WorkDetail/index.tsx",
 
-  // Pure helpers — small visual primitives (`DetailRow`, `ReviewSummary`,
-  // `TabBadge`, `SectionStateCard`, etc.) plus
+  // Pure helpers — small visual primitives (`ReviewSummary`,
+  // `SectionStateCard`, etc.) plus
   // non-visual utilities (zod schemas, parsers). Reviewed implicitly
   // through the tab stories that consume them.
   "Garden/components/GardenDetailHelpers.tsx",
@@ -151,14 +156,14 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   // — it has no UI to review in Storybook.
   "Community/components/CommunitySheetDescriptor.tsx",
   "Garden/components/GardenSheetDescriptor.tsx",
-  "Hub/components/HubSheetDescriptor.tsx",
+  "Review/components/ReviewSheetDescriptor.tsx",
 
   // Thin route/controller adapters. They switch between reusable shell states
   // and already-covered tab/queue stories, but do not own a distinct visual
   // contract worth snapshotting as another full composition layer.
   "Community/components/CommunityWorkspaceContent.tsx",
   "Garden/components/GardenWorkspaceContent.tsx",
-  "Hub/components/HubStageContent.tsx",
+  "Review/components/ReviewStageContent.tsx",
 ]);
 
 // Currently empty: the former entries (Canvas/CanvasSheetInternals.tsx,
@@ -200,19 +205,19 @@ const AUDITED_HARNESS_ONLY_STORIES = new Map<string, string>([
     "self-fetches garden vaults via useGardenVaults and resolves addresses through EnsAddressText; wagmi/ENS reads are not seedable in Storybook, so the harness renders the row layout from plain props",
   ],
   [
-    "admin/views/Hub/components/CookieJarDepositModal.tsx",
+    "admin/views/Review/components/CookieJarDepositModal.tsx",
     "real modal reads wallet balances and garden cookie jars before mutating deposit flows",
   ],
   [
-    "admin/views/Hub/components/CookieJarManageModal.tsx",
+    "admin/views/Review/components/CookieJarManageModal.tsx",
     "real modal wires cookie-jar reads plus pause, resume, edit, and emergency-withdraw mutations",
   ],
   [
-    "admin/views/Hub/components/CookieJarPayoutPanel.tsx",
+    "admin/views/Review/components/CookieJarPayoutPanel.tsx",
     "real panel is gated by garden cookie-jar wagmi reads",
   ],
   [
-    "admin/views/Hub/components/CookieJarWithdrawModal.tsx",
+    "admin/views/Review/components/CookieJarWithdrawModal.tsx",
     "real modal reads garden cookie jars and mutates withdraw flows through wagmi hooks",
   ],
   [
@@ -520,8 +525,8 @@ async function main() {
 
     // Candidate story paths. For visual `index.tsx` we also accept a
     // sibling named after the containing directory (e.g.
-    // `VaultPositionCard/VaultPositionCard.stories.tsx`), which is a
-    // long-standing convention in `shared/Cards/*`.
+    // `views/Actions/Actions.stories.tsx` beside `views/Actions/index.tsx`),
+    // a long-standing convention in the Hub's views.
     const candidates = [join(dir, `${fileName}.stories.tsx`)];
     if (fileName === "index") {
       const dirName = basename(dir);

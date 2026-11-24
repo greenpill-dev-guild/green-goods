@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { getWalletClient } from "@wagmi/core";
+import { estimateGas, getWalletClient } from "@wagmi/core";
 import type { WorkApprovalDraft } from "../../../types/domain";
 import type { EASWorkApproval } from "../../../types/eas-responses";
 import { getWagmiConfig } from "../../../config/appkit";
@@ -8,9 +8,12 @@ import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
 import { workApprovalsKeys } from "../../../config/query-keys/work";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
+import { withGasHeadroom } from "../../../modules/transactions/gas-headroom";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
+import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../../utils/eas/constants";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { buildApprovalAttestTx } from "../../../utils/eas/transaction-builder";
 import { extractErrorMessage } from "../../../utils/errors/extract-message";
@@ -72,19 +75,29 @@ export async function submitApprovalDirectly(
       gardenAddress as `0x${string}`,
       attestationData
     );
+    // The resolver's Karma update runs inside try/catch, so the wallet gets a limit with headroom
+    // rather than sizing it from a bare estimate.
+    const account = walletClient.account?.address;
+    const gas = account
+      ? withGasHeadroom(await estimateGas(wagmiConfig, { account, chainId, ...txParams }), [
+          { gasHeadroomPercent: APPROVAL_GAS_HEADROOM_PERCENT },
+        ])
+      : undefined;
 
-    onProgress?.("confirming", "Confirm in your wallet...");
+    onProgress?.("wallet", SEND_STAGE_WORDS.wallet.label.defaultMessage);
     onLifecycle?.({ stage: "handoff" });
     debugLog("[WalletSubmission] Sending approval transaction", { to: txParams.to });
     await assertLocalArbitrumForkWallet();
 
     const hash = await walletClient.sendTransaction({
       ...txParams,
+      ...(gas !== undefined ? { gas } : {}),
       chain: getChain(chainId),
       account: walletClient.account,
     });
 
     debugLog("[WalletSubmission] Approval transaction sent", { hash });
+    onProgress?.("confirming", SEND_STAGE_WORDS.confirming.label.defaultMessage);
     onLifecycle?.({ stage: "broadcast", txHash: hash });
 
     let confirmed = false;

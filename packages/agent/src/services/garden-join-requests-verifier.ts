@@ -6,7 +6,7 @@ import {
   TimeoutError,
   type Chain,
 } from "viem";
-import { createViemProfileAvatarSignatureVerifier } from "./profile-avatars";
+import { createViemAccountSignatureVerifier } from "./account-signatures";
 
 /** Keep contract-account verification inside the join route's pre-write budget. */
 export function createGardenJoinRequestSignatureVerifier(options: {
@@ -32,7 +32,7 @@ export function createGardenJoinRequestSignatureVerifier(options: {
       }
     ),
   });
-  const verify = createViemProfileAvatarSignatureVerifier({ ...options, client });
+  const verify = createViemAccountSignatureVerifier({ ...options, client });
   return (input: Parameters<typeof verify>[0]) =>
     input.chainId === options.chain.id ? verify(input) : Promise.resolve(false);
 }

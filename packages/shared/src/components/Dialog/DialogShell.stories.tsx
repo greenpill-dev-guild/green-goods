@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
 import { IntlProvider } from "react-intl";
-import { expect, fn, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { Button } from "../Button";
 import { DialogShell } from "./DialogShell";
 
 const DIALOG_MESSAGES = {
@@ -70,6 +72,44 @@ const meta: Meta<typeof DialogShell> = {
 export default meta;
 type Story = StoryObj<typeof DialogShell>;
 
+/** A real opener exercises focus restoration after the dialog's exit transition. */
+export const KeyboardFocusReturn: Story = {
+  tags: ["storybook-ci"],
+  render: function KeyboardFocusReturn() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <Button onClick={() => setOpen(true)}>Review Reward</Button>
+        <DialogShell
+          open={open}
+          onOpenChange={setOpen}
+          title="Review Reward"
+          description="Fictional reward review; no payment or signature."
+          actions={{ secondary: { label: "Cancel", onClick: () => setOpen(false) } }}
+        >
+          <input aria-label="Recipient" />
+        </DialogShell>
+      </>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const opener = within(canvasElement).getByRole("button", { name: "Review Reward" });
+    const page = within(canvasElement.ownerDocument.body);
+    for (const dismiss of ["Escape", "Close", "Cancel"]) {
+      await userEvent.click(opener);
+      await waitFor(() =>
+        expect(page.getByRole("dialog", { name: "Review Reward" })).toBeVisible()
+      );
+      await userEvent.tab();
+      await expect(page.getByRole("textbox", { name: "Recipient" })).toHaveFocus();
+      if (dismiss === "Escape") await userEvent.keyboard("{Escape}");
+      else await userEvent.click(page.getByRole("button", { name: dismiss }));
+      await waitFor(() => expect(page.queryByRole("dialog")).not.toBeInTheDocument());
+      await expect(opener).toHaveFocus();
+    }
+  },
+};
+
 export const ShellPattern: Story = {
   render: () => (
     <DialogShell
@@ -108,7 +148,7 @@ export const ShellSizeMd: Story = {
       description="Confirm before revoking access — size=md"
       size="md"
     >
-      <p className="text-body-sm text-text-sub-600">
+      <p className="type-label-sm text-text-sub-600">
         Medium shell (max-w-md). Use for simple confirmations that do not need form layout.
       </p>
     </DialogShell>
@@ -160,7 +200,7 @@ export const ShellSize2xl: Story = {
     >
       <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
         <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
-          <div className="text-label-sm text-text-sub-600">Summary</div>
+          <div className="type-label-sm text-text-sub-600">Summary</div>
         </div>
         <div className="space-y-3">
           <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
@@ -198,7 +238,7 @@ export const ShellMobileSheet: Story = {
         secondary: { label: "Keep It Open", onClick: fn() },
       }}
     >
-      <p className="text-body-sm text-text-sub-600">Reason field placeholder</p>
+      <p className="type-label-sm text-text-sub-600">Reason field placeholder</p>
     </DialogShell>
   ),
   parameters: {

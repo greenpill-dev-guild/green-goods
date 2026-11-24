@@ -32,7 +32,7 @@ export function PublicFundingBridge() {
             <EditorialKicker className="mb-5">
               {formatMessage({
                 id: "public.home.funding.kicker",
-                defaultMessage: "§ 05: Support Gardens",
+                defaultMessage: "§ 05: Support gardens",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-funding-bridge-title">
@@ -46,7 +46,7 @@ export function PublicFundingBridge() {
                 {formatMessage({
                   id: "public.home.funding.body",
                   defaultMessage:
-                    "Explore a Garden’s work before choosing how to support it. Give to its shared fund today, or explore an endowment for support over time.",
+                    "Explore a garden’s work before choosing how to support it. Give to its shared fund today, or explore an endowment for support over time.",
                 })}
               </EditorialLede>
             </div>
@@ -74,7 +74,7 @@ export function PublicFundingBridge() {
                   {formatMessage({
                     id: "public.home.funding.donateBody",
                     defaultMessage:
-                      "Contribute to the Garden’s shared fund to help its community carry out the work.",
+                      "Contribute to the garden’s shared fund to help its community carry out the work.",
                   })}
                 </p>
               </article>
@@ -91,7 +91,7 @@ export function PublicFundingBridge() {
                   {formatMessage({
                     id: "public.home.funding.endowBody",
                     defaultMessage:
-                      "An endowment is a withdrawable deposit whose investment earnings support the Garden. Read its terms and risks before contributing.",
+                      "An endowment is a withdrawable deposit whose investment earnings support the garden. Read its terms and risks before contributing.",
                   })}
                 </p>
               </article>
@@ -110,7 +110,7 @@ export function PublicFundingBridge() {
                 {formatMessage({
                   id: "public.home.funding.note",
                   defaultMessage:
-                    "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Deposit value can move with the underlying token, and withdrawals can take time.",
+                    "Both paths support the garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Deposit value can move with the underlying token, and withdrawals can take time.",
                 })}
               </p>
             </div>

@@ -30,6 +30,7 @@ interface ServedFile {
 export class FakeTelegramApi {
   readonly calls: Array<{ method: string; payload: Payload }> = [];
   readonly files = new Map<string, ServedFile>();
+  private readonly delivered: Array<{ messageId: number; payload: Payload }> = [];
   url = "";
   private readonly replies: ApiReply[] = [];
   private nextMessageId = 100;
@@ -55,6 +56,18 @@ export class FakeTelegramApi {
   /** The payloads of every sendMessage call so far. */
   messages(): Payload[] {
     return this.calls.filter((call) => call.method === "sendMessage").map((call) => call.payload);
+  }
+
+  /** The message ID this fake gave the first message sent whose text starts with these words. */
+  messageIdOf(start: string): number | undefined {
+    return this.delivered.find(({ payload }) => String(payload.text).startsWith(start))?.messageId;
+  }
+
+  /** The message IDs whose inline keyboard an editMessageReplyMarkup call took off. */
+  keyboardsRemoved(): number[] {
+    return this.calls
+      .filter((call) => call.method === "editMessageReplyMarkup" && !call.payload.reply_markup)
+      .map((call) => Number(call.payload.message_id));
   }
 
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -83,6 +96,7 @@ export class FakeTelegramApi {
   private defaultReply(method: string, payload: Payload): ApiReply {
     if (method === "sendMessage") {
       const message_id = this.nextMessageId++;
+      this.delivered.push({ messageId: message_id, payload });
       const chat = { id: Number(payload.chat_id), type: "private" };
       return { ok: true, result: { message_id, date: 0, chat, text: payload.text } };
     }

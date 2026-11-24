@@ -4,7 +4,7 @@ import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { RiWallet3Line } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 
 /**

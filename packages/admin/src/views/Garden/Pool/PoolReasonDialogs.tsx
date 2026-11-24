@@ -23,7 +23,7 @@ export function PoolReasonDialogs({
   pool: PoolConsoleController;
   /** The pool each reasoned act lands on, named first in every dialog. */
   target: PoolWriteTarget;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   reasonDialog: ReasonDialog;
   setReasonDialog: Dispatch<SetStateAction<ReasonDialog>>;
 }) {
@@ -32,7 +32,7 @@ export function PoolReasonDialogs({
   const claimTitle = (row: PoolClaimRequestRow) =>
     (row.commitment.metadataCID && pool.titles.get(row.commitment.metadataCID.trim())?.title) ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Commitment {id}" },
+      { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: row.commitment.commitmentId.toString() }
     );
   return (
@@ -42,36 +42,36 @@ export function PoolReasonDialogs({
         onClose={() => setReasonDialog(null)}
         tone={tone}
         title={formatMessage({
-          id: "cockpit.garden.pool.pause.title",
+          id: "hub.garden.pool.pause.title",
           defaultMessage: "Pause This Pool",
         })}
         description={formatMessage(
           {
-            id: "cockpit.garden.pool.pause.description",
+            id: "hub.garden.pool.pause.description",
             defaultMessage:
-              "Pausing stops new commitments, claims, and confirmations across {count, plural, one {# open commitment} other {# open commitments}}. Proof, work linkage, and recovery stay open; resuming clears this reason.",
+              "Pausing stops new promises, claims, and confirmations across {count, plural, one {# open promise} other {# open promises}}. Proof, work linkage, and recovery stay open; resuming clears this reason.",
           },
           { count: pool.model.groups.open.length }
         )}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.pause.confirm",
+          id: "hub.garden.pool.pause.confirm",
           defaultMessage: "Pause Pool",
         })}
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.pause.keep",
+          id: "hub.garden.pool.pause.keep",
           defaultMessage: "Keep Running",
         })}
         suggestions={[
           formatMessage({
-            id: "cockpit.garden.pool.pause.suggestion.weather",
+            id: "hub.garden.pool.pause.suggestion.weather",
             defaultMessage: "Weather or season",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.pause.suggestion.regroup",
+            id: "hub.garden.pool.pause.suggestion.regroup",
             defaultMessage: "Group is regrouping",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.pause.suggestion.safety",
+            id: "hub.garden.pool.pause.suggestion.safety",
             defaultMessage: "Safety first",
           }),
         ]}
@@ -79,8 +79,8 @@ export function PoolReasonDialogs({
           pool.isOnline
             ? undefined
             : formatMessage({
-                id: "cockpit.garden.pool.offline",
-                defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+                id: "hub.garden.pool.offline",
+                defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
               })
         }
         onConfirm={async (reason) => {
@@ -98,19 +98,19 @@ export function PoolReasonDialogs({
         title={
           reasonDialog?.kind === "cancel-cycle" && reasonDialog.cycle.cycleType === "CAMPAIGN"
             ? formatMessage({
-                id: "cockpit.garden.pool.cancelCycle.campaignTitle",
+                id: "hub.garden.pool.cancelCycle.campaignTitle",
                 defaultMessage: "Cancel This Campaign",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.cancelCycle.seasonTitle",
+                id: "hub.garden.pool.cancelCycle.seasonTitle",
                 defaultMessage: "Cancel This Season",
               })
         }
         description={formatMessage(
           {
-            id: "cockpit.garden.pool.cancelCycle.description",
+            id: "hub.garden.pool.cancelCycle.description",
             defaultMessage:
-              "“{name}” has no live commitments. Cancelling ends it for everyone in it; each commitment keeps its own record, and members see the reason you give here.",
+              "“{name}” has no live promises. Canceling ends it for everyone in it; each promise keeps its own record, and members see the reason you give here.",
           },
           {
             name:
@@ -122,29 +122,29 @@ export function PoolReasonDialogs({
         confirmLabel={
           reasonDialog?.kind === "cancel-cycle" && reasonDialog.cycle.cycleType === "CAMPAIGN"
             ? formatMessage({
-                id: "cockpit.garden.pool.cancelCycle.confirmCampaign",
+                id: "hub.garden.pool.cancelCycle.confirmCampaign",
                 defaultMessage: "Cancel Campaign",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.cancelCycle.confirmSeason",
+                id: "hub.garden.pool.cancelCycle.confirmSeason",
                 defaultMessage: "Cancel Season",
               })
         }
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.cancelCycle.keep",
+          id: "hub.garden.pool.cancelCycle.keep",
           defaultMessage: "Keep It",
         })}
         suggestions={[
           formatMessage({
-            id: "cockpit.garden.pool.cancelCycle.suggestion.funding",
+            id: "hub.garden.pool.cancelCycle.suggestion.funding",
             defaultMessage: "Funding fell through",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.cancelCycle.suggestion.replanned",
+            id: "hub.garden.pool.cancelCycle.suggestion.replanned",
             defaultMessage: "Replanned",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.cancelCycle.suggestion.mistake",
+            id: "hub.garden.pool.cancelCycle.suggestion.mistake",
             defaultMessage: "Started by mistake",
           }),
         ]}
@@ -152,8 +152,8 @@ export function PoolReasonDialogs({
           pool.isOnline
             ? undefined
             : formatMessage({
-                id: "cockpit.garden.pool.offline",
-                defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+                id: "hub.garden.pool.offline",
+                defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
               })
         }
         onConfirm={async (reason) => {
@@ -178,33 +178,33 @@ export function PoolReasonDialogs({
         onClose={() => setReasonDialog(null)}
         tone={tone}
         title={formatMessage({
-          id: "cockpit.garden.pool.declineClaim.title",
-          defaultMessage: "Decline This Request",
+          id: "hub.garden.pool.declineClaim.title",
+          defaultMessage: "Decline This Take-Up",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.declineClaim.description",
+          id: "hub.garden.pool.declineClaim.description",
           defaultMessage:
-            "Only this request is declined; others stay pending and the commitment stays claimable. The person sees your reason and may ask again.",
+            "Only this person is declined; anyone else who asked stays waiting, and the promise stays open to take up. They see your reason and may ask again.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.declineClaim.confirm",
-          defaultMessage: "Decline Request",
+          id: "hub.garden.pool.declineClaim.confirm",
+          defaultMessage: "Decline",
         })}
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.declineClaim.keep",
+          id: "hub.garden.pool.declineClaim.keep",
           defaultMessage: "Keep Pending",
         })}
         suggestions={[
           formatMessage({
-            id: "cockpit.garden.pool.declineClaim.suggestion.full",
+            id: "hub.garden.pool.declineClaim.suggestion.full",
             defaultMessage: "Crew is full",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.declineClaim.suggestion.experience",
+            id: "hub.garden.pool.declineClaim.suggestion.experience",
             defaultMessage: "Needs more experience",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.declineClaim.suggestion.chosen",
+            id: "hub.garden.pool.declineClaim.suggestion.chosen",
             defaultMessage: "Asked after another was chosen",
           }),
         ]}
@@ -212,8 +212,8 @@ export function PoolReasonDialogs({
           pool.isOnline
             ? undefined
             : formatMessage({
-                id: "cockpit.garden.pool.offline",
-                defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+                id: "hub.garden.pool.offline",
+                defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
               })
         }
         onConfirm={async (reason) => {
@@ -232,8 +232,8 @@ export function PoolReasonDialogs({
               record={claimTitle(reasonDialog.row)}
               party={{
                 label: formatMessage({
-                  id: "cockpit.garden.pool.target.requestFrom",
-                  defaultMessage: "Request from",
+                  id: "hub.garden.pool.target.requestFrom",
+                  defaultMessage: "Asked to take it up",
                 }),
                 value: (
                   <AddressDisplay address={reasonDialog.row.claim.claimant} interactive={false} />

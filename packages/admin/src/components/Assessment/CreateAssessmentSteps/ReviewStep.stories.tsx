@@ -1,3 +1,7 @@
+import {
+  DOCUMENTATION_ASSESSMENT,
+  DOCUMENTATION_ASSESSMENT_ACTIONS,
+} from "../../../../../shared/.storybook/documentationAssessment";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { CreateAssessmentFormState } from "@green-goods/shared/stores/useCreateAssessmentStore";
@@ -54,8 +58,8 @@ const FAILURES: Record<
 > = {
   declined: {
     tone: "warning",
-    title: "Transaction cancelled",
-    description: "Transaction was cancelled. Please try again when ready.",
+    title: "Transaction canceled",
+    description: "Transaction was canceled. Please try again when ready.",
   },
   broken: {
     tone: "error",
@@ -85,7 +89,7 @@ function ReviewInFlow(args: ReviewStoryArgs) {
       open
       size="lg"
       variant="flow"
-      tone="hub"
+      tone="review"
       className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={noop}
       preventClose={phase === "sending"}
@@ -96,7 +100,7 @@ function ReviewInFlow(args: ReviewStoryArgs) {
       <ActionFlowShell
         layout="dialog"
         title="Create Assessment"
-        context="Rio Rainforest Lab"
+        context={args.form.location}
         steps={STEPS}
         currentStep={STEPS.length}
         complete={phase === "sent"}
@@ -149,7 +153,7 @@ const meta: Meta<ReviewStoryArgs> = {
   decorators: [
     withSeededQueryClient([[queryKeys.actions.byChain(DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_ACTIONS]]),
     (Story) => (
-      <div className="max-w-3xl p-4" data-tone="hub">
+      <div className="max-w-3xl p-4" data-tone="review">
         <Story />
       </div>
     ),
@@ -200,3 +204,13 @@ export const InFlowSending: Story = { ...inFlow, args: { phase: "sending" } };
 export const InFlowSent: Story = { ...inFlow, args: { phase: "sent" } };
 
 export const InFlowFailed: Story = { ...inFlow, args: { phase: "failed", failure: "declined" } };
+
+export const Documentation: Story = {
+  ...inFlow,
+  args: { form: DOCUMENTATION_ASSESSMENT },
+  decorators: [
+    withSeededQueryClient([
+      [queryKeys.actions.byChain(DEFAULT_CHAIN_ID), DOCUMENTATION_ASSESSMENT_ACTIONS],
+    ]),
+  ],
+};

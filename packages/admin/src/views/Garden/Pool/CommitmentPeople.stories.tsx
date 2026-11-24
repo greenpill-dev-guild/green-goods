@@ -20,7 +20,7 @@ const meta: Meta<typeof CommitmentPeople> = {
   },
   decorators: [
     (Story) => (
-      <p className="flex flex-wrap items-center gap-x-1.5 body-xs text-text-soft">
+      <p className="flex flex-wrap items-center gap-x-1.5 type-meta text-text-soft">
         <Story />
       </p>
     ),

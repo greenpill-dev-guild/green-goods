@@ -52,10 +52,12 @@ describe("work media without the HEIC decoder", () => {
     expect(onHeicConversionFailed).not.toHaveBeenCalled();
   });
 
-  it("still refuses a file that is not a photo at all", async () => {
-    const text = new File(["notes"], "notes.txt", { type: "text/plain" });
+  it("still refuses a file that is not a photo, a video or a document", async () => {
+    const sheet = new File(["PK"], "yields.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
 
-    const result = await normalizeWorkMediaFiles([text]);
+    const result = await normalizeWorkMediaFiles([sheet]);
 
     expect(result.accepted).toEqual([]);
     expect(result.rejected).toHaveLength(1);

@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
-import { AdminButton } from "@/components/AdminButton";
 import type { FallbackPath, OpenDialog } from "./commitmentDialogPresentation";
 
 /**
@@ -17,10 +17,12 @@ export function CommitmentActions({
   isActing,
   fallbackPath,
   onOpenDialog,
+  onCancelUntaken,
   onSeedAnother,
   onEditReward,
+  onEditConfirmers,
   sendPhase,
-  chainId,
+  confirmPhase,
 }: {
   isOnline: boolean;
   /** Why the acts are out of reach while the reader has no connection. */
@@ -32,24 +34,34 @@ export function CommitmentActions({
   fallbackPath: FallbackPath;
   onOpenDialog: (open: OpenDialog) => void;
   /**
+   * Cancel a promise nobody has taken up, with a reason. Only a steward gets it; once taken up,
+   * the Accepted section carries the cancel instead.
+   */
+  onCancelUntaken?: () => void;
+  /**
    * Opens the seeding wizard on this commitment's answers. Absent wherever the
    * reader may not seed this pool, so the button is simply not drawn.
    */
   onSeedAnother?: () => void;
   /** Change the reward while nobody has taken the promise (PRD-1022 D14); only a steward gets it. */
   onEditReward?: () => void;
+  /** Change who confirms while nobody has taken the promise; only a steward gets it. */
+  onEditConfirmers?: () => void;
   /** Where Send for Confirmation stands, followed from the wallet to the chain. */
   sendPhase: CommitmentDialogController["sendPhase"];
-  chainId: number;
+  /** Where this reader's Confirm Kept stands; idle again once the record reads Kept. */
+  confirmPhase: CommitmentDialogController["confirmPhase"];
 }) {
   const { formatMessage } = useIntl();
   // Sent, or kept queued to send: the act stays closed until the record moves on.
   const sendHeld = sendPhase.status !== "idle" && sendPhase.status !== "failed";
+  // Confirmed, or kept queued to send: Confirm Kept is not offered twice (PRD-1205).
+  const confirmHeld = confirmPhase.status !== "idle" && confirmPhase.status !== "failed";
 
   return (
     <>
       {!isOnline ? (
-        <p className="body-xs text-warning-dark" role="status">
+        <p className="type-meta text-warning-dark" role="status">
           {offlineNote}
         </p>
       ) : null}
@@ -59,115 +71,137 @@ export function CommitmentActions({
         data-testid="commitment-acts"
       >
         {onEditReward ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             disabled={actDisabled}
             onClick={onEditReward}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.reward.title",
+              id: "hub.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
             })}
-          </AdminButton>
+          </Button>
+        ) : null}
+        {onEditConfirmers ? (
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="compact"
+            disabled={actDisabled}
+            onClick={onEditConfirmers}
+          >
+            {formatMessage({
+              id: "hub.garden.pool.confirmers.title",
+              defaultMessage: "Edit Confirmers",
+            })}
+          </Button>
         ) : null}
         {onSeedAnother ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             disabled={actDisabled}
             onClick={onSeedAnother}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.seedAnother",
+              id: "hub.garden.pool.commitment.act.seedAnother",
               defaultMessage: "Seed Another Like This",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.raiseDispute ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => onOpenDialog("raise-dispute")}
             disabled={actDisabled}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.raiseDispute",
+              id: "hub.garden.pool.commitment.act.raiseDispute",
               defaultMessage: "Raise Dispute…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.resolveDispute ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={() => onOpenDialog("resolve-dispute")}
             disabled={actDisabled}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.resolve",
+              id: "hub.garden.pool.commitment.act.resolve",
               defaultMessage: "Resolve…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.confirmFallback ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={() => onOpenDialog("fallback-confirm")}
             disabled={actDisabled}
           >
             {fallbackPath === "PROTOCOL_FALLBACK"
               ? formatMessage({
-                  id: "cockpit.garden.pool.commitment.act.confirmProtocol",
+                  id: "hub.garden.pool.commitment.act.confirmProtocol",
                   defaultMessage: "Confirm for Green Goods Team…",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.commitment.act.confirmGarden",
+                  id: "hub.garden.pool.commitment.act.confirmGarden",
                   defaultMessage: "Confirm as Garden Fallback…",
                 })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.confirmOrdinary ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={() => onOpenDialog("confirm-kept")}
-            disabled={isActing}
+            disabled={isActing || confirmHeld}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.confirm",
+              id: "hub.garden.pool.commitment.act.confirm",
               defaultMessage: "Confirm Kept…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.sendForConfirmation ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={() => void acts.sendForConfirmation().catch(() => undefined)}
             disabled={isActing || sendHeld}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.send",
+              id: "hub.garden.pool.commitment.act.send",
               defaultMessage: "Send for Confirmation",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
+      {confirmPhase.status !== "idle" ? (
+        <ActPhaseLine
+          phase={confirmPhase}
+          confirmed={formatMessage({
+            id: "hub.garden.pool.commitment.act.confirmed",
+            defaultMessage: "Confirmed. It reads Kept once its last confirmation is recorded.",
+          })}
+        />
+      ) : null}
       {can.sendForConfirmation || sendPhase.status !== "idle" ? (
         <ActPhaseLine
           phase={sendPhase}
-          chainId={chainId}
           confirmed={formatMessage({
-            id: "cockpit.garden.pool.commitment.act.sent",
+            id: "hub.garden.pool.commitment.act.sent",
             defaultMessage: "Sent for confirmation. Its confirmers see it once the index shows it.",
           })}
         />
@@ -178,18 +212,35 @@ export function CommitmentActions({
         // row after the routine ones, quiet where it sits, loud only inside its
         // confirmation.
         <div className="flex justify-end border-t border-stroke-soft pt-3" data-slot="expire">
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => onOpenDialog("expire")}
             disabled={actDisabled}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.row.act.expire",
+              id: "hub.garden.pool.row.act.expire",
               defaultMessage: "Expire Now…",
             })}
-          </AdminButton>
+          </Button>
+        </div>
+      ) : null}
+      {onCancelUntaken ? (
+        // Final too, so it takes the same row of its own as Expire Now.
+        <div className="flex justify-end border-t border-stroke-soft pt-3" data-slot="cancel">
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            onClick={onCancelUntaken}
+            disabled={actDisabled}
+          >
+            {formatMessage({
+              id: "hub.garden.pool.commitment.act.cancel",
+              defaultMessage: "Cancel Promise…",
+            })}
+          </Button>
         </div>
       ) : null}
     </>

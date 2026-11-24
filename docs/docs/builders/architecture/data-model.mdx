@@ -11,7 +11,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:ecdb2a914ae7187b8caffaeee1981514b2d50bbe734d07c10d04e0531201b29f"
+source_digest: "sha256:7967408c87f519195c3177c36a59491f1d060f70fbef5f786c2e18cc639018da"
 source_of_truth:
   - packages/indexer/schema.graphql
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -54,7 +54,7 @@ flowchart LR
   attestation -->|records| work
   attestation -->|records| assessment
   hat -->|authority-in| garden
-  season -->|formalized-by| commitment_cycle
+  season -->|represented-by| commitment_cycle
   need -->|raised-in| garden
   need -->|addressed-by| commitment
   need -->|recorded-as| attestation
@@ -71,7 +71,7 @@ flowchart LR
 | Assessment | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). | admin, client, public, docs |
 | Attestation | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. | admin, client, public, docs |
 | Hat | A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | admin, client, public, docs |
-| Season | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | admin, client, agent, public, docs |
+| Season | A garden's main rhythm: a Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. It stays a season at every stage, from planned to archived. A pool has at most one open Season at a time, and Campaigns may run beside it. It paces work and is never a countdown. | admin, client, agent, public, docs |
 | Need | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | community, admin, client, public, docs |
 
 ## Funding and recognition
@@ -98,6 +98,33 @@ flowchart LR
 | Hypercert | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. | admin, client, public, docs |
 | Vault | A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, which they can redeem, though a strategy or contract loss can reduce what comes back; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios. | admin, client, public, docs |
 | Cookie Jar | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead. | admin, client, public, docs |
+
+## Service vouchers
+
+Issuer promises, curated exchanges, and awards for contributions.
+
+```mermaid
+flowchart LR
+  service_voucher["Service Voucher"]:::member
+  voucher_exchange_pool["Voucher Exchange Pool"]:::member
+  voucher_award["Voucher Award"]:::member
+  commitment["Commitment"]:::context
+  garden["Garden"]:::context
+  service_voucher -->|offered-in| garden
+  service_voucher -->|can-reward-or-access| commitment
+  voucher_exchange_pool -->|serves| garden
+  voucher_exchange_pool -->|lists-and-exchanges| service_voucher
+  voucher_award -->|transfers| service_voucher
+  voucher_award -->|recognizes-contribution-to| garden
+  classDef member stroke-width:2px
+  classDef context opacity:0.55,stroke-dasharray:4 3
+```
+
+| Entity | Definition | Surfaces |
+|---|---|---|
+| Service Voucher | An issuer-specific token representing a published service promise, such as hub access or a career call. A voucher identifies its issuer and service terms; a wallet balance does not establish current service capacity or acceptance by another issuer. Approved request rewards and steward awards can transfer existing reserve vouchers to a gardener. | admin, client, docs |
+| Voucher Exchange Pool | A curated inventory of admitted service vouchers with its own prices, holding limits, fees, and governance. A pool can exchange multiple listed vouchers when policy and inventory permit. A garden pool supports local service exchange; the separately curated Green Goods pool admits only reviewed vouchers for its offered services. | admin, client, docs |
+| Voucher Award | A durable steward-reviewed allocation of existing issuer-reserve vouchers to a recipient, with an amount, reason, and optional contribution reference. Preparing the record binds one Safe transaction but does not send it. Confirmation requires the matching successful Safe execution and token transfer. | admin, client, docs |
 
 ## Commitment pooling
 
@@ -177,8 +204,8 @@ stateDiagram-v2
   syncing --> sync_failed: a recoverable queue or upload failure preserves the job for…
   uploading --> sync_failed: a recoverable queue or upload failure preserves the job for…
   uploading --> pending: successful EAS Work attestation submission creates the pend…
-  pending --> approved: a Steward records a separate Work Approval attestation
-  pending --> rejected: a Steward records a separate Work Approval attestation
+  pending --> approved: a steward records a separate Work Approval attestation
+  pending --> rejected: a steward records a separate Work Approval attestation
 ```
 
 | From | To | Layer | Mechanism |
@@ -187,7 +214,7 @@ stateDiagram-v2
 | syncing | uploading | off-chain | queued media begins uploading before the attestation is submitted |
 | syncing, uploading | sync_failed | off-chain | a recoverable queue or upload failure preserves the job for retry |
 | uploading | pending | on-chain | successful EAS Work attestation submission creates the pending public record |
-| pending | approved, rejected | on-chain | a Steward records a separate Work Approval attestation |
+| pending | approved, rejected | on-chain | a steward records a separate Work Approval attestation |
 
 ### commitment-pool {#commitment-pool}
 
@@ -319,11 +346,11 @@ stateDiagram-v2
 | Offered, Requested, Accepted | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
 | Offered, Requested, Accepted, ReadyForConfirmation | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
 | Accepted, ReadyForConfirmation, Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
-| Disputed | Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
+| Disputed | Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution rejects the steward who raised the dispute (SelfDisputeResolution) and a dispute with no recorded raiser (UnknownDisputeRaiser), while that steward may still restore, cancel or expire it; it then requires an available recognition policy and verified contributor, and freezes an unfrozen roster before DisputeResolved |
 
 ### commitment-loan {#commitment-loan}
 
-Records-only pool credit (CreditRegistry). Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.
+Records-only pool credit (CreditRegistry) for the separate Commitment Credit companion. No client or admin screen offers it yet, so no garden can borrow or repay through Green Goods. Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.
 
 ```mermaid
 stateDiagram-v2
@@ -355,3 +382,35 @@ stateDiagram-v2
 | Disbursed | Repaid | on-chain | recordRepayment(loanId, amount, executionRef) clearing principal + fee → RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only |
 | Disbursed | Defaulted | on-chain | markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused |
 | Defaulted | Repaid | on-chain | recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal |
+
+### voucher-award {#voucher-award}
+
+Preparation creates awaiting_authorization after validating authority, reserve inventory, and the exact envelope. Confirmed is terminal. Failure distinguishes a reverted outer transaction from a Safe execution failure; a consumed nonce requires reconciliation, never an automatic replacement payment.
+
+```mermaid
+stateDiagram-v2
+  awaiting_authorization
+  submitted
+  confirmed
+  failed
+  needs_reconciliation
+  awaiting_authorization --> submitted: Reconcile the supplied transaction hash against the prepare…
+  awaiting_authorization --> confirmed: Reconcile the supplied transaction hash against the prepare…
+  awaiting_authorization --> failed: Reconcile the supplied transaction hash against the prepare…
+  submitted --> submitted: Reconcile the supplied transaction hash against the prepare…
+  submitted --> confirmed: Reconcile the supplied transaction hash against the prepare…
+  submitted --> failed: Reconcile the supplied transaction hash against the prepare…
+  failed --> submitted: Reconcile the supplied transaction hash against the prepare…
+  failed --> confirmed: Reconcile the supplied transaction hash against the prepare…
+  failed --> failed: Reconcile the supplied transaction hash against the prepare…
+  needs_reconciliation --> submitted: Reconcile the supplied transaction hash against the prepare…
+  needs_reconciliation --> confirmed: Reconcile the supplied transaction hash against the prepare…
+  needs_reconciliation --> failed: Reconcile the supplied transaction hash against the prepare…
+  awaiting_authorization --> needs_reconciliation: Read a prepared or outer-transaction-reverted award and obs…
+  failed --> needs_reconciliation: Read a prepared or outer-transaction-reverted award and obs…
+```
+
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| awaiting_authorization, submitted, failed, needs_reconciliation | submitted, confirmed, failed | off-chain | Reconcile the supplied transaction hash against the prepared Safe envelope and canonical receipt. Pending execution stays submitted; a verified successful execution plus exact transfer confirms; reverted or Safe-failed execution records failure. An unresolved submitted transaction cannot be replaced by another unconfirmed hash. |
+| awaiting_authorization, failed | needs_reconciliation | off-chain | Read a prepared or outer-transaction-reverted award and observe that its Safe nonce has changed. Preserve the award and exact envelope for receipt reconciliation. |

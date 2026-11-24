@@ -4,18 +4,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useResolvedWorkDetail } from "../../../hooks/admin-ui/garden/useResolvedWorkDetail";
 
 const {
+  mockVisibility,
   mockSelectGarden,
   mockUseActions,
   mockUseAdminGardenContext,
   mockUseGardenPermissions,
   mockUseGardens,
+  mockUseWorkMetadata,
   mockUseWorks,
 } = vi.hoisted(() => ({
+  mockVisibility: vi.fn(),
   mockSelectGarden: vi.fn(),
   mockUseActions: vi.fn(),
   mockUseAdminGardenContext: vi.fn(),
   mockUseGardenPermissions: vi.fn(),
   mockUseGardens: vi.fn(),
+  mockUseWorkMetadata: vi.fn(),
   mockUseWorks: vi.fn(),
 }));
 
@@ -32,16 +36,30 @@ vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
   useGardenPermissions: () => mockUseGardenPermissions(),
 }));
 
+vi.mock("../../../hooks/work/useWorkVisibility", () => ({
+  useWorkVisibility: () => mockVisibility(),
+}));
 vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: () => mockUseWorks(),
 }));
 
-const work = createMockWork({ id: "work-1", gardenAddress: "garden-1" });
-const garden = createMockGarden({ id: "garden-1", works: [work] });
+vi.mock("../../../hooks/work/useWorkMetadata", () => ({
+  useWorkMetadata: (raw: string | undefined) => mockUseWorkMetadata(raw),
+}));
+
+const gardenAddress = "0x1111111111111111111111111111111111111111";
+const work = createMockWork({ id: "work-1", gardenAddress });
+const garden = createMockGarden({ id: gardenAddress, works: [work] });
 
 describe("useResolvedWorkDetail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockVisibility.mockReturnValue({
+      isReady: true,
+      isVisible: () => true,
+      isLoading: false,
+      isError: false,
+    });
     mockUseAdminGardenContext.mockReturnValue({
       activeGarden: garden,
       activeGardenId: garden.id,
@@ -68,6 +86,106 @@ describe("useResolvedWorkDetail", () => {
       isError: false,
       error: null,
     });
+    mockUseWorkMetadata.mockReturnValue({
+      metadata: null,
+      status: "success",
+      error: null,
+      retryFetch: vi.fn(),
+    });
+  });
+
+  it("says a work's status is unread when its decisions could not be read", () => {
+    mockUseWorks.mockReturnValue({
+      works: [work],
+      unknownIds: new Set([work.id]),
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    });
+    const { result } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.statusUnread).toBe(true);
+  });
+
+  it("offers no decision while the garden's read is not current, or the work is only retained", () => {
+    const read = {
+      works: [work],
+      unknownIds: new Set<string>(),
+      readThisSession: true,
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    };
+    mockUseWorks.mockReturnValue(read);
+    const { result, rerender } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.statusUnread).toBe(false);
+
+    // The garden's read failed, and the copy on screen may be old.
+    mockUseWorks.mockReturnValue({ ...read, isError: true });
+    rerender();
+    expect(result.current.statusUnread).toBe(true);
+
+    // This session's first read has not landed over a restored copy, online or offline.
+    mockUseWorks.mockReturnValue({ ...read, readThisSession: false, isFetching: true });
+    rerender();
+    expect(result.current.statusUnread).toBe(true);
+    mockUseWorks.mockReturnValue({ ...read, readThisSession: false, isFetching: false });
+    rerender();
+    expect(result.current.statusUnread).toBe(true);
+
+    // The work left the read and shows only from the snapshot kept of it.
+    mockUseWorks.mockReturnValue({ ...read, works: [] });
+    rerender();
+    expect(result.current.work).toBe(work);
+    expect(result.current.statusUnread).toBe(true);
+  });
+
+  it("does not reopen excluded work from garden metadata or a retained detail", () => {
+    const { result, rerender } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.work?.id).toBe(work.id);
+    mockVisibility.mockReturnValue({
+      isReady: true,
+      isVisible: () => false,
+      isLoading: false,
+      isError: false,
+    });
+    rerender();
+    expect(result.current.work).toBeUndefined();
+    expect(result.current.isNotFound).toBe(true);
+  });
+
+  it("shows unavailable instead of not-found when an offline cache cannot yet be classified", () => {
+    mockVisibility.mockReturnValue({
+      isReady: false,
+      isVisible: () => false,
+      isLoading: false,
+      isError: false,
+    });
+    const { result } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.isError).toBe(true);
+    expect(result.current.isNotFound).toBe(false);
+  });
+
+  it("reads voice notes and documents through the metadata reader, which resolves a CID", () => {
+    const cid = "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy";
+    const certificate = { cid, type: "application/pdf", name: "Certificate.pdf", size: 1200 };
+    const retryFetch = vi.fn();
+    mockUseWorkMetadata.mockReturnValue({
+      metadata: { audioNoteCids: ["bafkreivoicenote"], documents: [certificate] },
+      status: "success",
+      error: null,
+      retryFetch,
+    });
+
+    const { result } = renderHook(() => useResolvedWorkDetail(work.id));
+
+    expect(mockUseWorkMetadata).toHaveBeenCalledWith(work.metadata);
+    expect(result.current.audioNoteCids).toEqual(["bafkreivoicenote"]);
+    expect(result.current.documents).toEqual([certificate]);
+    // The review screen says when that evidence is still loading, and can ask for it again.
+    expect(result.current.metadataStatus).toBe("success");
+    expect(result.current.retryMetadata).toBe(retryFetch);
   });
 
   it("retains the last authoritative work and garden while the current collection changes", () => {
@@ -84,7 +202,7 @@ describe("useResolvedWorkDetail", () => {
       error: null,
     });
     mockUseWorks.mockReturnValue({
-      works: [createMockWork({ id: "unrelated-work", gardenAddress: garden.id })],
+      works: [createMockWork({ id: "unrelated-work", gardenAddress })],
       isLoading: false,
       isFetching: false,
       isError: false,

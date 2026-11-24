@@ -1,12 +1,40 @@
+import { useBatchCapability } from "../blockchain/useBatchCapability";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
+import {
+  batchSaveActOutcome,
+  recordedSendAct,
+  type SendActContext,
+} from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import {
+  createGardenSettingsChain,
+  type GardenSettingsBatchOutcome,
+  type GardenSettingsChange,
+  type GardenSettingsHold,
+  gardenSettingsBudget,
+  gardenSettingsDomain,
+  moveOnFromGardenSettingsHold,
+  readGardenSettingsHold,
+  sendGardenSettingsBatch,
+} from "../../modules/garden/settings-batch";
 import { updateGarden } from "../../modules/garden/update-garden-command";
+import { isBatchEnabled } from "../../modules/transactions/batch-enablement";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { useUser } from "../auth/useUser";
+import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { gardensKeys } from "../../config/query-keys/garden";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useHeldBatches } from "./useHeldBatches";
+import { batchKeys, gardensKeys } from "../../config/query-keys/garden";
+
+export type {
+  GardenSettingsBatchOutcome,
+  GardenSettingsChange,
+  GardenSettingsHold,
+} from "../../modules/garden/settings-batch";
 
 interface UpdateGardenStringParam {
   gardenAddress: Address;
@@ -39,10 +67,17 @@ function useGardenStringMutation(
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "garden_update",
+    operation: functionName,
+    authMode,
+    chainId: sendContractTx.chainId,
+  };
   const handleError = createMutationErrorHandler({ source, toastContext });
 
   return useMutation({
-    mutationFn: async (params: UpdateGardenStringParam) => {
+    mutationFn: recordedSendAct(act, async (params: UpdateGardenStringParam) => {
       return updateGarden(
         {
           gardenAddress: params.gardenAddress,
@@ -52,7 +87,7 @@ function useGardenStringMutation(
         },
         { sender: sendContractTx }
       );
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: loadingMessageId, defaultMessage: "Updating..." }),
@@ -151,13 +186,20 @@ export function useSetOpenJoining() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "garden_update",
+    operation: "setOpenJoining",
+    authMode,
+    chainId: sendContractTx.chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useSetOpenJoining",
     toastContext: "set open joining",
   });
 
   return useMutation({
-    mutationFn: async (params: UpdateGardenBoolParam) => {
+    mutationFn: recordedSendAct(act, async (params: UpdateGardenBoolParam) => {
       return updateGarden(
         {
           gardenAddress: params.gardenAddress,
@@ -167,7 +209,7 @@ export function useSetOpenJoining() {
         },
         { sender: sendContractTx }
       );
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({
@@ -202,13 +244,20 @@ export function useSetMaxGardeners() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "garden_update",
+    operation: "setMaxGardeners",
+    authMode,
+    chainId: sendContractTx.chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useSetMaxGardeners",
     toastContext: "set max gardeners",
   });
 
   return useMutation({
-    mutationFn: async (params: UpdateGardenNumberParam) => {
+    mutationFn: recordedSendAct(act, async (params: UpdateGardenNumberParam) => {
       return updateGarden(
         {
           gardenAddress: params.gardenAddress,
@@ -218,7 +267,7 @@ export function useSetMaxGardeners() {
         },
         { sender: sendContractTx }
       );
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({
@@ -243,4 +292,97 @@ export function useSetMaxGardeners() {
       handleError(error, {});
     },
   });
+}
+
+/**
+ * Save several garden settings under one signature, and settle a save whose outcome is unknown.
+ *
+ * `available` says a save can go as one batch now: its rail is listed, and the sender reports
+ * atomic. Recovery does not depend on that, so a hold from an earlier save still shows after
+ * batching is switched off.
+ */
+export function useGardenSettingsBatch(gardenAddress: Address) {
+  const { formatMessage } = useIntl();
+  const queryClient = useQueryClient();
+  const chainId = useCurrentChain();
+  const sender = useTransactionSender();
+  const { primaryAddress: account, passkeyAccountProfile } = useUser();
+  const handleError = createMutationErrorHandler({
+    source: "useGardenSettingsBatch",
+    toastContext: "save garden settings",
+    formatMessage,
+  });
+
+  const batches = sender?.batches;
+  const rail =
+    sender?.authMode === "passkey" || sender?.authMode === "wallet" ? sender.authMode : null;
+  const profile = rail === "wallet" ? "eip-5792" : passkeyAccountProfile;
+  const listed = Boolean(
+    batches &&
+      account &&
+      rail &&
+      profile &&
+      gardenSettingsBudget(rail, chainId) &&
+      isBatchEnabled({ action: "garden-settings", rail, profile, chainId })
+  );
+
+  // Asked only once listed: until then no wallet hears from this hook.
+  const { data: atomic } = useBatchCapability({
+    sender,
+    account,
+    chainId,
+    enabled: listed,
+  });
+
+  const domain = gardenSettingsDomain(gardenAddress);
+  const holdKey = batchKeys.hold(domain, account ?? "", chainId);
+  const batchInput = () => ({
+    batches: batches!,
+    chain: createGardenSettingsChain(chainId),
+    gardenAddress,
+    scope: { account: account!, chainId },
+  });
+  const refreshGarden = () => {
+    void queryClient.invalidateQueries({ queryKey: gardensKeys.all });
+    void queryClient.invalidateQueries({
+      queryKey: ["readContract", { functionName: "gardenDomains", args: [gardenAddress] }],
+    });
+  };
+
+  const sendBatch = useMutation({
+    onMutate: () => queryClient.cancelQueries({ queryKey: holdKey }),
+    mutationFn: recordedSendAct(
+      { act: "garden_update", operation: "settingsBatch", authMode: rail, chainId },
+      async (changes: readonly GardenSettingsChange[]): Promise<GardenSettingsBatchOutcome> => {
+        try {
+          return await sendGardenSettingsBatch({ ...batchInput(), rail: rail!, changes });
+        } catch (error) {
+          handleError(error, { authMode: rail, gardenAddress });
+          return { status: "not-saved" };
+        }
+      },
+      batchSaveActOutcome
+    ),
+    onSuccess: (outcome) => {
+      if (outcome.status === "saved") refreshGarden();
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: holdKey }),
+  });
+
+  const held = useHeldBatches<GardenSettingsHold, GardenSettingsChange>({
+    domain,
+    account,
+    chainId,
+    enabled: Boolean(batches && account) && !sendBatch.isPending,
+    read: (shown) => readGardenSettingsHold(batchInput(), shown),
+    moveOn: (hold) => moveOnFromGardenSettingsHold(batchInput(), hold),
+    onSaved: refreshGarden,
+    onError: (error) => handleError(error, { authMode: rail, gardenAddress }),
+  });
+
+  return {
+    ...held,
+    available: listed && atomic === "supported",
+    send: (changes: readonly GardenSettingsChange[]) => sendBatch.mutateAsync(changes),
+  };
 }

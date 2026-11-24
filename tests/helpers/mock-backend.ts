@@ -6,6 +6,7 @@ import {
   encodeFunctionData,
   encodeFunctionResult,
   parseAbi,
+  toFunctionSelector,
 } from "viem";
 import deployment from "../../packages/contracts/deployments/11155111-latest.json" with {
   type: "json",
@@ -72,27 +73,64 @@ const roles = [
   MOCK_RPC_OWNER_ADDRESS,
   "0x04D60647836bcA09c37B379550038BdaaFD82503",
 ];
-const registryCalls = new Set(
-  roles.map((address) =>
-    encodeFunctionData({
-      abi: parseAbi(["function isInAllowlist(address) view returns (bool)"]),
-      functionName: "isInAllowlist",
-      args: [address as `0x${string}`],
-    }).toLowerCase()
-  )
-);
+const allowlistAbi = parseAbi(["function isInAllowlist(address) view returns (bool)"]);
+const allowlistSelector = toFunctionSelector(allowlistAbi[0]);
+
+function allowlistReads(addresses: readonly string[]) {
+  return new Set(
+    addresses.map((address) =>
+      encodeFunctionData({
+        abi: allowlistAbi,
+        functionName: "isInAllowlist",
+        args: [address as `0x${string}`],
+      }).toLowerCase()
+    )
+  );
+}
+const registryCalls = allowlistReads(roles);
 
 const multicallAbi = parseAbi([
   "function aggregate3((address target, bool allowFailure, bytes callData)[] calls) payable returns ((bool success, bytes returnData)[] returnData)",
 ]);
 const evaluatorAbi = parseAbi(["function isEvaluator(address) view returns (bool)"]);
+const operatorAbi = parseAbi(["function isOperator(address) view returns (bool)"]);
+const protocolRolesAbi = parseAbi([
+  "function protocolRoleHats() view returns (uint256,uint256,uint256,uint256)",
+  "function hats() view returns (address)",
+]);
 
 export interface MockRpcRead {
   name: string;
   to: string;
-  from: string;
+  from?: string;
   data: `0x${string}`;
   result: `0x${string}`;
+}
+
+function latestBlock(): Record<string, unknown> {
+  const zero = `0x${"0".repeat(64)}`;
+  return {
+    number: "0x1",
+    hash: `0x${"1".repeat(64)}`,
+    parentHash: zero,
+    timestamp: `0x${Math.floor(Date.now() / 1000).toString(16)}`,
+    nonce: "0x0000000000000000",
+    difficulty: "0x0",
+    totalDifficulty: "0x0",
+    gasLimit: "0x1c9c380",
+    gasUsed: "0x0",
+    baseFeePerGas: "0x1",
+    miner: "0x0000000000000000000000000000000000000000",
+    extraData: "0x",
+    logsBloom: `0x${"0".repeat(512)}`,
+    sha3Uncles: zero,
+    stateRoot: zero,
+    receiptsRoot: zero,
+    transactionsRoot: zero,
+    size: "0x0",
+    transactions: [],
+    uncles: [],
+  };
 }
 
 function buildRpcResponse(
@@ -100,13 +138,30 @@ function buildRpcResponse(
   garden: typeof MOCK_CLIENT_GARDEN,
   reads: MockRpcRead[],
   requests: Map<string, number>,
-  nested = false
+  nested = false,
+  allowlisted = registryCalls,
+  codes: Record<string, `0x${string}`> = {}
 ) {
   const addresses = [...roles, garden.id, garden.tokenAddress];
   const { method, params = [] } = payload;
-  let result: string;
+  let result: string | Record<string, unknown>;
   if ((method === "eth_chainId" || method === "eth_blockNumber") && params.length === 0) {
     result = method === "eth_chainId" ? "0xaa36a7" : "0x1";
+  } else if (
+    method === "eth_getBlockByNumber" &&
+    params.length === 2 &&
+    params[0] === "latest" &&
+    params[1] === false
+  ) {
+    // The due clock sets itself to the chain's time from the latest block (useExpiryClock).
+    result = latestBlock();
+  } else if (method === "eth_getCode") {
+    const address = typeof params[0] === "string" ? params[0].toLowerCase() : "";
+    check(
+      params.length === 2 && params[1] === "latest" && codes[address] !== undefined,
+      "declared RPC code read"
+    );
+    result = codes[address];
   } else if (method === "eth_call") {
     const call = params[0] as { to?: string; data?: string; from?: string } | undefined;
     const data = call?.data?.toLowerCase();
@@ -118,12 +173,27 @@ function buildRpcResponse(
       (read) =>
         read.to.toLowerCase() === target &&
         read.data.toLowerCase() === data &&
-        read.from.toLowerCase() === call.from?.toLowerCase()
+        read.from?.toLowerCase() === call.from?.toLowerCase()
     );
     if (declaredRead) {
       const key = `rpc: ${declaredRead.name}`;
       requests.set(key, (requests.get(key) ?? 0) + 1);
       result = declaredRead.result;
+    } else if (
+      target === deployment.hatsModule.toLowerCase() &&
+      data === encodeFunctionData({ abi: protocolRolesAbi, functionName: "protocolRoleHats" })
+    ) {
+      // Default browser fixtures grant no protocol role; scenarios can declare their own reads.
+      result = encodeFunctionResult({
+        abi: protocolRolesAbi,
+        functionName: "protocolRoleHats",
+        result: [0n, 0n, 0n, 0n],
+      });
+    } else if (
+      target === deployment.hatsModule.toLowerCase() &&
+      data === encodeFunctionData({ abi: protocolRolesAbi, functionName: "hats" })
+    ) {
+      result = encodeAddressResult("0x3333333333333333333333333333333333333333");
     } else if (target === "0xca11bde05977b3631167028862be2a173976ca11" && !nested) {
       const decoded = decodeFunctionData({ abi: multicallAbi, data: data as `0x${string}` });
       check(decoded.functionName === "aggregate3" && decoded.args[0].length > 0, "RPC multicall");
@@ -135,7 +205,9 @@ function buildRpcResponse(
           garden,
           reads,
           requests,
-          true
+          true,
+          allowlisted,
+          codes
         ).result as `0x${string}`,
       }));
       result = encodeFunctionResult({
@@ -143,6 +215,51 @@ function buildRpcResponse(
         functionName: "aggregate3",
         result: results,
       });
+    } else if (
+      target === garden.id.toLowerCase() &&
+      ["isGardener", "isOwner", "isFunder", "isCommunity"].some((name) =>
+        data.startsWith(toFunctionSelector(`${name}(address)`))
+      )
+    ) {
+      const name = ["isGardener", "isOwner", "isFunder", "isCommunity"].find((name) =>
+        data.startsWith(toFunctionSelector(`${name}(address)`))
+      )!;
+      const {
+        args: [account],
+      } = decodeFunctionData({
+        abi: parseAbi([`function ${name}(address) view returns (bool)`]),
+        data: data as `0x${string}`,
+      });
+      check(
+        typeof account === "string" &&
+          roles.some((role) => role.toLowerCase() === account.toLowerCase()),
+        "RPC member identity"
+      );
+      const holders =
+        name === "isOwner"
+          ? garden.owners
+          : name === "isFunder"
+            ? garden.funders
+            : name === "isCommunity"
+              ? garden.communities
+              : [...garden.gardeners, ...garden.operators, ...garden.owners];
+      result = encodeAbiParameters(
+        [{ type: "bool" }],
+        [holders.some((holder) => holder.toLowerCase() === account.toLowerCase())]
+      );
+    } else if (target === garden.id.toLowerCase() && data.startsWith("0x6d70f7ae")) {
+      const {
+        args: [address],
+      } = decodeFunctionData({ abi: operatorAbi, data: data as `0x${string}` });
+      check(
+        roles.some((role) => role.toLowerCase() === address.toLowerCase()),
+        "RPC operator identity"
+      );
+      // The contract answers for operators and owners (`_isOperatorOrOwner`).
+      const isSteward = [...garden.operators, ...garden.owners].some(
+        (role) => role.toLowerCase() === address.toLowerCase()
+      );
+      result = encodeAbiParameters([{ type: "bool" }], [isSteward]);
     } else if (target === garden.id.toLowerCase() && data.startsWith("0x1b561cf9")) {
       const {
         args: [address],
@@ -197,8 +314,11 @@ function buildRpcResponse(
       data === "0x8da5cb5b"
     ) {
       result = encodeAddressResult(MOCK_RPC_OWNER_ADDRESS);
-    } else if (target === deployment.deploymentRegistry.toLowerCase() && registryCalls.has(data)) {
-      result = encodeAbiParameters([{ type: "bool" }], [true]);
+    } else if (
+      target === deployment.deploymentRegistry.toLowerCase() &&
+      data.startsWith(allowlistSelector)
+    ) {
+      result = encodeAbiParameters([{ type: "bool" }], [allowlisted.has(data)]);
     } else if (
       target === deployment.greenGoodsENS.toLowerCase() &&
       ["0x7150ef88", "0x6130787d"].includes(data)
@@ -237,12 +357,19 @@ export async function mockSepoliaRpc(
   options: {
     garden?: typeof MOCK_CLIENT_GARDEN;
     reads?: MockRpcRead[];
+    codes?: Record<string, `0x${string}`>;
     requests?: Map<string, number>;
+    /** Who may create gardens. Every mocked account by default; anyone else reads as not allowed. */
+    allowlisted?: readonly string[];
   } = {}
 ) {
   const garden = options.garden ?? MOCK_CLIENT_GARDEN;
   const reads = options.reads ?? [];
+  const codes = Object.fromEntries(
+    Object.entries(options.codes ?? {}).map(([address, code]) => [address.toLowerCase(), code])
+  );
   const requests = options.requests ?? new Map<string, number>();
+  const allowlisted = options.allowlisted ? allowlistReads(options.allowlisted) : registryCalls;
   await target.route(
     (url) =>
       url.hostname === "eth-sepolia.g.alchemy.com" ||
@@ -254,8 +381,10 @@ export async function mockSepoliaRpc(
       if (!payload || (Array.isArray(payload) && payload.length === 0))
         throw new Error("Unsupported empty RPC request");
       const response = Array.isArray(payload)
-        ? payload.map((request) => buildRpcResponse(request, garden, reads, requests))
-        : buildRpcResponse(payload, garden, reads, requests);
+        ? payload.map((request) =>
+            buildRpcResponse(request, garden, reads, requests, false, allowlisted, codes)
+          )
+        : buildRpcResponse(payload, garden, reads, requests, false, allowlisted, codes);
       return route.fulfill({
         status: 200,
         headers: GRAPHQL_HEADERS,
@@ -280,6 +409,7 @@ export interface MockClientBackendOptions {
   attestations?: MockAttestation[];
   required?: string[];
   rpcReads?: MockRpcRead[];
+  rpcCodes?: Record<string, `0x${string}`>;
 }
 
 function check(condition: unknown, message: string): asserts condition {
@@ -331,6 +461,14 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
           check(filter.equals === false, "revoked filter");
           return true;
         }
+        if (field === "timeCreated") {
+          check(
+            filter && typeof filter === "object" && Object.keys(filter).length === 1,
+            "timeCreated filter"
+          );
+          check(typeof filter.gt === "number", "timeCreated operator");
+          return row.timeCreated > filter.gt;
+        }
         if (field === "OR") {
           check(Array.isArray(filter), "OR filter");
           return filter.map((part: Record<string, any>) => matches(row, part)).some(Boolean);
@@ -378,6 +516,7 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
         const expectedFields: Record<string, string[]> = {
           Gardens: ["Garden", "GardenDomains"],
           Gardeners: ["Gardener"],
+          GardenMemberHistory: ["GardenRoleEvent"],
           Actions: ["Action"],
           GetStewardGardens: ["Garden"],
           Garden: ["Garden", "GardenDomains"],
@@ -397,10 +536,44 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
           `${name} fields`
         );
         check(
-          (name === "Actions" ? v.where?.chainId?._eq : v.chainId) === 11155111,
+          (["Actions", "GardenMemberHistory"].includes(name)
+            ? v.where?.chainId?._eq
+            : v.chainId) === 11155111,
           `${name} chainId must be 11155111`
         );
         switch (name) {
+          case "GardenMemberHistory":
+            check(
+              Object.keys(v.where).every((key) => ["chainId", "garden", "account"].includes(key)) &&
+                (v.where.garden || v.where.account),
+              "GardenMemberHistory scope"
+            );
+            for (const [field, addresses] of [
+              ["garden", [garden.id, garden.tokenAddress]],
+              ["account", allowedAddresses],
+            ] as const) {
+              const filter = v.where[field];
+              if (filter !== undefined) {
+                check(
+                  filter &&
+                    Object.keys(filter).length === 1 &&
+                    addresses.some(
+                      (address) => address.toLowerCase() === filter._eq?.toLowerCase()
+                    ),
+                  `GardenMemberHistory ${field}`
+                );
+              }
+            }
+            check(
+              Number.isInteger(v.limit) &&
+                v.limit > 0 &&
+                Number.isInteger(v.offset) &&
+                v.offset >= 0,
+              "GardenMemberHistory pagination"
+            );
+            // This scenario deliberately has no indexed role events, so dates remain unknown.
+            data = { GardenRoleEvent: [] };
+            break;
           case "Gardens":
             data = { Garden: [garden], GardenDomains: [{ garden: garden.id, domainMask: 2 }] };
             break;
@@ -513,6 +686,30 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
             );
             data = { Action: !v.where.id || v.where.id._in.includes(action.id) ? [action] : [] };
         }
+      } else if (name === "GardenActivity") {
+        // Two aliased `attestations` reads, works and decisions, over one time window.
+        check(
+          fields.length === 2 && fields.every((field) => field === "attestations"),
+          `${name} fields`
+        );
+        check(Number.isInteger(v.take) && v.take > 0, `${name} take`);
+        const control: MockAttestation = {
+          id: "",
+          schemaId: deployment.schemas.workSchemaUID,
+          attester: roles[0],
+          recipient: garden.id,
+          timeCreated: 0,
+          decodedDataJson: "",
+        };
+        const window = (where: Record<string, any> | undefined, label: string) => {
+          check(where && typeof where === "object" && where.schemaId, `${name} ${label}/schemaId`);
+          // Validate even when the selected scenario is empty.
+          matches(control, where as Record<string, any>);
+          return (options.attestations ?? [])
+            .filter((row) => matches(row, where as Record<string, any>))
+            .slice(0, v.take);
+        };
+        data = { works: window(v.works, "works"), decisions: window(v.decisions, "decisions") };
       } else {
         check(
           [
@@ -563,7 +760,12 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
   await page.route("**/v1/graphql", (route) => handle(route, "indexer"));
   await page.route("**/api/graphql", (route) => handle(route, "indexer"));
   await page.route("https://sepolia.easscan.org/graphql", (route) => handle(route, "eas"));
-  await mockSepoliaRpc(page, { garden, reads: options.rpcReads, requests });
+  await mockSepoliaRpc(page, {
+    garden,
+    reads: options.rpcReads,
+    codes: options.rpcCodes,
+    requests,
+  });
   return {
     requests,
     setUnavailable(key: string, value: boolean) {

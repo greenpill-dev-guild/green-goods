@@ -131,6 +131,55 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
       case SW_MESSAGE.REGISTER_SYNC:
         event.waitUntil(registerBackgroundSync(scope));
         return;
+      case SW_MESSAGE.ACTIVATE_BOOT_UPDATE: {
+        const source = event.source;
+        const appScope = scope.registration.scope;
+        event.waitUntil(
+          (async () => {
+            // Another app window may be saving or sending work. Only the regular
+            // app can consult its work guard, so boot recovery leaves it alone.
+            const windows = await scope.clients.matchAll({
+              type: "window",
+              includeUncontrolled: true,
+            });
+            const appWindows = windows.filter((client) => client.url.startsWith(appScope));
+            if (
+              !source ||
+              !("id" in source) ||
+              appWindows.length !== 1 ||
+              appWindows[0].id !== source.id
+            ) {
+              reply({ status: "blocked" });
+              return;
+            }
+            // The worker being replaced keeps working for anyone who asked:
+            // a website tab's registration asks it for the shell tail, and a
+            // gateway photo can take minutes. The browser activates this
+            // worker only once all of that settles, so ask it to go quiet the
+            // way the update prompt does: it refuses new work, cancels what it
+            // can, and holds activation only until the rest is done. This
+            // worker is the newer build, so the request reaches a profile
+            // whose stuck page still runs the older boot screen.
+            const outgoing = scope.registration.waiting ? scope.registration.active : null;
+            const tellOutgoing = (type: ServiceWorkerMessage["type"]) => {
+              try {
+                outgoing?.postMessage({ type });
+              } catch {
+                // A browser that cannot message another worker hands over as it did before.
+              }
+            };
+            tellOutgoing(SW_MESSAGE.PREPARE_TO_ACTIVATE_UPDATE);
+            try {
+              await scope.skipWaiting();
+            } catch (error) {
+              tellOutgoing(SW_MESSAGE.RESUME_BACKGROUND_WORK);
+              throw error;
+            }
+            reply({ status: "requested" });
+          })().catch(() => reply({ status: "failed" }))
+        );
+        return;
+      }
       case SW_MESSAGE.SKIP_WAITING: {
         const ack = (status: UpdateAckStatus) =>
           reply({ type: SW_REPLY.UPDATE_ACK, status } satisfies UpdateAckReply);
@@ -142,19 +191,6 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
               () => ack("requested"),
               () => ack("rejected")
             )
-        );
-        return;
-      }
-      case SW_MESSAGE.ENS_REGISTRATION_COMPLETE: {
-        const slug = message.slug ?? "";
-        event.waitUntil(
-          scope.registration.showNotification("ENS Name Active", {
-            body: `Your name ${slug}.greengoods.eth is now active!`,
-            icon: "/icon-192.png",
-            badge: "/images/android-icon-72x72.png",
-            tag: `ens-complete-${slug}`,
-            data: { url: "/home/profile", slug },
-          })
         );
         return;
       }

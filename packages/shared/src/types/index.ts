@@ -15,7 +15,7 @@
  *
  * OFFLINE/QUEUE SYSTEM:
  *   job-queue.ts - Job queue, WorkDraftRecord, file serialization
- *   offline.ts - OfflineStatus, SyncMetrics, WorkConflict
+ *   offline.ts - OfflineStatus, SyncMetrics, OfflineSettings
  *
  * INFRASTRUCTURE:
  *   auth.ts - AuthMode, BaseAuthContext, SmartAccountClientResolver
@@ -98,7 +98,6 @@ export type {
   CookieJarWithdrawParams,
   CreateCampaignCookieJarParams,
   IndexedCampaignCookieJar,
-  SyncCampaignCookieJarAllowlistParams,
 } from "./cookie-jar";
 // ============================================
 // Garden Detail Types
@@ -268,12 +267,9 @@ export type {
 export type {
   DuplicateCheckResult,
   OfflineCapabilities,
-  OfflineDashboardData,
   OfflineSettings,
   OfflineStatus,
-  OfflineWorkItem,
   SyncMetrics,
-  WorkConflict,
 } from "./offline";
 // ============================================
 // Vault Types

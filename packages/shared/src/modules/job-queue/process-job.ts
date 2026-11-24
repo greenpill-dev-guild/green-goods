@@ -1,10 +1,16 @@
-import type { TransactionSender, TransactionSendOptions } from "../transactions/types";
+import { BatchConfirmationPendingError, BundleIncompleteError } from "../transactions/batch-types";
+import { withSendStageReports } from "../transactions/send-stage";
+import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import {
   acquireWorkJobs,
   retainedWorkBroadcast,
   WorkTransactionReverted,
 } from "../work/work-confirmation";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
+import {
+  WALLET_RECONNECT_REQUIRED,
+  WalletReconnectRequiredError,
+} from "../../utils/errors/unsent-failures";
 import { JobMaintenance } from "./job-maintenance";
 import type {
   JobQueueAnalytics,
@@ -25,6 +31,7 @@ import {
   isWaitingReprobeThrottled,
   sendsOnReopen,
 } from "./queue-policy";
+import { findTakeUpOf, TAKE_UP_PENDING } from "./take-up-hold";
 import { holdWorkClaims } from "./work-claims";
 
 interface ProcessJobDependencies {
@@ -89,40 +96,79 @@ async function completeJob(
 }
 
 /**
- * The send options with the context's phase reports added, when it asked for
- * them. The executor's own callbacks run first and keep their say: a checkpoint
- * that fails to save still stops the send. The report runs after and can never
- * stop it. Without `onPhase` the options pass through untouched.
+ * Takes away a job with nothing left to do. It is marked synced first, so a delete that fails
+ * leaves it settled, never waiting to be sent, until maintenance deletes it.
  */
-function withPhaseReports(
-  options: TransactionSendOptions,
+async function clearSettledJob(jobId: string, deps: ProcessJobDependencies): Promise<void> {
+  await deps.store.markJobSynced(jobId);
+  try {
+    await deps.store.deleteJob(jobId);
+  } catch (error) {
+    deps.logger.warn("[JobQueue] Failed to delete settled job", { jobId, error });
+    await deps.maintenance.trackFailedDelete(jobId);
+  }
+}
+
+/**
+ * Reports where a send of this job stands: on the queue's events, for any screen that shows the
+ * job (PRD-1552), and to the caller's `onPhase` when it asked. Report-only: a report that throws
+ * is logged, and the send goes on.
+ */
+function stageReporter(
   jobId: string,
+  job: Job,
   context: ProcessJobContext,
-  logger: JobQueueLogger
-): TransactionSendOptions {
-  const onPhase = context.onPhase;
-  if (!onPhase) return options;
-  const report = (phase: JobSendPhase) => {
+  deps: ProcessJobDependencies
+): (stage: JobSendPhase | null) => void {
+  const safely = (report: () => void) => {
     try {
-      onPhase(phase);
+      report();
     } catch (error) {
-      logger.warn("[JobQueue] a send phase report threw", {
+      deps.logger.warn("[JobQueue] a send phase report threw", {
         jobId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   };
-  return {
-    ...options,
-    onBeforeBroadcast: async (reference) => {
-      await options.onBeforeBroadcast?.(reference);
-      report({ stage: "wallet" });
-    },
-    onBroadcast: async (hash) => {
-      await options.onBroadcast?.(hash);
-      report({ stage: "confirming", txHash: hash });
-    },
+  return (phase) => {
+    safely(() => deps.events.emit("job:stage", { jobId, job, stage: phase?.stage ?? null }));
+    if (phase && context.onPhase) safely(() => context.onPhase?.(phase));
   };
+}
+
+/**
+ * The record of a send whose receipt outlasted its limit: the job's kind, the limit, and who
+ * waited, with no address, hash or message. The send then ends as still confirming: its
+ * broadcast is on record, so even a record that throws here cannot turn it into a failure.
+ */
+function recordReceiptWaitLimit(
+  jobId: string,
+  job: Job,
+  limitMs: number,
+  context: ProcessJobContext,
+  sender: TransactionSender,
+  deps: ProcessJobDependencies
+): void {
+  deps.logger.warn("[JobQueue] A send's receipt did not come within its limit", {
+    jobId,
+    kind: job.kind,
+    limitMs,
+  });
+  deps.analytics.receiptWaitLimitReached(job.kind, {
+    limitMs,
+    explicit: Boolean(context.explicit),
+    authMode: sender.authMode,
+  });
+}
+
+/**
+ * The limit a send's wait ran out of, if that is how it ended: a single send's receipt, or the
+ * status of the wallet batch it rode in (PRD-1551). Either way it went out and may still land.
+ */
+function receiptWaitLimitOf(error: unknown): number | undefined {
+  if (error instanceof ReceiptWaitLimitError) return error.limitMs;
+  if (error instanceof BatchConfirmationPendingError) return error.execution.waitLimitMs;
+  return undefined;
 }
 
 export function createJobProcessor(deps: ProcessJobDependencies) {
@@ -137,25 +183,34 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       const txHash = typeof job.meta?.txHash === "string" ? job.meta.txHash : undefined;
       return { success: true, txHash, skipped: true };
     }
+    // A try that started says how it ended, and a tap the queue cannot act on says why. A
+    // background pass that never starts stays quiet: it comes round again (PRD-1495).
+    let started = false;
+    const skipped = (error: string, txHash?: string): ProcessJobResult => {
+      const explicit = Boolean(context.explicit);
+      if (started || explicit) deps.analytics.jobSkipped(job.kind, error, { explicit, started });
+      return { success: false, error, skipped: true, ...(txHash ? { txHash } : {}) };
+    };
     const sendBlocked = await deps.connectivity.canSend();
-    if (sendBlocked) return { success: false, error: sendBlocked, skipped: true };
+    if (sendBlocked) return skipped(sendBlocked);
 
     // The hold is on sending. A job whose send is already recorded is only
     // confirmed from here, so a background pass must still be able to settle it.
     const alreadySent = hasRecordedSend(job) || Boolean(retainedWorkBroadcast(jobId));
     if (job.meta?.requiresExplicitSend && !context.explicit && !alreadySent) {
-      return { success: false, error: "send-requires-explicit", skipped: true };
+      return skipped("send-requires-explicit");
+    }
+    // A work for a promise this account is still taking up goes after the take-up, and spends
+    // nothing while it waits. One whose send is on record is only confirmed from here.
+    if (job.kind === "work" && !alreadySent && (await findTakeUpOf(job, deps.store))) {
+      return skipped(TAKE_UP_PENDING);
     }
 
     const now = deps.clock.now();
     if (!context.explicit && isWithinBackoffWindow(job, now)) {
       const remainingBackoff =
         calculateBackoffDelay(job.attempts) - (now - (job.lastAttemptAt || 0));
-      return {
-        success: false,
-        error: `backoff_${Math.ceil(remainingBackoff / 1000)}s`,
-        skipped: true,
-      };
+      return skipped(`backoff_${Math.ceil(remainingBackoff / 1000)}s`);
     }
 
     const checkpoint =
@@ -164,7 +219,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       job.kind === "work" &&
       (checkpoint?.transactionReverted || job.meta?.workTransactionReverted)
     )
-      return { success: false, error: "work-transaction-reverted", skipped: true };
+      return skipped("work-transaction-reverted");
     if (
       job.attempts >= deps.config.maxRetries &&
       !retainedWorkBroadcast(jobId) &&
@@ -179,7 +234,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
 
     const sender = context.transactionSender;
     if (!sender) {
-      return { success: false, error: "transaction_sender_unavailable", skipped: true };
+      return skipped("transaction_sender_unavailable");
     }
 
     if (context.explicit && job.meta?.requiresExplicitSend) {
@@ -188,27 +243,48 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       job.meta = meta;
     }
     deps.events.emit("job:processing", { jobId, job });
-    deps.analytics.processingStarted(job.kind, job.attempts + 1);
+    // Recorded before any prompt: a page suspended while a wallet signs still leaves the try.
+    deps.analytics.processingStarted(job.kind, job.attempts + 1, {
+      explicit: Boolean(context.explicit),
+      confirming: alreadySent,
+    });
+    started = true;
     const chainId = job.chainId || deps.config.defaultChainId;
     const startedAt = deps.clock.now();
+    const reportStage = stageReporter(jobId, job, context, deps);
 
     try {
       await context.assertOwnership?.();
+      // A send the person started, of a job with nothing on record, asks them to
+      // reconnect a wallet that has not answered (PRD-1499). A recheck asks nobody.
+      const unsent = !retainedWorkBroadcast(jobId) && !hasRecordedSend(job);
+      if (context.explicit && unsent) sender.assertReadyToSign?.();
       await sender.assertOwnership?.(job.userAddress, chainId);
       const guardedSender = Object.create(sender) as TransactionSender;
       guardedSender.assertOwnership = async (address, chainId) => {
         await context.assertOwnership?.();
         await sender.assertOwnership?.(address, chainId);
       };
-      guardedSender.sendContractCall = (call, options = {}) =>
-        sender.sendContractCall(call, {
-          ...withPhaseReports(options, jobId, context, deps.logger),
-          assertOwnership: async () => {
-            await context.assertOwnership?.();
-            await sender.assertOwnership?.(job.userAddress, chainId);
-            await options.assertOwnership?.();
-          },
-        });
+      // A send on record that outlasts its limit is confirmed from that record later. A
+      // creation keeps no record; its executor keeps the transaction the limit names instead.
+      const receiptWaitLimitMs = deps.config.receiptWaitLimitMs;
+      guardedSender.sendContractCall = async (call, options = {}) => {
+        try {
+          return await sender.sendContractCall(call, {
+            ...withSendStageReports(options, sender.authMode, reportStage),
+            receiptWaitLimitMs,
+            assertOwnership: async () => {
+              await context.assertOwnership?.();
+              await sender.assertOwnership?.(job.userAddress, chainId);
+              await options.assertOwnership?.();
+            },
+          });
+        } catch (error) {
+          const limitMs = receiptWaitLimitOf(error);
+          if (limitMs) recordReceiptWaitLimit(jobId, job, limitMs, context, sender, deps);
+          throw error;
+        }
+      };
       const execution = await deps.executors.execute(jobId, job, chainId, guardedSender);
       if (execution.status === "waiting") {
         const meta = { ...(job.meta ?? {}), waitingForDependency: true };
@@ -221,8 +297,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
           jobId,
           job: { ...job, meta: { ...meta, waitingReason: execution.reason } },
         });
+        const waiting = skipped(execution.reason);
         // An earlier send never landed and was just cleared; where the tap said
-        // Send, it sends now.
+        // Send, it sends now, as a try of its own.
         if (
           execution.reason === "send-intent-expired" &&
           context.explicit &&
@@ -230,7 +307,20 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
           sendsOnReopen(job.kind)
         )
           return processJob(jobId, context, true);
-        return { success: false, error: execution.reason, skipped: true };
+        return waiting;
+      }
+      if (execution.status === "already-done") {
+        // Nothing is left to send or retry, so the job goes rather than waiting as failed: Your
+        // Work neither lists nor counts it. The screens still hear why, as for a job that cannot go.
+        const errorMessage = `unavailable:${execution.reason}`;
+        await clearSettledJob(jobId, deps);
+        deps.events.emit("job:failed", { jobId, job, error: errorMessage });
+        // The try that started ends here, sending nothing; nothing failed.
+        deps.analytics.jobSkipped(job.kind, execution.reason, {
+          explicit: Boolean(context.explicit),
+          started: true,
+        });
+        return { success: false, error: errorMessage, alreadyDone: true };
       }
       if (execution.status === "identity-conflict" || execution.status === "unavailable") {
         const prefix = execution.status === "unavailable" ? "unavailable" : "identity_conflict";
@@ -254,22 +344,34 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
           },
           lastAttemptAt: deps.clock.now(),
         });
-        return {
-          success: false,
-          error: "pending_materialization",
-          txHash: execution.txHash,
-          skipped: true,
-        };
+        return skipped("pending_materialization", execution.txHash);
       }
-      return completeJob(jobId, job, execution.txHash, startedAt, deps);
+      // Awaited, so the stage is let go only after the job completes: a row must never fall back
+      // to its sent state between its send and its completion.
+      return await completeJob(jobId, job, execution.txHash, startedAt, deps);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = deps.clock.now() - startedAt;
-      if (errorMessage === "submission-ownership-changed")
-        return { success: false, error: errorMessage, skipped: true };
+      if (errorMessage === "submission-ownership-changed") return skipped(errorMessage);
+      // The wallet has not answered: a job with nothing on record was not tried, and keeps
+      // its attempts. A send on record still waits for its confirmation, below.
+      if (
+        error instanceof WalletReconnectRequiredError &&
+        !retainedWorkBroadcast(jobId) &&
+        !hasRecordedSend(job)
+      )
+        return skipped(WALLET_RECONNECT_REQUIRED);
+      // Its partner in a request that goes only whole never came, so this was never tried.
+      if (error instanceof BundleIncompleteError) return skipped(errorMessage);
       if (error instanceof WorkTransactionReverted) {
         await deps.store.markJobTerminalFailed(jobId, errorMessage);
         deps.events.emit("job:failed", { jobId, job, error: errorMessage });
+        // The stored job's count moved, not this copy's: count the try that reverted.
+        deps.analytics.jobPermanentlyFailed({
+          ...job,
+          lastError: errorMessage,
+          attempts: job.attempts + 1,
+        });
         return { success: false, error: errorMessage };
       }
       // Read again: the executor updates the checkpoint while it sends.
@@ -290,7 +392,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
             },
           },
         });
-        return { success: false, error: "awaiting-confirmation", skipped: true };
+        return skipped("awaiting-confirmation");
       }
       await deps.store.markJobFailed(jobId, errorMessage);
       const updated = (await deps.store.getJob(jobId)) ?? job;
@@ -303,11 +405,31 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         error
       );
       return { success: false, error: errorMessage };
+    } finally {
+      // The try stopped, however it ended, and whether or not it reported a stage: no screen
+      // keeps saying it is under way.
+      reportStage(null);
     }
   }
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {
     const claim = await acquireWorkJobs([jobId]);
-    if (!claim) return { success: false, skipped: true, error: "already-processing" };
+    if (!claim) {
+      // Another holder, such as another tab, is sending it: a tap that sends nothing says why.
+      // The record is best effort, so a read that fails never changes what the tap returns.
+      if (context.explicit) {
+        try {
+          const held = await deps.store.getJob(jobId);
+          if (held)
+            deps.analytics.jobSkipped(held.kind, "already-processing", {
+              explicit: true,
+              started: false,
+            });
+        } catch (error) {
+          deps.logger.warn("[JobQueue] A tap on a held job could not be recorded", { error });
+        }
+      }
+      return { success: false, skipped: true, error: "already-processing" };
+    }
     // Keep the claim alive for the whole send. A wallet or passkey prompt can
     // stay open past the claim's lifetime, and a claim that lapsed there would
     // let another tab discard or resend a job whose transaction may still go out.

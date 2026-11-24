@@ -10,10 +10,16 @@ import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
 import {
+  browserMinimumGatePlugin,
+  SUPPORTED_BROWSER_TARGETS,
+} from "../../scripts/lib/browser-support.mjs";
+import {
   assertEnvParity,
   assertSentryDsnResolvable,
+  clearAlphaAnalyticsKeys,
   dropVercelFrameworkVariables,
 } from "../../scripts/lib/env-parity.mjs";
+import { telemetryBuildDefines } from "../../scripts/lib/telemetry-build";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
@@ -22,11 +28,13 @@ import {
 } from "./src/config/pwaManifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
 import { createChainImportsPlugin } from "./vite/chain-imports";
+import { createIconLeaves } from "./vite/icon-leaves";
 import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
+import { createPublicLocalesPlugin } from "./vite/public-locales";
+import { createLocaleCataloguesPlugin } from "./vite/locale-catalogues";
 import { resolveViteWatchOptions } from "./vite/watch";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/de3e5df/v1/graphql";
 const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
 const CLIENT_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
 const CLIENT_QUERY_MODULES =
@@ -37,6 +45,18 @@ const CLIENT_WALLET_MODULES =
 const CLIENT_VITE_RUNTIME_MODULES = /\0vite\/(?:preload-helper|modulepreload-polyfill)\.js/;
 const CLIENT_POSTHOG_MODULES = /[\\/]node_modules[\\/]posthog-js[\\/]/;
 const CLIENT_SENTRY_MODULES = /[\\/]node_modules[\\/]@sentry[\\/]/;
+// The installed app's startup, as scripts/check-pwa-precache-budget.mjs measures it, plus the
+// session gate it passes on the way in. The icons their modules draw share one chunk.
+const CLIENT_STARTUP_ROOTS = [
+  "src/main.tsx",
+  "src/bootstrapPwa.tsx",
+  "src/routes/PwaRuntime.tsx",
+  "src/routes/WalletRuntimeProviders.tsx",
+  "src/routes/SessionGate.tsx",
+  "src/routes/AppShell.tsx",
+  "src/views/Home/index.tsx",
+  "src/views/Login/index.tsx",
+];
 
 function envValue(key: string): string | undefined {
   const value = process.env[key]?.trim();
@@ -151,6 +171,8 @@ function pwaHtmlMetadataPlugin(branding: PwaManifestBranding): Plugin {
     "%PWA_MS_TILE_IMAGE%": branding.msTileImage,
     "%PWA_THEME_COLOR_LIGHT%": branding.htmlThemeColorLight,
     "%PWA_THEME_COLOR_DARK%": branding.htmlThemeColorDark,
+    "%PWA_APP_THEME_COLOR_LIGHT%": branding.appThemeColorLight,
+    "%PWA_APP_THEME_COLOR_DARK%": branding.appThemeColorDark,
   };
 
   return {
@@ -228,10 +250,12 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     });
     assertSentryDsnResolvable({ app: "client", sentryDsn, env: process.env });
   }
+  // After the parity check, which would warn about the keys it empties: alpha sends no
+  // product analytics.
+  clearAlphaAnalyticsKeys(process.env);
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
-    process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
-    (nodeEnv === "development" ? "http://localhost:3006/v1/graphql" : DEFAULT_INDEXER_URL);
+    process.env.VITE_ENVIO_INDEXER_URL?.trim() || "http://localhost:3006/v1/graphql";
   if (command === "build") {
     process.env.NODE_ENV = "production";
   }
@@ -265,10 +289,17 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   }
 
   const tunnelHmr = resolveTunnelHmrConfig(rootDir);
+  const iconLeaves = createIconLeaves(CLIENT_STARTUP_ROOTS.map((path) => resolve(__dirname, path)));
 
   const plugins = [
     devTunnelPlugin(),
     pwaHtmlMetadataPlugin(pwaBranding),
+    // Below the browser minimum the installed App and the reporting pages show an update screen.
+    browserMinimumGatePlugin({
+      surface: "client",
+      logo: `${pwaRouting.assetBasePath}icon.png`,
+      posthogKey: process.env.VITE_POSTHOG_KEY,
+    }),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -278,10 +309,18 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
+    createPublicLocalesPlugin(),
+    createLocaleCataloguesPlugin(),
     createPwaShellAssetsPlugin(),
     createChainImportsPlugin(),
+    iconLeaves.plugin,
     VitePWA({
-      includeAssets: [...pwaBranding.includeAssets, "images/avatar.png"],
+      includeAssets: [
+        ...pwaBranding.includeAssets,
+        "images/avatar.png",
+        "fonts/pwa.css",
+        "fonts/jakarta-*.woff2",
+      ],
       injectRegister: false,
       registerType: "prompt",
       // The worker is TypeScript in src/sw, bundled by Vite with the precache
@@ -291,6 +330,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       filename: "sw.ts",
       injectManifest: {
         rollupFormat: "iife",
+        // The plugin's default is build.target; naming the same list keeps a plugin
+        // upgrade from moving the worker off the supported minimum.
+        target: [...SUPPORTED_BROWSER_TARGETS],
         minify: nodeEnv === "production",
         sourcemap: false,
         // Build-time VITE_ flags come from the same env files.
@@ -421,6 +463,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {
+      // The supported minimum, named so a Vite upgrade cannot move it; the CSS target follows it.
+      target: [...SUPPORTED_BROWSER_TARGETS],
       // 'hidden' emits .map files for server-side upload (PostHog / Sentry) but
       // omits the sourceMappingURL comment, so the maps are never referenced from
       // — or served to — browsers. The upload lane deletes them after upload.
@@ -436,6 +480,25 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           moduleSideEffects: [
             {
               test: /[\\/]@reown[\\/]appkit[\\/]dist[\\/]esm[\\/]src[\\/]library[\\/]react[\\/]components\.js$/,
+              sideEffects: false,
+            },
+            // The commitment-pooling barrels and the client's promise-row and card barrels
+            // only re-export. Startup reads a few pooling helpers and rows through them;
+            // without this, every module behind them joined the installed startup budget,
+            // so code only the promise page uses loaded at startup. Keep these barrels free
+            // of side effects.
+            {
+              test: /[\\/]packages[\\/](?:shared[\\/]src[\\/](?:hooks[\\/]|modules[\\/])?commitment-pooling|client[\\/]src[\\/]components[\\/](?:Cards|Features[\\/]Commitments))[\\/]index\.ts$/,
+              sideEffects: false,
+            },
+            // The pooling read modules declare GraphQL documents, ABI fragments and mappers,
+            // and run nothing at import time. One hook module on the startup path imports a
+            // reader for every pooling screen through `modules/commitment-pooling/data`, and
+            // Rolldown cannot tell a document declaration from an effect, so without this the
+            // settlement, funding, credit and voucher readers stayed in the installed startup
+            // budget for screens that never read them.
+            {
+              test: /[\\/]packages[\\/]shared[\\/]src[\\/]modules[\\/]commitment-pooling[\\/](?:data-[^\\/]+|service-access-[^\\/]+|settlement)\.ts$/,
               sideEffects: false,
             },
           ],
@@ -457,6 +520,25 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               { name: "vite-runtime", test: CLIENT_VITE_RUNTIME_MODULES, priority: 50 },
               { name: "vendor-react", test: CLIENT_REACT_MODULES, priority: 40 },
               { name: "vendor-query", test: CLIENT_QUERY_MODULES, priority: 30 },
+              // The website's responsive hook must not fetch the PWA sheet that uses it.
+              {
+                name: "responsive-hook",
+                test: /\/packages\/shared\/src\/hooks\/ui\/useMediaQuery\.ts$/,
+                priority: 45,
+                includeDependenciesRecursively: false,
+              },
+              // The entry loads its error reporting before any route. A route that reaches only
+              // part of it, as the reporting pages reach the categories, must not split it into
+              // one more file the page preloads. Keep its recovery state and worker protocol
+              // together too: the preload-error handler reaches both before any route loads.
+              // The external-error rules and the telemetry context (PRD-1560) are reached from
+              // here and from the lazy Sentry and PostHog loaders, so they stay in this file.
+              {
+                name: "error-reporting",
+                test: /\/packages\/shared\/src\/(?:modules\/app\/(?:error-(?:breadcrumbs|categories|events)|cache-recovery|service-worker-protocol|external-errors|telemetry-context)|public-contracts\/telemetry-segmentation)\.ts$/,
+                priority: 45,
+                includeDependenciesRecursively: false,
+              },
               // Public read paths use viem without needing Reown/Wagmi UI.
               {
                 name: "vendor-viem",
@@ -473,6 +555,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
                 priority: 20,
                 entriesAware: true,
               },
+              // One module per icon (vite/icon-leaves.ts); the startup screens' icons share a chunk.
+              iconLeaves.startupChunkGroup,
               { name: "vendor-posthog", test: CLIENT_POSTHOG_MODULES, priority: 10 },
               { name: "vendor-sentry", test: CLIENT_SENTRY_MODULES, priority: 10 },
             ],
@@ -487,6 +571,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_CLIENT_DSN": JSON.stringify(sentryDsn ?? ""),
       "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
+      ...telemetryBuildDefines({ surface: "app", release: sentryRelease }),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
     oxc: {
@@ -567,6 +652,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared > @hypercerts-org/contracts",
         "@green-goods/shared > @hypercerts-org/marketplace-sdk",
         "@green-goods/shared > @hypercerts-org/sdk",
+        "@green-goods/shared > @openfort/openfort-js",
         "@green-goods/shared > @radix-ui/react-popover",
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",
@@ -606,6 +692,18 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",
+        // ── @green-goods/shared imports the startup scan misses (checked by vite/prebundle.test.ts) ──
+        "@radix-ui/react-dialog",
+        "@remixicon/react",
+        "@tanstack/react-query",
+        "@green-goods/shared > @wagmi/core/query",
+        "@green-goods/shared > permissionless/actions/passkeyServer",
+        "@green-goods/shared > permissionless/utils",
+        "react-intl",
+        "react-router-dom",
+        "viem",
+        "viem/actions",
+        "wagmi",
         // ── the service worker (src/sw/sw.ts) ──
         // It is not reached from index.html, so the scan misses its imports too. A page that
         // registers the dev worker, as the browser suite's do, asks for them at request time.

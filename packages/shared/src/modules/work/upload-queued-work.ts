@@ -27,15 +27,24 @@ import {
   type QueuedAttestation,
 } from "../../utils/eas/transaction-builder";
 import { logger } from "../app/logger";
-import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
+import type { JobSendPhase, ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
+import { takeUpOf } from "../job-queue/take-up-hold";
 import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
-import type { ContractCall, TransactionSender } from "../transactions/types";
+import { reportingSendStages } from "../transactions/send-stage";
+import {
+  type ContractCall,
+  ReceiptWaitLimitError,
+  type TransactionSender,
+} from "../transactions/types";
 import { sendWithCheckpoint } from "./send-with-checkpoint";
 import { SimulationRejected } from "./simulation-rejected";
-import { isUploadJob, queuedUploadStatus } from "./upload-state";
+import { UploadItemAlreadyDone, UploadItemUnchecked } from "./upload-item-refusals";
+import { isUploadJob, queuedUploadStatus, type UploadPreparation } from "./upload-state";
+import { UnpublishablePhotoError } from "./work-attachments";
 import { forgetWorkBroadcast } from "./work-confirmation";
+import { UploadPolicyRequiredError } from "./upload-policy";
 
 /**
  * Items per call. Placeholders until scripts/simulate-upload-all.ts is run against
@@ -48,8 +57,12 @@ const MAX_ITEMS_PER_WALLET_CALL = 10;
 export type UploadOutcome =
   | { status: "connection-unconfirmed" }
   | { status: "nothing-ready" }
-  /** The tap ended without a send: every ready item was refused, or is held elsewhere. */
-  | { status: "nothing-sent"; flagged: number }
+  /**
+   * The tap ended without a send: every ready item was refused, is held elsewhere, or was already
+   * done elsewhere. `settled` is there only when every ready item was already done, cleared by
+   * the queue and named in its own notice, so nothing is left on the device to send.
+   */
+  | { status: "nothing-sent"; flagged: number; settled?: number }
   /** Sent; items whose receipt has not arrived are confirmed by the queue. */
   | { status: "uploaded"; sent: number; flagged: number }
   | { status: "declined" | "reverted" | "send-unconfirmed"; sent: number; flagged: number }
@@ -76,6 +89,15 @@ export interface UploadQueuedWorkPorts {
   readTransactionNonce?(hash: Hex, chainId: number): Promise<number | null>;
   /** The chain's latest block and its time, in seconds. */
   readChainHead?(chainId: number): Promise<{ number: bigint; timestamp: number }>;
+  /** Tells every screen that shows this job where its send stands; null once the send stopped. */
+  reportStage?(job: Job, stage: JobSendPhase["stage"] | null): void;
+  /** How long a call waits for its receipt; past it the call is sent and still confirming. */
+  receiptWaitLimitMs: number;
+  /** The queue's record of a receipt that outlasted its limit, once per kind the call carried. */
+  receiptWaitLimitReached(
+    kind: string,
+    context: { limitMs: number; explicit: boolean; authMode: string }
+  ): void;
 }
 
 interface ChunkItem {
@@ -112,8 +134,21 @@ export async function uploadQueuedWork(
   const resumePreparation = await ports.suspendPreparation();
   let sent = 0;
   let flagged = 0;
+  let settled = 0;
+  /** How many items were ready to go when the tap began. */
+  let readyCount = 0;
   const { chainId, sender } = input;
   const explicitSend: ProcessJobContext = { transactionSender: sender, explicit: true };
+  /** Tells each item's screen where the send carrying it stands (PRD-1552); null lets it go. */
+  const tellStage = (jobs: readonly Job[], stage: JobSendPhase["stage"] | null) => {
+    for (const job of jobs) {
+      try {
+        ports.reportStage?.(job, stage);
+      } catch (error) {
+        logger.warn("[UploadQueuedWork] A send stage report threw", { error });
+      }
+    }
+  };
   const callOf = (chunk: ChunkItem[]) =>
     buildQueuedAttestationsCall(
       ports.easConfig(chainId).EAS.address as `0x${string}`,
@@ -132,17 +167,17 @@ export async function uploadQueuedWork(
     }
   };
 
-  const flag = async (item: ChunkItem, reason: string) => {
-    const preparation = {
-      status: "blocked",
-      reason,
-      checkedAt: new Date(ports.now()).toISOString(),
-    };
-    await ports.save(item.claim, item.job.id, (stored) => {
+  /** Record on an item what it waits on, for the person to see, and count it. */
+  const flagItem = async (claim: WorkClaim, jobId: string, preparation: UploadPreparation) => {
+    await ports.save(claim, jobId, (stored) => {
       stored.meta = { ...stored.meta, preparation };
     });
     flagged += 1;
   };
+  const checkedAt = () => new Date(ports.now()).toISOString();
+
+  const flag = (item: ChunkItem, reason: string) =>
+    flagItem(item.claim, item.job.id, { status: "blocked", reason, checkedAt: checkedAt() });
 
   /** Simulate each item alone and flag the ones the chain refuses. */
   const flagRefused = async (items: ChunkItem[]): Promise<ChunkItem[]> => {
@@ -184,10 +219,33 @@ export async function uploadQueuedWork(
     }
   };
 
+  /**
+   * The record of a call whose receipt outlasted its limit, as the queue keeps for one job
+   * (PRD-1551): one log line, and one event per kind the call carried, with no address or hash.
+   * The call is on record and ends as still confirming whatever happens here.
+   */
+  const recordReceiptWaitLimit = (items: ChunkItem[], limitMs: number) => {
+    const kinds = [...new Set(items.map(({ job }) => job.kind))];
+    logger.warn("[UploadAll] A send's receipt did not come within its limit", {
+      kinds,
+      items: items.length,
+      limitMs,
+    });
+    for (const kind of kinds) {
+      try {
+        ports.receiptWaitLimitReached(kind, { limitMs, explicit: true, authMode: sender.authMode });
+      } catch (error) {
+        logger.warn("[UploadAll] Could not record a receipt that outlasted its limit", { error });
+      }
+    }
+  };
+
   const sendChunk = async (ids: string[]): Promise<{ stop?: ChunkStop; error?: unknown }> => {
     const claims = await ports.acquire(ids);
     const stopHolding = ports.hold([...claims.values()]);
     let confirmedItems: ChunkItem[] = [];
+    /** Items already done elsewhere, left out of the call for the queue to clear. */
+    const alreadyDone: string[] = [];
     try {
       // Each item's send is held from here until its answer. One another tab
       // holds is mid-send there, perhaps frozen with its prompt open, so it is
@@ -196,15 +254,32 @@ export async function uploadQueuedWork(
     } finally {
       stopHolding();
       await Promise.allSettled([...claims.values()].map((claim) => claim.release()));
+      // The queue reads each one again and clears it, saying why; one it cannot read waits.
+      for (const id of alreadyDone) {
+        const result = await ports.processJob(id, explicitSend).catch((error: unknown) => {
+          logger.warn("[UploadAll] An item already done is left for the queue", {
+            jobId: id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return undefined;
+        });
+        if (result?.alreadyDone) settled += 1;
+        // The queue's own read found it still waiting, and sent it.
+        else if (result?.success && !result.skipped) sent += 1;
+      }
       // The queue confirms each sent item and finishes it the way every send finishes.
       // One it cannot finish now keeps its recorded send for the next confirmation pass.
       for (const { job } of confirmedItems) {
-        await ports.processJob(job.id, explicitSend).catch((error: unknown) => {
+        const finished = await ports.processJob(job.id, explicitSend).catch((error: unknown) => {
           logger.warn("[UploadAll] Sent item will be confirmed later", {
             jobId: job.id,
             error: error instanceof Error ? error.message : String(error),
           });
+          return undefined;
         });
+        // Its screen said confirming until the queue finished it; now its record speaks. One
+        // another holder is finishing, such as the confirmation pass, is let go by that holder.
+        if (finished?.error !== "already-processing") tellStage([job], null);
       }
     }
 
@@ -225,6 +300,36 @@ export async function uploadQueuedWork(
           });
           items.push({ job, claim, attestation });
         } catch (error) {
+          if (error instanceof UploadItemAlreadyDone) {
+            alreadyDone.push(id);
+            continue;
+          }
+          // Not known to be still wanted, so not sent: it stays ready for the next tap.
+          if (error instanceof UploadItemUnchecked) {
+            logger.warn("[UploadAll] Queued item could not be checked before sending", {
+              jobId: id,
+            });
+            continue;
+          }
+          if (error instanceof UploadPolicyRequiredError) {
+            await flagItem(claim, id, {
+              status: "blocked",
+              reason: "upload-policy-required",
+              checkedAt: checkedAt(),
+            }).catch(() => undefined);
+            continue;
+          }
+          // A photo that cannot be published would be refused again by preparation:
+          // the item waits on it, named, instead of going back to preparing.
+          if (error instanceof UnpublishablePhotoError) {
+            await flagItem(claim, id, {
+              status: "photo-needs-attention",
+              photo: error.photo,
+              ...(error.video ? { video: true as const } : {}),
+              checkedAt: checkedAt(),
+            }).catch(() => undefined);
+            continue;
+          }
           logger.warn("[UploadAll] Queued item is not ready after all", {
             jobId: id,
             error: error instanceof Error ? error.message : String(error),
@@ -259,22 +364,36 @@ export async function uploadQueuedWork(
       }
 
       const { readChainHead } = ports;
+      // One call carries every item, so each one's screen says the same stage (PRD-1552).
+      const jobs = items.map(({ job }) => job);
+      let stageReported = false;
       const result = await sendWithCheckpoint({
-        sender,
+        sender: reportingSendStages(sender, ({ stage }) => {
+          stageReported = true;
+          tellStage(jobs, stage);
+        }),
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
         // Read just before the intent, after any prompt: every item the call
         // carries is then timed on the chain's clock if the answer is lost.
         readChainHead: readChainHead && (() => readChainHead(chainId)),
         record: (next) => recordAll(items, next),
+        receiptWaitLimitMs: ports.receiptWaitLimitMs,
         now: ports.now,
+      }).catch((error: unknown) => {
+        if (stageReported) tellStage(jobs, null);
+        throw error;
       });
+      // A sent call's items keep saying confirming until the queue finishes each one, below.
+      if (stageReported && result.status !== "sent") tellStage(jobs, null);
       switch (result.status) {
         case "sent":
           sent += items.length;
           confirmedItems = items;
           return {};
         case "may-have-sent":
+          if (result.error instanceof ReceiptWaitLimitError)
+            recordReceiptWaitLimit(items, result.error.limitMs);
           // Its receipt did not come: keep the nonce the transaction used while
           // the network still holds it.
           await keepTransactionNonce(items);
@@ -287,9 +406,10 @@ export async function uploadQueuedWork(
           for (const { job } of items) forgetWorkBroadcast(job.id);
           const accepted = await flagRefused(items).catch(() => items);
           // No single item explains the revert, so every one is flagged: the
-          // same call must not stay ready and go out again unchanged.
+          // same call must not stay ready and go out again unchanged. Its reason
+          // is its own: a check that refuses one item alone records "reverted".
           if (accepted.length === items.length)
-            for (const item of accepted) await flag(item, "reverted").catch(() => undefined);
+            for (const item of accepted) await flag(item, "batch-reverted").catch(() => undefined);
           return { stop: "reverted", error: result.error };
         }
       }
@@ -298,18 +418,23 @@ export async function uploadQueuedWork(
 
   /** A tap that ended without a send says so, instead of reporting an upload of nothing. */
   const finished = (): UploadOutcome =>
-    sent === 0 ? { status: "nothing-sent", flagged } : { status: "uploaded", sent, flagged };
+    sent > 0
+      ? { status: "uploaded", sent, flagged }
+      : { status: "nothing-sent", flagged, ...(settled === readyCount ? { settled } : {}) };
 
   try {
     const selected = input.jobIds ? new Set(input.jobIds) : undefined;
-    const ready = (await ports.listJobs(input.userAddress)).filter(
+    const listed = await ports.listJobs(input.userAddress);
+    // A work whose promise this account is still taking up waits for that take-up.
+    const ready = listed.filter(
       (job) =>
         (!selected || selected.has(job.id)) &&
         isUploadJob(job) &&
         (job.chainId ?? chainId) === chainId &&
-        queuedUploadStatus(job).state === "ready"
+        queuedUploadStatus(job, { takeUp: takeUpOf(job, listed) }).state === "ready"
     );
     if (ready.length === 0) return { status: "nothing-ready" };
+    readyCount = ready.length;
 
     // An embedded wallet has no batching: the queue sends its items one at a time.
     if (sender.authMode === "embedded") {
@@ -317,7 +442,9 @@ export async function uploadQueuedWork(
         const result = await ports.processJob(job.id, explicitSend);
         if (result.success && !result.skipped) sent += 1;
         if (result.error === "send-cancelled") return { status: "declined", sent, flagged };
-        if (result.success || result.skipped) continue;
+        // Already done elsewhere: the queue cleared it, so nothing is left to attend to.
+        if (result.alreadyDone) settled += 1;
+        if (result.success || result.skipped || result.alreadyDone) continue;
         // One item the queue retired is that item's answer: it is counted for
         // the person and the rest still go. A send that failed outright ends
         // the run, since carrying on would report the remainder as uploaded.

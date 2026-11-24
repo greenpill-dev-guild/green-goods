@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiErrorWarningLine, RiStackLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 
 export interface SeedTotalProps {
   /** How many separate promises the answer creates. */
@@ -43,46 +43,46 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
         )}
       </span>
       <div className="min-w-0">
-        <p className="body-sm font-semibold tabular-nums text-text-strong">
+        <p className="type-body font-semibold tabular-nums text-text-strong">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.seed.total",
+              id: "hub.garden.pool.seed.total",
               defaultMessage:
                 "{count, plural, one {1 promise} other {# promises}} × {each} {unit} each = {total} {unit}",
             },
             { count, each, unit, total: count * each }
           )}
         </p>
-        <p className={cn("body-xs", warn ? "text-warning-dark" : "text-text-sub")}>
+        <p className={cn("type-meta", warn ? "text-warning-dark" : "text-text-sub")}>
           {warn
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.totalCheck",
+                  id: "hub.garden.pool.seed.totalCheck",
                   defaultMessage:
                     "Did you mean {count} {unit} in total? Then each promise asks for 1.",
                 },
                 { count, unit }
               )
             : formatMessage({
-                id: "cockpit.garden.pool.seed.totalHint",
+                id: "hub.garden.pool.seed.totalHint",
                 defaultMessage: "Each one is taken up, proven and confirmed on its own.",
               })}
         </p>
       </div>
       <span className="col-start-2 flex min-h-8 justify-start sm:col-start-3 sm:min-w-[8.25rem] sm:justify-end">
         {warn ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             disabled={busy}
             onClick={onMakeItOne}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.seed.makeItOne",
+              id: "hub.garden.pool.seed.makeItOne",
               defaultMessage: "Make It 1 Each",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </span>
     </div>

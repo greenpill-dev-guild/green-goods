@@ -72,12 +72,11 @@ const messages: Record<string, string> = {
   "app.garden.details.feedbackPlaceholder": "Provide feedback or any observations",
   "app.garden.details.timeSpent": "Time Spent (hours)",
   "app.garden.details.timeSpentPlaceholder": "e.g., 1.5 for 1h 30m",
-  "app.garden.details.timeSpentHint": "Enter hours spent on this work (decimals OK)",
   "app.garden.details.shareLocation": "Share Location",
   "app.garden.details.locationHint": "Coarse GPS for verification",
   "app.garden.details.locationCaptured": "Location captured",
   "app.garden.details.locationDenied": "Location access denied",
-  "app.garden.details.feedback": "Feedback",
+  "app.garden.details.feedback": "Notes",
   "app.garden.details.selectRange": "Select a range",
   "app.common.add": "Add",
   "app.common.remove": "Remove",
@@ -118,13 +117,13 @@ describe("WorkDetails", () => {
     cleanup();
   });
 
-  it("renders time spent input and feedback textarea by default", () => {
+  it("renders time spent input and the notes textarea by default", () => {
     renderDetails();
 
     // Time Spent is always present
     expect(screen.getByText("Time Spent (hours)")).toBeInTheDocument();
-    // Feedback textarea is always present
-    expect(screen.getByText("Feedback")).toBeInTheDocument();
+    // The notes textarea is always present, labeled for what the gardener writes there
+    expect(screen.getByText("Notes")).toBeInTheDocument();
   });
 
   it("renders dynamic number inputs from action config", () => {
@@ -143,6 +142,26 @@ describe("WorkDetails", () => {
     renderDetails({ inputs });
 
     expect(screen.getByText("Seed Count (seeds)")).toBeInTheDocument();
+  });
+
+  it("names the unit once when the action's title already carries it", () => {
+    // Workshop Delivered's own words: the title ends in "(min)" and the input sets unit "min".
+    const inputs: WorkInput[] = [
+      {
+        key: "deliveredDurationMin",
+        title: "Delivered Duration (min)",
+        placeholder: "Enter actual session duration in minutes",
+        type: "number",
+        required: true,
+        options: [],
+        unit: "min",
+      },
+    ];
+
+    renderDetails({ inputs });
+
+    // An exact match: "Delivered Duration (min) (min)" would not satisfy it.
+    expect(screen.getByText("Delivered Duration (min)")).toBeInTheDocument();
   });
 
   it("renders dynamic select inputs from action config", () => {

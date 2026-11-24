@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home · where purchases live</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg phone {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;Offline Mode</div></sc-if>
+
+  <sc-if value="{{showProfile}}" hint-placeholder-val="{{false}}">
+    <div class="scr">
+      <div class="sec" style="padding-top: 28px"><h2 style="font-size: 22px">Profile</h2></div>
+      <div class="profile">
+        <span class="avatar">L</span>
+        <div><div class="h2">Lina</div><div class="small">lina.greengoods.eth · Gardener at Riverside Commons Garden</div></div>
+      </div>
+      <div class="sec"><h2>Your Purchases</h2><span class="small">All gardens</span></div>
+      <div class="list">
+        <a class="row" href="Status.dc.html"><span class="edge {{aiEdge}}"></span><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg></span><span class="rbody"><span class="rtitle">AI assistant membership, 1 month</span><span class="pill {{aiPill}}">{{aiStatus}}</span><span class="detail">Green Goods Community Garden · 450.00 G$ held by Riverside Commons</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row" href="Holder.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg></span><span class="rbody"><span class="rtitle">Solar basics course, 10 lessons</span><span class="pill info">Waiting for Sunroot</span><span class="detail">Sunroot Skills Hub · 100 Sunroot vouchers held</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      </div>
+      <div class="sec"><h2>Accounts</h2></div>
+      <div class="mx16 card">
+        <div class="facts">
+          <div class="fact"><span class="k">Green Goods account</span><span class="v"><span>0x3C1e…7A2e</span><small>Passkey sign-in</small></span></div>
+          <div class="fact"><span class="k">Voucher wallet</span><span class="v"><span>0x9A40…41bD</span><small>Holds your vouchers</small></span></div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showHome}}" hint-placeholder-val="{{true}}">
+    <div class="scr">
+      <header class="hdr">
+        <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Riverside Commons Garden</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+        <span class="launchers">
+          <button type="button" class="hit" aria-label="Wallet" onClick="{{openWallet}}"><span class="ic"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-wallet-3-line"/></svg><sc-if value="{{walletBadge}}" hint-placeholder-val="{{false}}"><span class="badge">1</span></sc-if></span></button>
+          <button type="button" class="hit" aria-label="Promises"><span class="ic"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg></span></button>
+          <button type="button" class="hit" aria-label="Your Work, 1 on this phone"><span class="ic"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-task-line"/></svg><span class="badge">1</span></span></button>
+          <button type="button" class="hit" aria-label="Notifications"><span class="ic"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-line"/></svg></span></button>
+        </span>
+      </header>
+
+      <sc-if value="{{homeSection}}" hint-placeholder-val="{{false}}">
+        <div class="sec"><h2>Your Purchases</h2><span class="small">Across gardens</span></div>
+        <div class="list">
+          <a class="row" href="Status.dc.html"><span class="edge {{aiEdge}}"></span><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg></span><span class="rbody"><span class="rtitle">AI assistant membership, 1 month</span><span class="pill {{aiPill}}">{{aiStatus}}</span><span class="detail">Green Goods Community Garden · your own G$</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+          <a class="row" href="Holder.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg></span><span class="rbody"><span class="rtitle">Solar basics course, 10 lessons</span><span class="pill info">Waiting for Sunroot</span><span class="detail">Sunroot Skills Hub · 100 vouchers held</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        </div>
+      </sc-if>
+
+      <div class="sec"><h2>Recent Activity</h2><a class="lnk" href="#">See all</a></div>
+      <div class="list">
+        <a class="row" href="#"><span class="edge ok"></span><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-task-line"/></svg></span><span class="rbody"><span class="rtitle">Compost bay turned</span><span class="pill ok">Approved</span><span class="detail">Tomás · 2h ago</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row offer" href="#"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><span class="rbody"><span class="rtitle">Teach the seed-saving course</span><span class="pill ok">Kept</span><span class="detail">You received 300.00 G$ · Oct 19</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row req" href="Rewards.dc.html"><span class="tile req"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg></span><span class="rbody"><span class="rtitle">Teach two compost workshops</span><span class="pill info">Asked for</span><span class="detail">Pays 120 G$ + 20 Sunroot vouchers</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      </div>
+
+      <div class="sec"><h2>Continue</h2></div>
+      <div class="list">
+        <a class="row" href="#"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-task-line"/></svg></span><span class="rbody"><span class="rtitle">Mulch the north beds</span><span class="pill neu">Draft</span><span class="detail">Saved on this phone</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      </div>
+
+      <div class="sec"><h2>Take Part</h2></div>
+      <div class="list">
+        <a class="row" href="#"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg></span><span class="rbody"><span class="rtitle">Promises in this garden</span><span class="detail">4 open · 1 takes vouchers</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row" href="Visit.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-global-line"/></svg></span><span class="rbody"><span class="rtitle">What other gardens offer</span><span class="detail">Visiting doesn't change your garden</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      </div>
+    </div>
+  </sc-if>
+
+  <nav class="appbar" aria-label="App">
+    <span class="tabb {{homeTab}}"><span class="pbg"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{homeIcon}}"/></svg></span>Home</span>
+    <span class="tabb"><span class="pbg"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-plant-line"/></svg></span>Garden</span>
+    <span class="tabb {{profileTab}}"><span class="pbg"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{profileIcon}}"/></svg></span>Profile</span>
+  </nav>
+
+  <sc-if value="{{showWallet}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet full" role="dialog" aria-modal="true" aria-label="Your Wallet">
+      <div class="grip" aria-hidden="true"></div>
+      <div class="shead"><h2 class="stitle">Your Wallet</h2><button type="button" class="close" aria-label="Close" onClick="{{closeWallet}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="stabs" role="tablist">
+        <span role="tab" aria-selected="false">Tokens</span>
+        <span role="tab" aria-selected="false">Vouchers</span>
+        <span role="tab" aria-selected="true" class="on">Purchases<span class="cnt">1</span></span>
+        <span role="tab" aria-selected="false">Cookies</span>
+      </div>
+      <div class="sbody">
+        <p class="small">What you pay for yourself, with your G$ or your vouchers, in any garden. Garden spending stays with each garden's stewards.</p>
+        <p class="h3">In progress</p>
+        <a class="row" href="Status.dc.html"><span class="edge {{aiEdge}}"></span><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg></span><span class="rbody"><span class="rtitle">AI assistant membership, 1 month</span><span class="pill {{aiPill}}">{{aiStatus}}</span><span class="detail">Green Goods Community Garden · 450.00 G$ held by Riverside Commons</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row" href="Holder.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg></span><span class="rbody"><span class="rtitle">Solar basics course, 10 lessons</span><span class="pill info">Waiting for Sunroot</span><span class="detail">Sunroot Skills Hub · 100 Sunroot vouchers held</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <p class="h3">Closed</p>
+        <a class="row" href="#"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg></span><span class="rbody"><span class="rtitle">Garden journal printing</span><span class="pill ok">Refunded</span><span class="detail">Hilltop Orchard · 120.00 G$ back on Oct 3</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Wallet tabs","Home section","Profile"],"default":"Wallet tabs","section":"Direction"},"open":{"editor":"boolean","default":false,"section":"Direction"},"state":{"editor":"enum","options":["Waiting for a check","Needs you","Offline"],"default":"Waiting for a check","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) {
+    if (prev.open !== this.props.open || prev.variant !== this.props.variant) this.setState({ open: undefined });
+  }
+  renderVals() {
+    var variant = this.props.variant ?? 'Wallet tabs';
+    var st = this.props.state ?? 'Waiting for a check';
+    var dark = this.props.dark ?? false;
+    var open = this.state && this.state.open !== undefined ? this.state.open : (this.props.open ?? false);
+    var needs = st === 'Needs you';
+    var wallet = variant === 'Wallet tabs';
+    var profile = variant === 'Profile';
+    return {
+      themeCls: dark ? 'dark' : '',
+      ink: dark ? '#D6D3D1' : '#292524',
+      offline: st === 'Offline',
+      showProfile: profile && open,
+      showHome: !(profile && open),
+      homeSection: variant === 'Home section',
+      showWallet: wallet && open,
+      walletBadge: wallet && needs,
+      homeTab: profile && open ? '' : 'on',
+      profileTab: profile && open ? 'on' : '',
+      homeIcon: profile && open ? '#ri-home-line' : '#ri-home-fill',
+      profileIcon: profile && open ? '#ri-user-fill' : '#ri-user-line',
+      aiPill: needs ? 'warn' : 'info',
+      aiEdge: needs ? 'warn' : '',
+      aiStatus: needs ? '10.00 G$ short' : 'Waiting for a check',
+      openWallet: () => this.setState({ open: true }),
+      closeWallet: () => this.setState({ open: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -97,7 +97,9 @@ describe("AccountProfilePanel", () => {
     const { container, rerender } = render(<AccountProfilePanel controller={createController()} />);
     const body = () => container.querySelector<HTMLElement>('[data-component="SheetBody"]');
 
-    expect(body()?.style.padding).toBe("20px 16px");
+    // The inset is the host sheet's to set: the shared body reads --gg-sheet-body-padding and
+    // keeps the handoff's 20px 16px as its default (the docked side sheet sets 24px from 640px).
+    expect(body()?.style.padding).toBe("var(--gg-sheet-body-padding, 20px 16px)");
     expect(body()?.style.overflowX).toBe("hidden");
 
     rerender(<AccountProfilePanel controller={createController()} layout="page" />);

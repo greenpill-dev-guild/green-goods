@@ -25,16 +25,16 @@ function MockAccountProfilePanel({
   return (
     <div className="flex max-w-md flex-col gap-4">
       <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-alpha-10 body-sm font-semibold text-primary-dark">
+        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-alpha-10 type-body font-semibold text-primary-dark">
           {initials}
         </div>
         <div className="min-w-0">
-          <p className="truncate body-md font-semibold text-text-strong">{displayName}</p>
+          <p className="truncate type-title-md text-text-strong">{displayName}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center rounded-full border border-stroke-soft bg-bg-soft px-2.5 py-0.5 label-xs capitalize text-text-sub">
+            <span className="inline-flex items-center rounded-full border border-stroke-soft bg-bg-soft px-2.5 py-0.5 type-label-sm capitalize text-text-sub">
               {userRole}
             </span>
-            <span className="inline-flex items-center rounded-full border border-stroke-soft bg-bg-soft px-2.5 py-0.5 label-xs text-text-sub">
+            <span className="inline-flex items-center rounded-full border border-stroke-soft bg-bg-soft px-2.5 py-0.5 type-label-sm text-text-sub">
               Wallet
             </span>
           </div>
@@ -44,16 +44,16 @@ function MockAccountProfilePanel({
       <section className="space-y-2">
         <div className="flex items-center gap-2">
           <RiWallet3Line className="h-4 w-4 text-text-soft" aria-hidden="true" />
-          <h2 className="body-sm font-semibold text-text-strong">Wallet</h2>
+          <h2 className="type-body font-semibold text-text-strong">Wallet</h2>
         </div>
-        <div className="rounded-xl border border-stroke-soft bg-bg-white-0 px-3 py-2 body-sm font-medium text-text-sub">
+        <div className="rounded-xl border border-stroke-soft bg-bg-white-0 px-3 py-2 type-body font-medium text-text-sub">
           {wallet}
         </div>
       </section>
 
       <button
         type="button"
-        className="flex w-full items-center justify-between rounded-full px-4 py-3 body-sm font-medium text-error-base transition-colors hover:bg-error-lighter"
+        className="flex w-full items-center justify-between rounded-full px-4 py-3 type-body font-medium text-error-base transition-colors hover:bg-error-lighter"
       >
         Disconnect
         <RiLogoutBoxLine className="h-4 w-4" aria-hidden="true" />
@@ -69,7 +69,7 @@ const meta: Meta<typeof AccountProfilePanelContainer> = {
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
-    withRouter(["/hub"]),
+    withRouter(["/review"]),
     (Story) => (
       <div className="mx-auto max-w-md p-4">
         <Story />
@@ -100,11 +100,18 @@ export const Steward: Story = {
     // Identity actions live here: sign-out is the pinned footer.
     await expect(footer).not.toBeNull();
     await expect(await canvas.findByRole("heading", { name: "Wallet" })).toBeVisible();
-    await expect(await canvas.findByRole("heading", { name: "Your gardens" })).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Your Gardens" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: /Disconnect/ })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Steward access" })).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: "Request Access to Another Garden" })
+    ).toBeVisible();
     await expect(canvas.getByRole("link", { name: /View on Explorer/ })).toBeVisible();
   },
 };
+
+/** Real account panel for locale captures without the English-only play assertions. */
+export const Localized: Story = {};
 
 export const Deployer: Story = {
   tags: ["visual-harness"],

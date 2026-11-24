@@ -43,7 +43,7 @@ export function SetupStepCycle({
         <Alert variant="warning">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.setup.secondSeasonBlocked",
+              id: "hub.garden.pool.setup.secondSeasonBlocked",
               defaultMessage:
                 "One season runs at a time. “{name}” is still running: end it on the Promises tab once nothing in it is live, or start a campaign beside it.",
             },
@@ -52,17 +52,17 @@ export function SetupStepCycle({
         </Alert>
       ) : null}
       <AdminTextField
-        label={formatMessage({ id: "cockpit.garden.pool.setup.name", defaultMessage: "Name" })}
+        label={formatMessage({ id: "hub.garden.pool.setup.name", defaultMessage: "Name" })}
         value={name}
         onChange={(event) => onNameChange(event.target.value)}
         placeholder={
           isCampaign
             ? formatMessage({
-                id: "cockpit.garden.pool.setup.namePlaceholderCampaign",
+                id: "hub.garden.pool.setup.namePlaceholderCampaign",
                 defaultMessage: "Seedling swap",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.setup.namePlaceholderSeason",
+                id: "hub.garden.pool.setup.namePlaceholderSeason",
                 defaultMessage: "Season of First Rains",
               })
         }
@@ -74,7 +74,7 @@ export function SetupStepCycle({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <AdminTextField
           label={formatMessage({
-            id: "cockpit.garden.pool.setup.starts",
+            id: "hub.garden.pool.setup.starts",
             defaultMessage: "Starts",
           })}
           type="date"
@@ -85,7 +85,7 @@ export function SetupStepCycle({
         />
         <AdminTextField
           label={formatMessage({
-            id: "cockpit.garden.pool.setup.runsThrough",
+            id: "hub.garden.pool.setup.runsThrough",
             defaultMessage: "Runs through",
           })}
           type="date"
@@ -95,7 +95,7 @@ export function SetupStepCycle({
             datesValid || !startDate || !endDate
               ? undefined
               : formatMessage({
-                  id: "cockpit.garden.pool.setup.datesError",
+                  id: "hub.garden.pool.setup.datesError",
                   defaultMessage: "The end must come after the start",
                 })
           }
@@ -103,15 +103,15 @@ export function SetupStepCycle({
           required
         />
       </div>
-      <p className="body-xs text-text-soft">
+      <p className="type-meta text-text-soft">
         {isCampaign
           ? formatMessage({
-              id: "cockpit.garden.pool.setup.campaignNote",
+              id: "hub.garden.pool.setup.campaignNote",
               defaultMessage:
                 "Campaigns are shorter pushes that run beside the season, any number at once.",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.setup.seasonNote",
+              id: "hub.garden.pool.setup.seasonNote",
               defaultMessage:
                 "One season runs at a time. Shorter campaigns can run beside it whenever you need them.",
             })}

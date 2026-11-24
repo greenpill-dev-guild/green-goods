@@ -5,7 +5,8 @@
  * This is the work submission flow view at /garden.
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -48,13 +49,17 @@ const mockWorkFlowState = {
 };
 
 const mockSetActiveTab = vi.fn();
+const mockExit = vi.fn();
+const mockToggleAudioRecording = vi.fn();
+const mockOpenDocuments = vi.fn();
 const mockSetSelectedDomain = vi.fn();
-const mockSelectLinkIntent = vi.fn();
 const mockClearLinkIntent = vi.fn();
-const mockIntroProps = vi.fn();
+const mockStartProps = vi.fn();
+const mockStartBack = vi.fn(() => false);
 const mockReviewProps = vi.fn();
 const mockWorkForSheetProps = vi.fn();
 let mockActiveTab = "Intro";
+let mockStartSkipped = false;
 interface MockWorkLinkIntent {
   commitmentId: bigint;
   requirementIndex: number;
@@ -63,9 +68,9 @@ interface MockWorkLinkIntent {
   commitmentTitle: string;
   requirementLabel: string;
   returnTo: string;
+  direction?: "OFFER" | "REQUEST";
 }
 let mockLinkIntent: MockWorkLinkIntent | null = null;
-let mockCommitmentLinkChoices: MockWorkLinkIntent[] = [];
 let mockLinkIntentStatus: "none" | "validating" | "valid" | "invalid" = "none";
 const mockRefetchCommitmentLinkChoices = vi.fn();
 const mockRetryLinkOnly = vi.fn();
@@ -75,6 +80,9 @@ let mockLinkSchedulingWorkSent: boolean | null = null;
 let mockIsSchedulingDependentLink = false;
 let mockIsQueueingDependentLink = false;
 let mockDraftSaveState: "saving" | "saved" | "failed" | undefined;
+let mockNamedGarden: { id: string; name: string; bannerImage: string } | null = null;
+let mockGardenSettled = false;
+let mockTakeUpPrompts: number | null = null;
 const mockDraftRetry = vi.fn().mockResolvedValue(undefined);
 const mockActions = [
   {
@@ -133,6 +141,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     authMode: "wallet",
     brokenMediaIds: new Set(),
     cameraClickRef: { current: null },
+    documentClickRef: { current: mockOpenDocuments },
     canProceed: Boolean(mockSelection.gardenAddress && mockSelection.actionUID !== null),
     changeTab: mockSetActiveTab,
     detailsConfig: {},
@@ -146,16 +155,16 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
       retry: mockDraftRetry,
     },
     ensureWorkSubmissionJourneyId: mockWorkFlowState.ensureWorkSubmissionJourneyId,
-    exit: vi.fn(),
+    exit: mockExit,
     isJoiningCommunityGarden: false,
     isRecording: false,
     isWalletRequestExpired: false,
     joinCommunityGarden: vi.fn(),
     linkIntent: mockLinkIntent,
     linkIntentStatus: mockLinkIntentStatus,
-    commitmentLinkChoices: mockCommitmentLinkChoices,
-    commitmentLinkChoicesLoading: false,
-    commitmentLinkChoicesError: null,
+    takeUpPrompts: mockTakeUpPrompts,
+    namedSubmissionGarden: mockNamedGarden,
+    submissionGardenSettled: mockGardenSettled,
     refetchCommitmentLinkChoices: mockRefetchCommitmentLinkChoices,
     isSchedulingDependentLink: mockIsSchedulingDependentLink,
     isQueueingDependentLink: mockIsQueueingDependentLink,
@@ -165,7 +174,6 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     hasPendingLinkRecovery: mockHasPendingLinkRecovery,
     retryLinkOnly: mockRetryLinkOnly,
     clearLinkIntent: mockClearLinkIntent,
-    selectLinkIntent: mockSelectLinkIntent,
     submissionOutcome: null,
     markMediaPreviewFailed: vi.fn(),
     mediaClickRef: { current: null },
@@ -179,9 +187,10 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     reviewData: { garden: mockGardens[0], action: mockActions[0] },
     setAudioNotes: mockWorkFlowState.setAudioNotes,
     showSkeleton: false,
+    start: { skipped: mockStartSkipped, waiting: false, back: mockStartBack },
     submissionCompleted: false,
     submit: vi.fn(),
-    toggleAudioRecording: vi.fn(),
+    toggleAudioRecording: mockToggleAudioRecording,
     workSubmissionJourneyId: "journey-123",
   }),
 }));
@@ -191,15 +200,17 @@ vi.mock("@green-goods/shared/modules/app/posthog", () => ({
 }));
 
 // Mock child components to simplify
-vi.mock("../../views/Garden/Intro", () => ({
-  WorkIntro: (props: unknown) => {
-    mockIntroProps(props);
-    return createElement("div", { "data-testid": "work-intro" }, "Intro Step");
+vi.mock("../../views/Garden/Start", () => ({
+  WorkStart: (props: { gardenLine?: React.ReactNode }) => {
+    mockStartProps(props);
+    return createElement("div", { "data-testid": "work-start" }, "Start Step", props.gardenLine);
   },
+  StartSkeleton: () => createElement("div", { "data-testid": "start-skeleton" }),
 }));
 
 vi.mock("../../views/Garden/Media", () => ({
-  WorkMedia: () => createElement("div", { "data-testid": "work-media" }, "Media Step"),
+  WorkMedia: (props: { pinned?: React.ReactNode }) =>
+    createElement("div", { "data-testid": "work-media" }, "Media Step", props.pinned),
 }));
 
 vi.mock("../../views/Garden/Details", () => ({
@@ -242,16 +253,22 @@ vi.mock("@/components/Features/Work", async (importOriginal) => ({
 }));
 
 vi.mock("@/components/Navigation", () => ({
-  TopNav: ({ children }: { children?: React.ReactNode }) =>
-    createElement("nav", { "data-testid": "top-nav" }, children),
+  // The flow's step markers ride the bar's centred children slot (DL-132).
+  TopNav: ({ children, onBackClick }: { children?: React.ReactNode; onBackClick?: () => void }) =>
+    createElement(
+      "nav",
+      { "data-testid": "top-nav" },
+      createElement("button", { type: "button", onClick: onBackClick }, "Go back"),
+      children
+    ),
 }));
 
 // Import after mocks
 import Work from "../../views/Garden";
+import { createTestQueryClient } from "../test-utils";
 
 const messages = {
   "app.garden.selectYourAction": "Select Your Action",
-  "app.garden.whatTypeOfWork": "What type of work?",
   "app.garden.selectYourGarden": "Select Your Garden",
   "app.garden.whichGarden": "Which garden?",
   "app.garden.upload.title": "Upload Media",
@@ -261,14 +278,17 @@ const messages = {
   "app.garden.details.feedbackPlaceholder": "Feedback",
   "app.garden.review.title": "Review",
   "app.garden.submit.tab.review.instruction": "Check info",
-  "app.garden.submit.tab.intro.label": "Start Gardening",
   "app.garden.submit.tab.media.label": "Details",
   "app.garden.submit.tab.details.label": "Review Work",
   "app.garden.submit.tab.review.label": "Upload Work",
+  "app.garden.submit.takeUpPrompts":
+    "{count, plural, one {Uploading takes up the request first. It opens # wallet or passkey prompt.} other {Uploading takes up the request first. It opens # wallet or passkey prompts: the take-up, the work and its link.}}",
   "app.garden.unknown": "Unknown Garden",
   "app.action.selected": "Selected Action",
   "app.commitment.pinned.workFor": "Work for",
   "app.commitment.pinned.open": "{label} {title}. Open the promise",
+  "app.commitment.pinned.openWithDirection": "{direction}: {label} {title}. Open the promise",
+  "app.commitments.row.request": "Request",
   "app.garden.commitment.linkSchedulingError":
     "Your work was submitted, but its link to the promise could not be queued.",
   "app.garden.commitment.linkScheduling": "Work submitted. Queueing its link to the promise…",
@@ -277,25 +297,37 @@ const messages = {
   "app.garden.draft.saving": "Saving…",
   "app.garden.draft.failed": "Could not save or restore this work.",
   "app.garden.draft.retry": "Retry",
+  "app.garden.submit.gardenLine": "Logging work in {garden}",
+  "app.proof.media.gallery": "Choose from Your Photos",
+  "app.proof.media.documents": "Choose Documents",
+  "app.proof.media.camera": "Take a Photo",
+  "app.proof.media.record": "Record a voice note",
 };
 
 const renderWithProviders = (initialRoute = "/home/garden") => {
-  return render(
+  // The app renders under a query client; the pinned promise's row reads its name hook there.
+  const queryClient = createTestQueryClient();
+  // The same tree again, for `rerender` once a step changes.
+  const tree = () =>
     createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
+      QueryClientProvider,
+      { client: queryClient },
       createElement(
-        IntlProvider,
-        { locale: "en", messages },
+        MemoryRouter,
+        { initialEntries: [initialRoute] },
         createElement(
-          Routes,
-          null,
-          createElement(Route, { path: "/home/garden", element: createElement(Work) }),
-          createElement(Route, { path: "/home", element: createElement("div", null, "Home") })
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/garden", element: createElement(Work) }),
+            createElement(Route, { path: "/home", element: createElement("div", null, "Home") })
+          )
         )
       )
-    )
-  );
+    );
+  return { ...render(tree()), tree };
 };
 
 describe("Garden (Work) View", () => {
@@ -304,15 +336,18 @@ describe("Garden (Work) View", () => {
     mockSelection.actionUID = null;
     mockSelection.gardenAddress = null;
     mockActiveTab = "Intro";
+    mockStartSkipped = false;
     mockLinkIntent = null;
     mockLinkIntentStatus = "none";
-    mockCommitmentLinkChoices = [];
     mockHasPendingLinkRecovery = false;
     mockLinkSchedulingSucceeded = false;
     mockLinkSchedulingWorkSent = null;
     mockIsSchedulingDependentLink = false;
     mockIsQueueingDependentLink = false;
     mockDraftSaveState = undefined;
+    mockNamedGarden = null;
+    mockGardenSettled = false;
+    mockTakeUpPrompts = null;
   });
 
   afterEach(() => {
@@ -336,6 +371,79 @@ describe("Garden (Work) View", () => {
     expect(mockDraftRetry).toHaveBeenCalledOnce();
   });
 
+  it("says on Start where the work goes", () => {
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    renderWithProviders();
+
+    const line = screen.getByTestId("submission-garden");
+    expect(line).toHaveTextContent("Logging work in Hilltop Garden");
+    // A long name wraps rather than losing its end, clipped at two lines, with the whole
+    // sentence in the title.
+    expect(within(line).getByTitle("Logging work in Hilltop Garden")).toHaveClass("line-clamp-2");
+  });
+
+  // PRD-1522: the line repeated on every step after the first.
+  it("names the garden on the first step only, and again on going back to it", () => {
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    const view = renderWithProviders();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+
+    for (const later of ["Media", "Details", "Review"]) {
+      mockActiveTab = later;
+      view.rerender(view.tree());
+      expect(screen.queryByTestId("submission-garden")).toBeNull();
+    }
+
+    mockActiveTab = "Intro";
+    view.rerender(view.tree());
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+  });
+
+  it("names the garden on Media when Start is skipped, and not after it", () => {
+    mockStartSkipped = true;
+    mockActiveTab = "Media";
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    const view = renderWithProviders();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+
+    mockActiveTab = "Details";
+    view.rerender(view.tree());
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+  });
+
+  // Afo on PRD-1522: the garden is named once, on the first step, so a draft that reopens past
+  // it names none.
+  it("names no garden when a draft reopens past the first step", () => {
+    mockActiveTab = "Details";
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    renderWithProviders();
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+  });
+
+  it("names no garden until the flow has one, and settles the Start step's garden", () => {
+    mockGardenSettled = true;
+    renderWithProviders();
+
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+    expect(mockStartProps.mock.lastCall?.[0]).toMatchObject({ gardenQuestion: null });
+  });
+
   it("renders without crashing", () => {
     renderWithProviders();
 
@@ -348,98 +456,68 @@ describe("Garden (Work) View", () => {
     expect(screen.getByTestId("form-progress")).toBeInTheDocument();
   });
 
-  it("renders intro step by default", () => {
+  it("renders the Start step by default", () => {
     renderWithProviders();
 
-    expect(screen.getByTestId("work-intro")).toBeInTheDocument();
+    expect(screen.getByTestId("work-start")).toBeInTheDocument();
   });
 
-  it("shows Start Gardening button on intro step", () => {
-    renderWithProviders();
-
-    expect(screen.getByRole("button", { name: "Start Gardening" })).toBeInTheDocument();
-  });
-
-  it("disables Start Gardening when no garden/action selected", () => {
-    renderWithProviders();
-
-    const button = screen.getByRole("button", { name: "Start Gardening" });
-    expect(button).toBeDisabled();
-  });
-
-  it("keeps only a canonical eligible deep-link intent selected in the Work intro", () => {
-    const canonicalChoice = {
-      commitmentId: 9n,
-      requirementIndex: 1,
-      actionUID: 1,
-      garden: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
-      commitmentTitle: "Repair tool handles",
-      requirementLabel: "2",
-      returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9",
-    };
+  it("offers no Start button: Start has no bar, and Back there leaves the flow (DL-131)", () => {
     mockSelection.actionUID = 1;
-    mockSelection.gardenAddress = canonicalChoice.garden;
-    mockLinkIntentStatus = "valid";
-    mockLinkIntent = canonicalChoice;
-    mockCommitmentLinkChoices = [canonicalChoice];
+    mockSelection.gardenAddress = "garden-1";
+    const { container } = renderWithProviders();
 
-    renderWithProviders();
+    expect(container.ownerDocument.querySelector('[data-component="FlowBar"]')).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start Gardening" })).toBeNull();
 
-    const props = mockIntroProps.mock.lastCall?.[0] as {
-      selectedCommitmentKey: string;
-      commitmentChoices: Array<{ key: string; title: string; requirementIndex: number }>;
-    };
-    expect(props.selectedCommitmentKey).toBe("9:1");
-    expect(props.commitmentChoices).toEqual([
-      expect.objectContaining({ key: "9:1", title: "Repair tool handles", requirementIndex: 1 }),
-    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+    expect(mockStartBack).toHaveBeenCalledTimes(1);
+    expect(mockExit).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    "stale",
-    "frozen",
-    "wrong-action",
-    "tampered",
-  ])("does not display a %s deep-link intent that shared rejected", () => {
+  it("offers the media tools on Media only, and Back there returns to Start", () => {
+    mockActiveTab = "Media";
+    renderWithProviders();
+
+    const tools = [
+      "Choose from Your Photos",
+      "Take a Photo",
+      "Record a voice note",
+      "Choose Documents",
+    ];
+    for (const tool of tools) {
+      expect(screen.getByRole("button", { name: tool })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Record a voice note" }));
+    expect(mockToggleAudioRecording).toHaveBeenCalledTimes(1);
+    // Documents open their own picker, so the photo picker stays photos and videos.
+    fireEvent.click(screen.getByRole("button", { name: "Choose Documents" }));
+    expect(mockOpenDocuments).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+    expect(mockSetActiveTab).toHaveBeenCalledWith("Intro");
+    expect(mockExit).not.toHaveBeenCalled();
+    cleanup();
+
+    mockActiveTab = "Intro";
+    renderWithProviders();
+    expect(screen.queryByRole("button", { name: "Take a Photo" })).toBeNull();
+  });
+
+  it("hands the Start step a promise link that shared rejected, with a retry and a way out", () => {
     mockSelection.actionUID = 1;
     mockSelection.gardenAddress = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    mockGardenSettled = true;
     mockLinkIntentStatus = "invalid";
-    mockLinkIntent = null;
-    mockCommitmentLinkChoices = [];
-
     renderWithProviders();
 
-    const props = mockIntroProps.mock.lastCall?.[0] as {
-      selectedCommitmentKey: string | null;
-      commitmentChoices: unknown[];
-      commitmentIntentStatus: string;
+    const props = mockStartProps.mock.lastCall?.[0] as {
+      link: { status: string; onRetry: () => void; onLetGo: () => void };
     };
-    expect(props.selectedCommitmentKey).toBeNull();
-    expect(props.commitmentChoices).toEqual([]);
-    expect(props.commitmentIntentStatus).toBe("invalid");
-  });
-
-  it("passes a generic commitment choice back to the shared controller", () => {
-    const choice = {
-      commitmentId: 12n,
-      requirementIndex: 0,
-      actionUID: 1,
-      garden: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
-      commitmentTitle: "Plant the starts",
-      requirementLabel: "1",
-      returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/12",
-    };
-    mockSelection.actionUID = 1;
-    mockSelection.gardenAddress = choice.garden;
-    mockCommitmentLinkChoices = [choice];
-    renderWithProviders();
-
-    const props = mockIntroProps.mock.lastCall?.[0] as {
-      setSelectedCommitmentKey: (key: string | null) => void;
-    };
-    props.setSelectedCommitmentKey("12:0");
-
-    expect(mockSelectLinkIntent).toHaveBeenCalledWith(choice);
+    expect(props.link.status).toBe("invalid");
+    props.link.onRetry();
+    expect(mockRefetchCommitmentLinkChoices).toHaveBeenCalledTimes(1);
+    props.link.onLetGo();
+    expect(mockClearLinkIntent).toHaveBeenCalledTimes(1);
   });
 
   it("names the chosen promise on the step and unlinks the work from its sheet", () => {
@@ -452,17 +530,55 @@ describe("Garden (Work) View", () => {
       commitmentTitle: "Repair tool handles",
       requirementLabel: "1",
       returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9",
+      direction: "REQUEST",
     };
     renderWithProviders();
 
+    // The pin leads with the promise's own direction, a request's helping hand, and its
+    // button's name says it too, since that name replaces the icon's for a screen reader.
+    const pinned = within(screen.getByTestId("pinned-promise"));
+    expect(pinned.getByRole("img", { name: "Request" })).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: "Work for Repair tool handles. Open the promise" })
+      screen.getByRole("button", {
+        name: "Request: Work for Repair tool handles. Open the promise",
+      })
     );
     expect(screen.getByRole("dialog")).toHaveTextContent("Promise sheet");
 
     const sheet = mockWorkForSheetProps.mock.lastCall?.[0] as { onUnlink: () => void };
     sheet.onUnlink();
     expect(mockClearLinkIntent).toHaveBeenCalledTimes(1);
+  });
+
+  it("says above Upload Work, before the first prompt, that a draft for an Open ask takes it up first", () => {
+    mockActiveTab = "Review";
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = "garden-1";
+    mockLinkIntentStatus = "valid";
+    mockLinkIntent = {
+      commitmentId: 9n,
+      requirementIndex: 0,
+      actionUID: 1,
+      garden: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      commitmentTitle: "Weeding",
+      requirementLabel: "1",
+      returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9",
+      direction: "REQUEST",
+    };
+    mockTakeUpPrompts = 3;
+    renderWithProviders();
+
+    const note =
+      "Uploading takes up the request first. It opens 3 wallet or passkey prompts: the take-up, the work and its link.";
+    expect(screen.getByText(note)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload Work" })).toHaveAccessibleDescription(note);
+    cleanup();
+
+    // A draft for a promise of the member's own: Review says nothing more.
+    mockTakeUpPrompts = null;
+    renderWithProviders();
+    expect(screen.queryByText(/takes up the request/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Upload Work" })).not.toHaveAccessibleDescription();
   });
 
   it("pins no promise when the work isn't for one", () => {
@@ -509,6 +625,7 @@ describe("Garden (Work) View", () => {
   });
 
   it("keeps queued Work and a failed link truthful", () => {
+    mockActiveTab = "Review";
     mockHasPendingLinkRecovery = true;
     mockLinkSchedulingWorkSent = false;
     renderWithProviders();
@@ -519,6 +636,7 @@ describe("Garden (Work) View", () => {
   });
 
   it("keeps queued Work truthful after its dependent link is queued", () => {
+    mockActiveTab = "Review";
     mockLinkSchedulingSucceeded = true;
     mockLinkSchedulingWorkSent = false;
     renderWithProviders();
@@ -528,6 +646,7 @@ describe("Garden (Work) View", () => {
   });
 
   it("announces when the dependent commitment link is safely queued after Work was sent", () => {
+    mockActiveTab = "Review";
     mockLinkSchedulingSucceeded = true;
     mockLinkSchedulingWorkSent = true;
 

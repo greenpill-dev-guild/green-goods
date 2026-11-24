@@ -6,20 +6,30 @@ import type { ReportingCore } from "./runtime";
  * reconciliation and cleanup. External work runs from these leased records, never from side
  * effects during rehydration. A dedupe key makes enqueueing idempotent; a fence stops a worker
  * whose lease expired from recording a result after another worker reclaimed the job.
+ *
+ * A job whose process died is rerun from the start once its lease expires, so every handler must
+ * survive a crash at any point. Each kind's rerun contract (reads only, checkpointed effects,
+ * exact signed bytes, or cleanup) is declared and crash-tested in job-reruns.sqlite.test.ts;
+ * a new kind needs an entry there.
  */
-export type JobKind =
-  | "process_media"
-  | "resolve_authority"
-  | "prepare_operation"
-  | "execute_delegated"
-  | "watch_owner_attempt"
-  | "review_list"
-  | "review_open"
-  | "review_authority"
-  | "reconcile_operation"
-  | "reconcile_grant"
-  | "purge_private_content"
-  | "retention_sweep";
+/** Every kind of background job; the rerun contracts and the test harness are checked against it. */
+export const JOB_KINDS = [
+  "process_media",
+  "resolve_authority",
+  "prepare_operation",
+  "execute_delegated",
+  "watch_owner_attempt",
+  "watch_signing_link",
+  "review_list",
+  "review_open",
+  "review_authority",
+  "reconcile_operation",
+  "reconcile_grant",
+  "purge_private_content",
+  "retention_sweep",
+] as const;
+
+export type JobKind = (typeof JOB_KINDS)[number];
 
 export interface ClaimedJob {
   id: string;
@@ -126,15 +136,18 @@ export function completeJob(core: ReportingCore, job: ClaimedJob): boolean {
   );
 }
 
-/** Schedules another attempt, or parks the job as failed once its budget is spent. */
+/**
+ * Schedules another attempt, or parks the job as failed once its budget is spent. Records nothing
+ * and returns "fenced" when another worker has taken the job over since this one claimed it.
+ */
 export function retryJob(
   core: ReportingCore,
   job: ClaimedJob,
   errorCode: string,
   delayMs: number
-): "retrying" | "failed" {
+): "retrying" | "failed" | "fenced" {
   const failed = job.attempts >= job.maxAttempts;
-  core.db
+  const update = core.db
     .query(
       `UPDATE processing_jobs
        SET state = $state, lease_holder = NULL, run_after = $runAfter, last_error_code = $code, updated_at = $now
@@ -149,6 +162,7 @@ export function retryJob(
       code: errorCode,
       now: core.clock.now(),
     });
+  if (update.changes !== 1) return "fenced";
   return failed ? "failed" : "retrying";
 }
 

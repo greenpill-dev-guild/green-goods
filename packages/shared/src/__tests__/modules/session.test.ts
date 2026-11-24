@@ -55,6 +55,7 @@ import {
   getStoredSmartAccountAddress,
   getStoredWalletAddress,
   hasSignedOutSentinel,
+  hasSessionRestoreEvidence,
   RP_ID_STORAGE_KEY,
   SIGNED_OUT_STORAGE_KEY,
   SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
@@ -68,7 +69,17 @@ import {
   setStoredWalletAddress,
   USERNAME_STORAGE_KEY,
   WALLET_ADDRESS_STORAGE_KEY,
+  getStoredAccountProfile,
+  setStoredAccountProfile,
+  getStoredProfileAddress,
+  setStoredProfileAddress,
+  getStoredOriginalAccountAddress,
 } from "../../modules/auth/session";
+import {
+  LEGACY_PASSKEY_PROFILE,
+  PILOT_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
+} from "../../modules/auth/account-profile";
 
 // ============================================================================
 // TESTS
@@ -82,6 +93,138 @@ describe("modules/auth/session", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("versioned passkey accounts", () => {
+    const credential = {
+      id: "deadbeef",
+      signingId: "3q2-7w",
+      publicKey: "0x1234" as const,
+      raw: undefined as unknown as PublicKeyCredential,
+    };
+    const legacy = "0x1111111111111111111111111111111111111111" as const;
+    const pilot = "0x2222222222222222222222222222222222222222" as const;
+
+    it("keeps credential encoding separate from the selected deployment profile", () => {
+      setStoredCredential(credential);
+      setStoredProfileAddress(
+        LEGACY_PASSKEY_PROFILE,
+        credential,
+        legacy,
+        "www.greengoods.app",
+        "ada"
+      );
+      setStoredProfileAddress(
+        PILOT_PASSKEY_PROFILE,
+        credential,
+        pilot,
+        "www.greengoods.app",
+        "ada"
+      );
+      setStoredAccountProfile(PILOT_PASSKEY_PROFILE);
+      expect(getStoredCredential()?.id).toBe("deadbeef");
+      expect(getStoredAccountProfile()).toBe(PILOT_PASSKEY_PROFILE);
+      expect(getStoredProfileAddress(LEGACY_PASSKEY_PROFILE, credential)).toBe(legacy);
+      expect(getStoredProfileAddress(PILOT_PASSKEY_PROFILE, credential)).toBe(pilot);
+      expect(getStoredOriginalAccountAddress()).toBe(legacy);
+    });
+
+    it("never treats another credential's address as the selected account", () => {
+      setStoredProfileAddress(PILOT_PASSKEY_PROFILE, credential, pilot, "greengoods.app", "ada");
+      expect(
+        getStoredProfileAddress(PILOT_PASSKEY_PROFILE, { ...credential, publicKey: "0xabcd" })
+      ).toBeNull();
+      expect(
+        getStoredProfileAddress(PILOT_PASSKEY_PROFILE, { ...credential, signingId: "AQID" })
+      ).toBeNull();
+    });
+
+    it("persists a beta-created profile independently of the legacy default", () => {
+      setStoredCredential(credential);
+      setStoredProfileAddress(
+        KERNEL_033_PASSKEY_PROFILE,
+        credential,
+        pilot,
+        "greengoods.app",
+        "ada"
+      );
+      setStoredAccountProfile(KERNEL_033_PASSKEY_PROFILE);
+      expect(getStoredAccountProfile()).toBe(KERNEL_033_PASSKEY_PROFILE);
+      expect(getStoredProfileAddress(KERNEL_033_PASSKEY_PROFILE, credential)).toBe(pilot);
+      expect(getStoredProfileAddress(LEGACY_PASSKEY_PROFILE, credential)).toBeNull();
+    });
+
+    it("fails closed for unknown profile metadata without changing it into legacy", () => {
+      mockLocalStorage.setItem("greengoods_passkey_account_profile", "kernel-tampered");
+      expect(() => getStoredAccountProfile()).toThrow("Unknown passkey account profile");
+      expect(mockLocalStorage.getItem("greengoods_passkey_account_profile")).toBe(
+        "kernel-tampered"
+      );
+    });
+
+    it("keeps both account records on sign-out and removes them only when forgetting all auth", () => {
+      setStoredProfileAddress(LEGACY_PASSKEY_PROFILE, credential, legacy, "greengoods.app", "ada");
+      setStoredProfileAddress(PILOT_PASSKEY_PROFILE, credential, pilot, "greengoods.app", "ada");
+      setStoredAccountProfile(PILOT_PASSKEY_PROFILE);
+      clearActiveSessionAuth();
+      expect(getStoredAccountProfile()).toBe(PILOT_PASSKEY_PROFILE);
+      expect(getStoredProfileAddress(LEGACY_PASSKEY_PROFILE, credential)).toBe(legacy);
+      clearAllAuth();
+      expect(getStoredAccountProfile()).toBe(LEGACY_PASSKEY_PROFILE);
+      expect(getStoredProfileAddress(PILOT_PASSKEY_PROFILE, credential)).toBeNull();
+    });
+
+    it("refuses malformed records and ambiguous pilot credential IDs", () => {
+      mockLocalStorage.setItem("greengoods_passkey_profile_accounts", "[]");
+      expect(() => getStoredProfileAddress(PILOT_PASSKEY_PROFILE, credential)).toThrow(
+        "Invalid saved passkey account profiles"
+      );
+      mockLocalStorage.removeItem("greengoods_passkey_profile_accounts");
+      expect(() =>
+        setStoredProfileAddress(
+          PILOT_PASSKEY_PROFILE,
+          { ...credential, signingId: undefined },
+          pilot,
+          "greengoods.app",
+          "ada"
+        )
+      ).toThrow("Sign in with the passkey");
+    });
+  });
+
+  describe("startup session evidence", () => {
+    it("allows deferred startup only for empty auth storage", () => {
+      mockLocalStorage.setItem("gg-language", "es");
+      expect(hasSessionRestoreEvidence(mockLocalStorage)).toBe(false);
+    });
+
+    it.each([
+      AUTH_MODE_STORAGE_KEY,
+      "greengoods_credential",
+      USERNAME_STORAGE_KEY,
+      RP_ID_STORAGE_KEY,
+      SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
+      EMBEDDED_ADDRESS_KEY,
+      WALLET_ADDRESS_STORAGE_KEY,
+      "greengoods_last_account",
+      "wagmi.store",
+      SIGNED_OUT_STORAGE_KEY,
+    ])("starts immediately for any existing %s record, without parsing or migrating it", (key) => {
+      mockLocalStorage.setItem(key, "");
+      mockLocalStorage.setItem.mockClear();
+      expect(hasSessionRestoreEvidence(mockLocalStorage)).toBe(true);
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+      expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
+    });
+
+    it("starts immediately when a storage read is blocked", () => {
+      const storage = {
+        getItem: () => {
+          throw new Error("Storage blocked");
+        },
+      };
+      expect(hasSessionRestoreEvidence(storage)).toBe(true);
+    });
   });
 
   describe("setAuthMode", () => {

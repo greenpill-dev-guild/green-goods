@@ -13,10 +13,6 @@ import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 const CHAIN_ID = CHAINS.arbitrum;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-// ============================================================================
-// TRANSFER SINGLE (MINTS)
-// ============================================================================
-
 describe("HypercertMinter.TransferSingle — mints", () => {
   it("compiles the mint restriction into the retrieval topics on both chains", async () => {
     const mockDb = createTestIndexer();
@@ -30,8 +26,7 @@ describe("HypercertMinter.TransferSingle — mints", () => {
         mockEventData: mockEvent(CHAIN_ID, 5000),
       }),
     ]);
-    // Envio 3.6's simulated source ignores static topic values. Inspect the
-    // actual resolved registrations so removing `where` fails this proof.
+    // Inspect the resolved retrieval filters on each configured chain.
     const { activeRegistration } = (
       globalThis as unknown as {
         __envioGlobal: {
@@ -42,10 +37,10 @@ describe("HypercertMinter.TransferSingle — mints", () => {
                 onEventRegistrations: {
                   eventConfig: { contractName: string; name: string };
                   resolvedWhere: {
-                    topicSelections: {
-                      topic1: { TAG: string; _0: string[] };
+                    topicFilters: {
+                      topic1: "Any";
                       topic2: { TAG: string; _0: string[] };
-                      topic3: { TAG: string; _0: string[] };
+                      topic3: "Any";
                     }[];
                   };
                 }[];
@@ -62,12 +57,12 @@ describe("HypercertMinter.TransferSingle — mints", () => {
           eventConfig.contractName === "HypercertMinter" && eventConfig.name === "TransferSingle"
       );
       assert.ok(transfer);
-      assert.equal(transfer.resolvedWhere.topicSelections.length, 1);
-      const topics = transfer.resolvedWhere.topicSelections[0];
+      assert.equal(transfer.resolvedWhere.topicFilters.length, 1);
+      const topics = transfer.resolvedWhere.topicFilters[0];
       assert.ok(topics);
       assert.deepEqual(topics.topic2, { TAG: "Values", _0: [`0x${"0".repeat(64)}`] });
-      assert.deepEqual(topics.topic1, { TAG: "Values", _0: [] });
-      assert.deepEqual(topics.topic3, { TAG: "Values", _0: [] });
+      assert.equal(topics.topic1, "Any");
+      assert.equal(topics.topic3, "Any");
     }
   });
 
@@ -109,8 +104,11 @@ describe("HypercertMinter.TransferSingle — mints", () => {
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
     });
 
-    const result = await HypercertMinter.TransferSingle.processEvent({ event, mockDb });
-    const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
+    await assert.rejects(
+      HypercertMinter.TransferSingle.processEvent({ event, mockDb }),
+      /never reached a handler/
+    );
+    const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
 
     assert.equal(hc, undefined);
   });
@@ -124,14 +122,12 @@ describe("HypercertMinter.TransferSingle — mints", () => {
       const tx1 = txHash(100);
       const tx2 = txHash(200);
 
-      // ClaimStored first
       const claimStored = HypercertMinter.ClaimStored.createMockEvent({
         claimID: 42n,
         uri: metadataServer.url,
         totalUnits: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 4000, { txHash: tx1, logIndex: 1 }),
       });
-      // TransferSingle mint
       const transferEvent = HypercertMinter.TransferSingle.createMockEvent({
         operator: addr(1),
         from: ZERO_ADDRESS,
@@ -177,9 +173,7 @@ describe("HypercertMinter.TransferSingle — mints", () => {
   });
 });
 
-// ============================================================================
 // TRANSFER SINGLE (SUBSEQUENT CLAIMS)
-// ============================================================================
 
 describe("HypercertMinter.TransferSingle — claims", () => {
   it("treats subsequent mints as claims and updates claimedUnits", async () => {
@@ -187,7 +181,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
     const tx1 = txHash(100);
     const tx2 = txHash(200);
 
-    // First mint
     const mint = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
       from: ZERO_ADDRESS,
@@ -196,7 +189,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 1000n,
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx1, logIndex: 1 }),
     });
-    // Subsequent mint (claim)
     const claim = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
       from: ZERO_ADDRESS,
@@ -211,7 +203,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
     assert.ok(hc);
     assert.equal(hc.claimedUnits, 300n);
 
-    // Verify HypercertClaim entity
     const claimEntity = await mockDb.HypercertClaim.get(`${CHAIN_ID}-42-${addr(3)}`);
     assert.ok(claimEntity);
     assert.equal(claimEntity.claimant, addr(3));
@@ -291,7 +282,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 1000n,
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx1, logIndex: 1 }),
     });
-    // First claim
     const claim1 = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
       from: ZERO_ADDRESS,
@@ -317,10 +307,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
     assert.equal(hc.claimedUnits, 300n);
   });
 });
-
-// ============================================================================
-// CLAIM STORED
-// ============================================================================
 
 describe("HypercertMinter.ClaimStored", () => {
   it("retries transient metadata failures within the configured bound", async () => {
@@ -607,7 +593,6 @@ describe("HypercertMinter.ClaimStored", () => {
       const tx1 = txHash(100);
       const tx2 = txHash(200);
 
-      // TransferSingle first
       const mint = HypercertMinter.TransferSingle.createMockEvent({
         operator: addr(1),
         from: ZERO_ADDRESS,
@@ -616,7 +601,6 @@ describe("HypercertMinter.ClaimStored", () => {
         value: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx1, logIndex: 1 }),
       });
-      // ClaimStored second
       const claimStored = HypercertMinter.ClaimStored.createMockEvent({
         claimID: 42n,
         uri: metadataServer.url,

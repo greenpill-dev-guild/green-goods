@@ -12,6 +12,7 @@ import {
   RiShareLine,
 } from "@remixicon/react";
 import { type CSSProperties, useState } from "react";
+import { CountBadge } from "../../src/components/Badge/Badge";
 import { Button, type ButtonEmphasis, type ButtonTone } from "../../src/components/Button";
 import { Chip } from "../../src/components/Chip";
 import {
@@ -157,11 +158,7 @@ export function IconButtons({ rules }: { rules: ClientRules }) {
           size="compact"
           emphasis="secondary"
           icon={<RiNotification3Line />}
-          badge={
-            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-action px-1 text-[10px] font-semibold text-primary-action-foreground">
-              3
-            </span>
-          }
+          badge={<CountBadge count={3} ring />}
         />
       </Specimen>
       <Specimen title="loading / disabled · md" target=".gg-icon-button" all expect={rules.iconButton("md")}>

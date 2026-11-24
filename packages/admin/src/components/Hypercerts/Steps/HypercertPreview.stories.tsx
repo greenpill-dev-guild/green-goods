@@ -179,8 +179,8 @@ function ReviewInFlow({ stage }: { stage: MintingState["status"] }) {
     stage,
     failure: {
       tone: "warning",
-      title: "Transaction cancelled",
-      description: "Transaction was cancelled. Please try again when ready.",
+      title: "Transaction canceled",
+      description: "Transaction was canceled. Please try again when ready.",
     },
     formatMessage,
   });
@@ -190,7 +190,7 @@ function ReviewInFlow({ stage }: { stage: MintingState["status"] }) {
       open
       size="lg"
       variant="flow"
-      tone="hub"
+      tone="review"
       className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={noop}
       preventClose={phase === "sending"}

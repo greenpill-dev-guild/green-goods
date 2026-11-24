@@ -149,6 +149,34 @@ export function listPendingGardenJoinRequests(
   };
 }
 
+/** What a pending count covers: one garden at one moment, and one kind or every kind. */
+export type PendingCountScope = [
+  gardenAddress: Address,
+  nowIso: string,
+  kind?: GardenJoinRequestKind,
+];
+
+/** Reads plain columns only: the waiting total, or one queue's, never needs the cipher. */
+export function countPendingGardenJoinRequests(
+  db: Database,
+  ...[gardenAddress, nowIso, kind]: PendingCountScope
+): number {
+  const { count } = (
+    kind
+      ? db
+          .query(
+            "SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ? AND kind = ? AND state = 'pending' AND expiresAt > ?"
+          )
+          .get(gardenAddress, kind, nowIso)
+      : db
+          .query(
+            "SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ? AND state = 'pending' AND expiresAt > ?"
+          )
+          .get(gardenAddress, nowIso)
+  ) as { count: number };
+  return count;
+}
+
 export function resolveGardenJoinRequest(
   db: Database,
   cipher: GardenJoinRequestCipher,

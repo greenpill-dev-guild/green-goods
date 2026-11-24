@@ -19,10 +19,15 @@ export interface TabAction {
 }
 
 export interface GardenActivityEvent {
+  actorAddress?: Address;
+  photo?: string;
+  statusLabel?: string;
+  statusTone?: "success" | "warning" | "error" | "info" | "neutral";
   id: string;
   category: Exclude<ActivityFilter, "all">;
   title: string;
   description: string;
+  /** Event time in milliseconds; 0 when unknown. */
   timestamp: number;
   href?: string;
   itemId?: string;
@@ -34,6 +39,21 @@ export interface GardenActivityEvent {
 export interface RoleDirectoryEntry {
   address: Address;
   roles: GardenRole[];
+}
+
+/**
+ * A garden list read a page at a time: whether the garden has more than the
+ * list holds, and how to read the next page.
+ */
+export interface GardenListPages {
+  hasOlder: boolean;
+  /** Widen the list by one page and read it. */
+  loadOlder: () => void;
+  /** Read the list again at the width it has, as when a widened read failed. */
+  reread: () => void;
+  isLoadingOlder: boolean;
+  /** When the list last read successfully, in milliseconds; undefined before its first read. */
+  readAt?: number;
 }
 
 /** A work no decision has settled yet. */

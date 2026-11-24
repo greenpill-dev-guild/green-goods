@@ -1,4 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { CELO_G_DOLLAR_TOKEN } from "@green-goods/shared/config/tokens";
 import type {
@@ -6,46 +8,24 @@ import type {
   ProtocolFundingRow,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
-  type PoolFundingTransferLimit,
   selectExceededTransferLimit,
+  selectTransferLimitsRead,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Address } from "@green-goods/shared/types/domain";
+import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
 import { type TransferAct, TransferReviewDialog } from "@/views/Garden/Pool/TransferReviewDialog";
-import { ProtocolFundingRows } from "./ProtocolFundingRows";
+import { OVER_LIMIT_MESSAGES, ProtocolFundingRows } from "./ProtocolFundingRows";
 
 type GardenOption = { id: Address; name: string };
-
-/** What the amount field says for each limit, in the words of the facts listed under it. */
-const OVER_LIMIT_MESSAGES: Record<
-  PoolFundingTransferLimit,
-  { id: string; defaultMessage: string }
-> = {
-  transfer_cap: {
-    id: "cockpit.community.protocolFunding.amount.overTransferCap",
-    defaultMessage: "More than the per-transfer cap.",
-  },
-  period_allowance: {
-    id: "cockpit.community.protocolFunding.amount.overPeriodAllowance",
-    defaultMessage: "More than the period allowance left.",
-  },
-  roles_allowance: {
-    id: "cockpit.community.protocolFunding.amount.overSafeAllowance",
-    defaultMessage: "More than the Safe allowance left.",
-  },
-  balance: {
-    id: "cockpit.community.protocolFunding.amount.overBalance",
-    defaultMessage: "More than the protocol Safe holds.",
-  },
-};
 
 export function ProtocolFundingOperationsCard({
   operations,
@@ -81,20 +61,40 @@ export function ProtocolFundingOperationsCard({
   const source = operations.sourceFunding.snapshot;
   const target = operations.targetFunding.snapshot;
   // The Arbitrum queue takes any amount; these limits are enforced only on Celo,
-  // after the CCIP fee is spent. The review and its confirm both refuse on this.
+  // after the CCIP fee is spent. The review and its confirm both refuse on this,
+  // and on limits nobody could read. The send itself reads them once more.
+  const limitsRead = selectTransferLimitsRead(operations.sourceFunding);
   const exceededLimit = amountValue
     ? selectExceededTransferLimit(operations.sourceFunding, amountValue)
     : null;
+  // A proposal, or a send past its receipt limit, holds queuing until the read shows it ran.
+  const proposalWaiting =
+    operations.lastAct?.phase === "proposed" || operations.lastAct?.phase === "still-confirming";
+  // The module refuses a garden with no active settlement account, and a garden can be
+  // listed without one, so the review waits for a read that shows the recipient can take it.
+  const recipientInactive = Boolean(
+    target?.fundingUnavailableReasons.some(
+      (reason) => reason === "missing_account" || reason === "inactive_account"
+    )
+  );
+  const recipientReady = Boolean(target) && !operations.targetFunding.isError && !recipientInactive;
   const amountError =
     amount.length > 0 && amountValue === null
       ? formatMessage({
-          id: "cockpit.community.protocolFunding.amount.invalid",
+          id: "hub.community.protocolFunding.amount.invalid",
           defaultMessage: "Enter an amount greater than zero.",
         })
       : exceededLimit
         ? formatMessage(OVER_LIMIT_MESSAGES[exceededLimit])
         : undefined;
-  const canReview = Boolean(targetGarden && amountValue && !exceededLimit);
+  const canReview = Boolean(
+    targetGarden &&
+      amountValue &&
+      !exceededLimit &&
+      limitsRead &&
+      recipientReady &&
+      !proposalWaiting
+  );
 
   const gardenName = (garden: Address | null | undefined) =>
     garden
@@ -103,9 +103,10 @@ export function ProtocolFundingOperationsCard({
 
   const submit = async (act: () => Promise<string>) => {
     const identifier = await act();
+    // The status line says whether it went out or is waiting on a Safe.
     toastService.success({
       title: formatMessage({
-        id: "cockpit.community.protocolFunding.submitted",
+        id: "hub.community.protocolFunding.submitted",
         defaultMessage: "Transaction submitted",
       }),
       message: `${identifier.slice(0, 10)}…`,
@@ -122,15 +123,15 @@ export function ProtocolFundingOperationsCard({
         <div>
           <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.community.protocolFunding.title",
+              id: "hub.community.protocolFunding.title",
               defaultMessage: "Fund a Garden",
             })}
           </AdminCardTitle>
-          <p className="mt-1 max-w-2xl body-xs text-text-soft">
+          <p className="mt-1 max-w-2xl type-body text-text-soft">
             {formatMessage({
-              id: "cockpit.community.protocolFunding.description",
+              id: "hub.community.protocolFunding.description",
               defaultMessage:
-                "Queue a discretionary protocol Safe top-up to a registered garden Safe. This does not fulfill or alter a commitment.",
+                "Queue a discretionary protocol Safe top-up to a registered garden Safe. This does not fulfill or alter a promise.",
             })}
           </p>
         </div>
@@ -139,8 +140,16 @@ export function ProtocolFundingOperationsCard({
       {operations.sourceFunding.isError ? (
         <Alert variant="error">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.readError",
+            id: "hub.community.protocolFunding.readError",
             defaultMessage: "Couldn't read protocol funding",
+          })}
+        </Alert>
+      ) : !limitsRead && !operations.sourceFunding.isLoading ? (
+        <Alert variant="warning">
+          {formatMessage({
+            id: "hub.community.protocolFunding.limitsUnread",
+            defaultMessage:
+              "The protocol Safe's balance and limits haven't been read, so nothing can be queued or dispatched. Refresh to try again.",
           })}
         </Alert>
       ) : null}
@@ -150,17 +159,25 @@ export function ProtocolFundingOperationsCard({
           <div className="grid gap-3 @[560px]:grid-cols-2">
             <AdminSelect
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.garden",
+                id: "hub.community.protocolFunding.garden",
                 defaultMessage: "Receiving garden",
               })}
               value={targetGarden ?? ""}
               onChange={(event) =>
                 onTargetGardenChange(event.target.value ? (event.target.value as Address) : null)
               }
+              error={
+                recipientInactive
+                  ? formatMessage({
+                      id: "hub.garden.pool.settlement.blocker.beneficiary-account-inactive",
+                      defaultMessage: "The receiving garden has no active settlement account.",
+                    })
+                  : undefined
+              }
             >
               <option value="">
                 {formatMessage({
-                  id: "cockpit.community.protocolFunding.garden.placeholder",
+                  id: "hub.community.protocolFunding.garden.placeholder",
                   defaultMessage: "Select a garden",
                 })}
               </option>
@@ -172,7 +189,7 @@ export function ProtocolFundingOperationsCard({
             </AdminSelect>
             <AdminTextField
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.amount",
+                id: "hub.community.protocolFunding.amount",
                 defaultMessage: "Amount (G$)",
               })}
               value={amount}
@@ -182,82 +199,83 @@ export function ProtocolFundingOperationsCard({
               error={amountError}
             />
           </div>
-          <dl className="divide-y divide-stroke-soft body-sm">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.source",
-                  defaultMessage: "Protocol Safe",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {source?.safe ? shortAddress(source.safe) : "—"} ·{" "}
-                {formatGdollar(source?.balance?.value ?? null, locale)}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.recipient",
-                  defaultMessage: "Receiving Safe",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {target?.safe ? shortAddress(target.safe) : "—"}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.allowance",
-                  defaultMessage: "Safe allowance remaining",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {formatGdollar(source?.limits.rolesAllowanceRemaining ?? null, locale)}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.periodAllowance",
-                  defaultMessage: "Period allowance remaining",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {formatGdollar(source?.limits.periodAllowanceRemaining ?? null, locale)}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.cap",
-                  defaultMessage: "Per-transfer cap",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {formatGdollar(source?.limits.maxTransferAmount ?? null, locale)}
-              </dd>
-            </div>
-          </dl>
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage({
+                id: "hub.community.protocolFunding.source",
+                defaultMessage: "Protocol Safe",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {source?.safe ? shortAddress(source.safe) : "—"} ·{" "}
+                  {formatGdollar(source?.balance?.value ?? null, locale)}
+                </span>
+              }
+            />
+            <FactRow
+              label={formatMessage({
+                id: "hub.community.protocolFunding.recipient",
+                defaultMessage: "Receiving Safe",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {target?.safe ? shortAddress(target.safe) : "—"}
+                </span>
+              }
+            />
+            <FactRow
+              label={formatMessage({
+                id: "hub.community.protocolFunding.allowance",
+                defaultMessage: "Safe allowance remaining",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {formatGdollar(source?.limits.rolesAllowanceRemaining ?? null, locale)}
+                </span>
+              }
+            />
+            <FactRow
+              label={formatMessage({
+                id: "hub.community.protocolFunding.periodAllowance",
+                defaultMessage: "Period allowance remaining",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {formatGdollar(source?.limits.periodAllowanceRemaining ?? null, locale)}
+                </span>
+              }
+            />
+            <FactRow
+              label={formatMessage({
+                id: "hub.community.protocolFunding.cap",
+                defaultMessage: "Per-transfer cap",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {formatGdollar(source?.limits.maxTransferAmount ?? null, locale)}
+                </span>
+              }
+            />
+          </FactList>
           <div className="flex justify-end [&>button]:w-full">
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
+              emphasis="primary"
+              size="sm"
               disabled={!canReview || operations.isActing}
               onClick={() => setConfirmQueue(true)}
             >
               {formatMessage({
-                id: "cockpit.community.protocolFunding.review",
+                id: "hub.community.protocolFunding.review",
                 defaultMessage: "Review Seed or Top-Up…",
               })}
-            </AdminButton>
+            </Button>
           </div>
         </div>
       ) : (
-        <p className="body-xs text-text-soft" data-testid="protocol-funding-unavailable">
+        <p className="type-meta text-text-soft" data-testid="protocol-funding-unavailable">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.unavailable",
+            id: "hub.community.protocolFunding.unavailable",
             defaultMessage:
               "Only a protocol steward or the settlement module owner can queue garden funding.",
           })}
@@ -268,8 +286,8 @@ export function ProtocolFundingOperationsCard({
         <p
           className={
             operations.lastAct.phase === "failed"
-              ? "body-xs text-error-dark"
-              : "body-xs text-text-soft"
+              ? "type-meta text-error-dark"
+              : "type-meta text-text-soft"
           }
           role="status"
           data-testid="protocol-funding-status"
@@ -277,19 +295,27 @@ export function ProtocolFundingOperationsCard({
         >
           {operations.lastAct.phase === "signing"
             ? formatMessage({
-                id: "cockpit.community.protocolFunding.status.signing",
+                id: "hub.community.protocolFunding.status.signing",
                 defaultMessage: "Waiting for wallet approval…",
               })
             : operations.lastAct.phase === "failed"
               ? formatMessage({
-                  id: "cockpit.community.protocolFunding.status.failed",
+                  id: "hub.community.protocolFunding.status.failed",
                   defaultMessage:
                     "The transaction failed or was rejected. Nothing changed on chain.",
                 })
-              : formatMessage({
-                  id: "cockpit.community.protocolFunding.status.submitted",
-                  defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
-                })}
+              : operations.lastAct.phase === "still-confirming"
+                ? formatMessage(SEND_STAGE_WORDS["still-confirming"].detail!)
+                : operations.lastAct.phase === "proposed"
+                  ? formatMessage({
+                      id: "hub.community.protocolFunding.status.proposed",
+                      defaultMessage:
+                        "Sent to your Safe. Queuing and dispatching stay closed until the chain shows it ran. If your Safe rejected it, reload this page.",
+                    })
+                  : formatMessage({
+                      id: "hub.community.protocolFunding.status.submitted",
+                      defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
+                    })}
         </p>
       ) : null}
 
@@ -299,12 +325,12 @@ export function ProtocolFundingOperationsCard({
         tone="community"
         variant="warning"
         title={formatMessage({
-          id: "cockpit.community.protocolFunding.confirm.title",
+          id: "hub.community.protocolFunding.confirm.title",
           defaultMessage: "Queue Protocol Funding?",
         })}
         description={formatMessage(
           {
-            id: "cockpit.community.protocolFunding.confirm.body",
+            id: "hub.community.protocolFunding.confirm.body",
             defaultMessage:
               "Queue {amount} from the protocol Safe to {garden}. The module derives the registered recipient Safe and canonical G$.",
           },
@@ -314,20 +340,34 @@ export function ProtocolFundingOperationsCard({
           }
         )}
         confirmLabel={formatMessage({
-          id: "cockpit.community.protocolFunding.confirm.action",
+          id: "hub.community.protocolFunding.confirm.action",
           defaultMessage: "Queue Seed or Top-Up",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
         confirmDisabled={!canReview || !operations.canQueueFunding}
         isLoading={operations.isActing}
         onConfirm={async () => {
-          if (!targetGarden || !amountValue || exceededLimit) return;
+          if (!targetGarden || !amountValue || !canReview) return;
           await submit(() => operations.queueFunding(targetGarden, amountValue));
           setConfirmQueue(false);
         }}
+        // One that may still land is never confirmed again; a failure keeps the review open.
+        onError={(error) => {
+          if (mayStillLand(error)) setConfirmQueue(false);
+        }}
       >
-        {/* A refresh can lower a limit while the review is open. */}
-        {exceededLimit ? <Alert variant="error">{amountError}</Alert> : null}
+        {/* A refresh can lower a limit, or lose them, while the review is open. */}
+        {exceededLimit ? (
+          <Alert variant="error">{amountError}</Alert>
+        ) : !limitsRead ? (
+          <Alert variant="error">
+            {formatMessage({
+              id: "hub.community.protocolFunding.limitsUnread",
+              defaultMessage:
+                "The protocol Safe's balance and limits haven't been read, so nothing can be queued or dispatched. Refresh to try again.",
+            })}
+          </Alert>
+        ) : null}
       </AdminConfirmDialog>
 
       <TransferReviewDialog
@@ -358,16 +398,16 @@ export function ProtocolFundingOperationsCard({
         tone="community"
         variant="danger"
         title={formatMessage({
-          id: "cockpit.community.protocolFunding.cancel.title",
+          id: "hub.community.protocolFunding.cancel.title",
           defaultMessage: "Cancel This Funding Transfer?",
         })}
         description={formatMessage({
-          id: "cockpit.community.protocolFunding.cancel.body",
+          id: "hub.community.protocolFunding.cancel.body",
           defaultMessage:
             "Cancellation closes this queued or failed transfer. No G$ is delivered to the garden.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.community.protocolFunding.cancel.action",
+          id: "hub.community.protocolFunding.cancel.action",
           defaultMessage: "Cancel Transfer",
         })}
         isLoading={operations.isActing}

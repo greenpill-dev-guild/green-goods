@@ -1,9 +1,30 @@
+import rewardSafes from "@green-goods/contracts/deployments/42161-reward-safes.json";
+import { getAddress } from "viem";
 import { describe, expect, it } from "vitest";
+import { GreenWillABI } from "../../utils/blockchain/contract-abis/green-will";
 import {
   GardenTokenABI,
+  getGardenRewardSafe,
   getNetworkContracts,
-  GreenWillABI,
 } from "../../utils/blockchain/contracts";
+
+describe("utils/blockchain/contracts garden reward Safes", () => {
+  it("reads every entry the Arbitrum record names, so none is dropped without anyone seeing", () => {
+    const entries = rewardSafes.safes as {
+      garden: `0x${string}`;
+      safe: string;
+      gate: string;
+      signerHat: string;
+    }[];
+    for (const entry of entries) {
+      expect(getGardenRewardSafe(42161, entry.garden)).toEqual({
+        safe: getAddress(entry.safe),
+        gate: getAddress(entry.gate),
+        signerHat: BigInt(entry.signerHat),
+      });
+    }
+  });
+});
 
 describe("utils/blockchain/contracts GreenWill surface", () => {
   it("includes the GreenWill address in the network contracts map", () => {

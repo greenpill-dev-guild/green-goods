@@ -1,27 +1,28 @@
 import { extractErrorMessage } from "./extract-message";
+import { HATS_COOKIE_JAR_ERRORS } from "./hats-cookie-jar-errors";
+import { parseUnconfirmedSend } from "./tx-error-classifier";
 import { offlineFailure, parseUnsentFailure } from "./unsent-failures";
+import { VOUCHER_ENTITLEMENT_ERRORS } from "./voucher-entitlement-errors";
 
-interface ErrorInfo {
+export interface ErrorInfo {
   name: string;
   message?: string;
   action?: string;
+  titleKey?: string;
   messageKey?: string;
   actionKey?: string;
   recoverable: boolean;
   suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
 }
 
-const LOCALIZED_ERROR_FALLBACKS = {
-  SelfAttestation: {
-    message: "You cannot review your own work submission",
-    action: "Ask another garden steward to approve or reject this work",
-  },
-} as const;
-
 const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
-  // ============================================================================
-  // GardenAccount.sol errors
-  // ============================================================================
+  // Garden role errors (HatsModule and GardenAccount).
+  "0x60085010": {
+    name: "OwnerCannotLeave",
+    message: "Hand over your owner role before leaving this garden.",
+    messageKey: "app.garden.leave.owner",
+    recoverable: false,
+  },
   "0xd8cae624": {
     name: "NotGardenOwner",
     message: "Only the garden owner can perform this action",
@@ -97,9 +98,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     suggestedAction: "contact-support",
   },
 
-  // ============================================================================
   // GardenToken.sol errors
-  // ============================================================================
   "0x955c501b": {
     name: "UnauthorizedMinter",
     message: "You are not authorized to mint garden tokens",
@@ -159,9 +158,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
   },
 
-  // ============================================================================
   // WorkResolver.sol errors
-  // ============================================================================
   // Current selector for NotGardenMember()
   "0xfdb31dd5": {
     name: "NotGardenMember",
@@ -245,7 +242,9 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
 
   "0x9bce3284": {
     name: "SelfAttestation",
+    message: "You cannot review your own work submission",
     messageKey: "app.errors.contract.selfAttestation.message",
+    action: "Ask another garden steward to approve or reject this work",
     actionKey: "app.errors.contract.selfAttestation.action",
     recoverable: false,
   },
@@ -327,7 +326,8 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
     suggestedAction: "check-wallet",
   },
-
+  ...VOUCHER_ENTITLEMENT_ERRORS,
+  ...HATS_COOKIE_JAR_ERRORS,
   // ============================================================================
   // Common ERC-721 / OpenZeppelin errors
   // ============================================================================
@@ -384,16 +384,12 @@ export interface ParsedContractError {
 }
 
 function parseKnownError(raw: string, errorInfo: ErrorInfo): ParsedContractError {
-  const fallback =
-    errorInfo.name in LOCALIZED_ERROR_FALLBACKS
-      ? LOCALIZED_ERROR_FALLBACKS[errorInfo.name as keyof typeof LOCALIZED_ERROR_FALLBACKS]
-      : undefined;
-
   return {
     raw,
     name: errorInfo.name,
-    message: errorInfo.message ?? fallback?.message ?? "Transaction failed. Please try again.",
-    action: errorInfo.action ?? fallback?.action,
+    message: errorInfo.message ?? "Transaction failed. Please try again.",
+    action: errorInfo.action,
+    titleKey: errorInfo.titleKey,
     messageKey: errorInfo.messageKey,
     actionKey: errorInfo.actionKey,
     isKnown: true,
@@ -471,10 +467,9 @@ export function parseContractError(error: unknown): ParsedContractError {
   // specific patterns precede generic ones.)
   // ============================================================================
 
-  // 0. The app's own refusals: an earlier version queued, a wallet on another network.
-  const unsent = parseUnsentFailure(error, errorStr);
-  if (unsent) return unsent;
-
+  // 0. The app's own readings: refused before sending, or sent and still confirming (PRD-1551).
+  const known = parseUnsentFailure(error, errorStr) ?? parseUnconfirmedSend(error, errorStr);
+  if (known) return known;
   const lowerStr = errorStr.toLowerCase();
   const hasWalletRequestExpiryCode = /\baa(?:22|32)\b[^\n\r]*(?:expired|not due)/i.test(errorStr);
 
@@ -510,7 +505,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     return {
       raw: signature ?? errorStr,
       name: "UserRejected",
-      message: "Transaction cancelled. Try again when you're ready.",
+      message: "Transaction canceled. Try again when you're ready.",
       isKnown: true,
       recoverable: true,
       suggestedAction: "retry",

@@ -4,7 +4,7 @@ sidebar_label: Product QA
 slug: /builders/quality/product-experience-qa
 audience: developer
 owner: product
-last_verified: 2026-10-10
+last_verified: 2026-11-11
 feature_status: In progress
 source_of_truth:
   - AGENTS.md
@@ -14,7 +14,8 @@ source_of_truth:
   - packages/client/src/config/routes.tsx
   - scripts/data/qa-test-catalog.json
   - scripts/agents/qa-workbook-build.ts
-  - docs/routines/qa-call-report.md
+  - .claude/skills/qa-triage/references/call-mode.md
+  - .claude/skills/qa-triage/references/unattended-report.md
   - .claude/skills/qa-triage/SKILL.md
   - .claude/context/qa.md
   - .claude/skills/debug/SKILL.md
@@ -26,6 +27,9 @@ source_of_truth:
   - .github/workflows/design.yml
   - .github/workflows/client.yml
   - .github/workflows/admin.yml
+  - .github/workflows/supply-chain-guardrails.yml
+  - scripts/data/validation-policy.json
+  - packages/qa/README.md
 keywords: [QA, product QA, QA app, test cases, UI regression, admin, PWA, editorial website, accessibility]
 ---
 
@@ -36,6 +40,13 @@ recover from, and trust this flow? Passing builds prove the code runs; a QA walk
 experience works. Anyone on the team can take one. If you can open the app and describe honestly
 what you saw, you are qualified.
 
+Screenshots on this page use fictional test data.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/qa-app-priority-view.webp" alt="Synthetic QA app data in Priority view, with the P0 run-first band and priority chips visible" loading="lazy" />
+  <figcaption>Priority view groups test cases into P0, P1 and P2 bands.</figcaption>
+</figure>
+
 ## Where QA happens
 
 Walks are recorded in the [QA app](https://qa.greengoods.app): a shared checklist where each tester
@@ -44,10 +55,6 @@ or N/A call and a short note, saved as you go. Blocked means a required path can
 means the case is outside the agreed scope. Each team pass is a **run**: the app records into the
 open run, a tester starts a new run before a re-QA, and closed runs stay readable and comparable.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/qa-app-priority-view.webp" alt="Synthetic QA app data in Priority view, with the P0 run-first band and priority chips visible" loading="lazy" />
-  <figcaption>The Priority view groups the run sheet into P0, P1, and P2 bands. This example uses synthetic data.</figcaption>
-</figure>
 
 The app can follow the catalog by area (**Walk**), by urgency (**Priority**), or as a
 cross-surface flow (**Journey**). [Test Cases](./test-cases) is the public catalog behind it,
@@ -56,7 +63,7 @@ Linear after a session; screenshots and recordings go to the private Drive QA fo
 links are shared privately rather than published here.
 
 :::tip First walk?
-Take [`PUB-001`](./test-cases#public-website-p0), the simplest P0 on the sheet. Open
+Take [`PUB-001`](./test-cases#green-goods-website-p0), the simplest P0 on the sheet. Open
 [greengoods.app](https://greengoods.app) in a desktop browser and visit `/`, `/gardens`, `/fund`,
 `/impact`, `/actions`, and `/cookies`. Every page should show the website header and no app-style
 bottom navigation. Record **Pass** with a one-line note, or **Fail** naming the route that looked
@@ -64,6 +71,44 @@ like the installed app instead. The walk itself needs no wallet or product role;
 verdict still needs your allowlisted wallet signed in to the QA app.
 :::
 
+
+## Coverage and release scope
+
+An active case is a definition available to test, not a deployment record or a passing result.
+Record the catalog revision, build, environment, and any activation prerequisites for the run.
+Use the ordinary surface tabs for regression checks that apply to that release. Use **Rollout
+Readiness** only for an explicitly scoped in-progress build and reviewed deployment. Its `ROLL-`
+cases and **In progress:** journeys stay separate from the shipped release's results.
+
+The coverage review added these checks to the existing catalog:
+
+| Area | Cases and guided flow | Evidence needed beyond automated checks |
+|---|---|---|
+| Service vouchers | `PWA-140` through `PWA-143`, `ADM-205` and `ADM-206`; Service vouchers journey | Agree on terms, book, resolve delivery or cancellation, and reconcile balances and authority across both accounts. |
+| Older passkey accounts | `PWA-144` through `PWA-146`; Passkey continuity journey | Recover the same account across supported origins and real devices, sign an approved test action, and reject mismatched recovery evidence. |
+| Steward access | `ADM-201` through `ADM-204`; Steward access journey | Request, grant, decline, withdraw, retry, and verify confirmed access using separate requester and authorized reviewer identities. |
+| Telegram reporting | `AGT-001` through `AGT-007`; Telegram reporting journey | Consent and pair, correct a media report, sign in the browser, review independently, and exercise expiry, duplicate delivery, revocation, and deletion. |
+| Settlement | `ADM-207` and `ADM-208`, alongside the service relay and treasury journeys | Reject stale ledgers and invalid routes, fees, caps, or authority; distinguish a Safe proposal from execution and verify acknowledgment and replay handling. |
+| Current PWA navigation | Updated `PWA-068` and `PWA-069`, plus `PWA-147` through `PWA-149` | Check Explore filters, garden switching, the home journal, and notifications. Removed ENS controls remain retired as `PWA-062` and `PWA-095`. |
+| QA operations | `QA-001` through `QA-004`; QA recording journey | Verify authenticated recording, two-device convergence, offline recovery, rollover, and catalog/build identity. |
+| Docs editor and browser tools | `DOCS-034`, `DOCS-035`, and `PUB-061` | Check editor authorization, save/reopen/review behavior, protected generated pages, and public-safe WebMCP discovery with ordinary navigation as fallback. |
+| In-progress issuer and Hats work | `ROLL-001` through `ROLL-007`; separate issuer and Hats rollout journeys | Rehearse revised terms, exchange pools, voucher awards, Hats policy and budget controls, and migration against the explicitly selected build. These are not shipped-release attestations. |
+
+WhatsApp and SMS are not covered as shipped reporting channels. Browser-extension behavior also
+needs its own scoped acceptance pass when that integration is delivered. A feature or channel
+does not become supported because another channel's case passes.
+
+CI enforces the catalog, locales, QA recording and reporting suite, and the ID ledger through
+the Guidance integrity job. QA runtime and tooling changes select that suite locally. Agent
+source changes also select the Client passkey browser checks because their reporting driver
+depends on Agent code. Direct Hats adapter tests cover authorization, pair creation, rollback,
+registry integrity, and upgrade preservation; a factory test double does not replace the
+reviewed fork rehearsal or a live release check.
+
+Before calling a release covered, walk its applicable P0 cases and changed journeys, record
+failures and blockers, and explain every N/A. Review P1/P2 scope explicitly. Keep device,
+authenticated-session, and approved transaction evidence with the private run. Passing code
+checks establish automated behavior; release coverage also needs the matching observed run.
 
 ## Walk a journey
 
@@ -74,33 +119,34 @@ However you enter a session, on a call, solo, or paired with an agent, the loop 
 3. Reproduce visible defects from the rendered surface inward.
 4. Fix only bounded, reversible work that fits the agreed session scope.
 5. Revalidate in the same surface and record the remaining risk.
-6. Hand deferred findings to QA triage (`qa-triage`, or the `qa-call-report` routine after a
-   call), which files them in Linear as fix slices.
+6. Hand deferred findings to QA triage (`qa-triage`, with `--call` after a call), which files
+   them in Linear as fix slices.
 
-Journey mode is for two people who need to meet at the same handoffs. Both select the same
-**Journey**; Tester A takes **Protocol & review** and Tester B takes **Garden & member**. **View**
+Journey mode assigns the parts and handoffs for the selected flow. The following example uses
+the **Service relay** journey: Tester A takes **Protocol & review** and Tester B takes
+**Garden & member**. **View**
 picks whose recorded results you read, and **Part** picks which side of the workflow is yours.
 Use two real, allowlisted wallets and keep the same identity from beginning to end: A is the
-protocol steward and an independent steward or evaluator of the test Garden, never on a
-contributor roster; B is a steward and member of that Garden, so B can claim for it and
+protocol steward and an independent steward or evaluator of the test garden, never on a
+contributor roster; B is a steward and member of that garden, so B can claim for it and
 contribute the Work.
 
-| Phase | Tester A — Protocol & review | Tester B — Garden & member | Meet here |
+| Phase | Tester A (Protocol & review) | Tester B (Garden & member) | Meet here |
 |---|---|---|---|
-| Prepare | Record a starting assessment, then open the test Season and one Campaign. | Read the assessment and confirm the open cycle is visible. | Both people see the same Garden and cycle. The assessment adds context; it is not a prerequisite. |
-| Protocol asks | Seed an approval-gated protocol Request, then accept B's Garden claim. | Open the Request and choose to take it up **for this Garden**. | The claim becomes Accepted. The Request stays in the protocol pool and names the Garden as provider. |
+| Prepare | Record a starting assessment, then open the test Season and one Campaign. | Read the assessment and confirm the open cycle is visible. | Both people see the same garden and cycle. The assessment adds context; it is not a prerequisite. |
+| Protocol asks | Seed an approval-gated protocol Request, then accept B's garden claim. | Open the Request and choose to take it up **for this garden**. | The claim becomes Accepted. The Request stays in the protocol pool and names the garden as provider. |
 | Garden delivers | Review B's linked Work and evidence, approve it, then confirm fulfillment as the Request creator. | As accountable lead, submit Work and evidence against the original protocol Request. | Approved Work makes the Request ready, then Fulfilled. A stays outside the contributor roster. |
-| Garden earns | Exercise the protocol-to-Garden earned payout step. | Verify the destination Garden Safe or its readiness state. | If settlement is unavailable, both record Blocked with the visible gate; nobody says value moved. |
-| Garden distributes | Seed a separate commitment in the open Garden Campaign, then review and confirm B's delivery. | Take up the local commitment and submit its Work and evidence. | This is a second record, not a moved or mirrored protocol Request. |
-| Member receives | Exercise the Garden-to-member contributor payout. | Verify the receiving account when the path is enabled. | If settlement is unavailable, record Blocked and keep the completed non-value workflow intact. |
+| Garden earns | Exercise the protocol-to-garden earned payout step. | Verify the destination Garden Safe or its readiness state. | If settlement is unavailable, both record Blocked with the visible gate; nobody says value moved. |
+| Garden distributes | Seed a separate commitment in the open garden Campaign, then review and confirm B's delivery. | Take up the local commitment and submit its Work and evidence. | This is a second record, not a moved or mirrored protocol Request. |
+| Member receives | Exercise the garden-to-member contributor payout. | Verify the receiving account when the path is enabled. | If settlement is unavailable, record Blocked and keep the completed non-value workflow intact. |
 
 <figure className="gg-figure">
   <img src="/img/screenshots/qa-app-journey-view.jpg" alt="Synthetic QA app Journey view showing Prepare and Protocol asks phases, Admin and PWA surfaces, and explicit Act, Verify, and Handoff labels" loading="lazy" />
-  <figcaption>Journey mode keeps the handoff in view: each row names the surface, who acts, and who verifies. This example uses the neutral synthetic identity Tester A.</figcaption>
+  <figcaption>Journey view shows who acts and who verifies each step.</figcaption>
 </figure>
 
 Think of the service relay as **two records, one treasury relay**: the protocol Request stays in
-the protocol pool while the Garden earns for delivering it, and the Garden then creates its own
+the protocol pool while the garden earns for delivering it, and the garden then creates its own
 commitment for the member who did the Work. A **Protocol treasury top-up** is different again:
 discretionary funding with no commitment ID, never a stand-in for earned compensation.
 
@@ -121,7 +167,7 @@ time, recording as they go. The QA app is the shared checklist; this is the chec
   Journey with a Part per person for a shared flow. Where possible, people test work they did not
   build.
 - One wallet identity and one product role per person for the whole Journey, and both people can
-  see the test Garden before the first handoff.
+  see the test garden before the first handoff.
 - The write boundary is agreed: which funding and on-chain flows run end to end with real
   transactions, and which stop at the review step. The catalog's Transaction kind marks the cases
   this touches.
@@ -130,7 +176,7 @@ time, recording as they go. The QA app is the shared checklist; this is the chec
 
 **During the call**
 
-- Record a verdict and a short note per case as you walk. Screenshots and recordings go to the
+- Record a verdict and a short note per case as you walk. For a failed or blocked case, say what you saw, where and on which device. Screenshots and recordings go to the
   private Drive QA folder, never into public artifacts.
 - In Journey mode, wait for the receiving person to observe each handoff before moving on. If
   settlement is Blocked, preserve that result and continue through the remaining non-value steps.
@@ -140,7 +186,7 @@ time, recording as they go. The QA app is the shared checklist; this is the chec
 
 <figure className="gg-figure">
   <img src="/img/screenshots/qa-app-recorded-issues.webp" alt="Synthetic QA app data filtered to Issues: PUB-013 recorded as Fail with a reproduction note, and PUB-014 recorded as Blocked with the reason it could not proceed" loading="lazy" />
-  <figcaption>Notes earn their keep on a Fail or a Blocked: say what you saw, where, and on which device. The Issues filter collects them for the end-of-call walk. This example uses synthetic data.</figcaption>
+  <figcaption>Use the Issues filter to collect failed and blocked cases for follow-up.</figcaption>
 </figure>
 
 **After the call**
@@ -148,15 +194,20 @@ time, recording as they go. The QA app is the shared checklist; this is the chec
 - Five minutes on four questions before everyone drops: what did we cover and consciously skip,
   what works well enough to leave alone, which fails worry us most, and would we welcome a new
   garden onto this build tomorrow?
-- Trigger the `qa-call-report` routine, or run `/qa-triage --call` at a desk. It pulls every
-  tester's verdicts from the call's run with `bun run qa pull`, keeps the entries from the call
-  window, joins them with the call's notes by Test ID, and clusters failures into at most eight fix
-  slices, each sized for one branch and one PR. `bun run qa report --slug <session>` derives the
-  results-by-priority and results-by-kind blocks, so those numbers are never hand-counted.
-- The routine enriches without blocking (the build under test, PostHog exceptions per surface,
-  Sentry issues when that connector is wired), writes one `QA session YYYY-MM-DD` parent issue plus
-  slice sub-issues to Linear, deduplicated against open QA issues and swept of tester attribution,
-  wallets, and replay links, and posts a one-message summary to #product on Discord.
+- Run `/qa-triage --call` at a desk. It pulls every tester's verdicts from the call's run with
+  `bun run qa pull`, keeps the entries from the call window, joins them with the call's notes by
+  Test ID, and clusters failures into fix slices, each sized for one branch and one PR. The first
+  eight by priority go to the fix queue and the rest wait in the backlog.
+  `bun run qa report --slug <session>` derives the results-by-priority and results-by-kind blocks,
+  so those numbers are never hand-counted.
+- It enriches without blocking (the build under test, PostHog exceptions per surface, Sentry
+  issues when that connector is wired) and, once you confirm, writes one `QA session YYYY-MM-DD`
+  parent issue plus slice sub-issues to Linear, deduplicated against open QA issues and swept of
+  tester attribution, wallets, and replay links.
+- An agent closing an automated QA pass, with nobody there to confirm, runs the same command with
+  `--unattended`. It writes the same record under stricter rules: it never guesses a Test ID or a
+  duplicate, and the slices from an automated pass wait in the backlog until a person promotes
+  them.
 - Fix sessions work slice by slice, and a slice is done when its test cases pass again. Re-QA
   later in the week is a scoped walk of the affected cases in a new run, so the earlier pass stays
   intact and the compare shows what was fixed, what still fails, and what regressed. Within a run,
@@ -175,37 +226,37 @@ many testers, on which surfaces, and the headline.>
 Build under test: client `<sha>` · admin `<sha>`
 
 ## Results by priority
-- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
-- P1: <walked>/<total> — …
-- P2: <walked>/<total> — …
+- P0: <walked>/<total> (<pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only)
+- P1: <walked>/<total> (…)
+- P2: <walked>/<total> (…)
 
 ## Results by kind
-- Journey: <walked>/<total> — …
-- Transaction: <walked>/<total> — …
+- Journey: <walked>/<total> (…)
+- Transaction: <walked>/<total> (…)
 - <one line per remaining catalog kind, in catalog order>
 
 ## Decisions from the call
-- <one ruling per line — drop the section when the call made none>
+- <one ruling per line (drop the section when the call made none)>
 
 ## Slices
 - <one line per slice: what it covers and its Test IDs>
-- already tracked: <existing issue> — <one line>
+- already tracked: <existing issue> · <one line>
 
 ## Not sliced
-- <note-only follow-ups and anything past the slice cap, one line each — drop the section when empty>
+- <note-only follow-ups and anything past the slice cap, one line each (drop the section when empty)>
 
 **Done when**
-- every slice — and every related already-tracked issue — is Done or explicitly deferred, and
+- every slice, and every related already-tracked issue, is Done or explicitly deferred, and
   the re-QA walk has re-recorded its Test IDs
 
-Session <slug>. [Meeting notes](<drive-url>) — or "App-only run — no meeting notes found."
+Session <slug>. [Meeting notes](<drive-url>), or "App-only run: no meeting notes found."
 ```
 
 </details>
 
 ## What every journey must prove
 
-- The entrypoint, role, and selected Garden are clear; a wallet on the wrong network is told so
+- The entrypoint, role, and selected garden are clear; a wallet on the wrong network is told so
   and pointed to the fix.
 - Loading, empty, disabled, error, offline, and recovery states are usable.
 - A visible interaction changes state and provides legible feedback.
@@ -220,6 +271,7 @@ The generated [test-case catalog](./test-cases) owns public scenario definitions
 `.claude/context/qa.md` owns recording, attribution, privacy, result rollup, and artifact
 locations; the QA skills own session and triage mechanics.
 
+- [Automated QA](./automated-qa): qualification gates, safe dry-run boundaries, and recurring run coordination.
 - [Test Cases](./test-cases): every scenario, grouped by priority within each surface.
 - [Testing Guide](/builders/testing): the automated runners and the boundary between automated
   checks and a human QA walk.

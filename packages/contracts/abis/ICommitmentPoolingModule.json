@@ -4919,6 +4919,17 @@
   },
   {
     "type": "error",
+    "name": "SelfDisputeResolution",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "SelfExchange",
     "inputs": [
       {
@@ -5095,6 +5106,17 @@
     "inputs": [
       {
         "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownDisputeRaiser",
+    "inputs": [
+      {
+        "name": "commitmentId",
         "type": "uint256",
         "internalType": "uint256"
       }

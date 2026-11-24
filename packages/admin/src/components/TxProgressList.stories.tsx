@@ -22,8 +22,8 @@ function row(id: string, title: string, prompt: number, why?: string): TxProgres
 }
 
 const charter = row("charter", "Write the agreement", 1, "Records what the pool is for.");
-const cap = row("cap", "Set the commitment limit", 1, "Caps how many offers one person holds.");
-const open = row("open", "Open the pool", 2, "Lets neighbours offer and ask.");
+const cap = row("cap", "Set the promise limit", 1, "Caps how many offers one person holds.");
+const open = row("open", "Open the pool", 2, "Lets neighbors offer and ask.");
 
 const meta: Meta<typeof TxProgressList> = {
   title: "Admin/Primitives/TxProgressList",
@@ -77,7 +77,7 @@ export const Running: Story = {
       {
         ...cap,
         why: undefined,
-        title: "Commitment limit set",
+        title: "Promise limit set",
         status: "landed",
         marker: "complete",
         label: "Done",
@@ -130,7 +130,7 @@ export const GroupedPrompt: Story = {
 /** How a run can end, row by row: done, waiting to send later, or stopped. */
 export const Ended: Story = {
   args: {
-    label: "Each commitment and where it stands",
+    label: "Each promise and where it stands",
     rows: [
       {
         ...row("a", "Market rides", 1),
@@ -161,7 +161,7 @@ export const Ended: Story = {
 /** A steward's own long title stops at two lines; hovering shows all of it. */
 export const LongTitle: Story = {
   args: {
-    label: "Each commitment and where it stands",
+    label: "Each promise and where it stands",
     rows: [
       {
         ...row(

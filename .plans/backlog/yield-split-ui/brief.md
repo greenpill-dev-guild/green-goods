@@ -7,7 +7,7 @@
 
 ## Problem
 
-The protocol already supports `getSplitConfig()`, `setSplitRatio()`, `splitYield()`, pending yield reads, escrow tracking, and `setGardenTreasury()`, but the UI still hardcodes default split ratios and hides safe operator controls. Admin managers already have a distribution action in `PositionCard`, gated by `canOpenDistribution` and executed through `harvestDistribution.mutate`. Remaining split-ratio work is to update admin `GardenYieldCard` and client `ConvictionSheet` to use live configuration instead of `DEFAULT_SPLIT_CONFIG`. Pending/escrow reads need a separate consumer audit. Preset editing needs a governance gate because the current contract exposes treasury destination control more broadly than product intent allows.
+The protocol already supports `getSplitConfig()`, `setSplitRatio()`, `splitYield()`, pending yield reads, escrow tracking, and `setGardenTreasury()`, but the UI still hardcodes default split ratios and hides safe operator controls. Admin managers already have a distribution action in `PositionCard`, gated by `canOpenDistribution` and executed through `harvestDistribution.mutate`. Remaining split-ratio work is to show the live configuration on the cockpit's garden vault page (`GardenVaultView`; `GardenYieldCard` was removed unused in #1252 on 2026-10-24) and to update client `ConvictionSheet` to use it instead of `DEFAULT_SPLIT_CONFIG`. Pending/escrow reads need a separate consumer audit. Preset editing needs a governance gate because the current contract exposes treasury destination control more broadly than product intent allows.
 
 ## Desired Outcome
 

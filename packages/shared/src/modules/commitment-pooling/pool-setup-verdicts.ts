@@ -153,19 +153,24 @@ export async function judgeStep(
 /**
  * Which wallet prompt each write rides in, for the writes a run will send, in
  * order. One at a time, every write is its own prompt. When the wallet can run
- * several calls as one transaction, the writes before a cycle opening share one
- * prompt: the opening needs the cycle id, and only the seeding receipt names
- * it. A lone write is never a batch. Returns 1-based prompt numbers, so the
- * last entry is how many times the wallet will ask.
+ * several calls as one transaction, the writes share one prompt, up to an
+ * opening whose cycle id isn't known yet: only the seeding receipt names it.
+ * A lone write is never a batch. Returns 1-based prompt numbers, so the last
+ * entry is how many times the wallet will ask.
  */
-export function walletPrompts(actions: readonly PoolSetupAction[], batching: boolean): number[] {
+export function walletPrompts(
+  actions: readonly PoolSetupAction[],
+  batching: boolean,
+  cycleKnown = false
+): number[] {
+  const sharesPrompt = (action: PoolSetupAction) => action !== "openCycle" || cycleKnown;
   const prompts: number[] = [];
   let prompt = 0;
   let groupOpen = false;
   for (let index = 0; index < actions.length; index += 1) {
     const action = actions[index]!;
     const next = actions[index + 1];
-    const joinsGroup = batching && action !== "openCycle";
+    const joinsGroup = batching && sharesPrompt(action);
     if (joinsGroup && groupOpen) {
       prompts.push(prompt);
       continue;
@@ -173,7 +178,7 @@ export function walletPrompts(actions: readonly PoolSetupAction[], batching: boo
     prompt += 1;
     prompts.push(prompt);
     // A group starts only when the write after this one can share the prompt.
-    groupOpen = joinsGroup && next !== undefined && next !== "openCycle";
+    groupOpen = joinsGroup && next !== undefined && sharesPrompt(next);
   }
   return prompts;
 }

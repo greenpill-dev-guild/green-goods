@@ -40,7 +40,7 @@ interface UseConvictionProposalsForPoolResult {
 /**
  * Compose registered hypercerts + per-hypercert conviction weight + member
  * voting power + hypercert metadata into the percent-based ConvictionProposal[]
- * shape that ConvictionMeter / ProposalCardConviction consume.
+ * shape that ConvictionMeter and the Governance panel consume.
  *
  * Audit finding #1 from the 2026-06 conviction audit.
  *

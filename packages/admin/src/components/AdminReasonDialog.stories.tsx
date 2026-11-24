@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { AdminReasonDialog } from "./AdminReasonDialog";
 
 const meta: Meta<typeof AdminReasonDialog> = {
@@ -18,7 +18,7 @@ const meta: Meta<typeof AdminReasonDialog> = {
   args: {
     isOpen: true,
     onClose: () => undefined,
-    onConfirm: async () => undefined,
+    onConfirm: fn(async () => undefined),
     tone: "garden",
     title: "Pause This Pool",
     description:
@@ -45,18 +45,18 @@ export const Default: Story = {
 export const Danger: Story = {
   args: {
     variant: "danger",
-    title: "Cancel This Commitment",
+    title: "Cancel This Promise",
     description:
-      "Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.",
-    confirmLabel: "Cancel Commitment",
-    cancelLabel: "Keep Commitment",
-    suggestions: ["Withdrawn by agreement", "No longer needed", "Duplicate commitment"],
+      "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
+    confirmLabel: "Cancel Promise",
+    cancelLabel: "Keep It Live",
+    suggestions: ["Withdrawn by agreement", "No longer needed", "Duplicate promise"],
   },
 };
 
 export const BlockedOffline: Story = {
   args: {
-    blockedReason: "Needs a connection. Pool changes are sent straight to the chain.",
+    blockedReason: "Needs a connection. Pool changes are sent right away, not queued.",
   },
 };
 
@@ -67,6 +67,29 @@ export const StartsFromTypedText: Story = {
     const dialog = within(document.body);
     await expect(await dialog.findByRole("textbox")).toHaveValue("Photos show a different site");
     await expect(await dialog.findByRole("button", { name: "Pause Pool" })).toBeEnabled();
+  },
+};
+
+/** A second way to finish with the same reason, such as keeping a rejection for a batch. */
+export const WithAlternative: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    title: "Reject Work",
+    confirmLabel: "Reject Work",
+    cancelLabel: "Cancel",
+    variant: "danger",
+    suggestions: ["Details are missing"],
+    alternative: { label: "Add to Batch", onConfirm: fn(async () => undefined) },
+  },
+  play: async ({ args }) => {
+    const dialog = within(document.body);
+    const alternative = await dialog.findByRole("button", { name: "Add to Batch" });
+    await expect(alternative).toBeDisabled();
+    await userEvent.click(await dialog.findByRole("button", { name: "Details are missing" }));
+    await expect(alternative).toBeEnabled();
+    await userEvent.click(alternative);
+    await expect(args.alternative?.onConfirm).toHaveBeenCalledWith("Details are missing");
+    await expect(args.onConfirm).not.toHaveBeenCalled();
   },
 };
 

@@ -10,20 +10,29 @@ import { formatEnsAddressName } from "@/components/EnsAddressText";
 /** Threshold percentage below which segments are grouped into "Others" */
 const OTHERS_THRESHOLD = 5;
 
-/** Color palette for distribution chart segments */
+/**
+ * Color palette for distribution chart segments. Each entry reads a role's RGB
+ * triple, which resolves on the segment the way the Hub's utilities do: the
+ * build ships a Tailwind `--color-*` alias only when a startup utility uses it,
+ * so a segment that read one drew black. Feature purple stands in for success,
+ * whose green is the brand's own.
+ */
 const CHART_COLORS = [
-  "var(--color-primary-base)",
-  "var(--color-success-base)",
-  "var(--color-warning-base)",
-  "var(--color-information-base)",
-  "var(--color-primary-dark)",
-  "var(--color-success-dark)",
-  "var(--color-warning-dark)",
-  "var(--color-information-dark)",
+  "rgb(var(--primary-base))",
+  "rgb(var(--feature-base))",
+  "rgb(var(--warning-base))",
+  "rgb(var(--information-base))",
+  "rgb(var(--primary-dark))",
+  "rgb(var(--feature-dark))",
+  "rgb(var(--warning-dark))",
+  "rgb(var(--information-dark))",
 ];
 
 /** Color for the "Others" grouped segment */
-const OTHERS_COLOR = "var(--color-bg-soft)";
+const OTHERS_COLOR = "rgb(var(--bg-soft-200))";
+
+/** The card the chart sits on, so the gap between segments reads as the card in both themes */
+const SEGMENT_GAP_COLOR = "rgb(var(--bg-white-0))";
 
 interface ChartDataItem {
   name?: string;
@@ -108,6 +117,7 @@ export function DistributionChart({
             cy="50%"
             innerRadius={size * 0.3}
             outerRadius={size * 0.45}
+            stroke={SEGMENT_GAP_COLOR}
             dataKey="value"
             label={({ payload }) => {
               const percentage = (payload as ChartDataItem | undefined)?.percentage;
@@ -130,10 +140,10 @@ export function DistributionChart({
               const data = payload[0].payload as ChartDataItem;
               return (
                 <div className="rounded-lg border border-stroke-soft bg-bg-white p-2 shadow-[var(--m3-elevation-2)]">
-                  <p className="body-sm font-medium text-text-strong">
+                  <p className="type-body font-medium text-text-strong">
                     <DistributionTooltipTitle data={data} />
                   </p>
-                  <p className="body-xs text-text-sub">
+                  <p className="type-meta text-text-sub">
                     {data.value.toLocaleString()}{" "}
                     {formatMessage({ id: "app.hypercerts.distribution.table.units" })} (
                     {data.percentage.toFixed(2)}%)
@@ -144,7 +154,7 @@ export function DistributionChart({
           />
         </PieChart>
       </ResponsiveContainer>
-      <p className="mt-2 text-center body-xs text-text-sub">
+      <p className="mt-2 text-center type-meta text-text-sub">
         {formatMessage(
           { id: "app.hypercerts.distribution.chart.recipients" },
           { count: allowlist.length }

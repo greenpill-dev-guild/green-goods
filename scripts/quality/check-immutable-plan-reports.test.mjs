@@ -63,6 +63,23 @@ test("allows only byte-identical dated report moves into the matching archive hu
   ]);
 });
 
+test("allows only byte-identical dated report moves with their hub between live stages", () => {
+  const entries = parseNameStatus(
+    [
+      "R100\t.plans/backlog/example/reports/audit-2026-08-09.md\t.plans/active/example/reports/audit-2026-08-09.md",
+      "R100\t.plans/ideas/example/reports/nested/note-2026-08-06.md\t.plans/backlog/example/reports/nested/note-2026-08-06.md",
+      "R99\t.plans/backlog/example/reports/review-2026-08-10.md\t.plans/active/example/reports/review-2026-08-10.md",
+      "R100\t.plans/backlog/example/reports/input-2026-08-08.md\t.plans/active/other/reports/input-2026-08-08.md",
+      "R100\t.plans/backlog/example/reports/source-2026-08-07.md\t.plans/active/example/reports/renamed-2026-08-07.md",
+    ].join("\n"),
+  );
+  assert.deepEqual(immutableReportViolations(entries), [
+    "R: .plans/backlog/example/reports/review-2026-08-10.md",
+    "R: .plans/backlog/example/reports/input-2026-08-08.md",
+    "R: .plans/backlog/example/reports/source-2026-08-07.md",
+  ]);
+});
+
 test("recognizes a NUL-delimited R100 canonical archive move", () => {
   const entries = parseNameStatus(
     "R100\0.plans/active/example/reports/review-2026-08-10.md\0.plans/archive/example/reports/review-2026-08-10.md\0",

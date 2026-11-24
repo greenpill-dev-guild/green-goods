@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>G0 WebMCP test page</title>
+<style>body { font: 14px system-ui, sans-serif; margin: 2rem; color: #2b2a26; } pre { background: #f4f1ea; padding: 1rem; overflow: auto; }</style>
+</head>
+<body>
+<h1>G0 WebMCP test page</h1>
+<p>This page registers one tool shaped like the Admin Hub's <code>green_goods_get_garden_snapshot</code>, with synthetic data. The Grove G0 extension's content scripts try to list and run it.</p>
+<pre id="page-result">registering…</pre>
+<pre id="isolated-result">(isolated-world content script has not reported)</pre>
+<pre id="main-result">(main-world content script has not reported)</pre>
+<script>
+(async () => {
+  const out = { api: null, registered: false, registerMethod: null, error: null, calls: 0 };
+  const snapshot = {
+    garden: { chain: "synthetic", address: "0x0000000000000000000000000000000000000000", name: "Cedar Hollow Community Garden" },
+    actions: [
+      { uid: "0xaction1", id: "action:compost-trial", title: "Compost trial on bed 2", domain: "soil" },
+      { uid: "0xaction2", id: "action:mulch-beds", title: "Mulch the annual beds", domain: "water" },
+    ],
+    work: [
+      { id: "work:2026-03-compost-trial", title: "Compost trial on bed 2, 2026-03", action: "action:compost-trial", created: "2026-03-07", approved: "2026-03-09" },
+    ],
+    provenance: { partial: false, unavailableSources: [], fetchedAt: new Date().toISOString(), synthetic: true },
+  };
+  const tool = {
+    name: "green_goods_get_garden_snapshot",
+    description: "Returns the selected garden's snapshot: identity, Actions and Work with approval state. Synthetic test data for the G0 spike, shaped like the Admin Hub tool.",
+    inputSchema: { type: "object", properties: { includeWork: { type: "boolean", description: "Include approved Work" } }, required: [] },
+    annotations: { readOnlyHint: true },
+    async execute(input, options) {
+      out.calls += 1;
+      const signal = options && options.signal;
+      if (signal && signal.aborted) throw new Error("aborted");
+      const includeWork = !input || input.includeWork !== false;
+      return JSON.stringify({ ...snapshot, work: includeWork ? snapshot.work : [] });
+    },
+  };
+  try {
+    const mc = document.modelContext;
+    if (!mc) throw new Error("document.modelContext is undefined");
+    const proto = Object.getPrototypeOf(mc);
+    out.api = Object.getOwnPropertyNames(proto).filter((n) => n !== "constructor");
+    if (typeof mc.registerTool === "function") { await mc.registerTool(tool); out.registerMethod = "registerTool"; }
+    else if (typeof mc.provideContext === "function") { await mc.provideContext({ tools: [tool] }); out.registerMethod = "provideContext"; }
+    else throw new Error("no registerTool or provideContext on document.modelContext");
+    out.registered = true;
+    if (typeof mc.getTools === "function") {
+      const tools = await mc.getTools();
+      out.ownGetTools = tools.map((t) => ({ name: t.name, annotations: t.annotations ?? null }));
+    }
+  } catch (error) {
+    out.error = String(error && error.message ? error.message : error);
+  }
+  window.__g0page = out;
+  document.getElementById("page-result").textContent = JSON.stringify(out, null, 2);
+  document.documentElement.dataset.g0Page = JSON.stringify(out);
+  const show = () => {
+    const ds = document.documentElement.dataset;
+    if (ds.g0Isolated) document.getElementById("isolated-result").textContent = JSON.stringify(JSON.parse(ds.g0Isolated), null, 2);
+    if (ds.g0Main) document.getElementById("main-result").textContent = JSON.stringify(JSON.parse(ds.g0Main), null, 2);
+  };
+  new MutationObserver(show).observe(document.documentElement, { attributes: true });
+  show();
+})();
+</script>
+</body>
+</html>

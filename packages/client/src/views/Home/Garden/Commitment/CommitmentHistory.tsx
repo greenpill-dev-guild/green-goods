@@ -3,6 +3,7 @@ import {
   type CommitmentEventRecord,
   type CommitmentReadModel,
   useCommitmentActivity,
+  useCommitmentReason,
 } from "@green-goods/shared/commitment-pooling";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -99,6 +100,10 @@ export function CommitmentHistory({
       .filter((event) => event.eventType === "CONFIRMATION_RECORDED")
       .map((event) => event.txHash)
   );
+  // Whoever withdrew it gave a reason, the creator or a steward; it reads under that line.
+  const withdrawn = events.some((event) => event.eventType === "CANCELLED");
+  const cancelReason = useCommitmentReason(withdrawn ? commitment.cancelReasonCID : null);
+  const cancelDetail = withdrawn ? reasonDetail(intl, cancelReason) : null;
   const lines = events.flatMap((event) => {
     if (event.eventType === "FULFILLED" && confirmationTx.has(event.txHash)) return [];
     const id = lineId(event, commitment.direction);
@@ -117,10 +122,10 @@ export function CommitmentHistory({
           { who: you ? "you" : event.actor ? "other" : "someone", actor }
         ),
         when: formatWhen(intl, event.timestamp),
+        detail: event.eventType === "CANCELLED" ? cancelDetail : null,
       },
     ];
   });
-
   if (!localLine && lines.length === 0 && !isError) return null;
 
   return (
@@ -149,6 +154,7 @@ export function CommitmentHistory({
           <HistoryLine
             key={line.key}
             text={line.text}
+            detail={line.detail}
             when={line.when}
             latest={!localLine && index === 0}
           />
@@ -158,13 +164,30 @@ export function CommitmentHistory({
   );
 }
 
+/**
+ * The withdrawal's reason under its line: the words once read, a quiet note while they load or
+ * when they can't be read, and nothing for a record that carries no reason.
+ */
+function reasonDetail(
+  intl: IntlShape,
+  { reason, isLoading, isUnavailable }: ReturnType<typeof useCommitmentReason>
+): string | null {
+  if (reason)
+    return intl.formatMessage({ id: "app.commitment.history.reason" }, { reason: reason.reason });
+  if (isLoading) return intl.formatMessage({ id: "app.commitment.history.reasonLoading" });
+  if (isUnavailable) return intl.formatMessage({ id: "app.commitment.history.reasonUnavailable" });
+  return null;
+}
+
 function HistoryLine({
   text,
+  detail,
   when,
   latest,
   local = false,
 }: {
   text: ReactNode;
+  detail?: string | null;
   when?: string;
   latest: boolean;
   local?: boolean;
@@ -192,6 +215,7 @@ function HistoryLine({
       />
       <div className="min-w-0">
         <p className="text-sm text-text-strong-950">{text}</p>
+        {detail ? <p className="text-sm text-text-sub-600 break-words">{detail}</p> : null}
         {when ? <p className="text-xs text-text-sub-600">{when}</p> : null}
       </div>
     </li>

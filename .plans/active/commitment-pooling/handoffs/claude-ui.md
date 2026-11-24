@@ -6,7 +6,7 @@
 - Owner: Claude
 - Branch signal: feature/commitment-pooling-ui
 - Current state: prototype/spec review may continue; runtime implementation is blocked
-- Linear context: this machine lane aggregates PRD-724 (client UI), PRD-725 (admin UI), and PRD-726 (editorial). PRD-727 is post-QA documentation polish, PRD-728 is post-certification walkthrough video, and PRD-682 is September Community context.
+- Linear context: this machine lane aggregates PRD-724 (client UI), PRD-725 (admin UI), and PRD-726 (editorial). PRD-727 is post-QA documentation polish, MAR-46 (formerly PRD-728) is post-certification walkthrough video, and PRD-682 is September Community context.
 
 Concurrent agents share this repository. Each UI sub-lane stays inside its named package/spec
 paths, preserves unrelated working-tree changes, and does not switch the primary tree's branch.
@@ -170,8 +170,9 @@ both canonical palettes.
 No net-new builder duplicates a shipped primitive. The near-misses were checked individually and are
 genuine gaps:
 
-- `listRow` — `ListPrimitives.tsx` exports `EmptyState`, `ListToolbar` and `SortSelect`, not a row.
-  Admin's row *does* ship (`AdminListItem`) and the gallery already cites it; the client has none.
+- `listRow` — when this was checked, no shared row shipped: `ListPrimitives.tsx` had no row and
+  only the cockpit had one. Both surfaces now share the item row (`ItemRow`, DL-102), so a pooling
+  list row builds on it; `ListPrimitives.tsx` keeps only the state block.
 - `radio(options)` — `Form/ControlPrimitives` ships `TextInput`, `Textarea`, `NativeSelect` and
   `Switch`, no radio group. Admin's `AdminChoiceGroup` ships and is cited separately. Correct split.
 - `disclosure` — no shipped accordion on either surface.
@@ -206,7 +207,7 @@ gallery entry, so the entry is guaranteed to exist and be found.
 ### Naming
 
 Kit builders are lowercase functions (`identityCard`, `progressBlock`, `cycleRail`); shipped
-components are PascalCase React (`StatCard`, `StatusBadge`). The prototype name is the concept, not
+components are PascalCase React (`ItemRow`, `StatusBadge`). The prototype name is the concept, not
 the export — `identityCard` ships as `CommitmentIdentityCard` or similar. Record the mapping in the
 gallery entry when it ships so the two stay traceable.
 

@@ -1,4 +1,8 @@
-import { normalizePasskeyName, PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
+import {
+  normalizePasskeyName,
+  PASSKEY_DISPLAY_NAMES_METHOD,
+  PUBLIC_AGENT_ROUTES,
+} from "@green-goods/shared/public-contracts";
 import type { Context, Hono } from "hono";
 import { loggers } from "../../services/logger";
 import {
@@ -32,10 +36,12 @@ const REFUSED = -32000;
 
 const ERROR_CODES: Record<PasskeyDirectoryErrorCode, number> = {
   invalid_name: INVALID_PARAMS,
+  invalid_display_name_request: INVALID_PARAMS,
   name_taken: REFUSED,
   origin_not_allowed: REFUSED,
   registration_expired: REFUSED,
   verification_failed: REFUSED,
+  account_profile_required: REFUSED,
   // Worth another try: the hosted name list may answer next time.
   unavailable: INTERNAL_ERROR,
 };
@@ -48,7 +54,10 @@ type RpcId = string | number | null;
 type RpcCall = { id: RpcId; method: string; params: unknown[] };
 
 type RpcMethod = {
-  rateLimit: Extract<PublicRouteClass, "passkey_registration" | "passkey_lookup">;
+  rateLimit: Extract<
+    PublicRouteClass,
+    "passkey_registration" | "passkey_lookup" | "passkey_display_names"
+  >;
   /** The name the call concerns, so one name cannot be hammered from one address. */
   name(params: unknown[]): unknown;
   run(directory: PasskeyDirectory, params: unknown[], origin: string): Promise<unknown>;
@@ -60,7 +69,11 @@ const METHODS: Record<string, RpcMethod> = {
     rateLimit: "passkey_registration",
     name: (params) => userNameOf(params[0]),
     run: (directory, params, origin) =>
-      directory.startRegistration({ userName: userNameOf(params[0]), origin }),
+      directory.startRegistration({
+        userName: userNameOf(params[0]),
+        accountProfileVersion: profileVersionOf(params[0]),
+        origin,
+      }),
   },
   pks_verifyRegistration: {
     rateLimit: "passkey_registration",
@@ -70,12 +83,22 @@ const METHODS: Record<string, RpcMethod> = {
         response: params[0],
         userName: userNameOf(params[1]),
         origin,
+        accountProfileVersion: profileVersionOf(params[1]),
       }),
   },
   pks_getCredentials: {
     rateLimit: "passkey_lookup",
     name: (params) => userNameOf(params[0]),
-    run: (directory, params) => directory.getCredentials({ userName: userNameOf(params[0]) }),
+    run: (directory, params) =>
+      directory.getCredentials({
+        userName: userNameOf(params[0]),
+        accountProfileVersion: profileVersionOf(params[0]),
+      }),
+  },
+  [PASSKEY_DISPLAY_NAMES_METHOD]: {
+    rateLimit: "passkey_display_names",
+    name: () => undefined,
+    run: (directory, params) => directory.getDisplayNames(params[0]),
   },
 };
 
@@ -146,6 +169,10 @@ function readRpcCall(value: unknown): RpcCall | undefined {
 
 function userNameOf(context: unknown): unknown {
   return isRecord(context) ? context.userName : undefined;
+}
+
+function profileVersionOf(context: unknown): unknown {
+  return isRecord(context) ? context.accountProfileVersion : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

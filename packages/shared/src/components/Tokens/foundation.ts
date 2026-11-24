@@ -6,13 +6,13 @@ const controlSurfaceBase = [
   "transition-[background-color,border-color,box-shadow,color,transform] duration-150 ease-out",
   "focus-visible:outline-none focus-visible:border-primary-base focus-visible:ring-2 focus-visible:ring-primary-alpha-16",
   "disabled:pointer-events-none disabled:opacity-60 disabled:bg-bg-soft-200",
-  "text-paragraph-md sm:text-paragraph-sm",
+  "type-field",
 ];
 
 const controlSizeClasses = {
   sm: "min-h-10 px-3 py-2",
   md: "min-h-11 px-3.5 py-2.5",
-  lg: "min-h-12 px-4 py-3 sm:text-paragraph-md",
+  lg: "min-h-12 px-4 py-3",
 } as const;
 
 export const controlInputVariants = tv({

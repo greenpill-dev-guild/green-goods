@@ -43,6 +43,7 @@ const toastService = {
   dismiss: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
+  info: vi.fn(),
 };
 
 const mockUser: { authMode: string; primaryAddress: string | null } = {
@@ -59,7 +60,8 @@ vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => mockUser }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mockTransactionSender,
 }));
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   readContract: (...args: unknown[]) => mockReadContract(...args),
 }));
 vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
@@ -124,13 +126,38 @@ function setupReads(opts: {
   });
 }
 
+const depositPolicy = vi.hoisted(() => ({ enabled: true }));
+
+vi.mock("../../../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/app")>()),
+  get ENDOWMENT_DEPOSITS_ENABLED() {
+    return depositPolicy.enabled;
+  },
+}));
+
 describe("hooks/vault/useOctantVaultWalletEndow", () => {
   beforeEach(() => {
+    depositPolicy.enabled = true;
     vi.clearAllMocks();
     mockUser.authMode = "wallet";
     mockUser.primaryAddress = OWNER;
     mockSendContractCall.mockResolvedValue({ hash: "0xabc", sponsored: false });
     mockTransactionSender = { sendContractCall: mockSendContractCall, authMode: "wallet" };
+  });
+
+  it("refuses a prepared endowment before asking the wallet to sign while deposits are paused", async () => {
+    depositPolicy.enabled = false;
+    const { result } = renderHookWithProviders(() =>
+      useOctantVaultWalletEndow({ errorMode: "inline" })
+    );
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(makeTransaction())).rejects.toThrow(
+        "New endowment deposits are paused"
+      );
+    });
+
+    expect(mockSendContractCall).not.toHaveBeenCalled();
   });
 
   it("resets a partial allowance to zero, re-approves the amount, then deposits — in order", async () => {
@@ -165,6 +192,26 @@ describe("hooks/vault/useOctantVaultWalletEndow", () => {
       args: [AMOUNT, OWNER],
       chainId: OCTANT_CHAIN_ID,
     });
+  });
+
+  it("settles a deposit past its receipt limit as submitted, never as failed", async () => {
+    // It went out and may still land: a failure here would offer to deposit again (PRD-1551).
+    setupReads({});
+    const { ReceiptWaitLimitError } = await import("../../../modules/transactions/types");
+    mockSendContractCall.mockRejectedValueOnce(
+      new ReceiptWaitLimitError(120_000, { hash: `0x${"de".repeat(32)}` })
+    );
+
+    const { result } = renderHookWithProviders(() => useOctantVaultWalletEndow());
+    let hash: unknown;
+    await act(async () => {
+      hash = await result.current.mutateAsync(makeTransaction());
+    });
+
+    expect(hash).toBe(`0x${"de".repeat(32)}`);
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(toastService.success).not.toHaveBeenCalled();
+    expect(mockErrorHandler).not.toHaveBeenCalled();
   });
 
   it("rejects with insufficientBalance before any approval when the wallet holds too little WETH", async () => {

@@ -88,8 +88,8 @@ export interface SetRoleHatIdsParams {
 // ============================================
 // Frontend View-Models (Tier 3 of admin design handoff)
 // ============================================
-// These types are the visual layer for ConvictionMeter / WeightAllocator /
-// ProposalCardConviction. Tier 4 maps the on-chain types above
+// These types are the visual layer for ConvictionMeter and WeightAllocator.
+// Tier 4 maps the on-chain types above
 // (HypercertEntry / ConvictionWeight / MemberPower) into these shapes.
 // Spec: design_handoff_admin-revamp/README.md § 7 + DESIGN_NOTES.md.
 //

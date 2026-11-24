@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-22T23:03:51Z",
+  "headAtInvestigation": "efa04cc52ddf5123e19997084f207d6aa137ea57",
+  "evidenceClass": "read-only live Alchemy RPC and issue observations; fictional account configuration; no member signature",
+  "provider": "User-approved Green Goods Alchemy app",
+  "pin": {
+    "chainId": 100,
+    "network": "gnosis-mainnet",
+    "number": "0x2ea078d",
+    "hash": "0xfd0e17aa567fda74e3f9bbc82d5e08f101bea5d05de848ac12f8a2e4ce5a5cd6",
+    "stateRoot": "0x4af3760fbb542ae08b7df70c81fe4c884cbaa0d32db692c43f58bbf99be3ab63",
+    "timestamp": "0x6ada963d",
+    "blockDecimal": 48891789
+  },
+  "fixtureSource": "artifacts/member-readiness-2026-10-22.json#fixture",
+  "validator": "0xbA45a2BFb8De3D24cA9D7F1B551E14dFF5d690Fd",
+  "fixtureAccount": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+  "reads": [
+    {
+      "name": "validatorCode",
+      "network": "gnosis-mainnet",
+      "blockNumber": "0x2ea078d",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "\"0x\""
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "name": "fixtureAccountCode",
+      "network": "gnosis-mainnet",
+      "blockNumber": "0x2ea078d",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "\"0x\""
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "name": "getAddress",
+      "network": "gnosis-mainnet",
+      "blockNumber": "0x2ea078d",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "\"0x0000000000000000000000009546b80b2faf5d5a9905c752d26b60296d6bc305\""
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "name": "createAccount",
+      "network": "gnosis-mainnet",
+      "blockNumber": "0x2ea078d",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "RPC error (3): execution reverted"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    },
+    {
+      "name": "deployWithFactory",
+      "network": "gnosis-mainnet",
+      "blockNumber": "0x2ea078d",
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "RPC error (3): execution reverted"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    }
+  ],
+  "issuerReadiness": {
+    "issue": "COM-46",
+    "url": "https://linear.app/green-goods/issue/COM-46/agree-voucher-terms-and-capacity-for-both-pilot-issuers",
+    "status": "In Progress",
+    "updatedAt": "2026-10-22T22:08:16.562Z",
+    "comments": 0,
+    "attachments": 0,
+    "documents": 0,
+    "approvedEvidence": "No approved evidence supplied; prior explicit user instruction is to record gaps.",
+    "disposition": "Unverified for both issuers; In Progress is not approval."
+  },
+  "proofLimits": [
+    "Same fictional initializer and salt as the earlier artifact; this refresh does not prove any member controls the calculated account.",
+    "Both factory calls are read-only simulations. Revert responses omit data and do not establish a decoded cause.",
+    "Validator and fixture-account code reads are empty at the selected block; this is not an independent state-trie proof.",
+    "Helper source/build/security provenance remains unresolved; its earlier identity and local failure matrix do not certify migration.",
+    "No production auth/provider policy, deployment, sponsorship, signer identities or issuer terms changed.",
+    "No authenticated browser signing, actual member ceremony, transaction submission or live value transfer occurred."
+  ],
+  "retainedCorrection": "The first meta-factory request used the wrong fixture property name and was rejected by the connector before RPC; rerun with fixture.metaFactoryData returned execution reverted.",
+  "sourceFingerprints": {
+    "packages/shared/src/workflows/auth-passkey-adapters.ts": "516638f39057608732ada2d3b92fa35ab76a5620a1d384f011f2527b2d3e3885",
+    "packages/shared/src/config/chains.ts": "b9624be61d05fb9087a44451b83ba91b84e138b4d1b58ee0704f3cc8c89f3a5a",
+    "packages/shared/src/config/pimlico.ts": "890cd5cd04b83c670dddf2002b34e0db3d5d35e46f7f3f14525228130043ba13",
+    "packages/shared/src/modules/commitment-pooling/account-profiles.ts": "f7a4322e1aa18c0857522f2532e9215e81e8522eba89446e4d8a6369d5988a02",
+    "packages/shared/src/modules/agent-reporting/owner-validator.ts": "57048f0f8f1b3e8204852e02b5c379cb42ab09847311a8bc00ab976096eb6ed0",
+    "packages/shared/src/__tests__/config/pimlico.test.ts": "2940e533815aba46f6d298cc03aea82bd05fca999873b354e9e5fa0f0c49c90b",
+    "packages/shared/src/__tests__/settlement-aa-profile.test.ts": "d45b59979af5265cf34e3523eda5afe8971e2d1dee2f2d7f737196e61ed041c0",
+    "packages/shared/src/__tests__/workflows/auth-passkey-adapters.test.ts": "99f02eb62e024c49ec9be510806e2da780bec3cea19ffa5fb6280297f3723d14",
+    "packages/shared/src/__tests__/workflows/authPasskeyOwner.test.ts": "0f64b6638a7fcb728c2c0943972293a3fb235ef245fcbaf752baa1b7b325db80",
+    "packages/shared/src/__tests__/modules/agent-reporting/owner-validator.test.ts": "5e16a7c1e503c063b3c50b1f0e780e8454badaa901979f0e9bf0bbbdfc52ca8b",
+    "packages/shared/src/__tests__/service-access-voucher-recovery.test.ts": "a916452e34a83ba6fa091ef7aef2e9de03f904ec7d49cf077554d9c26eba7198"
+  },
+  "localChecks": {
+    "evidenceClass": "working-tree characterization; no production auth repair",
+    "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/settlement-aa-profile.test.ts src/__tests__/config/pimlico.test.ts src/__tests__/workflows/auth-passkey-adapters.test.ts src/__tests__/workflows/authPasskeyOwner.test.ts src/__tests__/modules/agent-reporting/owner-validator.test.ts src/__tests__/service-access-voucher-recovery.test.ts",
+    "observedStartLocal": "2026-10-22 16:12:02 America/Los_Angeles",
+    "durationSeconds": 1.53,
+    "filesPassed": 6,
+    "testsPassed": 45,
+    "exitCode": 0
+  }
+}

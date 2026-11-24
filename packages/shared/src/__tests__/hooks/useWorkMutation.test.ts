@@ -1,4 +1,5 @@
 import { MAX_RETRIES } from "../../modules/job-queue/queue-policy";
+import type { Address } from "../../types/domain";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import {
   AwaitingWorkConfirmation,
@@ -29,7 +30,13 @@ const workMutationStoreMocks = vi.hoisted(() => ({
   ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
 }));
 const queueProcessJob = vi.fn();
-
+const policyRequest = vi.hoisted(() => vi.fn());
+vi.mock("../../hooks/work/useUploadPolicy", () => ({
+  useUploadPolicy: (owner: `0x${string}`) => ({
+    request: () => policyRequest(owner),
+    prompt: null,
+  }),
+}));
 // Mock modules
 vi.mock("../../modules/job-queue/default-instance", () => ({
   jobQueue: {
@@ -127,6 +134,7 @@ vi.mock("../../modules/app/analytics-events", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../modules/app/analytics-events")>()),
   trackWorkSubmissionStarted: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
+  trackWorkSubmissionOffline: vi.fn(),
   trackWorkSubmissionFailed: vi.fn(),
   trackWorkWalletRequestStarted: vi.fn(),
   trackWorkWalletRequestExpired: vi.fn(),
@@ -198,6 +206,9 @@ import { toastService, walletProgressToasts, workToasts } from "../../components
 import { worksKeys } from "../../config/query-keys/work";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import {
+  trackWorkSubmissionFailed,
+  trackWorkSubmissionOffline,
+  trackWorkSubmissionSuccess,
   trackWorkWalletRequestExpired,
   trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
@@ -205,15 +216,23 @@ import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
 import { connectivityStore } from "../../stores/connectivity";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import {
   createMockAction,
   createMockFiles,
   createMockWorkDraft,
-  MOCK_ADDRESSES,
+  MOCK_ADDRESSES as BASE_ADDRESSES,
   MOCK_TX_HASH,
 } from "../test-utils/mock-factories";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { mock } from "../test-utils/render-helpers";
+import { uploadConsent } from "../test-utils/upload-policy";
+
+const MOCK_ADDRESSES = {
+  ...BASE_ADDRESSES,
+  user: "0x1111111111111111111111111111111111111111",
+  smartAccount: "0x3333333333333333333333333333333333333333",
+} as const;
 
 describe("hooks/work/useWorkMutation", () => {
   let queryClient: QueryClient;
@@ -236,6 +255,7 @@ describe("hooks/work/useWorkMutation", () => {
       },
     });
     vi.clearAllMocks();
+    policyRequest.mockImplementation(async (owner) => uploadConsent(owner));
     vi.spyOn(jobQueueDB, "addJob");
     workMutationStoreMocks.ensureWorkSubmissionJourneyId.mockReturnValue("journey-123");
 
@@ -260,6 +280,84 @@ describe("hooks/work/useWorkMutation", () => {
     userAddress: MOCK_ADDRESSES.user,
   };
 
+  it("checks an already-recorded send intent without requiring new upload consent", async () => {
+    const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+      wrapper: createWrapper(),
+    });
+    await act(async () => {
+      await result.current.mutateAsync({
+        draft: createMockWorkDraft({
+          uploadCheckpoint: {
+            submittedAt: "2026-11-05T00:00:00.000Z",
+            files: {},
+            broadcastPending: true,
+          },
+        }),
+        images: [],
+      });
+    });
+    expect(policyRequest).not.toHaveBeenCalled();
+    expect(submitWorkDirectly).not.toHaveBeenCalled();
+  });
+  it("claims and sends nothing while sharing consent waits, then cancels cleanly", async () => {
+    const { UploadPolicyCancelledError } = await import("../../modules/work/upload-policy");
+    let decline!: (error: Error) => void;
+    policyRequest.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        decline = reject;
+      })
+    );
+    const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+      wrapper: createWrapper(),
+    });
+    const beforeAdmission = vi.fn(async () => true);
+    let outcome!: Promise<unknown>;
+    act(() => {
+      outcome = result.current
+        .mutateAsync({ draft: createMockWorkDraft(), images: [], beforeAdmission })
+        .catch((error) => error);
+    });
+    await waitFor(() => expect(policyRequest).toHaveBeenCalledOnce());
+    expect(beforeAdmission).not.toHaveBeenCalled();
+    expect(jobQueueDB.addJob).not.toHaveBeenCalled();
+    expect(submitWorkDirectly).not.toHaveBeenCalled();
+    expect(submitWorkToQueue).not.toHaveBeenCalled();
+    await act(async () => {
+      decline(new UploadPolicyCancelledError());
+      await outcome;
+    });
+    expect(beforeAdmission).not.toHaveBeenCalled();
+    expect(jobQueueDB.addJob).not.toHaveBeenCalled();
+    expect(submitWorkDirectly).not.toHaveBeenCalled();
+  });
+  it("tells a Terms accepted after the person left the flow apart from a declined one", async () => {
+    let accept!: () => void;
+    policyRequest.mockImplementation(
+      (owner) =>
+        new Promise((resolve) => {
+          accept = () => resolve(uploadConsent(owner));
+        })
+    );
+    workMutationStoreMocks.activeDraftId = "original-draft";
+    const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+      wrapper: createWrapper(),
+    });
+    let outcome!: Promise<unknown>;
+    act(() => {
+      outcome = result.current
+        .mutateAsync({ draft: createMockWorkDraft(), images: [] })
+        .catch((error) => error);
+    });
+    await waitFor(() => expect(policyRequest).toHaveBeenCalledOnce());
+    workMutationStoreMocks.activeDraftId = "different-draft";
+    let rejected: unknown;
+    await act(async () => {
+      accept();
+      rejected = await outcome;
+    });
+    expect(rejected).toMatchObject({ name: "UploadPolicyCancelledError", stage: "flow-left" });
+    expect(submitWorkDirectly).not.toHaveBeenCalled();
+  });
   it("retries a terminal unsent admin failure with corrected work and a fresh identity", async () => {
     const failure = new WorkSubmissionError("Cannot encode work", "transaction");
     vi.mocked(submitWorkDirectly)
@@ -332,6 +430,42 @@ describe("hooks/work/useWorkMutation", () => {
     });
     expect(submitWorkDirectly).toHaveBeenCalledTimes(2);
     expect(result.current.lastSubmissionOutcome?.clientWorkId).toBe(firstId);
+  });
+
+  it("admits one work when a Submit with no draft is declined and sent again, and new work for the next journey", async () => {
+    // The flow chose the garden's only action and nothing else was added, so autosave kept no
+    // draft (the active draft is null) and the work has no identity of its own from a draft.
+    const declined = Object.assign(new Error("User rejected the request"), { code: 4001 });
+    vi.mocked(submitWorkDirectly)
+      .mockRejectedValueOnce(declined)
+      .mockResolvedValueOnce(MOCK_TX_HASH);
+    const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+      wrapper: createWrapper(),
+    });
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] })
+      ).rejects.toBe(declined);
+    });
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+
+    expect(submitWorkDirectly).toHaveBeenCalledTimes(2);
+    const admitted: string[] = await Promise.all(
+      vi.mocked(jobQueueDB.addJob).mock.results.map((admission) => admission.value)
+    );
+    expect(new Set(admitted).size).toBe(1);
+    // The second Submit sent the work the queue held, so no copy waits to be sent again.
+    expect(await jobQueueDB.getJob(admitted[0])).toBeUndefined();
+
+    // The next journey is new work: it is sent, not answered with the first work's send.
+    workMutationStoreMocks.ensureWorkSubmissionJourneyId.mockReturnValue("journey-456");
+    vi.mocked(submitWorkDirectly).mockResolvedValueOnce(MOCK_TX_HASH);
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    expect(submitWorkDirectly).toHaveBeenCalledTimes(3);
   });
 
   it("keeps an ambiguous send intent for reconciliation without sending again", async () => {
@@ -411,6 +545,50 @@ describe("hooks/work/useWorkMutation", () => {
     expect(broadcast).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps a recorded admin send awaiting when its check has no confirmed connection, and says so", async () => {
+    vi.mocked(submitWorkDirectly).mockImplementationOnce(
+      async (_draft, _garden, _action, _title, _chain, _images, options) => {
+        await options?.onBroadcast?.(MOCK_TX_HASH);
+        throw new AwaitingWorkConfirmation(MOCK_TX_HASH);
+      }
+    );
+    const { result } = renderHook(
+      () =>
+        useWorkMutation({
+          ...defaultOptions,
+          completeClientFlow: false,
+          allowOfflineQueue: false,
+          retainSubmission: true,
+        }),
+      { wrapper: createWrapper() }
+    );
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    expect(result.current.lastSubmissionOutcome?.kind).toBe("awaiting-confirmation");
+
+    vi.mocked(toastService.info).mockClear();
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    try {
+      await act(async () => {
+        await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+      });
+    } finally {
+      confirm.mockRestore();
+    }
+    expect(result.current.lastSubmissionOutcome).toMatchObject({
+      kind: "awaiting-confirmation",
+      reason: "connection-unconfirmed",
+    });
+    expect(toastService.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Still confirming…",
+        message: "app.work.confirmationUnchecked",
+      })
+    );
+    expect(submitWorkDirectly).toHaveBeenCalledTimes(1);
+  });
+
   it("clears the awaiting outcome when the same submission is confirmed reverted", async () => {
     const failure = new WorkTransactionReverted(MOCK_TX_HASH);
     vi.mocked(submitWorkDirectly)
@@ -477,6 +655,62 @@ describe("hooks/work/useWorkMutation", () => {
     });
     expect(onSuccess).not.toHaveBeenCalled();
     expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
+    // The screen moved on, but the Submit still has its ending on record (PRD-1495).
+    expect(trackWorkSubmissionSuccess).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ authMode: "wallet", wasOffline: false })
+    );
+  });
+
+  it("keeps a Submit's success when its record cannot be made", async () => {
+    // The record runs inside the mutation's callbacks, where a throw would turn success into failure.
+    vi.mocked(trackWorkSubmissionSuccess).mockImplementationOnce(() => {
+      throw new Error("record failed");
+    });
+    mock(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(
+      () => useWorkMutation({ ...defaultOptions, onSuccess, onError }),
+      { wrapper: createWrapper() }
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+
+    expect(trackWorkSubmissionSuccess).toHaveBeenCalledOnce();
+    expect(onSuccess).toHaveBeenCalledWith(MOCK_TX_HASH);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("records a Submit that failed after the person left the flow, without telling them", async () => {
+    let fail!: (error: Error) => void;
+    vi.mocked(submitWorkDirectly).mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        fail = reject;
+      })
+    );
+    const onError = vi.fn();
+    workMutationStoreMocks.activeDraftId = "original-draft";
+    const { result } = renderHook(() => useWorkMutation({ ...defaultOptions, onError }), {
+      wrapper: createWrapper(),
+    });
+    let submitting!: Promise<unknown>;
+    act(() => {
+      submitting = result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    await waitFor(() => expect(submitWorkDirectly).toHaveBeenCalled());
+    workMutationStoreMocks.activeDraftId = "different-draft";
+    await act(async () => {
+      const rejected = expect(submitting).rejects.toThrow("execution reverted");
+      fail(new Error("execution reverted"));
+      await rejected;
+    });
+
+    expect(trackWorkSubmissionFailed).toHaveBeenCalledOnce();
+    expect(onError).not.toHaveBeenCalled();
+    expect(walletProgressToasts.error).not.toHaveBeenCalled();
+    expect(toastService.error).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -498,7 +732,7 @@ describe("hooks/work/useWorkMutation", () => {
       ({ address }) =>
         useWorkMutation({ ...defaultOptions, userAddress: address, onSuccess, onError }),
       {
-        initialProps: { address: MOCK_ADDRESSES.user as string },
+        initialProps: { address: MOCK_ADDRESSES.user as Address },
         wrapper: createWrapper(),
       }
     );
@@ -542,7 +776,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       expect(submitWorkDirectly).toHaveBeenCalledWith(
-        draft,
+        expect.objectContaining({ ...draft, uploadConsent: uploadConsent(MOCK_ADDRESSES.user) }),
         MOCK_ADDRESSES.garden,
         1,
         "Test Action",
@@ -553,10 +787,33 @@ describe("hooks/work/useWorkMutation", () => {
       expect(submitWorkToQueue).not.toHaveBeenCalled();
     });
 
+    // The network confirming the send is not the wallet being asked (PRD-1552).
+    it("does not count the network confirming as a wallet request", async () => {
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          options?.onProgress?.("confirming", "Confirming…");
+          return MOCK_TX_HASH;
+        }
+      );
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(2),
+        });
+      });
+
+      expect(trackWorkWalletRequestStarted).not.toHaveBeenCalled();
+    });
+
     it("tracks when the wallet request starts", async () => {
       mock(submitWorkDirectly).mockImplementation(
         async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
-          options?.onProgress?.("confirming", "Confirm in your wallet...");
+          options?.onProgress?.("wallet", "Confirm in your wallet");
           return MOCK_TX_HASH;
         }
       );
@@ -588,7 +845,7 @@ describe("hooks/work/useWorkMutation", () => {
       const onProgress = vi.fn();
       mock(submitWorkDirectly).mockImplementation(
         async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
-          options?.onProgress?.("uploading", "Uploading media to IPFS...");
+          options?.onProgress?.("uploading", "Uploading media...");
           return MOCK_TX_HASH;
         }
       );
@@ -604,7 +861,7 @@ describe("hooks/work/useWorkMutation", () => {
         });
       });
 
-      expect(onProgress).toHaveBeenCalledWith("uploading", "Uploading media to IPFS...");
+      expect(onProgress).toHaveBeenCalledWith("uploading", "Uploading media...");
     });
 
     it("lets admin-style consumers opt out of client completion side effects", async () => {
@@ -717,7 +974,7 @@ describe("hooks/work/useWorkMutation", () => {
             draft: createMockWorkDraft(),
             images: createMockFiles(1),
           })
-        ).rejects.toThrow("Offline queue is disabled");
+        ).rejects.toThrow(ConnectionNeededError);
       });
 
       expect(submitWorkToQueue).not.toHaveBeenCalled();
@@ -859,6 +1116,11 @@ describe("hooks/work/useWorkMutation", () => {
 
       expect(txHash).toMatch(/^0xoffline_/);
       expect(txHash?.startsWith("0xoffline_")).toBe(true);
+      // Saved for later is not a success: the queue sends it (PRD-1495).
+      expect(trackWorkSubmissionOffline).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ reason: "offline" })
+      );
+      expect(trackWorkSubmissionSuccess).not.toHaveBeenCalled();
     });
   });
 
@@ -1000,7 +1262,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
     });
 
-    it("keeps wallet request expiry on the direct Review retry path", async () => {
+    it("reports an expired wallet request and hands the work the queue kept to Your Work", async () => {
       const expiredError = new WorkSubmissionError(
         "Wallet request expired",
         "transaction",
@@ -1020,11 +1282,13 @@ describe("hooks/work/useWorkMutation", () => {
             images: createMockFiles(2),
           });
         } catch {
-          // Expected to throw so the Review step can keep the same draft state.
+          // Expected to throw: the send failed, though the queue already holds the work.
         }
       });
 
       expect(submitWorkToQueue).not.toHaveBeenCalled();
+      // Your Work's Pending offers the queued work again, so its draft retires as after a send.
+      expect(workMutationStoreMocks.setSubmissionCompleted).toHaveBeenCalledWith(true);
       expect(trackWorkWalletRequestExpired).toHaveBeenCalledWith(
         expect.objectContaining({
           workSubmissionJourneyId: "journey-123",

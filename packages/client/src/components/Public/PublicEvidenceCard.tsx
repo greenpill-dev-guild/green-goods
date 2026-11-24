@@ -1,3 +1,4 @@
+import { getDomainStyle } from "@green-goods/shared/config/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
@@ -6,48 +7,6 @@ import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
 import { evidenceRecordTitle } from "./evidenceTitle";
-
-const DOMAIN_INK: Record<"solar" | "agro" | "education" | "waste", string> = {
-  solar: "text-domain-solar",
-  agro: "text-domain-agro",
-  education: "text-domain-education",
-  waste: "text-domain-waste",
-};
-
-const DOMAIN_DOT: Record<"solar" | "agro" | "education" | "waste", string> = {
-  solar: "bg-domain-solar",
-  agro: "bg-domain-agro",
-  education: "bg-domain-education",
-  waste: "bg-domain-waste",
-};
-
-const DOMAIN_LABELS: Record<"solar" | "agro" | "education" | "waste", string> = {
-  solar: "Solar",
-  agro: "Agroforestry",
-  education: "Education",
-  waste: "Waste",
-};
-
-function resolveDomainSlug(domain: string | number | undefined) {
-  if (domain === undefined || domain === null) return null;
-  if (typeof domain === "string") {
-    const lower = domain.toLowerCase();
-    if (lower in DOMAIN_INK) return lower as keyof typeof DOMAIN_INK;
-    return null;
-  }
-  switch (domain) {
-    case 0:
-      return "solar" as const;
-    case 1:
-      return "agro" as const;
-    case 2:
-      return "education" as const;
-    case 3:
-      return "waste" as const;
-    default:
-      return null;
-  }
-}
 
 /**
  * Date a record happened, in editorial format ("Jan 15, 2024" / range with "→").
@@ -228,7 +187,7 @@ export function PublicEvidenceCard({
   onOpen,
 }: PublicEvidenceCardProps) {
   const intl = useIntl();
-  const domain = resolveDomainSlug(record.domain);
+  const domainStyle = getDomainStyle(record.domain);
   // Prefer the record's own media (Work attestations carry up to a handful;
   // Hypercerts carry one). Fall back to the garden banner so Assessment cards
   // still show a place. Cap at 3 — see EvidenceImageMosaic.
@@ -262,14 +221,17 @@ export function PublicEvidenceCard({
       <p
         className={cn(
           "flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.18em]",
-          domain ? DOMAIN_INK[domain] : "text-text-soft-400"
+          domainStyle ? domainStyle.colors.text : "text-text-soft-400"
         )}
       >
-        {domain ? (
-          <span aria-hidden="true" className={cn("inline-block size-1.5", DOMAIN_DOT[domain])} />
+        {domainStyle ? (
+          <span
+            aria-hidden="true"
+            className={cn("inline-block size-1.5", domainStyle.colors.fill)}
+          />
         ) : null}
-        {domain
-          ? DOMAIN_LABELS[domain]
+        {domainStyle
+          ? domainStyle.defaultLabel
           : intl.formatMessage({
               id: "public.impact.evidence.domainUntagged",
               defaultMessage: "Cross-domain",

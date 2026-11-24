@@ -18,3 +18,10 @@ export const NO_EXPIRATION = 0n;
  */
 export const ZERO_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
+
+/**
+ * Gas, in percent over the estimate, that a Work approval sends. Its resolver runs the Karma Project
+ * Update inside try/catch, so an approval sent at the bare estimate lands without its update. On
+ * forks of Arbitrum the upgraded Karma module needed up to about 21% over the node's estimate.
+ */
+export const APPROVAL_GAS_HEADROOM_PERCENT = 50;

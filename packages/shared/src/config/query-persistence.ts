@@ -12,18 +12,20 @@ import {
 } from "@tanstack/react-query";
 import { debugWarn } from "../utils/debug";
 import {
-  LEGACY_SNAPSHOT_KEY,
   type LegacySnapshotSource,
-  deleteDatabase,
   isLegacySnapshot,
   readLegacySnapshot,
 } from "./query-persistence-legacy";
 export type { LegacySnapshotSource };
 import { answeredAt, createReadingCacheStore } from "./query-persistence-stores";
-import { createWebQueryStore } from "./query-persistence-tiers";
-import { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
+import {
+  PERSIST_MAX_AGE,
+  QUERY_CACHE_SCHEMA_VERSION,
+  QUERY_CACHE_STORAGE_PREFIX as DEFAULT_PREFIX,
+} from "./query-cache-policy";
 
 export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
+export { clearPersistedQueryClient } from "./query-persistence-clear";
 export {
   isDurableWorkRead,
   isOfflineReadModelQuery,
@@ -41,7 +43,6 @@ export const CLIENT_QUERY_CACHE_STORE = "queries";
 export const LEGACY_CLIENT_QUERY_CACHE = { dbName: "gg-react-query", storeName: "rq" } as const;
 
 const DEFAULT_STORE_NAME = "queries";
-const DEFAULT_PREFIX = "gg";
 const DEFAULT_RESTORE_TIMEOUT_MS = 1_500;
 const LEGACY_BUSTER = /^(?:dev|[a-f0-9]{7,40})$/i;
 
@@ -320,10 +321,21 @@ export function createShouldDehydrateQuery({
     if (!Array.isArray(key) || key[0] !== namespace) return false;
 
     // Pagination ownership is ephemeral UI state, not part of the reading cache.
-    if (key[1] === "works" && key[2] === "window") return false;
+    if ((key[1] === "works" || key[1] === "hypercerts") && key[2] === "window") return false;
 
     // Reporting ceremony state (pairing codes, publication status) is private and short-lived.
     if (key[1] === "agent-reporting") return false;
+
+    // The batch journal owns a save's outcome: a restored copy could show a hold that has ended.
+    if (key[1] === "batch") return false;
+
+    // The due clock's calibration belongs to the page that read it: restored after the device
+    // clock moved, it would move the chain's clock with it.
+    if (key[1] === "commitment-pooling" && key[3] === "chain-clock") return false;
+
+    // A garden Safe's payment is read afresh: a restored copy could show approvals the Safe has
+    // since moved past, so its owners would approve a transaction that can no longer run.
+    if (key[1] === "commitment-pooling" && key[3] === "reward-safe-payment") return false;
 
     // A list whose instructions fell back to the built-in copy stays usable for
     // this session but must not become the durable offline copy.
@@ -331,25 +343,4 @@ export function createShouldDehydrateQuery({
 
     return !excludedGroups.includes(String(key[1] ?? ""));
   };
-}
-
-/**
- * Forget an app's persisted reads, including any snapshot an older build left
- * behind. Drafts and settings that share the `gg-` prefix in web storage stay:
- * the admin's boot recovery offers this as clearing cached data only. Best
- * effort and never throws.
- */
-export async function clearPersistedQueryClient(
-  options: Pick<CreateQueryPersistenceOptions, "dbName" | "legacy">
-): Promise<void> {
-  await deleteDatabase(options.dbName);
-  if (options.legacy) await deleteDatabase(options.legacy.dbName);
-  try {
-    const storage = resolveDefaultStorage();
-    if (!storage) return;
-    storage.removeItem(LEGACY_SNAPSHOT_KEY);
-    await createWebQueryStore(storage, DEFAULT_PREFIX).clear();
-  } catch (error) {
-    debugWarn("[Persister] Failed to clear the storage cache:", { error });
-  }
 }

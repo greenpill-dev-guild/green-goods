@@ -2,6 +2,21 @@ import { describe, expect, it, vi } from "vitest";
 import { GRAPHQL_TIMEOUT_MS, TimeoutError, withTimeout } from "../../modules/data/graphql-client";
 
 describe("withTimeout", () => {
+  it("settles cancellation immediately and removes its timer and listener", async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const remove = vi.spyOn(controller.signal, "removeEventListener");
+      const promise = withTimeout(new Promise(() => {}), 12_000, "cancelled", controller.signal);
+      const rejection = expect(promise).rejects.toThrow("snapshot deadline");
+      controller.abort(new Error("snapshot deadline"));
+      await rejection;
+      expect(vi.getTimerCount()).toBe(0);
+      expect(remove).toHaveBeenCalledWith("abort", expect.any(Function));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("resolves when promise completes before timeout", async () => {
     const promise = Promise.resolve("success");
     const result = await withTimeout(promise, 1000, "TestOp");

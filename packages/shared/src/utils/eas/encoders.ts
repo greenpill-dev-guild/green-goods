@@ -5,19 +5,25 @@ import {
   validateWorkAttachments,
   hashWorkBytes,
   identifyWorkFile,
+  isWorkDocument,
+  publishableWorkFile,
+  publishedWorkFiles,
   roundWorkLocation,
 } from "../../modules/work/work-attachments";
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { decodeAbiParameters, type Hex, parseAbiParameters } from "viem";
 import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs/upload";
 import type {
+  Address,
   Domain,
   WorkApprovalDraft,
   WorkDraft,
   WorkUploadCheckpoint,
 } from "../../types/domain";
 import { buildWorkMetadataPayload } from "./work-metadata";
+import { assertWorkUploadConsent } from "../../modules/work/upload-policy";
 
 /**
  * Maps MIME types to file extensions.
@@ -58,8 +64,8 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
   // Use dummy CID for simulation to avoid IPFS uploads
   const DUMMY_CID = "QmSimulationDummyHashForValidation000000000000";
 
-  // Map media files to dummy CIDs - strictly maintaining array length
-  const media = data.media.map(() => DUMMY_CID);
+  // One dummy CID per photo or video; documents publish in the metadata instead.
+  const media = data.media.filter((file) => !isWorkDocument(file)).map(() => DUMMY_CID);
 
   // Use dummy CID for metadata JSON
   const metadataCID = DUMMY_CID;
@@ -79,6 +85,7 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
  * Options for work data encoding
  */
 export interface EncodeWorkDataOptions {
+  uploaderAddress?: Address;
   /** The published content, available for a receipt-confirmed local preview. */
   onEncoded?: (content: { metadata: Record<string, unknown>; media: string[] }) => void;
   checkpoint?: WorkUploadCheckpoint;
@@ -88,7 +95,7 @@ export interface EncodeWorkDataOptions {
   /** Garden address for tracking context */
   gardenAddress?: string;
   /** Auth mode for tracking context */
-  authMode?: "passkey" | "wallet" | "embedded" | null;
+  authMode?: import("../../types/auth").AuthMode;
   /** Per-file upload progress callback */
   onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
   /** Batch ID for correlating upload events with submission errors */
@@ -108,6 +115,7 @@ export async function encodeWorkData(
   chainId: number | string,
   options: EncodeWorkDataOptions = {}
 ) {
+  assertWorkUploadConsent(data.uploadConsent, options.uploaderAddress);
   const checkpoint = options.checkpoint ?? { submittedAt: new Date().toISOString(), files: {} };
   let checkpointWrite: Promise<void> = Promise.resolve();
   const persistCheckpoint = () => {
@@ -212,10 +220,16 @@ export async function encodeWorkData(
     throw error;
   }
 
+  // Every photo loses its location and camera metadata before anything is
+  // pinned, including work queued before intake removed it. One at a time, so
+  // only one photo's bytes are read into memory at once.
+  const publishedFiles: File[] = [];
+  for (const file of normalizedFiles) publishedFiles.push(await publishableWorkFile(file));
+
   // Upload files with adaptive concurrency based on connection quality.
   // On slow connections (2g/3g), limits parallel uploads to avoid overwhelming bandwidth.
-  const concurrency = getUploadConcurrency(normalizedFiles.length);
-  const uploadTasks = normalizedFiles.map(
+  const concurrency = getUploadConcurrency(publishedFiles.length);
+  const uploadTasks = publishedFiles.map(
     (file, index) => () =>
       uploadCachedFile(file, {
         fileIndex: index,
@@ -249,13 +263,13 @@ export async function encodeWorkData(
   const uploadResults = await pooledSettled(uploadTasks, concurrency);
 
   // Process results and handle any failures
-  const media: string[] = [];
+  const cids: string[] = [];
   const errors: Array<{ index: number; error: unknown }> = [];
 
   for (let i = 0; i < uploadResults.length; i++) {
     const result = uploadResults[i];
     if (result.status === "fulfilled") {
-      media[result.value.index] = result.value.cid;
+      cids[result.value.index] = result.value.cid;
     } else {
       failedFiles++;
       const maybeFile = data.media[i];
@@ -305,6 +319,9 @@ export async function encodeWorkData(
     throw firstError instanceof Error ? firstError : new Error(String(firstError));
   }
 
+  const { media, attachments, documents } = publishedWorkFiles(
+    normalizedFiles.map((file, i) => ({ file, cid: cids[i], type: data.media[i].type }))
+  );
   // Upload audio notes to IPFS (if any)
   let audioNoteCids: string[] = [];
   if (data.audioNotes && data.audioNotes.length > 0) {
@@ -347,6 +364,7 @@ export async function encodeWorkData(
   // Upload metadata JSON (v2 if domain/slug provided, legacy otherwise)
   try {
     const { payload: metadataPayload, version: metadataType } = buildWorkMetadataPayload({
+      uploadConsent: data.uploadConsent,
       title: data.title,
       feedback: data.feedback,
       actionUID: data.actionUID,
@@ -356,7 +374,8 @@ export async function encodeWorkData(
       tags: data.tags,
       audioNoteCids,
       submittedAt: checkpoint.submittedAt,
-      attachments: media.map((cid, index) => ({ cid, type: data.media[index].type })),
+      attachments,
+      documents,
       clientWorkId: options.clientWorkId,
       draftClientWorkId: (data as unknown as Record<string, unknown>).clientWorkId as
         | string
@@ -464,4 +483,18 @@ export function encodeWorkApprovalData(data: WorkApprovalDraft, chainId: number 
   ]) as `0x${string}`;
 
   return encodedData;
+}
+
+/** The decision a work approval's data carries, read by the schema's own field names. */
+export function decodeWorkApprovalData(
+  data: Hex,
+  chainId: number | string
+): Pick<WorkApprovalDraft, "approved" | "feedback"> {
+  const fields = parseAbiParameters(getEASConfig(chainId).WORK_APPROVAL.schema);
+  const values = decodeAbiParameters(fields, data);
+  const valueOf = (name: string) => values[fields.findIndex((field) => field.name === name)];
+  return {
+    approved: valueOf("approved") as boolean,
+    feedback: (valueOf("feedback") as string) || undefined,
+  };
 }

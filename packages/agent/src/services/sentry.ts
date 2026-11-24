@@ -1,4 +1,8 @@
-import { sanitizeSentryContext, sanitizeSentryValue } from "@green-goods/shared/sentry-redaction";
+import {
+  createSentryDataCollection,
+  sanitizeSentryContext,
+  sanitizeSentryValue,
+} from "@green-goods/shared/sentry-redaction";
 import * as Sentry from "@sentry/bun";
 import { createLogger } from "./logger";
 
@@ -39,7 +43,8 @@ export function initAgentSentry(options: InitAgentSentryOptions): void {
     dsn,
     environment: options.environment,
     release: options.release,
-    sendDefaultPii: false,
+    dataCollection: createSentryDataCollection(),
+    traceLifecycle: "static",
     debug: options.debug === true,
     tracesSampleRate: options.tracesSampleRate,
     beforeBreadcrumb: (breadcrumb) =>
@@ -49,6 +54,8 @@ export function initAgentSentry(options: InitAgentSentryOptions): void {
 
   Sentry.setTag("app", "green-goods");
   Sentry.setTag("surface", "agent");
+  // The name PostHog events use, so one filter reads both (PRD-1560).
+  Sentry.setTag("app_surface", "agent");
   initialized = true;
 }
 

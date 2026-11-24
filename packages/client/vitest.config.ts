@@ -5,12 +5,13 @@ import type { PluginOption } from "vite";
 import { defineConfig } from "vitest/config";
 
 import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
+import { createPublicLocalesPlugin } from "./vite/public-locales";
 
 const nodeTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}";
 const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), createPublicLocalesPlugin()],
   test: {
     environment: "happy-dom",
     setupFiles: ["./src/__tests__/setupTests.ts"],

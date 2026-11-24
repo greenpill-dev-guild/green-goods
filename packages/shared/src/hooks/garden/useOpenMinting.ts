@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { useReadContract } from "wagmi";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -31,6 +32,13 @@ export function useSetOpenMinting() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "garden_update",
+    operation: "setOpenMinting",
+    authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useSetOpenMinting",
     toastContext: "set open minting",
@@ -39,14 +47,14 @@ export function useSetOpenMinting() {
   const contracts = getNetworkContracts(chainId);
 
   return useMutation({
-    mutationFn: async (open: boolean) => {
+    mutationFn: recordedSendAct(act, async (open: boolean) => {
       return sendContractTx({
         address: contracts.gardenToken,
         abi: GardenTokenABI,
         functionName: "setOpenMinting",
         args: [open],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({

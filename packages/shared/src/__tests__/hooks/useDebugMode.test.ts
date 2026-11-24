@@ -23,14 +23,6 @@ describe("hooks/useDebugMode", () => {
     localStorage.removeItem("green-goods:debug-mode");
   });
 
-  it("returns debug mode state and controls", () => {
-    const { result } = renderHook(() => useDebugMode());
-
-    expect(result.current).toHaveProperty("debugMode");
-    expect(result.current).toHaveProperty("setDebugMode");
-    expect(result.current).toHaveProperty("toggleDebugMode");
-  });
-
   it("has debug mode disabled by default", () => {
     const { result } = renderHook(() => useDebugMode());
 

@@ -85,11 +85,10 @@ function memoryStorage(): Storage {
 const commitmentDraft = JSON.stringify({ state: { drafts: { garden: "notes" } }, version: 0 });
 
 /**
- * Stall one database the way an origin stalls in the field: an upgrade waits
- * on a connection that ignores `versionchange`, and every later open queues
- * behind it. Closing that connection lets the upgrade through, and IndexedDB
- * then answers everything that waited, however late. The gardens answer an
- * earlier session stored an hour ago stays in the database throughout.
+ * Hold the open responses until the test releases them. A blocked upgrade in
+ * fake-indexeddb polls on every timer tick, so advancing the fake clock through
+ * several seconds of that polling can exhaust the test's real-time budget.
+ * Reads and writes after the open still use IndexedDB transactions.
  */
 async function stallIndexedDB(dbName: string, earlierGardens: unknown): Promise<() => void> {
   const opening = indexedDB.open(dbName);
@@ -107,15 +106,36 @@ async function stallIndexedDB(dbName: string, earlierGardens: unknown): Promise<
     state: earlier.getQueryState(gardensKey),
     buster: QUERY_CACHE_SCHEMA_VERSION,
   };
-  holder
-    .transaction("queries", "readwrite")
-    .objectStore("queries")
-    .put(record, `gg-${record.queryHash}`);
+  const transaction = holder.transaction("queries", "readwrite");
+  const committed = new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error);
+  });
+  transaction.objectStore("queries").put(record, `gg-${record.queryHash}`);
   await vi.advanceTimersByTimeAsync(10);
-  holder.onversionchange = () => undefined;
-  const upgrade = indexedDB.open(dbName, holder.version + 1);
-  upgrade.onsuccess = () => upgrade.result.close();
-  return () => holder.close();
+  await committed;
+  holder.close();
+  earlier.clear();
+
+  const open = indexedDB.open.bind(indexedDB);
+  const heldResponses: Array<() => void> = [];
+  let stalled = true;
+  const openSpy = vi.spyOn(indexedDB, "open").mockImplementation((name, version) => {
+    const request = open(name, version);
+    if (name !== dbName) return request;
+    const dispatch = request.dispatchEvent.bind(request);
+    vi.spyOn(request, "dispatchEvent").mockImplementation((event) => {
+      if (!stalled || (event.type !== "success" && event.type !== "error")) return dispatch(event);
+      heldResponses.push(() => dispatch(event));
+      return true;
+    });
+    return request;
+  });
+  return () => {
+    stalled = false;
+    openSpy.mockRestore();
+    for (const respond of heldResponses.splice(0)) respond();
+  };
 }
 
 /** The gardens answer the reading cache holds in web storage. */

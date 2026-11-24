@@ -10,12 +10,16 @@ const mocks = vi.hoisted(() => ({
   resolver: vi.fn(),
   wallet: vi.fn(),
   account: vi.fn(),
+  created: vi.fn(),
+  send: vi.fn(),
+  write: vi.fn(),
+  config: {},
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => mocks.user }));
 vi.mock("wagmi", () => ({
-  useConfig: () => ({}),
-  useWriteContract: () => ({ writeContractAsync: vi.fn() }),
+  useConfig: () => mocks.config,
+  useWriteContract: () => ({ writeContractAsync: mocks.write }),
 }));
 vi.mock("@wagmi/core", async (importOriginal) => ({
   ConnectorNotConnectedError: (await importOriginal<typeof import("@wagmi/core")>())
@@ -24,10 +28,17 @@ vi.mock("@wagmi/core", async (importOriginal) => ({
   getAccount: (...args: unknown[]) => mocks.account(...args),
 }));
 vi.mock("../../../modules/transactions/factory", () => ({
-  createTransactionSender: () => ({ authMode: "passkey", sendContractCall: vi.fn() }),
+  createTransactionSender: (options: unknown) => {
+    mocks.created(options);
+    return { authMode: "passkey", sendContractCall: mocks.send };
+  },
 }));
 
 import { useTransactionSender } from "../../../hooks/blockchain/useTransactionSender";
+import { onWalletReconnectAsk } from "../../../modules/auth/wallet-reconnect";
+import { WalletReconnectRequiredError } from "../../../utils/errors/unsent-failures";
+import { recordSendAct } from "../../../modules/app/sendActAnalytics";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 describe("useTransactionSender ownership", () => {
   beforeEach(() => {
@@ -46,6 +57,47 @@ describe("useTransactionSender ownership", () => {
     mocks.account.mockReturnValue({ chainId: 42220 });
   });
 
+  it("notes a send handed back with no receipt, so an act keeping only its hash ends confirming (PRD-1553)", async () => {
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      const call = { address: other, abi: [], functionName: "join", args: [], chainId: 42161 };
+      const proposal = { hash: `0x${"ab".repeat(32)}`, sponsored: false, confirmation: "pending" };
+      const landed = { hash: `0x${"cd".repeat(32)}`, sponsored: false };
+      mocks.send.mockResolvedValueOnce(proposal).mockResolvedValueOnce(landed);
+      const sender = renderHook(() => useTransactionSender()).result.current!;
+      const act = { act: "vault_withdraw", authMode: "wallet" } as const;
+
+      for (const expected of [proposal, landed]) {
+        const result = await sender.sendContractCall(call);
+        expect(result).toBe(expected);
+        await recordSendAct(act, async () => result.hash);
+      }
+
+      expect(endings).toEqual(["confirming", "confirmed"]);
+    } finally {
+      unregister();
+    }
+  });
+
+  it("hands the sender the profile the session signed in with, and rebuilds it if that changes", () => {
+    mocks.user.passkeyAccountProfile = "kernel-0.3.1-legacy";
+    const { rerender } = renderHook(() => useTransactionSender());
+    expect(mocks.created).toHaveBeenLastCalledWith(
+      expect.objectContaining({ passkeyAccountProfile: "kernel-0.3.1-legacy" })
+    );
+
+    mocks.user.passkeyAccountProfile = "another-profile";
+    rerender();
+    expect(mocks.created).toHaveBeenLastCalledWith(
+      expect.objectContaining({ passkeyAccountProfile: "another-profile" })
+    );
+  });
+
   it("accepts a same-account Celo job while the primary client is Arbitrum", async () => {
     const { result } = renderHook(() => useTransactionSender());
     await expect(result.current!.assertOwnership!(account, 42220)).resolves.toBeUndefined();
@@ -58,6 +110,15 @@ describe("useTransactionSender ownership", () => {
     await expect(result.current!.assertOwnership!(account, 42220)).rejects.toThrow(
       "submission-ownership-changed"
     );
+  });
+
+  it("checks an email account's queued job against its smart account, never a wallet", async () => {
+    mocks.user = { ...mocks.user, authMode: "openfort" };
+    const { result } = renderHook(() => useTransactionSender());
+    await expect(result.current!.assertOwnership!(account, 42220)).resolves.toBeUndefined();
+    expect(mocks.resolver).toHaveBeenCalledWith(42220);
+    expect(mocks.account).not.toHaveBeenCalled();
+    expect(mocks.created).toHaveBeenCalledWith(expect.objectContaining({ authMode: "openfort" }));
   });
 
   it("rejects an unsupported chain before resolving a client", async () => {
@@ -114,5 +175,49 @@ describe("useTransactionSender wallet ownership", () => {
     await expect(result.current!.assertOwnership!(account, 42161)).rejects.toThrow(
       "Connector not connected"
     );
+  });
+
+  // PRD-1499: the App opens on a remembered wallet account before its wallet answers.
+  it("refuses every wallet act before it starts while the wallet has not answered, and asks to reconnect", async () => {
+    const call = { address: other, abi: [], functionName: "join", args: [], chainId: 42161 };
+    mocks.user = { authMode: "wallet", primaryAddress: account, walletRestore: "restoring" };
+    const asked = vi.fn();
+    const stopAsking = onWalletReconnectAsk(asked);
+    try {
+      const { result, rerender } = renderHook(() => useTransactionSender());
+      const sender = result.current!;
+
+      expect(sender.readyToSign!()).toBe(false);
+      expect(() => sender.assertReadyToSign!()).toThrow(WalletReconnectRequiredError);
+      await expect(sender.sendContractCall(call)).rejects.toMatchObject({
+        name: "WalletReconnectRequiredError",
+        asked: true,
+      });
+      // Who signs refuses too, but asks nobody: the job queue also runs it to recheck a send.
+      await expect(sender.assertOwnership!(account, 42161)).rejects.toMatchObject({
+        name: "WalletReconnectRequiredError",
+        asked: false,
+      });
+      // Nothing was asked of the wallet or sent.
+      expect(mocks.account).not.toHaveBeenCalled();
+      expect(mocks.send).not.toHaveBeenCalled();
+      expect(asked).toHaveBeenCalledTimes(2);
+
+      // The answer is read when an act starts, so the sender already made sends once it is back.
+      mocks.user = { ...mocks.user, walletRestore: null };
+      rerender();
+      expect(result.current).toBe(sender);
+      expect(sender.readyToSign!()).toBe(true);
+      await sender.sendContractCall(call);
+      expect(mocks.send).toHaveBeenCalledWith(call, undefined);
+      expect(asked).toHaveBeenCalledTimes(2);
+
+      // A sender the job queue makes from this one keeps its own checks for the send.
+      const queued = Object.create(sender) as typeof sender;
+      await queued.sendContractCall(call);
+      expect(mocks.send.mock.contexts.at(-1)).toBe(queued);
+    } finally {
+      stopAsking();
+    }
   });
 });

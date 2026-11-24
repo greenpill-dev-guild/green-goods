@@ -1,8 +1,15 @@
+import type { ParsedContractError } from "./contract-errors";
 import { extractErrorMessage } from "./extract-message";
 import { wrongWalletNetwork } from "./wallet-network-refusal";
 
+// An act refused because the wallet has not answered, already asked to reconnect (PRD-1499).
+export { wasAskedToReconnect } from "./unsent-failures";
+
 export type TxErrorKind =
   | "cancelled"
+  | "unconfirmed"
+  | "overCeilings"
+  | "pastCeilings"
   | "passkeyUnavailable"
   | "wrongChain"
   | "reverted"
@@ -122,6 +129,49 @@ export function isPasskeyCredentialUnavailableError(error: unknown): boolean {
   return hasMessageInErrorChain(error, PASSKEY_UNAVAILABLE_PATTERNS);
 }
 
+/** A viem request error quotes its JSON-RPC body, and a paymaster's methods are `pm_*` (ERC-7677). */
+const PAYMASTER_REQUEST = /"method":\s*"pm_/;
+
+function someInErrorChain(
+  error: unknown,
+  test: (node: unknown) => boolean,
+  depth = 0,
+  seen = new Set<unknown>()
+): boolean {
+  if (depth > 4 || error === null || error === undefined || seen.has(error)) return false;
+  seen.add(error);
+  if (test(error)) return true;
+  if (typeof error !== "object") return false;
+  const nested = error as { cause?: unknown; error?: unknown };
+  return (
+    someInErrorChain(nested.cause, test, depth + 1, seen) ||
+    someInErrorChain(nested.error, test, depth + 1, seen)
+  );
+}
+
+/** The paymaster never answered: a timeout, no HTTP response, or a gateway that failed. */
+function unanswered(node: unknown): boolean {
+  if (!(node instanceof Error)) return false;
+  if (node.name === "TimeoutError") return true;
+  if (node.name !== "HttpRequestError") return false;
+  // No response, a timeout, rate limiting or a server failure: the paymaster refused nothing.
+  const status = (node as { status?: unknown }).status;
+  return typeof status !== "number" || status === 408 || status === 429 || status >= 500;
+}
+
+/**
+ * Whether the gas sponsor turned an operation down: the paymaster answered its own request
+ * (`pm_*`) with a refusal, and nothing in the error says the operation would revert. A revert met
+ * while estimating also names the paymaster among its arguments, so the word alone proves nothing,
+ * and a paymaster that never answered refused nothing. Only a send known not to have gone out may
+ * be read this way.
+ */
+export function isSponsorshipRefusedError(error: unknown): boolean {
+  if (hasMessageInErrorChain(error, REVERT_PATTERNS) || someInErrorChain(error, unanswered))
+    return false;
+  return someInErrorChain(error, (node) => PAYMASTER_REQUEST.test(extractErrorMessage(node)));
+}
+
 function extractErrorCode(error: unknown): number | string | undefined {
   if (!error || typeof error !== "object") return undefined;
 
@@ -173,9 +223,44 @@ function isUserCancelled(error: unknown, normalizedMessage: string): boolean {
   return includesAny(normalizedMessage, CANCELLED_PATTERNS);
 }
 
+/** One step is past its ceilings on its own, so there is no smaller send to fall back on. */
+export const DEPOSIT_PAST_CEILINGS = "deposit-past-ceilings";
+
 export function classifyTxError(error: unknown): TxErrorView {
+  // The send went out and nobody can say whether it landed, so it must not read as failed or invite
+  // another send. No raw text, because every surface prefers a meaningful raw message to the key.
+  if (isUnconfirmedTxError(error)) {
+    return {
+      kind: "unconfirmed",
+      severity: "warning",
+      titleKey: "app.txFeedback.unconfirmed.title",
+      messageKey: "app.txFeedback.unconfirmed.message",
+      rawMessage: "",
+    };
+  }
+
   const rawMessage = extractErrorMessage(error).trim();
   const normalizedMessage = rawMessage.toLowerCase();
+
+  if (normalizedMessage === "batch-budget-exceeded") {
+    return {
+      kind: "overCeilings",
+      severity: "warning",
+      titleKey: "app.txFeedback.overCeilings.title",
+      messageKey: "app.txFeedback.overCeilings.message",
+      rawMessage: "",
+    };
+  }
+
+  if (normalizedMessage === DEPOSIT_PAST_CEILINGS) {
+    return {
+      kind: "pastCeilings",
+      severity: "warning",
+      titleKey: "app.txFeedback.pastCeilings.title",
+      messageKey: "app.txFeedback.pastCeilings.message",
+      rawMessage: "",
+    };
+  }
 
   if (isPasskeyCredentialUnavailableError(error)) {
     return {
@@ -274,6 +359,92 @@ export function classifyTxError(error: unknown): TxErrorView {
     messageKey: "app.errors.blockchain.unknown.message",
     rawMessage,
   };
+}
+
+const UNCONFIRMED_ERROR_NAMES: ReadonlySet<string> = new Set([
+  "TransactionConfirmationPendingError",
+  // A send's receipt that outlasted its wait's limit (PRD-1551): sent, and still confirming.
+  "ReceiptWaitLimitError",
+  "WaitForTransactionReceiptTimeoutError",
+  "WaitForUserOperationReceiptTimeoutError",
+]);
+
+/**
+ * Another send of the same thing still holds it, so this one sent nothing and has the same
+ * answer: not yet known.
+ */
+export function isHeldByAnotherSend(error: unknown): boolean {
+  return error instanceof Error && error.message === "batch-items-held";
+}
+
+export function isUnconfirmedTxError(error: unknown): boolean {
+  return hasErrorName(error, UNCONFIRMED_ERROR_NAMES) || isHeldByAnotherSend(error);
+}
+
+const STOPPED_WAITING_NAMES: ReadonlySet<string> = new Set(["WalletAnswerAbandonedError"]);
+
+/**
+ * A send that must not be offered again: it went out with no receipt yet, or the person stopped
+ * waiting while the wallet may still hold its request. Neither failed; a second send could land
+ * twice (PRD-1551).
+ */
+export function mayStillLand(error: unknown): boolean {
+  return isUnconfirmedTxError(error) || hasErrorName(error, STOPPED_WAITING_NAMES);
+}
+
+/**
+ * How `parseContractError` reads a send that went out with no receipt yet (its wait outlasted
+ * its limit, or the answer was a proposal or a lost reply): in the words `classifyTxError` uses,
+ * never as failed, nor as a timeout that invites trying again (PRD-1551).
+ */
+/** The pending send's own answer, on the error or on one it wraps as its `cause`. */
+function pendingSubmission(error: unknown, depth = 0): { awaiting?: string } | undefined {
+  if (depth > 4 || !(error instanceof Error)) return undefined;
+  const { submission, cause } = error as Error & {
+    submission?: { awaiting?: string };
+    cause?: unknown;
+  };
+  return submission ?? pendingSubmission(cause, depth + 1);
+}
+
+export function parseUnconfirmedSend(error: unknown, raw: string): ParsedContractError | null {
+  if (!isUnconfirmedTxError(error)) return null;
+  // A Safe proposal waits for the Safe's owners, not the network, and says so, even when a
+  // stage error wraps it.
+  if (pendingSubmission(error)?.awaiting === "safe-signers")
+    return {
+      raw,
+      name: "SafeProposalPending",
+      message:
+        "Your Safe has the proposal. It goes through once enough of the Safe's owners sign it.",
+      titleKey: "app.sendStage.safeSigners",
+      messageKey: "app.sendStage.safeSigners.detail",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "check-wallet",
+    };
+  return {
+    raw,
+    name: "SendStillConfirming",
+    message: "It could still go through, so wait a moment and check before you try again.",
+    titleKey: "app.txFeedback.unconfirmed.title",
+    messageKey: "app.txFeedback.unconfirmed.message",
+    isKnown: true,
+    recoverable: false,
+    suggestedAction: "check-wallet",
+  };
+}
+
+/** Some non-standard tokens revert on allowance(), which is not the same as a failed read. */
+export function isRecoverableAllowanceReadError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    message.includes("revert") ||
+    message.includes("execution reverted") ||
+    message.includes("contractfunctionexecutionerror") ||
+    message.includes("call_exception")
+  );
 }
 
 export function isCancelledTxError(error: unknown): boolean {

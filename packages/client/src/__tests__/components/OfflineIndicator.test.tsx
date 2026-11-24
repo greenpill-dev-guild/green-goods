@@ -132,16 +132,34 @@ describe("OfflineIndicator", () => {
       );
     });
 
-    it("dismiss button hides the install nudge", async () => {
+    it("dismiss button hides the install nudge and leaves the header where it is", async () => {
       const user = userEvent.setup();
 
-      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
+      const { unmount } = renderWithIntl(
+        createElement(MemoryRouter, null, createElement(InstallNudge))
+      );
 
       expect(screen.getByText("Install for full experience.")).toBeInTheDocument();
+      // Shared theme.css starts the top controls 24px below the status bar while the root
+      // carries this, so the 24px strip never covers them. It outlives a dismiss, so
+      // nothing moves when the strip goes.
+      expect(document.documentElement).toHaveAttribute("data-install-prompt");
 
       await user.click(screen.getByLabelText("Dismiss"));
 
       expect(screen.queryByLabelText("Dismiss")).not.toBeInTheDocument();
+      expect(document.documentElement).toHaveAttribute("data-install-prompt");
+      unmount();
+      expect(document.documentElement).not.toHaveAttribute("data-install-prompt");
+    });
+
+    it("keeps the installed app's 16px space above the top controls", () => {
+      mockAppState.isInstalled = true;
+
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
+
+      expect(screen.queryByTestId("install-nudge")).not.toBeInTheDocument();
+      expect(document.documentElement).not.toHaveAttribute("data-install-prompt");
     });
   });
 

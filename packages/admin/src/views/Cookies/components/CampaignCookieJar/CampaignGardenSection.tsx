@@ -26,10 +26,10 @@ export function CampaignGardenSection(props: CampaignCookieJarCreateFormProps) {
         listClassName="overflow-visible"
       />
       {aggregation.missingStewardGardens.length > 0 ? (
-        <p className="mt-3 text-body-sm text-error-dark">
+        <p className="mt-3 type-meta text-error-dark">
           {formatMessage(
             {
-              id: "cockpit.community.cookies.missingStewardsSummary",
+              id: "hub.community.cookies.missingStewardsSummary",
               defaultMessage:
                 "{count, plural, one {# selected garden has no steward} other {# selected gardens have no steward}}.",
             },

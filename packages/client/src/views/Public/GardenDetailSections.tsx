@@ -86,7 +86,7 @@ export function CertificatesSection({
           message={formatMessage({
             id: "public.gardenDetail.certificates.empty",
             defaultMessage:
-              "No Impact Certificates yet. They appear when approved submissions are bundled.",
+              "No impact certificates yet. They appear when approved submissions are bundled.",
           })}
         />
       ) : (
@@ -147,7 +147,7 @@ export function StewardsSection({ stewards, loading }: { stewards: Address[]; lo
       })}
       helper={formatMessage({
         id: "public.gardenDetail.stewards.helper",
-        defaultMessage: "The local coordinators who review submissions and care for this Garden.",
+        defaultMessage: "The local coordinators who review submissions and care for this garden.",
       })}
     >
       {loading ? (
@@ -156,7 +156,7 @@ export function StewardsSection({ stewards, loading }: { stewards: Address[]; lo
         <SectionEmpty
           message={formatMessage({
             id: "public.gardenDetail.stewards.empty",
-            defaultMessage: "No stewards are listed for this Garden yet.",
+            defaultMessage: "No stewards are listed for this garden yet.",
           })}
         />
       ) : (

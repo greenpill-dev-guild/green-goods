@@ -39,7 +39,7 @@ responsible for protocol entities, not for EAS attestations.
 
 ## Validation
 
-- QA Speed Mode: run `node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/<file>.test.ts` for one behavior.
+- QA Speed Mode: run `bun run test --scope handlers -- test/<file>.test.ts` for one behavior.
 - Package loop: `bun run check:indexing-boundary && bun run test && bun run build`.
 - Conditional proof: schema, config, or generated-type changes require `bun run codegen && bun run build` before targeted tests are trusted.
 - Broader impact: run the root Repo Quick Gate when event, ABI, schema, or consumer-facing data contracts move.

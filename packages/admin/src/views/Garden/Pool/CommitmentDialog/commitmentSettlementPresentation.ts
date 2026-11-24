@@ -9,6 +9,7 @@ import type {
   SettlementStepId,
 } from "@green-goods/shared/modules/commitment-pooling/settlement-workflow";
 import type { IntlShape } from "react-intl";
+import { readinessReasonDescriptor } from "../poolFundingPresentation";
 
 type Message = { id: string; defaultMessage: string };
 
@@ -16,11 +17,11 @@ export function payoutKindLabel(kind: SettlementPayoutKind, intl: IntlShape): st
   return intl.formatMessage(
     kind === "GARDEN_BENEFICIARY"
       ? {
-          id: "cockpit.garden.pool.settlement.kind.beneficiary",
+          id: "hub.garden.pool.settlement.kind.beneficiary",
           defaultMessage: "Garden beneficiary payout",
         }
       : {
-          id: "cockpit.garden.pool.settlement.kind.contributor",
+          id: "hub.garden.pool.settlement.kind.contributor",
           defaultMessage: "Contributor consideration",
         }
   );
@@ -28,28 +29,28 @@ export function payoutKindLabel(kind: SettlementPayoutKind, intl: IntlShape): st
 
 const STEP_LABELS: Record<SettlementStepId, Message> = {
   "create-plan": {
-    id: "cockpit.garden.pool.settlement.step.create-plan",
+    id: "hub.garden.pool.settlement.step.create-plan",
     defaultMessage: "Create payout plan",
   },
   "contributor-split": {
-    id: "cockpit.garden.pool.settlement.step.contributor-split",
+    id: "hub.garden.pool.settlement.step.contributor-split",
     defaultMessage: "Contributor split (default from recognition)",
   },
   "finalize-plan": {
-    id: "cockpit.garden.pool.settlement.step.finalize-plan",
+    id: "hub.garden.pool.settlement.step.finalize-plan",
     defaultMessage: "Finalize payout plan",
   },
   "prepare-payout": {
-    id: "cockpit.garden.pool.settlement.step.prepare-payout",
+    id: "hub.garden.pool.settlement.step.prepare-payout",
     defaultMessage: "Prepare payout",
   },
   dispatch: {
-    id: "cockpit.garden.pool.settlement.step.dispatch",
+    id: "hub.garden.pool.settlement.step.dispatch",
     defaultMessage: "Dispatch to Celo",
   },
   acknowledgement: {
-    id: "cockpit.garden.pool.settlement.step.acknowledgement",
-    defaultMessage: "Celo acknowledgement",
+    id: "hub.garden.pool.settlement.step.acknowledgement",
+    defaultMessage: "Celo acknowledgment",
   },
 };
 
@@ -63,7 +64,7 @@ export function stepChip(step: SettlementStep, intl: IntlShape): StepChip {
   if (step.status === "done") {
     return {
       label: intl.formatMessage({
-        id: "cockpit.garden.pool.settlement.stepStatus.done",
+        id: "hub.garden.pool.settlement.stepStatus.done",
         defaultMessage: "Done",
       }),
       variant: "success",
@@ -72,7 +73,7 @@ export function stepChip(step: SettlementStep, intl: IntlShape): StepChip {
   if (step.status === "current" && step.blockers.length > 0) {
     return {
       label: intl.formatMessage({
-        id: "cockpit.garden.pool.settlement.stepStatus.blocked",
+        id: "hub.garden.pool.settlement.stepStatus.blocked",
         defaultMessage: "Blocked",
       }),
       variant: "warning",
@@ -81,7 +82,7 @@ export function stepChip(step: SettlementStep, intl: IntlShape): StepChip {
   if (step.status === "current") {
     return {
       label: intl.formatMessage({
-        id: "cockpit.garden.pool.settlement.stepStatus.current",
+        id: "hub.garden.pool.settlement.stepStatus.current",
         defaultMessage: "Next",
       }),
       variant: "neutral",
@@ -89,7 +90,7 @@ export function stepChip(step: SettlementStep, intl: IntlShape): StepChip {
   }
   return {
     label: intl.formatMessage({
-      id: "cockpit.garden.pool.settlement.stepStatus.upcoming",
+      id: "hub.garden.pool.settlement.stepStatus.upcoming",
       defaultMessage: "Later",
     }),
     variant: "neutral",
@@ -97,14 +98,14 @@ export function stepChip(step: SettlementStep, intl: IntlShape): StepChip {
 }
 
 const PLAN_STATUS_LABELS: Record<SettlementPlanStatus, Message> = {
-  DRAFT: { id: "cockpit.garden.pool.settlement.planStatus.DRAFT", defaultMessage: "Draft" },
-  PENDING: { id: "cockpit.garden.pool.settlement.planStatus.PENDING", defaultMessage: "Pending" },
-  PARTIAL: { id: "cockpit.garden.pool.settlement.planStatus.PARTIAL", defaultMessage: "Partial" },
+  DRAFT: { id: "hub.garden.pool.settlement.planStatus.DRAFT", defaultMessage: "Draft" },
+  PENDING: { id: "hub.garden.pool.settlement.planStatus.PENDING", defaultMessage: "Pending" },
+  PARTIAL: { id: "hub.garden.pool.settlement.planStatus.PARTIAL", defaultMessage: "Partial" },
   COMPLETE: {
-    id: "cockpit.garden.pool.settlement.planStatus.COMPLETE",
+    id: "hub.garden.pool.settlement.planStatus.COMPLETE",
     defaultMessage: "Complete",
   },
-  FAILED: { id: "cockpit.garden.pool.settlement.planStatus.FAILED", defaultMessage: "Failed" },
+  FAILED: { id: "hub.garden.pool.settlement.planStatus.FAILED", defaultMessage: "Failed" },
 };
 
 export function planStatusLabel(status: SettlementPlanStatus, intl: IntlShape): string {
@@ -116,42 +117,42 @@ const DISPLAY_LABELS: Record<
   Message & { variant: "success" | "warning" | "error" | "neutral" }
 > = {
   queued: {
-    id: "cockpit.garden.pool.settlement.display.queued",
+    id: "hub.garden.pool.settlement.display.queued",
     defaultMessage: "Queued",
     variant: "neutral",
   },
   dispatched: {
-    id: "cockpit.garden.pool.settlement.display.dispatched",
+    id: "hub.garden.pool.settlement.display.dispatched",
     defaultMessage: "Dispatched",
     variant: "neutral",
   },
   "acknowledgement-pending": {
-    id: "cockpit.garden.pool.settlement.display.acknowledgement-pending",
-    defaultMessage: "Awaiting acknowledgement",
+    id: "hub.garden.pool.settlement.display.acknowledgement-pending",
+    defaultMessage: "Awaiting acknowledgment",
     variant: "warning",
   },
   "delivery-delayed": {
-    id: "cockpit.garden.pool.settlement.display.delivery-delayed",
+    id: "hub.garden.pool.settlement.display.delivery-delayed",
     defaultMessage: "Delivery delayed",
     variant: "warning",
   },
   confirmed: {
-    id: "cockpit.garden.pool.settlement.display.confirmed",
+    id: "hub.garden.pool.settlement.display.confirmed",
     defaultMessage: "Confirmed",
     variant: "success",
   },
   failed: {
-    id: "cockpit.garden.pool.settlement.display.failed",
+    id: "hub.garden.pool.settlement.display.failed",
     defaultMessage: "Failed",
     variant: "error",
   },
   cancelled: {
-    id: "cockpit.garden.pool.settlement.display.cancelled",
-    defaultMessage: "Cancelled",
+    id: "hub.garden.pool.settlement.display.cancelled",
+    defaultMessage: "Canceled",
     variant: "neutral",
   },
   unknown: {
-    id: "cockpit.garden.pool.settlement.display.unknown",
+    id: "hub.garden.pool.settlement.display.unknown",
     defaultMessage: "Unknown",
     variant: "neutral",
   },
@@ -164,55 +165,78 @@ export function displayChip(state: SettlementDisplayState, intl: IntlShape) {
 
 const BLOCKER_MESSAGES: Record<SettlementActionBlocker, Message> = {
   "wallet-disconnected": {
-    id: "cockpit.garden.pool.settlement.blocker.wallet-disconnected",
+    id: "hub.garden.pool.settlement.blocker.wallet-disconnected",
     defaultMessage: "Connect a wallet to act.",
   },
   offline: {
-    id: "cockpit.garden.pool.settlement.blocker.offline",
-    defaultMessage: "Needs a connection. Settlement calls are sent straight to the chain.",
+    id: "hub.garden.pool.settlement.blocker.offline",
+    defaultMessage: "Needs a connection. Settlement steps are sent right away, not queued.",
   },
   "missing-payer-steward": {
-    id: "cockpit.garden.pool.settlement.blocker.missing-payer-steward",
+    id: "hub.garden.pool.settlement.blocker.missing-payer-steward",
     defaultMessage: "Only a steward or owner of the paying garden can run the payout plan.",
   },
   "missing-operator": {
-    id: "cockpit.garden.pool.settlement.blocker.missing-dispatch-authority",
+    id: "hub.garden.pool.settlement.blocker.missing-dispatch-authority",
     defaultMessage:
       "Only the settlement owner, the paying garden's stewards or the dispatcher can move disbursements.",
   },
   "source-paused": {
-    id: "cockpit.garden.pool.settlement.blocker.source-paused",
+    id: "hub.garden.pool.settlement.blocker.source-paused",
     defaultMessage: "Settlement is paused on Arbitrum.",
   },
   "payer-account-inactive": {
-    id: "cockpit.garden.pool.settlement.blocker.payer-account-inactive",
+    id: "hub.garden.pool.settlement.blocker.payer-account-inactive",
     defaultMessage: "The paying garden has no active settlement account.",
   },
   "beneficiary-account-inactive": {
-    id: "cockpit.garden.pool.settlement.blocker.beneficiary-account-inactive",
+    id: "hub.garden.pool.settlement.blocker.beneficiary-account-inactive",
     defaultMessage: "The receiving garden has no active settlement account.",
   },
   "gardener-delivery-disabled": {
-    id: "cockpit.garden.pool.settlement.blocker.gardener-delivery-disabled",
+    id: "hub.garden.pool.settlement.blocker.gardener-delivery-disabled",
     defaultMessage:
       "Gardener delivery is off. Contributor payouts cannot be prepared until the settlement owner enables it.",
   },
   "recognition-unready": {
-    id: "cockpit.garden.pool.settlement.blocker.recognition-unready",
+    id: "hub.garden.pool.settlement.blocker.recognition-unready",
     defaultMessage: "The module did not accept the recognition vector for this roster.",
   },
   "chain-read-pending": {
-    id: "cockpit.garden.pool.settlement.blocker.chain-read-pending",
+    id: "hub.garden.pool.settlement.blocker.chain-read-pending",
     defaultMessage: "Reading the settlement module…",
   },
   "chain-read-failed": {
-    id: "cockpit.garden.pool.settlement.blocker.chain-read-failed",
+    id: "hub.garden.pool.settlement.blocker.chain-read-failed",
     defaultMessage: "The settlement module could not be read.",
   },
   acting: {
-    id: "cockpit.garden.pool.settlement.blocker.acting",
+    id: "hub.garden.pool.settlement.blocker.acting",
     defaultMessage: "A transaction is already in flight.",
   },
+  "proposal-pending": {
+    id: "hub.garden.pool.settlement.blocker.proposal-pending",
+    defaultMessage:
+      "A Safe proposal for this step is waiting for signatures. If your Safe rejected it, reopen this promise to send it again.",
+  },
+  "funding-unread": {
+    id: "hub.garden.pool.settlement.blocker.funding-unread",
+    defaultMessage:
+      "The paying garden's Celo Safe balance and limits haven't been read, so nothing can be dispatched yet.",
+  },
+  "funding-over-limit": {
+    id: "hub.garden.pool.settlement.blocker.funding-over-limit",
+    defaultMessage:
+      "This is more than the paying garden's Celo Safe can send right now. Add funds or wait for its allowance to reset.",
+  },
+  // What Celo would refuse a transfer for, in the words the funding facts use.
+  inactive_route: readinessReasonDescriptor("inactive_route"),
+  executor_paused: readinessReasonDescriptor("executor_paused"),
+  token_paused: readinessReasonDescriptor("token_paused"),
+  executor_unreadable: readinessReasonDescriptor("executor_unreadable"),
+  token_unreadable: readinessReasonDescriptor("token_unreadable"),
+  fee_policy_unavailable: readinessReasonDescriptor("fee_policy_unavailable"),
+  fee_policy_breach: readinessReasonDescriptor("fee_policy_breach"),
 };
 
 export function blockerMessage(blocker: SettlementActionBlocker, intl: IntlShape): string {
@@ -221,20 +245,20 @@ export function blockerMessage(blocker: SettlementActionBlocker, intl: IntlShape
 
 const ELIGIBILITY_MESSAGES: Record<SettlementEligibilityBlocker, Message> = {
   "pooling-unavailable": {
-    id: "cockpit.garden.pool.settlement.ineligible.pooling-unavailable",
+    id: "hub.garden.pool.settlement.ineligible.pooling-unavailable",
     defaultMessage: "Commitment pooling is not available on this chain.",
   },
   "not-fulfilled": {
-    id: "cockpit.garden.pool.settlement.ineligible.not-fulfilled",
-    defaultMessage: "The commitment is not fulfilled yet.",
+    id: "hub.garden.pool.settlement.ineligible.not-fulfilled",
+    defaultMessage: "The promise is not kept yet.",
   },
   "no-celo-consideration": {
-    id: "cockpit.garden.pool.settlement.ineligible.no-celo-consideration",
-    defaultMessage: "No Celo G$ consideration is declared on this commitment.",
+    id: "hub.garden.pool.settlement.ineligible.no-celo-consideration",
+    defaultMessage: "No Celo G$ consideration is declared on this promise.",
   },
   "payer-garden-unknown": {
-    id: "cockpit.garden.pool.settlement.ineligible.payer-garden-unknown",
-    defaultMessage: "The paying garden is not set on this commitment.",
+    id: "hub.garden.pool.settlement.ineligible.payer-garden-unknown",
+    defaultMessage: "The paying garden is not set on this promise.",
   },
 };
 
@@ -250,30 +274,30 @@ export function actionLabel(
   switch (action.kind) {
     case "create-plan":
       return intl.formatMessage({
-        id: "cockpit.garden.pool.settlement.act.create-plan",
+        id: "hub.garden.pool.settlement.act.create-plan",
         defaultMessage: "Create Payout Plan…",
       });
     case "finalize-plan":
       return intl.formatMessage({
-        id: "cockpit.garden.pool.settlement.act.finalize-plan",
+        id: "hub.garden.pool.settlement.act.finalize-plan",
         defaultMessage: "Finalize Payout Plan…",
       });
     case "prepare-beneficiary":
       return intl.formatMessage({
-        id: "cockpit.garden.pool.settlement.act.prepare-beneficiary",
+        id: "hub.garden.pool.settlement.act.prepare-beneficiary",
         defaultMessage: "Prepare Garden Payout…",
       });
     case "prepare-contributor":
       return intl.formatMessage(
         {
-          id: "cockpit.garden.pool.settlement.act.prepare-contributor",
+          id: "hub.garden.pool.settlement.act.prepare-contributor",
           defaultMessage: "Prepare Payout for {who}…",
         },
         { who: who(action.contributor) }
       );
     case "dispatch":
       return intl.formatMessage({
-        id: "cockpit.garden.pool.settlement.act.dispatch",
+        id: "hub.garden.pool.settlement.act.dispatch",
         defaultMessage: "Dispatch…",
       });
   }

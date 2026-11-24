@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voucher escrow detail in the cockpit</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Sunroot Skills Hub</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">A</span></span>
+  </header>
+  <main class="c-route">
+    <div class="c-head">
+      <div><p style="margin: 0 0 4px">Promises › {{crumb}}</p><h1>Solar basics course, 10 lessons</h1><p>Offer at Sunroot Skills Hub · taken up by Lina</p></div>
+      <span class="sb {{headSb}}">{{headTag}}</span>
+    </div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Escrow</h2><p>Green Goods voucher escrow on Gnosis, for this promise only</p></div></div>
+          <div class="ab"><div class="checks">
+            <sc-for list="{{escrow}}" as="e" hint-placeholder-count="4"><div class="ckr {{e.cls}}"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{e.icon}}"/></svg></span><span>{{e.t}}<small>{{e.s}}</small></span></div></sc-for>
+          </div></div>
+        </section>
+        <sc-if value="{{hasSplit}}" hint-placeholder-val="{{true}}">
+          <section class="acard">
+            <div class="ah"><div><h2>Final Split</h2><p>Frozen by Lina, Oct 30 · 3 of 10 lessons · read-only</p></div><span class="sb neu">Frozen</span></div>
+            <div class="ab">
+              <div class="splitbar"><span class="a" style="width: 40%">40 to reserve</span><span class="b" style="width: 60%">60 back to Lina</span></div>
+            </div>
+          </section>
+          <section class="acard">
+            <div class="ah"><div><h2>Transfers</h2><p>Each runs on its own. A retry resends the same amount to the same place.</p></div></div>
+            <div class="arow"><div class="l1"><span class="nm">Release · 40 to Sunroot's reserve</span><span class="sb {{relSb}}">{{rel}}</span></div><div class="l2">{{relMeta}}</div></div>
+            <div class="arow"><div class="l1"><span class="nm">Refund · 60 to Lina's Gnosis wallet</span><span class="sb {{refSb}}">{{ref}}</span></div><div class="l2">{{refMeta}}</div>
+              <div class="acts"><sc-if value="{{refFail}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill">Retry Same Transfer</button></sc-if></div>
+            </div>
+            <sc-if value="{{refFail}}" hint-placeholder-val="{{false}}"><div class="ab" style="padding-top: 10px"><span class="small">Resends exactly 60 to the same wallet. It can't change the amount or touch the release.</span></div></sc-if>
+          </section>
+        </sc-if>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Financial closure</h2><p>Vouchers only. The promise's kept status and any outside service are separate.</p></div></div>
+          <div class="ab"><div class="flowrow {{closeCls}}">{{closure}}</div></div>
+        </section>
+        <section class="acard">
+          <div class="ah"><div><h2>Voucher Terms</h2><p>Version 2 · frozen, read-only</p></div></div>
+          <div class="ab"><div class="afacts">
+            <div class="afact"><span class="k">Price</span><span class="v">100 Sunroot vouchers</span></div>
+            <div class="afact"><span class="k">Acceptance window</span><span class="v">3 days after escrow is ready</span></div>
+            <div class="afact"><span class="k">Remedy</span><span class="v">Up to 100 returned, as Sunroot authorizes</span></div>
+            <div class="afact"><span class="k">Holder wallet</span><span class="v"><span class="mono">0x9A40…41bD</span></span></div>
+          </div>
+          <span class="small">Released vouchers return to Sunroot's reserve for reuse within its budget. Nothing is burned.</span></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["In flight","Refund failed","Ack pending","Settled","Setup refunded"],"default":"In flight","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var st = this.props.state ?? 'In flight';
+    var dark = this.props.dark ?? false;
+    var OK = '#ri-check-line', NO = '#ri-close-line', WAIT = '#ri-time-line';
+    var refunded = st === 'Setup refunded';
+    var escrow = [
+      { cls: 'ok', icon: OK, t: 'Setup approved by Sunroot', s: 'Ade and Joy · Oct 22, 11:05 AM' },
+      { cls: 'ok', icon: OK, t: '100 deposited by 0x9A40…41bD', s: 'Oct 22, 11:20 AM' },
+      { cls: 'ok', icon: OK, t: 'Proof received on Arbitrum', s: 'Oct 22, 11:24 AM' },
+      refunded ? { cls: 'wait', icon: WAIT, t: 'Setup canceled by Lina before acceptance', s: 'All 100 returned Oct 25, 5:40 PM' } : { cls: 'ok', icon: OK, t: 'Accepted · activation confirmed on Gnosis', s: 'Oct 23, 9:10 AM' },
+    ];
+    var T = {
+      'In flight': [['info', 'Sent', 'Oct 30, 2:14 PM'], ['info', 'Sent', 'Oct 30, 2:14 PM'], ['', 'Open until both transfers finish']],
+      'Refund failed': [['ok', 'Confirmed', 'Done on Gnosis · Oct 30, 2:16 PM'], ['err', 'Failed · attempt 1', 'Oct 30, 2:14 PM · the wallet rejected the transfer'], ['', 'Open until both transfers finish']],
+      'Ack pending': [['ok', 'Confirmed', 'Done on Gnosis · Oct 30, 2:16 PM'], ['info', 'Done on Gnosis', 'Confirmation not back yet'], ['', 'Open until both transfers finish']],
+      'Settled': [['ok', 'Confirmed', 'Oct 30, 2:16 PM'], ['ok', 'Confirmed', 'Oct 30, 2:18 PM'], ['ok', 'Vouchers settled Oct 30.']],
+      'Setup refunded': [['neu', 'None', ''], ['neu', 'None', ''], ['ok', 'Closed · nothing released, all 100 back with Lina']],
+    };
+    var t = T[st];
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      crumb: refunded ? 'Ended' : 'Under way',
+      headSb: st === 'Settled' || refunded ? 'ok' : (st === 'Refund failed' ? 'err' : 'info'),
+      headTag: refunded ? 'Setup refunded' : (st === 'Settled' ? 'Vouchers settled' : (st === 'Refund failed' ? 'One transfer failed' : 'Vouchers moving')),
+      escrow: escrow, hasSplit: !refunded,
+      relSb: t[0][0], rel: t[0][1], relMeta: t[0][2],
+      refSb: t[1][0], ref: t[1][1], refMeta: t[1][2], refFail: st === 'Refund failed',
+      closeCls: t[2][0], closure: t[2][1],
+    };
+  }
+}
+</script>
+</body>
+</html>

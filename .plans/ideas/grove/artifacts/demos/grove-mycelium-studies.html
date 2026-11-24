@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grove · Mycelium design studies</title>
+<style>
+:root{color-scheme:light;--background:#faf8f1;--foreground:#23372b;--muted-foreground:#657163;--viz-series-1:#32734c;--viz-series-2:#b16a35;--viz-series-3:#6b7299}body{margin:0;padding:20px;background:var(--background);color:var(--foreground);font:15px/1.5 system-ui,sans-serif}a{color:inherit}.prototype-note{max-width:1200px;margin:0 auto 16px;padding:12px 16px;border:1px solid #cbd3c4;border-radius:12px;background:#f0f2e8}.prototype-note a{font-weight:600}.prototype-note p{margin:4px 0}button,input,select{font:inherit}:focus-visible{outline:3px solid #28784f;outline-offset:4px}
+</style>
+</head>
+<body>
+<aside class="prototype-note" aria-label="Prototype context"><a href="index.html">← All Grove demos</a><p><strong>Design prototype.</strong> Synthetic design prototype. No live garden data.</p></aside>
+<div id="grove-mycelium-studies">
+  <div class="viz-carousel" aria-label="Grove mycelium design studies">
+    <section data-variant="Mycelium atlas"><div class="grove-study" data-layout="atlas" aria-label="Mycelium atlas design"></div></section>
+    <section data-variant="Root pathways" hidden><div class="grove-study" data-layout="pathways" aria-label="Root pathways design"></div></section>
+    <section data-variant="Mycelium cross-section" hidden><div class="grove-study" data-layout="rings" aria-label="Mycelium cross-section design"></div></section>
+  </div>
+</div>
+<style>
+#grove-mycelium-studies .grove-study{
+  --g-canvas:light-dark(#FAF8F5,#1C1917);--g-panel:light-dark(#F5F5F4,#292524);--g-ink:light-dark(#292524,#F5F5F4);--g-muted:light-dark(#68615C,#BDB5AD);--g-rule:light-dark(#DDD6CD,#4B4540);--g-green:light-dark(#1A7544,#C2F5DA);--g-on-green:light-dark(#FFFFFF,#0C0A09);--g-amber:light-dark(#8C510C,#F0BF7D);--g-filament:light-dark(#958A7B,#958D80);--g-wash:light-dark(#E9ECE0,#292C25);--g-soft:light-dark(#EFE9DF,#322C25);--g-round:16px;--g-pill:9999px;
+  color:var(--g-ink);background:var(--g-canvas);font:400 14px/1.45 Inter,ui-sans-serif,system-ui,sans-serif;min-height:880px;position:relative;isolation:isolate;overflow:hidden;border-radius:var(--g-round);container-type:inline-size;
+}
+#grove-mycelium-studies .grove-study *{box-sizing:border-box}
+#grove-mycelium-studies .grove-study button,#grove-mycelium-studies .grove-study input,#grove-mycelium-studies .grove-study select{font:inherit;color:inherit}
+#grove-mycelium-studies .g-header{display:flex;align-items:center;gap:20px;padding:20px 24px 16px;border-bottom:1px solid var(--g-rule)}
+#grove-mycelium-studies .g-brand{font:500 30px/1 Georgia,serif;letter-spacing:-1.6px;display:flex;align-items:baseline;gap:8px}
+#grove-mycelium-studies .g-brand span{color:var(--g-green);font:400 16px/1 Inter,sans-serif;letter-spacing:0}
+#grove-mycelium-studies .g-garden{padding-left:20px;border-left:1px solid var(--g-rule);font-size:13px}
+#grove-mycelium-studies .g-garden small{display:block;color:var(--g-muted);font-size:11px;margin-top:3px}
+#grove-mycelium-studies .g-status{margin-left:auto;color:var(--g-muted);font-size:11px;white-space:nowrap;padding-right:70px}
+#grove-mycelium-studies .g-status:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--g-green);margin-right:7px}
+#grove-mycelium-studies .g-heading{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;padding:20px 24px 12px}
+#grove-mycelium-studies .g-heading h2{font:400 25px/1.2 Georgia,serif;margin:0;letter-spacing:-.4px}
+#grove-mycelium-studies .g-heading p{font-size:12px;color:var(--g-muted);margin:6px 0 0}
+#grove-mycelium-studies .g-new{border:1px solid var(--g-rule);background:var(--g-canvas);border-radius:var(--g-pill);padding:7px 12px;white-space:nowrap;font-size:12px}
+#grove-mycelium-studies .g-new[aria-pressed="true"]{color:var(--g-on-green);background:var(--g-green);border-color:var(--g-green)}
+#grove-mycelium-studies .g-toolbar{display:flex;gap:10px;padding:0 24px 16px;align-items:center;flex-wrap:wrap}
+#grove-mycelium-studies .g-search{display:flex;gap:8px;align-items:center;flex:1;min-width:180px;border-bottom:1px solid var(--g-rule);padding:6px 0}
+#grove-mycelium-studies .g-search span{color:var(--g-muted);font-size:12px}
+#grove-mycelium-studies .g-search input{width:100%;background:transparent;border:0;padding:3px;min-width:0;outline-offset:3px;font-size:13px}
+#grove-mycelium-studies select{max-width:100%;background:var(--g-canvas);border:1px solid var(--g-rule);border-radius:8px;padding:7px 9px;font-size:12px}
+#grove-mycelium-studies .g-workspace{display:grid;grid-template-columns:minmax(0,1fr) 260px;border-top:1px solid var(--g-rule);min-height:530px}
+#grove-mycelium-studies .g-map{position:relative;min-width:0;height:530px;background:radial-gradient(ellipse at 43% 50%,var(--g-wash),transparent 67%)}
+#grove-mycelium-studies .g-map:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.09;background-image:radial-gradient(var(--g-filament) .65px,transparent .65px);background-size:7px 7px;z-index:-1}
+#grove-mycelium-studies .g-graph{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#grove-mycelium-studies .g-caption{position:absolute;left:20px;top:15px;font-size:11px;color:var(--g-muted);letter-spacing:.06em;pointer-events:none}
+#grove-mycelium-studies .g-live{position:absolute;left:20px;bottom:12px;color:var(--g-muted);font-size:11px;max-width:75%}
+#grove-mycelium-studies .g-empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px;background:var(--g-canvas);border:1px solid var(--g-rule);border-radius:8px;white-space:nowrap}
+#grove-mycelium-studies .g-edge{fill:none;stroke:var(--g-filament);stroke-width:1.3;stroke-linecap:round}
+#grove-mycelium-studies .g-edge.suggested{stroke-dasharray:5 5;stroke:var(--g-amber)}
+#grove-mycelium-studies .g-edge.selected{stroke:var(--g-green);stroke-width:2.7;opacity:1}
+#grove-mycelium-studies .g-edge.new-edge:not(.selected){stroke:var(--g-green);stroke-width:1.8}
+#grove-mycelium-studies .g-edge-hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke}
+#grove-mycelium-studies .g-edge-label{font:500 11px Inter,system-ui,sans-serif;fill:var(--g-ink);paint-order:stroke;stroke:var(--g-canvas);stroke-width:7;stroke-linejoin:round}
+#grove-mycelium-studies .g-underlay{fill:none;stroke:var(--g-rule);stroke-width:.8;stroke-dasharray:2 5}
+#grove-mycelium-studies .g-ring-label{font:400 11px Inter,sans-serif;fill:var(--g-muted);paint-order:stroke;stroke:var(--g-canvas);stroke-width:5}
+#grove-mycelium-studies .g-node{position:absolute;padding:0;border:0;background:transparent;width:28px;height:28px;display:block;text-align:left;z-index:2;border-radius:50%}
+#grove-mycelium-studies .g-node:focus-visible{z-index:6}
+#grove-mycelium-studies .g-pin{display:block;position:absolute;left:7px;top:7px;width:14px;height:14px;border:1.5px solid var(--g-filament);background:var(--g-canvas);border-radius:50%;box-shadow:0 0 0 4px var(--g-canvas)}
+#grove-mycelium-studies .g-node[data-kind="source"] .g-pin{border-radius:3px;transform:rotate(45deg);width:11px;height:11px;left:8px;top:8px}
+#grove-mycelium-studies .g-node[data-kind="garden"] .g-pin{width:22px;height:22px;left:3px;top:3px;background:var(--g-green);border-color:var(--g-green);box-shadow:0 0 0 6px var(--g-canvas),0 0 0 7px var(--g-rule)}
+#grove-mycelium-studies .g-node[data-kind="question"] .g-pin{border-style:dashed}
+#grove-mycelium-studies .g-node.is-new .g-pin:after{content:"";position:absolute;inset:-6px;border:1px solid var(--g-green);border-radius:inherit}
+#grove-mycelium-studies .g-node.selected .g-pin{background:var(--g-green);border-color:var(--g-green);box-shadow:0 0 0 5px var(--g-canvas),0 0 0 6px var(--g-green)}
+#grove-mycelium-studies .g-node-label{position:absolute;left:34px;top:1px;width:137px;line-height:1.25;font-size:13px;padding:1px 4px;background:transparent;-webkit-text-stroke:3px var(--g-canvas);paint-order:stroke fill;pointer-events:auto}
+#grove-mycelium-studies .g-node-label strong{display:block;font-weight:500}
+#grove-mycelium-studies .g-node-label small{display:block;font-size:11px;color:var(--g-muted);margin-top:3px}
+#grove-mycelium-studies .g-node-label em{font:500 9px Inter,sans-serif;color:var(--g-green);margin-left:5px;letter-spacing:.07em}
+#grove-mycelium-studies .g-node.west .g-node-label{left:auto;right:34px;text-align:right}
+#grove-mycelium-studies .g-node.below .g-node-label{left:50%;top:35px;transform:translateX(-50%);text-align:center}
+#grove-mycelium-studies .g-node.above .g-node-label{left:50%;top:auto;bottom:35px;transform:translateX(-50%);text-align:center}
+#grove-mycelium-studies .g-inspector{border-left:1px solid var(--g-rule);padding:20px;background:var(--g-canvas);min-width:0;position:relative;z-index:3}
+#grove-mycelium-studies .g-eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--g-muted);margin:0 0 11px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+#grove-mycelium-studies .g-review-status{color:var(--g-muted);font-size:10px;letter-spacing:0;text-transform:none;padding:3px 7px;border:1px solid var(--g-rule);border-radius:var(--g-pill)}
+#grove-mycelium-studies .g-review-status.is-suggested{color:var(--g-amber);border-style:dashed}
+#grove-mycelium-studies .g-review-status.is-reviewed{color:var(--g-green)}
+#grove-mycelium-studies .g-inspector h3{font:400 21px/1.3 Georgia,serif;margin:0 0 10px;overflow-wrap:anywhere}
+#grove-mycelium-studies .g-relation{font-size:12px;margin:0 0 16px;color:var(--g-muted)}
+#grove-mycelium-studies .g-relation strong{font-weight:500;color:var(--g-ink)}
+#grove-mycelium-studies .g-quote{border-left:2px solid var(--g-green);margin:0;padding:2px 0 2px 12px;font:400 15px/1.6 Georgia,serif}
+#grove-mycelium-studies .g-source-note{color:var(--g-muted);font-size:10px;margin:10px 0 18px}
+#grove-mycelium-studies .g-facts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0;border-block:1px solid var(--g-rule);padding:13px 0;font-size:11px}
+#grove-mycelium-studies .g-facts dt{color:var(--g-muted);margin-bottom:3px}
+#grove-mycelium-studies .g-facts dd{margin:0}
+#grove-mycelium-studies .g-related{display:grid;gap:4px;margin-top:12px}
+#grove-mycelium-studies .g-related button{border:0;background:transparent;text-align:left;padding:6px 0;font-size:11px;color:var(--g-muted);text-decoration:underline;text-underline-offset:3px}
+#grove-mycelium-studies .g-review{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}
+#grove-mycelium-studies .g-review button{border:1px solid var(--g-rule);background:var(--g-canvas);padding:8px 10px;border-radius:var(--g-pill);font-size:11px}
+#grove-mycelium-studies .g-review .g-primary{background:var(--g-green);border-color:var(--g-green);color:var(--g-on-green)}
+#grove-mycelium-studies .g-review-note{color:var(--g-muted);font-size:10px;min-height:27px;margin:8px 0 0}
+#grove-mycelium-studies .g-timeline{display:flex;gap:18px;align-items:center;padding:16px 24px;border-top:1px solid var(--g-rule);background:var(--g-panel)}
+#grove-mycelium-studies .g-time-title{font-size:11px;min-width:114px}
+#grove-mycelium-studies .g-time-title strong{display:block;font-weight:500;font-size:12px}
+#grove-mycelium-studies .g-time-title span{color:var(--g-muted)}
+#grove-mycelium-studies .g-range-wrap{flex:1;min-width:0}
+#grove-mycelium-studies .g-range{width:100%;accent-color:var(--g-green);margin:0;display:block}
+#grove-mycelium-studies .g-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--g-muted);margin-top:5px}
+#grove-mycelium-studies .g-legend{display:flex;gap:10px;font-size:10px;color:var(--g-muted);align-items:center;white-space:nowrap}
+#grove-mycelium-studies .g-legend span{display:flex;gap:4px;align-items:center}
+#grove-mycelium-studies .g-line{width:16px;height:0;border-top:1.5px solid var(--g-filament)}
+#grove-mycelium-studies .g-line.dashed{border-top:1.5px dashed var(--g-amber)}
+#grove-mycelium-studies .g-foot{font-size:10px;color:var(--g-muted);padding:9px 24px;display:flex;justify-content:space-between;gap:12px}
+#grove-mycelium-studies [data-layout="pathways"] .g-workspace{display:block;min-height:530px}
+#grove-mycelium-studies [data-layout="pathways"] .g-map{height:350px;background:linear-gradient(90deg,var(--g-soft),var(--g-canvas) 55%)}
+#grove-mycelium-studies [data-layout="pathways"] .g-inspector{border-left:0;border-top:1px solid var(--g-rule);display:grid;grid-template-columns:1fr 1.2fr .8fr;gap:24px;padding:16px 24px;min-height:180px}
+#grove-mycelium-studies [data-layout="pathways"] .g-inspector h3{font-size:19px}
+#grove-mycelium-studies [data-layout="pathways"] .g-quote{font-size:14px}
+#grove-mycelium-studies [data-layout="pathways"] .g-facts{margin:0 0 6px;border:0;padding:0}
+#grove-mycelium-studies [data-layout="pathways"] .g-related{margin:3px 0;gap:0}
+#grove-mycelium-studies [data-layout="pathways"] .g-review{margin-top:10px}
+#grove-mycelium-studies [data-layout="rings"] .g-map{background:radial-gradient(ellipse at 47% 51%,var(--g-soft),var(--g-canvas) 70%)}
+@container (max-width:760px){
+ #grove-mycelium-studies .g-workspace{grid-template-columns:minmax(0,1fr) 230px}
+ #grove-mycelium-studies .g-inspector{padding:16px}
+ #grove-mycelium-studies .g-node-label{width:115px}
+ #grove-mycelium-studies .g-legend{display:none}
+ #grove-mycelium-studies .g-status{padding-right:0}
+}
+@container (max-width:620px){
+ #grove-mycelium-studies .g-workspace{display:block;min-height:0}
+ #grove-mycelium-studies .g-map,#grove-mycelium-studies [data-layout="pathways"] .g-map{height:500px}
+ #grove-mycelium-studies .g-inspector,#grove-mycelium-studies [data-layout="pathways"] .g-inspector{border-left:0;border-top:1px solid var(--g-rule);display:block;padding:20px;min-height:480px}
+ #grove-mycelium-studies .g-header{padding:16px;gap:12px}
+ #grove-mycelium-studies .g-garden{padding-left:12px}
+ #grove-mycelium-studies .g-status{display:none}
+ #grove-mycelium-studies .g-heading{padding:18px 16px 12px;align-items:flex-start;flex-wrap:wrap}
+ #grove-mycelium-studies .g-heading h2{font-size:23px}
+ #grove-mycelium-studies .g-toolbar{padding:0 16px 14px}
+ #grove-mycelium-studies .g-search{flex-basis:100%}
+ #grove-mycelium-studies .g-timeline{padding:15px 16px;gap:10px}
+ #grove-mycelium-studies .g-foot{padding:10px 16px;flex-wrap:wrap}
+ #grove-mycelium-studies .g-node-label{width:128px}
+ #grove-mycelium-studies [data-layout="pathways"] .g-facts{margin:18px 0}
+}
+@media(prefers-reduced-motion:reduce){#grove-mycelium-studies *{animation:none!important;transition:none!important}}
+</style>
+<script>
+(()=>{
+const root=document.getElementById('grove-mycelium-studies');
+const nodes=[
+ {id:'garden',label:'Cedar Grove',type:'Garden',kind:'garden',group:'all',week:1,body:'A fictional community garden connecting soil care, water stewardship and shared resources.'},
+ {id:'soil',label:'Soil regeneration',type:'Action',kind:'action',group:'soil',week:1,body:'Improve the garden’s soil practices through small, documented trials.'},
+ {id:'trial',label:'Mulch trial',type:'Work',kind:'work',group:'soil',week:1,body:'Compare mulched and uncovered beds. The work record describes the activity; it does not establish an impact outcome.'},
+ {id:'notes',label:'Bed observations',type:'Field note',kind:'source',group:'soil',week:1,body:'A fictional internal note recording the conditions in the trial beds.'},
+ {id:'moisture',label:'Moisture retention',type:'Concept',kind:'concept',group:'soil',week:1,body:'A topic linking the garden’s question, its work and external reference material.'},
+ {id:'compost',label:'Compost practice',type:'Practice',kind:'concept',group:'soil',week:1,body:'A local practice reference. The precise Commons mapping remains provisional.'},
+ {id:'guide',label:'Mulching guide',type:'External source',kind:'source',group:'soil',week:2,body:'A fictional saved research source, retained with a capture date and the original excerpt.'},
+ {id:'question',label:'How much mulch?',type:'Question',kind:'question',group:'soil',week:2,body:'Which depth should we try next, and what observations would help us compare the beds?'},
+ {id:'water',label:'Water stewardship',type:'Action',kind:'action',group:'water',week:1,body:'Document the garden’s water needs and maintenance practices.'},
+ {id:'rain',label:'Rainwater guide',type:'External source',kind:'source',group:'water',week:3,body:'A newly captured fictional source about maintaining rainwater collection systems.'},
+ {id:'circle',label:'Volunteer circle',type:'Community',kind:'community',group:'community',week:1,body:'The people coordinating work in this fictional garden.'},
+ {id:'workday',label:'October workday',type:'Work',kind:'work',group:'community',week:3,body:'A new work record for tool care and a garden maintenance session.'},
+ {id:'tools',label:'Shared tools',type:'Resource',kind:'resource',group:'community',week:1,body:'A garden resource record. The connection alone does not verify current availability.'},
+ {id:'library',label:'Tool library',type:'Organization',kind:'community',group:'community',week:1,body:'A fictional partner organization connected to the shared tool record.'}
+];
+const edges=[
+ {id:'garden-soil',a:'garden',b:'soil',label:'has action',week:1,origin:'Garden record'},
+ {id:'soil-trial',a:'soil',b:'trial',label:'has work',week:1,origin:'Garden record'},
+ {id:'trial-notes',a:'trial',b:'notes',label:'documented by',week:1,origin:'Internal note',quote:'The beds were photographed before mulching. The same beds will be observed during the next workday.'},
+ {id:'soil-compost',a:'soil',b:'compost',label:'relates to',week:1,origin:'Personal organization'},
+ {id:'trial-moisture',a:'trial',b:'moisture',label:'investigates',week:3,origin:'Personal organization'},
+ {id:'guide-question',a:'guide',b:'question',label:'addresses',week:2,origin:'Personal organization'},
+ {id:'question-soil',a:'question',b:'soil',label:'asks about',week:2,origin:'Personal organization'},
+ {id:'guide-trial',a:'guide',b:'trial',label:'may inform',week:3,origin:'Model proposal',proposed:true,quote:'Compare the same beds over time and record mulch depth, recent rainfall and the condition of the soil beneath it.'},
+ {id:'garden-water',a:'garden',b:'water',label:'has action',week:1,origin:'Garden record'},
+ {id:'rain-water',a:'rain',b:'water',label:'may inform',week:3,origin:'Model proposal',proposed:true,quote:'Keep a maintenance record for the inlet, filter and storage container alongside observations after rainfall.'},
+ {id:'garden-circle',a:'garden',b:'circle',label:'coordinates with',week:1,origin:'Garden record'},
+ {id:'circle-workday',a:'circle',b:'workday',label:'coordinates',week:3,origin:'Garden record'},
+ {id:'garden-tools',a:'garden',b:'tools',label:'lists resource',week:1,origin:'Garden record'},
+ {id:'tools-library',a:'tools',b:'library',label:'connected to',week:1,origin:'Personal organization'},
+ {id:'workday-tools',a:'workday',b:'tools',label:'uses',week:3,origin:'Work record'}
+];
+const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
+const dates=['24 Sep','1 Oct','8 Oct'];
+const layouts={
+ atlas:{title:'A living weave of knowledge',sub:'Your garden, its practices and the resources around it.',caption:'GARDEN KNOWLEDGE',scope:'all',positions:{garden:[.46,.49,'below'],soil:[.23,.31,'west'],trial:[.47,.17,'east'],notes:[.15,.085,'east'],moisture:[.075,.47,'east'],compost:[.10,.72,'east'],guide:[.81,.10,'west'],question:[.86,.34,'west'],water:[.76,.62,'west'],rain:[.92,.76,'west'],circle:[.42,.86,'west'],workday:[.86,.87,'below'],tools:[.48,.67,'below'],library:[.16,.93,'east']}},
+ pathways:{title:'Follow a thread',sub:'From a garden practice to the evidence that can inform it.',caption:'GARDEN → PRACTICE → KNOWLEDGE',scope:'soil',positions:{garden:[.09,.52,'above'],soil:[.29,.51,'below'],trial:[.50,.48,'below'],notes:[.49,.12,'east'],moisture:[.72,.82,'east'],compost:[.23,.82,'east'],guide:[.82,.19,'west'],question:[.89,.55,'west'],water:[.29,.77,'below'],rain:[.75,.70,'west'],circle:[.29,.32,'above'],workday:[.76,.34,'east'],tools:[.50,.62,'below'],library:[.73,.92,'east']}},
+ rings:{title:'A garden beneath the surface',sub:'Follow a relationship through the garden’s wider context.',caption:'GARDEN CONTEXT · TIME CONTROL BELOW',scope:'soil',positions:{garden:[.47,.50,'below'],soil:[.27,.37,'west'],trial:[.63,.40,'east'],notes:[.35,.14,'west'],moisture:[.73,.66,'west'],compost:[.26,.80,'east'],guide:[.79,.14,'west'],question:[.77,.86,'west'],water:[.23,.47,'west'],rain:[.90,.76,'west'],circle:[.47,.79,'east'],workday:[.71,.94,'west'],tools:[.28,.85,'west'],library:[.12,.94,'east']}}
+};
+const states={};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function persisted(){const saved=window.openai?.widgetState;return saved?.modelContent?.studies||saved?.studies||{};}
+const saved=persisted();
+function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{studies:states},privateContent:null}).catch(()=>{});}
+root.querySelectorAll('.grove-study').forEach(app=>{
+ const mode=app.dataset.layout,design=layouts[mode];
+ const defaults={week:3,scope:design.scope,query:'',newOnly:false,selected:'guide-trial',selectedType:'edge',accepted:false};
+ const state=states[mode]={...defaults,...(saved[mode]||{})};
+ const tuning={curvature:72,detail:true};
+ app.innerHTML=`<header class="g-header"><div class="g-brand">grove<span>✳</span></div><div class="g-garden">Cedar Grove<small>Garden knowledge</small></div><span class="g-status">Local memory</span></header>
+ <div class="g-heading"><div><h2>${design.title}</h2><p>${design.sub}</p></div><button type="button" class="g-new cursor-interaction" aria-pressed="false">Since last visit</button></div>
+ <div class="g-toolbar"><label class="g-search"><span>Search</span><input type="search" placeholder="A practice, source or question" aria-label="Search garden knowledge"></label><label><span class="g-sr" hidden>Neighborhood</span><select class="g-scope" aria-label="Neighborhood"><option value="all">Whole garden</option><option value="soil">Soil care</option><option value="water">Water</option><option value="community">Community</option></select></label><select class="g-entity-select" aria-label="Inspect an entity"><option value="">Inspect a node…</option></select></div>
+ <div class="g-workspace"><div class="g-map"><svg class="g-graph" role="img" aria-label="Garden knowledge connections"></svg><div class="g-caption">${design.caption}</div><div class="g-nodes"></div><div class="g-empty" hidden>No matching nodes</div><div class="g-live" aria-live="polite"></div></div><aside class="g-inspector" aria-label="Selected knowledge detail" aria-live="polite"></aside></div>
+ <div class="g-timeline"><div class="g-time-title"><strong>Garden memory</strong><span class="g-date-current"></span></div><div class="g-range-wrap"><input class="g-range cursor-interaction" aria-label="Recorded time" type="range" min="1" max="3" step="1" value="3"><div class="g-dates"><span>24 Sep</span><span>1 Oct</span><span>8 Oct</span></div></div><div class="g-legend"><span><i class="g-line"></i>Recorded</span><span><i class="g-line dashed"></i>Suggested</span></div></div>
+ <footer class="g-foot"><span>Fictional garden · design study</span><span>Personal review ≠ work approval</span></footer>`;
+ if(mode==='pathways'){app.querySelector('.g-scope option[value="all"]').remove();if(state.scope==='all')state.scope='soil';}
+ const map=app.querySelector('.g-map'),svg=app.querySelector('.g-graph'),nodeLayer=app.querySelector('.g-nodes'),inspector=app.querySelector('.g-inspector');
+ function activeNodes(){return nodes.filter(n=>n.week<=state.week&&(state.scope==='all'||n.group===state.scope||n.kind==='garden'));}
+ function activeEdges(ns){const ids=new Set(ns.map(n=>n.id));return edges.filter(e=>e.week<=state.week&&ids.has(e.a)&&ids.has(e.b));}
+ function pick(id,type){state.selected=id;state.selectedType=type;render();save();}
+ function curve(a,b,index){const [x1,y1]=a,[x2,y2]=b;const bend=tuning.curvature/100;const mx=(x1+x2)/2;let dx=(x2-x1)*.22*bend;let dy=(y2-y1)*.30*bend;const sign=index%2?1:-1;
+  if(mode==='pathways')return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+  return `M${x1},${y1} C${x1+dx-sign*dy},${y1+dy+sign*dx} ${x2-dx-sign*dy},${y2-dy+sign*dx} ${x2},${y2}`;
+ }
+ function filament(d,rootward){
+  const p=d.match(/-?\d+(?:\.\d+)?/g).map(Number),left=[],right=[];
+  for(let i=0;i<=28;i++){const t=i/28,u=1-t;const x=u*u*u*p[0]+3*u*u*t*p[2]+3*u*t*t*p[4]+t*t*t*p[6],y=u*u*u*p[1]+3*u*u*t*p[3]+3*u*t*t*p[5]+t*t*t*p[7];const dx=3*u*u*(p[2]-p[0])+6*u*t*(p[4]-p[2])+3*t*t*(p[6]-p[4]),dy=3*u*u*(p[3]-p[1])+6*u*t*(p[5]-p[3])+3*t*t*(p[7]-p[5]);const length=Math.hypot(dx,dy)||1;const r=(rootward?2.2:1.1)*(1-t)+.45*t;left.push(`${x-dy/length*r},${y+dx/length*r}`);right.push(`${x+dy/length*r},${y-dx/length*r}`);}
+  return 'M'+left.join(' L')+' L'+right.reverse().join(' L')+' Z';
+ }
+ function render(){
+  const width=map.clientWidth;if(!width)return;
+  const focusedNode=app.contains(document.activeElement)?document.activeElement.dataset.node:null;
+  const height=map.clientHeight,narrow=width<560;
+  const ns=activeNodes(),es=activeEdges(ns),q=state.query.trim().toLowerCase();
+  let shown=ns;
+  let narrowGroup=state.scope;
+  if(narrow&&shown.length>8){const searchNode=q?ns.find(n=>(n.label+' '+n.type+' '+n.body).toLowerCase().includes(q)):null;const selectedGroup=byId[state.selected]?.group||byId[edges.find(e=>e.id===state.selected)?.a]?.group;narrowGroup=searchNode?.group||selectedGroup||'soil';if(narrowGroup==='all')narrowGroup='soil';shown=shown.filter(n=>n.group===narrowGroup||n.kind==='garden');}
+  const positions={};
+  shown.forEach((n,i)=>{
+   let p=(mode==='rings'&&state.scope==='all'?layouts.atlas:design).positions[n.id];
+   if(narrow){const focusOrder=['garden','soil','trial','notes','guide','question','moisture','compost'];const idx=focusOrder.indexOf(n.id);const slot=idx<0?i:idx;
+    p=[[.16,.18,'east'],[.65,.30,'west'],[.25,.42,'east'],[.68,.06,'west'],[.79,.54,'west'],[.31,.66,'east'],[.76,.78,'west'],[.16,.90,'east']][slot%8];
+   }
+   positions[n.id]=[p[0]*width,36+p[1]*(height-65),p[2]];
+  });
+  const selectedEdge=state.selectedType==='edge'?es.find(e=>e.id===state.selected):null;
+  const selectedNode=state.selectedType==='node'?ns.find(n=>n.id===state.selected):null;
+  const focusIds=new Set(selectedEdge?[selectedEdge.a,selectedEdge.b]:selectedNode?[selectedNode.id]:[]);
+  const matches=new Set(ns.filter(n=>(!q||(n.label+' '+n.type+' '+n.body).toLowerCase().includes(q))&&(!state.newOnly||n.week===3||es.some(e=>e.week===3&&(e.a===n.id||e.b===n.id)))).map(n=>n.id));
+  svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+  let markup=`<title>${design.title}. ${shown.length} visible entities.</title><desc>Curved threads show explicit relationships. Dashed threads are suggestions. Use the node buttons or entity selector to inspect details.</desc><defs><marker id="arrow-${mode}" viewBox="0 0 8 8" refX="19" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1 L6 4 L1 7" fill="none" stroke="var(--g-green)" stroke-width="1.3"/></marker></defs>`;
+  if(mode==='rings'&&!narrow){const cx=width*.47,cy=height*.50;[.18,.31,.44].forEach(r=>{markup+=`<ellipse class="g-underlay" cx="${cx}" cy="${cy}" rx="${width*r}" ry="${height*r}"/>`;});}
+  es.forEach((e,i)=>{if(!positions[e.a]||!positions[e.b])return;const a=positions[e.a],b=positions[e.b];const selected=e.id===state.selected&&state.selectedType==='edge';const related=selected||focusIds.has(e.a)||focusIds.has(e.b);const match=!q&&!state.newOnly||matches.has(e.a)&&matches.has(e.b);const suggested=e.proposed&&!(e.id==='guide-trial'&&state.accepted);const opacity=match?(related?1:.60):.12;const d=curve(a,b,i);
+   if(!suggested)markup+=`<path d="${filament(d,e.a==='garden')}" fill="${selected||e.week===3?'var(--g-green)':'var(--g-filament)'}" opacity="${opacity}"/>`;
+   markup+=`<path class="g-edge ${suggested?'suggested':''} ${selected?'selected':''} ${e.week===3?'new-edge':''}" opacity="${opacity}" d="${d}" ${selected?`marker-end="url(#arrow-${mode})"`:''}/><path class="g-edge-hit cursor-interaction" data-edge="${e.id}" d="${d}"><title>${esc(byId[e.a].label+' '+e.label+' '+byId[e.b].label)}</title></path>`;
+   if(selected)markup+=`<text class="g-edge-label" x="${(a[0]+b[0])/2}" y="${(a[1]+b[1])/2-(mode==='atlas'?44:15)}" text-anchor="middle">${suggested?'may inform':e.label}</text>`;
+  });
+  svg.innerHTML=markup;
+  svg.querySelectorAll('[data-edge]').forEach(p=>p.addEventListener('click',()=>pick(p.dataset.edge,'edge')));
+  nodeLayer.innerHTML=shown.map(n=>{const [x,y,align]=positions[n.id];const selected=focusIds.has(n.id);const faded=!matches.has(n.id);return `<button type="button" class="g-node cursor-interaction ${align} ${selected?'selected':''} ${n.week===3?'is-new':''}" data-node="${n.id}" data-kind="${n.kind}" style="left:${x-14}px;top:${y-14}px;opacity:${faded?.20:1}" aria-label="${esc(n.label)}, ${n.type}${n.week===3?', new':''}" aria-pressed="${selected}"><span class="g-pin"></span><span class="g-node-label"><strong>${esc(n.label)}</strong>${tuning.detail||n.week===3?`<small>${tuning.detail?esc(n.type):''}${n.week===3?'<em>NEW</em>':''}</small>`:''}</span></button>`;}).join('');
+  nodeLayer.querySelectorAll('[data-node]').forEach(b=>b.addEventListener('click',()=>pick(b.dataset.node,'node')));
+  const available=selectedEdge||selectedNode;
+  app.querySelector('.g-empty').hidden=!q||matches.size>0;
+  app.querySelector('.g-live').textContent=q?`${matches.size} matching ${matches.size===1?'node':'nodes'}`:narrow&&shown.length<ns.length?`${narrowGroup[0].toUpperCase()+narrowGroup.slice(1)} neighborhood · all entities available in the selector`:`${ns.length} nodes · ${es.length} connections${state.week===3?' · new growth since 1 Oct':''}`;
+  app.querySelector('.g-date-current').textContent=`As known on ${dates[state.week-1]}`;
+  app.querySelector('.g-range').value=state.week;
+  app.querySelector('.g-new').setAttribute('aria-pressed',String(state.newOnly));
+  app.querySelector('.g-scope').value=state.scope;
+  const entity=app.querySelector('.g-entity-select');entity.innerHTML='<option value="">Inspect a node…</option>'+ns.map(n=>`<option value="${n.id}">${n.label}</option>`).join('');entity.value=selectedNode?.id||'';
+  renderDetail(selectedEdge,selectedNode,es,available);
+  if(focusedNode)nodeLayer.querySelector(`[data-node="${focusedNode}"]`)?.focus({preventScroll:true});
+ }
+ function renderDetail(edge,node,es,available){
+  let title,relation,quote,origin,status,week,related=[];
+  if(edge){title=byId[edge.a].label;relation=`<strong>${edge.label}</strong> ${esc(byId[edge.b].label)}`;quote=edge.quote||'This relationship is present in the fictional garden record. Its source and recorded time remain available for inspection.';origin=edge.origin;week=edge.week;status=edge.proposed?'Suggested':'Recorded';if(edge.id==='guide-trial'&&state.accepted)status='Accepted by you';related=es.filter(e=>e.id!==edge.id&&(e.a===edge.b||e.b===edge.b)).slice(0,2);}
+  else if(node){title=node.label;relation=`${node.type} · ${node.group==='all'?'Garden context':node.group+' neighborhood'}`;quote=node.body;origin=node.kind==='source'?'Captured source':'Garden memory';week=node.week;status=node.week===3?'New node':'Recorded';related=es.filter(e=>e.a===node.id||e.b===node.id).slice(0,3);}
+  else{title='Earlier garden memory';relation='The selected connection was not recorded yet.';quote='Choose an available node to inspect what the garden knew at this point.';origin='Historical view';week=state.week;status='History';}
+  const review=edge?.id==='guide-trial'&&!state.accepted;
+  inspector.innerHTML=`<div><div class="g-eyebrow">${edge?'Connection':node?'Node detail':'Recorded time'}<span class="g-review-status ${status==='Suggested'?'is-suggested':status==='Accepted by you'?'is-reviewed':''}">${status}</span></div><h3>${esc(title)}</h3><p class="g-relation">${relation}</p>${mode==='pathways'?'':`<blockquote class="g-quote">${esc(quote)}</blockquote><p class="g-source-note">${edge?.quote?'Illustrative source excerpt':'Synthetic garden record'} · design study</p>`}</div>
+   <div>${mode==='pathways'?`<blockquote class="g-quote">${esc(quote)}</blockquote><p class="g-source-note">${edge?.quote?'Illustrative source excerpt':'Synthetic garden record'} · design study</p>`:''}<dl class="g-facts"><div><dt>Recorded</dt><dd>${dates[week-1]} 2026</dd></div><div><dt>Origin</dt><dd>${origin}</dd></div></dl>${mode==='pathways'?'':relatedMarkup(related)}</div>
+   <div>${mode==='pathways'?relatedMarkup(related):''}${review?'<div class="g-review"><button type="button" class="g-primary cursor-interaction" data-accept>Accept connection</button><button type="button" class="cursor-interaction" data-inspect-source>View source</button></div><p class="g-review-note">Personal review · prototype state only</p>':state.accepted&&edge?.id==='guide-trial'?'<p class="g-review-note">Accepted in this prototype. No garden record or protocol approval changed.</p>':''}</div>`;
+  inspector.querySelectorAll('[data-related]').forEach(b=>b.addEventListener('click',()=>pick(b.dataset.related,'edge')));
+  inspector.querySelector('[data-accept]')?.addEventListener('click',()=>{state.accepted=true;render();save();});
+  inspector.querySelector('[data-inspect-source]')?.addEventListener('click',()=>pick('guide','node'));
+ }
+ function relatedMarkup(es){return `<div class="g-related">${es.map(e=>`<button type="button" class="cursor-interaction" data-related="${e.id}">${esc(byId[e.a].label+' → '+e.label+' → '+byId[e.b].label)}</button>`).join('')}</div>`;}
+ app.querySelector('input[type="search"]').value=state.query;
+ app.querySelector('input[type="search"]').addEventListener('input',e=>{state.query=e.target.value;render();save();});
+ app.querySelector('.g-scope').addEventListener('change',e=>{state.scope=e.target.value;const ns=activeNodes(),es=activeEdges(ns);if(!es.some(x=>x.id===state.selected)&&!ns.some(x=>x.id===state.selected)){state.selected=ns.find(n=>n.kind!=='garden')?.id||'garden';state.selectedType='node';}render();save();});
+ app.querySelector('.g-entity-select').addEventListener('change',e=>{if(e.target.value)pick(e.target.value,'node');});
+ app.querySelector('.g-range').addEventListener('input',e=>{state.week=Number(e.target.value);render();save();});
+ app.querySelector('.g-new').addEventListener('click',()=>{state.newOnly=!state.newOnly;render();save();});
+ new ResizeObserver(render).observe(map);
+ render();
+ if(globalThis.Tweak){const tweak=new Tweak({container:app,onChange:render});tweak.addSlider(tuning,'curvature',{label:'Thread curvature',min:20,max:100,step:5});tweak.addToggle(tuning,'detail',{label:'Show node types'});}
+ app._groveRender=render;
+});
+window.addEventListener('openai:set_globals',event=>{const next=event.detail?.globals?.widgetState?.modelContent?.studies||event.detail?.globals?.widgetState?.studies;if(!next)return;root.querySelectorAll('.grove-study').forEach(app=>{const nextState=next[app.dataset.layout];if(nextState){Object.assign(states[app.dataset.layout],nextState);app.querySelector('input[type="search"]').value=states[app.dataset.layout].query;app._groveRender();}});});
+})();
+</script>
+
+</body>
+</html>

@@ -1,27 +1,15 @@
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import type { Garden, Work } from "@green-goods/shared/types/domain";
+import type { Garden } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  RiArrowLeftFill,
-  RiBankLine,
-  RiGovernmentLine,
-  RiNotificationFill,
-  RiNotificationLine,
-  RiShareLine,
-} from "@remixicon/react";
-import { useState } from "react";
+import { RiArrowLeftFill, RiBankLine, RiGovernmentLine, RiShareLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AppSheet } from "@/components/Sheets";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { GardenNotifications } from "@/views/Home/Garden/Notifications";
+import { AccountChip } from "./AccountChip";
 
 type TopNavProps = {
   onBackClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;
   garden?: Garden;
-  works?: Work[];
   overlay?: boolean;
-  /** Whether the current user is a steward of this garden */
-  isSteward?: boolean;
   showEndowmentButton?: boolean;
   hasEndowmentDeposits?: boolean;
   onEndowmentClick?: () => void;
@@ -41,66 +29,6 @@ const BUTTON_VARIANT_TONES = {
 // icon carries the status tone (DL-023, DL-026).
 const iconTone = (variant: ButtonVariant = "work") =>
   pwaStatusStyles[BUTTON_VARIANT_TONES[variant]].icon;
-
-// Reusable notification badge, pinned by the IconButton badge slot
-const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
-  <span
-    className={cn(
-      "inline-flex items-center justify-center text-xs font-semibold rounded-full",
-      "min-w-[18px] h-[18px] px-1",
-      pwaStatusStyles.primary.badge,
-      "shadow-sm border-2 border-bg-white-0"
-    )}
-  >
-    {count > 99 ? "99+" : count}
-  </span>
-);
-
-const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works, garden }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const { formatMessage } = useIntl();
-
-  const workNotifications = works?.filter((work) => work.status === "pending") || [];
-  const hasNotifications = workNotifications.length > 0;
-  const NotificationIcon = hasNotifications ? RiNotificationFill : RiNotificationLine;
-
-  if (works === undefined) return null;
-
-  return (
-    <>
-      <IconButton
-        emphasis="secondary"
-        size="compact"
-        onClick={() => setIsOpen(true)}
-        aria-label="View notifications"
-        icon={<NotificationIcon className={iconTone()} aria-hidden="true" />}
-        badge={hasNotifications ? <NotificationBadge count={workNotifications.length} /> : null}
-      />
-      <AppSheet
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        header={{
-          title: formatMessage({
-            id: "app.home.notifications.drawerTitle",
-            defaultMessage: "Notifications",
-          }),
-          description: hasNotifications
-            ? formatMessage(
-                {
-                  id: "app.home.notifications.pendingCount",
-                  defaultMessage: "{count, plural, one {# pending} other {# pending}}",
-                },
-                { count: workNotifications.length }
-              )
-            : undefined,
-        }}
-        size="tall"
-      >
-        <GardenNotifications garden={garden} notifications={works} />
-      </AppSheet>
-    </>
-  );
-};
 
 const EndowmentButton: React.FC<{
   hasDeposits: boolean;
@@ -159,9 +87,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   children,
   onBackClick,
   garden,
-  works,
   overlay,
-  isSteward = false,
   showEndowmentButton = false,
   hasEndowmentDeposits = false,
   onEndowmentClick,
@@ -171,16 +97,20 @@ export const TopNav: React.FC<TopNavProps> = ({
   ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
+  // Where the status bar is see-through (older iPhone installs, Android's
+  // edge-to-edge mode) the clock sits over the bar's top edge, so the controls
+  // start 16px below the status bar's safe area (--app-top-offset), where the
+  // offline banner shows, and the bar is 72px tall below the safe area.
   const containerClasses = cn(
-    "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 h-20",
-    overlay && "fixed bg-bg-white-0"
+    "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 pt-[var(--app-top-offset)] h-[var(--app-top-bar-height)]",
+    overlay && "fixed bg-bg-canvas"
   );
 
   return (
     <div className={containerClasses} {...htmlProps}>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-toast focus:px-4 focus:py-2 focus:bg-primary-action focus:text-primary-action-foreground focus:rounded-lg focus:text-sm focus:font-medium"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-[calc(0.5rem+env(safe-area-inset-top,0px))] focus:left-2 focus:z-toast focus:px-4 focus:py-2 focus:bg-primary-action focus:text-primary-action-foreground focus:rounded-lg focus:text-sm focus:font-medium"
       >
         Skip to content
       </a>
@@ -203,14 +133,22 @@ export const TopNav: React.FC<TopNavProps> = ({
           button's row and their names hang below it. Nothing in it rises into
           that padding, where the shell's offline banner lies. Equal clearance
           on both sides keeps the tracker centred even on narrow phones. */}
-      <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-6">
-        <div className="flex min-w-0 flex-auto flex-row justify-center gap-4">{children}</div>
-      </div>
+      {children !== undefined ? (
+        <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-[var(--app-top-offset)]">
+          <div className="flex min-w-0 flex-auto flex-row justify-center gap-4">{children}</div>
+        </div>
+      ) : null}
 
+      {/* A garden's page actions stack at the end. */}
       <div className="flex grow" />
       <div className="flex flex-col items-end gap-2 z-1">
-        {/* Notifications at top — stewards need quick access to pending reviews */}
-        {garden && isSteward && <NotificationCenter works={works} garden={garden} />}
+        {/* Who is signed in, on every bar but the garden page's, where the garden's own
+            actions stack over its banner. A flow that draws no tracker passes null. */}
+        {garden ? null : (
+          <AccountChip besideTracker={children !== undefined && children !== null} />
+        )}
+        {/* No bell here: Home's bell carries the garden's events and Needs Your Attention what
+            waits on a steward (DL-130), so a second count of pending work would disagree. */}
         {garden && showGovernanceButton && onGovernanceClick && (
           <GovernanceButton
             onClick={onGovernanceClick}
@@ -224,12 +162,17 @@ export const TopNav: React.FC<TopNavProps> = ({
             ariaLabel={formatMessage({ id: "app.treasury.open" })}
           />
         )}
-        {garden && onShareClick && (
-          <ShareButton
-            onClick={onShareClick}
-            ariaLabel={formatMessage({ id: "app.garden.share", defaultMessage: "Share Garden" })}
-          />
-        )}
+        <div className="flex items-center gap-4">
+          {garden && onShareClick && (
+            <ShareButton
+              onClick={onShareClick}
+              ariaLabel={formatMessage({
+                id: "app.garden.share",
+                defaultMessage: "Share Garden",
+              })}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

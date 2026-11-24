@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voucher issuers in the cockpit</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Riverside Commons Garden</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">T</span></span>
+  </header>
+  <main class="c-route">
+    <div class="c-head"><div><h1>Members</h1><p>Who takes part in Riverside Commons Garden</p></div></div>
+    <div class="c-tabs"><span class="on">Members</span><span>Coordination</span><span>Payouts</span></div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Voucher Issuers</h2><p>Who issues vouchers used in this garden, and their published caps. Caps and pauses here are garden policy; the contracts don't enforce them yet.</p></div></div>
+          <div class="arow">
+            <div class="l1"><span class="nm">Sunroot Skills Hub</span><span class="sb neu">Hub</span><span class="sb pol">Cap: policy</span></div>
+            <div class="l2">1,240 of 2,000 outstanding · grows with kept promises</div>
+          </div>
+          <sc-if value="{{maraAdmitted}}" hint-placeholder-val="{{true}}">
+            <div class="arow">
+              <div class="l1"><span class="nm">Mara's Seed Library</span><span class="sb pol">Issuer: policy</span><span class="sb pol">Cap: policy</span></div>
+              <div class="l2">5 of 50 outstanding · admitted Oct 22 by Tomás</div>
+              <div class="acts"><button type="button" class="abtn">Record a Pause…</button></div>
+            </div>
+          </sc-if>
+        </section>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Members</h2><p>3 of 14 shown</p></div></div>
+          <div class="arow"><div class="l1"><span class="nm">Mara</span><span class="sb neu">Gardener</span></div><div class="l2">Joined Mar 2026 · runs the seed library</div>
+            <div class="acts"><sc-if value="{{maraNot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill">Admit as Issuer…</button></sc-if></div></div>
+          <div class="arow"><div class="l1"><span class="nm">Tomás</span><span class="sb ok">Steward</span></div><div class="l2">Joined Jan 2026</div></div>
+          <div class="arow"><div class="l1"><span class="nm">Lina</span><span class="sb neu">Gardener</span></div><div class="l2">Joined Feb 2026</div></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <sc-if value="{{admit}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg lg" role="dialog" aria-modal="true" aria-label="Admit Mara as a voucher issuer">
+      <div class="dh"><div><h2>Admit Mara as a Voucher Issuer</h2><p>Recording for Riverside Commons Garden</p></div><button type="button" class="close" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); flex: 1 1 auto; min-height: 0; border-top: 1px solid var(--line)">
+        <div class="rail">
+          <span class="rs {{r1}}"><b>1</b>Identity</span>
+          <span class="rs {{r2}}"><b>2</b>Terms</span>
+          <span class="rs {{r3}}"><b>3</b>Cap</span>
+          <span class="rs"><b>4</b>Review</span>
+          <span class="tgt"><span class="sb pol">Policy</span></span>
+        </div>
+        <div class="db" style="padding-top: 16px">
+          <div class="flowrow pol"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>Proposal: the contracts don't enforce admission, caps or pauses yet. Saving records your decision as garden policy and shows it to members. It doesn't limit issuance.</div>
+          <sc-if value="{{isId}}" hint-placeholder-val="{{true}}">
+            <div class="fieldA"><label>Issuer name</label><span class="inp">Mara's Seed Library</span><span class="hl">Its own issuer, separate from other gardeners in this garden</span></div>
+            <div class="afacts">
+              <div class="afact"><span class="k">Voucher</span><span class="v">Mara's Seed Library voucher</span></div>
+              <div class="afact"><span class="k">Issues through</span><span class="v">Riverside Commons Garden's Safe, until Gnosis passkeys work<small>Mara stays the named issuer</small></span></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{isTerms}}" hint-placeholder-val="{{false}}">
+            <div class="afacts">
+              <div class="afact"><span class="k">Unit</span><span class="v">One seed packet</span></div>
+              <div class="afact"><span class="k">Capacity</span><span class="v">30 packets a season</span></div>
+              <div class="afact"><span class="k">Timing</span><span class="v">Pickups on Saturdays</span></div>
+              <div class="afact"><span class="k">How to present</span><span class="v">At the seed table, through a promise</span></div>
+              <div class="afact"><span class="k">Remedy</span><span class="v">Unused vouchers returned if the library closes</span></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{isCap}}" hint-placeholder-val="{{false}}">
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+              <div class="fieldA"><label>Outstanding cap</label><span class="inp"><span>50</span><span class="small">vouchers</span></span><span class="hl">Published, monitored</span></div>
+              <div class="fieldA"><label>Grows by</label><span class="inp"><span>5</span><span class="small">per kept promise</span></span><span class="hl">Optional</span></div>
+            </div>
+            <div class="afacts"><div class="afact"><span class="k">Outstanding now</span><span class="v">0</span></div></div>
+          </sc-if>
+        </div>
+      </div>
+      <div class="df"><span class="note">Your wallet asks once.</span><button type="button" class="abtn lg">Back</button><button type="button" class="abtn lg fill">{{admitPrimary}}</button></div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{pause}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-label="Record a pause">
+      <div class="dh"><div><h2>Record a Pause for Mara's Seed Library?</h2><p>Garden policy, shown to members and pools</p></div><button type="button" class="close" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <div class="target">Recording for Riverside Commons Garden</div>
+        <div class="checks">
+          <div class="ckr pol"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg></span><span>Not enforceable yet<small>The contracts can't stop issuance from Riverside Commons' Safe or other routes. This records a garden decision and shows it to members and pools.</small></span></div>
+          <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-eye-line"/></svg></span><span>Outstanding obligations stay visible<small>5 vouchers in circulation; promises using them continue to their remedy.</small></span></div>
+        </div>
+        <div class="flowrow">Ready to record.</div>
+      </div>
+      <div class="df"><span class="note">Your wallet asks once.</span><button type="button" class="abtn lg">Cancel</button><button type="button" class="abtn lg fill">Record Pause</button></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Issuers","Admit identity","Admit terms","Admit cap","Record pause"],"default":"Issuers","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var st = this.props.state ?? 'Issuers';
+    var dark = this.props.dark ?? false;
+    var admit = st.indexOf('Admit') === 0;
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      maraAdmitted: !admit, maraNot: admit, admit: admit, pause: st === 'Record pause',
+      isId: st === 'Admit identity', isTerms: st === 'Admit terms', isCap: st === 'Admit cap',
+      r1: st === 'Admit identity' ? 'on' : '', r2: st === 'Admit terms' ? 'on' : '', r3: st === 'Admit cap' ? 'on' : '',
+      admitPrimary: st === 'Admit cap' ? 'Record Admission' : 'Next',
+    };
+  }
+}
+</script>
+</body>
+</html>

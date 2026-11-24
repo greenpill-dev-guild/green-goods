@@ -1,15 +1,66 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type {
   ProtocolFundingOperationsController,
   ProtocolFundingRow,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  PoolFundingTransferBlock,
+  PoolFundingTransferLimit,
+} from "@green-goods/shared/modules/commitment-pooling/pool-funding";
 import type { Address } from "@green-goods/shared/types/domain";
-import { useIntl } from "react-intl";
 import { RiRefreshLine } from "@remixicon/react";
-import { AdminButton } from "@/components/AdminButton";
+import { type IntlShape, useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
-import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
+import {
+  formatGdollar,
+  readinessReasonMessage,
+  shortAddress,
+} from "@/views/Garden/Pool/poolFundingPresentation";
 import type { TransferAct } from "@/views/Garden/Pool/TransferReviewDialog";
+
+/** What the amount field and a held transfer say for each limit, in the words of the facts listed. */
+export const OVER_LIMIT_MESSAGES: Record<
+  PoolFundingTransferLimit,
+  { id: string; defaultMessage: string }
+> = {
+  transfer_cap: {
+    id: "hub.community.protocolFunding.amount.overTransferCap",
+    defaultMessage: "More than the per-transfer cap.",
+  },
+  period_allowance: {
+    id: "hub.community.protocolFunding.amount.overPeriodAllowance",
+    defaultMessage: "More than the period allowance left.",
+  },
+  roles_allowance: {
+    id: "hub.community.protocolFunding.amount.overSafeAllowance",
+    defaultMessage: "More than the Safe allowance left.",
+  },
+  balance: {
+    id: "hub.community.protocolFunding.amount.overBalance",
+    defaultMessage: "More than the protocol Safe holds.",
+  },
+};
+
+const LIMITS_UNREAD_ROW = {
+  id: "hub.community.protocolFunding.row.limitsUnread",
+  defaultMessage: "Can't be sent until the protocol Safe's limits are read.",
+};
+
+/** Why a held transfer can't be sent: limits unread, a limit it is over, or what Celo refuses. */
+function sendBlockMessage(block: PoolFundingTransferBlock, intl: IntlShape): string {
+  switch (block) {
+    case "limits_unread":
+      return intl.formatMessage(LIMITS_UNREAD_ROW);
+    case "transfer_cap":
+    case "period_allowance":
+    case "roles_allowance":
+    case "balance":
+      return intl.formatMessage(OVER_LIMIT_MESSAGES[block]);
+    default:
+      return readinessReasonMessage(block, intl);
+  }
+}
 
 function rowVariant(state: ProtocolFundingRow["state"]) {
   if (state === "confirmed") return "success" as const;
@@ -38,35 +89,36 @@ export function ProtocolFundingRows({
   onCancel: (disbursementId: bigint) => void;
   onRefresh?: () => void;
 }) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage, locale } = intl;
   const statusLabel = (state: ProtocolFundingRow["state"]) => {
     const labels: Record<ProtocolFundingRow["state"], string> = {
       queued: formatMessage({
-        id: "cockpit.community.protocolFunding.row.queued",
+        id: "hub.community.protocolFunding.row.queued",
         defaultMessage: "Queued",
       }),
       dispatched: formatMessage({
-        id: "cockpit.community.protocolFunding.row.dispatched",
+        id: "hub.community.protocolFunding.row.dispatched",
         defaultMessage: "Dispatched",
       }),
       "acknowledgement-pending": formatMessage({
-        id: "cockpit.community.protocolFunding.row.acknowledgementPending",
+        id: "hub.community.protocolFunding.row.acknowledgementPending",
         defaultMessage: "Acknowledgment pending",
       }),
       confirmed: formatMessage({
-        id: "cockpit.community.protocolFunding.row.confirmed",
+        id: "hub.community.protocolFunding.row.confirmed",
         defaultMessage: "Confirmed",
       }),
       failed: formatMessage({
-        id: "cockpit.community.protocolFunding.row.failed",
+        id: "hub.community.protocolFunding.row.failed",
         defaultMessage: "Failed",
       }),
       cancelled: formatMessage({
-        id: "cockpit.community.protocolFunding.row.cancelled",
-        defaultMessage: "Cancelled",
+        id: "hub.community.protocolFunding.row.cancelled",
+        defaultMessage: "Canceled",
       }),
       unknown: formatMessage({
-        id: "cockpit.community.protocolFunding.row.unknown",
+        id: "hub.community.protocolFunding.row.unknown",
         defaultMessage: "Unknown",
       }),
     };
@@ -78,28 +130,29 @@ export function ProtocolFundingRows({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <AdminCardTitle as="h3" id="protocol-funding-rows-title">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.rows",
+            id: "hub.community.protocolFunding.rows",
             defaultMessage: "Protocol-to-Garden Transfers",
           })}
         </AdminCardTitle>
         {onRefresh ? (
-          <AdminButton
-            variant="outlined"
-            size="sm"
-            leadingIcon={<RiRefreshLine />}
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
             onClick={onRefresh}
           >
             {formatMessage({
-              id: "cockpit.community.protocolFunding.refresh",
+              id: "hub.community.protocolFunding.refresh",
               defaultMessage: "Refresh Funding",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
       {operations.rows.length === 0 ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.rows.empty",
+            id: "hub.community.protocolFunding.rows.empty",
             defaultMessage: "No indexed protocol funding transfers yet.",
           })}
         </p>
@@ -111,19 +164,19 @@ export function ProtocolFundingRows({
               <li key={row.id} className="space-y-2 py-3" data-funding-id={row.disbursementId}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate body-sm font-medium text-text-strong" title={to}>
+                    <p className="truncate type-body font-medium text-text-strong" title={to}>
                       {formatMessage(
                         {
-                          id: "cockpit.community.protocolFunding.row.transfer",
+                          id: "hub.community.protocolFunding.row.transfer",
                           defaultMessage: "{amount} to {garden}",
                         },
                         { amount: formatGdollar(row.amount, locale), garden: to }
                       )}
                     </p>
-                    <p className="body-xs text-text-soft" title={row.recipient}>
+                    <p className="type-meta text-text-soft" title={row.recipient}>
                       {formatMessage(
                         {
-                          id: "cockpit.community.protocolFunding.row.identity",
+                          id: "hub.community.protocolFunding.row.identity",
                           defaultMessage: "Transfer #{id} · Celo account {account}",
                         },
                         { id: row.disbursementId.toString(), account: shortAddress(row.recipient) }
@@ -134,59 +187,68 @@ export function ProtocolFundingRows({
                     {statusLabel(row.state)}
                   </StatusBadge>
                 </div>
+                {row.sendBlock ? (
+                  <p className="type-meta text-text-soft" data-testid="protocol-funding-send-block">
+                    {sendBlockMessage(row.sendBlock, intl)}
+                  </p>
+                ) : null}
                 {/* End-aligned, two weights, the affirmative act rightmost: a queued
                     transfer's Cancel… and Dispatch… are the row's paired decision. */}
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   {row.canCancel ? (
-                    <AdminButton
-                      variant="outlined"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="compact"
                       onClick={() => onCancel(row.disbursementId)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.cancel",
+                        id: "hub.community.protocolFunding.cancel",
                         defaultMessage: "Cancel…",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : null}
                   {row.canRequeue ? (
-                    <AdminButton
-                      variant="outlined"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="compact"
                       disabled={operations.isActing}
                       onClick={() => onReview("requeue", row)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.requeue",
+                        id: "hub.community.protocolFunding.requeue",
                         defaultMessage: "Requeue…",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : null}
                   {row.canRetry ? (
-                    <AdminButton
-                      variant="outlined"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="compact"
                       disabled={operations.isActing}
                       onClick={() => onReview("retry", row)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.retry",
+                        id: "hub.community.protocolFunding.retry",
                         defaultMessage: "Resend…",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : null}
                   {row.canDispatch ? (
-                    <AdminButton
-                      variant="filled"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="primary"
+                      size="compact"
                       disabled={operations.isActing}
                       onClick={() => onReview("dispatch", row)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.dispatch",
+                        id: "hub.community.protocolFunding.dispatch",
                         defaultMessage: "Dispatch…",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : null}
                 </div>
               </li>

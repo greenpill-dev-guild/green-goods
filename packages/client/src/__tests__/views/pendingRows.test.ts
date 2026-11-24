@@ -59,10 +59,11 @@ function proof(overrides: Partial<PendingProof>): PendingProof {
     source: "queued",
     commitmentId: 7n,
     garden: "0x2222222222222222222222222222222222222222",
+    savedGarden: "0x2222222222222222222222222222222222222222",
     commitment: null,
     title: "Repair the north fence panel",
     savedAt: Date.now(),
-    contents: { photos: 2, videos: 0, voiceNotes: 0, links: 0, words: false },
+    contents: { photos: 2, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
     waitingReason: null,
     failed: false,
     sending: false,
@@ -83,12 +84,10 @@ describe("Pending order and filters", () => {
       place("workshop draft", "draft", "proof", 45),
       place("herbs", "upload", "work", 30),
       place("seed library", "needs", "work", 5),
-      place("to review", "needsReview", "work", 1),
     ]);
 
     expect(sorted.map((row) => row.name)).toEqual([
       "seed library",
-      "to review",
       "compost",
       "herbs",
       "fence proof",
@@ -116,6 +115,39 @@ describe("Pending rows", () => {
     expect(row.type === "work" && row.card).toMatchObject({
       pill: "Can't upload",
       status: "Action ended",
+      statusTone: "error",
+    });
+  });
+
+  it("names every send that gave up Didn't send, a reverted one included (DL-177)", () => {
+    const didntSend = { pill: "Didn't send", status: "Nothing was sent" };
+    // A send that used up its tries, one the chain reverted, and one Upload all flagged because
+    // the batch it rode in reverted: no single item explains that, so the record never refused it.
+    for (const work of [
+      queuedWork("retry-required"),
+      queuedWork("reverted"),
+      queuedWork("blocked", "batch-reverted"),
+    ]) {
+      const row = submissionRow(work, true, context);
+      expect(row.type === "work" && row.card).toEqual(expect.objectContaining(didntSend));
+      expect(row.type === "work" && row.card.statusTone).toBeUndefined();
+    }
+    for (const status of [
+      { state: "reverted" as const },
+      { state: "blocked" as const, reason: "batch-reverted" },
+    ]) {
+      const row = decisionRow(
+        { ...queuedWork("ready"), id: "0xabc", status: "pending" },
+        { jobId: "approval-1", status, savedAt: 1 },
+        context
+      );
+      expect(row.type === "decision" && row.card).toEqual(expect.objectContaining(didntSend));
+    }
+    // A check that refused the item alone is a refusal, not a send that gave up.
+    const refused = submissionRow(queuedWork("blocked", "reverted"), true, context);
+    expect(refused.type === "work" && refused.card).toMatchObject({
+      pill: "Can't upload",
+      status: "The record refused it",
       statusTone: "error",
     });
   });
@@ -201,5 +233,81 @@ describe("Pending rows", () => {
     });
     expect(card(offline, sent)?.status).toBe("Checks again when you're connected");
     expect(card({ ...wallet, ...offline }, sent)?.status).toBe("Check again when you're connected");
+  });
+
+  // A Safe only proposed it: work, a review and proof each say who they wait for (PRD-1564).
+  it("says a send a Safe only proposed waits for the Safe's signers, on every kind of row", () => {
+    const safe = "Waiting for the Safe's signers";
+    const work = {
+      ...queuedWork("awaiting-confirmation"),
+      metadata: JSON.stringify({
+        submissionState: "awaiting-confirmation",
+        awaiting: "safe-signers",
+      }),
+    };
+    const workRow = submissionRow(work, true, context);
+    expect(workRow.type === "work" && workRow.card).toMatchObject({
+      kind: "checking",
+      status: safe,
+    });
+
+    const decision = decisionRow(
+      { ...work, id: "0xabc", status: "pending" as const },
+      { jobId: "approval-1", status: { state: "sent", awaiting: "safe-signers" }, savedAt: 1 },
+      context
+    );
+    expect(decision.type === "decision" && decision.card).toMatchObject({ status: safe });
+
+    const proposed = proof({ waitingReason: "awaiting-confirmation", awaiting: "safe-signers" });
+    const proofCard = proofRow(proposed, { ...context, sendsFromTap: true });
+    expect(proofCard.type === "proof" && proofCard.card).toMatchObject({
+      status: safe,
+      locked: false,
+    });
+  });
+});
+
+describe("a work for a promise taken up in the same tap (decision 18)", () => {
+  const held = (stage: "pending" | "failed"): PendingRowContext => ({
+    ...context,
+    takeUpStage: () => stage,
+  });
+
+  it("says the take-up goes first while it is on its way, and how a wallet reader sends it", () => {
+    const row = submissionRow(queuedWork("ready"), true, held("pending"));
+    expect(row.type === "work" && row.card).toMatchObject({
+      kind: "upload",
+      pill: "To upload",
+      status: "Takes up the promise first",
+    });
+
+    const wallet = submissionRow(queuedWork("ready"), true, {
+      ...held("pending"),
+      sendsFromTap: true,
+    });
+    expect(wallet.type === "work" && wallet.card.status).toBe("Open it to take up the promise");
+  });
+
+  it("names the take-up as the stage that failed, and keeps the work discardable", () => {
+    const row = submissionRow(queuedWork("ready"), true, held("failed"));
+
+    expect(row).toMatchObject({ kind: "needs", discardable: true });
+    expect(row.type === "work" && row.card).toMatchObject({
+      pill: "Can't upload",
+      status: "Couldn't take up the promise",
+      statusTone: "error",
+    });
+  });
+
+  it("names the link as the stage that failed once the work is in review", () => {
+    const sent: Work = { ...queuedWork("none"), id: "0xwork", status: "pending" };
+    const row = submissionRow(sent, false, { ...context, linkFailed: () => true });
+
+    expect(row.type === "work" && row.card).toMatchObject({
+      kind: "review",
+      pill: "In review",
+      status: "Couldn't link it to the promise",
+      statusTone: "error",
+    });
   });
 });

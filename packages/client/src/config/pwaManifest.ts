@@ -1,6 +1,7 @@
+import designTokens from "@green-goods/shared/styles/design-md.generated.json";
 import { PWA_MANIFEST_ID } from "./pwaRouting";
 
-type PwaManifestFlavor = "production" | "staging";
+type PwaManifestFlavor = "production" | "staging" | "alpha";
 
 interface PwaManifestIcon {
   src: string;
@@ -22,8 +23,12 @@ export interface PwaManifestBranding {
   description?: string;
   themeColor: string;
   backgroundColor: string;
+  /** The status bar tint per scheme on the website, which paints white. */
   htmlThemeColorLight: string;
   htmlThemeColorDark: string;
+  /** The status bar tint per scheme in the installed app, which paints its own ground. */
+  appThemeColorLight: string;
+  appThemeColorDark: string;
   msTileColor: string;
   msTileImage: string;
   browserIcon: string;
@@ -35,7 +40,17 @@ export interface PwaManifestBranding {
 
 const COMMON_PWA_ASSETS = ["favicon.ico"];
 const STAGING_MANIFEST_ID = "/?gg_pwa=staging";
+const ALPHA_MANIFEST_ID = "/?gg_pwa=alpha";
 const STAGING_DARK_SURFACE = "#111b13";
+// Alpha is told apart by colour: a violet icon, title bar and splash, where beta is dark green.
+const ALPHA_VIOLET = designTokens.colors.violet;
+/** The Vercel branch that serves alpha.greengoods.app; its builds always carry the alpha branding. */
+const ALPHA_BRANCH = "alpha";
+// The installed app's ground, serialized from the DesignMD canvas tokens: the
+// linen canvas and the warm dark floor that shared theme.css paints as the app's
+// bg-canvas in each theme.
+const APP_GROUND_LIGHT = designTokens.colors.neutral;
+const APP_GROUND_DARK = designTokens.colors["neutral-dark"];
 
 const PRODUCTION_APPLE_TOUCH_ICONS: PwaAppleTouchIcon[] = [
   { sizes: "57x57", src: "images/apple-icon-57x57.png" },
@@ -117,12 +132,32 @@ const STAGING_INCLUDE_ASSETS = [
   "images/staging-ms-icon-310x310.png",
 ];
 
+// Alpha's icons are the production logo in white on violet, with no dot, under beta's file layout.
+const toAlphaAsset = (src: string) => src.replace("staging-", "alpha-");
+const ALPHA_APPLE_TOUCH_ICONS = STAGING_APPLE_TOUCH_ICONS.map((icon) => ({
+  ...icon,
+  src: toAlphaAsset(icon.src),
+}));
+const ALPHA_MANIFEST_ICONS = STAGING_MANIFEST_ICONS.map((icon) => ({
+  ...icon,
+  src: toAlphaAsset(icon.src),
+}));
+const ALPHA_INCLUDE_ASSETS = STAGING_INCLUDE_ASSETS.map(toAlphaAsset);
+
 function normalizeFlavor(value: string | undefined): PwaManifestFlavor | undefined {
   const flavor = value?.trim().toLowerCase();
   if (!flavor) return undefined;
   if (["staging", "stage", "stg", "qa"].includes(flavor)) return "staging";
   if (["production", "prod"].includes(flavor)) return "production";
+  if (flavor === "alpha") return "alpha";
   return undefined;
+}
+
+// Deployment signals choose only between beta and production, as they did before alpha: alpha comes
+// from an explicit flavor or the alpha branch, so an `alpha` here falls through to the next signal.
+function normalizeDeploymentFlavor(value: string | undefined): PwaManifestFlavor | undefined {
+  const flavor = normalizeFlavor(value);
+  return flavor === "alpha" ? undefined : flavor;
 }
 
 export function resolvePwaManifestFlavor(
@@ -135,18 +170,47 @@ export function resolvePwaManifestFlavor(
 
   if (explicitFlavor) return explicitFlavor;
 
+  // Vercel calls an alpha build a preview, so its branch is the only deployment signal it has.
+  if (env.VERCEL_GIT_COMMIT_REF === ALPHA_BRANCH) return "alpha";
+
   const deploymentFlavor =
-    normalizeFlavor(env.VERCEL_TARGET_ENV) ||
-    normalizeFlavor(env.VITE_VERCEL_TARGET_ENV) ||
-    normalizeFlavor(env.SENTRY_ENVIRONMENT) ||
-    normalizeFlavor(env.VITE_SENTRY_ENVIRONMENT) ||
-    normalizeFlavor(env.APP_ENV) ||
-    normalizeFlavor(env.VITE_APP_ENV);
+    normalizeDeploymentFlavor(env.VERCEL_TARGET_ENV) ||
+    normalizeDeploymentFlavor(env.VITE_VERCEL_TARGET_ENV) ||
+    normalizeDeploymentFlavor(env.SENTRY_ENVIRONMENT) ||
+    normalizeDeploymentFlavor(env.VITE_SENTRY_ENVIRONMENT) ||
+    normalizeDeploymentFlavor(env.APP_ENV) ||
+    normalizeDeploymentFlavor(env.VITE_APP_ENV);
 
   return deploymentFlavor === "staging" ? "staging" : "production";
 }
 
 export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifestBranding {
+  if (flavor === "alpha") {
+    return {
+      ...createPwaManifestBranding("staging"),
+      flavor,
+      // Its own install identity, so alpha installs beside beta and production on one phone.
+      manifestId: ALPHA_MANIFEST_ID,
+      name: "Green Goods Alpha",
+      // Beta's home-screen label is plain, so this one names alpha to tell the two apart.
+      shortName: "GG Alpha",
+      description: "Green Goods Alpha: Experiments shared with a few testers before beta",
+      themeColor: ALPHA_VIOLET,
+      backgroundColor: ALPHA_VIOLET,
+      htmlThemeColorLight: ALPHA_VIOLET,
+      htmlThemeColorDark: ALPHA_VIOLET,
+      appThemeColorLight: ALPHA_VIOLET,
+      appThemeColorDark: ALPHA_VIOLET,
+      msTileColor: ALPHA_VIOLET,
+      msTileImage: toAlphaAsset("images/staging-ms-icon-144x144.png"),
+      browserIcon: toAlphaAsset("staging-icon-192.png"),
+      shortcutIcon: toAlphaAsset("staging-icon-192.png"),
+      appleTouchIcons: ALPHA_APPLE_TOUCH_ICONS,
+      manifestIcons: ALPHA_MANIFEST_ICONS,
+      includeAssets: ALPHA_INCLUDE_ASSETS,
+    };
+  }
+
   if (flavor === "staging") {
     return {
       flavor,
@@ -168,6 +232,8 @@ export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifes
       backgroundColor: STAGING_DARK_SURFACE,
       htmlThemeColorLight: STAGING_DARK_SURFACE,
       htmlThemeColorDark: STAGING_DARK_SURFACE,
+      appThemeColorLight: STAGING_DARK_SURFACE,
+      appThemeColorDark: STAGING_DARK_SURFACE,
       msTileColor: STAGING_DARK_SURFACE,
       msTileImage: "images/staging-ms-icon-144x144.png",
       browserIcon: "staging-icon-192.png",
@@ -183,12 +249,17 @@ export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifes
     manifestId: PWA_MANIFEST_ID,
     name: "Green Goods",
     shortName: "Green Goods",
-    themeColor: "#fff",
-    backgroundColor: "#fff",
-    // The status bar tint per scheme, mirroring the app canvas (bg-white-0 in
-    // shared theme.css) so the bar reads as part of the page in either theme.
+    // The manifest belongs to the installed app, so its title bar and launch
+    // splash take the app's linen ground.
+    themeColor: APP_GROUND_LIGHT,
+    backgroundColor: APP_GROUND_LIGHT,
+    // The status bar tint per presentation and scheme, mirroring the page's
+    // canvas (bg-canvas in shared theme.css) so the bar reads as part of the
+    // page: white on the website, linen and the warm dark floor in the app.
     htmlThemeColorLight: "#ffffff",
     htmlThemeColorDark: "#0c0a09",
+    appThemeColorLight: APP_GROUND_LIGHT,
+    appThemeColorDark: APP_GROUND_DARK,
     msTileColor: "#ffffff",
     msTileImage: "images/ms-icon-144x144.png",
     browserIcon: "icon-192.png",

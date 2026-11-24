@@ -3,7 +3,7 @@ import { getJsonByHash } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 import type { Chain } from "viem";
 import type { TrustedProxyConfig } from "../api/public-protection";
-import { createViemProfileAvatarSignatureVerifier } from "../services/profile-avatars";
+import { createViemAccountSignatureVerifier } from "../services/account-signatures";
 import type { ReportingConfig } from "../services/reporting/config";
 import { createModelInterpreter } from "../services/reporting/interpretation";
 import type { JobKind } from "../services/reporting/jobs";
@@ -11,7 +11,9 @@ import { createLiveReportingCatalog } from "../services/reporting/live-catalog";
 import { createLiveReportingChain } from "../services/reporting/live-chain";
 import { createLiveDelegation } from "../services/reporting/live-delegation";
 import { createLiveGardenDirectory } from "../services/reporting/live-gardens";
+import { readControl } from "../services/reporting/controls";
 import { extractWithOpenAI } from "../services/reporting/model-extraction";
+import { planWithOpenAI } from "../services/reporting/model-planner";
 import { routeWithJev } from "../services/reporting/model-routing";
 import type { ReportingCore } from "../services/reporting/runtime";
 import type { InboundMediaFetcher, OutboundTransport } from "../services/reporting/transport";
@@ -60,14 +62,22 @@ export function createLiveReportingRuntime(input: {
     fetchInstructions: (cid) => getJsonByHash(cid, { timeoutMs: 5_000 }),
   });
   const { interpretation, openai } = config;
+  // The planner reads its switch from the core, which exists once the runtime below is made.
+  let core: ReportingCore | null = null;
   const interpreter = createModelInterpreter({
+    plan: openai
+      ? (request, signal, meter) => planWithOpenAI(openai, request, signal, meter)
+      : null,
+    planning: () => core !== null && readControl(core, "dialogue_planner").enabled,
     route:
       interpretation.provider === "jev"
-        ? (request, signal) => routeWithJev(interpretation, request, signal)
+        ? (request, signal, meter) => routeWithJev(interpretation, request, signal, meter)
         : null,
-    extract: openai ? (request, signal) => extractWithOpenAI(openai, request, signal) : null,
+    extract: openai
+      ? (request, signal, meter) => extractWithOpenAI(openai, request, signal, meter)
+      : null,
   });
-  return createReportingRuntime({
+  const runtime = createReportingRuntime({
     config,
     ...delegation,
     chainId: input.chainId,
@@ -79,7 +89,7 @@ export function createLiveReportingRuntime(input: {
       jwt: config.pinata?.jwt,
       ...(config.pinata?.uploadsApiBaseUrl ? { baseUrl: config.pinata.uploadsApiBaseUrl } : {}),
     }),
-    verifier: createViemProfileAvatarSignatureVerifier({
+    verifier: createViemAccountSignatureVerifier({
       chain: input.chain,
       rpcUrl: input.rpcUrl,
     }),
@@ -90,4 +100,6 @@ export function createLiveReportingRuntime(input: {
     ...(input.workerId ? { workerId: input.workerId } : {}),
     ...(input.jobs ? { jobs: input.jobs } : {}),
   });
+  core = runtime.core;
+  return runtime;
 }

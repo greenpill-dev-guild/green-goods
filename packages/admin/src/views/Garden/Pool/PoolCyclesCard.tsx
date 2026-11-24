@@ -1,9 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { cycleStanding } from "@green-goods/shared/commitment-pooling";
 import { selectCycleEndAct } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { cycleName, cycleStateChip, formatUnixDate } from "./poolPresentation";
 
@@ -39,7 +40,7 @@ export function PoolCyclesCard({
   onArchiveCycle,
 }: PoolCyclesCardProps) {
   const { formatMessage, locale } = useIntl();
-  const { model, cycleNames, isOnline, isActing } = pool;
+  const { model, now, cycleNames, isOnline, isActing } = pool;
   const season = model.season;
   const actDisabled = !isOnline || isActing;
   const canOpenCycle = model.status === "open" || model.status === "ready";
@@ -47,9 +48,9 @@ export function PoolCyclesCard({
   const cycleMeta = (cycle: CommitmentCycleRecord) =>
     formatMessage(
       {
-        id: "cockpit.garden.pool.cycle.meta",
+        id: "hub.garden.pool.cycle.meta",
         defaultMessage:
-          "{made, plural, one {# commitment} other {# commitments}} · {kept} kept · runs through {end}",
+          "{made, plural, one {# promise} other {# promises}} · {kept} kept · runs through {end}",
       },
       {
         // `commitmentsAccepted` is the lifetime milestone: every commitment
@@ -66,24 +67,39 @@ export function PoolCyclesCard({
     const act = selectCycleEndAct(cycle);
     if (act?.kind !== "end-blocked") return null;
     return (
-      <p className="text-body-sm text-text-soft">
+      <p className="type-meta text-text-soft">
         {formatMessage(
           {
-            id: "cockpit.garden.pool.cycle.endBlocked",
+            id: "hub.garden.pool.cycle.endBlocked",
             defaultMessage:
-              "{count, plural, one {# commitment is still live.} other {# commitments are still live.}} It can end once each is kept, cancelled or expired.",
+              "{count, plural, one {# promise is still live.} other {# promises are still live.}} It can end once each is kept, canceled or expired.",
           },
           { count: act.liveCommitments.toString() }
         )}
       </p>
     );
   };
+  // DL-162: an Open cycle past its end has ended, but the chain still takes new promises into it,
+  // each past due as it is made, until a steward ends it. Said beside the act that ends it.
+  const endedNote = (cycle: CommitmentCycleRecord) =>
+    cycleStanding(cycle, now) === "ended" ? (
+      <p className="type-meta text-warning-dark">
+        {formatMessage(
+          {
+            id: "hub.garden.pool.cycle.endedOpen",
+            defaultMessage:
+              "Ended {date}. New promises can still land in it, each already past due, until it ends.",
+          },
+          { date: formatUnixDate(cycle.endTime, locale, "—") }
+        )}
+      </p>
+    ) : null;
   const endButton = (cycle: CommitmentCycleRecord) =>
     selectCycleEndAct(cycle)?.kind === "end" ? (
-      <AdminButton
+      <Button
         type="button"
-        variant="outlined"
-        size="sm"
+        emphasis="secondary"
+        size="compact"
         onClick={() => onEndCycle(cycle)}
         disabled={actDisabled}
         aria-labelledby={
@@ -95,19 +111,19 @@ export function PoolCyclesCard({
         <span id={`pool-cycle-end-${cycle.cycleId.toString()}`}>
           {cycle.cycleType === "CAMPAIGN"
             ? formatMessage({
-                id: "cockpit.garden.pool.cycle.act.end",
+                id: "hub.garden.pool.cycle.act.end",
                 defaultMessage: "End Campaign…",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.cycle.act.endSeason",
+                id: "hub.garden.pool.cycle.act.endSeason",
                 defaultMessage: "End Season…",
               })}
         </span>
-      </AdminButton>
+      </Button>
     ) : null;
 
   const cycleRow = (cycle: CommitmentCycleRecord) => {
-    const chip = cycleStateChip(cycle, model.isPaused, formatMessage);
+    const chip = cycleStateChip(cycle, model.isPaused, now, formatMessage);
     const name = cycleName(cycle, cycleNames, formatMessage);
     const canCancel =
       (cycle.state === "SEEDED" || cycle.state === "OPEN") && cycle.liveCommitmentCount === 0n;
@@ -121,14 +137,14 @@ export function PoolCyclesCard({
           <div className="flex flex-wrap items-center gap-2">
             <span
               id={`pool-cycle-name-${cycle.cycleId.toString()}`}
-              className="truncate text-body-md text-text-strong"
+              className="truncate type-body text-text-strong"
               title={name}
             >
               {name}
             </span>
             <StatusBadge variant="neutral" size="sm">
               {formatMessage({
-                id: "cockpit.garden.pool.cycle.campaign",
+                id: "hub.garden.pool.cycle.campaign",
                 defaultMessage: "Campaign",
               })}
             </StatusBadge>
@@ -136,38 +152,39 @@ export function PoolCyclesCard({
               {chip.label}
             </StatusBadge>
           </div>
-          <p className="body-xs text-text-soft">{cycleMeta(cycle)}</p>
+          <p className="type-meta text-text-soft">{cycleMeta(cycle)}</p>
+          {endedNote(cycle)}
           {endBlockedNote(cycle)}
         </div>
         <div className="flex items-center gap-2">
           {endButton(cycle)}
           {cycle.state === "SEEDED" ? (
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => onOpenCampaign(cycle)}
               disabled={actDisabled || model.status !== "open"}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.cycle.act.open",
+                id: "hub.garden.pool.cycle.act.open",
                 defaultMessage: "Open Campaign",
               })}
-            </AdminButton>
+            </Button>
           ) : null}
           {canCancel ? (
-            <AdminButton
+            <Button
               type="button"
-              variant="text"
-              size="sm"
+              emphasis="tertiary"
+              size="compact"
               onClick={() => onCancelCycle(cycle)}
               disabled={actDisabled}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.cycle.act.cancel",
+                id: "hub.garden.pool.cycle.act.cancel",
                 defaultMessage: "Cancel Campaign…",
               })}
-            </AdminButton>
+            </Button>
           ) : null}
         </div>
       </li>
@@ -177,7 +194,10 @@ export function PoolCyclesCard({
   return (
     <AdminCard variant="elevated" data-component="PoolCyclesCard" className="space-y-4">
       {season ? (
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div
+          className="flex flex-wrap items-start justify-between gap-3"
+          data-testid="pool-cycles-season"
+        >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <AdminCardTitle
@@ -188,22 +208,22 @@ export function PoolCyclesCard({
               </AdminCardTitle>
               <StatusBadge variant="neutral" size="sm">
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.season",
+                  id: "hub.garden.pool.cycle.season",
                   defaultMessage: "Season",
                 })}
               </StatusBadge>
               <StatusBadge
-                variant={cycleStateChip(season, model.isPaused, formatMessage).variant}
+                variant={cycleStateChip(season, model.isPaused, now, formatMessage).variant}
                 size="sm"
               >
-                {cycleStateChip(season, model.isPaused, formatMessage).label}
+                {cycleStateChip(season, model.isPaused, now, formatMessage).label}
               </StatusBadge>
             </div>
-            <p className="mt-1 body-xs text-text-soft">
+            <p className="mt-1 type-meta text-text-soft">
               {season.state === "SEEDED"
                 ? formatMessage(
                     {
-                      id: "cockpit.garden.pool.cycle.seededMeta",
+                      id: "hub.garden.pool.cycle.seededMeta",
                       defaultMessage:
                         "Runs {start} – {end} · terms written · nobody can commit yet",
                     },
@@ -214,38 +234,39 @@ export function PoolCyclesCard({
                   )
                 : cycleMeta(season)}
             </p>
+            {endedNote(season)}
             {endBlockedNote(season)}
           </div>
           <div className="flex items-center gap-2">
             {endButton(season)}
             {season.state === "SEEDED" ? (
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                size="sm"
+                emphasis="primary"
+                size="compact"
                 onClick={() => onOpenSeason(season)}
                 disabled={actDisabled || !canOpenCycle}
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.act.openSeason",
+                  id: "hub.garden.pool.cycle.act.openSeason",
                   defaultMessage: "Open to the Garden",
                 })}
-              </AdminButton>
+              </Button>
             ) : null}
             {(season.state === "SEEDED" || season.state === "OPEN") &&
             season.liveCommitmentCount === 0n ? (
-              <AdminButton
+              <Button
                 type="button"
-                variant="text"
-                size="sm"
+                emphasis="tertiary"
+                size="compact"
                 onClick={() => onCancelCycle(season)}
                 disabled={actDisabled}
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.act.cancelSeason",
+                  id: "hub.garden.pool.cycle.act.cancelSeason",
                   defaultMessage: "Cancel Season…",
                 })}
-              </AdminButton>
+              </Button>
             ) : null}
           </div>
         </div>
@@ -255,88 +276,89 @@ export function PoolCyclesCard({
             <div className="flex flex-wrap items-center gap-2">
               <AdminCardTitle>
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.noSeason",
+                  id: "hub.garden.pool.cycle.noSeason",
                   defaultMessage: "No season running",
                 })}
               </AdminCardTitle>
               <StatusBadge variant="neutral" size="sm">
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.season",
+                  id: "hub.garden.pool.cycle.season",
                   defaultMessage: "Season",
                 })}
               </StatusBadge>
             </div>
-            <p className="mt-1 body-xs text-text-soft">
+            <p className="mt-1 type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.cycle.noSeasonMeta",
+                id: "hub.garden.pool.cycle.noSeasonMeta",
                 defaultMessage:
                   "A season is the pool's main rhythm: one at a time, with campaigns beside it.",
               })}
             </p>
           </div>
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={onStartSeason}
             disabled={actDisabled || !model.canSeedSeason}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.cycle.act.startSeason",
+              id: "hub.garden.pool.cycle.act.startSeason",
               defaultMessage: "Start Season",
             })}
-          </AdminButton>
+          </Button>
         </div>
       )}
 
       {season?.state === "SEEDED" ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.cycle.seededNote",
+            id: "hub.garden.pool.cycle.seededNote",
             defaultMessage:
-              "Opening tells everyone the season has begun, and is the moment neighbours can start offering help and asking for it. Until then this season is only written down.",
+              "Opening tells everyone the season has begun, and is the moment neighbors can start offering help and asking for it. Until then this season is only written down.",
           })}
         </p>
       ) : null}
 
       <div className="border-t border-stroke-soft pt-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="label-xs text-text-soft">
+          <p className="type-label-sm text-text-soft">
             {model.campaigns.length === 0
               ? formatMessage({
-                  id: "cockpit.garden.pool.cycle.campaignsNone",
+                  id: "hub.garden.pool.cycle.campaignsNone",
                   defaultMessage: "Campaigns · none yet",
                 })
               : formatMessage(
                   {
-                    id: "cockpit.garden.pool.cycle.campaignsCount",
+                    id: "hub.garden.pool.cycle.campaignsCount",
                     defaultMessage: "Campaigns · {open} open · {waiting} waiting to open",
                   },
                   {
-                    open: model.campaigns.filter((row) => row.state === "OPEN").length,
+                    open: model.campaigns.filter((row) => cycleStanding(row, now) === "open")
+                      .length,
                     waiting: model.campaigns.filter((row) => row.state === "SEEDED").length,
                   }
                 )}
           </p>
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={onStartCampaign}
             disabled={actDisabled || !model.canStartCampaign}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.cycle.act.startCampaign",
+              id: "hub.garden.pool.cycle.act.startCampaign",
               defaultMessage: "Start Campaign",
             })}
-          </AdminButton>
+          </Button>
         </div>
         {model.campaigns.length > 0 ? (
           <ul className="mt-1 divide-y divide-stroke-soft">{model.campaigns.map(cycleRow)}</ul>
         ) : (
-          <p className="mt-1 body-xs text-text-soft">
+          <p className="mt-1 type-meta text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.cycle.campaignsNote",
+              id: "hub.garden.pool.cycle.campaignsNote",
               defaultMessage:
                 "Campaigns are shorter pushes that can run beside a season, or on their own.",
             })}
@@ -346,15 +368,15 @@ export function PoolCyclesCard({
 
       {model.finishedCycles.length > 0 ? (
         <div className="border-t border-stroke-soft pt-3">
-          <p className="label-xs text-text-soft">
+          <p className="type-label-sm text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.cycle.finished",
+              id: "hub.garden.pool.cycle.finished",
               defaultMessage: "Finished",
             })}
           </p>
           <ul className="mt-1 divide-y divide-stroke-soft">
             {model.finishedCycles.map((cycle) => {
-              const chip = cycleStateChip(cycle, false, formatMessage);
+              const chip = cycleStateChip(cycle, false, now, formatMessage);
               const name = cycleName(cycle, cycleNames, formatMessage);
               return (
                 <li
@@ -364,7 +386,7 @@ export function PoolCyclesCard({
                 >
                   <span
                     id={`pool-cycle-name-${cycle.cycleId.toString()}`}
-                    className="truncate text-body-md text-text-strong"
+                    className="truncate type-body text-text-strong"
                     title={name}
                   >
                     {name}
@@ -372,11 +394,11 @@ export function PoolCyclesCard({
                   <StatusBadge variant="neutral" size="sm">
                     {cycle.cycleType === "CAMPAIGN"
                       ? formatMessage({
-                          id: "cockpit.garden.pool.cycle.campaign",
+                          id: "hub.garden.pool.cycle.campaign",
                           defaultMessage: "Campaign",
                         })
                       : formatMessage({
-                          id: "cockpit.garden.pool.cycle.season",
+                          id: "hub.garden.pool.cycle.season",
                           defaultMessage: "Season",
                         })}
                   </StatusBadge>
@@ -384,10 +406,10 @@ export function PoolCyclesCard({
                     {chip.label}
                   </StatusBadge>
                   {selectCycleEndAct(cycle)?.kind === "archive" ? (
-                    <AdminButton
+                    <Button
                       type="button"
-                      variant="text"
-                      size="sm"
+                      emphasis="tertiary"
+                      size="compact"
                       className="ml-auto"
                       onClick={() => onArchiveCycle(cycle)}
                       disabled={actDisabled}
@@ -395,11 +417,11 @@ export function PoolCyclesCard({
                     >
                       <span id={`pool-cycle-archive-${cycle.cycleId.toString()}`}>
                         {formatMessage({
-                          id: "cockpit.garden.pool.cycle.act.archive",
+                          id: "hub.garden.pool.cycle.act.archive",
                           defaultMessage: "Archive…",
                         })}
                       </span>
-                    </AdminButton>
+                    </Button>
                   ) : null}
                 </li>
               );

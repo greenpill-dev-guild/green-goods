@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 3,
+  "releaseId": "green-goods-tas-garden-exchanges",
+  "chainId": 100,
+  "deployer": null,
+  "nonce": null,
+  "local": {
+    "id": "tech-and-sun",
+    "name": "Tech and Sun Exchange Pool",
+    "symbol": "TASP",
+    "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+    "owner": "0x9BE5f0D6B95Ea3735df71023F5dFED53b4c1aABf",
+    "proxyAdmin": "0x8118555d228944bde8Fc00c018bD364dfFFC7b02",
+    "poolFee": "0",
+    "protocolFee": "0",
+    "policyApproval": { "reference": null, "digest": null },
+    "listings": [
+      {
+        "assetId": "techAndSun",
+        "priceIndex": null,
+        "poolHoldingCap": null,
+        "inventory": null,
+        "approval": { "reference": null, "digest": null }
+      }
+    ]
+  },
+  "members": []
+}

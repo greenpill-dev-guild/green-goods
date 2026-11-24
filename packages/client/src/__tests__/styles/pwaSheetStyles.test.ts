@@ -15,7 +15,6 @@ const requiredSlots: (keyof PwaSheetStyle)[] = [
   "tabTrigger",
   "tabActive",
   "tabInactive",
-  "tabBadge",
   "tabIndicator",
   "workFeedbackSheet",
   "workActionBar",

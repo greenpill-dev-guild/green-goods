@@ -10,6 +10,7 @@ import {
   collectStructureViolations,
   findStructureBaselineGrowth,
   reconcileStructureBaseline,
+  FROZEN_ALLOWLIST,
 } from "./check-source-structure.js";
 
 const STAGED_MARKER = "/** Staged — not yet wired into the live checkout. */\n";
@@ -63,6 +64,20 @@ test("rejects a component whose client filename is not PascalCase", () => {
   const root = fixture({ [path]: "export function GoodCard() { return null; }\n" });
   try {
     assert(ids(audit(root, [path])).some((id) => id.startsWith(`naming:${path}`)));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("checks first-party lib folders like other source, and leaves vendored code out", () => {
+  const lib = "packages/admin/src/lib/feature.ts";
+  const vendored = "packages/admin/src/vendor/feature.ts";
+  const source = "export function useFeature() { return true; }\n";
+  const root = fixture({ [lib]: source, [vendored]: source });
+  try {
+    const found = ids(audit(root, [lib, vendored]));
+    assert(found.includes(`hook-location:${lib}:useFeature`));
+    assert(!found.some((id) => id.includes(vendored)));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -314,16 +329,17 @@ test("main promotion retains the existing cap only for unchanged accepted develo
 
   // Existing and frozen ceilings remain binding even when the blob matches develop.
   writeFileSync(join(root, path), lines(501));
-  const frozenPath = "packages/agent/src/handlers/index.ts";
+  const frozenPath = "packages/agent/src/platforms/telegram.ts";
   mkdirSync(dirname(join(root, frozenPath)), { recursive: true });
-  writeFileSync(join(root, frozenPath), lines(509));
+  const ceiling = FROZEN_ALLOWLIST[frozenPath];
+  writeFileSync(join(root, frozenPath), lines(ceiling + 1));
   git("add", path, frozenPath);
   git("commit", "-m", "oversized accepted source");
   git("update-ref", "refs/remotes/origin/develop", "HEAD");
   const oversized = run();
   assert.equal(oversized.status, 1);
   assert.match(oversized.stderr, /sample\.ts: modified file at 501 lines/);
-  assert.match(oversized.stderr, /handlers\/index\.ts: 509 lines, above frozen ceiling 508/);
+  assert.match(oversized.stderr, new RegExp(`telegram\\.ts: ${ceiling + 1} lines, above frozen ceiling ${ceiling}`));
 });
 
 test("enforces capability direction across relative paths, aliases and import syntax", () => {
@@ -382,7 +398,7 @@ test("allows capability consumers, pure state dependencies and comments describi
     "packages/shared/src/modules/wallet/send.ts": 'import { ABI } from "../../utils/blockchain/abis/goodDollar";',
     "packages/shared/src/modules/profile-avatar/publisher.ts": 'import { sign } from "../auth/account-message-signer";',
     "packages/shared/src/hooks/client-ui/wallet/useCeloWallet.ts": 'import { settlement } from "../../../modules/commitment-pooling/funding";',
-    "packages/shared/src/hooks/admin-ui/hub/useAssessment.ts": 'import { select } from "../../../stores/transitions/assessment";',
+    "packages/shared/src/hooks/admin-ui/review/useAssessment.ts": 'import { select } from "../../../stores/transitions/assessment";',
   };
   const root = fixture(files);
   try {
@@ -441,6 +457,61 @@ test("accepts leaf imports, and leaves Shared's own barrels, tests and commented
     const seams = audit(root, Object.keys(files), { sharedExportKeys: new Set([".", "./hooks/auth/*"]) })
       .filter((finding) => finding.rule === "import-seam");
     assert.deepEqual(seams, []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("accepts external public utility exports as dependencies rather than Shared barrels", () => {
+  const files = {
+    "packages/shared/src/modules/auth/proof.ts": 'import { encode7579Calls } from "permissionless/utils";',
+    "packages/shared/src/modules/wallet/connector.ts": 'import { getSdkError } from "@walletconnect/utils";',
+  };
+  const root = fixture(files);
+  try {
+    assert.deepEqual(
+      audit(root, Object.keys(files)).filter((finding) => finding.rule === "import-seam"),
+      []
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects every local Shared barrel family through relative paths and Shared aliases", () => {
+  const barrels = [
+    "config",
+    "config/query-keys",
+    "hooks",
+    "modules",
+    "modules/data/ipfs",
+    "modules/job-queue",
+    "modules/marketplace",
+    "public-contracts",
+    "public-contracts/saved-offers",
+    "utils",
+    "utils/blockchain/abis",
+  ];
+  const specifiers = [
+    ...barrels.map((barrel) => `../../${barrel}`),
+    "./utils",
+    "../utils",
+    "@shared/utils",
+    "@green-goods/shared/utils",
+  ];
+  const files = Object.fromEntries(
+    specifiers.map((specifier, index) => [
+      `packages/shared/src/modules/auth/check${index}.ts`,
+      `import { dependency } from "${specifier}";`,
+    ])
+  );
+  const root = fixture(files);
+  try {
+    const findings = audit(root, Object.keys(files)).filter((finding) => finding.rule === "import-seam");
+    assert.deepEqual(
+      ids(findings).sort(),
+      Object.keys(files).map((file) => `import-seam:${file}:internal-barrel`).sort()
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

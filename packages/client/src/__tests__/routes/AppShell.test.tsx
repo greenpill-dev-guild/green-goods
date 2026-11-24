@@ -2,7 +2,7 @@
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -22,8 +22,33 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => identity.address,
 }));
 
+// The bottom bar waits for a garden (DL-155); the scroller's reserve follows it.
+const activeGarden = vi.hoisted(() => ({ gardenId: "garden-1" as string | null }));
+const followRememberedGarden = vi.hoisted(() => vi.fn());
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ gardenId: activeGarden.gardenId }),
+  useFollowRememberedGarden: followRememberedGarden,
+}));
+
+// The queue's failure toast opens Home's switcher through what the shell hands the provider.
+const queueProvider = vi.hoisted(() => ({
+  onOpenGardenSwitcher: undefined as (() => void) | undefined,
+  onOpenYourWork: undefined as (() => void) | undefined,
+}));
 vi.mock("@green-goods/shared/providers/JobQueue", () => ({
-  JobQueueProvider: ({ children }: { children: ReactNode }) => children,
+  JobQueueProvider: ({
+    children,
+    onOpenGardenSwitcher,
+    onOpenYourWork,
+  }: {
+    children: ReactNode;
+    onOpenGardenSwitcher?: () => void;
+    onOpenYourWork?: () => void;
+  }) => {
+    queueProvider.onOpenGardenSwitcher = onOpenGardenSwitcher;
+    queueProvider.onOpenYourWork = onOpenYourWork;
+    return children;
+  },
 }));
 
 vi.mock("@green-goods/shared/providers/Work", () => ({
@@ -51,10 +76,6 @@ vi.mock("@/components/Layout/AppBar", () => ({
   AppBar: () => <nav data-testid="authenticated-nav" />,
 }));
 
-vi.mock("@/routes/ENSClaimReminder", () => ({
-  ENSClaimReminder: () => null,
-}));
-
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return { ...actual, ScrollRestoration: () => null };
@@ -79,7 +100,7 @@ function WorkDetailRoute() {
 const workSnapshot = {
   kind: "work" as const,
   tab: "completed" as const,
-  pendingFilter: "needsReview" as const,
+  pendingFilter: "upload" as const,
   completedFilter: "reviewedByYou" as const,
   timeFilter: "week" as const,
   scrollTop: 288,
@@ -164,6 +185,7 @@ describe("AppShell", () => {
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     useUIStore.getState().resetForAccountChange();
     identity.address = ADDRESS;
+    activeGarden.gardenId = "garden-1";
     document.documentElement.classList.remove("modal-open");
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
       configurable: true,
@@ -191,7 +213,7 @@ describe("AppShell", () => {
     expect(useUIStore.getState()).toMatchObject({
       isWorkDashboardOpen: true,
       workDashboardInitialTab: "completed",
-      workDashboardInitialPendingFilter: "needsReview",
+      workDashboardInitialPendingFilter: "upload",
       workDashboardReturnState: workSnapshot,
     });
   });
@@ -283,6 +305,36 @@ describe("AppShell", () => {
     expect(hasArrivalPassed(ADDRESS)).toBe(passed);
   });
 
+  it("lets the queue's failure toast open Home's switcher from another screen, and Your Work", () => {
+    let location = "";
+    function Where() {
+      location = useLocation().pathname;
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={["/home/profile"]}>
+        <Where />
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="*" element={<div>Screen</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    act(() => queueProvider.onOpenGardenSwitcher?.());
+
+    expect(location).toBe("/home");
+    expect(useUIStore.getState().gardenSwitcherRequested).toBe(true);
+
+    // Its Review, for an upload the active garden lists, opens Your Work on Pending over Home.
+    act(() => queueProvider.onOpenYourWork?.());
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: true,
+      workDashboardInitialTab: "pending",
+    });
+  });
+
   it("scrolls content inside #app-scroll so the app bar stays outside any overscroll stretch", () => {
     render(
       <MemoryRouter initialEntries={["/home"]}>
@@ -311,6 +363,33 @@ describe("AppShell", () => {
     expect(appScroll.className).not.toMatch(/overscroll-(?:y-)?(?:contain|none)/);
     expect(main).toContainElement(appScroll);
     expect(appScroll).not.toContainElement(screen.getByTestId("authenticated-nav"));
+  });
+
+  it("reserves the bottom bar's space only where the bar can show", () => {
+    const reserveOn = (path: string, gardenId: string | null) => {
+      activeGarden.gardenId = gardenId;
+      const view = render(
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path="home/*" element={<p>Screen</p>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      );
+      const className = document.getElementById("app-scroll")?.className ?? "";
+      view.unmount();
+      return className.includes("69px") ? "bar" : "safe area";
+    };
+
+    // Before a garden is entered no bar shows (DL-155), so Profile's pane reaches the bottom
+    // instead of ending above an empty 69px band.
+    expect(reserveOn("/home/profile", null)).toBe("safe area");
+    expect(reserveOn("/home/profile", "garden-1")).toBe("bar");
+    // An immersive route keeps the space for the fixed bar it draws where the nav would sit.
+    expect(reserveOn("/home/garden-1/work/work-1", null)).toBe("bar");
+    // PRD-1505: the shell reads a short garden list again, so Home returns to the remembered one.
+    expect(followRememberedGarden).toHaveBeenCalled();
   });
 
   it("clears stale dashboard state and document locks on route changes", () => {

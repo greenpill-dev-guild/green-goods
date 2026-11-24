@@ -1,6 +1,8 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { Garden } from "@green-goods/shared/types/domain";
-import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   type CommitmentPoolRecord,
@@ -8,10 +10,11 @@ import {
   type CommitmentsInbox,
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
-import { useMemo } from "react";
+import { RiFilterOffLine } from "@remixicon/react";
+import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 
-import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
+import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitments";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { gardenAddressFor, groupByGarden } from "./grouping";
 
@@ -22,6 +25,12 @@ export interface OverTimeTabProps {
   series: CommitmentSeriesRecord[];
   /** Where a row goes when tapped: the commitment, in its garden. */
   onOpenCommitment: (gardenAddress: string, commitmentId: bigint) => void;
+  /** Drawn first, in every state that lists: the garden's seasons and campaigns. */
+  lead?: ReactNode;
+  /** The season or campaign the record and the list count; null counts every promise. */
+  cycleId: bigint | null;
+  /** Head each garden's kept promises with its name; off once the sheet names its one garden. */
+  gardenHeadings: boolean;
 }
 
 /**
@@ -33,7 +42,16 @@ export interface OverTimeTabProps {
  * commitment in a three-person garden must not read as a third of a failure.
  * Lapsed appears because this is the member's own view of themselves.
  */
-export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }: OverTimeTabProps) {
+export function OverTimeTab({
+  inbox,
+  pools,
+  gardens,
+  series,
+  onOpenCommitment,
+  lead,
+  cycleId,
+  gardenHeadings,
+}: OverTimeTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
@@ -43,12 +61,12 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
   const groups = useMemo(
     () =>
       groupByGarden(
-        inbox.settled,
+        inbox.settled.filter((row) => cycleId === null || row.commitment.cycleId === cycleId),
         pools,
         gardens,
         formatMessage({ id: "app.commitments.group.other" })
       ),
-    [inbox.settled, pools, gardens, formatMessage]
+    [inbox.settled, cycleId, pools, gardens, formatMessage]
   );
 
   const record = useMemo(
@@ -77,31 +95,32 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.overTime.loading",
-        errorId: "app.commitments.overTime.error",
+        errorId: "app.commitments.overTime.error.title",
+        errorDescriptionId: "app.commitments.overTime.error.description",
         emptyTitleId: "app.commitments.overTime.emptyTitle",
         emptyDescriptionId: "app.commitments.overTime.emptyDescription",
+        emptyLead: lead,
       }}
     >
+      {lead}
+
       {record.length > 0 ? (
         <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
           <SheetHeading as="h4">
             {formatMessage({ id: "app.commitments.record.title" })}
           </SheetHeading>
-          <dl className="mt-3 space-y-2">
+          <FactList frame="inset" className="mt-1">
             {record.map((entry) => (
-              <div key={entry.key} className="flex items-baseline justify-between gap-3">
-                <dt className="min-w-0 truncate text-sm text-text-sub-600" title={entry.gardenName}>
-                  {entry.gardenName}
-                </dt>
-                <dd className="shrink-0 text-sm text-text-strong-950">
-                  {formatMessage(
-                    { id: "app.commitments.record.counts" },
-                    { kept: entry.kept, lapsed: entry.lapsed }
-                  )}
-                </dd>
-              </div>
+              <FactRow
+                key={entry.key}
+                label={entry.gardenName}
+                value={formatMessage(
+                  { id: "app.commitments.record.counts" },
+                  { kept: entry.kept, lapsed: entry.lapsed }
+                )}
+              />
             ))}
-          </dl>
+          </FactList>
           <p className="mt-3 text-xs text-text-soft-400">
             {formatMessage({ id: "app.commitments.record.note" })}
           </p>
@@ -113,38 +132,44 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
           <SheetHeading as="h4" className="mb-2">
             {formatMessage({ id: "app.commitments.series.title" })}
           </SheetHeading>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-(--gg-list-gap)">
+            {/* A series offers the same promise again and again, so it leads as an offer. */}
             {series.map((entry) => (
-              <div
+              <CommitmentRow
                 key={entry.id}
-                className="flex items-start justify-between gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text-strong-950">
-                    {formatMessage(
-                      { id: "app.commitments.series.instances" },
-                      { count: Number(entry.instanceCount) }
-                    )}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-sub-600">
-                    {formatMessage(
-                      { id: "app.commitments.series.kept" },
-                      { count: Number(entry.fulfilledCount) }
-                    )}
-                  </p>
-                </div>
-                <StatusBadge size="sm" variant={entry.state === "ACTIVE" ? "success" : "neutral"}>
-                  {formatMessage({
+                data-component="CommitmentSeriesRow"
+                direction="OFFER"
+                title={formatMessage(
+                  { id: "app.commitments.series.instances" },
+                  { count: Number(entry.instanceCount) }
+                )}
+                status={{
+                  label: formatMessage({
                     id:
                       entry.state === "ACTIVE"
                         ? "app.commitments.series.active"
                         : "app.commitments.series.stopped",
-                  })}
-                </StatusBadge>
-              </div>
+                  }),
+                  tone: entry.state === "ACTIVE" ? "success" : "neutral",
+                }}
+                note={formatMessage(
+                  { id: "app.commitments.series.kept" },
+                  { count: Number(entry.fulfilledCount) }
+                )}
+              />
             ))}
           </div>
         </section>
+      ) : null}
+
+      {/* A season or campaign may hold nothing settled yet: the filter says so
+          rather than leaving its rail over an empty page. */}
+      {cycleId !== null && groups.length === 0 ? (
+        <EmptyState
+          placement="sheet"
+          icon={<RiFilterOffLine />}
+          title={formatMessage({ id: "app.commitments.overTime.emptyTitle" })}
+        />
       ) : null}
 
       {groups.length > 0 ? (
@@ -153,16 +178,21 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
             {formatMessage({ id: "app.commitments.kept.title" })}
           </SheetHeading>
           <div className="space-y-4">
-            {groups.map((group) => (
+            {(gardenHeadings
+              ? groups
+              : [{ key: "garden", gardenName: "", rows: groups.flatMap((group) => group.rows) }]
+            ).map((group) => (
               <div key={group.key}>
-                <SheetHeading as="h5" className="mb-2 truncate" title={group.gardenName}>
-                  {group.gardenName}
-                </SheetHeading>
-                <div className="space-y-2">
+                {gardenHeadings ? (
+                  <SheetHeading as="h5" className="mb-2 truncate" title={group.gardenName}>
+                    {group.gardenName}
+                  </SheetHeading>
+                ) : null}
+                <div className="flex flex-col gap-(--gg-list-gap)">
                   {group.rows.map((row) => {
                     const gardenAddress = gardenAddressFor(row, pools);
                     return (
-                      <CommitmentRow
+                      <PromiseRow
                         key={row.commitment.id}
                         row={row}
                         title={

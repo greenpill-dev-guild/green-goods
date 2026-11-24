@@ -15,8 +15,8 @@
  *      lookup for a send whose answer was lost (stranded-intent.ts).
  *
  * A kind that sends some other contract call, such as a commitment act, cannot
- * ride in EAS.multiAttest. One signature for it needs TransactionSender.sendBatch
- * to carry several calls atomically, and no sender does that yet.
+ * ride in EAS.multiAttest. One signature for it needs an atomic batch
+ * (TransactionSender.sendAtomicBatch), and the queue sends none yet.
  *
  * @module modules/work/upload-kinds
  */
@@ -26,6 +26,7 @@ import { type EASConfig, getEASConfig } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkUploadCheckpoint } from "../../types/work-media";
+import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../utils/eas/constants";
 import type { QueuedAttestation } from "../../utils/eas/transaction-builder";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { jobQueueDB } from "../job-queue/db";
@@ -37,7 +38,10 @@ import {
   buildQueuedWorkDraft,
   resolveQueuedWorkTitle,
 } from "./queued-work-draft";
+import { UploadItemAlreadyDone, UploadItemUnchecked } from "./upload-item-refusals";
 import type { UploadPreparation } from "./upload-state";
+import { assertWorkUploadConsent } from "./upload-policy";
+import { APPROVAL_ALREADY_DECIDED_REASON } from "./submit-approval-command";
 
 // The simulation and the encoders load on first use: the offline shell must not carry them.
 type Simulation = typeof import("./simulate");
@@ -52,6 +56,8 @@ export interface UploadKindDependencies {
   encodeWork: Encoders["encodeWorkData"];
   encodeApproval: Encoders["encodeWorkApprovalData"];
   easConfig: (chainId: number) => EASConfig;
+  /** Whether the work already has a decision on chain. */
+  isDecided: (chainId: number, workUID: string) => Promise<boolean>;
 }
 
 export interface UploadKindContext {
@@ -108,6 +114,7 @@ async function encodeQueuedWork(
   );
   const encodeWork = dependencies.encodeWork ?? (await loadEncoders()).encodeWorkData;
   return encodeWork(draft, chainId, {
+    uploaderAddress: job.userAddress as `0x${string}`,
     clientWorkId: payload.clientWorkId,
     checkpoint: payload.uploadCheckpoint,
     onCheckpoint: async (progress) => {
@@ -127,6 +134,7 @@ async function encodeQueuedWork(
 
 const work: UploadKind<WorkJobPayload> = {
   async prepare(job, context) {
+    assertWorkUploadConsent(job.payload.uploadConsent, job.userAddress as Address);
     const { chainId, claim, save, dependencies = {} } = context;
     const conversion = await (dependencies.convertMedia ?? convertQueuedHeicMedia)(job);
     if (conversion.status !== "ready")
@@ -162,6 +170,7 @@ const work: UploadKind<WorkJobPayload> = {
 
   async attestation(job, context) {
     const { payload } = job;
+    assertWorkUploadConsent(payload.uploadConsent, job.userAddress as Address);
     // The title preparation resolved. Its saved uploads are read back, not uploaded again.
     const title = resolveWorkSubmissionTitle({
       draftTitle: payload.title,
@@ -190,6 +199,19 @@ const approval: UploadKind<ApprovalJobPayload> = {
   },
 
   async attestation(job, { chainId, dependencies = {} }) {
+    // The resolver accepts a second decision on the same work, so the chain is read right before
+    // this one goes, as for a decision the queue sends (PRD-1602).
+    const isDecided =
+      dependencies.isDecided ??
+      (async (onChain: number, workUID: string) =>
+        (await import("./review-chain")).createReviewChain(onChain).isDecided(workUID));
+    let decided: boolean;
+    try {
+      decided = await isDecided(chainId, job.payload.workUID);
+    } catch (error) {
+      throw new UploadItemUnchecked(error);
+    }
+    if (decided) throw new UploadItemAlreadyDone(APPROVAL_ALREADY_DECIDED_REASON);
     const encodeApproval =
       dependencies.encodeApproval ?? (await loadEncoders()).encodeWorkApprovalData;
     const easConfig = (dependencies.easConfig ?? getEASConfig)(chainId);
@@ -197,6 +219,7 @@ const approval: UploadKind<ApprovalJobPayload> = {
       schema: easConfig.WORK_APPROVAL.uid as Hex,
       gardenAddress: job.payload.gardenAddress as Hex,
       attestationData: encodeApproval(buildQueuedApprovalDraft(job.payload), chainId),
+      gasHeadroomPercent: APPROVAL_GAS_HEADROOM_PERCENT,
     };
   },
 };

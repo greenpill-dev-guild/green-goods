@@ -29,6 +29,8 @@ export interface ComposeActionRailProps {
   openActions: Action[];
   /** Chosen actions whose window has ended; each stays listed, marked closed, until removed. */
   closedActionUIDs: readonly string[];
+  /** Chosen actions whose window isn't known yet; each is marked until it is, or it is removed. */
+  uncheckedActionUIDs: readonly string[];
 }
 
 /**
@@ -44,6 +46,7 @@ export function ComposeActionRail({
   actions,
   openActions,
   closedActionUIDs,
+  uncheckedActionUIDs,
 }: ComposeActionRailProps) {
   const { formatMessage } = useIntl();
   const requirements = useWatch({ control: form.control, name: "requirements" });
@@ -172,6 +175,10 @@ export function ComposeActionRail({
               {closedActionUIDs.includes(row.actionUID) ? (
                 <p className="mt-1 text-xs text-error-base">
                   {formatMessage({ id: "app.compose.proof.closed" })}
+                </p>
+              ) : uncheckedActionUIDs.includes(row.actionUID) ? (
+                <p className="mt-1 text-xs text-text-sub-600">
+                  {formatMessage({ id: "app.compose.proof.unchecked" })}
                 </p>
               ) : null}
               <div className="mt-2 flex flex-wrap items-center gap-2">

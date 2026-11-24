@@ -159,13 +159,16 @@ function isValidationOnlyPath(path) {
 }
 
 const directRootTestChecks = new Map([
+  ["scripts/ops/dependabot-sync.test.mjs", "dependabot-sync-test"],
   ["scripts/harness/agent-hooks.test.mjs", "review-guardrails-test"],
   ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
+  ["scripts/quality/comment-policy.test.mjs", "comment-policy-test"],
   ["scripts/lib/dev-shared.test.mjs", "validation-system-test"],
   ["scripts/quality/select-validation.test.mjs", "validation-system-test"],
   ["scripts/dev/ci-local.test.mjs", "validation-system-test"],
   ["scripts/dev/surface-leases.test.mjs", "validation-system-test"],
   ["scripts/quality/ci-gate.test.mjs", "validation-system-test"],
+  ["scripts/quality/merge-gate.test.mjs", "validation-system-test"],
   ["scripts/quality/check-commit-identity.test.mjs", "validation-system-test"],
   ["scripts/quality/classify-supply-chain-changes.mjs", "validation-system-test"],
   ["scripts/quality/workflow-performance-parity.test.mjs", "validation-system-test"],
@@ -237,6 +240,26 @@ function consumersOfSharedTestSupport(policy, path) {
   return support.surfaces;
 }
 
+// A rule's `globs` read like a workflow's path filters: `**` crosses directories, `*` and `?` do not.
+const globExpressions = new Map();
+function globMatches(glob, path) {
+  if (!globExpressions.has(glob)) {
+    let source = "";
+    for (let index = 0; index < glob.length; index += 1) {
+      const character = glob[index];
+      if (character === "*" && glob[index + 1] === "*") {
+        const crossesDirectory = glob[index + 2] === "/";
+        source += crossesDirectory ? "(?:.*/)?" : ".*";
+        index += crossesDirectory ? 2 : 1;
+      } else if (character === "*") source += "[^/]*";
+      else if (character === "?") source += "[^/]";
+      else source += character.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+    }
+    globExpressions.set(glob, new RegExp(`^${source}$`));
+  }
+  return globExpressions.get(glob).test(path);
+}
+
 function groupMatches(path, rule) {
   const exactMatch = rule.exact?.includes(path) ?? false;
   const excluded =
@@ -246,13 +269,15 @@ function groupMatches(path, rule) {
       (rule.excludeTests === true && isTestPath(path)) ||
       (rule.excludeExact?.includes(path) ?? false) ||
       (rule.excludePrefixes?.some((prefix) => path.startsWith(prefix)) ?? false) ||
-      (rule.excludeContains?.some((part) => path.includes(part)) ?? false));
+      (rule.excludeContains?.some((part) => path.includes(part)) ?? false) ||
+      (rule.excludeSuffixes?.some((suffix) => path.endsWith(suffix)) ?? false));
   if (excluded) return false;
   const groups = [];
   if (rule.exact?.length) groups.push(exactMatch);
   if (rule.prefixes?.length) groups.push(rule.prefixes.some((prefix) => path.startsWith(prefix)));
   if (rule.contains?.length) groups.push(rule.contains.some((part) => path.includes(part)));
   if (rule.extensions?.length) groups.push(rule.extensions.some((extension) => path.endsWith(extension)));
+  if (rule.globs?.length) groups.push(rule.globs.some((glob) => globMatches(glob, path)));
   if (groups.length === 0) return false;
   return rule.match === "all" ? groups.every(Boolean) : groups.some(Boolean);
 }
@@ -376,6 +401,47 @@ function needsOwnerCompileProof(paths, surface) {
 // A fast push budgets a focused package suite at this many seconds.
 const FOCUSED_PUSH_SUITE_SECONDS = 30;
 
+// The typecheck that proves a surface still compiles. A critical push or qa run selects it for the
+// critical owner and for every consumer of the change; CI's consumer workflows own the whole suites
+// and production builds. The Indexer's build is its typecheck (Envio codegen plus `tsc --noEmit`,
+// with nothing emitted), so it stands in there. Contracts has no standalone typecheck check.
+const SURFACE_TYPECHECKS = {
+  shared: "shared-typecheck",
+  client: "client-typecheck",
+  admin: "admin-typecheck",
+  agent: "agent-typecheck",
+  indexer: "indexer-build",
+};
+const SURFACE_TEST_TYPECHECKS = {
+  shared: "shared-test-typecheck",
+  client: "client-test-typecheck",
+  admin: "admin-test-typecheck",
+  agent: "agent-test-typecheck",
+};
+
+// A push is a thin pre-check (D16, 2026-10-26). These checks belong to the pull-request workflow
+// named beside each: a push leaves one to CI only when that workflow is expected for the change,
+// and a package suite only when no test path focuses it. The Shared build is an echo, so it needs
+// no workflow. The Indexer build stays local: it is codegen plus `tsc --noEmit`, the Indexer's only
+// typecheck. A critical contracts change keeps all of these local: its full gate is unchanged.
+const CI_OWNED_ON_PUSH = {
+  "shared-build": null,
+  "client-build": "Client",
+  "admin-build": "Admin",
+  "agent-build": "Agent",
+  "storybook-build": "Design",
+  "browser-passkey": "Client",
+  "browser-work-exploration": "Client",
+  "browser-pwa-preview": "Client",
+  "shared-test": "Shared",
+  "client-test": "Client",
+  "admin-test": "Admin",
+  "agent-test": "Agent",
+  "indexer-test": "Indexer",
+  "docs-test": "Docs",
+  "docs-build": "Docs",
+};
+
 // The gates that certify readiness, a full local ship, a merge or a release run every check fresh,
 // whatever the plan's risk: they reuse no receipt, and their package suites skip Turbo's cache.
 // Lighter intents may reuse an exact pass, but a critical plan only in push, where the pre-push
@@ -394,14 +460,27 @@ export function receiptPolicyFor(intent, risk) {
   };
 }
 
-function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy) {
-  if (requestedChecks.length > 0) return [];
+function focusedProofMissing(
+  changedPaths,
+  testPaths,
+  requestedChecks,
+  deletedPaths,
+  policy,
+  { ownersRequiringFocus = new Set(), exemptSurfaces = new Set(), cheapWholeSuiteIsProof = true } = {},
+) {
+  // An explicit --check stands in for an ordinary owner's focus, never for a critical owner, whose
+  // mandatory suite must still run focused on a named test.
+  const explicit = requestedChecks.length > 0;
+  if (explicit && ownersRequiringFocus.size === 0) return [];
   const missing = new Set();
   for (const path of changedPaths) {
     if (!/^packages\/[^/]+\/src\//.test(path) || isValidationOnlyPath(path)) continue;
     const surface = owningSurface(path);
-    if (!surface || testPaths[surface]?.length > 0) continue;
-    if (needsOwnerCompileProof(changedPaths, surface)) continue;
+    if (!surface || exemptSurfaces.has(surface) || testPaths[surface]?.length > 0) continue;
+    if (explicit && !ownersRequiringFocus.has(surface)) continue;
+    // Compile proof stands in for a barrel or entry change, except for a critical owner, whose
+    // mandatory suite must run focused rather than whole.
+    if (!ownersRequiringFocus.has(surface) && needsOwnerCompileProof(changedPaths, surface)) continue;
     missing.add(surface);
   }
   // A deleted package test leaves its suite with nothing to focus on, and so does a changed helper
@@ -417,9 +496,13 @@ function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPa
   ];
   for (const path of unfocusable) {
     const surface = owningSurface(path);
-    if (!surface || surface === "docs" || testPaths[surface]?.length > 0) continue;
+    if (!surface || surface === "docs" || exemptSurfaces.has(surface) || testPaths[surface]?.length > 0) {
+      continue;
+    }
+    if (explicit && !ownersRequiringFocus.has(surface)) continue;
     const suite = policy.checks.find((check) => check.id === `${surface}-test`);
-    if (suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
+    // A push runs no whole suite (D16), so only qa still accepts a cheap one as proof.
+    if (cheapWholeSuiteIsProof && suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
     missing.add(surface);
   }
   return [...missing].sort();
@@ -526,6 +609,51 @@ export function selectValidation(input = {}, options = {}) {
     ((intent === "ship" || localMerge) && changedPaths.length === 0);
   const strictScope = strictIntent || fullRepository;
   const surfaces = impactedSurfaces(policy, changedPaths, fullRepository);
+  // The policy's surface rules own contracts paths, including scripts/contracts/, which
+  // owningSurface does not map to a package.
+  const contractsSurfaceRules = (policy.surfaceRules ?? []).filter(
+    (rule) => rule.surface === "contracts",
+  );
+  const contractsOwned = (path) =>
+    owningSurface(path) === "contracts" ||
+    contractsSurfaceRules.some((rule) => groupMatches(path, rule));
+  const ownerOf = (path) => (contractsOwned(path) ? "contracts" : owningSurface(path));
+  const owners = new Set(changedPaths.map(ownerOf).filter(Boolean));
+  // A critical push or qa run keeps the fast-push shape: the critical owner's typecheck and
+  // focused suite are mandatory and every consumer adds its typechecks; CI's consumer workflows
+  // own the whole suites and production builds (D15, 2026-10-25). The paths that make a plan
+  // critical are the ones an override or content escalation matched; an explicit --risk critical
+  // with nothing matched makes every changed path critical. A contracts-owned critical path keeps
+  // the full local gate it had before D15, unchanged: the contracts gate plus every consumer's whole
+  // suites and builds, because the contracts verify step has no pull-request CI equivalent; neither
+  // the fast shape nor D16's thin pre-check applies to it. A README or ordinary test under
+  // packages/contracts/ beside a critical Shared change is not such a path. Critical owners prove
+  // themselves with a focused suite even when a barrel change would otherwise count compile proof,
+  // and CI owns their builds.
+  const ruleCriticalPaths = [
+    ...changedPaths.filter((path) => hardRules.some((rule) => groupMatches(path, rule))),
+    ...contentCriticalPaths,
+  ];
+  const criticalPaths =
+    baseRisk === "critical" && ruleCriticalPaths.length === 0 ? changedPaths : ruleCriticalPaths;
+  const contractsCritical = risk === "critical" && criticalPaths.some(contractsOwned);
+  const criticalPush = intent === "push" && risk === "critical" && !contractsCritical;
+  // QA keeps D15's critical-qa shape for contracts paths too: only a push expands to the full gate.
+  const criticalQa = intent === "qa" && risk === "critical";
+  const criticalOwners = new Set(
+    risk === "critical" ? criticalPaths.map(ownerOf).filter(Boolean) : [],
+  );
+  const ownersRequiringFocus = new Set(
+    [...criticalOwners].filter((surface) => surface !== "contracts"),
+  );
+  // The complete contracts gate, as the policy's contract overrides name it.
+  const contractsGateChecks = [
+    ...new Set(
+      (policy.criticalOverrides ?? [])
+        .filter((rule) => rule.checks?.includes("contracts-test"))
+        .flatMap((rule) => rule.checks),
+    ),
+  ];
   const selected = new Set();
   const selectionReasons = new Map();
   const select = (id, reason) => {
@@ -564,14 +692,14 @@ export function selectValidation(input = {}, options = {}) {
 
   const includeBuilds =
     ["readiness", "ship", "merge", "release"].includes(intent) ||
-    (intent === "push" && risk === "critical");
+    (intent === "push" && contractsCritical);
   if (evidenceOnly) {
     for (const surface of Object.keys(testPaths)) {
       const testId = `${surface}-test`;
       if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
       select(testId, `focused-test:${surface}`);
     }
-  } else if (fastPush) {
+  } else if (fastPush || criticalPush) {
     for (const surface of Object.keys(testPaths)) {
       const testId = `${surface}-test`;
       if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
@@ -583,10 +711,8 @@ export function selectValidation(input = {}, options = {}) {
         addValidationOnlyChecks(select, surface, surfacePaths, { includeTypecheck: false });
       }
       if (needsOwnerCompileProof(changedPaths, surface)) {
-        const typechecks = {
-          shared: "shared-typecheck",
-          agent: "agent-typecheck",
-        };
+        // The typecheck is the push's compile proof; a build stays only where CI does not run it.
+        const typechecks = SURFACE_TYPECHECKS;
         const builds = {
           shared: "shared-build",
           indexer: "indexer-build",
@@ -595,12 +721,41 @@ export function selectValidation(input = {}, options = {}) {
           agent: "agent-build",
         };
         if (typechecks[surface]) select(typechecks[surface], `push-owner-compile:${surface}`);
-        if (builds[surface]) select(builds[surface], `push-owner-compile:${surface}`);
+        // A critical owner proves itself with its focused suite and typecheck; CI owns its build.
+        if (builds[surface] && !(criticalPush && criticalOwners.has(surface))) {
+          select(builds[surface], `push-owner-compile:${surface}`);
+        }
       }
       if (surface === "docs") select("docs-authority", "push-owner-proof:docs");
     }
+    if (criticalPush) {
+      for (const surface of surfaces) {
+        if (owners.has(surface)) continue;
+        const typecheck = SURFACE_TYPECHECKS[surface];
+        if (typecheck) select(typecheck, `critical-consumer-types:${surface}`);
+      }
+      // A critical owner always proves it compiles, whether or not a barrel or entry file moved.
+      for (const surface of criticalOwners) {
+        const typecheck = SURFACE_TYPECHECKS[surface];
+        if (typecheck) select(typecheck, `critical-owner-types:${surface}`);
+      }
+    }
   } else {
     for (const surface of surfaces) {
+      // A critical qa run proves its consumers by typecheck and runs a consumer suite only when
+      // the author names one of its tests; CI owns the whole consumer suites (D15).
+      if (criticalQa && !owners.has(surface)) {
+        for (const typecheck of [SURFACE_TYPECHECKS[surface], SURFACE_TEST_TYPECHECKS[surface]]) {
+          if (typecheck) select(typecheck, `critical-consumer-types:${surface}`);
+        }
+        if (testPaths[surface]?.length > 0) select(`${surface}-test`, `focused-test:${surface}`);
+        continue;
+      }
+      if (criticalQa && criticalOwners.has(surface)) {
+        for (const typecheck of [SURFACE_TYPECHECKS[surface], SURFACE_TEST_TYPECHECKS[surface]]) {
+          if (typecheck) select(typecheck, `critical-owner-types:${surface}`);
+        }
+      }
       // Shared test support a consumer's tests import counts as that consumer's own test files.
       const surfacePaths = changedPaths.filter(
         (path) =>
@@ -646,7 +801,9 @@ export function selectValidation(input = {}, options = {}) {
   }
 
   if (strictScope) {
-    if (fullRepository || surfaces.has("contracts")) {
+    // A critical push keeps the fast-push shape, so a noncritical contracts file beside it (a
+    // README, an ordinary test) adds no contract gate; a matched contract override still does.
+    if (fullRepository || (surfaces.has("contracts") && (!criticalPush || contractsCritical))) {
       select("abi-artifacts", "strict-intent:contracts");
       select("contracts-verify-fast", "strict-intent:contracts");
     }
@@ -668,11 +825,11 @@ export function selectValidation(input = {}, options = {}) {
   for (const rule of policy.conditionalRules ?? []) {
     if (evidenceOnly && rule.runInEvidence !== true) continue;
     if (rule.intents && !rule.intents.includes(intent)) continue;
-    if (fastPush && ["design-guardrails", "supply-chain"].includes(rule.check)) continue;
+    if ((fastPush || criticalPush) && ["design-guardrails", "supply-chain"].includes(rule.check)) continue;
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
       if (rule.exact?.includes(path)) return true;
-      if (rule.check === "browser-proof" && isValidationOnlyPath(path)) return false;
+      if (["browser-proof", "rendered-proof"].includes(rule.check) && isValidationOnlyPath(path)) return false;
       if (rule.check === "ontology" && isValidationOnlyPath(path)) return false;
       if (
         ["source-structure", "design-guardrails"].includes(rule.check) &&
@@ -693,17 +850,60 @@ export function selectValidation(input = {}, options = {}) {
     select(rule.check, `conditional:${rule.check}`);
   }
 
+  // The policy names each override's complete checks, which checkpoint and the strict intents
+  // apply as written. A critical push or qa run keeps the critical owner's suite (focused) with its
+  // typechecks and turns every other surface's suite into that surface's source and test
+  // typecheck: CI's consumer workflows own the whole consumer suites (D15, 2026-10-25).
+  const overrideChecks = (checks) =>
+    criticalPush || criticalQa
+      ? checks.flatMap((id) => {
+          const surface = id.endsWith("-test") ? id.slice(0, -5) : null;
+          if (!surface || !SURFACE_TYPECHECKS[surface]) return [id];
+          const typechecks = [SURFACE_TYPECHECKS[surface], SURFACE_TEST_TYPECHECKS[surface]];
+          return criticalOwners.has(surface) ? [id, ...typechecks] : typechecks;
+        })
+      : checks;
   const mandatory = new Set();
   for (const rule of evidenceOnly ? [] : hardRules) {
-    for (const id of rule.checks) {
+    for (const id of overrideChecks(rule.checks)) {
       select(id, "critical-override");
       mandatory.add(id);
     }
   }
   if (!evidenceOnly && contentCriticalPaths.length > 0) {
-    for (const id of sharedCriticalRule.checks) {
+    for (const id of overrideChecks(sharedCriticalRule.checks)) {
       select(id, "critical-content");
       mandatory.add(id);
+    }
+  }
+  // A critical contracts path brings the complete contracts gate in push and qa, whether an
+  // override matched it or an explicit --risk critical did; the strict intents select it already.
+  if (contractsCritical && ["push", "qa"].includes(intent)) {
+    for (const id of contractsGateChecks) {
+      select(id, "critical-contracts");
+      mandatory.add(id);
+    }
+  }
+  // Leave builds, the Storybook build, the browser presets and whole package suites to the
+  // pull-request workflow that runs them, when that workflow is expected for this change.
+  const ciOwned = [];
+  if (fastPush || criticalPush) {
+    const expectedWorkflows = new Set(
+      selectExpectedWorkflows({ changedPaths, intent: "merge", ci: true }, { policy }),
+    );
+    for (const id of [...selected]) {
+      if (!Object.hasOwn(CI_OWNED_ON_PUSH, id)) continue;
+      // An explicit --check always runs.
+      if (requestedChecks.includes(id)) continue;
+      const surface = id.endsWith("-test") ? id.slice(0, -5) : null;
+      // A focused suite runs locally, and a critical owner's suite stays to be focused: the plan
+      // asks for its test rather than leaving it to CI.
+      if (surface && (testPaths[surface]?.length > 0 || ownersRequiringFocus.has(surface))) continue;
+      const workflow = CI_OWNED_ON_PUSH[id];
+      if (workflow !== null && !expectedWorkflows.has(workflow)) continue;
+      selected.delete(id);
+      mandatory.delete(id);
+      ciOwned.push({ id, workflow });
     }
   }
   if (["readiness", "push", "ship", "merge", "release"].includes(intent)) {
@@ -722,6 +922,8 @@ export function selectValidation(input = {}, options = {}) {
         changedPaths,
         deletedPaths,
         checkpointScope: checkpointScope.effective,
+        contractsCritical,
+        criticalPush,
       });
       return {
         ...materialized,
@@ -753,9 +955,14 @@ export function selectValidation(input = {}, options = {}) {
     (check) => check.state === "blocked" && !isAdvisoryManualCheck(check),
   );
   const budget = summarizeBudget(intent, checks, risk);
-  const missingFocus = fastPush
-    ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy)
-    : [];
+  const missingFocus =
+    fastPush || criticalPush || criticalQa
+      ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy, {
+          ownersRequiringFocus: criticalPush || criticalQa ? ownersRequiringFocus : new Set(),
+          exemptSurfaces: contractsCritical ? new Set(["contracts"]) : new Set(),
+          cheapWholeSuiteIsProof: !(fastPush || criticalPush),
+        })
+      : [];
   // Static budgets are ceilings, not measurements. A plan whose package suites are all
   // focused is not over-broad, so it runs and the hard deadline decides; only an
   // unfocused suite turns an over-limit estimate into a request for narrower proof.
@@ -775,10 +982,18 @@ export function selectValidation(input = {}, options = {}) {
       : plannedOverBudget
         ? "local-budget-exceeded"
         : null;
+  // An explicit --check cannot stand in for a critical owner's focused suite, so the remediation
+  // offers it only when no critical owner is missing focus.
+  const criticalFocusMissing = missingFocus.some((surface) => ownersRequiringFocus.has(surface));
+  const focusPaths = missingFocus
+    .map((surface) => `--test-path ${surface}:<package-relative-test>`)
+    .join(", ");
   const remediation =
     status === "needs-focus"
       ? missingFocus.length > 0
-        ? `Add focused proof with ${missingFocus.map((surface) => `--test-path ${surface}:<package-relative-test>`).join(", ")}, select an existing acceptance check with --check, or narrow the change.`
+        ? criticalFocusMissing
+          ? `Add focused proof with ${focusPaths}, or narrow the change. A critical owner's suite runs focused on the tests you name, so --check cannot stand in for it.`
+          : `Add focused proof with ${focusPaths}, select an existing acceptance check with --check, or narrow the change.`
         : "Narrow the changed scope, provide a more focused test path, or select a smaller existing acceptance check."
       : null;
 
@@ -792,6 +1007,7 @@ export function selectValidation(input = {}, options = {}) {
     environment,
     environmentBlockers: toolchainBlockers,
     checks,
+    ciOwned,
     budget,
     receiptPolicy: receiptPolicyFor(intent, risk),
   };
@@ -832,8 +1048,17 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     (capability) => environment.capabilities[capability] === false,
   );
   const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
+  // A mandatory critical suite runs whole, except in a Shared critical push or qa run, where the
+  // tests the author names are the local proof and CI runs the whole suites. A critical contracts
+  // push keeps its full local gate, so every mandatory suite in it runs whole; a critical contracts
+  // qa run keeps D15's shape, where only the contracts suite runs whole.
+  const wholeCriticalSuite =
+    mandatory &&
+    context.risk === "critical" &&
+    ((context.contractsCritical === true && (surface === "contracts" || context.intent === "push")) ||
+      !["push", "qa"].includes(context.intent));
   const focusedPaths =
-    surface && !(mandatory && context.risk === "critical") && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
+    surface && !wholeCriticalSuite && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
       ? testPaths[surface] ?? []
       : [];
   let command = check.command;
@@ -861,7 +1086,10 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   if (check.id === "format" && !context.ci && ["ship", "merge", "release"].includes(context.intent)) {
     command = "bunx @biomejs/biome format .";
   }
-  const fastPush = context.intent === "push" && context.risk !== "critical";
+  // A critical push keeps the fast-push shape, so its format and lint stay scoped to the changed
+  // paths and its focused suites take the fast-push budget.
+  const fastPush =
+    (context.intent === "push" && context.risk !== "critical") || context.criticalPush === true;
   if (
     check.id === "format" &&
     (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint || fastPush) &&
@@ -963,8 +1191,12 @@ export function selectExpectedWorkflows(input = {}, options = {}) {
   effectiveIntent(policy, input.intent ?? "merge", input.ci === true);
   const paths = normalizePaths(input.changedPaths);
   return Object.entries(policy.workflowRules ?? {})
-    .filter(([name, rule]) =>
-      paths.some((path) => {
+    .filter(([name, rule]) => {
+      if (rule.pullRequestAuthor) {
+        return input.pullRequest?.user?.login === rule.pullRequestAuthor &&
+          Boolean(input.repository) && input.pullRequest?.head?.repo?.full_name === input.repository;
+      }
+      return paths.some((path) => {
         if (consumersOfSharedTestSupport(policy, path).includes(name.toLowerCase())) return true;
         if (!groupMatches(path, rule)) return false;
         if (rule.exact?.includes(path)) return true;
@@ -975,8 +1207,8 @@ export function selectExpectedWorkflows(input = {}, options = {}) {
         // Playwright spec under tests/, is run by every workflow whose rule lists it.
         const owner = owningSurface(path);
         return owner === null || name.toLowerCase() === owner;
-      }),
-    )
+      });
+    })
     .map(([name]) => name)
     .sort();
 }
@@ -1258,21 +1490,18 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
   );
   const stagedPatch = gitRawOutput(["diff", "--cached", "--binary", ...pathspec], cwd);
   const unstagedPatch = gitRawOutput(["diff", "--binary", ...pathspec], cwd);
-  const committedPaths = lines(
-    gitOutput(["diff", "--name-only", `${resolvedBase}...${resolvedHead}`], cwd),
-  );
-  const stagedPaths = lines(gitOutput(["diff", "--cached", "--name-only"], cwd));
-  const unstagedPaths = lines(gitOutput(["diff", "--name-only"], cwd));
+  // Rename detection would report a moved file by its new path only, so a critical file moved
+  // to a routine path would plan as routine; without it, the old path is listed and deleted.
+  const diffPaths = (...args) => lines(gitOutput(["diff", "--name-only", "--no-renames", ...args], cwd));
+  const range = `${resolvedBase}...${resolvedHead}`;
+  const committedPaths = diffPaths(range);
+  const stagedPaths = diffPaths("--cached");
+  const unstagedPaths = diffPaths();
   const untrackedPaths = lines(gitOutput(["ls-files", "--others", "--exclude-standard"], cwd));
   const deletedPaths = normalizePaths([
-    ...lines(
-      gitOutput(
-        ["diff", "--name-only", "--diff-filter=D", `${resolvedBase}...${resolvedHead}`],
-        cwd,
-      ),
-    ),
-    ...lines(gitOutput(["diff", "--cached", "--name-only", "--diff-filter=D"], cwd)),
-    ...lines(gitOutput(["diff", "--name-only", "--diff-filter=D"], cwd)),
+    ...diffPaths("--diff-filter=D", range),
+    ...diffPaths("--cached", "--diff-filter=D"),
+    ...diffPaths("--diff-filter=D"),
   ]).filter((path) => !existsSync(resolve(cwd, path)));
   const changedPaths =
     explicitPaths.length > 0

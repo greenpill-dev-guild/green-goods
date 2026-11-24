@@ -1,3 +1,4 @@
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { toastService } from "../toast.service";
 import type { FormatMessageFn } from "./types";
 
@@ -12,12 +13,18 @@ const PROOF_TOAST_ID = "proof-send";
 export function createProofToasts(formatMessage: FormatMessageFn) {
   const say = (id: string) => formatMessage({ id: `app.toast.proof.${id}` });
   return {
-    /** The prompt is about to open; with Add and Send, twice. */
-    adding: ({ sendToo }: { sendToo: boolean }) =>
+    /** The prompt is about to open; with Add and Send, twice, or once where both go as one. */
+    adding: ({ sendToo, together = false }: { sendToo: boolean; together?: boolean }) =>
       toastService.loading({
         id: PROOF_TOAST_ID,
         title: say("adding.title"),
-        message: say(sendToo ? "adding.messageSendToo" : "adding.message"),
+        message: say(
+          sendToo
+            ? together
+              ? "adding.messageSendTogether"
+              : "adding.messageSendToo"
+            : "adding.message"
+        ),
         context: "proof",
         suppressLogging: true,
       }),
@@ -67,6 +74,16 @@ export function createProofToasts(formatMessage: FormatMessageFn) {
         id: PROOF_TOAST_ID,
         title: say("takingLonger.title"),
         message: say("takingLonger.message"),
+        context: "proof",
+        suppressLogging: true,
+      }),
+
+    /** A Safe only proposed it: it lands once enough of the Safe's owners sign (PRD-1564). */
+    safeSigners: () =>
+      toastService.info({
+        id: PROOF_TOAST_ID,
+        title: formatMessage(SEND_STAGE_WORDS["safe-signers"].label),
+        message: formatMessage(SEND_STAGE_WORDS["safe-signers"].detail),
         context: "proof",
         suppressLogging: true,
       }),

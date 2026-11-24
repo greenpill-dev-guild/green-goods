@@ -1,7 +1,7 @@
 /**
  * View-action grammar tests.
  *
- * Hub, Garden, and Community keep fixed header actions. Community exposes the
+ * Review, Garden, and Community keep fixed header actions. Community exposes the
  * same three coordination actions on every tab, with tab bodies carrying the
  * detail work.
  *
@@ -24,12 +24,15 @@ import {
   buildGardenViewActions,
   type GardenWorkspaceView,
 } from "../../../hooks/admin-ui/garden/garden.utils";
-import { buildHubViewActions, type HubPipelineStage } from "../../../hooks/admin-ui/hub/hub.utils";
+import {
+  buildReviewViewActions,
+  type ReviewPipelineStage,
+} from "../../../hooks/admin-ui/review/review.utils";
 
 const GARDEN = "0xabcabcabcabcabcabcabcabcabcabcabcabcabca";
 
-const HUB_STAGES: HubPipelineStage[] = ["confirm", "work", "assess", "certify"];
-const GARDEN_VIEWS: GardenWorkspaceView[] = ["health", "impact", "activity"];
+const REVIEW_STAGES: ReviewPipelineStage[] = ["confirm", "work", "assess", "certify"];
+const GARDEN_VIEWS: GardenWorkspaceView[] = ["health", "pool", "activity", "impact"];
 
 function visibleIds(actions: Array<{ id: string; visible?: boolean }>): string[] {
   return actions.filter((action) => action.visible !== false).map((action) => action.id);
@@ -41,19 +44,19 @@ function primaryIds(actions: Array<{ id: string; visible?: boolean; primary?: bo
     .map((action) => action.id);
 }
 
-describe("buildHubViewActions — fixed primary", () => {
-  const buildFor = (stage: HubPipelineStage) =>
-    buildHubViewActions(stage, true, true, vi.fn(), { gardenAddress: GARDEN });
+describe("buildReviewViewActions — fixed primary", () => {
+  const buildFor = (stage: ReviewPipelineStage) =>
+    buildReviewViewActions(stage, true, true, vi.fn(), { gardenAddress: GARDEN });
 
   it("keeps the same action ids and order on every stage", () => {
     const expected = ["submit-work", "create-assessment", "create-hypercert"];
-    for (const stage of HUB_STAGES) {
+    for (const stage of REVIEW_STAGES) {
       expect(visibleIds(buildFor(stage))).toEqual(expected);
     }
   });
 
   it("declares submit-work as the fixed primary on every stage", () => {
-    for (const stage of HUB_STAGES) {
+    for (const stage of REVIEW_STAGES) {
       expect(primaryIds(buildFor(stage))).toEqual(["submit-work"]);
     }
   });
@@ -65,21 +68,21 @@ describe("buildHubViewActions — fixed primary", () => {
   });
 
   it("renders the trio outlined on every stage, so no action out-shouts the queue (DL-043)", () => {
-    for (const stage of HUB_STAGES) {
+    for (const stage of REVIEW_STAGES) {
       const variants = buildFor(stage).map((action) => action.variant);
       expect(variants).toEqual(["secondary", "secondary", "secondary"]);
     }
   });
 
   it("blanks role-gated actions for read-only stewards", () => {
-    const actions = buildHubViewActions("work", false, false, vi.fn(), {
+    const actions = buildReviewViewActions("work", false, false, vi.fn(), {
       gardenAddress: GARDEN,
     });
     expect(visibleIds(actions)).toEqual([]);
   });
 
   it("makes create-assessment the declared primary for evaluator-only viewers, still outlined", () => {
-    const actions = buildHubViewActions("assess", false, true, vi.fn(), {
+    const actions = buildReviewViewActions("assess", false, true, vi.fn(), {
       gardenAddress: GARDEN,
     });
 
@@ -88,26 +91,28 @@ describe("buildHubViewActions — fixed primary", () => {
     expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("secondary");
   });
 
-  it("drops list sort state when opening Hub creation flows", () => {
+  it.each([
+    "work",
+    "confirm",
+    "assess",
+    "certify",
+  ] as const)("opens each flow over %s, keeping its sort and scope (DL-140)", (stage) => {
     const navigate = vi.fn();
-    const actions = buildHubViewActions("work", true, true, navigate, {
+    const actions = buildReviewViewActions(stage, true, true, navigate, {
       gardenAddress: GARDEN,
-      sort: "newest",
+      sort: "oldest",
+      scope: "approved",
     });
 
     for (const id of ["submit-work", "create-assessment", "create-hypercert"]) {
       actions.find((action) => action.id === id)?.onClick();
     }
 
-    expect(navigate).toHaveBeenCalledTimes(3);
-    for (const [target] of navigate.mock.calls) {
-      expect(target).toContain(GARDEN);
-      expect(target).not.toContain("sort=");
-    }
-    expect(navigate.mock.calls.map(([target]) => target.split("?")[0])).toEqual([
-      "/hub/work/submit",
-      "/hub/assess/create",
-      "/hub/certify/create",
+    const stageUrl = `/review/${stage}?gardenId=${GARDEN}&sort=oldest&scope=approved`;
+    expect(navigate.mock.calls.map(([target]) => target)).toEqual([
+      `${stageUrl}&item=submit-work`,
+      `${stageUrl}&item=create-assessment`,
+      `${stageUrl}&item=create-hypercert`,
     ]);
   });
 });
@@ -116,16 +121,30 @@ describe("buildGardenViewActions — fixed primary", () => {
   const buildFor = (view: GardenWorkspaceView) =>
     buildGardenViewActions(view, true, true, vi.fn(), { gardenAddress: GARDEN });
 
-  it("keeps the same action ids and order on every view", () => {
-    const expected = ["view-public", "edit-garden"];
+  it("keeps View Public and Edit Garden first, in order, on every view", () => {
     for (const view of GARDEN_VIEWS) {
-      expect(visibleIds(buildFor(view))).toEqual(expected);
+      expect(visibleIds(buildFor(view)).slice(0, 2)).toEqual(["view-public", "edit-garden"]);
     }
   });
 
-  it("declares edit-garden as the fixed primary on every view", () => {
+  it("makes Seed Promises the Promises tab's primary, so its + leads to adding (PRD-1491)", () => {
     for (const view of GARDEN_VIEWS) {
-      expect(primaryIds(buildFor(view))).toEqual(["edit-garden"]);
+      const actions = buildFor(view);
+      if (view === "pool") {
+        expect(visibleIds(actions)).toEqual(["view-public", "edit-garden", "seed-promises"]);
+        expect(primaryIds(actions)).toEqual(["seed-promises"]);
+      } else {
+        expect(visibleIds(actions)).toEqual(["view-public", "edit-garden"]);
+        expect(primaryIds(actions)).toEqual(["edit-garden"]);
+      }
+    }
+    // The canonical gardenId and the older gardenAddress both reach the seeding flow.
+    for (const context of [{ gardenId: GARDEN }, { gardenAddress: GARDEN }]) {
+      const navigate = vi.fn();
+      buildGardenViewActions("pool", true, true, navigate, context)
+        .find((action) => action.id === "seed-promises")
+        ?.onClick();
+      expect(navigate).toHaveBeenCalledWith(`/garden/pool/seed?gardenId=${GARDEN}`);
     }
   });
 
@@ -133,6 +152,21 @@ describe("buildGardenViewActions — fixed primary", () => {
     for (const view of GARDEN_VIEWS) {
       expect(buildFor(view).some((action) => action.id === "edit-domains")).toBe(false);
     }
+  });
+
+  it("opens Edit Garden over the view it was pressed from, keeping its context (DL-140)", () => {
+    const navigate = vi.fn();
+    buildGardenViewActions("impact", true, true, navigate, {
+      gardenAddress: GARDEN,
+      range: "90d",
+      section: "hypercerts",
+    })
+      .find((action) => action.id === "edit-garden")
+      ?.onClick();
+
+    expect(navigate).toHaveBeenCalledWith(
+      `/garden/impact?gardenId=${GARDEN}&range=90d&section=hypercerts&item=edit-garden`
+    );
   });
 
   it("dropped the header add-member action — membership is community-owned", () => {
@@ -144,10 +178,12 @@ describe("buildGardenViewActions — fixed primary", () => {
   });
 
   it("leaves only the public link for viewers who cannot manage", () => {
-    const actions = buildGardenViewActions("health", false, true, vi.fn(), {
-      gardenAddress: GARDEN,
-    });
-    expect(visibleIds(actions)).toEqual(["view-public"]);
+    for (const view of ["health", "pool"] as const) {
+      const actions = buildGardenViewActions(view, false, true, vi.fn(), {
+        gardenAddress: GARDEN,
+      });
+      expect(visibleIds(actions)).toEqual(["view-public"]);
+    }
   });
 });
 
@@ -193,8 +229,18 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(navigate).toHaveBeenCalledTimes(1);
     // Community owns membership — the flow must stay under /community so the
     // NavigationBar tab does not flip to Garden while the dialog is open.
-    expect(navigate.mock.calls[0]?.[0]).toContain("/community/members");
-    expect(navigate.mock.calls[0]?.[0]).toContain("item=add-member");
+    expect(navigate).toHaveBeenCalledWith(`/community/members?gardenId=${GARDEN}&item=add-member`);
+  });
+
+  it("opens Add Member over the tab it was pressed from (DL-140)", () => {
+    const navigate = vi.fn();
+    buildCommunityViewActions("payouts", true, true, true, navigate, {
+      gardenAddress: GARDEN,
+    })
+      .find((action) => action.id === "add-member")
+      ?.onClick();
+
+    expect(navigate).toHaveBeenCalledWith(`/community/payouts?gardenId=${GARDEN}&item=add-member`);
   });
 
   it("links Deposit / withdraw to the route-backed endowment vault surface", () => {
@@ -210,18 +256,16 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
   });
 
-  it("links Fund payout jar to the route-backed payouts surface", () => {
+  it("opens Fund Cookie Jar over the tab it was pressed from (DL-140)", () => {
     const navigate = vi.fn();
-    buildCommunityViewActions("payouts", true, true, true, navigate, {
+    buildCommunityViewActions("endowment", true, true, true, navigate, {
       gardenAddress: GARDEN,
     })
       .find((action) => action.id === "fund-payout-jar")
       ?.onClick();
 
     expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]?.[0]).toContain("/community/payouts");
-    expect(navigate.mock.calls[0]?.[0]).toContain("item=fund-jar");
-    expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
+    expect(navigate).toHaveBeenCalledWith(`/community/endowment?gardenId=${GARDEN}&item=fund-jar`);
   });
 
   it("keeps Fund Cookie Jar in place but disabled, with its reason, for a garden with no jar", () => {
@@ -241,7 +285,7 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(visibleIds(actions)).toEqual(["add-member", "deposit-withdraw", "fund-payout-jar"]);
     expect(fund).toMatchObject({
       disabled: true,
-      disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+      disabledReasonId: "hub.community.action.fundPayoutJarNoJar",
       disabledReason: "This garden has no payout jar yet.",
     });
   });

@@ -1,6 +1,7 @@
 import type { SubmitWorkAuthSnapshot } from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import { useAuthState } from "@green-goods/shared/providers/Auth";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useCallback, useState } from "react";
@@ -10,7 +11,7 @@ import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { SubmitWorkFlow, type SubmitWorkLayout } from "./components/SubmitWorkFlow";
 
-function parseHubContext(search: string) {
+function parseReviewContext(search: string) {
   const params = new URLSearchParams(search);
   const view = params.get("view");
   const sort = params.get("sort");
@@ -46,8 +47,13 @@ export default function SubmitWork() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
-  const close = useCallback(
-    () => navigate(adminRoutes.hub(parseHubContext(location.search))),
+  // Mounted only while its route item is in the URL. Closing returns to the stage
+  // the flow opened over (DL-140).
+  const close = useRouteItemClose(true);
+  // A finished send lands on Work, which lists it, and replaces the flow's entry
+  // so Back cannot reopen it.
+  const finish = useCallback(
+    () => navigate(adminRoutes.review(parseReviewContext(location.search)), { replace: true }),
     [navigate, location.search]
   );
   const [panelDirty, setPanelDirty] = useState(false);
@@ -57,7 +63,6 @@ export default function SubmitWork() {
     onClose: close,
     blockRouteChange: true,
     preventRouteChange: panelBusy,
-    onDiscard: close,
   });
 
   return (
@@ -76,7 +81,7 @@ export default function SubmitWork() {
       >
         <SubmitWorkPanel
           layout="dialog"
-          onDone={close}
+          onDone={finish}
           onCancel={close}
           onDirtyChange={setPanelDirty}
           onBusyChange={setPanelBusy}

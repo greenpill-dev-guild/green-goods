@@ -19,7 +19,8 @@
     color: var(--color-header-text);
   }
 
-  /* Inherit the shell's Inter face without replacing the editorial field's serif.
+  /* Inherit the shell's face (Inter on the website, Plus Jakarta Sans in the
+     installed app) without replacing the editorial field's serif.
      This layer outranks the shared controls' components layer. */
   *:where(:not(.gg-control[data-surface="editorial"])) {
     font-family: inherit;

@@ -1,10 +1,11 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
@@ -70,15 +71,43 @@ function mutation<T>(isPending = false) {
   return { mutate: fn(), mutateAsync: fn(), isPending, reset: fn() } as unknown as T;
 }
 
+const QUIET_PLAN: ReturnType<typeof useDepositPlan> = {
+  signatures: null,
+  signatureLine: null,
+  isHeld: false,
+  isPaused: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null,
+};
+const HELD_PLAN: ReturnType<typeof useDepositPlan> = {
+  signatures: 2,
+  signatureLine: "2 signatures",
+  isHeld: true,
+  isPaused: true,
+  unconfirmedIsHeld: false,
+  holdFeedback: {
+    title: "We couldn’t confirm your last deposit.",
+    message:
+      "It could still land, so deposits here are paused until you check again or move on. If it lands after you move on, you’ll have deposited twice.",
+    detail: "You tried to deposit 5 DAI. You have 41 DAI in this vault now.",
+    hasUnreadValues: false,
+    isSettling: false,
+    onCheckAgain: fn(),
+    onMoveOn: fn(),
+  },
+};
+
 function withEndowment({
   online = true,
   depositing = false,
   deposits = [] as VaultDeposit[],
+  plan = QUIET_PLAN,
 } = {}) {
   return () => {
     mocked(useUser).mockReturnValue({ primaryAddress: ACCOUNT } as ReturnType<typeof useUser>);
     mocked(useOnlineStatus).mockReturnValue(online);
     mocked(useVaultDeposit).mockReturnValue(mutation(depositing));
+    mocked(useDepositPlan).mockReturnValue(plan);
     mocked(useVaultWithdraw).mockReturnValue(mutation());
     mocked(useCookieJarWithdraw).mockReturnValue(mutation());
     mocked(useGardenVaults).mockReturnValue({
@@ -112,6 +141,7 @@ function withEndowment({
       useUser,
       useOnlineStatus,
       useVaultDeposit,
+      useDepositPlan,
       useVaultWithdraw,
       useCookieJarWithdraw,
       useGardenVaults,
@@ -127,9 +157,10 @@ const sheet = async () => within(await screen.findByTestId("app-sheet"));
 
 /**
  * A garden's endowment: the vault treasury with its Deposit action pinned in the shared bar
- * (DL-016), the reader's own deposits with their withdraw confirmation, and the garden cookie jar
- * with its claim confirmation. Vault, jar, and wallet hooks are mocked per story; wallet balance
- * reads resolve empty, so Deposit waits for a balance.
+ * (DL-016), the reader's own deposits as rows that open their withdrawal and its confirmation,
+ * and the garden cookie jar as a row that opens its claim and confirmation. Vault, jar, and
+ * wallet hooks are mocked per story; wallet balance reads resolve empty, so Deposit waits for a
+ * balance.
  */
 const meta: Meta<typeof EndowmentSheet> = {
   title: "Client/Sheets/EndowmentSheet",
@@ -153,6 +184,11 @@ export const Treasury: Story = {
   beforeEach: withEndowment(),
   play: async () => {
     const endowment = await sheet();
+    if (!ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(endowment.getByText("New deposits paused")).toBeVisible();
+      await expect(endowment.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+      return;
+    }
     await expect(endowment.getByRole("button", { name: "Deposit" })).toBeDisabled();
     await waitFor(() =>
       expect(endowment.getByRole("textbox", { name: "Amount to deposit" })).toBeVisible()
@@ -164,10 +200,31 @@ export const Depositing: Story = {
   beforeEach: withEndowment({ depositing: true }),
   play: async () => {
     const endowment = await sheet();
+    if (!ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(endowment.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+      return;
+    }
     await expect(endowment.getByRole("button", { name: "Deposit" })).toHaveAttribute(
       "aria-busy",
       "true"
     );
+  },
+};
+
+/** An earlier deposit nobody can confirm pauses the next one until it lands or the person moves on. */
+export const HeldDeposit: Story = {
+  beforeEach: withEndowment({ plan: HELD_PLAN }),
+  play: async () => {
+    const endowment = await sheet();
+    await waitFor(() =>
+      expect(endowment.getByText(/We couldn’t confirm your last deposit/)).toBeVisible()
+    );
+    await expect(endowment.getByText(/You have 41 DAI in this vault now/)).toBeVisible();
+    await expect(endowment.getByRole("button", { name: "Check Again" })).toBeEnabled();
+    await expect(endowment.getByRole("button", { name: "Move On" })).toBeEnabled();
+    if (ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(endowment.getByText("2 signatures")).toBeVisible();
+    }
   },
 };
 
@@ -176,6 +233,11 @@ export const Offline: Story = {
   play: async () => {
     const endowment = await sheet();
     await waitFor(() => expect(endowment.getByRole("status")).toBeVisible());
+    if (!ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(endowment.getByText("New deposits paused")).toBeVisible();
+      await expect(endowment.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+      return;
+    }
     await expect(endowment.getByRole("button", { name: "Deposit" })).toBeDisabled();
   },
 };
@@ -184,6 +246,8 @@ export const WithdrawConfirm: Story = {
   beforeEach: withEndowment({ deposits: [myDeposit] }),
   play: async () => {
     const endowment = await sheet();
+    // A deposit is a row with no act; it opens its withdrawal beneath it.
+    await userEvent.click(endowment.getByRole("button", { expanded: false }));
     await userEvent.type(endowment.getByRole("textbox", { name: "Amount to withdraw" }), "5");
     await userEvent.click(endowment.getByRole("button", { name: "Withdraw" }));
     const confirm = within(await screen.findByRole("alertdialog", { name: "Confirm Withdrawal" }));

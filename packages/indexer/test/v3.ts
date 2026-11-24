@@ -58,7 +58,8 @@ const CONFIGURED_ADDRESSES: ReadonlyMap<string, Address> = (() => {
       contract = named;
       continue;
     }
-    const address = line.match(/^\s+address:\s*"(0x[0-9a-fA-F]{40})"\s*$/)?.[1];
+    // A single `address: "0x…"`, or the first `- "0x…"` item of an address list.
+    const address = line.match(/^\s+(?:address:\s*|-\s*)"(0x[0-9a-fA-F]{40})"\s*$/)?.[1];
     if (address && chainId && contract) {
       const key = `${chainId}:${contract}`;
       // The regex above proves the 0x-prefixed 40-hex shape, so this is a
@@ -87,6 +88,7 @@ const CHAIN_START_BLOCK = {
   42161: 433_713_812,
   11155111: 10_243_363,
   42220: 74_691_430,
+  100: 48_925_690,
 } as const;
 type SupportedChainId = keyof typeof CHAIN_START_BLOCK;
 type ProcessConfig = Parameters<TestIndexer["process"]>[0];
@@ -108,7 +110,7 @@ export function executedMockEventNames(mockDb?: TestIndexer): ReadonlySet<string
 }
 
 function normalizeChainId(chainId: number): SupportedChainId {
-  if (chainId !== 42161 && chainId !== 11155111 && chainId !== 42220) {
+  if (chainId !== 42161 && chainId !== 11155111 && chainId !== 42220 && chainId !== 100) {
     throw new Error(`Unsupported Green Goods test chain: ${chainId}`);
   }
   return chainId;
@@ -174,6 +176,7 @@ export async function processEvents(
       ...(chainConfigs[42161] ? { 42161: chainConfigs[42161] } : {}),
       ...(chainConfigs[11155111] ? { 11155111: chainConfigs[11155111] } : {}),
       ...(chainConfigs[42220] ? { 42220: chainConfigs[42220] } : {}),
+      ...(chainConfigs[100] ? { 100: chainConfigs[100] } : {}),
     },
   };
 
@@ -260,6 +263,8 @@ export const GreenWill = createContract("GreenWill", [
   "BadgeIssued",
 ] as const);
 export const HatsModule = createContract("HatsModule", [
+  "ProtocolRoleHatsUpdated",
+  "RoleManaged",
   "RoleGranted",
   "RoleRevoked",
   "KarmaHookFailed",
@@ -334,6 +339,10 @@ export const CreditRegistry = createContract("CreditRegistry", [
   "PausedSet",
 ] as const);
 export const CommitmentPoolingModule = createContract("CommitmentPoolingModule", [
+  "ServiceOfferTermsSet",
+  "ServiceClaimConsentRequested",
+  "ServiceClaimConsentAccepted",
+  "ServiceClaimConsentWithdrawn",
   "PoolRegistered",
   "PoolCharterUpdated",
   "PoolReady",

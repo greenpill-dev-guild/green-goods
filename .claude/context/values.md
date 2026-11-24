@@ -58,6 +58,16 @@ Apply this compact contract whenever writing or reviewing production code:
   `git status --porcelain=v1 --untracked-files=all -- <validated paths>` returns no staged, unstaged,
   or untracked changes. Record both identity commands and results; any validation-surface or
   working-tree change requires a fresh run.
+- **Every wait says what it waits for, ends or lets you go, and leaves a record** (PRD-1495):
+  within 2 seconds a wait names what it is waiting for. A send says its stage in the shared words
+  of `modules/transactions/send-stage` ("Confirm in your wallet", "Confirming…", "Still
+  confirming…", and the Safe's signers for a Safe proposal), which the queue and the shared
+  senders report: a screen takes those words rather than its own, and does not wire the stage
+  itself. A wait on the person's wallet has no cut-off; at 20 seconds it says to open the wallet
+  and offers Cancel where the wait can stop. A wait on the network for a send's receipt ends at
+  120 seconds: the send went out, so the screen says it is still confirming and lets the person
+  leave, and nothing calls a send failed while it may still land. Each wait records how it started
+  and how it ended.
 - **Final simplification pass**: after behavior is green, delete redundancy, flatten avoidable
   branching, improve names, and remove comments or abstractions that no longer earn their cost.
 

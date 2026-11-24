@@ -165,4 +165,36 @@ describe("steward access request presentation", () => {
     hook.unmount();
     client.clear();
   });
+  it("omits owned and stewarded gardens and explains a direct link to either", () => {
+    const ownerBefore = gardens[0].owners;
+    const stewardsBefore = gardens[1].stewards;
+    gardens[0].owners = [account.address.toUpperCase() as `0x${string}`];
+    gardens[1].stewards = [account.address as `0x${string}`];
+    const client = getTestQueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    try {
+      const { result, unmount } = renderHook(
+        () => useStewardAccessRequestController("account_profile"),
+        { wrapper }
+      );
+      expect(result.current.candidates).toEqual([]);
+      for (const garden of gardens.slice(0, 2)) {
+        act(() =>
+          result.current.setSearch(`https://admin.greengoods.app/garden?gardenId=${garden.id}`)
+        );
+        expect(result.current.alreadyStewardTarget).toBe(true);
+        expect(result.current.invalidLink).toBe(false);
+        expect(result.current.candidates).toEqual([]);
+        act(() => result.current.selectGarden(garden));
+        expect(result.current.selectedGarden).toBeNull();
+      }
+      expect(submitRequest).not.toHaveBeenCalled();
+      unmount();
+    } finally {
+      gardens[0].owners = ownerBefore;
+      gardens[1].stewards = stewardsBefore;
+    }
+  });
 });

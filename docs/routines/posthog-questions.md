@@ -29,7 +29,7 @@ All 17 questions at a glance. Names are the stable identifiers consumers referen
 
 | Question | Lens | Privacy default | Answers |
 |---|---|---|---|
-| [`errors.recent`](#errorsrecent) | product-quality | public-safe (aggregates) | Recent JS exceptions grouped by message + URL with affected-session counts |
+| [`errors.recent`](#errorsrecent) | product-quality | public-safe (aggregates) | Recent errors grouped by message + URL with affected-session counts |
 | [`errors.detail`](#errorsdetail) | product-quality | ⚠️ private-only | Full detail for one error hash incl. top stack frame + replay links |
 | [`errors.recurring`](#errorsrecurring) | product-quality | public-safe | Distinct-session count per error hash over 30 days (bug-intake roll-up input) |
 | [`errors.match-bug-report`](#errorsmatch-bug-report) | product-quality | ⚠️ private-only | Fuzzy match between a verbatim bug-report quote and recent errors/events |
@@ -54,7 +54,7 @@ Each question has:
 - **Name** — `lens.subject` identifier consumers reference (e.g. `funnel.onboarding`).
 - **Lens** — `product-quality` (private-default) or `growth-bd` (public-safe-default).
 - **Default privacy** — what crosses into a shared surface (Linear body, Discord summary, PR body, public doc) by default.
-- **HogQL** — the canonical query string. Used directly by `scripts/agents/posthog-query.ts` and as the source of truth when promoting to a PostHog Saved Insight.
+- **HogQL** — the canonical query string, and the source of truth when promoting to a PostHog Saved Insight. `scripts/agents/posthog-query.ts` does not run it: the script builds its own query and hashes errors with SHA-256, so its `error_hash` never matches one from this library.
 - **Saved-Insight ID** — populated when a human has created a tunable Insight in the PostHog UI for this question. When present, the connector path prefers the Insight; the script path still uses HogQL.
 - **Output schema** — exact field names + which fields are public-safe vs private-only.
 - **Required emit-side events** — the events the question depends on. If any are absent in production, the question is `blocked` and consumers must skip it gracefully.
@@ -72,7 +72,7 @@ Each question has:
   query-run, using the HogQL block defined under that name in
   docs/routines/posthog-questions.md. Privacy mode: public.
   ```
-- **Local/Codex/non-Claude fallback only**: product/quality questions that match a script command (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`) may use `scripts/agents/posthog-query.ts` when the connector is unavailable and the local environment explicitly provides `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`.
+- **Local/Codex/non-Claude fallback only**: product/quality questions that match a script command (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`) may use `scripts/agents/posthog-query.ts` when the connector is unavailable and the local environment explicitly provides `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`. The script's `error_hash` is a SHA-256 prefix, not this library's `cityHash64`, so a hash from one path cannot be looked up in the other.
   ```bash
   bun scripts/agents/posthog-query.ts errors --recent 24h --privacy public
   bun scripts/agents/posthog-query.ts error-detail <error-hash> --window 7d
@@ -107,40 +107,170 @@ The same boundary the bug-intake routine uses, applied to every consumer. Never 
 
 If a question's output would name a single user (one row per `distinct_id`), it is private-only by definition. Aggregations over ≥ 5 users are public-safe.
 
+## Work events
+
+What each event about uploading work means, so a question counts the ending it intends. A Submit
+records `work_submission_started` and then one ending. The queue records `offline_job_*` events for
+each try its processor runs, such as the send when the App opens or a passkey Submit's send. A
+batched Upload all or Upload now sends its items in one call outside the processor: the tap is
+recorded (`queued_upload_started`, `queued_upload_finished`), and a job gets its own event only where
+the processor runs, such as `offline_job_processed` when the queue settles an item that was sent. A
+wallet Submit also sends outside the processor, and records `offline_job_processed` when its work
+lands.
+
+| Event | Fires when |
+|---|---|
+| `work_submission_started` | A Submit begins, after the Terms prompt is accepted. |
+| `work_submission_success` | The Submit's work reached the chain. |
+| `work_submission_offline` | The Submit only saved the work to the queue to send later. `reason`: `offline`, `connection-unconfirmed`, or `not-sent` (online, but the queue keeps it). |
+| `work_submission_queued` | The Submit's send is on record but not confirmed yet (`status: awaiting-confirmation`). |
+| `work_submission_failed` | The Submit failed. Before PRD-1561, `parsed_error_family: UserRejected` marked a cancel, a declined Terms prompt included. |
+| `work_submission_cancelled` | The person stopped the Submit: `reason` is `terms_declined`, `signature_declined`, or `flow_left` (they accepted the Terms, then moved to another draft or flow before admission; a change of account records nothing) (PRD-1561). Never a technical failure. |
+| `offline_job_started` | The queue starts a try: a send, or the check of a send already on record (`confirming`). `explicit` when a person's tap asked for it. |
+| `offline_job_skipped` | A started try ended with nothing sent and no answer, or a tap the queue could not act on. `reason` is a code such as `awaiting-confirmation`, `offline` or `wallet-reconnect-required`. |
+| `offline_job_receipt_wait_limit` | A queued send went out but its receipt did not come within the queue's limit (`limit_ms`), so the job waits as still confirming. `job_kind`, `explicit` and `auth_mode` say what was sent and how. |
+| `offline_job_processed` | A queued job reached the chain. |
+| `offline_job_failed` | A try failed and will be retried; `offline_job_permanently_failed` when it will not be. |
+| `offline_job_discarded` | A job left the queue unsent because it was thrown away. `reason` is `discarded` for the job a discard was called on (a person's tap, or the app rolling back an act that didn't go) or `with-another` for one that went with it; `attempts` and `parsed_error_family` say after what. Recorded from builds after 2026-11-21 (PRD-1478). |
+| `queued_upload_started`, `queued_upload_finished` | An Upload all or Upload now tap, and how it ended (`status`, `sent`, `flagged`). |
+
+Builds made after 2026-11-15 record `work_submission_offline`, `work_submission_queued`,
+`offline_job_started`, `offline_job_skipped` and the `queued_upload_*` events. Before that, a
+Submit that only saved the work recorded `work_submission_success` with `was_offline: true`. A
+question that counts submitted work therefore reads both `work_submission_success` and
+`work_submission_offline`: each Submit records only one of them, so the two never count one
+Submit twice. A work saved to the queue and sent later also records `offline_job_processed`
+(`job_kind: work`) when it lands.
+
+## Send act events
+
+Every other act that signs or sends records `send_act_started` when it starts and one
+`send_act_ended` when it ends (PRD-1553). That covers joins, claims, vault, cookie jar and token
+sends, garden creation and settings, and the Hub's pool, season and conviction acts. Work submissions,
+approvals and member changes keep their own events above. An act the job queue holds, such as a
+commitment claim, proof or creation sent from the App, records the queue's `offline_job_*` events
+instead. Since PRD-1571 the rest record them too: hypercert listings (`hypercert_listing`),
+marketplace approvals (`marketplace_approval`), Karma syncs (`karma_sync`), garden-creator allowlist
+changes (`garden_creator_allowlist`), gardener profile updates (`gardener_profile`), profile photos
+(`profile_avatar`), pilot account enrollment (`pilot_enrollment`), action registration
+(`action_register`, beside `admin_action_create_*`) and single-field action edits (`action_edit`).
+Events from before that change have none of these. Read App acts in the App project
+(163591) and Hub acts in the Hub project (262122).
+
+| Property | Meaning |
+|---|---|
+| `act` | Which act, such as `garden_join`, `vault_deposit`, `garden_create`, `pool_lifecycle` or `pool_setup`. The full list is `SendActName` in `packages/shared/src/modules/app/sendActAnalytics.ts`. |
+| `operation` | Which of the act's operations ran, a fixed name from code: a contract function such as `pausePool`, or the writes of a setup run such as `seedCycle,openCycle`. |
+| `auth_mode`, `chain_id` | The sign-in kind and the chain. |
+| `attempt_id`, `schema_version` | One id per press, shared by the act's start and its ending, so a question joins them without matching on time. An explicit retry is a new press with a new id. `schema_version` is `1` (PRD-1561). |
+| `outcome` (ended only) | `confirmed` landed. `confirming` went out and may still land: a receipt wait past its limit, a send on record without a receipt, a Safe proposal, a wallet answer the person stopped waiting for, or a wallet join, which returns once it is broadcast. `queued` was kept on this device. `cancelled` was declined in the wallet. `failed` is anything else. `partial` is an act of several copies whose copies ended differently. |
+| `copies_<outcome>` (ended only) | For an act of several copies, how many copies ended each way. |
+| `parsed_error_family`, `duration_ms` (ended only) | The parsed error family of an act that did not land, never its message, and how long the act took. |
+
+The events carry no address, hash, amount, or text a person typed. A question that counts failed
+sends reads `outcome = 'failed'` only: a `confirming` send may still land. A join refused because
+the person is already a member ends `failed` with `parsed_error_family: AlreadyGardener`. Two
+`failed` endings sent nothing and are not failed sends, so leave them out of a failure count: an
+act refused because an earlier send of the same thing still holds it (`HeldByAnotherSend`; the
+earlier send keeps its own record), and a batched save the wallet cannot batch (`NotBatchable`;
+its changes then go out one write at a time, each recorded as its own act). Only builds that
+carry PRD-1553 record these events.
+
+## Agent attempt events
+
+The Agent records card funding and upload signing as attempts (PRD-1561). Read them in the Agent
+project (262124). Each carries `schema_version: 1` and the Agent's segmentation fields, and no
+address, amount or email.
+
+| Event | Meaning |
+|---|---|
+| `funding_intent_started` | A funding intent was created: a card checkout, or a Card Endow proof the visitor's own wallet already settled. `attempt_id` is the intent's id, so an automatic retry with the same client request id shares it, and a new press gets a new one. |
+| `funding_intent_ended` | The intent's status first settled. `outcome` is `confirmed` (`funded` or `funded_late`), `failed` (`failed` or `refunded`) or `cancelled` (`expired`: an abandoned checkout, never a technical failure). `funding_status` and `failure_code` give the detail. A provider that funds an intent after it expired records a second ending with `funding_status: funded_late`; count the latest ending per `attempt_id`. |
+| `upload_sign_ended` | One upload signing request's outcome: `confirmed` with a signed URL, or `failed` with `reason` `invalid_request` or `provider_unavailable`. A request from an origin we don't serve, or one past its rate limit, records nothing, so a flood cannot inflate the records. `category` and `mime_type` say what was to be uploaded. It carries no attempt id yet: joining it to the App's upload attempt waits for uploads to carry one. |
+
+Both funding events carry `payment_method`, `funding_intent` (`donate` or `endow`),
+`destination_type`, `source_route` and `chain_id`. Their `is_test_garden` is `unknown` today: the
+funding record keys a garden by its campaign slug, not its address, so it cannot be placed against
+the test garden records.
+
+## Event contract
+
+The Observability Implementation Plan names a lifecycle for each workflow: `<workflow>_started`,
+`_succeeded`, `_failed` and `_canceled`, one ending per attempt, carrying `attempt_id` and
+`schema_version`. Green Goods keeps its current event names, so no saved question or dashboard
+breaks (PRD-1561). This table is the mapping a question uses to read the plan's names.
+
+| Plan lifecycle | Current events | `attempt_id` today |
+|---|---|---|
+| `sign_in_*` | Passkey: `auth_passkey_login_started`, `_success`, `_failed` (a `reason` of `cancelled` is the cancellation), and `auth_passkey_register_*` for a new account. Wallet: `auth_wallet_connect_started`, `_success`, `_failed` (`reason` `rejected` or `cancelled` is the cancellation; the events are anonymized, so they never join a person). `auth_login_success` marks the application session, the plan's success, and also fires on a restored session. | None yet |
+| `work_submission_*` | `work_submission_started`; endings `work_submission_success` (succeeded), `work_submission_queued` (still confirming), `work_submission_offline` (kept to send later), `work_submission_failed`, `work_submission_cancelled`. | `work_submission_journey_id`, which an explicit retry in the same flow shares |
+| `work_review_*` | `work_approval_started`; endings `work_approval_success`, `work_rejection_success`, `work_approval_failed`; `work_approval_lifecycle` for the stages. | None yet |
+| `garden_join_*` | `garden_join_started`; endings `garden_join_success`, `garden_join_failed`, `garden_join_cancelled`, `garden_join_already_member`. Three cases need the send act: a join that may still land has no `garden_join_*` ending, only `send_act_ended` with `confirming`; a wallet or embedded join records `garden_join_success` once it is broadcast while its send act ends `confirming`, so that success does not yet mean the join landed; and the root garden's automatic join records only the send act (`operation: root_garden`). | Yes: every join event carries the `attempt_id` of the `garden_join` send act, so read the join's outcome from that act |
+| `media_upload_*` | `media_upload_started`, `_complete`, `_failed`, `_cancelled` (choosing and preparing photos on the device); `upload_success` and `error_tracked` with category `storage` for the transfer to IPFS. | None yet |
+| `upload_signing_*` | `upload_sign_ended` (Agent). | None yet |
+| `card_funding_*` | `funding_intent_started`, `funding_intent_ended` (Agent). | Yes: the intent's id |
+| Any other act that signs or sends | `send_act_started`, `send_act_ended`. | Yes |
+
+Rules every new lifecycle event follows:
+
+- **One id per press.** The flow mints `attempt_id` where the person starts the act and hands the
+  same id to every event of that attempt, its send act included. An automatic retry keeps the id;
+  a press after an ending is a new attempt with a new id.
+- **One ending per attempt.** `confirming` (or `queued`) is not an ending a question may count as
+  failed: the send may still land. A cancellation is never a technical failure.
+- **`schema_version`** is `1` on the send act and Agent attempt events. Raise it when a property
+  changes meaning, and say here what changed, so a question can tell old records from new.
+- **`sentry_event_id`** rides on `error_tracked` when the browser's Sentry reporter filed a report
+  for the same handled error, including a crash report sent later from the device. Sentry keeps no
+  offline queue in the browser, so a crash captured offline can carry an id Sentry never received.
+  Errors Sentry's own handlers file (unhandled ones) do not carry it yet.
+
+Still to come, tracked on the follow-up to PRD-1561: one `sign_in_*` family with an attempt id and
+an anonymous id reconciled at sign-in; attempt ids with `retry_of_attempt_id` on work submission,
+work review and uploads (the upload's id passed to the Agent's signing request); funding events by
+garden address; and `sentry_event_id` on unhandled errors.
+
 ---
 
 ## Product/quality lens
 
 Private-default. The eight bug-intake / debug / release-health questions.
 
+**Error events.** The `errors.*` questions and `quality.top-failures` read two events: `$exception`, which PostHog's exception autocapture sends for unhandled errors, and `error_tracked`, which `trackError` in `packages/shared/src/modules/app/error-categories.ts` sends for every error the apps report, handled or not. An unhandled error or a crash report sends both. Each question takes the message and type from the `$exception_*` fields and falls back to `error_message` and `error_type`. It then normalizes the message the same way for both events: it drops the `TypeError: `-style prefix and the `Non-Error promise rejection captured with value: ` wording that PostHog adds to unhandled rejections, and masks 0x addresses as `[REDACTED_WALLET]`, as `trackError` does. So an error sent both ways lands in one group, and its session and user counts stay distinct; on App that held for 94 of 95 unhandled errors sent both ways over the 90 days to 2026-10-19. Each question also leaves out user cancellations, because a declined wallet or passkey prompt is not a defect: an event drops out when its `contract_error_name` is `UserRejected` or its message holds one of the phrases in `CANCELLED_PATTERNS` (`packages/shared/src/utils/errors/tx-error-classifier.ts`; `failures.conversion-kill` mirrors the same list, so keep all three in sync). A passkey `NotAllowedError` stays in, as it does there, because it can mean a timeout as well as a dismissal. `current_url` is private in every question, because it can carry query strings, including text people typed: share the app surface (`client` or `admin`, read from its host) instead. Share a message only in redacted form, per the privacy boundary, since an `$exception` message can still carry an email, token or URL query that `trackError` would have removed. Before v1.1.0 (2026-10-19) these questions read only `$exception` and missed every handled error: on App that was 94 of 104 error groups over the previous 30 days, and on Admin all of them. Questions that count events rather than distinct sessions or users, such as `release.error-rate-delta` and the `errors_observed` count in `replay.user-sessions`, still read only `$exception`, because counting both events there would count one error twice.
+
+**Error hash.** Each of these questions hashes an error as `cityHash64(concat(toString(message), '\n', toString(url)))`, where `message` is the normalized message above, so an error sent both ways gets one hash. `message` comes first in each `SELECT` because the hash reads it, and HogQL resolves an alias only after it is defined. The newline keeps the two fields apart, since a URL never contains one: without it, message `ab` on URL `c` and message `a` on URL `bc` would share a hash. HogQL's `concat` reads a missing message or URL as an empty string, so every error gets a hash. This form dates from v1.1.0 (2026-10-19) and replaced the two-argument `cityHash64(a, b)`, which HogQL now rejects. Every hash value changed with it, so a hash recorded before it, such as a QA Sheet `PostHog Hash` cell or an older Linear body, will not match the new hash for the same error. Match such a record by its Linear URL or title instead, as `/qa-triage` and sync-triage-pulse already do when no hash matches. bug-intake keys a recurring parent on a `pattern:posthog-{error-hash-prefix}` label, and Linear had no such label when the hash changed, so no parent needed relabeling.
+
 ### `errors.recent`
 
 - **Lens**: product-quality
 - **Default privacy**: public-safe (aggregate counts only)
-- **What it answers**: recent JS exceptions grouped by message + URL with affected-session counts.
+- **What it answers**: recent errors grouped by message + URL with affected-session counts.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
-    properties.$exception_type AS exception_type,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
+    coalesce(properties.$exception_type, properties.error_type) AS exception_type,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     count(DISTINCT distinct_id) AS affected_users,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen
   FROM events
-  WHERE event = '$exception' AND timestamp > now() - interval {window:String}
+  WHERE event IN ('$exception', 'error_tracked') AND timestamp > now() - interval {window:String}
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
   GROUP BY error_hash, exception_type, message, current_url
   ORDER BY affected_sessions DESC
   LIMIT 50
   ```
 - **Bind variables**: `{ window: "24h" | "7d" | "30d" }` (default `24h`)
 - **Output schema**:
-  - `error_hash`, `exception_type`, `message`, `current_url` — public
+  - `error_hash`, `exception_type`, `message` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
   - `affected_sessions`, `affected_users` — public
   - `first_seen`, `last_seen` — public
-- **Required emit-side events**: `$exception` (PostHog auto-captures via `posthog.captureException`)
+- **Required emit-side events**: `$exception` (PostHog exception autocapture) or `error_tracked` (`trackError`)
 - **Used by**: `bug-intake` (Phase 1 enrichment), `/debug`
 
 ### `errors.detail`
@@ -148,34 +278,34 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: private-only (returns replay URLs and per-session rows)
 - **What it answers**: full detail for one error hash including a sample of the top stack frame plus per-session replay links.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above. `sample_stack` now reads the top frame of `error_stack`, because `$exception_stack_trace_raw` was never recorded, and the hash filter moved to `HAVING`, since HogQL cannot read a `SELECT` alias in `WHERE`.
 - **HogQL**:
   ```sql
-  WITH matches AS (
-    SELECT *
-    FROM events
-    WHERE event = '$exception'
-      AND timestamp > now() - interval {window:String}
-      AND cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) = {error_hash:UInt64}
-  )
   SELECT
-    properties.$exception_type AS exception_type,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
+    coalesce(properties.$exception_type, properties.error_type) AS exception_type,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     count(DISTINCT distinct_id) AS affected_users,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen,
-    any(properties.$exception_stack_trace_raw) AS sample_stack,
+    any(nullIf(trim(arrayFirst(frame -> match(frame, '^ *at |@'), splitByChar('\n', coalesce(properties.error_stack, '')))), '')) AS sample_stack,
     arrayDistinct(groupArray(($session_id, distinct_id))) AS sessions
-  FROM matches
-  GROUP BY exception_type, message, current_url
+  FROM events
+  WHERE event IN ('$exception', 'error_tracked')
+    AND timestamp > now() - interval {window:String}
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
+  GROUP BY message, error_hash, exception_type, current_url
+  HAVING error_hash = {error_hash:UInt64}
   ```
 - **Bind variables**: `{ window: "7d", error_hash: 12345 }`
 - **Output schema**:
-  - `exception_type`, `message`, `current_url`, `affected_sessions`, `affected_users`, `first_seen`, `last_seen` — public
-  - `sample_stack` (top frame only, normalized) — public
+  - `error_hash`, `exception_type`, `message`, `affected_sessions`, `affected_users`, `first_seen`, `last_seen` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
+  - `sample_stack` (top frame only) — public. It is the first frame of `error_stack`, which `trackError` has already redacted, and null when only `$exception` saw the error, since PostHog keeps those frames in `$exception_list`.
   - `sessions[].session_id`, `sessions[].distinct_id`, `sessions[].replay_url` — private
-- **Required emit-side events**: `$exception`, `$session_id` autoassigned
+- **Required emit-side events**: `$exception` or `error_tracked`, `$session_id` autoassigned
 - **Used by**: `bug-intake` (Phase 1 enrichment), `/debug`
 
 ### `errors.recurring`
@@ -183,24 +313,26 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: public-safe
 - **What it answers**: distinct-session count per error hash over a 30-day window — the input to bug-intake's recurring-pattern roll-up (≥50 sessions threshold).
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above. No error reached the 50-session threshold either way on 2026-10-19: the largest App group had 36 sessions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     count(DISTINCT $session_id) AS sessions_30d,
     count(DISTINCT distinct_id) AS users_30d,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen
   FROM events
-  WHERE event = '$exception' AND timestamp > toDateTime({since:String})
+  WHERE event IN ('$exception', 'error_tracked') AND timestamp > toDateTime({since:String})
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
   GROUP BY error_hash, message
   HAVING sessions_30d >= {threshold:UInt32}
   ORDER BY sessions_30d DESC
   ```
 - **Bind variables**: `{ since: "2026-04-07", threshold: 50 }`
 - **Output schema**: all fields public.
-- **Required emit-side events**: `$exception`
+- **Required emit-side events**: `$exception` or `error_tracked`
 - **Used by**: `bug-intake` (Phase 4 recurring-pattern roll-up)
 
 ### `errors.match-bug-report`
@@ -208,27 +340,30 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: private-only (matches may include single-user evidence)
 - **What it answers**: free-text fuzzy match between a verbatim bug-report quote and recent error messages or event names.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     max(timestamp) AS last_seen,
-    positionUTF8(lower(properties.$exception_message), lower({snippet:String})) AS confidence_signal
+    positionUTF8(lower(message), lower({snippet:String})) AS confidence_signal
   FROM events
-  WHERE event = '$exception'
+  WHERE event IN ('$exception', 'error_tracked')
     AND timestamp > now() - interval 14 day
-    AND positionUTF8(lower(properties.$exception_message), lower({snippet:String})) > 0
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
   GROUP BY error_hash, message, current_url
+  HAVING confidence_signal > 0
   ORDER BY affected_sessions DESC
   LIMIT 20
   ```
 - **Bind variables**: `{ snippet: "stack frame text" }`
 - **Output schema**:
-  - `error_hash`, `message`, `current_url`, `affected_sessions`, `last_seen`, `confidence_signal` — public
-- **Required emit-side events**: `$exception`
+  - `error_hash`, `message`, `affected_sessions`, `last_seen`, `confidence_signal` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
+- **Required emit-side events**: `$exception` or `error_tracked`
 - **Used by**: `bug-intake` (Drive Phase 3 fuzzy match), `/debug`
 
 ### `replay.user-sessions`
@@ -318,26 +453,28 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: public-safe
 - **What it answers**: the top 10 errors in a window, ranked by affected-user count rather than session count (better signal for prioritization).
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
-    properties.$exception_type AS exception_type,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
+    coalesce(properties.$exception_type, properties.error_type) AS exception_type,
     properties.$current_url AS current_url,
     count(DISTINCT distinct_id) AS affected_users,
     count(DISTINCT $session_id) AS affected_sessions,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen
   FROM events
-  WHERE event = '$exception' AND timestamp > now() - interval {window:String}
+  WHERE event IN ('$exception', 'error_tracked') AND timestamp > now() - interval {window:String}
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
   GROUP BY error_hash, exception_type, message, current_url
   ORDER BY affected_users DESC
   LIMIT 10
   ```
 - **Bind variables**: `{ window: "7d" }`
-- **Output schema**: every field public.
-- **Required emit-side events**: `$exception`
+- **Output schema**: every field public except `current_url`, which is private; share the app surface instead (see Error events above).
+- **Required emit-side events**: `$exception` or `error_tracked`
 - **Used by**: deferred (`health-watch` or a future release-health digest).
 
 ---
@@ -351,6 +488,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: passkey register → garden join → first work submission funnel over a window.
+- **v1.1.0 (2026-11-15): work saved for later counts.** A Submit that only saves the work to the queue now records `work_submission_offline` instead of `work_submission_success` with `was_offline: true`, so the first-work step reads both events and measures what it did before. See Work events above.
 - **Identity stitching note**: PostHog assigns an anonymous UUID `distinct_id` on first page-load and switches it to the wallet/passkey-credential `distinct_id` after `posthog.identify()` in the auth flow. **Joins must be by `person_id`** (which stitches anonymous + identified IDs at the person level), not raw `distinct_id` — joining by `distinct_id` produces 0% conversion across the auth boundary even when conversions are happening. Verified empirically 2026-05-09 against the App project (163591): 7 person registers + 6 person joins in 30d, 0 overlap when joined by `distinct_id`; correct number when joined by `person_id`.
 - **HogQL**:
   ```sql
@@ -374,7 +512,7 @@ Public-safe-default. Aggregates only — never names a single user.
       SELECT j.person_id, min(e.timestamp) AS first_work_at
       FROM join_users j
       JOIN events e ON e.person_id = j.person_id
-      WHERE e.event = 'work_submission_success'
+      WHERE e.event IN ('work_submission_success', 'work_submission_offline')
         AND e.timestamp >= j.join_at
       GROUP BY j.person_id
     )
@@ -387,7 +525,7 @@ Public-safe-default. Aggregates only — never names a single user.
   ```
 - **Bind variables**: `{ window: "30d" }`
 - **Output schema**: every field public.
-- **Required emit-side events**: `auth_passkey_register_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success` (all present today, `packages/shared/src/modules/app/analytics-events.ts`).
+- **Required emit-side events**: `auth_passkey_register_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success`, `work_submission_offline` (all defined in `packages/shared/src/modules/app/analytics-events.ts`).
 - **Cohort caveat**: this funnel only tracks the new-user cohort within `{window}`. Returning users (registered before the window) who join gardens during the window are intentionally excluded — that's a different question. If `registered > 0` but `register_to_join_pct == 0`, verify by comparing to the raw `garden_join_success` count over the same window: a non-zero raw count with a zero funnel percentage usually means joiners are returning users from outside the window, not a product breakage.
 - **Used by**: `growth-pulse` (App project, id 163591).
 
@@ -396,13 +534,14 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: of users whose first work submission was in the past 30 days, what percentage submitted a second work within 7 days?
+- **v1.1.0 (2026-11-15): work saved for later counts.** Both steps read `work_submission_offline` as well as `work_submission_success`, so a work saved to the queue counts as a submission, as it did before. See Work events above.
 - **Identity stitching note**: same as `funnel.onboarding` — joins are by `person_id` so anonymous→identified transitions don't break the cohort.
 - **HogQL**:
   ```sql
   WITH first_subs AS (
     SELECT person_id, min(timestamp) AS first_at
     FROM events
-    WHERE event = 'work_submission_success'
+    WHERE event IN ('work_submission_success', 'work_submission_offline')
       AND timestamp > now() - interval 60 day
     GROUP BY person_id
     HAVING first_at > now() - interval 30 day
@@ -411,7 +550,7 @@ Public-safe-default. Aggregates only — never names a single user.
     SELECT f.person_id
     FROM first_subs f
     JOIN events e ON e.person_id = f.person_id
-    WHERE e.event = 'work_submission_success'
+    WHERE e.event IN ('work_submission_success', 'work_submission_offline')
       AND e.timestamp > f.first_at
       AND e.timestamp <= f.first_at + interval 7 day
     GROUP BY f.person_id
@@ -423,7 +562,7 @@ Public-safe-default. Aggregates only — never names a single user.
   ```
 - **Bind variables**: none (window is fixed at 30d / 7d to keep the metric stable across runs).
 - **Output schema**: every field public.
-- **Required emit-side events**: `work_submission_success`.
+- **Required emit-side events**: `work_submission_success`, `work_submission_offline`.
 - **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `retention.curve`
@@ -473,25 +612,26 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe (per-garden numbers; garden addresses are already public on-chain)
 - **What it answers**: per-garden 7-day active members + 7-day work submitted.
+- **v1.1.0 (2026-11-15): work saved for later counts.** `work_submitted_7d` counts `work_submission_offline` as well as `work_submission_success`, as it did before saved-for-later work moved to its own event. See Work events above.
 - **HogQL**:
   ```sql
   SELECT
     properties.garden_address AS garden_address,
     properties.garden_name AS garden_name,
     count(DISTINCT distinct_id) AS active_members_7d,
-    countIf(event = 'work_submission_success') AS work_submitted_7d,
+    countIf(event IN ('work_submission_success', 'work_submission_offline')) AS work_submitted_7d,
     countIf(event = 'work_approval_success') AS work_approved_7d
   FROM events
   WHERE timestamp > now() - interval 7 day
     AND properties.garden_address IS NOT NULL
-    AND event IN ('work_submission_success', 'work_approval_success', 'garden_join_success', 'garden_auto_join_success')
+    AND event IN ('work_submission_success', 'work_submission_offline', 'work_approval_success', 'garden_join_success', 'garden_auto_join_success')
   GROUP BY garden_address, garden_name
   ORDER BY work_submitted_7d DESC
   ```
 - **Bind variables**: none.
 - **Output schema**:
   - `garden_address`, `garden_name`, `active_members_7d`, `work_submitted_7d`, `work_approved_7d` — public
-- **Required emit-side events**: `work_submission_success`, `work_approval_success`, `garden_join_success`, `garden_auto_join_success` (all present; all carry `garden_address`).
+- **Required emit-side events**: `work_submission_success`, `work_submission_offline`, `work_approval_success`, `garden_join_success`, `garden_auto_join_success`. Joins and approvals carry `garden_address`; Submit events have not carried it since September 2026, so this question and `gardens.dormant` cannot count a garden's submitted work until they carry it again.
 - **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `gardens.dormant`
@@ -499,6 +639,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: gardens with zero work submitted in the last 7 / 14 / 30 days. Drives the `#498` dormancy signal and Season-One health awareness.
+- **v1.1.0 (2026-11-15): work saved for later counts.** A garden's last work reads `work_submission_offline` as well as `work_submission_success`, as it did before saved-for-later work moved to its own event. See Work events above.
 - **HogQL**:
   ```sql
   WITH known_gardens AS (
@@ -511,7 +652,7 @@ Public-safe-default. Aggregates only — never names a single user.
       properties.garden_address AS garden_address,
       max(timestamp) AS last_work_at
     FROM events
-    WHERE event = 'work_submission_success'
+    WHERE event IN ('work_submission_success', 'work_submission_offline')
     GROUP BY garden_address
   )
   SELECT
@@ -528,7 +669,7 @@ Public-safe-default. Aggregates only — never names a single user.
   ```
 - **Bind variables**: none.
 - **Output schema**: all public.
-- **Required emit-side events**: `admin_garden_create_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success`.
+- **Required emit-side events**: `admin_garden_create_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success`, `work_submission_offline`.
 - **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `gardens.operator-activity`
@@ -583,6 +724,8 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Default privacy**: public-safe
 - **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`), **excluding user cancellations**. Surfaces product breakages that vanish from a success-only funnel.
 - **v1.3.0 (2026-08-10) — cancellations are not failures.** A user declining a wallet or passkey prompt was previously counted as a conversion kill. This inflated every step and produced at least one false anomaly (PRD-717: a reported 66.7% `garden_join` failure was 5 aborts out of 8 "failures", from 2 people retrying). The query now classifies each attempt as `success` / `cancelled` / `failed`, reports `cancelled_count` alongside rather than dropping it, and emits `failing_persons` so consumers can require a real cohort before filing. **Treat the pre-v1.3.0 baselines as inflated** — the old entry quoted `garden_join` ~75%, `work_submission` ~70%, `auth_passkey_register` ~27% from 2026-05-09.
+- **v1.4.0 (2026-11-15): work saved for later is still a success.** A Submit that only saves the work to the queue now records `work_submission_offline` instead of `work_submission_success` with `was_offline: true`. It counts as the Submit step's success here, as it did before. `work_submission_failed` now also records two endings it did not before: a declined Terms prompt (`UserRejected`, so cancelled) and a Submit stopped before admission, such as a promise take-up that did not go (`StoppedBeforeAdmission`, so failed). See Work events above.
+- **v1.5.0 (2026-11-19): a declined Submit has its own event.** A Submit the person declined, the Terms or the wallet's signature, records `work_submission_cancelled` instead of `work_submission_failed` with `parsed_error_family: UserRejected` (PRD-1561). The query reads both, so its cancelled count holds across the change.
 - **HogQL**:
   ```sql
   SELECT
@@ -614,7 +757,8 @@ Public-safe-default. Aggregates only — never names a single user.
       -- The literal list mirrors CANCELLED_PATTERNS in
       -- packages/shared/src/utils/errors/tx-error-classifier.ts — keep them in sync.
       multiIf(
-        event LIKE '%_success', 'success',
+        -- Work saved for later was the Submit step's success before it got its own event.
+        event LIKE '%_success' OR event = 'work_submission_offline', 'success',
         event LIKE '%_cancelled'
           OR properties.parsed_error_family = 'UserRejected'
           OR properties.reason = 'cancelled'
@@ -629,7 +773,8 @@ Public-safe-default. Aggregates only — never names a single user.
     WHERE timestamp > now() - interval {window:String}
       AND event IN (
         'garden_join_success', 'garden_join_failed', 'garden_join_cancelled',
-        'work_submission_success', 'work_submission_failed',
+        'work_submission_success', 'work_submission_offline', 'work_submission_failed',
+        'work_submission_cancelled',
         'work_approval_success', 'work_approval_failed',
         'auth_passkey_register_success', 'auth_passkey_register_failed'
       )
@@ -645,11 +790,11 @@ Public-safe-default. Aggregates only — never names a single user.
   | Step | Signal | Reliable? |
   |---|---|---|
   | `garden_join` | dedicated `garden_join_cancelled` event | ✅ from 2026-08-10 |
-  | `work_submission` | `parsed_error_family` / parsed message | ⚠️ `parsed_error_family` only on recent events; older ones fall back to message text |
+  | `work_submission` | dedicated `work_submission_cancelled` event; before it, `parsed_error_family` / parsed message | ✅ from the PRD-1561 release; older events fall back to `parsed_error_family` or message text |
   | `auth_passkey_register` | `reason = 'cancelled'` | ⚠️ `reason` is frequently absent; the common WebAuthn string ("operation either timed out or was not allowed") is genuinely ambiguous between a timeout and a dismissal, so it is deliberately **left as a failure** rather than guessed |
   | `work_approval` | none | ❌ emits only a generic `"Transaction failed. Please try again."` via `createMutationErrorHandler`; cancellations are indistinguishable today |
 
-- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
+- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` and `work_submission_offline` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122): when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
 - **Anomaly thresholds (consumer)**: failure rate > 50% AND `failed_count` ≥ 5 AND `failing_persons` ≥ 3 over the window → file a Linear anomaly Issue. 100% failure meeting the same floors → P2/urgent. The person floor is what separates real product breakage from one or two people retrying a broken session — without it, a two-person retry loop reads as a cohort-wide conversion kill (PRD-717).
   - **`failing_persons` does not merge across projects.** It is a distinct count, so the App and Admin rows for `work_approval` can neither be summed (double-counts an operator active on both) nor maxed (undercounts distinct operators). Apply the person floor **per project** and file if either side crosses on its own; only `success_count` / `failed_count` / `cancelled_count` may be merged into a combined row.
 - **Used by**: `growth-pulse` (anomaly detection, replaces sole reliance on `funnel.onboarding`).
@@ -685,7 +830,7 @@ Public-safe-default. Aggregates only — never names a single user.
 The following questions would expand coverage but require events that don't exist yet. Listed here so a future emit-side plan can pick them up:
 
 - `funnel.invite-acceptance` — needs `garden_invite_sent` and `garden_invite_accepted`. `garden_join_success` fires after the invite link is followed, but the invite-creation step itself isn't tracked. Add via `createTracker<T>` in `packages/shared/src/modules/app/analytics-events.ts` if invitation conversion becomes a key metric. (The `garden_auto_join_*` family used to be listed here as a second source; it was defined but never called and never fired a single event in 365 days, so it was deleted on 2026-08-10 — don't reach for it.)
-- `funnel.first-work-from-invite` — depends on the same invitation events plus a stable `first_work` derivation. The derivation is computable from `work_submission_success` (`min(timestamp) per distinct_id`), so no new event is strictly required, but a `first_work_submitted` event would let cohort joins be cheaper.
+- `funnel.first-work-from-invite`: depends on the same invitation events plus a stable `first_work` derivation. The derivation is computable from `work_submission_success` and `work_submission_offline` (`min(timestamp) per distinct_id`), so no new event is strictly required, but a `first_work_submitted` event would let cohort joins be cheaper.
 
 Do not write a question for these until the underlying events ship. **Consuming** (running the HogQL of) a `blocked` question from a routine is a `routine-self-audit` violation; **documenting** a question's blocked/deprecated status in routine prose (as `growth-pulse` now does for `actions.template-creation-rate`) is expected and not a violation.
 
@@ -714,7 +859,7 @@ A routine wiring this library should:
 ## Related Skills
 
 - `debug` uses product-quality questions for bug investigation and reporter/session lookup.
-- Routine setup, cloud-run configuration, and automation wiring live in [`docs/routines/README.md`](../../../docs/routines/README.md).
+- Routine setup, cloud-run configuration, and automation wiring live in [`docs/routines/README.md`](README.md).
 - `plan` owns follow-up implementation planning when a new question needs emit-side events or a wrapper script.
 
 ## Versioning

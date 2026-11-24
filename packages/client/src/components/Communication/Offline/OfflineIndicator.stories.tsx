@@ -9,7 +9,7 @@ import { OfflineIndicator } from "./OfflineIndicator";
 
 const withRouter = (Story: React.ComponentType) => (
   <MemoryRouter initialEntries={["/home"]}>
-    <div className="min-h-40 bg-bg-white-0 pt-10 text-text-strong-950">
+    <div className="min-h-40 bg-bg-canvas pt-10 text-text-strong-950">
       <Story />
       <p className="px-4 text-sm text-text-sub-600">Status bar frame</p>
     </div>

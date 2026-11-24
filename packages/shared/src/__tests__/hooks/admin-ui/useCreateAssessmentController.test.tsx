@@ -6,13 +6,13 @@ import { act, render, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useCreateAssessmentController } from "../../../hooks/admin-ui/hub/useCreateAssessmentController";
+import { useCreateAssessmentController } from "../../../hooks/admin-ui/review/useCreateAssessmentController";
 import { useDirtyClose } from "../../../hooks/admin-ui/useDirtyClose";
 import { useCreateAssessmentStore } from "../../../stores/useCreateAssessmentStore";
 import { Domain } from "../../../types/domain";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
-const CREATE_PATH = "/hub/assess/create";
+const CREATE_PATH = "/review/assess/create";
 // The garden documents Agroforestry only (bit 1), unless a test unsets it.
 const domainsState = vi.hoisted(() => ({
   data: 2 as number | undefined,
@@ -46,6 +46,10 @@ const workflow = vi.hoisted(() => {
     },
   };
 });
+
+vi.mock("../../../hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
+}));
 
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: domainsState.walletAddress }),
@@ -332,9 +336,9 @@ describe("useCreateAssessmentController submit", () => {
     act(() => workflow.set("pending"));
     await act(async () => {
       await result.current.handleSubmit();
-      await router.navigate("/hub/work");
+      await router.navigate("/review/work");
     });
-    expect(router.state.location.pathname).toBe("/hub/work");
+    expect(router.state.location.pathname).toBe("/review/work");
     expect(guard.current.confirmOpen).toBe(false);
     expect(mockSubmitCreation).not.toHaveBeenCalled();
     expect(mockResetWorkflow).not.toHaveBeenCalled();
@@ -373,7 +377,7 @@ describe("useCreateAssessmentController submit", () => {
     expect(mockSaveDraft).not.toHaveBeenCalled();
 
     act(() => result.current.handleClose());
-    await waitFor(() => expect(router.state.location.pathname).toBe("/hub/assess"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/review/assess"));
     expect(guard.current.confirmOpen).toBe(false);
   });
 

@@ -1,10 +1,17 @@
 import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
+import type { Address } from "@green-goods/shared/types/domain";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const loadQueue = vi.fn(async () => ({ ok: true, items: [] }));
+const loadQueue = vi.fn(
+  async (): Promise<{
+    ok: boolean;
+    items: never[];
+    countGrant?: { token: string; expiresAt: number };
+  }> => ({ ok: true, items: [] })
+);
 const resolveRequest = vi.fn(async () => ({ ok: true, pendingOnchainMembership: false }));
 let rateLimitedRecently = false;
 let mutationError: Error | null = null;
@@ -25,6 +32,7 @@ const addSteward = vi.fn(
 );
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
+  useAwaitingJoinRequests: () => new Set<string>(),
   useGardenJoinRequestAvailability: (kind?: string) => kind !== "steward_access" || stewardship,
   useGardenJoinRequests: () => ({
     queue: [
@@ -60,37 +68,54 @@ import { CommunityJoinRequests } from "./CommunityJoinRequests";
 
 const messages = {
   "app.common.cancel": "Cancel",
+  "app.common.refresh": "Refresh",
   "app.garden.joinQueue.membershipAddFailed": "Membership could not be added.",
-  "app.garden.joinQueue.rateLimitedNotice": "Some join requests were rate-limited recently.",
+  "app.garden.joinQueue.rateLimitedNotice":
+    "Some people couldn't ask to join recently because of the rate limit.",
   "app.garden.joinRequest.error.conflict":
-    "This request changed or was already used. Check its status and try again.",
-  "cockpit.community.joinRequests.confirmDecline": "Decline Request",
-  "cockpit.community.joinRequests.decline": "Decline",
-  "cockpit.community.joinRequests.declined": "The request was declined.",
-  "cockpit.community.joinRequests.declineDescription": "Decline {name}'s request.",
-  "cockpit.community.joinRequests.declineTitle": "Decline Join Request",
-  "cockpit.community.joinRequests.description": "Review pending requests.",
-  "cockpit.community.joinRequests.empty": "No pending requests.",
-  "cockpit.community.joinRequests.load": "Check Requests",
-  "cockpit.community.joinRequests.membershipPending": "Membership pending.",
-  "cockpit.community.joinRequests.reason": "Reason for declining",
-  "cockpit.community.joinRequests.title": "Join Requests",
-  "cockpit.community.joinRequests.updateFailed": "The request could not be updated.",
-  "cockpit.community.joinRequests.welcome": "Welcome",
-  "cockpit.community.joinRequests.welcomed": "The gardener was welcomed.",
-  "cockpit.community.stewardRequests.title": "Steward Access Requests",
-  "cockpit.community.stewardRequests.description": "Assign the steward role to the account shown.",
-  "cockpit.community.stewardRequests.approve": "Approve Steward Access",
-  "cockpit.community.stewardRequests.confirmed": "Steward access was confirmed.",
-  "cockpit.community.stewardRequests.pending": "Steward assignment is pending.",
+    "This changed or was already used. Check its status and try again.",
+  "hub.community.joinRequests.confirmDecline": "Decline",
+  "hub.community.joinRequests.countNotice":
+    "Checking also lets this browser show how many wait on the Members tab for 30 days.",
+  "hub.community.joinRequests.decline": "Decline",
+  "hub.community.joinRequests.declined": "They were declined.",
+  "hub.community.joinRequests.declineDescription":
+    "Decline {name} and share the reason they can read when they check their status.",
+  "hub.community.joinRequests.declineTitle": "Decline Membership",
+  "hub.community.joinRequests.description": "Review people who asked to join this garden.",
+  "hub.community.joinRequests.empty": "Nobody is asking to join right now.",
+  "hub.community.joinRequests.load": "Check Who's Asking",
+  "hub.community.joinRequests.membershipPending": "Membership pending.",
+  "hub.community.joinRequests.reason": "Reason for declining",
+  "hub.community.joinRequests.title": "Asking to Join",
+  "hub.community.joinRequests.updateFailed": "That didn't go through. Try again.",
+  "hub.community.joinRequests.welcome": "Welcome",
+  "hub.community.joinRequests.welcomed": "The gardener was welcomed.",
+  "hub.community.stewardRequests.title": "Steward Access Requests",
+  "hub.community.stewardRequests.description": "Assign the steward role to the account shown.",
+  "hub.community.stewardRequests.approve": "Approve Steward Access",
+  "hub.community.stewardRequests.confirmed": "Steward access was confirmed.",
+  "hub.community.stewardRequests.pending": "Steward assignment is pending.",
 };
 
-function renderQueue() {
-  return render(
+const GARDEN = "0x1111111111111111111111111111111111111111";
+
+const onCountGrant = vi.fn();
+
+function queueUi(onRead: (kind: string, waiting: number) => void, gardenAddress: string = GARDEN) {
+  return (
     <IntlProvider locale="en" messages={messages}>
-      <CommunityJoinRequests gardenAddress="0x1111111111111111111111111111111111111111" />
+      <CommunityJoinRequests
+        gardenAddress={gardenAddress as Address}
+        onRead={onRead}
+        onCountGrant={onCountGrant}
+      />
     </IntlProvider>
   );
+}
+
+function renderQueue(onRead: (kind: string, waiting: number) => void = () => {}) {
+  return render(queueUi(onRead));
 }
 
 describe("CommunityJoinRequests", () => {
@@ -105,7 +130,7 @@ describe("CommunityJoinRequests", () => {
     const user = userEvent.setup();
     renderQueue();
     expect(loadQueue).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Check Requests" }));
+    await user.click(screen.getByRole("button", { name: "Check Who's Asking" }));
     expect(loadQueue).toHaveBeenCalledOnce();
 
     await user.click(screen.getByRole("button", { name: "Welcome" }));
@@ -121,6 +146,58 @@ describe("CommunityJoinRequests", () => {
     );
   });
 
+  it("tells the Members tab how many wait only after a finished read (DL-134)", async () => {
+    const onRead = vi.fn();
+    const user = userEvent.setup();
+    renderQueue(onRead);
+    // Opening the queue reads nothing: the count never asks for a signature.
+    expect(loadQueue).not.toHaveBeenCalled();
+    expect(onRead).not.toHaveBeenCalled();
+
+    // A failed read says nothing about how many wait.
+    loadQueue.mockRejectedValueOnce(new Error("offline"));
+    await user.click(screen.getByRole("button", { name: "Check Who's Asking" }));
+    await waitFor(() => expect(loadQueue).toHaveBeenCalledOnce());
+    expect(onRead).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Check Who's Asking" }));
+    await waitFor(() => expect(onRead).toHaveBeenCalledWith("garden_membership", 1));
+  });
+
+  it("says what checking does, then hands over the grant a signed read returns", async () => {
+    const user = userEvent.setup();
+    renderQueue();
+    expect(screen.getByText(/show how many wait on the Members tab/)).toBeInTheDocument();
+    expect(onCountGrant).not.toHaveBeenCalled();
+
+    // An older service returns no grant, and a failed read has none to give.
+    await user.click(screen.getByRole("button", { name: "Check Who's Asking" }));
+    loadQueue.mockRejectedValueOnce(new Error("offline"));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(loadQueue).toHaveBeenCalledTimes(2));
+    expect(onCountGrant).not.toHaveBeenCalled();
+
+    const countGrant = { token: "grant.token", expiresAt: 4_000_000_000 };
+    loadQueue.mockResolvedValueOnce({ ok: true, items: [], countGrant });
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(onCountGrant).toHaveBeenCalledWith(countGrant));
+  });
+
+  it("starts another garden's queue unchecked, so one garden's read never counts for it", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderQueue();
+    await user.click(screen.getByRole("button", { name: "Check Who's Asking" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument()
+    );
+
+    const onRead = vi.fn();
+    rerender(queueUi(onRead, "0x3333333333333333333333333333333333333333"));
+
+    expect(screen.getByRole("button", { name: "Check Who's Asking" })).toBeInTheDocument();
+    expect(onRead).not.toHaveBeenCalled();
+  });
+
   it("requires and sends a decline reason", async () => {
     const user = userEvent.setup();
     renderQueue();
@@ -128,7 +205,7 @@ describe("CommunityJoinRequests", () => {
     const reason = screen.getByLabelText(/Reason for declining/);
     expect(reason).toHaveAttribute("maxlength", "500");
     await user.type(reason, "No capacity this season.");
-    await user.click(screen.getByRole("button", { name: "Decline Request" }));
+    await user.click(screen.getByRole("button", { name: "Decline" }));
     await waitFor(() =>
       expect(resolveRequest).toHaveBeenCalledWith("request-1", {
         action: "decline",
@@ -177,7 +254,7 @@ describe("CommunityJoinRequests", () => {
     await user.click(screen.getByRole("button", { name: "Decline" }));
     const reason = screen.getByLabelText(/Reason for declining/);
     await user.type(reason, "No capacity this season.");
-    await user.click(screen.getByRole("button", { name: "Decline Request" }));
+    await user.click(screen.getByRole("button", { name: "Decline" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The request changed. Refresh and retry."
@@ -191,7 +268,7 @@ describe("CommunityJoinRequests", () => {
     renderQueue();
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Some join requests were rate-limited recently."
+      "Some people couldn't ask to join recently because of the rate limit."
     );
   });
 
@@ -205,7 +282,7 @@ describe("CommunityJoinRequests", () => {
     renderQueue();
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "This request changed or was already used. Check its status and try again."
+      "This changed or was already used. Check its status and try again."
     );
     expect(screen.getByRole("alert")).not.toHaveTextContent(
       "The request changed. Refresh and retry."

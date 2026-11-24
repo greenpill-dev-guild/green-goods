@@ -1,4 +1,4 @@
-// jsdom pin (happy-dom A/B): asserts authored inline values (a var() grid template, calc() with rem); happy-dom's computed style substitutes var() and converts rem to px.
+// Assert authored CSS tokens directly; computed styles can resolve custom properties and units.
 /**
  * @vitest-environment jsdom
  */
@@ -13,17 +13,17 @@ import { NavigationBar } from "./NavigationBar";
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
-    label: "Hub",
-    labelId: "cockpit.nav.hub",
+    id: "review",
+    label: "Review",
+    labelId: "hub.nav.review",
     icon: () => null,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: () => null,
     path: "/garden",
     visible: true,
@@ -31,7 +31,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: () => null,
     path: "/community",
     visible: true,
@@ -63,24 +63,24 @@ describe("NavigationBar", () => {
     );
 
     expect(screen.getByText("Comunidade")).toBeVisible();
-    expect(screen.getByRole("navigation")).toHaveStyle({
-      gridTemplateColumns:
-        "repeat(3, minmax(var(--admin-nav-item-width-desktop, 5.875rem), max-content))",
-      width: "fit-content",
-    });
+    const navigation = screen.getByRole("navigation");
+    expect(navigation.style.gridTemplateColumns).toBe(
+      "repeat(3, minmax(var(--admin-nav-item-width-desktop, 5.875rem), max-content))"
+    );
+    expect(navigation).toHaveStyle({ width: "fit-content" });
   });
 
-  it("renders a usable desktop dock with only Hub and Garden", () => {
+  it("renders a usable desktop dock with only Review and Garden", () => {
     const onNavigate = vi.fn();
     render(
       <IntlProvider locale="pt" messages={ptMessages}>
-        <NavigationBar slots={slots.slice(0, 2)} activePath="/hub" onNavigate={onNavigate} />
+        <NavigationBar slots={slots.slice(0, 2)} activePath="/review" onNavigate={onNavigate} />
       </IntlProvider>
     );
 
     const nav = screen.getByRole("navigation");
     expect(nav).toHaveAttribute("data-item-count", "2");
-    expect(nav.querySelector('[data-item-id="hub"]')).toHaveAttribute("aria-current", "page");
+    expect(nav.querySelector('[data-item-id="review"]')).toHaveAttribute("aria-current", "page");
     fireEvent.click(nav.querySelector('[data-item-id="garden"]') as HTMLElement);
     expect(onNavigate).toHaveBeenCalledWith("/garden");
   });
@@ -115,7 +115,7 @@ describe("NavigationBar", () => {
       <IntlProvider locale="pt" messages={ptMessages}>
         <NavigationBar
           slots={slots}
-          activePath="/hub"
+          activePath="/review"
           onNavigate={vi.fn()}
           fab={{
             actions: [
@@ -123,7 +123,7 @@ describe("NavigationBar", () => {
                 id: "submit-work",
                 icon: () => null,
                 label: "Submit Work",
-                labelId: "cockpit.hub.action.submitWork",
+                labelId: "hub.review.action.submitWork",
               },
             ],
             onAction: vi.fn(),
@@ -141,8 +141,9 @@ describe("NavigationBar", () => {
       }
     });
 
+    // The computed offset is the measured bar height plus a 6px gap.
     expect(document.querySelector('[data-slot="mobile-fab-layer"]')).toHaveStyle({
-      bottom: "calc(116px + 0.375rem)",
+      bottom: "122px",
     });
   });
 });

@@ -6,16 +6,17 @@ sidebar_position: 2
 description: "The whole Green Goods loop in plain words: a garden plans, gardeners document, stewards review, approved work is certified, and supporters fund more of it."
 audience: all
 owner: docs
-last_verified: 2026-10-12
+last_verified: "2026-10-12"
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/config/app.ts
   - packages/client/src/views/Garden/index.tsx
   - packages/client/src/views/Home/WorkDashboard/index.tsx
   - packages/client/src/views/Public/GardenDetail.tsx
   - packages/client/src/views/Public/Fund.tsx
   - packages/client/src/views/Public/Actions.tsx
   - packages/client/src/content/publicCuration.ts
-  - packages/admin/src/views/Hub/index.tsx
+  - packages/admin/src/views/Review/index.tsx
   - packages/shared/src/providers/JobQueue.tsx
   - packages/shared/src/modules/app/locale-messages.ts
   - packages/contracts/src/resolvers/Work.sol
@@ -40,16 +41,11 @@ keywords:
   - passkey
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # How It Works
 
 Good work often leaves no trace. Someone plants forty trees or clears a riverbank, and a month later there is nothing to show a funder except a memory. Green Goods fixes that one problem: it turns work into a record that the community itself has checked.
 
-<figure className="gg-figure gg-overview-photo">
-  <img src="/img/community/editorial-actions.webp" alt="An open field journal beside a camera and tools on a wooden table, with notes about the work and the place." width="1536" height="1024" fetchPriority="high" decoding="async" />
-  <figcaption>Evidence needs context: what happened, where, and why. Editorial illustration reused from Green Goods' website Actions imagery; not a real work submission.</figcaption>
-</figure>
+<GuideImage src="/img/community/editorial-actions.webp" alt="An open field journal beside a camera and tools on a wooden table, with notes about the work and the place." width="1536" height="1024" fetchPriority="high" decoding="async" className="gg-figure gg-overview-photo" />
 
 ## One piece of work, start to finish
 
@@ -60,19 +56,20 @@ An example, with made-up names.
 3. **Review the evidence.** Kofi, a steward, checks the photos and count. He knows the place from a recent visit. He chooses **Medium** confidence and taps **Approve**.
 4. **See the result.** Ama sees **Approved** in **Your Work**. The public record shows her work and the steward's decision to anyone considering supporting the garden.
 
-<figure className="gg-figure" style={{maxWidth: '560px'}}>
-  <img src="/img/screenshots/admin-review-form.webp" alt="Steward Review in the dashboard, with Low, Medium, and High confidence choices, a Feedback field, and Reject and Approve buttons." width="1152" height="1080" loading="lazy" />
-  <figcaption>The steward adds a decision to the evidence. In this fixture, Approve waits for a confidence choice. Source: Storybook fixture, 12 October 2026, 1152 × 1080 image; build revision unavailable. This is example data, not Ama's record.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-review-form.webp" alt="Steward Review in the Green Goods Hub, with Low, Medium, and High confidence choices, a Feedback field, and Reject and Approve buttons." width="1152" height="1080" loading="lazy" className="gg-figure" maxWidth="560px">
+
+Choose a confidence level to enable <InlineLabel>Approve</InlineLabel>.
+
+</GuideImage>
 
 ## Where the tools meet
 
-The app and dashboard work with the same public record. The website lets other people read it. A review adds a separate decision; it does not send a payment.
+The Green Goods App and Hub work with the same public record. The Green Goods Website lets other people read it. A review adds a separate decision; it does not send a payment.
 
 ```mermaid
 flowchart TB
     A["Phone app<br/>Record work"] -->|Upload all| R["Public record<br/>Work and separate review"]
-    R -->|Read evidence| S["Steward<br/>Review in app or dashboard"]
+    R -->|Read evidence| S["Steward<br/>Review in the App or the Hub"]
     S -->|Add a decision| R
     R --> W["Public website<br/>Read the garden's work"]
 ```
@@ -99,13 +96,13 @@ A **steward** from the same garden looks at the photos and details and decides. 
 
 ### 4. Certify
 
-When a garden has a body of approved work that tells one story, a steward can bundle it into an **impact certificate**: one claim that says "this garden did this, in this period." This step is still being switched on. [Honest Claims](/community/green-goods-claims) tracks where it stands.
+When a garden has a body of approved work that tells one story, a steward can bundle it into an **impact certificate**: one claim that says "this garden did this, in this period." This step is still being switched on. Read [Mint Impact Certificate](/community/steward-guide/creating-impact-certificates) for the current limits.
 
 ### 5. Fund
 
 Anyone can read a garden's approved work on its public page. A supporter who likes what they see can **donate** to the garden's shared fund, or **endow** it with a deposit whose earnings go to the garden. The garden uses that support to do more work, and the loop starts again.
 
-## What an approval is, and is not {#impact-reporting-verification}
+<AnchoredHeading level="2" id="impact-reporting-verification" text="What an approval is, and is not" />
 
 Approval is the idea everything else rests on, so it is worth being exact about it.
 
@@ -150,7 +147,7 @@ Three things are worth saying plainly:
 
 The [Funder Guide](/community/funder-guide/) has the details.
 
-## Where Commitment Pooling fits {#commitment-pooling}
+<AnchoredHeading level="2" id="commitment-pooling" text="Where Commitment Pooling fits" />
 
 A shared fund supports a garden as a whole. **Commitment Pooling** helps the community organize specific promises: an offer to do work or provide support, or a request for it. A pool holds the shared rules for those promises, including who can confirm that one was kept.
 
@@ -158,9 +155,11 @@ For example, a garden could agree on a promise to plant and care for seedlings. 
 
 If the promise includes financial support, payment follows its agreed conditions and a separate payment process. **Work approval alone does not release money.** A donation to the shared fund and an endowment also remain separate ways to support a garden.
 
-:::info Availability
-The pooling product flow is being prepared for release. Check with your steward before relying on it for a task or payment. The existing [Commitment Pool guide](/community/steward-guide/commitment-pooling) explains the steward tools; availability still depends on the garden and the selected action.
-:::
+<Callout kind="info" title="Availability">
+
+Commitment Pooling is part of Green Goods 2.0. A garden can use it once its steward has set up the pool; what you can do depends on your role and the selected action. A promise can carry a G$ reward, which a steward sends from the garden's Safe on Celo after the promise is kept. Follow the [gardener guide](/community/gardener-guide/make-a-promise) or the [steward guide](/community/steward-guide/open-a-pool).
+
+</Callout>
 
 ## Built for the field
 

@@ -18,28 +18,17 @@ import { useMyOnlineWorks } from "@green-goods/shared/hooks/work/useMyWorks";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
 import type { SheetAction } from "@green-goods/shared/components/Dialog/SheetActions";
-import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixicon/react";
+import { RiAwardLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { BadgeDetails } from "./BadgeDetails";
+import { BadgeTile } from "./BadgeTile";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
 
 type ProfileBadgeStatus = "earned" | "claimable";
 type ProfileBadgeDisplay = GreenWillBadgeView & { profileStatus: ProfileBadgeStatus };
-
-function badgeIcon(slug: string) {
-  switch (slug) {
-    case "genesis":
-      return <RiSeedlingLine className="h-5 w-5 text-primary-on-surface" />;
-    case "first-work":
-      return <RiHammerLine className="h-5 w-5 text-primary-on-surface" />;
-    case "first-support":
-      return <RiCoinsLine className="h-5 w-5 text-primary-on-surface" />;
-    default:
-      return <RiAwardLine className="h-5 w-5 text-primary-on-surface" />;
-  }
-}
 
 function badgeTitle(intl: ReturnType<typeof useIntl>, slug: string) {
   switch (slug) {
@@ -274,6 +263,7 @@ export const ProfileBadges: React.FC = () => {
       ? describeBadgeClaimError(selectedClaimState.error)
       : null;
   const selectedTitle = selectedBadge ? badgeTitle(intl, selectedBadge.slug) : "";
+  const selectedEarned = claimLanded || selectedBadge?.profileStatus === "earned";
 
   if (!primaryAddress) {
     return renderBadgeState(
@@ -368,38 +358,23 @@ export const ProfileBadges: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3" data-testid="profile-badge-grid">
+      <div className="grid auto-rows-fr grid-cols-2 gap-3" data-testid="profile-badge-grid">
         {displayBadges.map((badge) => {
           const title = badgeTitle(intl, badge.slug);
           const statusLabel = badgeStatusLabel(intl, badge.profileStatus);
 
           return (
-            <button
+            <BadgeTile
               key={`${badge.profileStatus}-${badge.badgeId}`}
-              type="button"
-              data-pressable="card"
-              onClick={() => setOpenedBadge(badge)}
-              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface/30"
-              aria-label={intl.formatMessage(
-                {
-                  id: "app.profile.badges.viewDetails",
-                  defaultMessage: "View {badge} badge",
-                },
-                { badge: title }
-              )}
-            >
-              <span className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] bg-primary/10">
-                {badgeIcon(badge.slug)}
-              </span>
-              <span className="mt-3 min-w-0">
-                <span className="line-clamp-2 text-sm font-medium leading-snug text-text-strong-950">
-                  {title}
-                </span>
-                <span className="mt-2 inline-flex rounded-full bg-bg-weak-50 px-2 py-1 text-[11px] font-medium text-text-sub-600">
-                  {statusLabel}
-                </span>
-              </span>
-            </button>
+              slug={badge.slug}
+              chainId={badge.chainId}
+              unlockLock={badge.unlockLock}
+              title={title}
+              earned={badge.profileStatus === "earned"}
+              issuedAt={badge.ownership?.issuedAt}
+              statusLabel={statusLabel}
+              onOpen={() => setOpenedBadge(badge)}
+            />
           );
         })}
       </div>
@@ -436,57 +411,59 @@ export const ProfileBadges: React.FC = () => {
             : undefined
         }
         size="md"
+        // One height whether or not the badge is earned (DL-014): the smallest
+        // tier that holds the artwork, its standing and the claim bar at 360 x 640.
+        sheetSize="tall"
       >
         {selectedBadge && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-bg-weak-50 px-2 py-1 text-xs font-medium text-text-sub-600">
-                {badgeStatusLabel(intl, claimLanded ? "earned" : selectedBadge.profileStatus)}
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-text-sub-600">
-              {badgeDescription(intl, selectedBadge.slug)}
-            </p>
-            {selectedClaim.note ? (
-              <p className="text-xs text-text-sub-600">{selectedClaim.note}</p>
-            ) : null}
-            {claimLanded ? (
-              <Alert
-                variant="success"
-                title={intl.formatMessage(
-                  { id: "app.profile.badges.claim.successTitle" },
-                  { badge: selectedTitle }
-                )}
-              >
-                {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
-              </Alert>
-            ) : claimAwaiting ? (
-              <Alert
-                variant="info"
-                title={intl.formatMessage({ id: "app.profile.badges.claim.awaitingTitle" })}
-              >
-                {intl.formatMessage({ id: "app.profile.badges.claim.awaitingMessage" })}
-              </Alert>
-            ) : selectedClaimState?.isPending ? (
-              <p role="status" className="text-xs text-text-sub-600">
-                {intl.formatMessage({ id: "app.profile.badges.claim.pendingMessage" })}
-              </p>
-            ) : claimFailure ? (
-              <Alert
-                variant={claimFailure.kind === "cancelled" ? "warning" : "error"}
-                title={
-                  claimFailure.kind === "cancelled"
-                    ? intl.formatMessage({ id: "app.profile.badges.claim.cancelledTitle" })
-                    : intl.formatMessage(
-                        { id: "app.profile.badges.claim.failedTitle" },
-                        { badge: selectedTitle }
-                      )
-                }
-              >
-                {intl.formatMessage({ id: claimFailure.messageId })}
-              </Alert>
-            ) : null}
-          </div>
+          <BadgeDetails
+            badge={selectedBadge}
+            earned={selectedEarned}
+            statusLabel={badgeStatusLabel(intl, selectedEarned ? "earned" : "claimable")}
+            description={badgeDescription(intl, selectedBadge.slug)}
+            note={selectedClaim.note}
+            claimProgress={
+              claimLanded ? (
+                <Alert
+                  className="w-full text-start"
+                  variant="success"
+                  title={intl.formatMessage(
+                    { id: "app.profile.badges.claim.successTitle" },
+                    { badge: selectedTitle }
+                  )}
+                >
+                  {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
+                </Alert>
+              ) : claimAwaiting ? (
+                <Alert
+                  className="w-full text-start"
+                  variant="info"
+                  title={intl.formatMessage({ id: "app.profile.badges.claim.awaitingTitle" })}
+                >
+                  {intl.formatMessage({ id: "app.profile.badges.claim.awaitingMessage" })}
+                </Alert>
+              ) : selectedClaimState?.isPending ? (
+                <p role="status" className="type-meta text-text-sub-600">
+                  {intl.formatMessage({ id: "app.profile.badges.claim.pendingMessage" })}
+                </p>
+              ) : claimFailure ? (
+                <Alert
+                  className="w-full text-start"
+                  variant={claimFailure.kind === "cancelled" ? "warning" : "error"}
+                  title={
+                    claimFailure.kind === "cancelled"
+                      ? intl.formatMessage({ id: "app.profile.badges.claim.cancelledTitle" })
+                      : intl.formatMessage(
+                          { id: "app.profile.badges.claim.failedTitle" },
+                          { badge: selectedTitle }
+                        )
+                  }
+                >
+                  {intl.formatMessage({ id: claimFailure.messageId })}
+                </Alert>
+              ) : null
+            }
+          />
         )}
       </DialogShell>
     </>

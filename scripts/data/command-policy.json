@@ -36,6 +36,11 @@
       "purpose": "Validate root environment capabilities without exposing values",
       "consumer": "setup, development health, and validation"
     },
+    "openfort:keys": {
+      "owner": "repository",
+      "purpose": "Store the Openfort email sign-in keys in 1Password, the root .env, Vercel and Fly without printing them",
+      "consumer": "release operator key setup and rotation"
+    },
     "check": {
       "owner": "repository",
       "purpose": "Select, explain, and execute stable validation checks",
@@ -180,7 +185,9 @@
       "build",
       "check:search-index",
       "audit",
-      "typecheck"
+      "typecheck",
+      "cms:dev",
+      "cms:build"
     ]
   },
   "exceptions": []

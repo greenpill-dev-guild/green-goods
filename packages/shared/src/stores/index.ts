@@ -1,12 +1,13 @@
 // Stores — EXPLICIT EXPORTS for tree-shaking
 
+export { useStaleGardenGuard } from "../hooks/admin-ui/useStaleGardenGuard";
+
 // Admin Store
 export type { AdminState, Garden, TransactionInfo, TransactionStatus } from "./useAdminStore";
 export {
   ADMIN_GARDEN_PREFERENCES_STORAGE_KEY,
   getAdminGardenScopeKey,
   useAdminStore,
-  useStaleGardenGuard,
 } from "./useAdminStore";
 // Create Assessment Store
 export type {

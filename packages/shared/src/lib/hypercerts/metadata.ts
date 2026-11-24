@@ -92,7 +92,11 @@ export function formatHypercertMetadata({
   const workScopesFromAttestations = unique(
     attestations.flatMap((attestation) => attestation.workScope ?? [])
   );
-  const domainFromAttestations = attestations.find((attestation) => attestation.domain)?.domain;
+  // The hypercert names a domain only when its work names exactly one; each ref keeps its own.
+  const bundledDomains = unique(
+    attestations.flatMap((attestation) => (attestation.domain ? [attestation.domain] : []))
+  );
+  const domainFromAttestations = bundledDomains.length === 1 ? bundledDomains[0] : undefined;
 
   const derivedTimeframe = deriveWorkTimeframe(attestations);
 
@@ -145,7 +149,7 @@ export function formatHypercertMetadata({
       outcomes: Object.keys(draft.outcomes.predefined).length
         ? draft.outcomes
         : aggregateOutcomeMetrics(attestations),
-      domain: domainFromAttestations ?? "mutual_credit",
+      ...(domainFromAttestations ? { domain: domainFromAttestations } : {}),
       protocolVersion: DEFAULT_PROTOCOL_VERSION,
     },
   };

@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
-import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
-import { getPath } from "hono/utils/url";
 
 export type PublicRouteClass =
   | "subscribe"
@@ -18,6 +16,8 @@ export type PublicRouteClass =
   | "saved_offers_session"
   | "saved_offers_read"
   | "saved_offers_mutation"
+  | "voucher_awards"
+  | "service_issuer_desk"
   | "join_request_create"
   | "join_request_create_ip"
   | "join_request_create_account"
@@ -26,6 +26,9 @@ export type PublicRouteClass =
   | "join_request_resolve"
   | "passkey_registration"
   | "passkey_lookup"
+  | "passkey_display_names"
+  | "openfort_recovery"
+  | "openfort_recovery_account"
   | "webhook_pre"
   | "webhook_post"
   | "messaging_bootstrap"
@@ -73,6 +76,8 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   saved_offers_session: { limit: 10, windowMs: 10 * 60 * 1000 },
   saved_offers_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   saved_offers_mutation: { limit: 30, windowMs: 10 * 60 * 1000 },
+  voucher_awards: { limit: 60, windowMs: 10 * 60 * 1000 },
+  service_issuer_desk: { limit: 60, windowMs: 10 * 60 * 1000 },
   join_request_create: { limit: 10, windowMs: 10 * 60 * 1000 },
   join_request_create_ip: { limit: 30, windowMs: 10 * 60 * 1000 },
   join_request_create_account: { limit: 3, windowMs: 24 * 60 * 60 * 1000 },
@@ -82,6 +87,10 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   // A sign-up is two calls, and an onboarding session can put a whole group behind one address.
   passkey_registration: { limit: 120, windowMs: 10 * 60 * 1000 },
   passkey_lookup: { limit: 240, windowMs: 10 * 60 * 1000 },
+  passkey_display_names: { limit: 240, windowMs: 10 * 60 * 1000 },
+  // Email sign-in: a group onboarding on one connection signs in one after another.
+  openfort_recovery: { limit: 120, windowMs: 10 * 60 * 1000 },
+  openfort_recovery_account: { limit: 20, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
   // Agent reporting ceremonies: link openers and proofs are per IP; reads and commands per session.
@@ -289,26 +298,11 @@ export function resolveAllowedOrigins(
   return new Set(LOCAL_DEVELOPMENT_PUBLIC_ORIGINS);
 }
 
-function isGreenGoodsVercelPreviewOrigin(origin: string): boolean {
-  try {
-    const { hostname, protocol } = new URL(origin);
-    if (protocol !== "https:") return false;
-    return /^green-goods(?:-[a-z0-9-]+)?-greenpilldevguild\.vercel\.app$/.test(
-      hostname.toLowerCase()
-    );
-  } catch {
-    return false;
-  }
-}
-
+// Every public route, the passkey directory included, answers only the configured origins. There
+// is no exception for Vercel previews: Vercel hands out `.vercel.app` names first come, first
+// served, so a hostname that looks like ours proves nothing about who owns it. List a preview's
+// origin in AGENT_ALLOWED_ORIGINS to let it in.
 export function isOriginAllowed(request: Request, allowedOrigins: Set<string>): boolean {
-  if (allowedOrigins.size === 0) return false;
   const origin = normalizePublicOrigin(request.headers.get("origin"));
-  // Directory RPCs and their preflight use only the configured list. Other public APIs retain
-  // their preview exception; sharing an RP domain never approves a site for the directory.
-  const isPasskeyDirectory = getPath(request) === PUBLIC_AGENT_ROUTES.passkeyDirectory;
-  return (
-    origin !== "none" &&
-    (allowedOrigins.has(origin) || (!isPasskeyDirectory && isGreenGoodsVercelPreviewOrigin(origin)))
-  );
+  return origin !== "none" && allowedOrigins.has(origin);
 }

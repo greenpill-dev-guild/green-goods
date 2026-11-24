@@ -2,6 +2,11 @@
  * Approve Handler - Approve a pending work submission (operator only)
  */
 
+import {
+  assertWorkUploadConsent,
+  UploadPolicyRequiredError,
+} from "@green-goods/shared/modules/work/upload-policy";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Hex } from "viem";
 import { agentMessage } from "../i18n";
 import * as blockchain from "../services/blockchain";
@@ -89,6 +94,14 @@ export async function handleApprove(
     };
   }
 
+  const consent = pendingWork.data.uploadConsent;
+  try {
+    assertWorkUploadConsent(consent, pendingWork.gardenerAddress as Address);
+  } catch (error) {
+    if (!(error instanceof UploadPolicyRequiredError)) throw error;
+    return { response: { text: agentMessage(message.locale, "approve.currentTermsRequired") } };
+  }
+
   // Look up gardener's bot-managed key for work submission
   // Gardeners on SMS/WhatsApp may not have smartphones — the bot holds
   // their custodial key and executes on their behalf.
@@ -124,6 +137,7 @@ export async function handleApprove(
         plantSelection: pendingWork.data.plantSelection,
         plantCount: pendingWork.data.plantCount,
         feedback: pendingWork.data.feedback,
+        uploadConsent: consent,
       },
     });
 

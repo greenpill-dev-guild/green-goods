@@ -28,7 +28,7 @@ export interface ConfirmKeptDialogProps {
  * The review before a commitment is confirmed as kept: which commitment, in
  * which garden's pool, kept by whom, and whether this confirmation closes it
  * for good. The act is final, so it never fires from a bare button (spec C.48:
- * the Hub's acts open a dialog), and the Hub queue and the inspector share
+ * Review's acts open a dialog), and the Review queue and the inspector share
  * this one dialog so it reads the same wherever it is taken.
  */
 export function ConfirmKeptDialog({
@@ -55,8 +55,8 @@ export function ConfirmKeptDialog({
       onClose={onClose}
       tone={tone}
       title={formatMessage({
-        id: "cockpit.garden.pool.confirmKept.title",
-        defaultMessage: "Confirm This Commitment Kept",
+        id: "hub.garden.pool.confirmKept.title",
+        defaultMessage: "Confirm This Promise Kept",
       })}
       target={
         <GardenPoolTarget
@@ -67,7 +67,7 @@ export function ConfirmKeptDialog({
             keptBy
               ? {
                   label: formatMessage({
-                    id: "cockpit.garden.pool.confirmKept.keptBy",
+                    id: "hub.garden.pool.confirmKept.keptBy",
                     defaultMessage: "Kept by",
                   }),
                   value: <AddressDisplay address={keptBy} interactive={false} />,
@@ -79,25 +79,24 @@ export function ConfirmKeptDialog({
       description={
         closes
           ? formatMessage({
-              id: "cockpit.garden.pool.confirmKept.closes",
-              defaultMessage:
-                "This closes the commitment as kept, for everyone. It cannot be undone.",
+              id: "hub.garden.pool.confirmKept.closes",
+              defaultMessage: "This closes the promise as kept, for everyone. It cannot be undone.",
             })
           : formatMessage(
               {
-                id: "cockpit.garden.pool.confirmKept.counts",
+                id: "hub.garden.pool.confirmKept.counts",
                 defaultMessage:
-                  "Yours is confirmation {next} of the {threshold} needed, and it cannot be taken back. The commitment closes as kept when the last one lands.",
+                  "Yours is confirmation {next} of the {threshold} needed, and it cannot be taken back. The promise closes as kept when the last one lands.",
               },
               { next, threshold }
             )
       }
       confirmLabel={formatMessage({
-        id: "cockpit.garden.pool.confirmKept.confirm",
+        id: "hub.garden.pool.confirmKept.confirm",
         defaultMessage: "Confirm Kept",
       })}
       cancelLabel={formatMessage({
-        id: "cockpit.garden.pool.confirmKept.keep",
+        id: "hub.garden.pool.confirmKept.keep",
         defaultMessage: "Not Now",
       })}
       isLoading={isLoading}

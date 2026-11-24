@@ -1,3 +1,5 @@
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
+
 /** Minimal formatMessage interface compatible with react-intl */
 export type FormatMessageFn = (
   descriptor: { id: string; defaultMessage?: string },
@@ -19,9 +21,14 @@ export const toastMessageIds = {
       title: "app.toast.wallet.uploading.title",
       message: "app.toast.wallet.uploading.message",
     },
+    // The send's two stages take the shared stage words as their titles (PRD-1552).
+    wallet: {
+      title: SEND_STAGE_WORDS.wallet.label.id,
+      message: "app.toast.wallet.approve.message",
+    },
     confirming: {
-      title: "app.toast.wallet.confirming.title",
-      message: "app.toast.wallet.confirming.message",
+      title: SEND_STAGE_WORDS.confirming.label.id,
+      message: "app.toast.wallet.sent.message",
     },
     syncing: {
       title: "app.toast.wallet.syncing.title",
@@ -69,7 +76,7 @@ export const toastMessageIds = {
       message: "app.toast.approval.submittingDecision.message",
     },
     walletConfirm: {
-      title: "app.toast.approval.walletConfirm.title",
+      title: SEND_STAGE_WORDS.wallet.label.id,
       message: "app.toast.approval.walletConfirm.message",
     },
     success: {
@@ -113,6 +120,12 @@ export const toastMessageIds = {
       title: "app.toast.queue.jobFailed.title",
       workMessage: "app.toast.queue.jobFailed.workMessage",
       approvalMessage: "app.toast.queue.jobFailed.approvalMessage",
+      workMessageInGarden: "app.toast.queue.jobFailed.workMessageInGarden",
+      approvalMessageInGarden: "app.toast.queue.jobFailed.approvalMessageInGarden",
+      /** The switcher's own words, as Home's chooser prompt opens it. */
+      seeGardens: "app.home.chooser.action",
+      /** The arrival toast's own Review, which opens Your Work on Pending as it does. */
+      review: "app.home.arrival.queue.action",
     },
     retryFailed: {
       title: "app.toast.queue.retryFailed.title",
@@ -127,6 +140,14 @@ export const toastMessageIds = {
     queueClear: {
       title: "app.toast.queue.queueClear.title",
       message: "app.toast.queue.queueClear.message",
+    },
+    takeUpFailed: {
+      title: "app.garden.takeUp.failed.title",
+      message: "app.toast.queue.takeUpFailed.message",
+    },
+    linkFailed: {
+      title: "app.toast.queue.linkFailed.title",
+      message: "app.toast.queue.linkFailed.message",
     },
   },
   // Validation

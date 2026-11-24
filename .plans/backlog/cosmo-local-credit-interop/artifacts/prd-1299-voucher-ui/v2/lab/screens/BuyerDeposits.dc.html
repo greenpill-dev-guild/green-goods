@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Buyer garden checks member deposits</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Riverside Commons Garden</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">T</span></span>
+  </header>
+  <main class="c-route">
+    <sc-if value="{{isRail}}" hint-placeholder-val="{{true}}">
+      <div class="c-head"><div><h1>Funds</h1><p>Riverside Commons Garden's pool and Safe on Celo</p></div></div>
+      <div class="c-tabs"><span class="on">Overview</span><span>Payouts</span><span>History</span></div>
+      <div class="c-grid">
+        <div class="c-col">
+          <section class="acard">
+            <div class="ah"><div><h2>Garden pool</h2><p>Garden funds the stewards spend together</p></div></div>
+            <div class="ab" style="flex-direction: row; gap: 32px">
+              <div class="metric"><b>2,140.00 G$</b><span>Available to the garden</span></div>
+              <div class="metric"><b>3</b><span>Promises funded this month</span></div>
+            </div>
+          </section>
+          <section class="acard">
+            <div class="ah"><div><h2>Payouts</h2><p>Kept promises paying their teams</p></div></div>
+            <div class="arow"><div class="l1"><span class="nm">Teach the seed-saving course</span><span class="sb ok">Paid</span></div><div class="l2">300.00 G$ to Lina · Oct 19</div></div>
+            <div class="arow"><div class="l1"><span class="nm">Compost bay rebuild</span><span class="sb info">Sent to Celo</span></div><div class="l2">640.00 G$ split by recognition · waiting for confirmation</div></div>
+          </section>
+        </div>
+        <div class="c-col">
+          <section class="acard">
+            <div class="ah"><div><h2>Member Deposits</h2><p>Members' own G$ sent to this garden's Safe for promises in other gardens. Not garden funds.</p></div></div>
+            <div class="ab" style="flex-direction: row; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{scopes}}" as="c" hint-placeholder-count="4"><button type="button" class="chipf {{c.on}}" onClick="{{c.pick}}" style="cursor: pointer">{{c.label}}</button></sc-for>
+            </div>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+              <div class="arow">
+                <div class="l1"><span class="nm">{{r.who}}</span><span class="sb {{r.sb}}">{{r.tag}}</span></div>
+                <div class="l2">{{r.meta}}</div>
+                <div class="acts"><button type="button" class="abtn {{r.btnCls}}" onClick="{{r.open}}">{{r.act}}</button></div>
+              </div>
+            </sc-for>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isHub}}" hint-placeholder-val="{{false}}">
+      <div class="c-head"><div><h1>Good afternoon, Tomás</h1><p>Riverside Commons Garden · 7 things need a steward</p></div></div>
+      <div class="c-grid">
+        <div class="c-col">
+          <section class="acard">
+            <div class="ah"><div><h2>Needs you</h2><p>Oldest first. Member deposits are marked; they aren't garden funds.</p></div></div>
+            <div class="arow"><div class="l1"><span class="nm">Approve work · Compost bay turned</span><span class="sb info">Work</span></div><div class="l2">Ana · submitted 2h ago · 3 photos</div><div class="acts"><button type="button" class="abtn">Review…</button></div></div>
+            <sc-for list="{{allRows}}" as="r" hint-placeholder-count="5">
+              <div class="arow req">
+                <div class="l1"><span class="nm">{{r.hubTitle}}</span><span class="sb neu">Member's own G$</span><span class="sb {{r.sb}}">{{r.tag}}</span></div>
+                <div class="l2">{{r.meta}}</div>
+                <div class="acts"><button type="button" class="abtn {{r.btnCls}}" onClick="{{r.open}}">{{r.act}}</button></div>
+              </div>
+            </sc-for>
+            <div class="arow"><div class="l1"><span class="nm">Vote · Website care, 3 months</span><span class="sb info">Garden spending</span></div><div class="l2">From the garden pool · 1 of 2 stewards voted</div><div class="acts"><button type="button" class="abtn">Vote…</button></div></div>
+          </section>
+        </div>
+        <div class="c-col">
+          <section class="acard">
+            <div class="ah"><div><h2>In the Safe</h2><p>Riverside Commons Garden · Safe 0xA77c…19F0 on Celo</p></div></div>
+            <div class="ab">
+              <div class="afacts">
+                <div class="afact"><span class="k">Garden pool</span><span class="v">2,140.00 G$</span></div>
+                <div class="afact"><span class="k">Members' G$, held</span><span class="v">1,022.26 G$<small>4 promises in other gardens · not garden funds</small></span></div>
+                <div class="afact"><span class="k">Owed back</span><span class="v">750.00 G$<small>2 refunds</small></span></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+  <nav class="dock" aria-label="Cockpit">
+    <span class="ni {{hubOn}}"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>Hub</span>
+    <span class="ni {{railOn}}"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>Garden</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>Community</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>Actions</span>
+  </nav>
+
+  <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-label="{{dTitle}}">
+      <div class="dh"><div><h2>{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="Close" onClick="{{closeDlg}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <div class="target"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>{{dTarget}}</div>
+
+        <sc-if value="{{isCheck}}" hint-placeholder-val="{{true}}">
+          <div class="afacts">
+            <div class="afact"><span class="k">Member</span><span class="v">{{dWho}}</span></div>
+            <div class="afact"><span class="k">For</span><span class="v">{{dFor}}</span></div>
+            <div class="afact"><span class="k">Expected to arrive</span><span class="v">{{dExpected}}</span></div>
+            <div class="afact"><span class="k">Refunds go to</span><span class="v"><span class="mono">{{dRefund}}</span></span></div>
+            <div class="afact"><span class="k">Extra G$</span><span class="v">Top-up not allowed</span></div>
+          </div>
+          <div class="dsec">
+            <h3>What Celo shows</h3>
+            <div class="flowrow"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg>{{dCelo}}</div>
+            <span class="small">Read Today, 10:58 AM · reference GG-7F3A · View on Celoscan</span>
+          </div>
+          <div class="fieldA"><label>Amount that arrived</label><span class="inp"><span>{{dAmount}}</span><span class="small">G$</span></span><span class="hl {{dHintCls}}">{{dHint}}</span></div>
+          <sc-if value="{{isShort}}" hint-placeholder-val="{{false}}"><p style="margin: 0">Ask Lina to send the rest, or return what arrived. Returning happens from the Safe, outside the promise record.</p></sc-if>
+          <sc-if value="{{isPlainCheck}}" hint-placeholder-val="{{true}}"><p style="margin: 0">Recording lets Green Goods Community Garden approve her request. If she withdraws or is declined, this garden owes her the full recorded amount.</p></sc-if>
+          <sc-if value="{{isLate}}" hint-placeholder-val="{{false}}"><p style="margin: 0">Ama withdrew before this arrived. Record it so the full amount is owed back to her, then queue the refund.</p></sc-if>
+        </sc-if>
+
+        <sc-if value="{{isApply}}" hint-placeholder-val="{{false}}">
+          <div class="checks">
+            <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>Hilltop Orchard accepted Kwame's request<small>Today, 2:05 PM · Kwame is the promise's counterparty</small></span></div>
+            <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>120.00 G$ recorded by you<small>Oct 21 · a steward's check</small></span></div>
+          </div>
+          <p style="margin: 0">From now on, this 120.00 G$ either pays the promise's team when it's kept, or goes back to Kwame if the promise is canceled or expires. Never both. A kept promise is never refunded.</p>
+        </sc-if>
+
+        <sc-if value="{{isRefund}}" hint-placeholder-val="{{false}}">
+          <div class="afacts">
+            <div class="afact"><span class="k">Refund</span><span class="v">450.00 G$, the full recorded amount</span></div>
+            <div class="afact"><span class="k">To</span><span class="v"><span class="mono">0x51d0…c2A9</span><small>Ama's account on Celo, fixed when she asked</small></span></div>
+          </div>
+          <div class="flowrow err"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg>Attempt 1 failed on Celo · Today, 3:10 PM · executor reported: transfer reverted</div>
+          <p style="margin: 0">Requeues this refund. It can't create a second one or change the amount.</p>
+        </sc-if>
+
+        <div class="flowrow {{dFlowCls}}">{{dFlow}}</div>
+      </div>
+      <div class="df"><span class="note">{{dNote}}</span><button type="button" class="abtn lg" onClick="{{closeDlg}}">Cancel</button><sc-if value="{{isShort}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn lg">Return from the Safe…</button></sc-if><button type="button" class="abtn lg fill {{dOff}}">{{dPrimary}}</button></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Funds page card","Hub queue"],"default":"Funds page card","section":"Direction"},"dialog":{"editor":"enum","options":["None","Check","Underpaid","Late","Apply","Refund failed"],"default":"None","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) {
+    if (prev.dialog !== this.props.dialog || prev.variant !== this.props.variant) this.setState({ dlg: undefined });
+  }
+  renderVals() {
+    var v = this.props.variant ?? 'Funds page card';
+    var dark = this.props.dark ?? false;
+    var s = this.state || {};
+    var dlg = s.dlg !== undefined ? s.dlg : (this.props.dialog ?? 'None');
+    var scope = s.scope || 'All';
+    var self = this;
+    var base = [
+      { g: 'To Check', who: 'Lina', tag: 'To check', sb: 'info', meta: 'AI assistant membership at Green Goods Community Garden · expects 450.00 G$ · sent Today, 10:52 AM', act: 'Check Deposit…', btnCls: 'fill', dlg: 'Check', hubTitle: "Check Lina's deposit" },
+      { g: 'To Check', who: 'Ama', tag: 'Withdrawn', sb: 'warn', meta: 'Website check-up at Green Goods Community Garden · 452.26 G$ arrived after she withdrew', act: 'Check Deposit…', btnCls: '', dlg: 'Late', hubTitle: "Check Ama's late deposit" },
+      { g: 'To Apply', who: 'Kwame', tag: 'Accepted', sb: 'ok', meta: 'Seed library membership at Hilltop Orchard · accepted Today, 2:05 PM · 120.00 G$ recorded', act: 'Apply Deposit…', btnCls: '', dlg: 'Apply', hubTitle: "Apply Kwame's deposit" },
+      { g: 'Refunds', who: 'Ama', tag: 'Refund failed', sb: 'err', meta: '450.00 G$ to 0x51d0…c2A9 · attempt 1 failed on Celo · Today, 3:10 PM', act: 'Try Refund Again', btnCls: '', dlg: 'Refund failed', hubTitle: "Retry Ama's refund" },
+      { g: 'Refunds', who: 'João', tag: 'Declined', sb: 'neu', meta: 'Translation workshop at Sunroot Skills Hub · declined Oct 21 · 300.00 G$ recorded', act: 'Queue Refund…', btnCls: '', dlg: 'None', hubTitle: "Queue João's refund" },
+    ];
+    var withOpen = base.map(function (r) { return Object.assign({}, r, { open: function () { self.setState({ dlg: r.dlg }); } }); });
+    var counts = { 'All': 5, 'To Check': 2, 'To Apply': 1, 'Refunds': 2 };
+    var scopes = ['All', 'To Check', 'To Apply', 'Refunds'].map(function (k) {
+      return { label: k + ' · ' + counts[k], on: scope === k ? 'on' : '', pick: function () { self.setState({ scope: k }); } };
+    });
+    var D = {
+      'Check': { t: "Check Lina's Deposit", sub: "You confirm her own G$ arrived in this garden's Safe. It isn't garden money, and nothing leaves the Safe now.", who: 'Lina, gardener here', fr: 'AI assistant membership at Green Goods Community Garden', exp: '450.00 G$', ref: '0x3C1e…7A2e', celo: 'Transfer of 450.45 G$ from 0x3C1e…7A2e; 450.00 G$ arrived after the token fee', amt: '450.00', hint: 'Filled from the transfer above. Change it only if the Safe shows otherwise.', flow: ['', 'Ready to record.'], note: 'Your wallet asks once.', primary: 'Record Deposit' },
+      'Underpaid': { t: "Check Lina's Deposit", sub: "You confirm her own G$ arrived in this garden's Safe. It isn't garden money, and nothing leaves the Safe now.", who: 'Lina, gardener here', fr: 'AI assistant membership at Green Goods Community Garden', exp: '450.00 G$', ref: '0x3C1e…7A2e', celo: 'Transfer of 440.44 G$ from 0x3C1e…7A2e; 440.00 G$ arrived after the token fee', amt: '440.00', hint: "440.00 G$ arrived, 10.00 G$ less than the price. The record can't take less than the price.", hintErr: true, flow: ['', "Can't record less than the price."], note: '', primary: 'Ask Lina for the Rest' },
+      'Late': { t: "Check Ama's Deposit", sub: "You confirm her own G$ arrived in this garden's Safe. It isn't garden money.", who: 'Ama, gardener here', fr: 'Website check-up at Green Goods Community Garden', exp: '450.00 G$ · request withdrawn', ref: '0x51d0…c2A9', celo: 'Transfer of 452.26 G$ from 0x51d0…c2A9 after she withdrew', amt: '452.26', hint: 'Filled from the transfer above. The full amount is owed back.', flow: ['', 'Ready to record.'], note: 'Your wallet asks twice: once to record, once to queue the refund.', primary: 'Record and Queue Refund' },
+      'Apply': { t: "Apply Kwame's Deposit", sub: "Ties 120.00 G$ to Kwame's accepted promise at Hilltop Orchard.", flow: ['', 'Ready to apply.'], note: 'Your wallet asks once.', primary: 'Apply Deposit' },
+      'Refund failed': { t: "Ama's Refund", sub: 'Website check-up at Green Goods Community Garden · declined', flow: ['', 'Ready to requeue.'], note: 'Your wallet asks once.', primary: 'Requeue Same Refund' },
+    };
+    var d = D[dlg] || D['Check'];
+    var isCheck = dlg === 'Check' || dlg === 'Underpaid' || dlg === 'Late';
+    var isRail = v === 'Funds page card';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isRail: isRail, isHub: !isRail, railOn: isRail ? 'on' : '', hubOn: isRail ? '' : 'on',
+      scopes: scopes,
+      rows: withOpen.filter(function (r) { return scope === 'All' || r.g === scope; }),
+      allRows: withOpen,
+      showDlg: dlg !== 'None',
+      dTitle: d.t, dSub: d.sub, dTarget: 'Recording for Riverside Commons Garden · Safe 0xA77c…19F0 on Celo',
+      isCheck: isCheck, isApply: dlg === 'Apply', isRefund: dlg === 'Refund failed',
+      isShort: dlg === 'Underpaid', isLate: dlg === 'Late', isPlainCheck: dlg === 'Check',
+      dWho: d.who || '', dFor: d.fr || '', dExpected: d.exp || '', dRefund: d.ref || '', dCelo: d.celo || '',
+      dAmount: d.amt || '', dHint: d.hint || '', dHintCls: d.hintErr ? 'err' : '',
+      dFlowCls: d.flow[0], dFlow: d.flow[1], dNote: d.note, dPrimary: d.primary, dOff: '',
+      closeDlg: function () { self.setState({ dlg: 'None' }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

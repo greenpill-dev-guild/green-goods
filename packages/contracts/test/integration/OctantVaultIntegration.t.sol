@@ -14,6 +14,7 @@ import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { MultistrategyVault } from "../../src/vendor/octant/core/MultistrategyVault.sol";
 import { MultistrategyVaultFactory } from "../../src/vendor/octant/factories/MultistrategyVaultFactory.sol";
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
+import { MockCookieJar } from "../../src/mocks/YieldDeps.sol";
 import { IOctantVault } from "../../src/interfaces/IOctantFactory.sol";
 
 contract MockIntegratedGarden is MockGardenAccessControl {
@@ -107,6 +108,21 @@ contract OctantVaultIntegrationTest is Test {
         uint256 assets = wethVault.redeem(40 ether, USER, USER, 0, new address[](0));
         assertEq(assets, 40 ether, "redeem should return expected assets");
         assertEq(wethVault.balanceOf(USER), 60 ether, "remaining shares should be tracked");
+    }
+
+    function testIntegration_Octant_rejectsUnownedSharesAndUnauthorizedStrategy() public {
+        MockOctantVault vault = MockOctantVault(module.getVaultForAsset(address(garden), WETH));
+        vm.startPrank(USER);
+        vm.expectRevert(MockOctantVault.InsufficientShares.selector);
+        vault.redeem(1, USER, USER, 0, new address[](0));
+        vault.deposit(50 ether, USER);
+        vm.expectRevert(MockOctantVault.InsufficientShares.selector);
+        vault.redeem(51 ether, USER, USER, 0, new address[](0));
+        vm.expectRevert(MockOctantVault.UnauthorizedRoleManager.selector);
+        vault.add_strategy(address(0xDEAD), true);
+        vm.stopPrank();
+        assertEq(vault.balanceOf(USER), 50 ether);
+        assertEq(vault.totalAssets(), 50 ether);
     }
 
     function test_multiAssetVaults_operateIndependently() public {
@@ -371,7 +387,7 @@ contract RealVaultOctantIntegrationTest is Test {
 
         // Configure split destinations:
         // - Cookie Jar destination (receives ~48.65% of yield)
-        address cookieJar = address(0xC001);
+        address cookieJar = address(new MockCookieJar(address(weth)));
         yieldResolver.setCookieJar(address(garden), cookieJar);
         // - Treasury destination (receives juicebox portion as fallback since JB not configured)
         address treasury = address(0x7EA5);

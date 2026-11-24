@@ -8,6 +8,9 @@ import { TAS } from "./support/fixtures";
 import { ADA, Harness } from "./support/harness";
 import { confirmedKernelReport, KERNEL, prepareActivation } from "./support/activation";
 
+/** An upgrade runs every later migration, so it ends on the newest schema. */
+const LATEST = REPORTING_MIGRATIONS.at(-1)?.version;
+
 let harness: Harness;
 let upgraded: Database;
 let rollbackPath: string;
@@ -43,12 +46,20 @@ beforeEach(async () => {
       string,
       SQLQueryBindings
     >[]) {
-      const columns = Object.keys(row);
+      // The historical switch list had no dialogue planner: that row came with a later migration.
+      if (name === "operating_controls" && row.name === "dialogue_planner") continue;
+      // The historical schema has only the columns it had: later ones are left out of the copy.
+      const known = new Set(
+        (old.query(`PRAGMA table_info("${name}")`).all() as Array<{ name: string }>).map(
+          (column) => column.name
+        )
+      );
+      const columns = Object.keys(row).filter((column) => known.has(column));
       old
         .query(
           `INSERT INTO "${name}" (${columns.map((column) => `"${column}"`).join(",")}) VALUES (${columns.map(() => "?").join(",")})`
         )
-        .run(...Object.values(row));
+        .run(...columns.map((column) => row[column] as SQLQueryBindings));
     }
   old.exec("PRAGMA user_version = 2");
   old.close();
@@ -63,7 +74,7 @@ afterEach(() => {
 
 describe("populated reporting v2 upgrade", () => {
   it("preserves historical attempts, outcome replay records, budgets and foreign keys", () => {
-    expect(upgraded.query("PRAGMA user_version").get()).toEqual({ user_version: 4 });
+    expect(upgraded.query("PRAGMA user_version").get()).toEqual({ user_version: LATEST });
     expect(upgraded.query("PRAGMA foreign_key_check").all()).toEqual([]);
     for (const table of ["execution_attempts", "attempt_outcomes", "execution_grants"])
       expect(upgraded.query(`SELECT * FROM ${table}`).all()).toEqual(
@@ -121,7 +132,7 @@ describe("populated reporting v2 upgrade", () => {
     ).toThrow();
     preserved.close();
     const retried = openReportingDatabase(rollbackPath);
-    expect(retried.query("PRAGMA user_version").get()).toEqual({ user_version: 4 });
+    expect(retried.query("PRAGMA user_version").get()).toEqual({ user_version: LATEST });
     retried.close();
   });
 });

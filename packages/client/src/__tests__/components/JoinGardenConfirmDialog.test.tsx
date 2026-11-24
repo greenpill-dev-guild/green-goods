@@ -55,7 +55,7 @@ describe("JoinGardenConfirmDialog", () => {
     expect(screen.getByText("Join Garden")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "You'll join Greenpill Nigeria as a Gardener and can submit work right away."
+        "You'll join Greenpill Nigeria as a gardener and can submit work right away."
       )
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Join" })).toBeInTheDocument();

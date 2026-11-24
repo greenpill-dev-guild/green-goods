@@ -34,7 +34,7 @@ export function ComposeShell({
       <TopNav onBackClick={onBack} overlay>
         {progress ? <FormProgress currentStep={progress} steps={steps} /> : null}
       </TopNav>
-      <div className="flex flex-col gap-4 p-4 pt-20">
+      <div className="flex flex-col gap-4 p-4 pt-[var(--app-top-bar-height)]">
         <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">{title}</p>
         {children}
       </div>

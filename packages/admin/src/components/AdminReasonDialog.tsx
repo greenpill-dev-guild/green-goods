@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { MAX_REASON } from "@green-goods/shared/modules/commitment-pooling/reasons";
-import { RiAlertLine } from "@remixicon/react";
+import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "./AdminButton";
 import { AdminDialog, type AdminDialogProps } from "./AdminDialog";
 import { AdminTextArea } from "./AdminTextField";
 
@@ -36,6 +36,8 @@ export interface AdminReasonDialogProps {
   tone?: AdminDialogProps["tone"];
   /** What the act writes to, named under the title (see AdminDialogProps.target). */
   target?: ReactNode;
+  /** A rare second way to finish with the same reason, rendered as a text button. */
+  alternative?: { label: string; onConfirm: (reason: string) => void | Promise<void> };
   /** Extra facts rendered above the field (for example what is frozen or who confirms). */
   children?: ReactNode;
 }
@@ -52,7 +54,10 @@ export interface AdminReasonDialogProps {
  * with the text in place so a retry costs nothing.
  *
  * Built on AdminDialog's `confirm` variant so it sits in the same size tier
- * as AdminConfirmDialog (sm) and inherits its mobile bottom-sheet presentation.
+ * as AdminConfirmDialog (sm) and inherits its mobile bottom-sheet presentation;
+ * its Cancel and confirm are the shared action bar's (`SheetActions`). The
+ * shared `ConfirmDialog` has no body for the reason field, so the dialog stays
+ * on AdminDialog (DL-117).
  */
 export function AdminReasonDialog({
   isOpen,
@@ -73,6 +78,7 @@ export function AdminReasonDialog({
   blockedReason,
   tone,
   target,
+  alternative,
   children,
 }: AdminReasonDialogProps) {
   const { formatMessage } = useIntl();
@@ -93,12 +99,18 @@ export function AdminReasonDialog({
     setReason(isOpen ? initialReason : "");
   }
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (confirm: (reason: string) => void | Promise<void>) => {
     if (!canConfirm) return;
     setSubmitting(true);
     try {
-      await onConfirm(trimmed);
+      await confirm(trimmed);
     } catch (error) {
+      // A send that may still land did not fail, and Confirm must not send it again: the dialog
+      // closes, and the mutation's toast says where it stands (PRD-1551).
+      if (mayStillLand(error)) {
+        onClose();
+        return;
+      }
       logger.error("[AdminReasonDialog] confirm failed", {
         title,
         error: error instanceof Error ? error.message : String(error),
@@ -122,29 +134,34 @@ export function AdminReasonDialog({
       title={title}
       target={target}
       description={description}
-      icon={isDanger ? <RiAlertLine className="h-6 w-6 text-[rgb(var(--m3-error))]" /> : undefined}
       variant="confirm"
       role="dialog"
       tone={tone}
       preventClose={busy}
       hideCloseButton={busy}
       bodyClassName="space-y-3"
-      actions={
-        <>
-          <AdminButton type="button" variant="text" onClick={onClose} disabled={busy}>
-            {cancelLabel ?? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            variant={isDanger ? "danger" : "filled"}
-            onClick={() => void handleConfirm()}
-            disabled={!canConfirm}
-            loading={busy}
-          >
-            {confirmLabel}
-          </AdminButton>
-        </>
-      }
+      actions={{
+        primary: {
+          label: confirmLabel,
+          onClick: () => void handleConfirm(onConfirm),
+          loading: busy,
+          // A busy confirm stays focusable; only a missing reason disables it.
+          disabled: !busy && !canConfirm,
+          tone: isDanger ? "danger" : "default",
+        },
+        secondary: {
+          label:
+            cancelLabel ?? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: onClose,
+          disabled: busy,
+        },
+        tertiary: alternative && {
+          label: alternative.label,
+          onClick: () => void handleConfirm(alternative.onConfirm),
+          // It needs the same reason, and waits for the same one.
+          disabled: !canConfirm,
+        },
+      }}
     >
       {children}
       <div className="space-y-1.5">
@@ -152,7 +169,7 @@ export function AdminReasonDialog({
           label={
             reasonLabel ??
             formatMessage({
-              id: "cockpit.reasonDialog.reasonLabel",
+              id: "hub.reasonDialog.reasonLabel",
               defaultMessage: "Reason",
             })
           }
@@ -164,7 +181,7 @@ export function AdminReasonDialog({
           placeholder={
             reasonPlaceholder ??
             formatMessage({
-              id: "cockpit.reasonDialog.reasonPlaceholder",
+              id: "hub.reasonDialog.reasonPlaceholder",
               defaultMessage: "In your own words. Members read this.",
             })
           }
@@ -172,7 +189,7 @@ export function AdminReasonDialog({
             tooLong
               ? formatMessage(
                   {
-                    id: "cockpit.reasonDialog.tooLong",
+                    id: "hub.reasonDialog.tooLong",
                     defaultMessage: "Shorten the reason to {max} characters or fewer.",
                   },
                   { max: maxReasonLength }
@@ -188,26 +205,26 @@ export function AdminReasonDialog({
           <div
             className="flex flex-wrap gap-1.5"
             aria-label={formatMessage({
-              id: "cockpit.reasonDialog.suggestions",
+              id: "hub.reasonDialog.suggestions",
               defaultMessage: "Suggested reasons",
             })}
           >
             {suggestions.map((suggestion) => (
-              <AdminButton
+              <Button
                 key={suggestion}
                 type="button"
-                variant="outlined"
-                size="sm"
+                emphasis="secondary"
+                size="compact"
                 disabled={busy}
                 onClick={() => setReason(suggestion)}
               >
                 {suggestion}
-              </AdminButton>
+              </Button>
             ))}
           </div>
         ) : null}
         {blockedReason ? (
-          <p className="body-xs text-warning-dark" role="status">
+          <p className="type-meta text-warning-dark" role="status">
             {blockedReason}
           </p>
         ) : null}

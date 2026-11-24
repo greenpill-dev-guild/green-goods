@@ -25,17 +25,15 @@ async function readTypedHypercertPool(
 ): Promise<Address | undefined> {
   if (!gardensModule) return undefined;
 
-  try {
-    return (await readContract(getWagmiConfig(), {
-      address: gardensModule,
-      abi: GARDENS_MODULE_ABI,
-      functionName: "gardenHypercertSignalPools",
-      args: [gardenAddress],
-      chainId,
-    })) as Address;
-  } catch {
-    return undefined;
-  }
+  // A failed read fails the query: without this address every pool, the
+  // hypercert pool included, would be labeled an action pool.
+  return (await readContract(getWagmiConfig(), {
+    address: gardensModule,
+    abi: GARDENS_MODULE_ABI,
+    functionName: "gardenHypercertSignalPools",
+    args: [gardenAddress],
+    chainId,
+  })) as Address;
 }
 
 /**
@@ -100,5 +98,9 @@ export function useGardenPools(gardenAddress?: Address, options: UseGardenPoolsO
   return {
     ...query,
     pools: (query.data ?? []) as GardenSignalPool[],
+    /** The list has been read. Until it has, no pool may be shown as missing or offered for creation. */
+    poolsRead: query.data !== undefined,
+    /** The first read failed: the list is unknown, not empty. */
+    poolsUnread: query.isError && query.data === undefined,
   };
 }

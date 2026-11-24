@@ -1,3 +1,4 @@
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { RiCloseLine, RiSearchLine } from "@remixicon/react";
 import { type ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -27,7 +28,7 @@ export interface AdminSearchToolbarProps {
  * - Shape: corner-full (pill) via --m3-shape-full
  * - Background: surface-container with outline
  * - Leading search icon (20dp), ml-3
- * - Flex-1 text input with body-md typography
+ * - Flex-1 text input in the body role (type-body)
  * - Clear button (32dp circular) when search is non-empty
  * - Children (filter chips) rendered in a flex shrink-0 gap-2 row after the bar
  */
@@ -83,17 +84,18 @@ export function AdminSearchToolbar({
           aria-hidden
         />
 
-        {/* Input */}
-        <input
+        {/* Input: Shared's TextInput on the admin surface (DL-116), its text on the
+            field tier, its box handed to the pill, which carries the ring */}
+        <TextInput
+          surface="admin"
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={placeholder}
           aria-label={placeholder}
           className={cn(
-            "h-full min-w-0 flex-1 bg-transparent px-3",
-            "text-body-md text-[rgb(var(--m3-on-surface))]",
-            "outline-none border-none focus:outline-none focus:shadow-none"
+            "h-full min-h-0 min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 py-0",
+            "shadow-none focus-visible:shadow-none focus-visible:outline-none"
           )}
         />
 

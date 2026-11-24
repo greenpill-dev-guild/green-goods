@@ -1,11 +1,16 @@
 # Green Goods 2.0.0 release pack
 
 Originally scheduled: release Sunday, October 11, 2026; announcement Monday, October 12.
-Status refreshed October 14, 2026. The app is deployed; the signed tag, GitHub Release and
-announcement are still pending. Dates use America/Los_Angeles.
+Released October 14, 2026 as the signed `v2.0.0` tag on main
+`1b138dfba804d9db019a96d05675bbaa1a4162bc`, with its [GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0).
+That evening the queued-upload recovery hotfix [#1105](https://github.com/greenpill-dev-guild/green-goods/pull/1105)
+shipped as the signed `v2.0.1` tag on main `1e79fcf1ec1423057262e4e25441abd855887e08`, with its
+[GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.1). Production now
+serves `v2.0.1`, and [#1106](https://github.com/greenpill-dev-guild/green-goods/pull/1106) merged it back
+into develop. The announcement is still pending. Dates use America/Los_Angeles.
 Release owner and rollback operator: Afo, confirmed in the October 13 release conversation.
 
-This pack records observed rollout evidence. It does not claim a completed release.
+This pack records observed rollout evidence and the limits of that evidence.
 
 ## Observed production rollout
 
@@ -14,11 +19,15 @@ The owner merged #1057 at `d96e94143934a1db2655f3d2e9ba45837be41c46`, then
 `377aba5e1590f47290d51095e2d18b363d130f49`. All eleven main workflows succeeded at
 the latter commit, including both trusted-main source-map uploads.
 
-| Surface | Deployment | Result |
+Production deployments for `v2.0.0`, checked with `vercel inspect` on October 14. The release
+ones come from the closeout at the tagged commit `1b138dfba` (below); the `377aba5e` ones are
+the deployments they replaced. The `v2.0.1` hotfix has since redeployed all three from `1e79fcf1e`.
+
+| Surface | Release deployment at `1b138dfba` | Prior production deployment at `377aba5e` |
 |---|---|---|
-| Client | [DrfkyGdbhhtumXpgdjWcLgrqhcpD](https://vercel.com/greenpilldevguild/green-goods/DrfkyGdbhhtumXpgdjWcLgrqhcpD) | READY at `377aba5e`; production domains assigned |
-| Admin | [4aXkCBjFjTVs7Qp1CroeLgRbqoTA](https://vercel.com/greenpilldevguild/green-goods-admin/4aXkCBjFjTVs7Qp1CroeLgRbqoTA) | READY at `377aba5e`; production domain assigned |
-| Docs | [FYK1wwUY5eBECPhA5y5Dxx7pXt45](https://vercel.com/greenpilldevguild/green-goods-docs/FYK1wwUY5eBECPhA5y5Dxx7pXt45) | READY at `377aba5e`; production domain assigned |
+| Client | [GYnja7YfLJkLVzwjDKC9yrChCmbC](https://vercel.com/greenpilldevguild/green-goods/GYnja7YfLJkLVzwjDKC9yrChCmbC): READY, `greengoods.app` and `www.greengoods.app` | [DrfkyGdbhhtumXpgdjWcLgrqhcpD](https://vercel.com/greenpilldevguild/green-goods/DrfkyGdbhhtumXpgdjWcLgrqhcpD) |
+| Admin | [Ac4jrxrv7jXvHCV9J8JhNbz4WGdX](https://vercel.com/greenpilldevguild/green-goods-admin/Ac4jrxrv7jXvHCV9J8JhNbz4WGdX): READY, `admin.greengoods.app` | [4aXkCBjFjTVs7Qp1CroeLgRbqoTA](https://vercel.com/greenpilldevguild/green-goods-admin/4aXkCBjFjTVs7Qp1CroeLgRbqoTA) |
+| Docs | [GzMnwj789BH53sRSJJWVxbkCaTMP](https://vercel.com/greenpilldevguild/green-goods-docs/GzMnwj789BH53sRSJJWVxbkCaTMP): READY, `docs.greengoods.app` | [FYK1wwUY5eBECPhA5y5Dxx7pXt45](https://vercel.com/greenpilldevguild/green-goods-docs/FYK1wwUY5eBECPhA5y5Dxx7pXt45) |
 
 Both production app projects now use `https://indexer.hyperindex.xyz/de3e5df/v1/graphql`
 and were rebuilt after the environment update. The endpoint exposes the required pooling
@@ -35,7 +44,18 @@ The production Docs evaluator route and legacy assessment redirect respond succe
 App and Docs observations are deployment/HTTP checks; their rendered browser proof is **none**.
 The separate Envio source receipt uses authenticated Brave and does not attest app acceptance.
 
-## Approved app scope — October 13
+The closeout [#1098](https://github.com/greenpill-dev-guild/green-goods/pull/1098) merged at
+the tagged commit `1b138dfba804d9db019a96d05675bbaa1a4162bc`. Every main workflow that ran there
+passed, including the trusted-main [Client](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38620548598/job/116047516958)
+and [Admin](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38620548487/job/116047434762)
+source-map uploads. The release deployments in the table above come from that commit, and the
+production bundles carried `green-goods-client@1b138dfba804` and
+`green-goods-admin@1b138dfba804`; these are deployment/HTTP checks. A read-only authenticated
+Brave check on October 14 rendered the production Client landing page, a public Garden with an
+active pooling season and an approved Work detail, and the Admin Hub. Nothing was signed and no
+private identities were recorded. No production error canary was run.
+
+## Approved app scope (October 13)
 
 Afo narrowed 2.0.0 to Garden promises, documented Work and review, the steward workspace,
 Profile/access requests, passkey continuity, and installed-app recovery/update behavior.
@@ -78,7 +98,7 @@ The [release project](https://linear.app/greenpill-dev-guild/project/green-goods
 - [x] Merge the scope patch through #1094 into develop at `1de48f900352498c802f0debeeb3ed23b89db2ff`, sync release to `c7d67eab891058fea10d423fa1a2928969e0bebd`, and obtain current-head CI.
 - [x] Merge #1095 into develop at `7a2ec010e1673f4b3f5b36e021649b83488f6631`, sync release to `b34dad5c` and integrate its copy, public API proof and restoration receipt through #1057.
 - [x] Merge #1096's source/guidance validation repair and obtain green main CI at `377aba5e`.
-- [ ] Finish the uncached release gate on the final candidate and record its selector, base/head and critical overrides. The earlier full main-based run was interrupted after 27 fresh passes; it is not a complete receipt. Retain the owner's acceptance provenance rather than inventing agent-observed signing.
+- [x] Run the uncached release gate on the final candidate. [#1098](https://github.com/greenpill-dev-guild/green-goods/pull/1098) records the run: 27 selected checks passed fresh, with no receipt reuse, at `077a951f58ab44536c756fe64763ea104306a365`, whose tree matches production main. The local qualified PWA preview could not launch, so the full local command has not passed. Afo accepted the unchanged qualified PWA test passing in [current-head CI](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38618962276/job/116041209424) as the only exception for this cut. Owner acceptance keeps its provenance; no agent-observed signing is claimed.
 - [x] Verify included Work/review read compatibility on production's default Arbitrum chain:
   both EAS schema strings and resolver bindings match the app configuration, and three Work
   plus three review records decode with the expected fields. Retain existing contract and
@@ -92,7 +112,7 @@ The [release project](https://linear.app/greenpill-dev-guild/project/green-goods
   agent-observed installed-PWA proof is claimed by this source comparison.
 - [x] After the production merge, verify the final indexer schema/sync, update both production app environments and rebuild Client/Admin. Preserve the previous indexer for rollback.
 - [x] Bind the hosted indexer source/deployment receipt to released main `d96e941` and confirm both production chains are synced in the authenticated Brave Envio dashboard.
-- [ ] Integrate the eight-reference indexer alignment and record the final included app read-back in PRD-1122.
+- [x] Integrate the eight-reference indexer alignment through [#1098](https://github.com/greenpill-dev-guild/green-goods/pull/1098), carried into develop by [#1099](https://github.com/greenpill-dev-guild/green-goods/pull/1099), and read back the included records. PRD-1122 closed on October 14 without a separate read-back comment, so the read-back below is the receipt.
 - [x] Verify live Agent request compatibility. The v427 feature endpoint advertises both request kinds, five compiled request/schema modules match the candidate artifacts, and live read-only metadata confirms SQLite v8 plus pending uniqueness on `(gardenAddress, accountAddressKey, kind)`. Retain the owner's acceptance and separate restoration receipt for lifecycle/recovery proof; no whole-image source SHA or new signed action is claimed.
 - [x] Owner reports live request acceptance complete.
 - [x] Record Afo as rollback operator and complete the October 13 backup/restore rehearsal.
@@ -103,11 +123,18 @@ The [release project](https://linear.app/greenpill-dev-guild/project/green-goods
   removed; the backup and volume snapshot are retained privately. This proves restoration of
   the database copy, not a live application failover or a blind rollback of later writes.
 
-The final endpoint is `de3e5df`, bound in Envio to released main `d96e941`; this closeout
-aligns all eight checked-in references with the verified production configuration. The
-previous `e6edffd` deployment remains a rollback input, not the final fallback. PRD-1122
-is In Review. Final app read-back and integration of the fallback changes remain its
-closeout steps; the broader Work read-back uses EAS rather than the protocol indexer.
+The final endpoint is `de3e5df`, bound in Envio to released main `d96e941`. #1098 aligned
+all eight checked-in references with the verified production configuration. The previous
+`e6edffd` deployment remains a rollback input, not the final fallback. PRD-1122 is Done;
+the broader Work read-back uses EAS rather than the protocol indexer.
+
+Read-back, October 14 at 23:21 UTC, against `https://indexer.hyperindex.xyz/de3e5df/v1/graphql`
+with the app's field lists for pools, cycles, commitments and claim requests: no GraphQL errors
+and no missing fields. It
+returned 18 Gardens, 18 commitment pools, 3 cycles, 42 commitments, 7 claim requests (5 accepted,
+2 declined) and 9 active contributor records, all on Arbitrum `42161`. Arbitrum's latest
+processed block was 4 behind its public RPC head, and Celo `42220` was level with its head.
+Only counts were recorded, no addresses.
 
 The release PR [#1057](https://github.com/greenpill-dev-guild/green-goods/pull/1057) and
 preparation follow-up #1095 are merged. The documentation's CI
@@ -123,15 +150,24 @@ observations in the private receipt before using it for the formal release gate.
 
 ## Cut and announcement
 
-- [ ] Sign and push `v2.0.0` at the verified final main SHA, then verify the tag-triggered
-  GitHub Release and add the curated notes. Neither existed at this inspection.
-- [ ] Back-merge final main into develop using a temporary head branch, never main itself.
+- [x] Sign and push `v2.0.0` at the verified final main SHA, then verify the tag-triggered
+  GitHub Release and add the curated notes. The annotated tag object
+  `532e6553d990a8971f8ed14ae5f01a77fbf84c24` points to `1b138dfba804d9db019a96d05675bbaa1a4162bc`,
+  and GitHub reports its signature as valid. The [Release workflow](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38647023237)
+  published the [GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0)
+  as Latest, not a draft or prerelease, with the [curated notes](release-notes.md) above the
+  generated PR notes and contributor credits.
+- [x] Back-merge final main into develop using a temporary head branch, never main itself.
+  [#1099](https://github.com/greenpill-dev-guild/green-goods/pull/1099) merged
+  `chore/backmerge-main-2026-10-14` at `6572b87357a839e4722ec455aedca26ecdb7abeb`, which keeps
+  production main as a parent and has the identical tree.
 - [ ] Check publishing links and cleared media, then announce at Afo's selected time.
 
-At the approved cut: merge the verified release PR into `main`, deploy the final indexer, verify
-its schema and sync, update production environment variables, rebuild/promote Client and Admin,
-and verify production domains, API compatibility and source maps. Then sign and tag the merged
-`main` commit, verify the GitHub Release, add the curated notes, and merge `main` back into `develop`.
+At the cut, the verified release PR merged into `main`, the final indexer was deployed and
+verified, both production app environments were updated, and Client and Admin were rebuilt.
+The merged `main` commit was then signed and tagged, the GitHub Release received the curated
+notes, and `main` merged back into `develop`. The checklists above hold the receipts; do not
+repeat these steps for 2.0.0.
 
 After production verification: Afo publishes the approved [Telegram/WhatsApp, public-social and
 X-thread copy](announcement.md), with em dashes removed. The Spanish community translation
@@ -141,6 +177,7 @@ owns publication, [MAR-43](https://linear.app/greenpill-dev-guild/issue/MAR-43/c
 owns screenshot clearance and [MAR-44](https://linear.app/greenpill-dev-guild/issue/MAR-44/prepare-pilot-focused-social-preview-assets-for-green-goods)
 owns preview artwork and copy. The demo is optional follow-up material.
 
-Use [the indexer cut guide](indexer-cut-guide.md) for the post-main deployment and environment
-sequence, and [social preview readiness](social-preview-readiness.md) before sharing automatic
-link cards. Naming the rollback operator does not establish a completed backup/restore rehearsal.
+[The indexer cut guide](indexer-cut-guide.md) describes the post-main deployment and environment
+sequence this cut followed. Check [social preview readiness](social-preview-readiness.md) before
+sharing automatic link cards. Naming the rollback operator does not establish a completed
+backup/restore rehearsal.

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The website's public pages (packages/client/src/config/routes.tsx, PublicShell).
+     Each garden's own page is not listed yet; see PRD-1620. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://greengoods.app/</loc></url>
+  <url><loc>https://greengoods.app/gardens</loc></url>
+  <url><loc>https://greengoods.app/actions</loc></url>
+  <url><loc>https://greengoods.app/impact</loc></url>
+  <url><loc>https://greengoods.app/fund</loc></url>
+  <url><loc>https://greengoods.app/vaults</loc></url>
+  <url><loc>https://greengoods.app/strategy</loc></url>
+  <url><loc>https://greengoods.app/glossary</loc></url>
+  <url><loc>https://greengoods.app/contact</loc></url>
+  <url><loc>https://greengoods.app/privacy</loc></url>
+  <url><loc>https://greengoods.app/terms</loc></url>
+  <url><loc>https://greengoods.app/cookies</loc></url>
+</urlset>

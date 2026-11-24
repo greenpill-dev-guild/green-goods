@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
@@ -6,7 +7,6 @@ import { Controller, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
-import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { SeedConfirmerList, type SeedMember } from "./SeedConfirmerList";
 import { SeedRewardSection } from "./SeedRewardSection";
 import type { SeedFieldError } from "./seedStepModel";
@@ -24,6 +24,8 @@ export interface SeedStepProofProps {
   protocolRegistered: boolean;
   /** G$ rewards wait until the garden's settlement account is active. */
   settlementActive: boolean;
+  /** Whether a G$ reward can be matched in USDC on this chain (PRD-1556). */
+  usdcMatchAvailable: boolean;
   price: GoodDollarPriceState;
 }
 
@@ -41,6 +43,7 @@ export function SeedStepProof({
   members,
   protocolRegistered,
   settlementActive,
+  usdcMatchAvailable,
   price,
 }: SeedStepProofProps) {
   const { formatMessage } = useIntl();
@@ -52,7 +55,7 @@ export function SeedStepProof({
         <Alert variant="info">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.seed.appliesToEach",
+              id: "hub.garden.pool.seed.appliesToEach",
               defaultMessage:
                 "These apply to each of the {count} promises. Each one is confirmed on its own.",
             },
@@ -69,41 +72,44 @@ export function SeedStepProof({
         members={members}
       />
 
-      <AdminSettingRow
-        labelId={`${noteId}-fallback`}
-        label={formatMessage({
-          id: "cockpit.garden.pool.seed.protocolFallback",
-          defaultMessage: "Let the Green Goods team confirm if nobody local is eligible",
-        })}
-        description={
-          protocolRegistered
-            ? formatMessage({
-                id: "cockpit.garden.pool.seed.protocolFallbackHint",
-                defaultMessage:
-                  "On for this pilot. Usable only while nobody local can confirm, always with a recorded reason; every contributor stays excluded.",
-              })
-            : formatMessage({
-                id: "cockpit.garden.pool.seed.protocolFallbackUnavailable",
-                defaultMessage:
-                  "Unavailable on this deployment: no Green Goods protocol pool is registered yet. The fallback is stored off.",
-              })
-        }
-      >
-        <AdminCheckbox
-          aria-labelledby={`${noteId}-fallback`}
-          checked={protocolRegistered && values.protocolFallbackEnabled}
-          disabled={busy || !protocolRegistered}
-          onChange={(event) =>
-            form.setValue("protocolFallbackEnabled", event.target.checked, {
-              shouldDirty: true,
-            })
+      <FactList frame="inset">
+        <FactRow
+          labelId={`${noteId}-fallback`}
+          label={formatMessage({
+            id: "hub.garden.pool.seed.protocolFallback",
+            defaultMessage: "Let the Green Goods team confirm if nobody local is eligible",
+          })}
+          description={
+            protocolRegistered
+              ? formatMessage({
+                  id: "hub.garden.pool.seed.protocolFallbackHint",
+                  defaultMessage:
+                    "On for this pilot. Usable only while nobody local can confirm, always with a recorded reason; every contributor stays excluded.",
+                })
+              : formatMessage({
+                  id: "hub.garden.pool.seed.protocolFallbackUnavailable",
+                  defaultMessage:
+                    "Unavailable on this deployment: no Green Goods protocol pool is registered yet. The fallback is stored off.",
+                })
+          }
+          action={
+            <AdminCheckbox
+              aria-labelledby={`${noteId}-fallback`}
+              checked={protocolRegistered && values.protocolFallbackEnabled}
+              disabled={busy || !protocolRegistered}
+              onChange={(event) =>
+                form.setValue("protocolFallbackEnabled", event.target.checked, {
+                  shouldDirty: true,
+                })
+              }
+            />
           }
         />
-      </AdminSettingRow>
+      </FactList>
       {!protocolRegistered ? (
         <Alert variant="warning">
           {formatMessage({
-            id: "cockpit.garden.pool.seed.protocolFallbackRepair",
+            id: "hub.garden.pool.seed.protocolFallbackRepair",
             defaultMessage:
               "Repair path: register the protocol pool (a deployment operation), or name a reachable local confirmer group before seeding.",
           })}
@@ -116,7 +122,7 @@ export function SeedStepProof({
         render={({ field }) => (
           <AdminChoiceGroup
             ariaLabel={formatMessage({
-              id: "cockpit.garden.pool.seed.claimMode",
+              id: "hub.garden.pool.seed.claimMode",
               defaultMessage: "Claim mode",
             })}
             value={field.value}
@@ -127,11 +133,11 @@ export function SeedStepProof({
                 value: "OPEN",
                 disabled: busy,
                 label: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.open",
+                  id: "hub.garden.pool.seed.claimMode.open",
                   defaultMessage: "Open",
                 }),
                 description: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.openHint",
+                  id: "hub.garden.pool.seed.claimMode.openHint",
                   defaultMessage: "Anyone in the garden may take it up",
                 }),
               },
@@ -139,12 +145,12 @@ export function SeedStepProof({
                 value: "APPROVAL_GATED",
                 disabled: busy,
                 label: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.gated",
+                  id: "hub.garden.pool.seed.claimMode.gated",
                   defaultMessage: "Steward-reviewed",
                 }),
                 description: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.gatedAskHint",
-                  defaultMessage: "Each ask waits for your approval",
+                  id: "hub.garden.pool.seed.claimMode.gatedAskHint",
+                  defaultMessage: "Whoever asks to take one up waits for your approval",
                 }),
               },
             ]}
@@ -159,6 +165,7 @@ export function SeedStepProof({
           busy={busy}
           errorOf={errorOf}
           settlementActive={settlementActive}
+          usdcMatchAvailable={usdcMatchAvailable}
           price={price}
           count={count}
         />

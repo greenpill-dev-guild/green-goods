@@ -16,7 +16,9 @@ import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { publicKeys } from "../../config/query-keys/public";
 import { logger } from "../../modules/app/logger";
 import { getWorks } from "../../modules/data/eas";
-import { type ApprovedWorks, readApprovedWorks } from "../../modules/work/work-list";
+import type { ApprovedWorks } from "../../modules/work/work-list";
+import { readPublicApprovedWorks } from "./publicReportingRecords";
+import type { PublicReportingRead } from "../../modules/commitment-pooling/public-record-exclusions";
 
 /**
  * Approved work of `gardenIds`. A works read that fails leaves the result
@@ -26,14 +28,19 @@ import { type ApprovedWorks, readApprovedWorks } from "../../modules/work/work-l
 export function fetchListedApprovedWorks(
   queryClient: QueryClient,
   gardenIds: string[],
-  chainId: number
+  chainId: number,
+  reporting?: PublicReportingRead
 ): Promise<ApprovedWorks> {
   return queryClient.fetchQuery({
     queryKey: publicKeys.approvedWorks(chainId, gardenIds),
     queryFn: async (): Promise<ApprovedWorks> => {
       if (gardenIds.length === 0) return { works: [], partial: false };
       try {
-        return await readApprovedWorks(await getWorks(gardenIds, chainId), chainId);
+        return await readPublicApprovedWorks(
+          await getWorks(gardenIds, chainId),
+          chainId,
+          reporting
+        );
       } catch (error) {
         logger.warn("[fetchListedApprovedWorks] EAS works fetch failed", { error });
         return { works: [], partial: true };

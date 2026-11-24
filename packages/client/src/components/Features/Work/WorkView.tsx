@@ -2,13 +2,17 @@ import { useOfflineAssetAvailability } from "@green-goods/shared/hooks/offline/u
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import type { PublishedWorkDocument } from "@green-goods/shared/modules/work/media-processing";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
-import { FormCard, FormInfo, GardenCard, GardenCardSkeleton } from "@/components/Cards";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { gardenMemberCount } from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
+import { FormInfo } from "@/components/Cards";
 import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
+import { WorkDocumentRow } from "./WorkDocumentRow";
 
 export type WorkViewAction = {
   id: string;
@@ -27,10 +31,14 @@ type WorkViewProps = {
   info: string;
   garden?: Garden;
   actionTitle: string;
+  /** The heading already names the action, as on a steward's page, so the facts leave it out. */
+  actionInTitle?: boolean;
   media?: string[];
   mediaTypes?: string[];
   /** IPFS CIDs for gardener audio notes (from work metadata) */
   audioNoteCids?: string[];
+  /** Documents the work's metadata lists; each opens from its gateway address. */
+  documents?: PublishedWorkDocument[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
   /**
    * What follows the heading card: why queued work is still on this phone
@@ -63,14 +71,57 @@ type WorkViewProps = {
   onMediaError?: (mediaUrl: string, index: number) => void;
 };
 
+/**
+ * The garden the work belongs to, as facts: its name, how many members and where. The work's
+ * own photos are the pictures on this screen, so the garden shows none.
+ */
+function WorkGardenFacts({ garden }: { garden: Garden }) {
+  const intl = useIntl();
+  const place = garden.location?.trim();
+  return (
+    <FactList frame="card" data-component="WorkGarden">
+      <FactRow
+        label={intl.formatMessage({
+          id: "app.home.workApproval.gardenName",
+          defaultMessage: "Name",
+        })}
+        value={garden.name}
+      />
+      <FactRow
+        label={intl.formatMessage({
+          id: "app.home.workApproval.gardenMembers",
+          defaultMessage: "Members",
+        })}
+        value={gardenMemberCount(garden).toLocaleString(intl.locale)}
+      />
+      {place ? (
+        <FactRow
+          label={intl.formatMessage({
+            id: "app.home.workApproval.gardenPlace",
+            defaultMessage: "Place",
+          })}
+          value={place}
+        />
+      ) : null}
+    </FactList>
+  );
+}
+
+/** The garden's facts while the garden is read, in the space they take. */
+function WorkGardenFactsSkeleton() {
+  return <div aria-hidden="true" className="h-32 rounded-2xl bg-bg-weak-50 animate-pulse" />;
+}
+
 export const WorkView: React.FC<WorkViewProps> = ({
   title,
   info,
   garden,
   actionTitle,
+  actionInTitle = false,
   media = [],
   mediaTypes = [],
   audioNoteCids,
+  documents = [],
   details,
   afterHeading = null,
   afterDetails = null,
@@ -90,7 +141,8 @@ export const WorkView: React.FC<WorkViewProps> = ({
     /^(blob:|data:|https?:)/.test(url) ? url : resolveIPFSUrl(url)
   );
   const audioUrls = (audioNoteCids ?? []).map((cid) => resolveIPFSUrl(cid));
-  const offlineAssets = useOfflineAssetAvailability([...mediaUrls, ...audioUrls]);
+  const documentUrls = documents.map((document) => resolveIPFSUrl(document.cid));
+  const offlineAssets = useOfflineAssetAvailability([...mediaUrls, ...audioUrls, ...documentUrls]);
   const missingOriginals =
     !isOnline && [...mediaUrls, ...audioUrls].some((url) => !offlineAssets[url]);
 
@@ -112,19 +164,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
       <h6 className="text-base font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.garden", defaultMessage: "Garden" })}
       </h6>
-      {garden ? (
-        <GardenCard
-          garden={garden}
-          media="small"
-          height="default"
-          showStewards={true}
-          selected={false}
-          showDescription={false}
-          showBanner={false}
-        />
-      ) : (
-        <GardenCardSkeleton media="small" height="default" showBanner={false} />
-      )}
+      {garden ? <WorkGardenFacts garden={garden} /> : <WorkGardenFactsSkeleton />}
 
       {missingOriginals && (
         <p role="status" className="text-sm text-text-sub-600">
@@ -215,77 +255,116 @@ export const WorkView: React.FC<WorkViewProps> = ({
         </>
       )}
 
-      <h6 className="text-base font-semibold">
-        {intl.formatMessage({ id: "app.home.workApproval.details", defaultMessage: "Details" })}
-      </h6>
-      <FormCard
-        label={intl.formatMessage({ id: "app.home.workApproval.action", defaultMessage: "Action" })}
-        value={
-          actionTitle ||
-          intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected" })
-        }
-        Icon={RiExternalLinkLine}
-      />
-
-      {isDetailsLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div
-              key={`detail-loading-${i}`}
-              className="h-12 bg-bg-weak-50 rounded-lg animate-pulse"
-            />
-          ))}
-        </div>
-      ) : (
-        details
-          .filter((d) => d.value && d.value.trim().length > 0)
-          .map((d) => (
-            <FormCard
-              key={d.label}
-              label={d.label}
-              value={d.value}
-              Icon={d.icon ?? RiExternalLinkLine}
-            />
-          ))
-      )}
-
-      {afterDetails}
-
-      {feedbackSection}
-
-      {visibleActions.length > 0 && (
+      {documents.length > 0 && (
         <>
-          <h6 className="mt-2 text-base font-semibold text-text-strong-950">
-            {intl.formatMessage({ id: "app.home.work.actions", defaultMessage: "Actions" })}
+          <h6 className="text-base font-semibold">
+            {intl.formatMessage({ id: "app.work.documents" })}
           </h6>
-          <div className="flex flex-col gap-3">
-            {visibleActions.map((a) => {
-              // Approve is the one filled action; reject and the utility actions are
-              // outlined (DL-026), reject in the error tone.
-              const isReject = a.id === "reject";
+          <div className="flex flex-col gap-2">
+            {documents.map((document, index) => {
+              // Offline, a document opens only from a copy kept on this device, as a voice note plays.
+              const available = isOnline || offlineAssets[documentUrls[index]];
               return (
-                <Button
-                  key={a.id}
-                  onClick={a.onClick}
-                  className="w-full touch-manipulation"
-                  emphasis={a.id === "approve" ? "primary" : "secondary"}
-                  tone={isReject ? "danger" : "default"}
-                  type="button"
-                  leadingIcon={a.icon ?? <RiDownloadLine className="h-5 w-5" aria-hidden="true" />}
-                  disabled={a.disabled}
-                >
-                  {a.label}
-                </Button>
+                <div key={`${index}:${document.cid}`} className="flex flex-col gap-1">
+                  <WorkDocumentRow
+                    name={document.name}
+                    type={document.type}
+                    size={document.size}
+                    href={available ? documentUrls[index] : undefined}
+                  />
+                  {available ? null : (
+                    <p className="text-sm text-text-sub-600">
+                      {intl.formatMessage({
+                        id: "app.offline.attachmentUnavailable",
+                        defaultMessage: "Not downloaded for offline use",
+                      })}
+                    </p>
+                  )}
+                </div>
               );
             })}
           </div>
         </>
       )}
 
+      <h6 className="text-base font-semibold">
+        {intl.formatMessage({ id: "app.home.workApproval.details", defaultMessage: "Details" })}
+      </h6>
+      {/* One list of facts, a label beside each value, as every review and detail screen
+          lists them (DL-109): the action first, then what the work recorded. */}
+      <FactList frame="card" data-component="WorkDetails">
+        {actionInTitle ? null : (
+          <FactRow
+            label={intl.formatMessage({
+              id: "app.home.workApproval.action",
+              defaultMessage: "Action",
+            })}
+            value={
+              actionTitle ||
+              intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected" })
+            }
+            icon={<RiExternalLinkLine className="h-4 w-4" />}
+          />
+        )}
+        {isDetailsLoading
+          ? Array.from({ length: 2 }).map((_, i) => (
+              <div
+                key={`detail-loading-${i}`}
+                aria-hidden="true"
+                className="gg-fact-row h-12 animate-pulse bg-bg-weak-50"
+              />
+            ))
+          : details
+              .filter((d) => d.value && d.value.trim().length > 0)
+              .map((d) => {
+                const Icon = d.icon ?? RiExternalLinkLine;
+                return (
+                  <FactRow
+                    key={d.label}
+                    label={d.label}
+                    value={d.value}
+                    icon={<Icon className="h-4 w-4" />}
+                  />
+                );
+              })}
+      </FactList>
+
+      {afterDetails}
+
+      {feedbackSection}
+
+      {/* The work's utilities share one compact row, so none of them weighs as much as the
+          decision a steward makes in the bar below. */}
+      {visibleActions.length > 0 && (
+        <div
+          role="group"
+          aria-label={intl.formatMessage({
+            id: "app.home.work.actions",
+            defaultMessage: "Actions",
+          })}
+          className="mt-2 flex flex-wrap gap-2"
+        >
+          {visibleActions.map((a) => (
+            <Button
+              key={a.id}
+              onClick={a.onClick}
+              className="touch-manipulation"
+              emphasis="secondary"
+              size="sm"
+              type="button"
+              leadingIcon={a.icon ?? <RiDownloadLine className="h-4 w-4" aria-hidden="true" />}
+              disabled={a.disabled}
+            >
+              {a.label}
+            </Button>
+          ))}
+        </div>
+      )}
+
       {reserveFooterSpace ? (
         <div
           aria-hidden="true"
-          className={footerSpacerClassName ?? "h-[calc(96px+env(safe-area-inset-bottom))]"}
+          className={footerSpacerClassName ?? "h-[calc(96px+var(--safe-area-bottom))]"}
         />
       ) : null}
 
@@ -312,7 +391,7 @@ export const WorkViewSkeleton: React.FC<WorkViewSkeletonProps> = ({
 
       {/* Garden section */}
       <div className="h-4 w-28 bg-bg-soft-200 rounded" />
-      <GardenCardSkeleton media="small" height="default" showBanner={false} />
+      <WorkGardenFactsSkeleton />
 
       {/* Media section */}
       {showMedia && (

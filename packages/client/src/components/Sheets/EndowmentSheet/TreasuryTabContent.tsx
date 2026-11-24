@@ -1,4 +1,10 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
+import {
+  TxHoldFeedback,
+  type TxHoldFeedbackProps,
+} from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { Button } from "@green-goods/shared/components/Button";
+import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
@@ -15,7 +21,7 @@ import { RiBankLine, RiErrorWarningLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { MyDepositRow } from "./MyDepositRow";
 
 export interface TreasuryTabContentProps {
@@ -25,6 +31,10 @@ export interface TreasuryTabContentProps {
   vaultsError: boolean;
   refetchVaults?: () => void;
   myDeposits: VaultDeposit[];
+  /** The reader's deposits are still being read, or the read failed: no "none yet" until it finishes. */
+  depositsLoading?: boolean;
+  depositsError?: boolean;
+  refetchDeposits?: () => void;
   gardenAddress: Address;
   primaryAddress: string | null;
   selectedAsset: string;
@@ -34,6 +44,10 @@ export interface TreasuryTabContentProps {
   balance: { value: bigint; decimals: number; symbol: string } | undefined;
   previewShares: bigint | undefined;
   decimals: number;
+  /** An earlier deposit here whose outcome is unknown, which pauses the next one. */
+  holdFeedback?: Omit<TxHoldFeedbackProps, "isBusy" | "className"> | null;
+  signatureLine?: string | null;
+  isDepositing?: boolean;
 }
 
 export function TreasuryTabContent({
@@ -43,6 +57,9 @@ export function TreasuryTabContent({
   vaultsError,
   refetchVaults,
   myDeposits,
+  depositsLoading = false,
+  depositsError = false,
+  refetchDeposits,
   gardenAddress,
   primaryAddress,
   selectedAsset,
@@ -52,6 +69,9 @@ export function TreasuryTabContent({
   balance,
   previewShares,
   decimals,
+  holdFeedback,
+  signatureLine,
+  isDepositing = false,
 }: TreasuryTabContentProps) {
   const { formatMessage } = useIntl();
 
@@ -62,6 +82,11 @@ export function TreasuryTabContent({
 
   return (
     <div className="space-y-5 p-4 pb-4">
+      {!ENDOWMENT_DEPOSITS_ENABLED && (
+        <p className="text-sm text-text-sub-600">
+          {formatMessage({ id: "public.fund.endowmentPause.status" })}
+        </p>
+      )}
       {!isOnline && (
         <p
           role="status"
@@ -89,12 +114,9 @@ export function TreasuryTabContent({
       <section>
         <SheetHeading>{formatMessage({ id: "app.treasury.overview" })}</SheetHeading>
         {vaultsLoading && (
-          <div className="mt-2 space-y-2.5 animate-pulse">
+          <div className="mt-2 flex animate-pulse flex-col gap-(--gg-list-gap)">
             {Array.from({ length: 2 }, (_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="h-3 flex-1 rounded bg-bg-weak-50" />
-                <div className="h-3 w-16 rounded bg-bg-weak-50" />
-              </div>
+              <ItemRowSkeleton key={i} lead="icon" amount />
             ))}
           </div>
         )}
@@ -106,30 +128,33 @@ export function TreasuryTabContent({
           />
         )}
         {!vaultsLoading && vaults.length > 0 && (
-          <div className="mt-2 space-y-2">
+          <div className="mt-2 flex flex-col gap-(--gg-list-gap)">
             {vaults.map((vault) => {
               const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
+              const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
+              // The summary has nothing to open, so each vault is a content row.
               return (
-                <div
+                <ItemRow
                   key={vault.id}
-                  className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-text-strong-950">
-                      {getVaultAssetSymbol(vault.asset, vault.chainId)}
-                    </p>
-                    <p className="text-xs text-text-sub-600">
-                      {formatMessage({ id: "app.treasury.depositorCount" })}: {vault.depositorCount}
-                    </p>
-                  </div>
-                  <p className="mt-1 text-xs text-text-sub-600">
-                    {formatMessage({ id: "app.treasury.netDeposited" })}:{" "}
-                    {formatTokenAmount(
+                  lead={{ kind: "icon", icon: <RiBankLine /> }}
+                  title={assetSymbol}
+                  details={[
+                    formatMessage(
+                      { id: "app.treasury.depositorTotal" },
+                      { count: vault.depositorCount }
+                    ),
+                  ]}
+                  amount={{
+                    value: `${formatTokenAmount(
                       getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
-                      assetDecimals
-                    )}
-                  </p>
-                </div>
+                      assetDecimals,
+                      4,
+                      undefined,
+                      true
+                    )} ${assetSymbol}`,
+                    caption: formatMessage({ id: "app.treasury.netDeposited" }),
+                  }}
+                />
               );
             })}
           </div>
@@ -138,13 +163,40 @@ export function TreasuryTabContent({
 
       <section>
         <SheetHeading>{formatMessage({ id: "app.treasury.activeDeposits" })}</SheetHeading>
-        {myDeposits.length === 0 && (
-          <p className="mt-2 text-sm text-text-soft-400">
-            {formatMessage({ id: "app.treasury.supportGardenCta" })}
-          </p>
+        {depositsLoading && myDeposits.length === 0 && (
+          <div className="mt-2 flex animate-pulse flex-col gap-(--gg-list-gap)">
+            <ItemRowSkeleton lead="icon" amount />
+          </div>
+        )}
+        {!depositsLoading && depositsError && myDeposits.length === 0 && (
+          <EmptyState
+            className="mt-2"
+            tone="error"
+            icon={<RiErrorWarningLine />}
+            title={formatMessage({ id: "app.treasury.errorLoading" })}
+            action={
+              refetchDeposits ? (
+                <Button type="button" onClick={() => refetchDeposits()}>
+                  {formatMessage({ id: "app.common.tryAgain" })}
+                </Button>
+              ) : null
+            }
+          />
+        )}
+        {!depositsLoading && !depositsError && myDeposits.length === 0 && (
+          <EmptyState
+            className="mt-2 min-h-[9rem] rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0"
+            icon={<RiBankLine />}
+            title={formatMessage({ id: "app.treasury.noDeposits" })}
+            description={
+              ENDOWMENT_DEPOSITS_ENABLED
+                ? formatMessage({ id: "app.treasury.supportGardenCta" })
+                : undefined
+            }
+          />
         )}
         {myDeposits.length > 0 && (
-          <div className="mt-2 space-y-2">
+          <div className="mt-2 flex flex-col gap-(--gg-list-gap)">
             {myDeposits.map((deposit) => {
               const vault = vaults.find(
                 (candidate) =>
@@ -165,70 +217,79 @@ export function TreasuryTabContent({
         )}
       </section>
 
-      <section>
-        <SheetHeading>{formatMessage({ id: "app.treasury.deposit" })}</SheetHeading>
+      {holdFeedback && <TxHoldFeedback {...holdFeedback} isBusy={isDepositing} className="mt-2" />}
 
-        {!primaryAddress ? (
-          <p className="mt-2 text-sm text-text-soft-400">
-            {formatMessage({ id: "app.treasury.connectToDeposit" })}
-          </p>
-        ) : (
-          <>
-            {vaults.length > 0 && (
-              <div className="mt-2">
-                <AssetSelector
-                  vaults={vaults}
-                  selectedAsset={selectedAsset}
-                  onSelect={onSelectAsset}
-                  ariaLabel={formatMessage({ id: "app.treasury.asset" })}
-                  size="xs"
-                />
-              </div>
-            )}
+      {ENDOWMENT_DEPOSITS_ENABLED && (
+        <section>
+          <SheetHeading>{formatMessage({ id: "app.treasury.deposit" })}</SheetHeading>
 
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <TextInput
-                  type="text"
-                  inputMode="decimal"
-                  value={amountInput}
-                  onChange={(event) => onAmountChange(event.target.value)}
-                  placeholder={formatMessage({ id: "app.treasury.depositAmount" })}
-                  aria-label={formatMessage({ id: "app.treasury.depositAmount" })}
-                  aria-invalid={Boolean(inputError)}
-                  invalid={Boolean(inputError)}
-                />
-                <Button
-                  type="button"
-                  emphasis="secondary"
-                  onClick={() => {
-                    if (!balance) return;
-                    onAmountChange(formatUnits(balance.value, balance.decimals));
-                  }}
-                >
-                  {formatMessage({ id: "app.treasury.max" })}
-                </Button>
-              </div>
-
-              {inputError && (
-                <p className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: inputError })}
-                </p>
+          {!primaryAddress ? (
+            <p className="mt-2 text-sm text-text-soft-400">
+              {formatMessage({ id: "app.treasury.connectToDeposit" })}
+            </p>
+          ) : (
+            <>
+              {vaults.length > 0 && (
+                <div className="mt-2">
+                  <AssetSelector
+                    vaults={vaults}
+                    selectedAsset={selectedAsset}
+                    onSelect={onSelectAsset}
+                    ariaLabel={formatMessage({ id: "app.treasury.asset" })}
+                    size="xs"
+                  />
+                </div>
               )}
-              <p className="text-xs text-text-soft-400">
-                {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
-                {balance
-                  ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
-                  : "--"}
-              </p>
-              <p className="text-xs text-text-soft-400">
-                {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
-                {previewShares !== undefined ? formatTokenAmount(previewShares, 18) : "--"}
-              </p>
-            </div>
-          </>
-        )}
-      </section>
+
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <TextInput
+                    type="text"
+                    inputMode="decimal"
+                    value={amountInput}
+                    onChange={(event) => onAmountChange(event.target.value)}
+                    placeholder={formatMessage({ id: "app.treasury.depositAmount" })}
+                    aria-label={formatMessage({ id: "app.treasury.depositAmount" })}
+                    aria-invalid={Boolean(inputError)}
+                    invalid={Boolean(inputError)}
+                  />
+                  <Button
+                    type="button"
+                    emphasis="secondary"
+                    onClick={() => {
+                      if (!balance) return;
+                      onAmountChange(formatUnits(balance.value, balance.decimals));
+                    }}
+                  >
+                    {formatMessage({ id: "app.treasury.max" })}
+                  </Button>
+                </div>
+
+                {inputError && (
+                  <p className="text-xs text-error-dark" role="alert">
+                    {formatMessage({ id: inputError })}
+                  </p>
+                )}
+                <p className="text-xs text-text-soft-400">
+                  {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
+                  {balance
+                    ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
+                    : "--"}
+                </p>
+                <p className="text-xs text-text-soft-400">
+                  {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
+                  {previewShares !== undefined ? formatTokenAmount(previewShares, 18) : "--"}
+                </p>
+                {signatureLine ? (
+                  <p className="text-xs text-text-soft-400" aria-live="polite">
+                    {signatureLine}
+                  </p>
+                ) : null}
+              </div>
+            </>
+          )}
+        </section>
+      )}
     </div>
   );
 }

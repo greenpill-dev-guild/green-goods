@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { matchQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
@@ -6,6 +6,7 @@ import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { readGardenReviewQueue } from "../../modules/data/eas-review-queue";
 import type { GardenReviewQueue } from "../../types/garden-detail";
 import { workSessionStartedAt } from "./gardenWorkListQuery";
+import { workVisibilityQuery } from "./useWorkVisibility";
 
 /**
  * A garden's whole review queue, for a garden with more work than its newest
@@ -21,7 +22,11 @@ export function useGardenReviewQueue(
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: worksKeys.reviewQueue(gardenId, chainId),
-    queryFn: () => readGardenReviewQueue(gardenId, { chainId }),
+    queryFn: async () =>
+      readGardenReviewQueue(gardenId, {
+        ...(await queryClient.fetchQuery(workVisibilityQuery(chainId))),
+        chainId,
+      }),
     enabled: enabled && Boolean(gardenId),
     networkMode: "online",
     staleTime: (read) =>
@@ -41,11 +46,9 @@ export function useGardenReviewQueue(
         const followed =
           action.type === "invalidate" || (action.type === "success" && !action.manual);
         if (!followed) return;
-        if (
-          JSON.stringify(event.query.queryKey) !==
-          JSON.stringify(worksKeys.online(gardenId, chainId))
-        )
-          return;
+        // Another query's key can hold a bigint, as wagmi reads do, so match by the cache's hash.
+        const workList = { queryKey: worksKeys.online(gardenId, chainId), exact: true };
+        if (!matchQuery(workList, event.query)) return;
         void queryClient.invalidateQueries({ queryKey: worksKeys.reviewQueue(gardenId, chainId) });
       }),
     [queryClient, gardenId, chainId]

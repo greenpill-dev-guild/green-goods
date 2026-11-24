@@ -103,7 +103,7 @@ export const Buttons: Story = {
   render: () => (
     <Page
       title="Public website · Components"
-      lede="The same primitives as the app, capsule and semibold on the website. Editorial atoms are thin wrappers that only add the dialect's colours; cards, dialogs, and panels stay square, while buttons and chips are capsules and icon buttons circles."
+      lede="The same primitives as the app, capsule and semibold on the website. Editorial atoms are thin wrappers that only add the dialect's colors; cards, dialogs, and panels stay square, while buttons and chips are capsules and icon buttons circles."
     >
       <Section id="buttons" title="Button" lede={WEBSITE.rules[0]}>
         {APP_SIZES.map((size) => (
@@ -116,7 +116,7 @@ export const Buttons: Story = {
           <StoryLink id={STORY_LINKS.sharedButtonWebsite}>Shared/Primitives/Button › WebsiteSurface</StoryLink>
         </div>
       </Section>
-      <Section id="editorial" title="Editorial atoms" lede="EditorialPrimaryButton, EditorialGhostButton (ghost, warm, dark tone), and EditorialDomainChip pass size through to the shared primitive and add only colour.">
+      <Section id="editorial" title="Editorial atoms" lede="EditorialPrimaryButton, EditorialGhostButton (ghost, warm, dark tone), and EditorialDomainChip pass size through to the shared primitive and add only color.">
         <EditorialAtoms />
         <div className="sb-ds-links" style={{ marginTop: 12 }}>
           <StoryLink id={STORY_LINKS.editorialAtoms}>Client/Public/Editorial Atoms</StoryLink>
@@ -125,10 +125,10 @@ export const Buttons: Story = {
       <Section id="icon-buttons" title="IconButton" lede="Circles on the website too; the close on an editorial dialog is the md circle.">
         <IconButtons rules={WEBSITE} />
       </Section>
-      <Section id="chips" title="Chip" lede="Capsules; the editorial domain chip colours the active state with the domain's ink instead of green.">
+      <Section id="chips" title="Chip" lede="Capsules; the editorial domain chip colors the active state with the domain's ink instead of green.">
         <Chips rules={WEBSITE} />
       </Section>
-      <Section id="fields" title="Fields" lede="The editorial underline field on editorial sections (no box, hairline in the text colour, serif text) and the 16px shared field inside funding and account panels.">
+      <Section id="fields" title="Fields" lede="The editorial underline field on editorial sections (no box, hairline in the text color, serif text) and the 16px shared field inside funding and account panels.">
         <Fields rules={WEBSITE} website />
       </Section>
       <Section id="hit-areas" title="Hit areas">

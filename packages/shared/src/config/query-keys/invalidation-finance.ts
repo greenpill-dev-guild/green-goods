@@ -55,6 +55,8 @@ export const financeInvalidation = {
     queryKeys.conviction.convictionWeights(poolAddress, chainId),
   ],
 
+  // A wallet's balance and a vault's limits and shares are read straight from the chain, so a vault
+  // send also refreshes the wagmi-owned read roots, even when it can't confirm it landed.
   onVaultDeposit: (gardenAddress: string, userAddress: string | undefined, chainId: number) => {
     const keys: Array<
       | ReturnType<typeof queryKeys.vaults.byGarden>
@@ -73,7 +75,7 @@ export const financeInvalidation = {
       keys.push(queryKeys.vaults.myDepositsByUser(userAddress, chainId));
     }
 
-    return keys;
+    return [...keys, ...financeInvalidation.onchainReads()];
   },
 
   onVaultWithdraw: (gardenAddress: string, userAddress: string | undefined, chainId: number) =>

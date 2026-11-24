@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
+import { useOpenerFocus } from "../../hooks/utils/useOpenerFocus";
 import { cn } from "../../utils/styles/cn";
 import {
   dialogOverlayClassName,
@@ -29,7 +30,7 @@ export interface DialogShellProps {
   /**
    * Where the surface sits at `sm` and above. `right` docks it to the right
    * edge as a side sheet that slides in from there, for an account-level panel
-   * opened from a top bar, as the cockpit shows Profile; `size` does not apply
+   * opened from a top bar, as the Hub shows Profile; `size` does not apply
    * to it. Below `sm` both are the bottom sheet.
    */
   placement?: "center" | "right";
@@ -81,6 +82,8 @@ export function DialogShell({
   // The sheet registers itself; the centered surface registers here so the
   // installed app's AppBar also steps aside on wide screens (DL-015).
   useSheetPresence(open && !rendersAsSheet);
+  // Keep the original opener while an open dialog changes responsive surfaces.
+  useOpenerFocus(open);
   const closeLabel = formatMessage({ id: "app.common.close" });
 
   if (rendersAsSheet) {
@@ -119,7 +122,7 @@ export function DialogShell({
           className={cn(
             "fixed z-modal overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none",
             placement === "right"
-              ? // One width for every side sheet, as the cockpit keeps one: wide enough to read,
+              ? // One width for every side sheet, as the Hub keeps one: wide enough to read,
                 // never the whole screen. A consumer under a top bar lowers `top` to clear it.
                 "top-4 right-4 bottom-4 w-[min(clamp(380px,30vw,560px),calc(100vw-3rem))]"
               : cn(

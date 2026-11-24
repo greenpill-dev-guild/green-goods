@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 
 import { expectedWorkflowNames, latestRunsByName, runGate } from "./ci-gate.mjs";
+import { loadPolicy, SHARED_CRITICAL_RULE_ID } from "./select-validation.mjs";
 
 const silentLogger = {
   log() {},
@@ -80,6 +81,7 @@ test("package changes require every package and supply-chain workflow", () => {
 test("guidance-consumer source changes also require supply-chain guardrails", () => {
   assert.deepEqual(expectedWorkflowNames(["packages/agent/src/index.ts"]), [
     "Agent",
+    "Client",
     "Supply Chain Guardrails",
   ]);
 });
@@ -269,13 +271,47 @@ test("source-structure changes require every workflow that runs the check", () =
 test("CI Gate pins Node and runs every standard-library validation fixture", () => {
   assert.match(
     ciGateWorkflow,
-    /uses:\s*actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020/,
+    /uses:\s*actions\/setup-node@[a-f0-9]{40}\b/,
   );
-  assert.match(ciGateWorkflow, /node-version:\s*["']22\.22\.1["']/);
+  assert.equal(ciGateWorkflow.match(/node-version:\s*["']([^"']+)["']/)?.[1], loadPolicy().toolchain.node);
   assert.match(
     ciGateWorkflow,
     /node --test scripts\/quality\/select-validation\.test\.mjs scripts\/dev\/ci-local\.test\.mjs scripts\/dev\/surface-leases\.test\.mjs scripts\/quality\/ci-gate\.test\.mjs scripts\/quality\/check-react-patterns\.test\.mjs/,
   );
+});
+
+const dependabotContext = { repository: gateOptions.repository, pullRequest: { user: { login: "dependabot[bot]" }, head: { repo: { full_name: gateOptions.repository } } } };
+
+test("same-repository Dependabot PRs require sync independently of changed paths", () => {
+  for (const files of [["package.json"], ["bun.lock"], [".github/workflows/client.yml"], ["docs/generated.mdx"], ["unrecognized.txt"]]) {
+    assert(expectedWorkflowNames(files, dependabotContext).includes("Dependabot Sync"));
+    assert(!expectedWorkflowNames(files).includes("Dependabot Sync"));
+    assert(!expectedWorkflowNames(files, { ...dependabotContext, pullRequest: { ...dependabotContext.pullRequest, head: { repo: { full_name: "fork/example" } } } }).includes("Dependabot Sync"));
+  }
+});
+
+test("Dependabot cannot pass with missing, failed, cancelled, skipped or pending sync", async () => {
+  for (const conclusion of [undefined, "failure", "cancelled", "skipped", "pending"]) {
+    const runs = conclusion === undefined ? [] : [workflowRun("Dependabot Sync", { id: 42, conclusion, status: conclusion === "pending" ? "in_progress" : "completed" })];
+    await assert.rejects(runGate({ ...gateOptions, ...dependabotContext, maxAttempts: 1 }, {
+      loadChangedFiles: async () => ["unrecognized.txt"],
+      loadWorkflowRuns: async () => new Map(runs.map(run => [run.name, run])),
+      logger: silentLogger,
+    }), /did not succeed|timed out/);
+  }
+});
+
+test("the no-repair job must succeed even when repair artifacts have been deleted", async () => {
+  const dependencies = {
+    loadChangedFiles: async () => ["unrecognized.txt"],
+    loadWorkflowRuns: async () => new Map([["Dependabot Sync", workflowRun("Dependabot Sync", { id: 42 })]]),
+    logger: silentLogger,
+  };
+  const job = { name: "Synchronized dependency files", status: "completed", conclusion: "success" };
+  for (const jobs of [[], ...["skipped", "cancelled", "failure"].map(conclusion => [{ ...job, conclusion }]), [{ ...job, status: "in_progress", conclusion: null }]]) {
+    await assert.rejects(runGate({ ...gateOptions, ...dependabotContext }, { ...dependencies, loadWorkflowJobs: async () => jobs }), /Dependabot Sync required job Synchronized dependency files/);
+  }
+  await runGate({ ...gateOptions, ...dependabotContext }, { ...dependencies, loadWorkflowJobs: async () => [job] });
 });
 
 test("direct CLI execution preserves required-input failure behavior", () => {
@@ -406,4 +442,24 @@ test("the newest workflow run wins regardless of API ordering", () => {
 
   assert.equal(latestRunsByName([newerFailure, olderSuccess]).get("Alpha"), newerFailure);
   assert.equal(latestRunsByName([olderSuccess, newerFailure]).get("Alpha"), newerFailure);
+});
+
+test("every Shared critical override path fans out to the consumer workflows CI owns", () => {
+  // The local critical push proves owner typecheck and focused suite plus consumer typechecks;
+  // CI must therefore run the whole consumer suites and builds for every such path (D15).
+  const policy = loadPolicy();
+  const rules = policy.criticalOverrides.filter(
+    (rule) => rule.id === SHARED_CRITICAL_RULE_ID || rule.id === "reporting-permission-payloads",
+  );
+  const samples = rules.flatMap((rule) => [
+    ...(rule.exact ?? []),
+    ...(rule.prefixes ?? []).map((prefix) => (prefix.endsWith("/") ? `${prefix}index.ts` : prefix)),
+  ]);
+  assert.ok(samples.length > 100, "the Shared critical override lists its paths");
+  for (const path of samples) {
+    const workflows = expectedWorkflowNames([path]);
+    for (const name of ["Shared", "Client", "Admin", "Agent"]) {
+      assert.ok(workflows.includes(name), `${path} must trigger ${name}`);
+    }
+  }
 });

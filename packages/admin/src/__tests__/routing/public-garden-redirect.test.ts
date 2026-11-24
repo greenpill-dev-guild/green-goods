@@ -26,6 +26,9 @@ describe("public garden redirects", () => {
     const pairs: Array<[string, string]> = [
       ["admin.greengoods.app", "https://greengoods.app/gardens"],
       ["beta.admin.greengoods.app", "https://beta.greengoods.app/gardens"],
+      // hub.greengoods.app serves the Hub beside admin.greengoods.app (PRD-1485).
+      ["hub.greengoods.app", "https://greengoods.app/gardens"],
+      ["beta.hub.greengoods.app", "https://beta.greengoods.app/gardens"],
     ];
     for (const [hostname, expected] of pairs) {
       expect(buildClientGardenRedirectUrl(undefined, "", "", undefined, "", hostname)).toBe(

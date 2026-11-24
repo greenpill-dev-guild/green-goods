@@ -2,11 +2,10 @@ import { useCallback } from "react";
 import { useIntl } from "react-intl";
 import type { Address, Garden } from "../../../types/domain";
 import type { AuthMode } from "../../../types/auth";
-import { formatAddress } from "../../../utils/app/text";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { useAuthActions, useAuthState } from "../../../providers/Auth";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
-import { useEnsName } from "../../blockchain/useEnsName";
+import { useAddressDisplayName } from "../../ens/useAddressDisplayName";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useEligibleAdminGardens } from "../../garden/useEligibleAdminGardens";
 import { useRole, type UserRole } from "../../gardener/useRole";
@@ -14,21 +13,22 @@ import { useGardenUrlSync } from "../../navigation/useGardenUrlSync";
 import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
 
 const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string }> = {
-  deployer: { id: "cockpit.role.deployer", defaultMessage: "deployer" },
-  steward: { id: "cockpit.role.steward", defaultMessage: "steward" },
-  user: { id: "cockpit.role.user", defaultMessage: "user" },
+  deployer: { id: "hub.role.deployer", defaultMessage: "garden creator" },
+  steward: { id: "hub.role.steward", defaultMessage: "steward" },
+  user: { id: "hub.role.user", defaultMessage: "user" },
 };
 
 const AUTH_METHOD_MESSAGES: Record<
   Exclude<AuthMode, null>,
   { defaultMessage: string; id: string }
 > = {
-  wallet: { id: "cockpit.account.authMethod.wallet", defaultMessage: "Wallet" },
-  passkey: { id: "cockpit.account.authMethod.passkey", defaultMessage: "Passkey" },
+  wallet: { id: "hub.account.authMethod.wallet", defaultMessage: "Wallet" },
+  passkey: { id: "hub.account.authMethod.passkey", defaultMessage: "Passkey" },
   embedded: {
-    id: "cockpit.account.authMethod.embedded",
+    id: "hub.account.authMethod.embedded",
     defaultMessage: "Embedded wallet",
   },
+  openfort: { id: "hub.account.authMethod.email", defaultMessage: "Email" },
 };
 
 function getInitials(value: string | null | undefined): string {
@@ -65,7 +65,7 @@ export function useAccountProfileController(): AccountProfileController {
   const { signOut } = useAuthActions();
   const { role } = useRole();
   const address = usePrimaryAddress() as Address | null;
-  const { data: ensName } = useEnsName(address);
+  const { display } = useAddressDisplayName(address, { variant: "default" });
   const { eligibleGardens } = useEligibleAdminGardens();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { setGarden } = useGardenUrlSync();
@@ -73,7 +73,7 @@ export function useAccountProfileController(): AccountProfileController {
 
   const roleLabel = formatMessage(ROLE_LABEL_MESSAGES[role]);
   const authMethodLabel = authMode ? formatMessage(AUTH_METHOD_MESSAGES[authMode]) : null;
-  const headline = address ? formatAddress(address, { ensName }) : roleLabel;
+  const headline = address ? display : roleLabel;
   const selectedGardenChoiceId =
     selectedGarden && eligibleGardens.length > 0
       ? (eligibleGardens.find((garden) => compareAddresses(garden.id, selectedGarden.id))?.id ??

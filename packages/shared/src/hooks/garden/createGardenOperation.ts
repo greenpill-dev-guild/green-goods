@@ -17,7 +17,12 @@ import {
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
-import type { TransactionSender } from "../../modules/transactions/types";
+import { GARDEN_ROLE_GAS_HEADROOM_PERCENT } from "../../modules/garden/role-gas-headroom";
+import {
+  TransactionReplacementError,
+  TransactionRevertedError,
+  type TransactionSender,
+} from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
@@ -90,6 +95,20 @@ async function targetAlreadyHoldsRole(
     });
     return false;
   }
+}
+
+/**
+ * Whether a send that failed proves it cannot land. Nothing can reach the network before the
+ * sender calls `onBeforeBroadcast`. After that, only a receipt that showed a revert, or a
+ * replacement that took the call's place, proves it will not run: a receipt wait that lost its
+ * RPC, say, may hide a call still on its way.
+ */
+function provesCannotLand(error: unknown, couldReachNetwork: boolean): boolean {
+  return (
+    !couldReachNetwork ||
+    error instanceof TransactionRevertedError ||
+    error instanceof TransactionReplacementError
+  );
 }
 
 /**
@@ -190,6 +209,8 @@ export interface GardenOperationResult {
    * was sent. Counts as success, because the intended end state already exists.
    */
   alreadyHeld?: true;
+  /** The wallet returned a proposal (a Safe's, say) that has not run on chain yet. */
+  confirmation?: "pending";
   /** Optimistic update data */
   optimisticUpdate?: {
     memberType: GardenRole;
@@ -201,6 +222,12 @@ export interface GardenOperationResult {
     name: string;
     message: string;
     action?: string;
+    /**
+     * The send cannot land: it failed before anything could reach the network, or a receipt
+     * showed it reverted or was replaced. Without it, a failed send may still be on its way, so
+     * a read that still finds the role as it was does not prove the write failed.
+     */
+    cannotLand?: true;
   };
 }
 
@@ -252,6 +279,8 @@ export function createGardenOperation(
     options: GardenOperationCallOptions = {}
   ): Promise<GardenOperationResult> => {
     let optimisticUpdate: GardenOperationResult["optimisticUpdate"];
+    // Set once the sender says the call can reach the network: a failure before then sent nothing.
+    let couldReachNetwork = false;
     const shouldTrackMemberAnalytics = options.trackMemberAnalytics !== false;
 
     if (!sender || !address) {
@@ -260,6 +289,7 @@ export function createGardenOperation(
         error: {
           name: "WalletNotConnected",
           message: "Please connect your wallet to continue",
+          cannotLand: true,
         },
       };
     }
@@ -267,6 +297,9 @@ export function createGardenOperation(
     setIsLoading(true);
 
     try {
+      // A role write may have waited behind another screen's prompt. It still belongs to
+      // the account that requested it, including while the sender prepares its transaction.
+      await sender.assertOwnership?.(address, chainId);
       const hatsModuleAddress = await fetchHatsModuleAddress(gardenId, chainId);
       if (!hatsModuleAddress) {
         setIsLoading(false);
@@ -275,6 +308,7 @@ export function createGardenOperation(
           error: {
             name: "HatsModuleNotConfigured",
             message: "Hats module is not configured for this garden",
+            cannotLand: true,
           },
         };
       }
@@ -345,7 +379,7 @@ export function createGardenOperation(
         setIsLoading(false);
         return {
           success: false,
-          error: simulation.error,
+          error: simulation.error && { ...simulation.error, cannotLand: true },
         };
       }
 
@@ -363,13 +397,23 @@ export function createGardenOperation(
       // Step 3: Execute the actual transaction
       const transaction = await executeWithToast(
         () =>
-          sender.sendContractCall({
-            address: targetContract,
-            abi: targetAbi,
-            functionName: targetFunctionName,
-            args: targetArgs,
-            chainId,
-          }),
+          sender.sendContractCall(
+            {
+              address: targetContract,
+              account: address,
+              abi: targetAbi,
+              functionName: targetFunctionName,
+              gasHeadroomPercent: GARDEN_ROLE_GAS_HEADROOM_PERCENT,
+              args: targetArgs,
+              chainId,
+            },
+            {
+              assertOwnership: () => sender.assertOwnership?.(address, chainId),
+              onBeforeBroadcast: async () => {
+                couldReachNetwork = true;
+              },
+            }
+          ),
         {
           loadingMessage: config.messages.loading,
           successMessage: config.messages.success,
@@ -392,11 +436,13 @@ export function createGardenOperation(
       return {
         hash,
         success: true,
+        confirmation: transaction.confirmation,
         optimisticUpdate,
       };
     } catch (error) {
       // Parse and return the error - optimistic update will be rolled back by caller
       const parsed = parseContractError(error);
+      const cannotLand = provesCannotLand(error, couldReachNetwork);
 
       // Track operation failure
       if (shouldTrackMemberAnalytics) {
@@ -416,6 +462,7 @@ export function createGardenOperation(
           name: parsed.name,
           message: parsed.message,
           action: parsed.action,
+          ...(cannotLand ? { cannotLand } : {}),
         },
       };
     } finally {

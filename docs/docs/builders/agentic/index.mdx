@@ -24,6 +24,13 @@ develop with [Claude Code](https://claude.com/claude-code) and Codex, agents rev
 request, and the repository is deliberately shaped so that an agent, or a person pairing with one,
 can work here safely. This page is the high-level map; the pages below it are the machinery.
 
+```mermaid
+flowchart LR
+  A[Read repository guidance] --> B[Choose one bounded task]
+  B --> C[Implement and verify]
+  C --> D[Human review]
+```
+
 ## The contract
 
 Everything starts with

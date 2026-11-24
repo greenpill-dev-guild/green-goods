@@ -21,66 +21,66 @@ function failureMessage(
   switch (failure) {
     case "existing-cycle":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.failure.existingCycle",
+        id: "hub.garden.pool.setup.failure.existingCycle",
         defaultMessage:
           "This pool already holds a prepared cycle, so nothing more was written. Open that cycle from the Promises tab instead.",
       });
     case "pool-paused":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.failure.poolPaused",
+        id: "hub.garden.pool.setup.failure.poolPaused",
         defaultMessage: "The pool is paused. Resume it before opening a cycle.",
       });
     case "unavailable":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.failure.unavailable",
+        id: "hub.garden.pool.setup.failure.unavailable",
         defaultMessage:
-          "Commitment pooling isn't switched on in this app yet, so nothing was written.",
+          "Commitment pooling isn't switched on in the Hub yet, so nothing was written.",
       });
     case "no-sender":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.failure.noSender",
+        id: "hub.garden.pool.setup.failure.noSender",
         defaultMessage:
           "No wallet is ready to sign. Connect one and try again; nothing was written.",
       });
     case "read-failed":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.failure.readFailed",
+        id: "hub.garden.pool.setup.failure.readFailed",
         defaultMessage:
-          "The chain could not be read, so setup stopped where it was. What landed stays landed; try again when the connection is steady.",
+          "The pool could not be checked, so setup stopped where it was. What landed stays landed; try again when the connection is steady.",
       });
     case "cycle-terms-mismatch":
       return isCampaign
         ? formatMessage({
-            id: "cockpit.garden.pool.setup.failure.termsMismatchCampaign",
+            id: "hub.garden.pool.setup.failure.termsMismatchCampaign",
             defaultMessage:
               "This campaign is already open, on a different split from the one written here. A split is fixed the moment a cycle opens, so it cannot be changed now. Close this and read the terms it carries on the Promises tab.",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.setup.failure.termsMismatchSeason",
+            id: "hub.garden.pool.setup.failure.termsMismatchSeason",
             defaultMessage:
               "This season is already open, on a different split from the one written here. A split is fixed the moment a cycle opens, so it cannot be changed now. Close this and read the terms it carries on the Promises tab.",
           });
     case "seed-unconfirmed":
       return isCampaign
         ? formatMessage({
-            id: "cockpit.garden.pool.setup.failure.seedUnconfirmedCampaign",
+            id: "hub.garden.pool.setup.failure.seedUnconfirmedCampaign",
             defaultMessage:
               "The campaign may or may not have been prepared; the wallet never said which. Close this and check the Promises tab: if the campaign is there, open it from the list; if it is not, start again.",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.setup.failure.seedUnconfirmedSeason",
+            id: "hub.garden.pool.setup.failure.seedUnconfirmedSeason",
             defaultMessage:
               "The season may or may not have been prepared; the wallet never said which. Close this and check the Promises tab: if the season is there, open it from the list; if it is not, start again.",
           });
     default:
       return isCampaign
         ? formatMessage({
-            id: "cockpit.garden.pool.setup.failure.campaign",
+            id: "hub.garden.pool.setup.failure.campaign",
             defaultMessage:
               "The campaign did not open. What landed stays landed; the rest was not written.",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.setup.failure.season",
+            id: "hub.garden.pool.setup.failure.season",
             defaultMessage:
               "The season did not open. What landed stays landed; the rest was not written.",
           });
@@ -105,7 +105,7 @@ export function SetupFailure({ failure, isCampaign, remainingPrompts }: SetupFai
     <div className="space-y-2" data-testid="pool-setup-failed">
       <Alert variant="error">{failureMessage(failure, isCampaign, formatMessage)}</Alert>
       {isRetriablePoolSetupFailure(failure) ? (
-        <p className="flex items-center gap-1.5 body-xs text-text-soft">
+        <p className="flex items-center gap-1.5 type-meta text-text-soft">
           <RiShieldCheckLine className="h-3.5 w-3.5" aria-hidden />
           {retryPromptCount(remainingPrompts, formatMessage)}
         </p>

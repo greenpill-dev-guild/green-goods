@@ -1,0 +1,433 @@
+{
+  "chromium": "148.0.7778.96",
+  "A_related_origins": {
+    "passkeysOnDevice": [
+      {
+        "rpId": "beta.greengoods.app",
+        "resident": true
+      }
+    ],
+    "rememberedOnBeta": {
+      "credential": {
+        "id": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+        "publicKey": "0xae7b2943e71d0b07b282a75509648a1fc1f50602602974c1c8ea9a4ad3426587ec108792b65c443600edbbdd2a58cab7230629ef1f7dcda35b0bd3461b164471"
+      },
+      "rpId": "beta.greengoods.app"
+    },
+    "adoptionOnBeta": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target",
+          "entry": {
+            "userName": "beta-tester",
+            "id": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+            "signingId": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+            "rpId": "beta.greengoods.app",
+            "origin": "https://beta.greengoods.app"
+          }
+        },
+        "identicalRetry": {
+          "ok": true,
+          "alreadyAdopted": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "signInOnBeta": {
+      "failed": false,
+      "value": {
+        "id": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+        "signingId": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+        "publicKey": "0xae7b2943e71d0b07b282a75509648a1fc1f50602602974c1c8ea9a4ad3426587ec108792b65c443600edbbdd2a58cab7230629ef1f7dcda35b0bd3461b164471",
+        "rpId": "beta.greengoods.app"
+      }
+    },
+    "signInOnBetaWithHexStoredId": {
+      "failed": true,
+      "name": "NotAllowedError",
+      "message": "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client."
+    },
+    "signInOnWww": {
+      "failed": false,
+      "value": {
+        "id": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+        "signingId": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+        "publicKey": "0xae7b2943e71d0b07b282a75509648a1fc1f50602602974c1c8ea9a4ad3426587ec108792b65c443600edbbdd2a58cab7230629ef1f7dcda35b0bd3461b164471",
+        "rpId": "beta.greengoods.app"
+      }
+    },
+    "signInOnWwwWithHexStoredId": {
+      "failed": true,
+      "name": "NotAllowedError",
+      "message": "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client."
+    },
+    "signInOnAdmin": {
+      "failed": false,
+      "value": {
+        "id": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+        "signingId": "r5gvXVvZdby-Hy3MnCgmIVVd2bOrXgixlunP6zR2vZA",
+        "publicKey": "0xae7b2943e71d0b07b282a75509648a1fc1f50602602974c1c8ea9a4ad3426587ec108792b65c443600edbbdd2a58cab7230629ef1f7dcda35b0bd3461b164471",
+        "rpId": "beta.greengoods.app"
+      }
+    },
+    "adoptionAttemptFromWww": {
+      "failed": false,
+      "value": {
+        "ok": false,
+        "code": "wrong_site"
+      }
+    },
+    "wellKnownFetches": [
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      },
+      {
+        "host": "beta.greengoods.app",
+        "mode": "on",
+        "served": true
+      }
+    ]
+  },
+  "A_control_off": {
+    "signInOnWww": {
+      "failed": true,
+      "name": "SecurityError",
+      "message": "The relying party ID is not a registrable domain suffix of, nor equal to the current domain. Subsequently, an attempt to fetch the .well-known/webauthn resource of the claimed RP ID failed."
+    }
+  },
+  "A_control_admin-only": {
+    "signInOnWww": {
+      "failed": true,
+      "name": "SecurityError",
+      "message": "The relying party ID is not a registrable domain suffix of, nor equal to the current domain. Subsequently, fetching the .well-known/webauthn resource of the claimed RP ID was successful, but no listed origin matched the caller."
+    }
+  },
+  "C_adoption": {
+    "passkeysOnDevice": [
+      {
+        "rpId": "greengoods.app",
+        "resident": true
+      },
+      {
+        "rpId": "greengoods.app",
+        "resident": true
+      }
+    ],
+    "legacyStoredRpId": "greengoods.app",
+    "adoption": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target",
+          "entry": {
+            "userName": "legacy-gardener",
+            "id": "V7qRYO0P91_aOwRNUjbzVXnV4ShXYchto5fbVZY-R2g",
+            "signingId": "V7qRYO0P91_aOwRNUjbzVXnV4ShXYchto5fbVZY-R2g",
+            "rpId": "greengoods.app",
+            "origin": "https://www.greengoods.app"
+          }
+        },
+        "identicalRetry": {
+          "ok": true,
+          "alreadyAdopted": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "adoptionWithWrongKey": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": false,
+          "code": "verification_failed",
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target"
+        },
+        "identicalRetry": {
+          "ok": false,
+          "code": "verification_failed",
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "verification_failed",
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target"
+        }
+      }
+    },
+    "adoptionWithMismatchedId": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": false,
+          "code": "credential_mismatch"
+        },
+        "identicalRetry": {
+          "ok": false,
+          "code": "credential_mismatch"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "credential_mismatch"
+        }
+      }
+    },
+    "adoptionWithMismatchedHexId": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": false,
+          "code": "credential_mismatch"
+        },
+        "identicalRetry": {
+          "ok": false,
+          "code": "credential_mismatch"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "credential_mismatch"
+        }
+      }
+    },
+    "adoptionOfSameCredentialUnderHexId": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": false,
+          "code": "credential_exists"
+        },
+        "identicalRetry": {
+          "ok": false,
+          "code": "challenge_expired"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "adoptionOfSameNameOtherSpelling": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": false,
+          "code": "name_taken"
+        },
+        "identicalRetry": {
+          "ok": false,
+          "code": "challenge_expired"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "adoptionOfTakenName": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": false,
+          "code": "name_taken"
+        },
+        "identicalRetry": {
+          "ok": false,
+          "code": "challenge_expired"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "rememberedOnAdmin": {
+      "credential": null,
+      "rpId": null
+    },
+    "signInOnAdmin": {
+      "failed": false,
+      "value": {
+        "id": "V7qRYO0P91_aOwRNUjbzVXnV4ShXYchto5fbVZY-R2g",
+        "signingId": "V7qRYO0P91_aOwRNUjbzVXnV4ShXYchto5fbVZY-R2g",
+        "publicKey": "0xa4f9ca7f1fd17e99e262e196cbcf7c194df9ff2c67e2cae58139644b618bfe234c40a4bd3a5984ac506b03f02729ba1233b0a38a5c84bf757ee72a8c1d2a777a",
+        "rpId": "greengoods.app"
+      }
+    },
+    "signInOnBeta": {
+      "failed": false,
+      "value": {
+        "id": "V7qRYO0P91_aOwRNUjbzVXnV4ShXYchto5fbVZY-R2g",
+        "signingId": "V7qRYO0P91_aOwRNUjbzVXnV4ShXYchto5fbVZY-R2g",
+        "publicKey": "0xa4f9ca7f1fd17e99e262e196cbcf7c194df9ff2c67e2cae58139644b618bfe234c40a4bd3a5984ac506b03f02729ba1233b0a38a5c84bf757ee72a8c1d2a777a",
+        "rpId": "greengoods.app"
+      }
+    }
+  },
+  "F_ambiguous_id": {
+    "storedId": "deadbeefcafe0123456789abcdef0123",
+    "readings": {
+      "hexBytes": 16,
+      "base64urlBytes": 24
+    },
+    "remembered": {
+      "credential": {
+        "id": "deadbeefcafe0123456789abcdef0123",
+        "publicKey": "0xfc023c127bfc1b0f26f52a36f604d3c6985fb0894dbfe7f1ac1887adb983ceadae918a037f575e97006bd1b2c1e46008eaa107ec7a86f3ebae92801837629b4e"
+      },
+      "rpId": "greengoods.app"
+    },
+    "adoption": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target",
+          "entry": {
+            "userName": "ambiguous-id",
+            "id": "deadbeefcafe0123456789abcdef0123",
+            "signingId": "deadbeefcafe0123456789abcdef0123",
+            "rpId": "greengoods.app",
+            "origin": "https://www.greengoods.app"
+          }
+        },
+        "identicalRetry": {
+          "ok": true,
+          "alreadyAdopted": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "signInOnAdmin": {
+      "failed": false,
+      "value": {
+        "id": "deadbeefcafe0123456789abcdef0123",
+        "signingId": "deadbeefcafe0123456789abcdef0123",
+        "publicKey": "0xfc023c127bfc1b0f26f52a36f604d3c6985fb0894dbfe7f1ac1887adb983ceadae918a037f575e97006bd1b2c1e46008eaa107ec7a86f3ebae92801837629b4e",
+        "rpId": "greengoods.app"
+      }
+    }
+  },
+  "G_spoofed_raw_id": {
+    "spoofedClaim": {
+      "failed": false,
+      "value": {
+        "ok": true,
+        "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target",
+        "entry": {
+          "userName": "squatter",
+          "id": "rTdYcNgp_8MGpF8gSd7Nb9nVVaLXwF3211n5_RAEOIQ",
+          "signingId": "rTdYcNgp_8MGpF8gSd7Nb9nVVaLXwF3211n5_RAEOIQ",
+          "rpId": "greengoods.app",
+          "origin": "https://www.greengoods.app"
+        }
+      }
+    },
+    "victimAdoption": {
+      "failed": false,
+      "value": {
+        "first": {
+          "ok": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target",
+          "entry": {
+            "userName": "victim-gardener",
+            "id": "rTdYcNgp_8MGpF8gSd7Nb9nVVaLXwF3211n5_RAEOIQ",
+            "signingId": "rTdYcNgp_8MGpF8gSd7Nb9nVVaLXwF3211n5_RAEOIQ",
+            "rpId": "greengoods.app",
+            "origin": "https://www.greengoods.app"
+          }
+        },
+        "identicalRetry": {
+          "ok": true,
+          "alreadyAdopted": true,
+          "library": "threw: Error: Cannot get schema for 'ECDSASigValue' target"
+        },
+        "otherNameReplay": {
+          "ok": false,
+          "code": "challenge_expired"
+        }
+      }
+    },
+    "victimSignInOnAdmin": {
+      "failed": false,
+      "value": {
+        "id": "rTdYcNgp_8MGpF8gSd7Nb9nVVaLXwF3211n5_RAEOIQ",
+        "signingId": "rTdYcNgp_8MGpF8gSd7Nb9nVVaLXwF3211n5_RAEOIQ",
+        "publicKey": "0x77f689e15e771c3516287d57253f89d81ad1f03bb9888aa9124ebda57b4d671c4328f64d13278de6b4341a2619884804748d6385ed42e92ec3c74769b0cd3a16",
+        "rpId": "greengoods.app"
+      }
+    },
+    "squatterSignInOnAdmin": {
+      "failed": true,
+      "name": "Error",
+      "message": "Passkey server authentication failed"
+    }
+  },
+  "D_same_account": {
+    "rpc": "arb1.arbitrum.io",
+    "fromStoredCredential": "0x2b36a1677182333084EBdEC2bf63b3CbF1a0bDF2",
+    "fromAdoptedEntry": "0x2b36a1677182333084EBdEC2bf63b3CbF1a0bDF2",
+    "equal": true
+  },
+  "E_validator": {
+    "rpc": "arb1.arbitrum.io",
+    "magicValue": "0x1626ba7e",
+    "rows": [
+      {
+        "label": "beta passkey, signed on beta",
+        "result": "0x1626ba7e",
+        "tamperedHash": "0xffffffff"
+      },
+      {
+        "label": "beta passkey, signed on www through related origins",
+        "result": "0x1626ba7e",
+        "tamperedHash": "0xffffffff"
+      },
+      {
+        "label": "beta passkey, signed on admin through related origins",
+        "result": "0x1626ba7e",
+        "tamperedHash": "0xffffffff"
+      },
+      {
+        "label": "adopted apex passkey, signed on admin",
+        "result": "0x1626ba7e",
+        "tamperedHash": "0xffffffff"
+      }
+    ]
+  }
+}

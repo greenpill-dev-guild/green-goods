@@ -13,7 +13,7 @@ Read `.claude/skills/design/implementation.md` before frontend work.
 
 - `packages/admin/AGENTS.md`, `packages/admin/DESIGN.md`, exported admin primitives, and executable guards own the admin consumer boundary. Public docs only explain it.
 - Reusable admin UI foundations belong here before they become package-local copies.
-- Prefer extending shared `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `Alert`, `Card`, `DialogShell`, `FormField`, `ListToolbar`, `SortSelect`, and `StatusBadge`. (The Canvas `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — admin overlays are centered `AdminDialog`s owned by the admin package.)
+- Prefer extending shared `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `Alert`, the card shapes (`ItemRow`, `MediaCard`, and the `EmptyState` state block), `DialogShell`, `FormField`, and `StatusBadge`. (The Canvas `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — admin overlays are centered `AdminDialog`s owned by the admin package.)
 - New shared primitives and major variants need barrel exports, tests, and Storybook coverage in the same change.
 
 ## Commands

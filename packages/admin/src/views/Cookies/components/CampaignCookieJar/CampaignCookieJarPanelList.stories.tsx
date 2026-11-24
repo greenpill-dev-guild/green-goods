@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { STORYBOOK_ADMIN_GARDENS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
@@ -26,9 +25,6 @@ export const Default: Story = {
     campaignSearch: "",
     setCampaignSearch: () => undefined,
     visibleCampaigns: [storybookCampaign],
-    gardensByAddress: new Map(
-      STORYBOOK_ADMIN_GARDENS.map((garden) => [garden.id.toLowerCase(), garden])
-    ),
     onSelectCampaign: () => undefined,
   },
 };

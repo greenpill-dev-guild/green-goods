@@ -12,7 +12,7 @@
       "scope": "local-browser-debugging",
       "surfaces": ["client", "admin", "docs", "storybook"],
       "notes": [
-        "WebMCP proof through this wrapper is Brave-only (navigator.modelContext). Do not point it at Google Chrome, Chrome for Testing, Chromium, or Edge.",
+        "WebMCP proof through this wrapper is Brave-only (document.modelContext). Do not point it at Google Chrome, Chrome for Testing, Chromium, or Edge.",
         "The wrapper calls the upstream chrome-devtools-mcp package because that is the protocol package name; the browser executable must still be Brave.",
         "This isolated DevTools MCP server is public clean-room evidence only; it is not authenticated local QA.",
         "Use the authenticated Brave extension or visible-desktop path for wallet, passkey, session, installed-PWA, and profile-dependent proof (AGENTS.md § Browser Evidence).",

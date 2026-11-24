@@ -4,7 +4,7 @@ import { type FormatMessageFn, toastMessageIds } from "./types";
 /** Default (English) fallback messages for work toasts */
 const workDefaults = {
   submitting: { title: "Submitting work", message: "Processing your submission..." },
-  success: { title: "Work submitted", message: "Your work is now on-chain" },
+  success: { title: "Work submitted", message: "It now waits for review." },
   savedOffline: {
     title: "Saved offline",
     message: "Upload it from Your Work when you're connected.",

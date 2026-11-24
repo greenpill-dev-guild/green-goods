@@ -1,15 +1,15 @@
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import {
+  type CampaignJarSync,
   useCampaignCookieJar,
-  useSyncCampaignCookieJarAllowlist,
-  useUpdateCampaignCookieJarMetadata,
+  useCampaignCookieJarSync,
 } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import { useCampaignCookieJarCampaigns } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns";
 import { useCookieJarFactoryAddress } from "@green-goods/shared/hooks/cookie-jar/useCookieJarFactoryAddress";
 import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
-import type { Garden } from "@green-goods/shared/types/domain";
 import {
   aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarMetadata,
@@ -42,7 +42,7 @@ export interface CampaignCookieJarPanelProps {
 export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelProps) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
-  const { isDeployer, loading: roleLoading } = useRole();
+  const { isProtocolTeam, loading: roleLoading } = useRole();
   const { data: gardens = [] } = useGardens(chainId);
   const {
     campaigns,
@@ -50,8 +50,6 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
     error: campaignsError,
   } = useCampaignCookieJarCampaigns();
   const { factoryAddress, moduleConfigured } = useCookieJarFactoryAddress();
-  const syncAllowlist = useSyncCampaignCookieJarAllowlist({ errorMode: "inline" });
-  const updateMetadata = useUpdateCampaignCookieJarMetadata({ errorMode: "inline" });
 
   const [campaignSearch, setCampaignSearch] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignCookieJarCampaign | null>(null);
@@ -65,6 +63,8 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
   const syncJar = useCampaignCookieJar(selectedJarAddress, {
     enabled: Boolean(selectedJarAddress),
   });
+  const sync = useCampaignCookieJarSync(selectedJarAddress);
+  const syncTxError = useTxErrorMessages(sync.error);
 
   useEffect(() => {
     if (!selectedCampaign) return;
@@ -75,14 +75,6 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
     setSyncCampaignImage(draft.image);
     setSyncCampaignImageFile(null);
   }, [selectedCampaign, syncJar.jar?.metadata]);
-
-  const gardensByAddress = useMemo(() => {
-    const map = new Map<string, Garden>();
-    for (const garden of gardens) {
-      map.set(garden.id.toLowerCase(), garden);
-    }
-    return map;
-  }, [gardens]);
 
   const visibleCampaigns = useMemo(
     () => filterCampaignCookieJarCampaigns(campaigns, campaignSearch),
@@ -162,7 +154,7 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
           currentMetadata?.title ??
           selectedCampaign.title ??
           formatMessage({
-            id: "cockpit.community.cookies.untitledCampaign",
+            id: "hub.community.cookies.untitledCampaign",
             defaultMessage: "Campaign cookie jar",
           }),
         slug: currentMetadata?.slug ?? selectedCampaign.slug,
@@ -222,38 +214,31 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
     canUpdateMetadata: Boolean(factoryAddress),
     metadataUrlsValid: syncMetadataUrlsValid,
     metadataDescriptionFits: syncDescriptionFits,
+    earlierSyncInDoubt: sync.isHeld || sync.isSettlingHold,
   });
+  // One sync carries the allowlist change and the metadata that describes it.
+  const pendingSync: CampaignJarSync | null =
+    selectedJarAddress && canSync
+      ? {
+          jarAddress: selectedJarAddress,
+          grant: syncDiff.grant,
+          revoke: syncDiff.revoke,
+          metadata:
+            factoryAddress && syncMetadataPayload
+              ? { factoryAddress, value: syncMetadataPayload }
+              : null,
+        }
+      : null;
+  const syncSignatures = pendingSync ? sync.signaturesFor(pendingSync) : null;
 
   const handleSync = () => {
-    if (!selectedJarAddress || !canSync) return;
-    const hasAllowlistDiff = syncDiff.grant.length > 0 || syncDiff.revoke.length > 0;
-    if (!hasAllowlistDiff) {
-      if (!factoryAddress || !syncMetadataPayload) return;
-      updateMetadata.mutate({
-        factoryAddress,
-        jarAddress: selectedJarAddress,
-        metadata: syncMetadataPayload,
-      });
-      return;
-    }
-
-    syncAllowlist.mutate(
-      {
-        jarAddress: selectedJarAddress,
-        grant: syncDiff.grant,
-        revoke: syncDiff.revoke,
-      },
-      {
-        onSuccess: () => {
-          if (!factoryAddress || !syncMetadataPayload) return;
-          updateMetadata.mutate({
-            factoryAddress,
-            jarAddress: selectedJarAddress,
-            metadata: syncMetadataPayload,
-          });
-        },
-      }
-    );
+    if (pendingSync) sync.send(pendingSync);
+  };
+  // An outcome stays on screen until this jar's dialog closes, so it is never read against
+  // another jar.
+  const selectCampaign = (campaign: CampaignCookieJarCampaign | null) => {
+    if (!sync.isPending) sync.reset();
+    setSelectedCampaign(campaign);
   };
 
   const selectedCampaignTitle =
@@ -262,7 +247,7 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
     selectedCampaign?.title ??
     selectedCampaign?.label ??
     formatMessage({
-      id: "cockpit.community.cookies.untitledCampaign",
+      id: "hub.community.cookies.untitledCampaign",
       defaultMessage: "Campaign cookie jar",
     });
 
@@ -271,7 +256,7 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
       {...{
         formatMessage,
         moduleConfigured,
-        isDeployer,
+        isProtocolTeam,
         roleLoading,
         campaigns,
         campaignsLoading,
@@ -279,13 +264,28 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
         campaignSearch,
         setCampaignSearch,
         visibleCampaigns,
-        gardensByAddress,
-        setSelectedCampaign,
+        setSelectedCampaign: selectCampaign,
         selectedCampaign,
         selectedCampaignTitle,
         selectedCampaignPublicUrl,
-        syncAllowlist,
-        updateMetadata,
+        syncPending: sync.isPending,
+        syncSignatureLine:
+          syncSignatures === null
+            ? null
+            : formatMessage(
+                { id: "hub.community.cookies.signatureCount" },
+                { count: syncSignatures }
+              ),
+        syncHold: sync.holdFeedback,
+        // On a listed rail an unknown outcome is held, so the hold says it, not an error line.
+        syncError:
+          sync.error && !(sync.isHeld && syncTxError.view.kind === "unconfirmed")
+            ? {
+                severity: syncTxError.view.severity,
+                title: syncTxError.title,
+                message: syncTxError.message,
+              }
+            : null,
         canSync,
         handleSync,
         syncCampaignDescription,

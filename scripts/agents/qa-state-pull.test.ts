@@ -188,7 +188,7 @@ describe("qa:pull artifact-set commit", () => {
     const outDir = mkdtempSync(path.join(repoRoot, "tmp", "qa-pull-snapshot-lock-"));
     const testCase: CatalogCase = {
       id: "PUB-001",
-      tab: "Public Website",
+      tab: "Green Goods Website",
       platform: "Desktop Browser",
       priority: "P0",
       kind: "journey",
@@ -204,7 +204,7 @@ describe("qa:pull artifact-set commit", () => {
     };
     const catalog: Catalog = {
       version: 3,
-      tabs: ["Public Website"],
+      tabs: ["Green Goods Website"],
       kinds: [{ id: "journey", label: "Journey", verifies: "An end-to-end journey" }],
       statuses: [],
       cases: [testCase],
@@ -258,7 +258,7 @@ describe("qa:pull artifact-set commit", () => {
         { catalog, repoRoot },
       );
       const report = readFileSync(written.report, "utf8");
-      expect(report).toContain("- P0: 1/1 — 1 pass");
+      expect(report).toContain("- P0: 1/1 (1 pass)");
       expect(report).not.toContain("1 fail");
     } finally {
       rmSync(outDir, { recursive: true, force: true });

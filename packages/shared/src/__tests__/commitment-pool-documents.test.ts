@@ -201,4 +201,27 @@ describe("cycle metadata", () => {
     expect(parseCycleMetadata({ version: 1, name: "   " })).toBeNull();
     expect(parseCycleMetadata(null)).toBeNull();
   });
+
+  // A campaign run as a project brief carries its note for the details sheet (PRD-1299, SBrief).
+  it("reads a campaign's brief note line by line, and none when it is blank or not text", () => {
+    expect(
+      parseCycleMetadata({
+        version: 1,
+        name: "Impact website",
+        brief: "  The brief groups   the work.\n\n  Ade confirms each step.  ",
+      })
+    ).toEqual({
+      version: 1,
+      name: "Impact website",
+      brief: "The brief groups the work.\nAde confirms each step.",
+    });
+    expect(parseCycleMetadata({ version: 1, name: "Impact website", brief: " \n " })).toEqual({
+      version: 1,
+      name: "Impact website",
+    });
+    expect(parseCycleMetadata({ version: 1, name: "Impact website", brief: 3 })).toEqual({
+      version: 1,
+      name: "Impact website",
+    });
+  });
 });

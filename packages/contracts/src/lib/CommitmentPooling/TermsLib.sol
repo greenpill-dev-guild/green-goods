@@ -2,10 +2,14 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
+import { ICommitmentServiceOffers } from "../../interfaces/ICommitmentServiceOffers.sol";
+import { CommitmentPoolingVoucherAcceptanceLib } from "./VoucherAcceptanceLib.sol";
 import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 import { CommitmentPoolingCreationChecksLib } from "./CreationChecksLib.sol";
 import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
 import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
+import { CommitmentPoolingServiceOffersLib } from "./ServiceOffersLib.sol";
+import { CommitmentPoolingServiceOfferStorageLib } from "./ServiceOfferStorageLib.sol";
 
 /// @title CommitmentPoolingTermsLib
 /// @notice Deployed behavior library: pre-acceptance term edits and the Arbitrum-rail consideration
@@ -14,6 +18,38 @@ import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 ///      bound, consideration, valuation, and confirmer terms are the agreement and stop moving.
 ///      Runs via DELEGATECALL from `CommitmentPoolingModule`.
 library CommitmentPoolingTermsLib {
+    function pinVoucherAcceptancePeer(address peer, bool earned) external {
+        CommitmentPoolingVoucherAcceptanceLib.pin(peer, earned);
+    }
+
+    function bindEarnedVoucherTerms(
+        mapping(uint256 => ICommitmentPoolingModule.Commitment) storage commitments,
+        uint256 commitmentId,
+        uint64 revision,
+        bytes32 termsHash
+    )
+        external
+    {
+        CommitmentPoolingVoucherAcceptanceLib.bind(commitments, commitmentId, revision, termsHash);
+    }
+
+    function setServiceOfferTerms(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
+        uint256 commitmentId,
+        uint64 expectedRevision,
+        ICommitmentServiceOffers.ServiceOfferTermsInput calldata terms,
+        uint256 gdPrice
+    )
+        external
+    {
+        CommitmentPoolingServiceOffersLib.setTerms(
+            env, pools, commitments, commitmentConfirmers, commitmentId, expectedRevision, terms, gdPrice
+        );
+    }
+
     /// @notice Declared consideration is a reference to a payment made elsewhere, never custody.
     function setDeclaredConsideration(
         CommitmentPoolingCommonLib.Env memory env,
@@ -161,6 +197,7 @@ library CommitmentPoolingTermsLib {
         returns (ICommitmentPoolingModule.Commitment storage commitment)
     {
         commitment = CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingServiceOfferStorageLib.requireLegacyTerms(commitmentId);
         CommitmentPoolingGuardLib.requirePreAcceptanceState(commitmentId, commitment);
         CommitmentPoolingGuardLib.requirePoolSteward(env, commitment.poolId, pools[commitment.poolId]);
     }

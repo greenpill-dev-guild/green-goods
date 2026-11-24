@@ -5,7 +5,7 @@ slug: /community/gardener-guide/recovery-and-sync
 description: "See what is still waiting on your phone, send it, and fix work that will not upload, without losing it or sending it twice."
 audience: gardener
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-10-13"
 feature_status: Live
 goal: "Recover a draft or waiting submission without duplicating or losing work."
 difficulty: "standard"
@@ -14,6 +14,9 @@ prereqs: "The installed app, the account you used to record the work, and a conn
 next_steps: "/community/gardener-guide/track-status-and-attestations"
 persona_context: "Gardeners who recorded work with a weak or missing signal and need to get it to their steward."
 source_of_truth:
+  - packages/client/src/components/Features/Commitments/QueuedActRow.tsx
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentActionBar.tsx
   - packages/client/src/views/Home/WorkDashboard/PendingTab.tsx
   - packages/client/src/views/Home/WorkDashboard/buildPendingRows.ts
   - packages/client/src/views/Home/WorkDashboard/uploadActions.tsx
@@ -31,6 +34,8 @@ source_of_truth:
   - packages/shared/src/modules/job-queue/draft-snapshot.ts
   - packages/shared/src/modules/work/draft-lifecycle.ts
   - packages/shared/src/hooks/work/useQueuedWorkActions.ts
+  - packages/shared/src/hooks/work/useUploadPolicy.ts
+  - packages/shared/src/hooks/work/useWorkUploads.ts
   - packages/shared/src/hooks/client-ui/work/useWorkDetailController.ts
   - packages/shared/src/providers/JobQueue.tsx
   - packages/shared/src/providers/Auth.tsx
@@ -44,11 +49,11 @@ keywords:
   - cannot upload
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Recover Unsent Work
 
 Find the work you already saved, read why it is waiting, and send it without losing it or recording a duplicate. Start with the item's label in **Your Work**.
+
+<GuideImage src="/img/community/guide-recover.webp" alt="A phone and field notebook beside muddy boots and a dry bag after a rainy field visit." width="1672" height="941" loading="eager" className="gg-figure gg-overview-photo gg-guide-opening" />
 
 **Reopen the saved item before recording it again.** An item marked **Checking** may already have been sent, so wait for the app to resolve it before trying anything else.
 
@@ -57,11 +62,6 @@ Find the work you already saved, read why it is waiting, and send it without los
 - **Open the installed app**, signed in to the account you used when you recorded the work.
 - **Get a steady connection** before you send. Looking at what is waiting works offline.
 - **Keep the app's saved data.** Do not clear its storage or remove the app while you have unsent work. That can remove the copy you need to recover.
-
-<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
-  <img src="/img/community/editorial-field-preparation.webp" alt="A phone lying face down beside an open notebook, work gloves and a water bottle on a wooden bench." width="1774" height="887" decoding="async" />
-  <figcaption>Keep the phone you recorded with while you recover the saved work. AI-generated editorial illustration, created for these docs on 12 October 2026; not a real device, location or app screen.</figcaption>
-</figure>
 
 ## Steps
 
@@ -79,13 +79,13 @@ Look for your item's label:
 - **Didn't upload:** a try failed. Open the saved item and tap **Upload now** when your connection is steady.
 - **In review:** it reached the garden's record. Your steward acts next.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-work-pending-example.png" alt="Your Work on Pending, with one Seedling Transplant item marked To upload and an Upload all button." loading="lazy" width="390" height="844" />
-  <figcaption>
-    <strong>Check the saved item before you send it.</strong> This example is <strong className="gg-inline-label">To upload</strong>. Use <strong className="gg-inline-label">Upload all</strong> when you are online and it is ready. “Nothing sent yet” describes the work record, not whether media is already public.
-    <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Pending With Example Photo, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The record is fictional; the photo does not verify its count, time or note.</span>
-  </figcaption>
-</figure>
+<GuideImage src="/img/screenshots/client-work-recovery-rich.png" alt="Your Work filtered to To upload, with four saved work and promise-proof items, including a photo still converting." loading="lazy" width="390" height="844" className="gg-figure gg-guide-product">
+
+These saved items are waiting to upload; one photo is still converting.
+
+</GuideImage>
+
+These labels describe the work record. Photos and details may already be public before you send it. Read [what becomes public](/faq#is-what-i-upload-private).
 
 ### 2. Send it
 
@@ -101,35 +101,51 @@ To send just one item, tap it, then tap **Upload now**.
 
 Tap an item marked **Can't upload** or **Didn't upload**. The top of its page says what happened, and the bar at the bottom offers your choices.
 
-:::warning Before you discard
+<Callout kind="warning" title="Before you discard">
+
 **Discard** permanently removes this saved item's photos and notes from the app on this phone. Make sure you still have the original photos, and copy any notes you need before choosing it. The app cannot restore a discarded item.
 
 Removing the local item does not delete media already prepared in public storage. Those files can remain public even if you never sent the work record. See [what becomes public](/faq#is-what-i-upload-private).
-:::
+
+</Callout>
 
 - **Action ended** or **Action removed:** ask your steward whether the action can be made available again. Keep the saved item while you check. If it can reopen, tap **Try Again**. If it cannot, ask which action to use before discarding and recording a replacement.
 - **Not a member:** [join the garden](/community/gardener-guide/joining-a-garden), then tap **Try Again**.
 - **Not in this garden:** ask your steward which action to use. Record a replacement under that action only after resolving the saved item.
 - **A photo won't convert:** the saved photo cannot be read. After keeping any photos and notes you need, **Discard** the item and record it again with a different photo.
 - **The record refused it:** tap **Try Again** once. If it fails again, send your steward the garden, action, and exact message you see.
+- **Accept the current Terms of Use:** tap **Try Again** and agree to the Terms when they appear. Once you agree on this phone, the app stops asking.
+
+An item that is still getting ready says on its page what it is waiting for:
+
+- **Couldn't get it ready:** a try did not finish. The app keeps trying while it is open, or tap **Try Again** to try now.
+- **Waiting for a steady connection:** it gets ready once your connection is steady.
+- **Paused for Data Saver:** tap **Prepare now** to get it ready on this connection.
+- **Waiting for an app update:** update the app when it asks, and the item gets ready.
+
+While it waits for any of these, you can still **Discard** it.
 
 After **Try Again**, wait for preparation to finish, then send the saved item with **Upload now** or **Upload all**. **Try Again** alone does not send the work record.
 
 If you choose **Discard**, a confirmation asks **Discard this work?** Tap **Keep** to leave the saved item in place, or **Discard** only when you are ready to remove it. The app does not offer discard while a record may already be on its way, or while it is actively preparing online.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-work-discard.png" alt="Your Work dimmed behind a Discard this work? confirmation, warning that photos and notes will be removed from this device, with Discard and Keep buttons." loading="lazy" width="390" height="844" />
-  <figcaption>
-    <strong>Keep the item if you still need it.</strong> Choosing <strong className="gg-inline-label">Discard</strong> removes the saved copy from the device. It does not retract a public file or a sent work record.
-    <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Pending With Example Photo, Discard confirmation opened. Captured 13 October 2026, 390 × 844; build recorded in the Plan Hub image ledger. No item was discarded. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The record is fictional; the photo does not verify its count, time or note.</span>
-  </figcaption>
-</figure>
+<GuideImage src="/img/screenshots/client-work-discard.png" alt="Your Work dimmed behind a Discard this work? confirmation, warning that photos and notes will be removed from this device, with Discard and Keep buttons." loading="lazy" width="390" height="844" className="gg-figure gg-guide-product">
+
+Choose <InlineLabel>Keep</InlineLabel> if you still need this saved copy.
+
+</GuideImage>
 
 ## How you know it worked
 
 - The item's label reads **In review**.
 - A message says how many items were uploaded and that they were saved to the garden's record.
 - The number on the **Your Work** button drops.
+
+## Promise actions waiting on this phone
+
+A promise action can have its own saved or sending status. Return to that garden's **Promises**, open the same record, and read the queued action before using its send or retry control. **Your Work → Pending** also holds queued proof when the proof flow directs you there. Do not treat every promise action as an ordinary work upload or create another promise to replace an uncertain send.
+
+Taking back an untaken offer or request, joining a team, and choosing **Send to the Stewards** after **Not Yet** need a connection. A saved explanation has not put a promise under review; if sending fails, the promise stays ready to confirm. Check the current record before retrying. These actions do not become offline promises to act later. See [Make a Promise](/community/gardener-guide/make-a-promise#if-something-goes-wrong) for the action-specific next step.
 
 ## What happens next
 
@@ -174,8 +190,6 @@ A batch can stop after sending some items. Keep those marked **In review**; do n
 ### The same problem returns
 
 Tell your steward the garden, action, approximate recording time, item label, and exact message. Never send a password or recovery phrase.
-
-To reach the community, open **Profile**, then the **Help** tab, and tap **Telegram**.
 
 ## Next step
 

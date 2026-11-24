@@ -42,6 +42,7 @@ export const CHAIN_ID_MAP: Record<string, string> = {
   arbitrum: "42161",
   sepolia: "11155111",
   celo: "42220",
+  gnosis: "100",
 };
 
 /**

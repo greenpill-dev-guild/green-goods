@@ -15,6 +15,7 @@ import {
   trackAdminGardenCreateSuccess,
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
+import { recordSendAct, sendActEnding } from "../../modules/app/sendActAnalytics";
 import {
   createDefaultCreateGardenPorts,
   createGarden,
@@ -186,9 +187,9 @@ export function useCreateGardenWorkflow() {
                     store.clearPendingSubmission(accountAddress, currentChainId);
                 },
               });
-              const result = await createGarden(
-                { params, accountAddress, chainId: currentChainId },
-                ports
+              const result = await recordSendAct(
+                { act: "garden_create", authMode: currentSender.authMode, chainId: currentChainId },
+                () => createGarden({ params, accountAddress, chainId: currentChainId }, ports)
               );
               if (result.confirmation === "pending") {
                 useCreateGardenStore.getState().recordPendingSubmission({
@@ -226,11 +227,15 @@ export function useCreateGardenWorkflow() {
               scheduleRefresh();
               return result;
             } catch (error) {
-              trackAdminGardenCreateFailed({
-                gardenName: params.name,
-                chainId: currentChainId,
-                error: error instanceof Error ? error.message : "Unknown error",
-              });
+              // The parsed family only, never the message, which can carry an address. A
+              // send that may still land is not a failure (PRD-1553).
+              const { outcome, parsedErrorFamily } = sendActEnding(error);
+              if (outcome !== "confirming")
+                trackAdminGardenCreateFailed({
+                  gardenName: params.name,
+                  chainId: currentChainId,
+                  error: parsedErrorFamily,
+                });
               throw error;
             }
           }),

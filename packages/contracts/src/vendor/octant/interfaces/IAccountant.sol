@@ -7,7 +7,7 @@ pragma solidity ^0.8.25;
  * @custom:security-contact security@golem.foundation
  * @notice Interface for fee assessment and refund calculation
  * @dev Called by vaults during processReport() to calculate fees on profits/losses
- * @custom:origin https://github.com/yearn/tokenized-strategy/blob/master/src/interfaces/IAccountant.sol
+ * @custom:origin https://github.com/golemfoundation/octant-v2-core/blob/2c718d5323d92db94282453c913169f038a99149/src/interfaces/IAccountant.sol
  */
 interface IAccountant {
     /**

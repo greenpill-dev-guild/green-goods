@@ -21,7 +21,7 @@ request and ordinary scope additions are not corrections. Report the covered tas
 a continuation does not silently count earlier work again. Use `unknown` when coverage is absent.
 
 ```markdown
-Task record: <existing reference or stable title> | Type: <type> | Outcome: <complete/partial/blocked/cancelled>
+Task record: <existing reference or stable title> | Type: <type> | Outcome: <complete/partial/blocked/canceled>
 Agent/model: <observed agent/model or unknown> | Coverage: <this task segment>
 
 | Phase | Start → end (UTC) | Result / evidence or blocker |

@@ -5,15 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="%PWA_APP_SHORT_NAME%" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- A solid status bar: iOS places the app below it, so the page reaches the bottom of
+         the screen. With black-translucent, iOS 26 can lay a Home Screen app out one status
+         bar short and leave a blank band under the bottom bar that the page cannot paint.
+         iOS keeps the style an app was added with, so older installs stay translucent until
+         re-added; the safe-area tokens in shared theme.css cover them. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta
       key="description"
       name="description"
-      content="Bring Community Impact Onchain"
+      content="Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support."
     />
     <meta name="author" content="Green Goods" />
 
-    <meta property="og:image" content="%BASE_URL%social-home-hero.png" />
+    <meta property="og:image" content="%BASE_URL%social-home.png" />
     <meta property="og:image:alt" content="Green Goods homepage hero with headline and garden imagery" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
@@ -23,14 +28,14 @@
     <meta property="og:site_name" content="Green Goods" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://greengoods.app" />
-    <meta property="og:description" content="Bring Community Impact Onchain" />
+    <meta property="og:description" content="Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support." />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:description" content="Bring Community Impact Onchain" />
+    <meta name="twitter:description" content="Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support." />
     <meta name="twitter:title" content="Green Goods" />
     <meta name="twitter:site" content="greengoodsapp" />
     <meta name="twitter:creator" content="time_is_oba" />
-    <meta name="twitter:image" content="%BASE_URL%social-home-hero.png" />
+    <meta name="twitter:image" content="%BASE_URL%social-home.png" />
     <meta name="twitter:image:alt" content="Green Goods homepage hero with headline and garden imagery" />
     <link
       rel="apple-touch-icon"
@@ -64,27 +69,124 @@
       name="msapplication-TileImage"
       content="%BASE_URL%%PWA_MS_TILE_IMAGE%"
     />
-    <!-- Carries both scheme colors. The boot-theme script below and shared theme.ts
-         set the content from the matching data-* value, so the browser chrome follows
-         the selected theme rather than the OS scheme. -->
-    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" />
+    <!-- Carries both scheme colors for each presentation: the website's white ground
+         (data-light, data-dark) and the installed app's linen and warm dark floor
+         (data-app-light, data-app-dark). The boot-theme and presentation scripts below
+         and shared theme.ts set the content from the matching data-* value, so the
+         browser chrome follows the selected theme and the page's ground. -->
+    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" data-app-light="%PWA_APP_THEME_COLOR_LIGHT%" data-app-dark="%PWA_APP_THEME_COLOR_DARK%" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Inter (sans, body + nav + UI). Loaded across browser + installed PWA. -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Fraunces (editorial serif, public-browser headlines + stat numbers). -->
-    <!-- To trial a different serif, swap the family below AND `--font-serif` in shared theme.css. -->
-    <!-- See packages/client/DESIGN.browser.md → Typography → Serif options. -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Same variable typefaces, served locally; Latin covers English, Spanish and Portuguese, and the vietnamese subset the dot-below letters of Yoruba and Igbo names (ẹ, ọ, ị, ụ). -->
+    <link id="boot-pwa-face" href="%BASE_URL%fonts/pwa.css" rel="stylesheet" media="(display-mode: standalone), (display-mode: fullscreen), (display-mode: window-controls-overlay)" />
+    <style id="local-fonts">
+      @font-face {
+        font-family: 'Inter';
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-vietnamese-italic.woff2) format('woff2');
+        unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+      }
+
+      @font-face {
+        font-family: 'Inter';
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-latin-ext-italic.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Inter';
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-latin-italic.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-vietnamese-normal.woff2) format('woff2');
+        unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+      }
+
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-latin-ext-normal.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-latin-normal.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: italic;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-vietnamese-italic.woff2) format('woff2');
+        unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: italic;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-latin-ext-italic.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: italic;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-latin-italic.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-vietnamese-normal.woff2) format('woff2');
+        unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-latin-ext-normal.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-latin-normal.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+    </style>
 
     <title>%PWA_APP_NAME%</title>
     <script id="boot-theme">
@@ -109,6 +211,49 @@
         if (color) meta.content = color;
       })();
     </script>
+    <script id="boot-language">
+      // Declare the reader's language before the first paint. The browser judges a page's
+      // language while it loads, and a page that says English while a Spanish or Portuguese
+      // catalogue loads gets that reader offered, or auto-run, a translation that rewrites text
+      // React still owns. The choice is the app's own (resolveRequestedLocale in shared
+      // locale-messages): the stored language, else the first browser language the app has copy
+      // for, else English; a stored language without copy reads English. Once the app runs it owns
+      // the page's language, and corrects it to English if the reader's catalogue cannot load.
+      (function () {
+        var supported = ["en", "es", "pt"];
+        var stored = null;
+        try {
+          // The choice made on any Green Goods site, shared as a cookie (PRD-1493), comes first.
+          var shared = document.cookie.match(/(?:^|;\s*)gg-language=([^;]*)/);
+          if (shared && shared[1]) stored = decodeURIComponent(shared[1]);
+        } catch (error) {
+          // Cookies can be blocked. This site's own choice still applies.
+        }
+        if (!stored) {
+          try {
+            stored = window.localStorage.getItem("gg-language");
+          } catch (error) {
+            // Storage can be blocked. The browser language still applies.
+          }
+        }
+        var browser =
+          navigator.languages && navigator.languages.length
+            ? navigator.languages
+            : [navigator.language];
+        var candidates = stored ? [stored] : browser;
+        var language = "en";
+        for (var index = 0; index < candidates.length; index += 1) {
+          var tag = String(candidates[index] || "")
+            .toLowerCase()
+            .split("-")[0];
+          if (supported.indexOf(tag) !== -1) {
+            language = tag;
+            break;
+          }
+        }
+        document.documentElement.lang = language;
+      })();
+    </script>
     <script id="boot-presentation-detector">
       (function () {
         var LOCAL_QUERY_PARAM = "presentation";
@@ -117,11 +262,15 @@
           "/",
           "/actions",
           "/cookies",
+          "/contact",
           "/fund",
           "/gardens",
           "/glossary",
           "/impact",
           "/landing",
+          "/privacy",
+          "/strategy",
+          "/terms",
           "/vaults",
         ];
         // "/landing" redirects to "/" (config/routes.tsx), so it boots the
@@ -253,9 +402,49 @@
         }
 
         document.documentElement.dataset.bootPresentation = mode;
+        if (mode === "pwa") {
+          var face = document.getElementById("boot-pwa-face");
+          if (face) face.media = "all";
+          // The installed app paints its own ground, so the status bar takes the
+          // app's tint for the theme boot-theme chose. Shared theme.ts keeps it
+          // current after boot.
+          var themeColor = document.querySelector('meta[name="theme-color"]');
+          var appColor =
+            themeColor &&
+            themeColor.getAttribute("data-app-" + document.documentElement.dataset.theme);
+          if (appColor) themeColor.content = appColor;
+        }
         if (mode === "website") {
+          var bodyFont = document.createElement("link");
+          bodyFont.rel = "preload";
+          bodyFont.as = "font";
+          bodyFont.type = "font/woff2";
+          bodyFont.crossOrigin = "anonymous";
+          bodyFont.href = "%BASE_URL%fonts/inter-latin-normal.woff2";
+          document.head.appendChild(bodyFont);
           document.documentElement.dataset.bootHero = heroVariant;
           if (threeLineTitle) document.documentElement.dataset.bootTitle = "three-lines";
+          // Discover the homepage's actual paint assets before its route modules.
+          // Installed entry and other public pages keep their own resource priorities.
+          if (heroVariant === "fullscreen") {
+            var image = document.createElement("link");
+            image.rel = "preload";
+            image.as = "image";
+            image.href = window.matchMedia("(max-aspect-ratio: 3/4)").matches
+              ? "%BASE_URL%images/hero-home-portrait.avif"
+              : "%BASE_URL%images/hero-home-optimized.avif";
+            image.fetchPriority = "high";
+            document.head.appendChild(image);
+            ["normal", "italic"].forEach(function (style) {
+              var font = document.createElement("link");
+              font.rel = "preload";
+              font.as = "font";
+              font.type = "font/woff2";
+              font.crossOrigin = "anonymous";
+              font.href = "%BASE_URL%fonts/fraunces-latin-" + style + ".woff2";
+              document.head.appendChild(font);
+            });
+          }
         }
       })();
     </script>
@@ -295,15 +484,18 @@
       }
 
       /* The loader stays up until auth is ready, then hands off to html, body,
-         and SplashScaffold, which all paint bg-white-0; taking the same token
-         leaves the handoff seamless. The dark action fallback mirrors the PWA's
-         mint/ink pair even when the stylesheet never arrives (DL-088). */
+         and SplashScaffold, which all paint the app's canvas (bg-canvas: linen,
+         and the warm dark floor); taking the same token leaves the handoff
+         seamless. The dark action fallback mirrors the PWA's mint/ink pair even
+         when the stylesheet never arrives (DL-088). */
       html[data-boot-presentation="pwa"] #boot-fallback {
-        --boot-canvas: var(--color-bg-white-0, #ffffff);
+        --boot-canvas: var(--color-bg-canvas, #faf8f5);
+        /* The installed app's face, as index.css sets it on :root. */
+        font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       html[data-boot-presentation="pwa"][data-theme="dark"] #boot-fallback {
-        --boot-canvas: var(--color-bg-white-0, #0c0a09);
+        --boot-canvas: var(--color-bg-canvas, #110c08);
         --boot-action: var(--color-primary-action, #c2f5da);
         --boot-action-fg: var(--color-primary-action-foreground, #0c0a09);
       }
@@ -618,7 +810,16 @@
         cursor: pointer;
       }
 
-      .boot-reload-button:focus-visible {
+      .boot-home-link {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        margin-inline-start: 16px;
+        text-decoration: underline;
+      }
+
+      .boot-reload-button:focus-visible,
+      .boot-home-link:focus-visible {
         outline: 3px solid var(--boot-action);
         outline-offset: 3px;
       }
@@ -636,7 +837,15 @@
          when either side changes, so update both together. Mirrored sizes and the
          logo breakpoint use rem, as Tailwind does, so browser text settings
          scale both scenes together. Every slot is reserved in every state:
-         the 11:9 split depends on the block's height. */
+         the 11:9 split depends on the block's height.
+
+         The split is taken inside the safe area. Chrome on Android decides per
+         document whether to draw an installed app under the status and
+         navigation bars (viewport-fit=cover), so a reload first lays the page
+         out between the bars and then, a few frames later, under them, with
+         the safe-area insets set to the bars it now covers. Padding by those
+         insets leaves the logo at one place on the screen in both layouts;
+         centring on the whole window moved it up mid-load. */
       .boot-pwa-shell {
         position: relative;
         display: flex; /* flex */
@@ -644,7 +853,9 @@
         align-items: center; /* items-center */
         min-height: 100vh; /* min-h-screen */
         box-sizing: border-box;
-        padding: 0.5rem 1rem; /* py-2 px-4 */
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)); /* pt-[calc(0.5rem+env(safe-area-inset-top,0px))] */
+        padding-inline: 1rem; /* px-4 */
+        padding-bottom: calc(0.5rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))); /* pb-[calc(0.5rem+var(--safe-area-bottom))] */
         overflow-x: hidden;
         overflow-y: auto;
         background: var(--boot-canvas);
@@ -671,6 +882,15 @@
         max-width: 24rem; /* max-w-sm */
         flex-direction: column;
         align-items: center;
+        /* The canvas paints at once and the logo and line fade in a moment
+           later (the controller sets data-revealed), so Chrome's switch to
+           drawing under the bars lands before anything is drawn on it. */
+        opacity: 0;
+        transition: opacity 200ms var(--spring-effects-easing, cubic-bezier(0.2, 0, 0, 1));
+      }
+
+      .boot-pwa-shell[data-revealed] .boot-pwa-content {
+        opacity: 1;
       }
 
       .boot-pwa-logo-slot {
@@ -682,6 +902,53 @@
         display: block;
         width: auto; /* w-auto */
         height: 6rem; /* h-24 */
+      }
+
+      /* MOTION SYNC: the logo breathes while the scene is busy: it grows 4% and
+         eases back every 2.4s. SplashScaffold's .logo-breathe (styles/
+         logo-screens.css) runs the same keyframes and easing token, and both
+         start on the page's clock (the controller sets the delay), so moving
+         from this scene to a breathing sign-in or update screen never restarts
+         the breath; bootFallbackGeometry.test.ts holds the two together. The
+         token's fallback is its own value, for the frames before the
+         stylesheet arrives. With reduced motion the logo holds still, as every
+         animation does under the app's reduced-motion rule (animation.css). */
+      @keyframes boot-breathe {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.04);
+          opacity: 0.8;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .boot-pwa-shell[aria-busy="true"] .boot-pwa-content img {
+          animation: boot-breathe 2.4s var(--spring-effects-easing, cubic-bezier(0.2, 0, 0, 1)) infinite;
+          animation-delay: var(--boot-breathe-delay, 0ms);
+        }
+      }
+
+      /* When the app is ready the scene fades out over it; the app is already
+         drawn underneath, so the hand-over has no cut. The controller sets
+         data-leaving once the app's own logo can paint. */
+      #boot-fallback[data-presentation="pwa"] {
+        transition: opacity 200ms var(--spring-effects-easing, cubic-bezier(0.2, 0, 0, 1));
+      }
+
+      #boot-fallback[data-presentation="pwa"][data-leaving] {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-pwa-content,
+        #boot-fallback[data-presentation="pwa"] {
+          transition: none;
+        }
       }
 
       .boot-pwa-message-slot {
@@ -944,7 +1211,7 @@
                 <img
                   class="boot-editorial-logo"
                   alt=""
-                  src="%BASE_URL%icon.png"
+                  src="%BASE_URL%images/brand-mark-small.webp"
                   width="56"
                   height="32"
                 />
@@ -991,6 +1258,7 @@
                 <h1 id="boot-website-recovery-title">This page is taking longer than expected.</h1>
                 <p id="boot-website-recovery-body">Reload to try again.</p>
                 <button class="boot-reload-button" id="boot-website-reload" type="button">Reload</button>
+                <a class="boot-home-link" id="boot-website-home" href="/">Go to Homepage</a>
               </div>
             </div>
           </div>
@@ -1032,6 +1300,9 @@
     </div>
     <script id="boot-fallback-controller">
       (function () {
+        // Below the browser minimum the update screen is the whole page and the app never starts
+        // (the gate first in the body, scripts/lib/browser-minimum-gate.js).
+        if (document.documentElement.hasAttribute("data-browser-update")) return;
         var root = document.getElementById("root");
         var fallback = document.getElementById("boot-fallback");
         var website = document.getElementById("boot-fallback-website");
@@ -1040,6 +1311,7 @@
         var websiteRecoveryTitle = document.getElementById("boot-website-recovery-title");
         var websiteRecoveryBody = document.getElementById("boot-website-recovery-body");
         var websiteReload = document.getElementById("boot-website-reload");
+        var websiteHome = document.getElementById("boot-website-home");
         var pwa = document.getElementById("boot-fallback-pwa");
         var pwaMessage = document.getElementById("boot-pwa-message");
         var pwaNote = document.getElementById("boot-pwa-note");
@@ -1053,12 +1325,14 @@
             offline: "You’re offline.",
             offlineNote: "Saved screens may still be available.",
             retry: "Try Again",
-            stalled: "Green Goods couldn’t update.",
-            stalledNote: "Close every Green Goods window, then open the app again.",
-            updateWaiting: "An update is waiting.",
-            updateWaitingNote: "Close every Green Goods window, then open the app again.",
-            update: "Green Goods needs an update.",
-            updateAction: "Update App",
+            slow: "Taking longer to load.",
+            checking: "Checking for an update…",
+            downloading: "Downloading an update…",
+            delayed: "The update is taking longer.",
+            failed: "The update couldn’t finish.",
+            blocked: "An update is ready.",
+            blockedNote: "Finish your work in the other Green Goods window and close it, then try again.",
+            homepage: "Go to Homepage",
             websiteRecoveryTitle: "This page is taking longer than expected.",
             websiteRecoveryBody: "Reload to try again.",
             reload: "Reload",
@@ -1070,12 +1344,14 @@
             offline: "Estás sin conexión.",
             offlineNote: "Las pantallas guardadas pueden seguir disponibles.",
             retry: "Intentar de nuevo",
-            stalled: "Green Goods no se pudo actualizar.",
-            stalledNote: "Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
-            updateWaiting: "Hay una actualización pendiente.",
-            updateWaitingNote: "Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
-            update: "Green Goods necesita actualizarse.",
-            updateAction: "Actualizar app",
+            slow: "La carga está tardando más.",
+            checking: "Buscando una actualización…",
+            downloading: "Descargando una actualización…",
+            delayed: "La actualización está tardando.",
+            failed: "No se completó la actualización.",
+            blocked: "Hay una actualización lista.",
+            blockedNote: "Termina tu trabajo en la otra ventana de Green Goods, ciérrala e inténtalo de nuevo.",
+            homepage: "Ir al inicio",
             websiteRecoveryTitle: "Esta página está tardando más de lo esperado.",
             websiteRecoveryBody: "Recarga para intentarlo de nuevo.",
             reload: "Recargar",
@@ -1087,57 +1363,114 @@
             offline: "Você está offline.",
             offlineNote: "As telas salvas ainda podem estar disponíveis.",
             retry: "Tentar novamente",
-            stalled: "O Green Goods não pôde atualizar.",
-            stalledNote: "Feche todas as janelas do Green Goods e abra o app novamente.",
-            updateWaiting: "Há uma atualização pendente.",
-            updateWaitingNote: "Feche todas as janelas do Green Goods e abra o app novamente.",
-            update: "O Green Goods precisa atualizar.",
-            updateAction: "Atualizar app",
+            slow: "O app está demorando a abrir.",
+            checking: "Buscando uma atualização…",
+            downloading: "Baixando uma atualização…",
+            delayed: "A atualização está demorando.",
+            failed: "A atualização não foi concluída.",
+            blocked: "Uma atualização está pronta.",
+            blockedNote: "Termine seu trabalho na outra janela do Green Goods, feche-a e tente novamente.",
+            homepage: "Ir para a página inicial",
             websiteRecoveryTitle: "Esta página está demorando mais do que o esperado.",
             websiteRecoveryBody: "Recarregue para tentar novamente.",
             reload: "Recarregar",
           },
         };
 
-        // The choice the app makes once it runs: the stored language, else the first
-        // browser language with copy here, else English.
-        function bootLanguage() {
-          var stored = null;
-          try {
-            stored = window.localStorage.getItem("gg-language");
-          } catch (error) {
-            // Storage can be blocked. The browser language still applies.
-          }
-          var browser =
-            navigator.languages && navigator.languages.length
-              ? navigator.languages
-              : [navigator.language];
-          var candidates = stored ? [stored] : browser;
-          for (var index = 0; index < candidates.length; index += 1) {
-            var tag = String(candidates[index] || "")
-              .toLowerCase()
-              .slice(0, 2);
-            if (Object.prototype.hasOwnProperty.call(copy, tag)) return tag;
-          }
-          return "en";
-        }
-
-        var language = bootLanguage();
+        // boot-language chose the reader's language for the page; this shell speaks it too.
+        var pageLanguage = document.documentElement.lang;
+        var language = Object.prototype.hasOwnProperty.call(copy, pageLanguage)
+          ? pageLanguage
+          : "en";
         var labels = copy[language];
-        // This shell declares the language of its own copy. The page's language is not its to set.
+        // This shell also declares the language of its own copy on its own root: the app owns the
+        // page's language once it runs, and can correct it to English while this shell is showing.
         if (fallback) fallback.lang = language;
         var timer;
         var updateTimer;
         var observer;
-        var recoveryTimer;
-        var recoveryRegistration;
-        var recoveryInstallingWorker;
-        var recoveryInFlight = false;
+        var recovery;
+        var reactMounted = false;
+        var appReady = false;
+        var reloadOnRetry = false;
+        var reported = Object.create(null);
 
         var PWA_RECOVERY_TIMEOUT_MS = 15000;
+        // One breath of the logo (boot-breathe and SplashScaffold's .logo-breathe).
+        var BREATHE_MS = 2400;
+        // The scene's logo and line show once the window has kept its size this long...
+        var REVEAL_QUIET_MS = 150;
+        // ...and never later than this.
+        var REVEAL_LATEST_MS = 600;
+        // The scene's fade over the ready app (the opacity transition in the styles).
+        var FADE_OUT_MS = 200;
+        // The longest the scene waits for the app's own logo before it fades.
+        var APP_LOGO_WAIT_MS = 400;
+        var revealTimer;
+        var revealDeadline;
 
         function hasAppContent() {
           return root && root.children.length > 0;
+        }
+
+        // The logo breathes while the scene is busy. A breath that starts now is
+        // put on the page's clock, as SplashScaffold's is, so the two stay in step
+        // when one screen hands over to the other.
+        function setPwaBusy(busy) {
+          if (!pwa) return;
+          if (busy && pwa.getAttribute("aria-busy") !== "true") {
+            var now = typeof performance.now === "function" ? performance.now() : 0;
+            pwa.style.setProperty("--boot-breathe-delay", -(now % BREATHE_MS) + "ms");
+          }
+          pwa.setAttribute("aria-busy", busy ? "true" : "false");
+        }
+
+        // Chrome on Android resizes a reloading installed app a few frames after
+        // its first paint, as it starts drawing it under the system bars. The
+        // logo and line fade in once the window has stopped changing, so that
+        // switch happens on a bare canvas. A recovery state shows at once.
+        function revealPwa() {
+          window.clearTimeout(revealTimer);
+          window.clearTimeout(revealDeadline);
+          if (pwa) pwa.setAttribute("data-revealed", "");
+        }
+
+        function onRevealResize() {
+          if (!pwa || pwa.hasAttribute("data-revealed")) return;
+          window.clearTimeout(revealTimer);
+          revealTimer = window.setTimeout(revealPwa, REVEAL_QUIET_MS);
+        }
+
+        function scheduleReveal() {
+          if (!pwa || pwa.hasAttribute("data-revealed") || revealDeadline) return;
+          revealTimer = window.setTimeout(revealPwa, REVEAL_QUIET_MS);
+          revealDeadline = window.setTimeout(revealPwa, REVEAL_LATEST_MS);
+        }
+
+        // Sign-in and the update screen draw the logo where this scene does, in an
+        // image of their own that can take a few frames to load. The scene leaves
+        // once that logo can paint, so the hand-over never shows a screen without
+        // it. Home draws no logo, and the scene leaves at once.
+        function whenAppLogoReady(callback) {
+          var logo = root ? root.querySelector('img[src$="icon.png"]') : null;
+          if (!logo || typeof logo.decode !== "function") {
+            callback();
+            return;
+          }
+          var settled = false;
+          var settle = function () {
+            if (settled) return;
+            settled = true;
+            callback();
+          };
+          // The cap comes first, and a decode() that throws or hands back no
+          // promise counts as a browser without one: the scene leaves at once.
+          window.setTimeout(settle, APP_LOGO_WAIT_MS);
+          try {
+            logo.decode().then(settle, settle);
+          } catch (error) {
+            settle();
+          }
         }
 
         // The installed app's scene says one thing on the line under the logo
@@ -1155,18 +1488,20 @@
           if (!fallback || hasAppContent()) return;
           if (
             kind === "loading" &&
-            ["recovery", "applying", "stalled"].indexOf(fallback.dataset.state) !== -1
+            ["recovery", "checking", "applying", "stalled"].indexOf(fallback.dataset.state) !== -1
           ) {
             return;
           }
           if (
             kind === "recovery" &&
-            ["applying", "stalled"].indexOf(fallback.dataset.state) !== -1
+            ["checking", "applying", "stalled"].indexOf(fallback.dataset.state) !== -1
           ) {
             return;
           }
           var isRecovery = kind === "recovery";
           fallback.hidden = false;
+          fallback.removeAttribute("aria-hidden");
+          fallback.removeAttribute("data-leaving");
           fallback.dataset.presentation = presentation;
           fallback.dataset.state = isRecovery ? "recovery" : "loading";
 
@@ -1175,14 +1510,16 @@
               pwa.hidden = false;
               pwa.setAttribute("role", isRecovery ? "alert" : "status");
               pwa.setAttribute("aria-live", isRecovery ? "assertive" : "polite");
-              pwa.setAttribute("aria-busy", isRecovery ? "false" : "true");
+              setPwaBusy(!isRecovery);
             }
+            if (isRecovery) revealPwa();
+            else scheduleReveal();
             if (website) website.hidden = true;
-            setPwaCopy(isRecovery ? labels.update : labels.loading);
+            setPwaCopy(isRecovery ? labels.slow : labels.loading);
             if (pwaReload) {
               pwaReload.hidden = !isRecovery;
               pwaReload.setAttribute("aria-disabled", "false");
-              pwaReload.textContent = labels.updateAction;
+              pwaReload.textContent = labels.retry;
             }
             return;
           }
@@ -1210,34 +1547,61 @@
           }
         }
 
-        function removeRecoveryListeners() {
-          if (recoveryTimer) {
-            window.clearTimeout(recoveryTimer);
-            recoveryTimer = undefined;
+        // Use the existing crash queue, which sends when analytics connects. Keep
+        // only fixed reasons and context: no URL, stack, or user input at boot.
+        function reportBootFailure(reason) {
+          if (reported[reason]) return;
+          reported[reason] = true;
+          try {
+            var storage = window.localStorage;
+            var raw = storage.getItem("gg-crash-reports");
+            var reports;
+            try { reports = JSON.parse(raw || "[]"); } catch (_) { reports = []; }
+            var occurredAt = Date.now();
+            var error = { name: "StartupError", message: reason };
+            var report = {
+              id: window.crypto.randomUUID(),
+              occurredAt: occurredAt,
+              error: error,
+              properties: {
+                source: "client_boot",
+                error_type: error.name,
+                error_message: reason,
+                presentation: presentation,
+                is_offline: navigator.onLine === false,
+              },
+            };
+            storage.setItem("gg-crash-reports", JSON.stringify(
+              (Array.isArray(reports) ? reports : []).slice(-9).concat(report)
+            ));
+          } catch (_) {
+            // An unavailable store must not interfere with recovery.
           }
-          if (recoveryRegistration) {
-            recoveryRegistration.removeEventListener("updatefound", handleUpdateFound);
-          }
-          if (recoveryInstallingWorker) {
-            recoveryInstallingWorker.removeEventListener("statechange", handleInstallingStateChange);
-          }
-          recoveryRegistration = undefined;
-          recoveryInstallingWorker = undefined;
+        }
+
+        function stopRecovery() {
+          if (!recovery) return;
+          var attempt = recovery;
+          recovery = undefined;
+          window.clearTimeout(attempt.timer);
+          if (attempt.worker) attempt.worker.removeEventListener("statechange", attempt.onState);
+          if (attempt.port) attempt.port.close();
         }
 
         function setPwaRecoveryState(kind, line, note) {
           if (!fallback || !pwa || !pwaMessage || !pwaReload) return;
-          var isApplying = kind === "applying";
+          var isApplying = kind === "applying" || kind === "checking";
           var isAlert = kind === "stalled";
 
           fallback.dataset.state = kind;
           pwa.setAttribute("role", isAlert ? "alert" : "status");
           pwa.setAttribute("aria-live", isAlert ? "assertive" : "polite");
-          pwa.setAttribute("aria-busy", isApplying ? "true" : "false");
+          setPwaBusy(isApplying);
+          revealPwa();
           setPwaCopy(line, note);
           pwaReload.hidden = false;
           pwaReload.setAttribute("aria-disabled", isApplying ? "true" : "false");
-          pwaReload.textContent = isApplying ? labels.applyingAction : labels.retry;
+          pwaReload.textContent = kind === "applying" ? labels.applyingAction : labels.retry;
         }
 
         function setPwaLoadingState() {
@@ -1246,145 +1610,161 @@
           fallback.dataset.state = "loading";
           pwa.setAttribute("role", "status");
           pwa.setAttribute("aria-live", "polite");
-          pwa.setAttribute("aria-busy", "true");
+          setPwaBusy(true);
           setPwaCopy(labels.loading);
           pwaReload.hidden = true;
           pwaReload.setAttribute("aria-disabled", "false");
-          pwaReload.textContent = labels.updateAction;
+          pwaReload.textContent = labels.retry;
         }
 
-        // reason: "stalled", "updateWaiting" or "offline".
-        function stallPwaRecovery(reason) {
-          var key = reason || "stalled";
-          removeRecoveryListeners();
-          recoveryInFlight = false;
-          setPwaRecoveryState("stalled", labels[key], labels[key + "Note"]);
+        function stallPwaRecovery(reason, diagnostic, keepWatching) {
+          if (!keepWatching) stopRecovery();
+          if (diagnostic) reportBootFailure(diagnostic);
+          setPwaRecoveryState("stalled", labels[reason], labels[reason + "Note"]);
           if (pwaReload) pwaReload.focus();
         }
 
-        function activateWaitingWorker(worker) {
-          if (!worker || !recoveryInFlight || !("serviceWorker" in navigator)) {
-            stallPwaRecovery("stalled");
-            return;
-          }
-
-          // A waiting worker activates when every page using the old worker is
-          // closed. The boot scene must not force activation around the app's
-          // quiescence handshake.
-          stallPwaRecovery("updateWaiting");
+        function watchWorker(attempt, worker, onState) {
+          if (attempt.worker) attempt.worker.removeEventListener("statechange", attempt.onState);
+          attempt.worker = worker;
+          attempt.onState = onState;
+          worker.addEventListener("statechange", onState);
+          onState();
         }
 
-        function handleInstallingStateChange() {
-          if (!recoveryInstallingWorker || !recoveryInFlight) return;
-
-          if (recoveryInstallingWorker.state === "installed") {
-            activateWaitingWorker(
-              (recoveryRegistration && recoveryRegistration.waiting) || recoveryInstallingWorker
-            );
-          } else if (recoveryInstallingWorker.state === "redundant") {
-            stallPwaRecovery("stalled");
-          }
-        }
-
-        function watchInstallingWorker(worker) {
-          if (!worker || !recoveryInFlight) return;
-          if (recoveryInstallingWorker === worker) {
-            handleInstallingStateChange();
-            return;
-          }
-          if (recoveryInstallingWorker && recoveryInstallingWorker !== worker) {
-            recoveryInstallingWorker.removeEventListener("statechange", handleInstallingStateChange);
-          }
-          recoveryInstallingWorker = worker;
-          recoveryInstallingWorker.addEventListener("statechange", handleInstallingStateChange);
-          handleInstallingStateChange();
-        }
-
-        function handleUpdateFound() {
-          if (recoveryRegistration && recoveryRegistration.waiting) {
-            activateWaitingWorker(recoveryRegistration.waiting);
-            return;
-          }
-          if (recoveryRegistration && recoveryRegistration.installing) {
-            watchInstallingWorker(recoveryRegistration.installing);
-          }
+        function activateWaitingWorker(attempt, worker) {
+          setPwaRecoveryState("applying", labels.applying);
+          window.clearTimeout(attempt.timer);
+          attempt.timer = window.setTimeout(function () {
+            // The browser may still be draining the previous worker. Keep
+            // listening for this worker to activate after the busy UI ends.
+            reloadOnRetry = !attempt.requested;
+            stallPwaRecovery("delayed", "activation_delayed", true);
+          }, PWA_RECOVERY_TIMEOUT_MS);
+          watchWorker(attempt, worker, function () {
+            if (worker.state === "activated") {
+              stopRecovery();
+              window.location.reload();
+            } else if (worker.state === "redundant") {
+              stallPwaRecovery("failed", "activation_failed");
+            }
+          });
+          if (recovery !== attempt) return;
+          var channel = new MessageChannel();
+          attempt.port = channel.port1;
+          channel.port1.onmessage = function (event) {
+            channel.port1.close();
+            if (recovery !== attempt) return;
+            if (event.data?.status === "requested") attempt.requested = true;
+            if (event.data?.status === "blocked") stallPwaRecovery("blocked");
+            if (event.data?.status === "failed") stallPwaRecovery("failed", "activation_failed");
+          };
+          worker.postMessage({ type: "ACTIVATE_BOOT_UPDATE" }, [channel.port2]);
         }
 
         async function recoverPwa() {
-          if (recoveryInFlight || presentation !== "pwa") return;
-          recoveryInFlight = true;
-          setPwaRecoveryState("applying", labels.applying);
-          recoveryTimer = window.setTimeout(function () {
-            stallPwaRecovery("stalled");
-          }, PWA_RECOVERY_TIMEOUT_MS);
-
-          if (!("serviceWorker" in navigator)) {
-            stallPwaRecovery("stalled");
+          if (reactMounted || presentation !== "pwa" || pwaReload.getAttribute("aria-disabled") === "true") return;
+          stopRecovery();
+          if (reloadOnRetry && navigator.onLine !== false) {
+            reloadWithCacheBust();
             return;
           }
+          var attempt = {};
+          recovery = attempt;
+          setPwaRecoveryState("checking", labels.checking);
+          attempt.timer = window.setTimeout(function () {
+            reloadOnRetry = true;
+            stallPwaRecovery("delayed", "update_check_delayed");
+          }, PWA_RECOVERY_TIMEOUT_MS);
 
           try {
-            recoveryRegistration = await navigator.serviceWorker.getRegistration();
-            if (!recoveryInFlight) return;
-            if (!recoveryRegistration) {
-              stallPwaRecovery("stalled");
-              return;
+            var registration = await navigator.serviceWorker?.getRegistration();
+            if (recovery !== attempt) return;
+            if (!registration?.waiting && !registration?.installing) {
+              if (navigator.onLine === false) {
+                stallPwaRecovery("offline");
+                return;
+              }
+              await registration?.update();
+              if (recovery !== attempt) return;
             }
 
-            recoveryRegistration.addEventListener("updatefound", handleUpdateFound);
-
-            if (recoveryRegistration.waiting) {
-              activateWaitingWorker(recoveryRegistration.waiting);
-              return;
-            }
-            if (recoveryRegistration.installing) {
-              watchInstallingWorker(recoveryRegistration.installing);
-              return;
-            }
-            if (navigator.onLine === false) {
-              stallPwaRecovery("offline");
-              return;
-            }
-
-            await recoveryRegistration.update();
-            if (!recoveryInFlight) return;
-
-            if (recoveryRegistration.waiting) {
-              activateWaitingWorker(recoveryRegistration.waiting);
-            } else if (recoveryRegistration.installing) {
-              watchInstallingWorker(recoveryRegistration.installing);
+            if (registration?.waiting) {
+              activateWaitingWorker(attempt, registration.waiting);
+            } else if (registration?.installing) {
+              var worker = registration.installing;
+              setPwaRecoveryState("checking", labels.downloading);
+              watchWorker(attempt, worker, function () {
+                if (registration.waiting === worker) {
+                  activateWaitingWorker(attempt, worker);
+                } else if (worker.state === "activated") {
+                  stopRecovery();
+                  window.location.reload();
+                } else if (worker.state === "redundant") {
+                  reloadOnRetry = true;
+                  stallPwaRecovery("failed", "update_download_failed");
+                }
+              });
+            } else {
+              stopRecovery();
+              reloadWithCacheBust();
             }
           } catch (_) {
-            stallPwaRecovery(navigator.onLine === false ? "offline" : "stalled");
+            if (recovery !== attempt) return;
+            reloadOnRetry = true;
+            stallPwaRecovery(navigator.onLine === false ? "offline" : "failed", "update_check_failed");
           }
         }
 
         function clearFallback() {
+          if (!appReady && presentation === "pwa" && typeof performance.mark === "function") {
+            performance.mark("gg-pwa-startup-ready");
+            window.dispatchEvent(new Event("gg-pwa-startup-ready"));
+          }
+          appReady = true;
           if (!hasAppContent()) return;
           if (timer) window.clearTimeout(timer);
           if (updateTimer) window.clearTimeout(updateTimer);
           if (observer) observer.disconnect();
-          removeRecoveryListeners();
-          recoveryInFlight = false;
+          stopRecovery();
+          window.clearTimeout(revealTimer);
+          window.clearTimeout(revealDeadline);
           if (fallback) {
-            fallback.hidden = true;
             fallback.dataset.state = "cleared";
+            if (presentation === "pwa") {
+              // The scene fades out over the app (the styles), then leaves the page.
+              whenAppLogoReady(function () {
+                if (fallback.dataset.state !== "cleared") return;
+                fallback.setAttribute("aria-hidden", "true");
+                fallback.setAttribute("data-leaving", "");
+                window.setTimeout(function () {
+                  if (fallback.dataset.state === "cleared") fallback.hidden = true;
+                }, FADE_OUT_MS);
+              });
+            } else {
+              fallback.hidden = true;
+            }
           }
         }
 
         function markReactMounted() {
-          // Cancel the stale-assets timer the moment React calls in, whatever it
-          // has painted. That timer exists to catch a bundle that never arrived,
-          // and React running proves one did. A login waiting on auth
-          // restoration renders nothing ON PURPOSE, so leaving it armed told the
-          // installed PWA after 4.5s that it "needs the latest app files" and
-          // offered an update that would reload the sign-in already in flight.
+          // Recovery belongs to the boot screen. Once React mounts, its work
+          // guard and error boundaries take over even if sign-in is still empty.
+          reactMounted = true;
+          stopRecovery();
           if (updateTimer) window.clearTimeout(updateTimer);
+          if (fallback && ["recovery", "checking", "applying", "stalled"].includes(fallback.dataset.state) && presentation === "pwa") {
+            setPwaLoadingState();
+          }
           // Everything below is about CONTENT, not about the bundle. With an
           // empty root the boot surface has to stay up — and `timer`, which
           // raises it, has to stay armed — or a slow restore flashes blank.
           // The observer re-enters here as soon as React paints.
           if (!hasAppContent()) return;
+          if (appReady) {
+            clearFallback();
+            return;
+          }
           if (timer) window.clearTimeout(timer);
           if (observer) observer.disconnect();
 
@@ -1395,12 +1775,13 @@
             return;
           }
 
-          removeRecoveryListeners();
-          recoveryInFlight = false;
+          stopRecovery();
           setPwaLoadingState();
         }
 
         function markBootFailed() {
+          // A failure clears the static layer, but is not a successful launch.
+          appReady = true;
           clearFallback();
         }
 
@@ -1420,17 +1801,24 @@
 
         if (websiteReload) websiteReload.addEventListener("click", reloadWithCacheBust);
         if (pwaReload) pwaReload.addEventListener("click", recoverPwa);
+        if (presentation === "pwa") window.addEventListener("resize", onRevealResize);
 
-        window.addEventListener(
-          "error",
-          function (event) {
-            var target = event && event.target;
-            if (target && target.tagName === "SCRIPT" && target.type === "module") {
-              showFallback("recovery");
-            }
-          },
-          true
-        );
+        window.addEventListener("error", function (event) {
+          if (reactMounted || appReady) return;
+          var target = event.target;
+          if (target?.tagName === "SCRIPT" && target.type === "module") {
+            reportBootFailure("startup_module_failed");
+            showFallback("recovery");
+          } else if (event.error) {
+            reportBootFailure("startup_script_failed");
+            showFallback("recovery");
+          }
+        }, true);
+        window.addEventListener("unhandledrejection", function () {
+          if (reactMounted || appReady) return;
+          reportBootFailure("startup_promise_rejected");
+          showFallback("recovery");
+        });
 
         if (root && "MutationObserver" in window) {
           observer = new MutationObserver(function () {
@@ -1448,6 +1836,7 @@
         }
 
         updateTimer = window.setTimeout(function () {
+          reportBootFailure("startup_slow");
           showFallback("recovery");
         }, 4500);
       })();

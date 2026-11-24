@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { ConvictionMeter } from "@green-goods/shared/components/Conviction/ConvictionMeter";
 import {
   WeightAllocator,
@@ -14,7 +15,6 @@ import { RiArrowRightSLine, RiUserVoiceLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 
 interface GovernancePanelProps {
   /** All garden pools — the panel filters to the HypercertSignalPool. */
@@ -26,7 +26,7 @@ interface GovernancePanelProps {
 /**
  * Net-new conviction-voting surface for the
  * Community → Governance tab. Composes the Tier 3 components
- * (WeightAllocator + ProposalCardConviction + ConvictionMeter) with the
+ * (WeightAllocator + ConvictionMeter) with the
  * Tier-5 adapter hooks (useConvictionProposalsForPool +
  * useConvictionWeightAllocator).
  *
@@ -39,7 +39,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
   const primaryAddress = usePrimaryAddress();
 
   const hypercertPool = useMemo(
-    () => pools.find((pool) => pool.poolType === PoolType.Hypercert),
+    () => pools.find((pool) => pool.poolType === PoolType.HypercertSignal),
     [pools]
   );
 
@@ -64,11 +64,11 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
       <EmptyState
         icon={<RiUserVoiceLine className="h-6 w-6" />}
         title={formatMessage({
-          id: "cockpit.community.governance.noPool.title",
+          id: "hub.community.governance.noPool.title",
           defaultMessage: "No conviction pool yet",
         })}
         description={formatMessage({
-          id: "cockpit.community.governance.noPool.description",
+          id: "hub.community.governance.noPool.description",
           defaultMessage:
             "Create a HypercertSignalPool from the Community panel to enable conviction voting on this garden's hypercerts.",
         })}
@@ -114,11 +114,11 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
       <EmptyState
         icon={<RiUserVoiceLine className="h-6 w-6" />}
         title={formatMessage({
-          id: "cockpit.community.governance.empty.title",
+          id: "hub.community.governance.empty.title",
           defaultMessage: "No registered proposals yet",
         })}
         description={formatMessage({
-          id: "cockpit.community.governance.empty.description",
+          id: "hub.community.governance.empty.description",
           defaultMessage:
             "Register hypercerts in this garden's signal pool to surface them here for conviction voting.",
         })}
@@ -135,33 +135,33 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
       <div className="overflow-hidden rounded-lg border border-stroke-soft bg-bg-white">
         <div className="flex flex-col gap-3 border-b border-stroke-soft px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="label-sm text-text-strong">
-              {formatMessage({ id: "cockpit.community.coordination.hypercertPool" })}
+            <p className="type-meta-sm text-text-strong">
+              {formatMessage({ id: "hub.community.coordination.hypercertPool" })}
             </p>
-            <p className="mt-1 font-mono body-xs text-text-soft">
+            <p className="mt-1 font-mono type-meta text-text-soft">
               {formatShortAddress(hypercertPool.poolAddress)}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-bg-soft px-2 py-0.5 label-xs text-text-sub">
+            <span className="rounded-full bg-bg-soft px-2 py-0.5 type-label-sm text-text-sub">
               {formatMessage(
-                { id: "cockpit.community.coordination.proposalCount" },
+                { id: "hub.community.coordination.proposalCount" },
                 { count: proposals.length }
               )}
             </span>
-            <AdminButton asChild variant="text" size="sm">
+            <Button asChild emphasis="tertiary" size="compact">
               <Link to={adminRoutes.communityCoordinationSignalPool("hypercert", { gardenId })}>
-                {formatMessage({ id: "cockpit.community.coordination.openPool" })}
+                {formatMessage({ id: "hub.community.coordination.openPool" })}
                 <RiArrowRightSLine className="h-4 w-4" />
               </Link>
-            </AdminButton>
+            </Button>
           </div>
         </div>
 
-        <div className="hidden grid-cols-[minmax(0,1fr)_8rem_12rem_auto] gap-3 border-b border-stroke-soft bg-bg-weak px-4 py-2 label-xs uppercase tracking-[0.04em] text-text-soft lg:grid">
-          <span>{formatMessage({ id: "cockpit.community.coordination.proposal" })}</span>
-          <span>{formatMessage({ id: "cockpit.community.coordination.support" })}</span>
-          <span>{formatMessage({ id: "cockpit.community.coordination.conviction" })}</span>
+        <div className="hidden grid-cols-[minmax(0,1fr)_8rem_12rem_auto] gap-3 border-b border-stroke-soft bg-bg-weak px-4 py-2 type-label-sm uppercase tracking-[0.04em] text-text-soft lg:grid">
+          <span>{formatMessage({ id: "hub.community.coordination.proposal" })}</span>
+          <span>{formatMessage({ id: "hub.community.coordination.support" })}</span>
+          <span>{formatMessage({ id: "hub.community.coordination.conviction" })}</span>
           <span className="sr-only">{formatMessage({ id: "app.actions.view" })}</span>
         </div>
 
@@ -174,26 +174,26 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
             >
               <div className="min-w-0 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="body-sm font-semibold text-text-strong">{proposal.title}</h3>
+                  <h3 className="type-body font-semibold text-text-strong">{proposal.title}</h3>
                   <StatusBadge convictionStatus={proposal.status} size="sm" />
                 </div>
                 {proposal.summary ? (
-                  <p className="line-clamp-2 body-sm text-text-sub">{proposal.summary}</p>
+                  <p className="line-clamp-2 type-body text-text-sub">{proposal.summary}</p>
                 ) : null}
               </div>
               <div className="space-y-1 lg:space-y-0">
-                <p className="body-xs text-text-soft lg:hidden">
-                  {formatMessage({ id: "cockpit.community.coordination.support" })}
+                <p className="type-meta text-text-soft lg:hidden">
+                  {formatMessage({ id: "hub.community.coordination.support" })}
                 </p>
-                <p className="body-sm font-medium tabular-nums text-text-strong">
+                <p className="type-body font-medium tabular-nums text-text-strong">
                   {formatMessage(
-                    { id: "cockpit.community.coordination.supporters" },
+                    { id: "hub.community.coordination.supporters" },
                     { count: proposal.supporters }
                   )}
                 </p>
               </div>
               <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2 body-xs tabular-nums">
+                <div className="flex items-center justify-between gap-2 type-meta tabular-nums">
                   <span className="text-text-sub">
                     {Math.round(proposal.conviction)}% / {Math.round(proposal.threshold)}%
                   </span>
@@ -209,12 +209,12 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
                   showLabels={false}
                 />
               </div>
-              <AdminButton asChild variant="text" size="sm" className="justify-self-start">
+              <Button asChild emphasis="tertiary" size="compact" className="justify-self-start">
                 <Link to={adminRoutes.communityCoordinationSignalPool("hypercert", { gardenId })}>
                   {formatMessage({ id: "app.actions.view" })}
                   <RiArrowRightSLine className="h-4 w-4" />
                 </Link>
-              </AdminButton>
+              </Button>
             </article>
           ))}
         </div>
@@ -229,15 +229,15 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
         />
       ) : (
         <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
-          <p className="body-sm font-medium text-text-strong">
+          <p className="type-body font-medium text-text-strong">
             {formatMessage({
-              id: "cockpit.community.governance.signIn.title",
+              id: "hub.community.governance.signIn.title",
               defaultMessage: "Sign In to Allocate Conviction",
             })}
           </p>
-          <p className="mt-1 body-sm text-text-sub">
+          <p className="mt-1 type-body text-text-sub">
             {formatMessage({
-              id: "cockpit.community.governance.signIn.description",
+              id: "hub.community.governance.signIn.description",
               defaultMessage:
                 "Connect your wallet or sign in to allocate your conviction weight across the proposals below.",
             })}

@@ -84,7 +84,7 @@
   border-radius: 0;
   left: 50%;
   top: max(0.5rem, env(safe-area-inset-top));
-  bottom: max(0.5rem, env(safe-area-inset-bottom));
+  bottom: max(0.5rem, var(--safe-area-bottom));
   height: auto;
   max-height: none;
   --tw-translate-x: 0;

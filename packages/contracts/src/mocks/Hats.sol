@@ -16,6 +16,7 @@ contract MockHats is IHats {
     error HatNotActive();
     error AlreadyWearingHat();
     error NotEligible();
+    error NotHatsEligibility();
     error MaxSupplyReached();
     error HatNotMutable();
     error MaxLevelReached();
@@ -353,7 +354,14 @@ contract MockHats is IHats {
 
     /// @inheritdoc IHats
     function setHatWearerStatus(uint256 _hatId, address _wearer, bool _eligible, bool _standing) external returns (bool) {
-        eligibility[_hatId][_wearer] = _eligible;
+        Hat storage hat = hats[_hatId];
+        // Hats made with setHatActive name no module, so tests can drive them from any caller.
+        if (hat.eligibility != address(0) && msg.sender != hat.eligibility) revert NotHatsEligibility();
+        // Like Hats Protocol, an ineligible wearer or one in bad standing loses the hat outright.
+        if (wearers[_hatId][_wearer] && (!_eligible || !_standing)) {
+            wearers[_hatId][_wearer] = false;
+            hat.supply--;
+        }
         standing[_hatId][_wearer] = _standing;
         return true;
     }
@@ -410,40 +418,6 @@ contract MockHats is IHats {
     /// @param isEligible_ Whether the wearer is eligible
     function setEligibility(uint256 _hatId, address _wearer, bool isEligible_) external {
         eligibility[_hatId][_wearer] = isEligible_;
-    }
-
-    /// @notice Set standing status (test helper)
-    /// @param _hatId The hat ID
-    /// @param _wearer The wearer address
-    /// @param _inStanding Whether the wearer is in good standing
-    function setStanding(uint256 _hatId, address _wearer, bool _inStanding) external {
-        standing[_hatId][_wearer] = _inStanding;
-    }
-
-    /// @notice Batch set wearers for a hat (test helper)
-    /// @param _hatId The hat ID
-    /// @param _wearersArr Array of addresses
-    /// @param _areWearers Array of booleans
-    function batchSetWearers(uint256 _hatId, address[] calldata _wearersArr, bool[] calldata _areWearers) external {
-        if (_wearersArr.length != _areWearers.length) revert ArrayLengthMismatch();
-        for (uint256 i = 0; i < _wearersArr.length; i++) {
-            if (_areWearers[i] && !wearers[_hatId][_wearersArr[i]]) {
-                wearers[_hatId][_wearersArr[i]] = true;
-                eligibility[_hatId][_wearersArr[i]] = true;
-                standing[_hatId][_wearersArr[i]] = true;
-                hats[_hatId].supply++;
-            } else if (!_areWearers[i] && wearers[_hatId][_wearersArr[i]]) {
-                wearers[_hatId][_wearersArr[i]] = false;
-                hats[_hatId].supply--;
-            }
-        }
-    }
-
-    /// @notice Get hat admin (test helper)
-    /// @param _hatId The hat ID
-    /// @return admin The admin hat ID
-    function getHatAdmin(uint256 _hatId) external view returns (uint256) {
-        return hats[_hatId].admin;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

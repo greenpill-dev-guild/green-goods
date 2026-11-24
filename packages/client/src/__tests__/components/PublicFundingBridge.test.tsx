@@ -27,17 +27,17 @@ import { PublicFundingBridge } from "../../components/Public/PublicFundingBridge
 
 const messages: Record<string, string> = {
   "public.home.funding.body":
-    "Explore a Garden’s work before choosing how to support it. Give to its shared fund today, or explore an endowment for support over time.",
+    "Explore a garden’s work before choosing how to support it. Give to its shared fund today, or explore an endowment for support over time.",
   "public.home.funding.cta": "Support Gardens",
   "public.home.funding.donateBody":
-    "Contribute to the Garden’s shared fund to help its community carry out the work.",
+    "Contribute to the garden’s shared fund to help its community carry out the work.",
   "public.home.funding.donateTitle": "Donate",
   "public.home.funding.endowBody":
-    "An endowment is a withdrawable deposit whose investment earnings support the Garden. Read its terms and risks before contributing.",
+    "An endowment is a withdrawable deposit whose investment earnings support the garden. Read its terms and risks before contributing.",
   "public.home.funding.endowTitle": "Support over time",
-  "public.home.funding.kicker": "§ 04: Support Gardens",
+  "public.home.funding.kicker": "§ 04: Support gardens",
   "public.home.funding.note":
-    "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Long-term deposits depend on the underlying token and provider, so values and access can vary.",
+    "Both paths support the garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Long-term deposits depend on the underlying token and provider, so values and access can vary.",
   "public.home.funding.notePrefix": "note",
   "public.home.funding.title": "Help communities keep going.",
 };

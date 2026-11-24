@@ -147,6 +147,11 @@ export interface AgentReportingCeremony extends Omit<CeremonyAccount, "prove"> {
   skipCommunity: () => void;
   joinCommunity: () => Promise<void>;
   sessionAccount: AccessResponse["account"] | null;
+  /**
+   * A refreshed tab is still resuming the session it stored, so its start may stand for a request
+   * that has moved on. Never true for a link opened fresh.
+   */
+  resuming: boolean;
   resource: ResourceView | null;
   operation: OperationView | null;
   grant: GrantView | null;

@@ -12,6 +12,8 @@ export const PWA_DEV_SERVICE_WORKER_SCRIPT = "/dev-sw.js?dev-sw";
 
 export const APP_ROUTES = {
   home: "/home",
+  /** Every garden the app lists, under Home so the bottom bar stays on Home (DL-125). */
+  explore: "/home/explore",
   login: "/home/login",
   garden: "/home/garden",
   profile: "/home/profile",
@@ -23,9 +25,9 @@ export const LEGACY_APP_ROUTES = {
   profile: "/profile",
 } as const;
 
-/** The /home children that are tabs or the login rather than a garden's id. */
+/** The /home children that are tabs, Explore or the login rather than a garden's id. */
 const HOME_TAB_SEGMENTS: ReadonlySet<string> = new Set(
-  [APP_ROUTES.login, APP_ROUTES.garden, APP_ROUTES.profile].map((route) =>
+  [APP_ROUTES.explore, APP_ROUTES.login, APP_ROUTES.garden, APP_ROUTES.profile].map((route) =>
     route.slice(APP_ROUTES.home.length + 1)
   )
 );

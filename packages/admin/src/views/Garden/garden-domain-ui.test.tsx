@@ -2,7 +2,7 @@ import { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui
 import enMessages from "@green-goods/shared/i18n/en";
 import { createTestQueryClient } from "@green-goods/shared/testing/query-client";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
@@ -92,9 +92,21 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
         handleSelectGarden: vi.fn(),
         handleSettingsClose: () => navigate("/garden/health"),
         handleTabChange: (nextView: string) =>
-          navigate(nextView === "settings" ? "/garden/settings" : "/garden/health"),
+          navigate(nextView === "settings" ? "/garden/health?item=edit-garden" : "/garden/health"),
         hypercertId: undefined,
         hypercerts: [],
+        // Review Health reads its own weeks; none here, as a read that has not answered.
+        reviewHealth: {
+          weeks: [],
+          state: "loading",
+          stale: false,
+          isFetching: false,
+          retry: vi.fn(),
+          openWeek: null,
+          openList: "submitted",
+          weekHref: () => "/garden/health",
+          handleCloseWeek: vi.fn(),
+        },
         hypercertSheetCloseTo: "/garden",
         karmaIntegration: {
           status: {
@@ -127,7 +139,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
         },
         selectedItem: undefined,
         setActivityFilter: vi.fn(),
-        settingsOpen: location.pathname.endsWith("/settings"),
+        settingsOpen: new URLSearchParams(location.search).get("item") === "edit-garden",
         treasuryBalance: "0",
         updateOverviewQueryState: vi.fn(),
         view: location.pathname.endsWith("/impact")
@@ -243,6 +255,7 @@ vi.mock("@green-goods/shared/hooks/navigation/useCanvasSearchParams", () => ({
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
+  useFocusAfterFlip: () => undefined,
 }));
 
 vi.mock("@green-goods/shared/hooks/useSheetWidth", () => ({
@@ -276,6 +289,8 @@ vi.mock("@green-goods/shared/stores/useGardenStateStore", () => ({
       setGardenWorkspaceState: vi.fn(),
     }),
 }));
+
+vi.mock("@/views/Garden/components/GardenSetupCard", () => ({ GardenSetupPanel: () => null }));
 
 vi.mock("@/components/Garden/GardenSettingsEditor", () => ({
   GardenSettingsEditor: (props: {
@@ -315,11 +330,8 @@ describe("garden domain recovery UI", () => {
   // CreateAssessmentDialog.test.tsx.
   function renderWorkspaceAtSettings() {
     const router = createMemoryRouter(
-      [
-        { path: "/garden/settings", element: <GardenWorkspaceHarness /> },
-        { path: "/garden/health", element: <div>Health route</div> },
-      ],
-      { initialEntries: ["/garden/settings"] }
+      [{ path: "/garden/health", element: <GardenWorkspaceHarness /> }],
+      { initialEntries: ["/garden/health?item=edit-garden"] }
     );
     render(
       <TestProviders>
@@ -342,28 +354,28 @@ describe("garden domain recovery UI", () => {
       </TestProviders>
     );
 
-    const pendingWork = screen.getByText("Pending Work").closest(".garden-stat-row");
+    const pendingWork = screen.getByText("Pending Work").closest('[data-component="FactRow"]');
     expect(pendingWork).not.toBeNull();
     expect(within(pendingWork as HTMLElement).getByText("6")).toBeInTheDocument();
   });
 
-  it("closes pristine garden settings straight to health with no discard prompt", async () => {
+  it("closes pristine garden settings straight to the tab with no discard prompt", async () => {
     const user = userEvent.setup();
 
-    renderWorkspaceAtSettings();
+    const router = renderWorkspaceAtSettings();
 
     expect(screen.getByRole("dialog", { name: "Edit Garden" })).toBeVisible();
 
     await user.keyboard("{Escape}");
 
-    expect(await screen.findByText("Health route")).toBeVisible();
+    await waitFor(() => expect(router.state.location.search).toBe(""));
     expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
   });
 
   it("prompts before discarding dirty garden settings and keeps editing on cancel", async () => {
     const user = userEvent.setup();
 
-    renderWorkspaceAtSettings();
+    const router = renderWorkspaceAtSettings();
     act(() => settingsEditorProbe.reportDirtyState?.({ isDirty: true, isSaving: false }));
 
     await user.keyboard("{Escape}");
@@ -373,19 +385,19 @@ describe("garden domain recovery UI", () => {
     await user.click(screen.getByRole("button", { name: "Keep Editing" }));
 
     expect(screen.getByRole("dialog", { name: "Edit Garden" })).toBeVisible();
-    expect(screen.queryByText("Health route")).not.toBeInTheDocument();
+    expect(router.state.location.search).toBe("?item=edit-garden");
   });
 
-  it("discards dirty garden settings to health on confirm", async () => {
+  it("discards dirty garden settings to the tab on confirm", async () => {
     const user = userEvent.setup();
 
-    renderWorkspaceAtSettings();
+    const router = renderWorkspaceAtSettings();
     act(() => settingsEditorProbe.reportDirtyState?.({ isDirty: true, isSaving: false }));
 
     await user.keyboard("{Escape}");
     await user.click(await screen.findByRole("button", { name: "Discard" }));
 
-    expect(await screen.findByText("Health route")).toBeVisible();
+    await waitFor(() => expect(router.state.location.search).toBe(""));
   });
 
   it("hard-blocks closing garden settings while a save is in flight", async () => {
@@ -453,7 +465,7 @@ describe("garden domain recovery UI", () => {
   it("ends a finished save on All changes saved, and Done closes the dialog", async () => {
     const user = userEvent.setup();
 
-    renderWorkspaceAtSettings();
+    const router = renderWorkspaceAtSettings();
     act(() =>
       settingsEditorProbe.reportDirtyState?.({
         isDirty: false,
@@ -472,7 +484,7 @@ describe("garden domain recovery UI", () => {
     expect(screen.getByText("All changes saved")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Done" }));
 
-    expect(await screen.findByText("Health route")).toBeVisible();
+    await waitFor(() => expect(router.state.location.search).toBe(""));
   });
 
   it("routes Submit Work's empty domain state back to garden settings", async () => {
@@ -480,10 +492,10 @@ describe("garden domain recovery UI", () => {
 
     render(
       <TestProviders>
-        <MemoryRouter initialEntries={["/hub/work/submit"]}>
+        <MemoryRouter initialEntries={["/review/work/submit"]}>
           <Routes>
             <Route
-              path="/hub/work/submit"
+              path="/review/work/submit"
               element={
                 <SubmitWorkPanel
                   layout="page"
@@ -495,7 +507,7 @@ describe("garden domain recovery UI", () => {
                 />
               }
             />
-            <Route path="/garden/settings" element={<div>Garden settings route</div>} />
+            <Route path="/garden/health" element={<div>Garden settings route</div>} />
           </Routes>
         </MemoryRouter>
       </TestProviders>

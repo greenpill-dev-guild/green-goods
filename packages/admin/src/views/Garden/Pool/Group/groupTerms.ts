@@ -10,6 +10,7 @@ import {
   type CommitmentMetadataV1,
   rewardCentsAsSet,
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
+import { sameConfirmerRule } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import {
   type GoodDollarPriceState,
@@ -79,12 +80,12 @@ export function rewardText(
   if (centsAsSet !== null) return formatUsd(centsAsSet, intl.locale);
   if (price.status === "ready") {
     return intl.formatMessage(
-      { id: "cockpit.garden.pool.reward.about", defaultMessage: "about {amount}" },
+      { id: "hub.garden.pool.reward.about", defaultMessage: "about {amount}" },
       { amount: formatUsd(goodDollarWeiToUsdCents(wei, price.price), intl.locale) }
     );
   }
   return intl.formatMessage(
-    { id: "cockpit.garden.pool.reward.inGoodDollars", defaultMessage: "{amount} G$" },
+    { id: "hub.garden.pool.reward.inGoodDollars", defaultMessage: "{amount} G$" },
     { amount: formatGoodDollars(wei, intl.locale) }
   );
 }
@@ -122,14 +123,14 @@ function rewardLine(
   if (mixedAvailable) {
     const sections = [
       `${intl.formatMessage(
-        { id: "cockpit.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
+        { id: "hub.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
         { count: reward.available.length }
       )}: ${amountsOf(reward.available)}`,
     ];
     if (reward.taken.length > 0) {
       sections.push(
         `${intl.formatMessage(
-          { id: "cockpit.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
+          { id: "hub.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
           { count: reward.taken.length }
         )}: ${amountsOf(reward.taken)}`
       );
@@ -139,7 +140,7 @@ function rewardLine(
   if (!mixed && reward.centsAsSet !== null && set.at !== null) {
     return intl.formatMessage(
       {
-        id: "cockpit.garden.pool.group.rewardEachSet",
+        id: "hub.garden.pool.group.rewardEachSet",
         defaultMessage: "{amount} each in G$, paid once it’s kept ({goodDollars} G$, set {day})",
       },
       { amount: current, goodDollars, day: dayText(intl, set.at, set.now) }
@@ -148,7 +149,7 @@ function rewardLine(
   if (!mixed) {
     return intl.formatMessage(
       {
-        id: "cockpit.garden.pool.group.rewardEach",
+        id: "hub.garden.pool.group.rewardEach",
         defaultMessage: "{amount} each in G$, paid once it’s kept ({goodDollars} G$)",
       },
       { amount: current, goodDollars }
@@ -156,7 +157,7 @@ function rewardLine(
   }
   return intl.formatMessage(
     {
-      id: "cockpit.garden.pool.group.rewardAgreements",
+      id: "hub.garden.pool.group.rewardAgreements",
       defaultMessage: "{available} available at {amount} each in G$ · taken rewards: {taken}",
     },
     {
@@ -164,6 +165,78 @@ function rewardLine(
       available: reward.available.length,
       taken: amountsOf(reward.taken),
     }
+  );
+}
+
+/** Who confirms a copy, as one short phrase: the ordinary rule, or the named group and its threshold. */
+export function confirmerRuleText(
+  formatMessage: TermsIntl["formatMessage"],
+  rule: { confirmers: readonly string[]; confirmationThreshold?: number }
+): string {
+  return rule.confirmers.length === 0
+    ? formatMessage({
+        id: "hub.garden.pool.seed.review.ordinary",
+        defaultMessage: "Ordinary rule",
+      })
+    : formatMessage(
+        {
+          id: "hub.garden.pool.seed.review.named",
+          defaultMessage: "Named group · {threshold} of {count}",
+        },
+        { threshold: rule.confirmationThreshold ?? 1, count: rule.confirmers.length }
+      );
+}
+
+/**
+ * Whether every copy names the same people with the same threshold. It reads
+ * the accounts, never the phrase: a partial swap leaves "1 of 2" on both sides.
+ */
+export function confirmerRulesAgree(
+  copies: readonly Pick<CommitmentReadModel, "confirmers" | "confirmationThreshold">[]
+): boolean {
+  const [first, ...rest] = copies;
+  if (!first) return true;
+  const ruleOf = (copy: (typeof copies)[number]) => ({
+    confirmers: copy.confirmers,
+    threshold: copy.confirmationThreshold ?? 1,
+  });
+  return rest.every((copy) => sameConfirmerRule(ruleOf(first), ruleOf(copy)));
+}
+
+/** Available copies that don't all name the same confirmers, after a change that didn't finish. */
+export function confirmersSplitText(formatMessage: TermsIntl["formatMessage"]): string {
+  return formatMessage({
+    id: "hub.garden.pool.group.confirmersSplit",
+    defaultMessage: "Not the same on every available one",
+  });
+}
+
+/**
+ * Who confirms across a group: one phrase when every copy agrees, otherwise the
+ * available copies' rule first, since Edit Confirmers leaves taken ones as they
+ * were, or that they differ, so a steward can align them.
+ */
+function groupConfirmersText(
+  formatMessage: TermsIntl["formatMessage"],
+  children: readonly CommitmentReadModel[]
+): string {
+  const [first] = children;
+  if (!first) return "—";
+  if (confirmerRulesAgree(children)) return confirmerRuleText(formatMessage, first);
+  const available = children.filter((child) => displayBucketOf(child.onchainState) === "available");
+  const [template] = available;
+  if (!template) {
+    return [...new Set(children.map((child) => confirmerRuleText(formatMessage, child)))].join(
+      " / "
+    );
+  }
+  if (!confirmerRulesAgree(available)) return confirmersSplitText(formatMessage);
+  return formatMessage(
+    {
+      id: "hub.garden.pool.group.confirmersMixed",
+      defaultMessage: "{rule} for available ones; taken ones keep theirs",
+    },
+    { rule: confirmerRuleText(formatMessage, template) }
   );
 }
 
@@ -186,55 +259,40 @@ export function groupTerms(input: {
   const due = Number(first.dueDate ?? 0n) * 1000;
   return [
     [
-      formatMessage({ id: "cockpit.garden.pool.group.asksFor", defaultMessage: "Asks for" }),
+      formatMessage({ id: "hub.garden.pool.group.asksFor", defaultMessage: "Asks for" }),
       formatMessage(
         {
           id:
             first.direction === "OFFER"
-              ? "cockpit.garden.pool.group.poolOffers"
-              : "cockpit.garden.pool.group.poolRequests",
+              ? "hub.garden.pool.group.poolOffers"
+              : "hub.garden.pool.group.poolRequests",
           defaultMessage:
-            first.direction === "OFFER"
-              ? "{amount} · The pool offers"
-              : "{amount} · The pool requests",
+            first.direction === "OFFER" ? "{amount} · The pool offers" : "{amount} · The pool asks",
         },
         { amount }
       ),
     ],
     [
-      formatMessage({ id: "cockpit.garden.pool.commitment.fact.due", defaultMessage: "Due" }),
+      formatMessage({ id: "hub.garden.pool.commitment.fact.due", defaultMessage: "Due" }),
       due > 0 ? exactTime(intl, due) : "—",
     ],
     [
-      formatMessage({ id: "cockpit.garden.pool.group.reward", defaultMessage: "Reward" }),
+      formatMessage({ id: "hub.garden.pool.group.reward", defaultMessage: "Reward" }),
       rewardLine(intl, children, reward, price, { at: setAt, now }),
     ],
     [
       formatMessage({
-        id: "cockpit.garden.pool.group.claimAndConfirmers",
+        id: "hub.garden.pool.group.claimAndConfirmers",
         defaultMessage: "Claim mode · confirmers",
       }),
       `${
         first.claimMode === "APPROVAL_GATED"
           ? formatMessage({
-              id: "cockpit.garden.pool.seed.claimMode.gated",
+              id: "hub.garden.pool.seed.claimMode.gated",
               defaultMessage: "Steward-reviewed",
             })
-          : formatMessage({ id: "cockpit.garden.pool.seed.claimMode.open", defaultMessage: "Open" })
-      } · ${
-        first.confirmers.length === 0
-          ? formatMessage({
-              id: "cockpit.garden.pool.seed.review.ordinary",
-              defaultMessage: "Ordinary rule",
-            })
-          : formatMessage(
-              {
-                id: "cockpit.garden.pool.seed.review.named",
-                defaultMessage: "Named group · {threshold} of {count}",
-              },
-              { threshold: first.confirmationThreshold ?? 1, count: first.confirmers.length }
-            )
-      }`,
+          : formatMessage({ id: "hub.garden.pool.seed.claimMode.open", defaultMessage: "Open" })
+      } · ${groupConfirmersText(formatMessage, children)}`,
     ],
   ];
 }

@@ -54,7 +54,7 @@ export const Default: Story = {
 
 export const LongTitleWraps: Story = {
   args: {
-    title: "Request to Join This Garden and Introduce Yourself to Its Stewards",
+    title: "Ask to Join This Garden and Introduce Yourself to Its Stewards",
     description:
       "A long title wraps onto a second line instead of clipping; the close button stays on the first line.",
   },
@@ -90,6 +90,33 @@ export const WithTabRail: Story = {
     const rail = canvasElement.querySelector('[data-component="SheetHeader"][data-slot="rail"]');
     await expect(rail?.previousElementSibling).toHaveAttribute("data-slot", "root");
     await expect(within(rail as HTMLElement).getByRole("tablist")).toBeVisible();
+  },
+};
+
+/** A consequential act names what it writes to between the title and the description. */
+export const WithTarget: Story = {
+  args: {
+    title: "Close This Pool",
+    target: (
+      <p className="text-xs text-text-sub-600">
+        Writing to <span className="font-semibold text-text-strong-950">Rocinha’s pool</span>
+      </p>
+    ),
+    description: "Closing ends participation for every member.",
+  },
+  play: async ({ canvasElement }) => {
+    const slot = (name: string) =>
+      canvasElement.querySelector(
+        `[data-component="SheetHeader"][data-slot="${name}"]`
+      ) as HTMLElement;
+    const target = slot("target");
+    await expect(target).toHaveTextContent("Writing to Rocinha’s pool");
+    await expect(target.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      slot("title").getBoundingClientRect().bottom
+    );
+    await expect(slot("description").getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      target.getBoundingClientRect().bottom
+    );
   },
 };
 

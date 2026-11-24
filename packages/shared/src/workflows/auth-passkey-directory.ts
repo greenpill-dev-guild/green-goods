@@ -9,19 +9,86 @@
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import { getPasskeyRequestIds, type PasskeyCredential } from "../modules/auth/session";
-import type { PasskeyDirectoryCredential } from "../public-contracts/passkey-directory";
+import {
+  PASSKEY_ACCOUNT_PROFILE_VERSION,
+  LEGACY_PASSKEY_PROFILE,
+  getDefaultPasskeyRegistrationProfile,
+  parsePasskeyDirectoryAccountProfile,
+  type PasskeyDirectoryAccountProfile,
+  type PasskeyDirectoryCredential,
+} from "../public-contracts/passkey-directory";
 import type { PasskeyAdapters } from "./auth-passkey-adapters";
 import { PasskeyServerLookupError } from "./auth-passkey-errors";
-import { matchesBrowserId } from "./auth-passkey-ids";
+import { matchesBrowserId, verifiedCredential } from "./auth-passkey-ids";
+
+/** Negotiate a pinned recipe before opening the ceremony, including during a rolling server upgrade. */
+export async function registerServerPasskey(
+  adapters: PasskeyAdapters,
+  assertActive: () => void,
+  userName: string,
+  chainId: number
+) {
+  const context = adapters.buildRecoveryContext(userName);
+  const directory = adapters.createDirectoryClient();
+  const client = directory ?? adapters.createServerClient(chainId);
+  const accountProfile = directory
+    ? getDefaultPasskeyRegistrationProfile(adapters.getSiteRpId())
+    : LEGACY_PASSKEY_PROFILE;
+  const registrationContext = directory
+    ? { ...context, accountProfileVersion: PASSKEY_ACCOUNT_PROFILE_VERSION }
+    : context;
+  const existing = await client.getCredentials({ context: registrationContext });
+  assertActive();
+  if (existing.length > 0) {
+    throw new Error(
+      "That recovery name is already registered. Try recovery or choose another name."
+    );
+  }
+  const options = (await client.startRegistration({ context: registrationContext })) as {
+    rp?: { id?: string };
+    accountProfile?: unknown;
+  };
+  if (parsePasskeyDirectoryAccountProfile(options.accountProfile) !== accountProfile) {
+    throw new Error(
+      "Passkey service does not support this account version. Update Green Goods and try again."
+    );
+  }
+  const rpId = options.rp?.id || adapters.getRpId();
+  assertActive();
+  const created = await adapters.createWebAuthnCredential(options);
+  assertActive();
+  const verification = (await client.verifyRegistration({
+    credential: created,
+    context: registrationContext,
+  })) as {
+    success?: boolean;
+    id?: string;
+    publicKey?: Hex;
+    userName?: string;
+    username?: string;
+    accountProfile?: unknown;
+  };
+  if (parsePasskeyDirectoryAccountProfile(verification.accountProfile) !== accountProfile) {
+    throw new Error("Passkey registration returned a different account profile");
+  }
+  return {
+    credential: verifiedCredential(verification, created, "Passkey server registration failed"),
+    userName: verification.userName || verification.username || context.userName,
+    rpId,
+    accountProfile,
+  };
+}
 
 export type DirectorySignIn = {
+  accountProfile: PasskeyDirectoryAccountProfile;
   credential: PasskeyCredential;
   userName: string;
   /** The domain the passkey was created under; every later signature must name it too. */
   rpId: string;
   /**
-   * True when this device remembers a different passkey. The address it remembers is a claim
-   * about that passkey, so it says nothing about the account being opened now.
+   * True when this device remembers a different account: another passkey, or another spelling
+   * of this passkey's ID. The address it remembers is a claim about that account, so it says
+   * nothing about the account being opened now.
    */
   switchingAccounts: boolean;
 };
@@ -43,9 +110,13 @@ export async function signInWithDirectory(
   const directory = adapters.createDirectoryClient();
   if (!directory) return null;
   const context = adapters.buildRecoveryContext(userName);
-  const listed = (await directory.getCredentials({ context }).catch((error: unknown) => {
-    throw new PasskeyServerLookupError(error);
-  })) as Partial<PasskeyDirectoryCredential>[];
+  const listed = (await directory
+    .getCredentials({
+      context: { ...context, accountProfileVersion: PASSKEY_ACCOUNT_PROFILE_VERSION },
+    })
+    .catch((error: unknown) => {
+      throw new PasskeyServerLookupError(error);
+    })) as Partial<PasskeyDirectoryCredential>[];
   // A browser offers a passkey only for the domain it was created under, so the ceremony asks
   // for exactly that domain. An entry without one did not come from the directory.
   const rpId = listed.find((credential) => credential.rpId)?.rpId;
@@ -62,7 +133,7 @@ export async function signInWithDirectory(
       rpId,
       userVerification: "required",
       allowCredentials: credentials.flatMap((credential) =>
-        getPasskeyRequestIds({ id: credential.id, signingId: credential.id }).map((id) => ({
+        getPasskeyRequestIds({ id: credential.id, signingId: credential.signingId }).map((id) => ({
           id,
           type: "public-key",
           transports: ["internal", "hybrid"],
@@ -73,7 +144,7 @@ export async function signInWithDirectory(
   });
   if (!response) throw new Error("Passkey authentication was cancelled");
   const held = credentials.find((credential) =>
-    matchesBrowserId({ id: credential.id, signingId: credential.id }, response.id)
+    matchesBrowserId({ id: credential.id, signingId: credential.signingId }, response.id)
   );
   // The account address follows the public key, so a key that does not match the device's
   // passkey would open a different account. Fail closed instead.
@@ -84,6 +155,7 @@ export async function signInWithDirectory(
 
   const remembered = adapters.session.getStoredCredential();
   return {
+    accountProfile: parsePasskeyDirectoryAccountProfile(held.accountProfile),
     credential: {
       id: held.id,
       signingId: response.id,
@@ -92,8 +164,11 @@ export async function signInWithDirectory(
     },
     userName: context.userName,
     rpId,
+    // An account is its exact ID string with its key: Kernel hashes the string, so the other
+    // spelling of the same passkey is another account, and signing in to it is a switch.
     switchingAccounts: remembered
-      ? keyCoordinates(remembered.publicKey) !== keyCoordinates(held.publicKey)
+      ? remembered.id !== held.id ||
+        keyCoordinates(remembered.publicKey) !== keyCoordinates(held.publicKey)
       : false,
   };
 }

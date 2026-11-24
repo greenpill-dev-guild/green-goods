@@ -1,6 +1,8 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { ConvictionWeight } from "@green-goods/shared/types/conviction";
@@ -20,6 +22,7 @@ import { useMemberVotingPower } from "@green-goods/shared/hooks/conviction/useMe
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useYieldAllocations } from "@green-goods/shared/hooks/yield/useYieldAllocations";
+import { RiScales3Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
@@ -289,23 +292,26 @@ export function ConvictionSheet({
           </p>
         )}
 
+        {/* A failed read sits above what did load, so it is a notice, not a state block. */}
         {isError && (
-          <div
-            role="alert"
-            className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+          <Alert
+            variant="error"
+            title={formatMessage({ id: "app.conviction.loadError.title" })}
+            action={
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  refetchWeights?.();
+                  refetchPower?.();
+                }}
+              >
+                {formatMessage({ id: "app.common.tryAgain" })}
+              </Button>
+            }
           >
-            <p>{formatMessage({ id: "app.conviction.errorLoadingFailed" })}</p>
-            <Button
-              type="button"
-              onClick={() => {
-                refetchWeights?.();
-                refetchPower?.();
-              }}
-              className="mt-2"
-            >
-              {formatMessage({ id: "app.common.tryAgain" })}
-            </Button>
-          </div>
+            {formatMessage({ id: "app.conviction.loadError.description" })}
+          </Alert>
         )}
 
         {/* Community status + weight scheme indicator */}
@@ -365,9 +371,10 @@ export function ConvictionSheet({
         </section>
 
         {!poolAddress && (
-          <p className="py-4 text-center text-sm text-text-soft-400">
-            {formatMessage({ id: "app.signal.noHypercerts" })}
-          </p>
+          <EmptyState
+            icon={<RiScales3Line />}
+            title={formatMessage({ id: "app.signal.noHypercerts" })}
+          />
         )}
 
         {poolAddress && (

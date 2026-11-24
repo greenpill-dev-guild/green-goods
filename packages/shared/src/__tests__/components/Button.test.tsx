@@ -42,11 +42,21 @@ describe("Button", () => {
   it("keeps a loading button focusable but inert", () => {
     const onClick = vi.fn();
     render(
-      <Button loading onClick={onClick} leadingIcon={<svg data-testid="lead" />}>
+      <Button
+        emphasis="tertiary"
+        size="sm"
+        loading
+        onClick={onClick}
+        leadingIcon={<svg data-testid="lead" />}
+      >
         Send
       </Button>
     );
     const button = screen.getByRole("button", { name: "Send" });
+    expect(button).toHaveClass("gg-button");
+    expect(button).toHaveAttribute("data-emphasis", "tertiary");
+    expect(button).toHaveAttribute("data-size", "sm");
+    expect(button.className).not.toMatch(/gg-button-/);
     expect(button).not.toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(button).toHaveAttribute("aria-disabled", "true");
@@ -119,21 +129,5 @@ describe("Button", () => {
     fireEvent.click(screen.getByRole("link", { name: "Fund" }));
     expect(onLinkClick).toHaveBeenCalledTimes(1);
     expect(onButtonClick).toHaveBeenCalledTimes(1);
-  });
-
-  it("has one contract: emphasis, tone, and size attributes on the gg-button class", () => {
-    render(
-      <Button emphasis="tertiary" size="sm" loading>
-        Retry
-      </Button>
-    );
-    const button = screen.getByRole("button", { name: "Retry" });
-    expect(button).toHaveClass("gg-button");
-    expect(button).toHaveAttribute("data-emphasis", "tertiary");
-    expect(button).toHaveAttribute("data-size", "sm");
-    expect(button.className).not.toMatch(/gg-button-/);
-    // Loading keeps focus (aria-disabled), never native disabled.
-    expect(button).not.toBeDisabled();
-    expect(button).toHaveAttribute("aria-disabled", "true");
   });
 });

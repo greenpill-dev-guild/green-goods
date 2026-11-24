@@ -3,6 +3,7 @@
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { toastService } from "../components/toast";
 import { queryKeys } from "../config/query-keys";
 import {
   type CommitmentPoolMutationInput,
@@ -10,6 +11,7 @@ import {
 } from "../hooks/commitment-pooling/useCommitmentPoolMutations";
 import { createTestQueryClient } from "./test-utils/query-client";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
+import { registerTelemetrySink } from "../modules/app/telemetry-sink";
 
 const MODULE = "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a";
 
@@ -201,6 +203,36 @@ describe("useCommitmentPoolMutation", () => {
     expect(mocks.sender.sendContractCall.mock.lastCall).toHaveLength(1);
   });
 
+  it("says an act a Safe has only proposed waits for its signers, never that it is done", async () => {
+    // A Safe proposal has not run until its owners sign it (PRD-1551). It still settles, so a
+    // dialog closes rather than offering a second proposal of the same act.
+    const info = vi.spyOn(toastService, "info").mockReturnValue(undefined as never);
+    mocks.sender.sendContractCall.mockResolvedValueOnce({
+      hash: `0x${"5a".repeat(32)}`,
+      sponsored: false,
+      confirmation: "pending",
+      awaiting: "safe-signers",
+    });
+    const queryClient = createTestQueryClient();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const { result } = renderHookWithProviders(
+      () => useCommitmentPoolMutation({ chainId: 42161 }),
+      { queryClient }
+    );
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({ action: "resumePool", poolId: 7n })).resolves.toBe(
+        `0x${"5a".repeat(32)}`
+      );
+    });
+    expect(info).toHaveBeenCalledWith({
+      title: "Waiting for the Safe's signers",
+      message:
+        "Your Safe has the proposal. It goes through once enough of the Safe's owners sign it.",
+    });
+    expect(invalidate).toHaveBeenCalled();
+  });
+
   it("invalidates the chain prefix plus the pool or cycle that changed", async () => {
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
@@ -351,6 +383,42 @@ describe("useCommitmentPoolMutation", () => {
         args,
         chainId: 42161,
       });
+    });
+
+    it("records the act by its operation, never the steward's words (PRD-1553)", async () => {
+      const captured: Array<[string, Record<string, unknown>]> = [];
+      const unregister = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event.startsWith("send_act_")) captured.push([event, properties]);
+        },
+      });
+      try {
+        mocks.pinCommitmentReason.mockResolvedValue("bafy-reason");
+        const { result } = renderHookWithProviders(() =>
+          useCommitmentPoolMutation({ chainId: 42161 })
+        );
+        await act(async () => {
+          await result.current.mutateAsync({
+            action: "pausePool",
+            poolId: 7n,
+            reason: "Flooding on the lower terraces",
+          });
+        });
+
+        expect(
+          captured.map(([event, properties]) => [event, properties.act, properties.operation])
+        ).toEqual([
+          ["send_act_started", "pool_lifecycle", "pausePool"],
+          ["send_act_ended", "pool_lifecycle", "pausePool"],
+        ]);
+        expect(captured[1]![1]).toMatchObject({ outcome: "confirmed", chain_id: 42161 });
+        const sent = JSON.stringify(captured);
+        expect(sent).not.toContain("Flooding");
+        expect(sent).not.toContain("bafy-reason");
+        expect(sent.toLowerCase()).not.toContain(MODULE);
+      } finally {
+        unregister();
+      }
     });
 
     it("sends nothing when the reason could not be pinned", async () => {

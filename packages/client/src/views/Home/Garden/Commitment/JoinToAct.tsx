@@ -3,7 +3,9 @@ import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import type { Address } from "@green-goods/shared/types/domain";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiRefreshLine, RiSearchLine, RiUserAddLine } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
@@ -76,17 +78,73 @@ export function JoinToActCard({
 }
 
 /**
+ * The same card for a reason other than membership: a voucher offer the reader holds too few
+ * vouchers for, or a reward agreement this app can't sign yet. A short title, its one line,
+ * and one door when there is somewhere to go.
+ */
+export function JoinToActDoor({
+  title,
+  line,
+  door,
+}: {
+  title: string;
+  line: string;
+  /** The door's act; `secondary` for a read again, where the page's primary act stays elsewhere. */
+  door: {
+    label: string;
+    icon?: ReactNode;
+    emphasis?: "primary" | "secondary";
+    onAct: () => void;
+  } | null;
+}) {
+  return (
+    <section
+      className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-4"
+      data-component="JoinToAct"
+      data-mode="door"
+    >
+      <p className="text-sm font-medium text-text-strong-950">{title}</p>
+      <p className="mt-1 text-sm text-text-sub-600">{line}</p>
+      {door ? (
+        <Button
+          type="button"
+          size="sm"
+          emphasis={door.emphasis}
+          className="mt-3"
+          onClick={door.onAct}
+          leadingIcon={door.icon}
+        >
+          {door.label}
+        </Button>
+      ) : null}
+    </section>
+  );
+}
+
+/**
  * The read that decides whether the reader may take this up failed. Saying
  * nothing would leave a member with no act and no reason; saying "join" would
  * tell a member to join a garden they belong to. So the card says the check
- * failed and offers it again.
+ * failed and offers it again. The same holds for the service read: a service
+ * offer refuses the ordinary take-up, so it waits until the page can tell.
  */
-export function MembershipCheckFailed({ onRetry }: { onRetry: () => void }) {
+export function MembershipCheckFailed({
+  onRetry,
+  check = "membership",
+}: {
+  onRetry: () => void;
+  check?: "membership" | "service";
+}) {
   const { formatMessage } = useIntl();
   return (
     <Alert variant="warning" className="p-3">
-      <p data-component="MembershipCheckFailed">
-        {formatMessage({ id: "app.commitment.join.unavailable" })}
+      <p data-component={check === "service" ? "ServiceCheckFailed" : "MembershipCheckFailed"}>
+        {formatMessage({
+          id:
+            check === "service"
+              ? "app.commitment.join.serviceUnavailable"
+              : "app.commitment.join.unavailable",
+        })}
       </p>
       <Button
         type="button"
@@ -137,6 +195,8 @@ export function JoinToAct({
   }
   const join = () => {
     void joinGarden(garden.address).catch((error: unknown) => {
+      // A wallet that has not answered was already asked to reconnect.
+      if (wasAskedToReconnect(error)) return;
       const message = error instanceof Error ? error.message : String(error);
       if (CANCELLED.test(message)) return;
       toastService.error({ title: formatMessage({ id: "app.commitment.join.failed" }) });

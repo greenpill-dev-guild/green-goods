@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { act, renderHook, screen } from "@testing-library/react";
+import { act, renderHook, screen, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -9,6 +9,8 @@ import type { Action } from "../../../types/domain";
 
 const mocks = vi.hoisted(() => ({
   actions: [] as Action[],
+  visibilityReady: true,
+  workVisible: true,
   canManageGarden: vi.fn(),
   isUserAddress: vi.fn(),
   navigateToTop: vi.fn(),
@@ -19,7 +21,9 @@ const mocks = vi.hoisted(() => ({
   userId: "0x1111111111111111111111111111111111111111" as string | undefined,
   sender: null as null | { authMode: string },
   lookupResult: null as null | Record<string, unknown>,
+  decisionOverlay: undefined as Record<string, unknown> | undefined,
   queuedLoading: false,
+  online: true,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.userId }));
@@ -27,8 +31,8 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-query")>()),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
-  useQuery: () => ({
-    data: mocks.lookupResult,
+  useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => ({
+    data: queryKey[1] === "merged" ? mocks.decisionOverlay : mocks.lookupResult,
     isLoading: false,
     isError: false,
     refetch: vi.fn(),
@@ -87,7 +91,7 @@ vi.mock("../../../hooks/app/useNavigateToTop", () => ({
 }));
 
 vi.mock("../../../hooks/app/useOnlineStatus", () => ({
-  useOnlineStatus: () => true,
+  useOnlineStatus: () => mocks.online,
 }));
 
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
@@ -117,6 +121,14 @@ vi.mock("../../../hooks/work/useWorkMetadata", () => ({
   }),
 }));
 
+vi.mock("../../../hooks/work/useWorkVisibility", () => ({
+  useWorkVisibility: () => ({
+    isReady: mocks.visibilityReady,
+    isVisible: () => mocks.workVisible,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}));
 vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: () => ({
     queuedLoading: mocks.queuedLoading,
@@ -134,8 +146,10 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 }));
 
 import { useWorkDetailController } from "../../../hooks/client-ui/work/useWorkDetailController";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { useUIStore } from "../../../stores/useUIStore";
 import { createMockAction } from "../../test-utils/mock-factories";
+import { queuedTakeUpChain } from "../../test-utils/queued-jobs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -187,8 +201,49 @@ function OlderWorkWrapper({ children }: { children: ReactNode }) {
   );
 }
 
+/** The older work, opened from a notification row that carried its record in the route's state. */
+function carriedWorkWrapper(carried: Record<string, unknown>) {
+  return function CarriedWorkWrapper({ children }: { children: ReactNode }) {
+    return createElement(
+      MemoryRouter,
+      {
+        initialEntries: [
+          {
+            pathname: "/home/garden-1/work/work-older",
+            state: { from: "home", returnTo: "/home", work: carried },
+          },
+        ],
+      },
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: {} },
+        createElement(
+          Routes,
+          null,
+          createElement(Route, { path: "/home/:id/work/:workId", element: children })
+        )
+      )
+    );
+  };
+}
+
+const OLDER_ROW = {
+  id: "work-older",
+  title: "Fresh work",
+  gardenAddress: "garden-1",
+  gardenerAddress: "0x2222222222222222222222222222222222222222",
+  actionUID: 1,
+  feedback: "",
+  media: [],
+  metadata: "{}",
+  createdAt: 1,
+  approval: null,
+};
+
 describe("useWorkDetailController", () => {
   beforeEach(() => {
+    mocks.visibilityReady = true;
+    mocks.workVisible = true;
     vi.clearAllMocks();
     mocks.actions = [];
     mocks.userId = "0x1111111111111111111111111111111111111111";
@@ -197,7 +252,21 @@ describe("useWorkDetailController", () => {
     mocks.isUserAddress.mockReturnValue(false);
     mocks.sender = null;
     mocks.lookupResult = null;
+    mocks.decisionOverlay = undefined;
     mocks.queuedLoading = false;
+    mocks.online = true;
+  });
+
+  it("withholds excluded direct work and distinguishes unknown offline classification", () => {
+    mocks.workVisible = false;
+    const { result, rerender } = renderHook(() => useWorkDetailController(), {
+      wrapper: RouterWrapper,
+    });
+    expect(result.current.work).toBeUndefined();
+    expect(result.current.workLoadError).toBe(false);
+    mocks.visibilityReady = false;
+    rerender();
+    expect(result.current.workLoadError).toBe(true);
   });
 
   it("opens older reviewed work through the direct UID read", () => {
@@ -220,6 +289,57 @@ describe("useWorkDetailController", () => {
 
     expect(result.current.work?.title).toBe("Older work");
     expect(result.current.work?.status).toBe("rejected");
+  });
+
+  it("shows a confirmed decision when the direct UID read still reports pending", () => {
+    mocks.lookupResult = OLDER_ROW;
+    mocks.decisionOverlay = { ...OLDER_ROW, status: "approved", _txHash: "0x1234" };
+    const { result } = renderHook(() => useWorkDetailController(), { wrapper: OlderWorkWrapper });
+
+    expect(result.current.work?.status).toBe("approved");
+  });
+
+  // A notification row can list a work outside the garden's loaded page, and offline the direct
+  // read of it is paused, so the record the row carried is what opens it.
+  it.each([
+    ["the record its notification carried, offline", "garden-1", false, "Cached work"],
+    ["nothing for a carried record from another garden", "garden-2", false, undefined],
+    ["the fetched record over the carried one, online", "garden-1", true, "Fresh work"],
+  ] as const)("opens %s", (_case, carriedGarden, fetched, expected) => {
+    mocks.online = fetched;
+    mocks.lookupResult = fetched ? OLDER_ROW : null;
+    const carried = {
+      ...OLDER_ROW,
+      approval: undefined,
+      title: "Cached work",
+      gardenAddress: carriedGarden,
+      status: "pending",
+    };
+
+    const { result } = renderHook(() => useWorkDetailController(), {
+      wrapper: carriedWorkWrapper(carried),
+    });
+
+    expect(result.current.work?.title).toBe(expected);
+  });
+
+  // Online, a carried row may be stale, so only the direct read can open the work.
+  it("opens nothing from a carried record online while the direct read has none", () => {
+    mocks.online = true;
+    mocks.lookupResult = null;
+    const carried = {
+      ...OLDER_ROW,
+      approval: undefined,
+      title: "Cached work",
+      gardenAddress: "garden-1",
+      status: "pending",
+    };
+
+    const { result } = renderHook(() => useWorkDetailController(), {
+      wrapper: carriedWorkWrapper(carried),
+    });
+
+    expect(result.current.work).toBeUndefined();
   });
 
   it("keeps the detail loading while its queued work is still reading from this device", () => {
@@ -249,11 +369,29 @@ describe("useWorkDetailController", () => {
 
     // A ready job keeps its prepared media and is never reset before sending.
     expect(jobQueue.retryJob).not.toHaveBeenCalled();
-    expect(jobQueue.processJob).toHaveBeenCalledWith("work-1", {
-      transactionSender: mocks.sender,
-      explicit: true,
-    });
+    // A passkey reports its stages only after each wait ended, so Upload now does not follow them.
+    expect(vi.mocked(jobQueue.processJob).mock.calls[0]).toEqual([
+      "work-1",
+      { transactionSender: mocks.sender, explicit: true },
+    ]);
     expect(toastService.error).not.toHaveBeenCalled();
+  });
+
+  // The queue reports the work's stage on its row, however the send started (PRD-1552).
+  it("leaves the work's own send stage to the queue, wiring nothing for it", async () => {
+    mocks.sender = { authMode: "wallet" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    vi.mocked(jobQueue.processJob).mockResolvedValue({ success: true, txHash: "0x1" });
+    const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(vi.mocked(jobQueue.processJob).mock.calls[0]).toEqual([
+      "work-1",
+      { transactionSender: mocks.sender, explicit: true },
+    ]);
+    expect(result.current.takeUpStage).toBeNull();
   });
 
   it("checks the connection on Upload now and says nothing was sent when it is not confirmed", async () => {
@@ -291,6 +429,272 @@ describe("useWorkDetailController", () => {
     } finally {
       confirm.mockRestore();
     }
+  });
+
+  it("answers a failed Upload now with one Didn't send toast in the app's words (DL-177)", async () => {
+    mocks.sender = { authMode: "passkey" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    const { toastService } = await import("../../../components/Toast/toast.service");
+    const { createQueueToasts } = await import("../../../components/Toast/presets/queue");
+    const { connectivityStore } = await import("../../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+    try {
+      // The queue raises its own toast for a send it gave up on; the page's must take that slot.
+      createQueueToasts(({ id }) => id).jobFailed("work");
+      const queueSlot = vi.mocked(toastService.error).mock.calls[0]?.[0].id;
+      vi.mocked(toastService.error).mockClear();
+      const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+      vi.mocked(jobQueue.processJob).mockResolvedValueOnce({
+        success: false,
+        error: "Max retries (3) exceeded",
+      });
+      await act(async () => {
+        await result.current.retry();
+      });
+      vi.mocked(jobQueue.processJob).mockRejectedValueOnce(new Error("send threw"));
+      await act(async () => {
+        await result.current.retry();
+      });
+
+      // This file's formatter returns a message's English fallback where the call gives one,
+      // and the message id where it does not.
+      const shown = vi.mocked(toastService.error).mock.calls.map(([toast]) => toast);
+      expect(shown).toEqual([
+        expect.objectContaining({
+          id: queueSlot,
+          title: "Didn't send",
+          message: "app.home.work.retryStillSaved",
+          devMessage: "Max retries (3) exceeded",
+        }),
+        expect.objectContaining({
+          id: queueSlot,
+          title: "Didn't send",
+          message: "app.home.work.retryStillSaved",
+          devMessage: "send threw",
+        }),
+      ]);
+      expect(queueSlot).toBe("work-upload");
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it("never calls an Upload now the queue held a failure", async () => {
+    mocks.sender = { authMode: "passkey" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    const { toastService } = await import("../../../components/Toast/toast.service");
+    const { connectivityStore } = await import("../../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+    try {
+      const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+      for (const error of [
+        "awaiting-confirmation",
+        "already-processing",
+        "photo-needs-attention",
+        "wallet-reconnect-required",
+      ]) {
+        vi.mocked(jobQueue.processJob).mockResolvedValueOnce({
+          success: false,
+          error,
+          skipped: true,
+        });
+        await act(async () => {
+          await result.current.retry();
+        });
+      }
+
+      expect(toastService.error).not.toHaveBeenCalled();
+      // A lost answer, and a send already under way in this tab's sync or another tab, are being
+      // checked; any other held send is not sent yet and still saved; a wallet that has not
+      // answered was asked by its own reconnect prompt, so it adds nothing.
+      const checking = expect.objectContaining({
+        id: "work-upload",
+        title: "app.home.work.checking.title",
+        message: "app.home.work.checking.message",
+      });
+      expect(vi.mocked(toastService.info).mock.calls.map(([toast]) => toast)).toEqual([
+        checking,
+        checking,
+        expect.objectContaining({
+          id: "work-upload",
+          title: "app.home.work.held.title",
+          message: "app.home.work.held.message",
+        }),
+      ]);
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  // A Safe only proposed it: the send's record says so, and Upload now says who it waits for.
+  it("says an Upload now a Safe only proposed waits for the Safe's signers (PRD-1564)", async () => {
+    mocks.sender = { authMode: "wallet" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    const { toastService } = await import("../../../components/Toast/toast.service");
+    const { connectivityStore } = await import("../../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+    const hash = `0x${"5a".repeat(32)}` as const;
+    const unsent = {
+      id: "work-1",
+      kind: "work",
+      payload: {},
+      userAddress: "0x1111111111111111111111111111111111111111",
+      createdAt: 1,
+      attempts: 0,
+      synced: false,
+    } as never;
+    // Nothing is on record before the tap; the try's own send leaves the Safe's mark.
+    vi.mocked(jobQueue.getJobs)
+      .mockResolvedValueOnce([unsent])
+      .mockResolvedValue([
+        {
+          id: "work-1",
+          kind: "work",
+          payload: {
+            uploadCheckpoint: { transactionHash: hash, files: {}, awaiting: "safe-signers" },
+          },
+          userAddress: "0x1111111111111111111111111111111111111111",
+          createdAt: 1,
+          attempts: 0,
+          synced: false,
+        } as never,
+      ]);
+    vi.mocked(jobQueue.processJob).mockResolvedValueOnce({
+      success: false,
+      error: "awaiting-confirmation",
+      skipped: true,
+      txHash: hash,
+    });
+    try {
+      const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+      await act(async () => {
+        await result.current.retry();
+      });
+      expect(toastService.info).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          id: "work-upload",
+          title: SEND_STAGE_WORDS["safe-signers"].label.defaultMessage,
+          message: SEND_STAGE_WORDS["safe-signers"].detail.defaultMessage,
+        })
+      );
+    } finally {
+      confirm.mockRestore();
+      vi.mocked(jobQueue.getJobs).mockResolvedValue([]);
+    }
+  });
+
+  describe("Upload now on a work whose promise is still being taken up (decision 18)", () => {
+    const chain = () => {
+      const { claim, work } = queuedTakeUpChain();
+      return [claim, { ...work, id: "work-1" }];
+    };
+
+    it("sends the take-up first, then the work, as the member's own tap", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+      const { connectivityStore } = await import("../../../stores/connectivity");
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+      vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
+      let finish: (() => void) | undefined;
+      vi.mocked(jobQueue.processJob).mockImplementation(async (jobId, context) => {
+        if (jobId === "take-up") {
+          context.onPhase?.({ stage: "wallet" });
+          await new Promise<void>((resolve) => {
+            finish = resolve;
+          });
+        }
+        return { success: true, txHash: "0x1" };
+      });
+      try {
+        const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+        let sending: Promise<void> | undefined;
+        act(() => {
+          sending = result.current.retry();
+        });
+        // The take-up is another job, so the page follows its stage while the work waits on it.
+        await waitFor(() => expect(result.current.takeUpStage).toBe("wallet"));
+        await act(async () => {
+          finish?.();
+          await sending;
+        });
+
+        expect(result.current.takeUpStage).toBeNull();
+        expect(jobQueue.retryJob).toHaveBeenCalledWith("take-up");
+        expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
+          "take-up",
+          "work-1",
+        ]);
+        expect(vi.mocked(jobQueue.processJob).mock.calls[1]?.[1]).not.toHaveProperty("onPhase");
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+
+    it("stops at a take-up that does not land and says so, sending none of the work", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+      const { toastService } = await import("../../../components/Toast/toast.service");
+      const { connectivityStore } = await import("../../../stores/connectivity");
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+      vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
+      vi.mocked(jobQueue.processJob).mockResolvedValue({
+        success: false,
+        error: "execution reverted",
+      });
+      try {
+        const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+        await act(async () => {
+          await result.current.retry();
+        });
+
+        expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
+          "take-up",
+        ]);
+        // The queue raises its own take-up toast later, after a read; the page raises that same
+        // toast, so whichever lands last leaves one toast in the same words.
+        const pageToasts = vi.mocked(toastService.error).mock.calls.map(([toast]) => toast);
+        vi.mocked(toastService.error).mockClear();
+        const { createQueueToasts } = await import("../../../components/Toast/presets/queue");
+        createQueueToasts(({ id, defaultMessage }) => String(defaultMessage ?? id)).takeUpFailed();
+        const queueToast = vi.mocked(toastService.error).mock.calls[0]?.[0];
+        expect(queueToast).toEqual(expect.objectContaining({ id: "take-up" }));
+        expect(pageToasts).toEqual([queueToast]);
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+
+    it("says nothing of a take-up held for a wallet that has not answered: its prompt asked", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+      const { toastService } = await import("../../../components/Toast/toast.service");
+      const { connectivityStore } = await import("../../../stores/connectivity");
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+      vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
+      vi.mocked(jobQueue.processJob).mockResolvedValue({
+        success: false,
+        error: "wallet-reconnect-required",
+        skipped: true,
+      });
+      try {
+        const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+        await act(async () => {
+          await result.current.retry();
+        });
+
+        expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
+          "take-up",
+        ]);
+        expect(toastService.info).not.toHaveBeenCalled();
+        expect(toastService.error).not.toHaveBeenCalled();
+      } finally {
+        confirm.mockRestore();
+      }
+    });
   });
 
   it("projects steward, gardener, and viewer modes with steward precedence", () => {
@@ -379,7 +783,7 @@ describe("useWorkDetailController", () => {
   it("ignores a stale dashboard marker without this session's history entry", () => {
     useUIStore.getState().rememberWorkDashboard({
       tab: "pending",
-      pendingFilter: "needsReview",
+      pendingFilter: "upload",
       completedFilter: "reviewedByYou",
       timeFilter: "month",
       scrollTop: 144,

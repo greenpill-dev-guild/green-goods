@@ -10,7 +10,7 @@
   :root {
     --gg-design-amber: 217 119 6;
     --gg-design-neutral: 250 248 245;
-    --gg-design-neutral-dark: 28 25 23;
+    --gg-design-neutral-dark: 17 12 8;
     --gg-design-on-tertiary: 11 70 39;
     --gg-design-on-tertiary-action: 255 255 255;
     --gg-design-on-tertiary-dark: 12 10 9;
@@ -24,6 +24,7 @@
     --gg-design-tertiary-action-hover: 22 100 59;
     --gg-design-tertiary-dark: 194 245 218;
     --gg-design-tertiary-dark-hover: 132 235 180;
+    --gg-design-violet: 91 44 201;
 
     --gg-radius-2xl: 24px;
     --gg-radius-full: 9999px;

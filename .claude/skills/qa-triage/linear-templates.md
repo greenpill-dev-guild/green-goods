@@ -45,6 +45,7 @@ The Customer Need is the durable record of what the reporter said. Keep it minim
 ```markdown
 ## Source
 QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name | "anonymous">. [Notes](<drive-url>)
+Customer: <customer with the matching speaker external ID | unresolved>
 
 > <verbatim excerpt — scrubbed of any name not on the call's attendee list>
 
@@ -58,6 +59,8 @@ That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS th
 
 **Required link**: every Customer Need must carry an `issue` (or `project`) parameter. Linear's API rejects with `Exactly one of projectId or issueId must be defined` otherwise. There is no standalone Need path — use the track-only pattern below for items that should be recorded without claiming committed fix work.
 
+**Customer**: resolve `customer` from the speaker external IDs on the customer record per [routing rule 2](../../context/linear-routing-rules.md#invariant-rules), which also says when a speaker is internal, when telemetry keeps a need for one, and when a match stays unresolved. An unresolved speaker keeps `Customer: unresolved` in the body and a need of their own.
+
 **Workflow state**: Customer Needs have no workflow state — they're raw-signal records that live alongside the Issue they're linked to.
 
 ---
@@ -69,7 +72,7 @@ That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS th
 prose. Fold the surface and the trigger into the sentence rather than giving
 each its own heading: "Editing a garden and changing its image makes the edit
 impossible to cancel — the operator has to reload. Leaving the image alone and
-cancelling works fine, so the image change is the trigger.">
+canceling works fine, so the image change is the trigger.">
 
 **Done when**
 - <observable, checkable outcome>
@@ -151,7 +154,7 @@ the 2026-08-27 board audit made the issue worse:
 **Workflow state**:
 - `Todo` when surface + behavior are clear and a fix path is suggestable.
 - `Backlog` when the fix is exploratory.
-- Never `In Progress`, `In Review`, `Done`, or `Cancelled` — humans drive those transitions.
+- Never `In Progress`, `In Review`, `Done`, or `Canceled` — humans drive those transitions.
 
 ---
 
@@ -181,7 +184,7 @@ This parent is filed as `Todo`, so **`Done when` is required** — without check
 
 ---
 
-## QA session report — parent Issue (`/qa-triage --call` + the `qa-call-report` routine)
+## QA session report — parent Issue (`/qa-triage --call`, attended or unattended)
 
 One per QA call, titled exactly `QA session YYYY-MM-DD` — a second call on the same date appends
 its counter, `QA session YYYY-MM-DD · 2`, which is also that call's identity for parent lookup
@@ -192,50 +195,50 @@ session and an agent with only Linear access can navigate parent → slices.
 
 ```markdown
 <Two or three sentences a teammate would write: what was walked, by how many
-testers, on which surfaces, and the headline — "P0 coverage is green except
+testers, on which surfaces, and the headline, such as "P0 coverage is green except
 review actions; two cross-surface failures trace to shared date handling.">
 
 Build under test: client `<sha>` · admin `<sha>`
 Run: Run <N> · <label> · <environment>
-Environment: <production | beta (staging) | local — the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, or `[local]` note prefix>
+Environment: <production | beta (staging) | local: the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, `[local]`, or `[alpha]` note prefix>
 Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 
 ## Results by priority
-- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
-- P1: <walked>/<total> — …
-- P2: <walked>/<total> — …
+- P0: <walked>/<total> (<pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only)
+- P1: <walked>/<total> (…)
+- P2: <walked>/<total> (…)
 
 ## Results by kind
-- Journey: <walked>/<total> — …
-- Transaction: <walked>/<total> — …
+- Journey: <walked>/<total> (…)
+- Transaction: <walked>/<total> (…)
 - <one line per catalog kind, in catalog order>
 
 ## Decisions from the call
-- <ruling the team aligned on, one line each — drop the section when none>
+- <ruling the team aligned on, one line each (drop the section when none)>
 
 ## Decisions needed
-- <a product or design ruling the testing surfaced but nobody has made — one line each, with the Test IDs it blocks; mirrored in the session's decisions child (§ Product decisions child) — drop the section when none>
+- <a product or design ruling the testing surfaced but nobody has made: one line each, with the Test IDs it blocks; mirrored in the session's decisions child (§ Product decisions child). Drop the section when none>
 
 ## Slices
 Todo queue budget <N> this session: <T> Todo, <B> Backlog. Every accepted cluster is tracked.
-- <one line per slice: what it covers and its Test IDs — Linear renders the
-  sub-issue links; include its priority and Todo/Backlog state, in queue order>
-- already tracked: <PRD-NNN> — <one line> (an existing open Issue, related to
+- <one line per slice: what it covers and its Test IDs (Linear renders the
+  sub-issue links); include its priority and Todo/Backlog state, in queue order>
+- already tracked: <PRD-NNN> · <one line> (an existing open Issue, related to
   this parent so the fix queue still sees it)
 - standing since <date>: <a never-filed fail from an earlier walk that the gate
-  accepted as a slice — one line>
+  accepted as a slice, in one line>
 
 ## Not sliced
 - <note-only follow-ups without an exact Test ID, and `[derived:telemetry]`
-  uncorrelated window errors (testers or ordinary production traffic — the
-  telemetry has no tester predicate) — one line each>
-- investigate: <a symptom whose cause or intent is unknown — one line; a slice
+  uncorrelated window errors (testers or ordinary production traffic, since the
+  telemetry has no tester predicate), one line each>
+- investigate: <a symptom whose cause or intent is unknown, in one line; a slice
   only after someone looks>
-- environment: <behaviour caused by the harness or environment, not the product —
-  one line>
+- environment: <behavior caused by the harness or environment, not the product,
+  in one line>
 
 **Done when**
-- every slice below — and every related already-tracked Issue — is Done or explicitly
+- every slice below, and every related already-tracked Issue, is Done or explicitly
   deferred, and the re-QA walk has re-recorded its Test IDs
 - every `Decisions needed` line has its ruling recorded on the decisions child and that child
   is Done or Canceled, and every `investigate:` line under Not sliced is promoted to a slice or
@@ -245,7 +248,7 @@ Session <slug>. [Meeting notes](<drive-url>)
 ```
 
 **Source-line variants**: with notes, `Session <slug>. [Meeting notes](<drive-url>)`; app-only
-(no notes found in the discovery window), `Session <slug>. App-only run — no meeting notes
+(no notes found in the discovery window), `Session <slug>. App-only run: no meeting notes
 found.` Never fabricate a Drive link. **Refreshing the report later**: send the unchanged
 `title` in the same `save_issue` payload — the lint gate resolves the length exemption from the
 payload alone, so an `{id, description}` update without the title is rejected as oversized
@@ -273,7 +276,7 @@ an agent with only Linear access can read the whole session. Rules:
 - Title exactly `QA session YYYY-MM-DD · full report` (a second same-day call appends its counter
   to the date, as the parent does). Parent = the session issue (`issue`), never a project.
 - Content = the `report.md` of the pull the results blocks were pasted from — the `-final`
-  directory when the routine re-pulled after the window closed — verbatim after the privacy grep: redact `0x` strings, replay or session
+  directory when an unattended run re-pulled after the window closed — verbatim after the privacy grep: redact `0x` strings, replay or session
   identifiers, and any name outside the team; team members' display names and their own notes stay
   (decided 2026-09-05, [`.claude/context/qa.md`](../../context/qa.md) § Public-repository boundary).
 - Created right after the parent and before the children; the parent's lede then links it (a
@@ -285,9 +288,9 @@ an agent with only Linear access can read the whole session. Rules:
 
 Title exactly `Product decisions from QA session YYYY-MM-DD`, a sub-issue of the session parent via
 `parentId`, state `Backlog`, labels = the parent set, no `package:*`. The missing package label is
-load-bearing: slice pickup (`debug` § QA Slice Fix Protocol) takes only sub-issues that carry one, so
+load-bearing: slice pickup (`debug` § Slice loop) takes only sub-issues that carry one, so
 this record is never mistaken for a slice. The interactive skill assigns
-the product owner; the routine leaves it unassigned. It exists so a ruling has a place to land that
+the product owner; an unattended run leaves it unassigned. It exists so a ruling has a place to land that
 outlives the parent, and so a Linear-only agent reads the open questions before touching the slices
 they block.
 
@@ -376,7 +379,7 @@ The verbatim block is **public** in the Linear body. Private context (the report
 
 Linear's API requires every Customer Need to link to an Issue (or Project). Items the skill would have classified as track-only — feedback, ideas, strategic gaps, clarifications — still get an Issue, just a lightweight one with no fix urgency.
 
-- **Label**: `activity:maintenance` (default for UX polish, copy fixes, low-urgency feature gaps) **or** `activity:architecture` (for strategic items tied to a larger rework — e.g., cross-device account recovery).
+- **Label**: `activity:maintenance` (default for UX polish, copy fixes, low-urgency feature gaps), `activity:design` for visual polish, **or** `activity:architecture` (for strategic items tied to a larger rework — e.g., cross-device account recovery).
 - **Priority**: Low (P3) or Medium (P2). Never P0/P1 — those are real bugs and use the main pattern instead.
 - **Status**: `Backlog`. The tracking Issue isn't claimed as committed work; it's a tracking surface for the Customer Need to attach to.
 - **Title**: a plain sentence, same as any other issue. **The `[tracking]`
@@ -403,7 +406,7 @@ QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name>. [Notes](<drive-url
 When this tracking Issue comes from `source:qa-session`, use the QA session source line and exact
 Test ID defined above. Track-only status does not weaken the linkage rule.
 
-The Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body.
+For a track-only item, the Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body. When the triage gate confirmed an outside report the notes missed, both come from the user's answer at the gate: the reporter's role and words, never their name, and never a teammate's quote. An issue-only item gets no Customer Need; [SKILL.md § Phase 2](./SKILL.md) says which sync items are issue-only.
 
 ---
 
@@ -415,11 +418,12 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 |---|---|---|---|
 | Clear bug + named surface + suggestable fix | Main (`activity:build`) | `Todo` | Yes, linked |
 | Bug with no repro or no clear surface | Main (`activity:build`) | `Backlog` | Yes, linked |
-| Idea / feature request / UX polish | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
+| Idea / feature request / UX polish | Attach (`activity:maintenance`, or `activity:design` for visual polish) | `Backlog` | Yes, linked |
 | Steward pain — "this is awkward" | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
 | Strategic gap tied to architecture rework | Attach (`activity:architecture`) | `Backlog` | Yes, linked |
+| Sync item the team raised itself, with no PostHog match: a chore, a tooling or process change, a bug or an idea | The bug's Issue above, otherwise Attach (`activity:maintenance`) | As above, otherwise `Backlog` | No (`issue-only`) |
 | Question / "me too" / no actionable content | Skip both | — | No |
-| Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved |
+| Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved; a sync item with no outside signal comments on the Issue, never the Need |
 | `[derived:posthog]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (telemetry-only body) |
 | `[derived:test-fail]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (Test ID reference) |
 | `[derived:recurring]` accepted in Phase 4 | linked to parent Issue | yes (recurring-pattern parent) |
@@ -427,11 +431,11 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Notes-only cluster (call report) | QA slice sub-issue of the session report | `Backlog` | No |
 | Decision needed (call report) | Line under the parent's `Decisions needed` + the session's decisions child | `Backlog` | No |
 | Investigate (call report) | `Not sliced · investigate` line in the parent; no Issue until someone looks | — | No |
-| Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill), copied de-attributed into the catalog-owning plan hub at close, or one `Catalog feedback` comment on the parent (routine) | — | No |
+| Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill), copied de-attributed into the catalog-owning plan hub at close, or one `Catalog feedback` comment on the parent (unattended run) | — | No |
 | Environment finding (call report) | One `environment:` line under the parent's `Not sliced`; never a slice | — | No |
 | Never-filed standing fail accepted at the gate (call report) | QA slice sub-issue opening with `Standing since <date>.` | `Todo` + derived priority | No |
 
 The call-report states above are subject to the QA slice's Todo queue budget; overflow lands in
 `Backlog`, with priority unchanged.
 
-The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it.
+The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it. A sync item that is unclear about who raised it defaults to **issue-only** instead: the tracking Issue alone.

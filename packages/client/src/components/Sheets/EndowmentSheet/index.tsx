@@ -1,21 +1,22 @@
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useErc20Balance } from "@green-goods/shared/hooks/blockchain/useErc20Balance";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   getVaultAssetDecimals,
   validateDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
-import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
-import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
-import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
-import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
-import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
-import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
-import { useBalance } from "wagmi";
 import { AppSheet, type AppSheetTab } from "../AppSheet";
 import { CookieJarTabContent } from "./CookieJarTabContent";
 import { TreasuryTabContent } from "./TreasuryTabContent";
@@ -52,7 +53,12 @@ export function EndowmentSheet({
     moduleConfigured: jarsModuleConfigured,
     hasDetailReadFailure: jarsDetailReadFailure,
   } = useGardenCookieJars(gardenAddress, { enabled: isOpen });
-  const { deposits } = useVaultDeposits(gardenAddress, {
+  const {
+    deposits,
+    isLoading: depositsLoading,
+    isError: depositsError,
+    refetch: refetchDeposits,
+  } = useVaultDeposits(gardenAddress, {
     userAddress: primaryAddress ?? undefined,
     enabled: isOpen && Boolean(primaryAddress),
   });
@@ -86,7 +92,7 @@ export function EndowmentSheet({
     [selectedAsset, vaults]
   );
 
-  const { data: balance } = useBalance({
+  const { data: balance } = useErc20Balance({
     address: primaryAddress as Address | undefined,
     token: selectedVault?.asset as Address | undefined,
     query: { enabled: isOpen && Boolean(primaryAddress && selectedVault) },
@@ -119,6 +125,24 @@ export function EndowmentSheet({
 
   const myDeposits = useMemo(() => deposits.filter((deposit) => deposit.shares > 0n), [deposits]);
 
+  const plan = useDepositPlan({
+    target:
+      selectedVault && primaryAddress
+        ? {
+            kind: "vault",
+            address: selectedVault.vaultAddress as Address,
+            asset: selectedVault.asset as Address,
+            receiver: primaryAddress as Address,
+          }
+        : null,
+    amount,
+    decimals,
+    symbol: balance?.symbol ?? "",
+    gardenAddress,
+    enabled: isOpen,
+    onLanded: () => setAmountInput(""),
+  });
+
   const onDeposit = () => {
     if (!selectedVault || !primaryAddress || amount <= 0n) return;
 
@@ -140,7 +164,7 @@ export function EndowmentSheet({
   ];
 
   const depositActions: SheetActionsProps | undefined =
-    activeTab === "treasury" && primaryAddress
+    ENDOWMENT_DEPOSITS_ENABLED && activeTab === "treasury" && primaryAddress
       ? {
           primary: {
             label: formatMessage({ id: "app.treasury.deposit" }),
@@ -148,6 +172,7 @@ export function EndowmentSheet({
             loading: depositMutation.isPending,
             disabled:
               !isOnline ||
+              plan.isPaused ||
               !selectedVault ||
               !primaryAddress ||
               amount <= 0n ||
@@ -176,6 +201,9 @@ export function EndowmentSheet({
           vaultsError={vaultsError}
           refetchVaults={refetchVaults}
           myDeposits={myDeposits}
+          depositsLoading={depositsLoading}
+          depositsError={depositsError}
+          refetchDeposits={refetchDeposits}
           gardenAddress={gardenAddress}
           primaryAddress={primaryAddress}
           selectedAsset={selectedAsset}
@@ -185,6 +213,9 @@ export function EndowmentSheet({
           balance={balance}
           previewShares={preview?.previewShares}
           decimals={decimals}
+          holdFeedback={plan.holdFeedback}
+          signatureLine={plan.signatureLine}
+          isDepositing={depositMutation.isPending}
         />
       )}
 

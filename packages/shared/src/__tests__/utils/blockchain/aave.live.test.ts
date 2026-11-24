@@ -17,8 +17,8 @@ loadEnv({ path: resolve(here, "../../../../../../.env") });
 const ARBITRUM_AAVE_V3_POOL = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
 const ARBITRUM_WETH = "0x82af49447d8a07e3bd95bd0d56f35241523fbab1";
 const ARBITRUM_DAI = "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1";
-const RUN_LIVE_RPC_TESTS =
-  process.env.RUN_LIVE_RPC_TESTS === "true" && Boolean(process.env.ARBITRUM_RPC_URL);
+const rpcUrl = process.env.ARBITRUM_RPC_URL || process.env.ARBITRUM_RPC;
+const RUN_LIVE_RPC_TESTS = process.env.RUN_LIVE_RPC_TESTS === "true" && Boolean(rpcUrl);
 
 const describeLive = RUN_LIVE_RPC_TESTS ? describe : describe.skip;
 
@@ -64,15 +64,13 @@ async function postJsonRpc(url: string, body: Record<string, unknown>) {
 
 describeLive("Aave reserve live reads", () => {
   it("reads finite APY values for Arbitrum WETH and DAI", async () => {
-    const rpcUrl = process.env.ARBITRUM_RPC_URL!;
-
     for (const asset of [ARBITRUM_WETH, ARBITRUM_DAI] as const) {
       const calldata = encodeFunctionData({
         abi: AAVE_V3_POOL_ABI,
         functionName: "getReserveData",
         args: [asset],
       });
-      const result = await postJsonRpc(rpcUrl, {
+      const result = await postJsonRpc(rpcUrl!, {
         jsonrpc: "2.0",
         id: 1,
         method: "eth_call",
@@ -92,6 +90,7 @@ describeLive("Aave reserve live reads", () => {
 
       const apy = rayToApy(reserveData.currentLiquidityRate);
 
+      expect(reserveData.aTokenAddress).not.toBe("0x0000000000000000000000000000000000000000");
       expect(reserveData.currentLiquidityRate > 0n).toBe(true);
       expect(Number.isFinite(apy)).toBe(true);
       expect(apy).toBeGreaterThan(0);

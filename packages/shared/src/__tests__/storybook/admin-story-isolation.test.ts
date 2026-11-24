@@ -21,7 +21,7 @@ describe("resetAdminStoryState", () => {
       selectedGarden: {
         id: "garden-1",
         chainId: 999,
-        tokenAddress: "garden-1",
+        tokenAddress: "0x1111111111111111111111111111111111111111",
         tokenID: 1n,
         name: "Leaked Garden",
         description: "",

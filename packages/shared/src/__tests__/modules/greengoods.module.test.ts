@@ -49,12 +49,13 @@ vi.mock("../../modules/data/graphql", () => ({
 
 import { isGardenPubliclyReachable, isGardenPubliclyVisible } from "../../config/garden-visibility";
 import {
+  getActionDomains,
   getActions,
   getGardeners,
   getGardens,
   parseIndexerDomain,
 } from "../../modules/data/greengoods";
-import { getGarden } from "../../modules/data/indexer-garden";
+import { getGarden, getProfileMemberGardens } from "../../modules/data/indexer-garden";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
 import { parseIndexerCapital } from "../../modules/data/indexer-capitals";
 import { Capital, Domain } from "../../types/domain";
@@ -65,6 +66,56 @@ const reader = { query: mockQuery } as GraphQLReader;
 describe("modules/data/greengoods", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("paginates Profile memberships for the account independently of the public catalog", async () => {
+    const account = "0xAa00000000000000000000000000000000000001";
+    const member = { _contains: [account.toLowerCase()] };
+    const rows = Array.from({ length: 51 }, (_, index) => {
+      const id = `0x${(index + 1).toString(16).padStart(40, "0")}`;
+      return {
+        id,
+        chainId: 11155111,
+        tokenID: String(index + 1),
+        name: `Garden ${index}`,
+        gardeners: member._contains,
+      };
+    });
+    mockQuery
+      .mockResolvedValueOnce({ data: { Garden: rows.slice(0, 50) } })
+      .mockResolvedValueOnce({ data: { Garden: rows.slice(50) } });
+
+    const result = await getProfileMemberGardens(account, reader);
+    expect(result).toHaveLength(51);
+    expect(result.some(({ id }) => id === rows[50].id)).toBe(true);
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      {
+        chainId: 11155111,
+        scope: {
+          id: { _gt: "" },
+          _or: [
+            { gardeners: member },
+            { operators: member },
+            { evaluators: member },
+            { owners: member },
+            { funders: member },
+            { communities: member },
+          ],
+        },
+        order: [{ id: "asc" }],
+      },
+      "getProfileMemberGardens"
+    );
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        scope: expect.objectContaining({ id: { _gt: rows[49].id } }),
+      }),
+      "getProfileMemberGardens"
+    );
   });
 
   describe("getGardens", () => {
@@ -585,6 +636,40 @@ describe("modules/data/greengoods", () => {
         instructionTemplates["solar.site_setup"].uiConfig.media.title
       );
       expect(result[0].instructionsFallback).toBe(true);
+    });
+  });
+
+  describe("getActionDomains", () => {
+    it("reads each named action's domain on the chain, leaving unrecognized domains out", async () => {
+      mockQuery.mockResolvedValueOnce({
+        data: {
+          Action: [
+            { id: "42161-3", domain: "WASTE" },
+            { id: "42161-7", domain: "UNKNOWN" },
+          ],
+        },
+      });
+
+      const domains = await getActionDomains([3, 7, 3, -1, 1.5], 42161, reader);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining("Action(where: $where)"),
+        { where: { chainId: { _eq: 42161 }, id: { _in: ["42161-3", "42161-7"] } } },
+        "getActionDomains"
+      );
+      expect([...domains]).toEqual([[3, Domain.WASTE]]);
+    });
+
+    it("asks nothing when no action is named, and rejects a failed read", async () => {
+      await expect(getActionDomains([], 42161, reader)).resolves.toEqual(new Map());
+      expect(mockQuery).not.toHaveBeenCalled();
+
+      mockQuery.mockResolvedValueOnce({ error: { message: "offline" } });
+      await expect(getActionDomains([1], 42161, reader)).rejects.toMatchObject({
+        message: "offline",
+      });
+      mockQuery.mockResolvedValueOnce({ data: {} });
+      await expect(getActionDomains([1], 42161, reader)).rejects.toThrow("missing the list");
     });
   });
 });

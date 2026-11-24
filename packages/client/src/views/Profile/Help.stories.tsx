@@ -4,9 +4,11 @@ import { withAppPage } from "../../../../shared/.storybook/decorators";
 import { ProfileHelp } from "./Help";
 
 /**
- * Profile › Help: where to get in touch, then the questions by category. Promises
- * have their own category, where How Promises Work in the Offer or Request sheet
- * leads.
+ * Profile › Help: guides and socials under Learn & Connect, the policies and support
+ * requests under Privacy & Safety, then the questions by category. A question that a
+ * gardener guide walks through ends with a link to it. Promises have their own
+ * category, where How Promises Work in the Offer or Request sheet leads. The Hub entry lives
+ * in Home's About This Garden rows (PRD-1492).
  */
 const meta: Meta<typeof ProfileHelp> = {
   title: "Client/Profile/Help",
@@ -36,5 +38,19 @@ export const Promises: Story = {
     await expect(canvas.getByTestId("faq-content-whatArePromises")).toBeVisible();
     // Promises moved out of Funds and Wallet: no question there says "pool" any more.
     await expect(canvas.queryByText(/What are pools\?/)).toBeNull();
+  },
+};
+
+/** Learn & Connect starts with the guides; the Hub entry belongs to the garden on Home. */
+export const Links: Story = {
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const [first] = canvas.getAllByRole("link");
+    await expect(first).toHaveAttribute(
+      "href",
+      "https://docs.greengoods.app/community/gardener-guide"
+    );
+    await expect(canvas.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
   },
 };

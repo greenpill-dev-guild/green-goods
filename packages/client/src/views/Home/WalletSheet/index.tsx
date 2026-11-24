@@ -1,24 +1,35 @@
+import { hasVoucherWalletRoute, useVoucherWallet } from "@green-goods/shared/commitment-pooling";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
-import { RiCoinsLine, RiGiftLine } from "@remixicon/react";
+import type { Address } from "@green-goods/shared/types/domain";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
+import { RiCoinsLine, RiCoupon3Line, RiGiftLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AppSheet, type AppSheetTab } from "@/components/Sheets/AppSheet";
 import { CookieJarTab } from "./CookieJarTab";
 import { SendTab } from "./SendTab";
+import { VouchersTab } from "./VouchersTab";
 
 interface WalletSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  /** The tab it opens on, when a link asked for one; Cookies where this build reads no vouchers. */
+  startTab?: "vouchers";
 }
 
 /**
  * The wallet holds balances: one fungible number each, no lifecycle, nothing
  * waiting on anyone. Commitments left for their own sheet because they are none
- * of those things (see views/Home/CommitmentsSheet).
+ * of those things (see views/Home/CommitmentsSheet). Vouchers are balances too;
+ * a voucher a booking holds shows as its own row that opens the booking, since
+ * the wallet is account-wide and Home shows one garden (PRD-1299 decision 11).
  */
-export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose }) => {
+export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, startTab }) => {
   const { formatMessage } = useIntl();
-  const [activeTab, setActiveTab] = useState("cookie-jar");
+  const [activeTab, setActiveTab] = useState<string>(startTab ?? "cookie-jar");
   // Bumped whenever the Tokens tab is (re)selected, so re-tapping it resets the
   // Tokens tab back to its Balance home.
   const [sendResetNonce, setSendResetNonce] = useState(0);
@@ -30,6 +41,25 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose }) => 
     () => jars.filter((jar) => jar.maxWithdrawal > 0n && jar.balance > 0n && !jar.isPaused).length,
     [jars]
   );
+
+  // Vouchers is the voucher pilot's tab wherever this build reads vouchers, a fact of the build:
+  // the rail lists it from the first frame and the read fills it, so the rail never grows under
+  // the reader (DL-167). Elsewhere the wallet keeps to Cookies and Tokens.
+  const coreModule = getNetworkContracts(DEFAULT_CHAIN_ID).commitmentPoolingModule;
+  const showVouchers = hasVoucherWalletRoute({ sourceChainId: DEFAULT_CHAIN_ID, coreModule });
+  // The account's vouchers across gardens, read while the sheet is open.
+  const { primaryAddress } = useUser();
+  // The Cookies tab leads with the garden in Home's chip.
+  const { gardenId: activeGardenId } = useActiveGarden();
+  const voucherScope = useMemo(
+    () =>
+      isOpen && showVouchers && primaryAddress
+        ? { sourceChainId: DEFAULT_CHAIN_ID, coreModule, account: primaryAddress as Address }
+        : null,
+    [isOpen, showVouchers, primaryAddress, coreModule]
+  );
+  const voucherRead = useVoucherWallet(voucherScope);
+  const tab = activeTab === "vouchers" && !showVouchers ? "cookie-jar" : activeTab;
 
   const tabs: AppSheetTab[] = [
     {
@@ -43,18 +73,26 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose }) => 
       label: formatMessage({ id: "app.wallet.tab.tokens" }),
       icon: <RiCoinsLine />,
     },
+    ...(showVouchers
+      ? [
+          {
+            id: "vouchers",
+            label: formatMessage({ id: "app.wallet.tab.vouchers" }),
+            icon: <RiCoupon3Line />,
+          },
+        ]
+      : []),
   ];
 
   return (
     <AppSheet
       isOpen={isOpen}
       onClose={onClose}
-      header={{
-        title: formatMessage({ id: "app.wallet.title" }),
-        description: formatMessage({ id: "app.wallet.subtitle" }),
-      }}
+      // The title is enough: the Cookies tab leads with the chip's garden (DL-028 keeps the
+      // description optional).
+      header={{ title: formatMessage({ id: "app.wallet.title" }) }}
       tabs={tabs}
-      activeTab={activeTab}
+      activeTab={tab}
       onTabChange={(id) => {
         setActiveTab(id);
         if (id === "send") setSendResetNonce((nonce) => nonce + 1);
@@ -62,8 +100,16 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose }) => 
       contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       size="full"
     >
-      {activeTab === "cookie-jar" && <CookieJarTab />}
-      {activeTab === "send" && <SendTab resetNonce={sendResetNonce} />}
+      {tab === "cookie-jar" && <CookieJarTab activeGardenId={activeGardenId} />}
+      {tab === "send" && <SendTab resetNonce={sendResetNonce} />}
+      {tab === "vouchers" && (
+        <VouchersTab
+          wallet={voucherRead.data}
+          // A read paused offline with nothing cached would otherwise hold its frames for good.
+          failed={voucherRead.isError || voucherRead.fetchStatus === "paused"}
+          onClose={onClose}
+        />
+      )}
     </AppSheet>
   );
 };

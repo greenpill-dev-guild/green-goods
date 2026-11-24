@@ -11,7 +11,7 @@ import { encodeFunctionData, type Hex } from "viem";
 import type { EASConfig } from "../../config/blockchain";
 import type { ContractCall } from "../../modules/transactions/types";
 import { EASABI } from "../blockchain/contracts";
-import { NO_EXPIRATION, ZERO_BYTES32 } from "./constants";
+import { APPROVAL_GAS_HEADROOM_PERCENT, NO_EXPIRATION, ZERO_BYTES32 } from "./constants";
 
 /**
  * EAS attestation request structure (internal)
@@ -124,50 +124,6 @@ interface MultiAttestationRequest {
   }>;
 }
 
-/**
- * Build batch approval attestation transaction params using EAS multiAttest
- *
- * This batches multiple approval attestations into a single transaction,
- * significantly improving UX when approving/rejecting multiple works.
- *
- * @param easConfig - EAS configuration for the chain
- * @param approvals - Array of { gardenAddress, attestationData } pairs
- * @returns Transaction parameters (to, data, value)
- * @throws Error if approvals array is empty
- */
-export function buildBatchApprovalAttestTx(
-  easConfig: EASConfig,
-  approvals: Array<{ gardenAddress: `0x${string}`; attestationData: Hex }>
-): { to: `0x${string}`; data: Hex; value: bigint } {
-  // Guard against empty approvals array
-  if (approvals.length === 0) {
-    throw new Error("Approvals array must not be empty");
-  }
-
-  // Group attestations by schema (all approvals use the same schema)
-  const multiRequest: MultiAttestationRequest = {
-    schema: easConfig.WORK_APPROVAL.uid as Hex,
-    data: approvals.map(({ gardenAddress, attestationData }) => ({
-      recipient: gardenAddress,
-      expirationTime: NO_EXPIRATION,
-      revocable: false,
-      refUID: ZERO_BYTES32 as Hex,
-      data: attestationData,
-      value: 0n,
-    })),
-  };
-
-  return {
-    to: easConfig.EAS.address as `0x${string}`,
-    data: encodeFunctionData({
-      abi: EASABI,
-      functionName: "multiAttest",
-      args: [[multiRequest]],
-    }),
-    value: 0n,
-  };
-}
-
 // ============================================================================
 // ContractCall Builders (for use with TransactionSender)
 // ============================================================================
@@ -221,6 +177,7 @@ export function buildApprovalAttestContractCall(
     abi: EASABI,
     functionName: "attest",
     args: [request],
+    gasHeadroomPercent: APPROVAL_GAS_HEADROOM_PERCENT,
   };
 }
 
@@ -229,6 +186,8 @@ export interface QueuedAttestation {
   schema: Hex;
   gardenAddress: `0x${string}`;
   attestationData: Hex;
+  /** Gas its resolver's best-effort work needs over the estimate (see `ContractCall`). */
+  gasHeadroomPercent?: number;
 }
 
 /**
@@ -238,7 +197,8 @@ export interface QueuedAttestation {
  * request group per schema, in the order each schema first appears, so a passkey
  * signs one UserOperation and a wallet approves one transaction. EAS returns the
  * new UIDs in the order of the requests it was given. Any job kind that becomes
- * an EAS attestation rides along by naming its schema.
+ * an EAS attestation rides along by naming its schema. The call asks for the
+ * most gas headroom any of its attestations does.
  *
  * @throws Error when nothing is queued
  */
@@ -247,6 +207,8 @@ export function buildQueuedAttestationsCall(
   queued: readonly QueuedAttestation[]
 ): ContractCall {
   if (queued.length === 0) throw new Error("Nothing is queued to send");
+  const headroom = Math.max(0, ...queued.map(({ gasHeadroomPercent }) => gasHeadroomPercent ?? 0));
+  const gasHeadroom = headroom > 0 ? { gasHeadroomPercent: headroom } : {};
   if (queued.length === 1) {
     const [{ schema, gardenAddress, attestationData }] = queued;
     return {
@@ -254,6 +216,7 @@ export function buildQueuedAttestationsCall(
       abi: EASABI,
       functionName: "attest",
       args: [buildAttestationRequest(gardenAddress, schema, attestationData)],
+      ...gasHeadroom,
     };
   }
   const groups = new Map<Hex, MultiAttestationRequest>();
@@ -267,5 +230,6 @@ export function buildQueuedAttestationsCall(
     abi: EASABI,
     functionName: "multiAttest",
     args: [[...groups.values()]],
+    ...gasHeadroom,
   };
 }

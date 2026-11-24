@@ -99,6 +99,7 @@ export function renderMcpGuide({ root, sources, digest, connectorCatalog, routin
     "Agent and MCP Guide",
     "An agent reaches tools in two ways here. MCP servers checked into this repository start with the project for anyone who clones it. Connected services are hosted tools, such as the backlog, telemetry, and deployments, that an agent reaches through a connector in the coding app, signed in by the person using it. Repository guidance says how each may be used."
   );
+  body += "```mermaid\nflowchart LR\n  A[Repository task] --> B[Configured MCP server]\n  A --> C[Connected service]\n  B --> D[Authorized tool]\n  C --> D\n  D --> E[Evidence and review]\n```\n\n";
   body += "## MCP servers in this repository\n\nProjected from the checked-in MCP configuration, `.mcp.json`.\n\n";
   body += "| Server | Command | Arguments | Scope | Surfaces |\n|---|---|---|---|---|\n";
   for (const [name, server] of servers) {
@@ -212,10 +213,10 @@ export function renderPackageExports(exports) {
 // Each product surface, in display order, with its name on the page and what it is. The
 // renderer throws on a surface a persona journey names but this table does not.
 const SURFACES = [
-  ["admin", "Admin cockpit", "the steward cockpit at admin.greengoods.app, where gardens, actions, reviews, and pools are run"],
-  ["client", "Client app", "the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field"],
+  ["admin", "Green Goods Hub", "the steward workspace at admin.greengoods.app, where gardens, actions, reviews, and pools are run"],
+  ["client", "Green Goods App", "the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field"],
   ["agent", "Messaging agent", "the Telegram bot, for people who would rather message than install anything"],
-  ["public", "Public site", "the browser website at greengoods.app, where anyone reads gardens and impact and can fund them"],
+  ["public", "Green Goods Website", "the browser website at greengoods.app, where anyone reads gardens and impact and can fund them"],
   ["community", "Community channels", "the Telegram and Discord spaces around the product"],
   ["docs", "Docs", "this site"],
 ];
@@ -264,7 +265,7 @@ export function renderPersonas({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Personas and Surfaces", slug: "/builders/architecture/personas", sources, digest },
     "Personas and Surfaces",
-    `Green Goods is built for ${COUNT_WORDS[personas.length] ?? personas.length} kinds of people. Each one is tied to an on-chain hat, which is how the contracts know who may do what. This page says who each of them is, what they do, when they do it, and on which surface. It is generated from the ontology, so it stays in step with the product's own vocabulary. Read it before the work-submission trace, which names these actors at every step.`
+    `Green Goods is built for ${COUNT_WORDS[personas.length] ?? personas.length} kinds of people and organizations. Each kind has an on-chain hat, which the contracts check before a role-gated act such as submitting or approving work; giving to a garden needs no hat. This page says who each of them is, what they do, when they do it, and on which surface. It is generated from the ontology, so it stays in step with the product's own vocabulary. Read it before the work-submission trace, which names these actors at every step.`
   );
   body += "## At a glance\n\n| Persona | In one line | Works in |\n|---|---|---|\n";
   for (const { persona, concept, journey } of personas) {
@@ -286,7 +287,7 @@ export function renderPersonas({ root, sources, digest }) {
       const statuses = (engagement.term_refs ?? []).map((ref) => availabilityByRef.get(ref));
       const note = UNAVAILABLE_NOTES.find(([status]) => statuses.includes(status))?.[1];
       const guide = engagement.guide ? ` [Guide](${engagement.guide}).` : "";
-      const where = names(SURFACES.filter(([id]) => engagement.where.includes(id))) || "—";
+      const where = names(SURFACES.filter(([id]) => engagement.where.includes(id))) || "None";
       body += `| ${esc(engagement.when)} | ${esc(sentence(engagement.what))}${note ? ` *${note}*` : ""}${guide} | ${where} |\n`;
     }
     const anchored = journey.engagements.filter((engagement) => engagement.code.length);
@@ -335,6 +336,8 @@ const ADDRESS_GROUPS = [
       "gardenToken",
       "accountProxy",
       "gardenAccountImpl",
+      "gardenAccountProxy",
+      "gardenAccountProxyImpl",
       "rootGarden.address",
       "actionRegistry",
       "deploymentRegistry",
@@ -384,7 +387,7 @@ const ADDRESS_GROUPS = [
   },
   {
     title: "Commitment pooling and settlement",
-    intro: "Pools, registries, settlement, and their upgradeable implementations.",
+    intro: "Pools, registries, settlement, reward payouts, and their upgradeable implementations.",
     fields: [
       "commitmentPoolingModule",
       "commitmentPoolingModuleImpl",
@@ -396,6 +399,7 @@ const ADDRESS_GROUPS = [
       "settlementModuleImpl",
       "celoSettlementExecutor",
       "celoSettlementExecutorImpl",
+      "rewardPayer",
     ],
   },
   {
@@ -432,12 +436,13 @@ const CONTRACT_LABELS = {
   celoSettlementExecutor: "Celo settlement executor",
   commitmentPoolingModule: "Commitment pooling module",
   commitmentRegistry: "Commitment registry",
-  cookieJarFactory: "Cookie Jar factory (1Hive)",
+  cookieJarFactory: "Cookie Jar factory (Greenpill Dev Guild)",
   cookieJarModule: "Cookie Jar module",
   creditRegistry: "Credit registry",
   deploymentRegistry: "Deployment registry",
   ensReceiver: "ENS receiver",
   gardenAccountImpl: "Garden account implementation (ERC-6551)",
+  gardenAccountProxy: "Upgradeable garden account",
   gardenToken: "Garden token (ERC-721)",
   gardensModule: "Gardens module",
   greenGoodsENS: "Green Goods ENS registry",
@@ -453,6 +458,7 @@ const CONTRACT_LABELS = {
   octantFactory: "Octant vault factory",
   octantModule: "Octant module",
   previousEnsReceiver: "ENS receiver (previous)",
+  rewardPayer: "Reward payer",
   rootGarden: "Root garden",
   "rootGarden.address": "Root garden",
   settlementModule: "Settlement module",
@@ -612,6 +618,11 @@ const ERD_GROUPS = [
     members: ["hypercert", "vault", "cookie-jar"],
   },
   {
+    title: "Service vouchers",
+    intro: "Issuer promises, curated exchanges, and awards for contributions.",
+    members: ["service-voucher", "voucher-exchange-pool", "voucher-award"],
+  },
+  {
     title: "Commitment pooling",
     intro: "The commitment subsystem: pools, cycles, series, and settlement records.",
     members: [
@@ -767,7 +778,7 @@ export function renderSkills({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Skills Catalog", slug: "/builders/agentic/skills", sources, digest },
     "Skills Catalog",
-    `Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. ${skills.length} skills are catalogued; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.`
+    `Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. ${skills.length} skills are cataloged; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.`
   );
   // Table cells keep inline code but cannot carry a pipe.
   const cell = (value) => String(value).replaceAll("|", "\\|");
@@ -790,17 +801,31 @@ export function renderSkills({ root, sources, digest }) {
 // glossary with its plain-language record from the projection data and links to its guide.
 // This is a list of terms, not a rule. The ontology's `surfaces` field says where a term may
 // appear in product copy; it does not say who reads it.
-// Commitment terms are left out on purpose until their availability records are reconciled.
+// Released promise terms use product-facing names; formal implementation terms stay in Builders.
 const GLOSSARY_EVERYDAY = [
+  { ref: "entity:commitment-pool", guide: ["Open a Pool", "/community/steward-guide/open-a-pool"] },
+  { ref: "entity:season", guide: ["Open a Pool", "/community/steward-guide/open-a-pool"] },
+  { ref: "entity:commitment-contributor", heading: "Contributor", availabilityNote: "Team membership, contributions and contributor payouts are available; payouts need the garden's settlement account to be active.", guide: ["Keep a Promise", "/community/gardener-guide/keep-a-promise"] },
   { ref: "entity:garden", guide: ["How It Works", "/community/how-it-works"] },
   { ref: "entity:action", guide: ["Manage Actions", "/community/steward-guide/managing-actions"] },
+  // Every surface calls a commitment a promise; the word stays only in the feature's name. Offer
+  // and request are its two kinds, not other names for it, so the entry words that line itself.
+  {
+    ref: "entity:commitment",
+    heading: "Promise",
+    alsoCalled: ["commitment, as in the feature name Commitment Pooling"],
+    guide: ["Make a Promise", "/community/gardener-guide/make-a-promise"],
+  },
   { ref: "entity:work", guide: ["Submit Work", "/community/gardener-guide/uploading-your-work"] },
   { ref: "entity:work-approval", guide: ["Review Work", "/community/steward-guide/reviewing-work"] },
-  { ref: "entity:assessment", guide: ["Make an Assessment", "/community/evaluator-guide/making-an-assessment"] },
-  // The public site and the guides call it an impact certificate; the cockpit says Hypercert.
+  { ref: "entity:assessment", guide: ["Make an Initial Assessment", "/community/evaluator-guide/making-an-assessment"] },
+  // The public site and the guides call it an impact certificate; the Hub says Hypercert.
   { ref: "entity:hypercert", heading: "Impact Certificate", guide: ["Mint Impact Certificate", "/community/steward-guide/creating-impact-certificates"] },
   { ref: "entity:vault", guide: ["Endow a Garden", "/community/funder-guide/funding-a-garden"] },
   { ref: "entity:cookie-jar", guide: ["Donate to a Garden", "/community/funder-guide/donating-to-a-garden"] },
+  { ref: "entity:service-voucher", guide: ["Voucher reference", "/reference/ontology#service-voucher"] },
+  { ref: "entity:voucher-exchange-pool", guide: ["Exchange pool reference", "/reference/ontology#voucher-exchange-pool"] },
+  { ref: "entity:voucher-award", guide: ["Award reference", "/reference/ontology#voucher-award"] },
   { ref: "persona:gardener", guide: ["Gardener Guide", "/community/gardener-guide/"] },
   { ref: "persona:steward", guide: ["Steward Guide", "/community/steward-guide/"] },
   { ref: "persona:evaluator", guide: ["Evaluator Guide", "/community/evaluator-guide/"] },
@@ -835,7 +860,7 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
   ]);
   const conceptByRef = new Map(projections.human_concepts.map((concept) => [concept.ref, concept]));
   const availabilityByRef = new Map((projections.capabilities ?? []).map((item) => [item.ref, item.availability]));
-  return selection.map(({ ref, heading, guide }) => {
+  return selection.map(({ ref, heading, alsoCalled, guide, availabilityNote }) => {
     const term = terms.get(ref);
     if (!term) throw new Error(`Glossary everyday term ${ref} is not a canonical entity or persona`);
     const concept = conceptByRef.get(ref);
@@ -845,6 +870,14 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
     if (title !== term.display && !aliases.some((alias) => alias.toLowerCase() === title.toLowerCase())) {
       throw new Error(`Glossary heading "${title}" is neither the display name nor a declared alias of ${ref}`);
     }
+    // An entry may word its "Also called" line, but each item still opens with a declared name.
+    const names = [term.display, ...aliases].map((name) => name.toLowerCase());
+    for (const text of alsoCalled ?? []) {
+      const opening = text.toLowerCase();
+      if (!names.some((name) => opening === name || opening.startsWith(`${name},`))) {
+        throw new Error(`Glossary "Also called" item "${text}" does not open with a declared name of ${ref}`);
+      }
+    }
     const anchor = title === term.display ? term.id : headingAnchor(title);
     return {
       ref,
@@ -853,11 +886,11 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
       // The canonical id and any older anchor keep resolving when the heading is an alias.
       aliasAnchors: [...(anchor === term.id ? [] : [term.id]), ...(GLOSSARY_LEGACY_ANCHORS[ref] ?? [])],
       concept,
-      alsoCalled: [
+      alsoCalled: alsoCalled ?? [
         ...(title === term.display ? [] : [term.display]),
         ...aliases.filter((alias) => alias.toLowerCase() !== title.toLowerCase()),
       ],
-      availabilityNote: UNAVAILABLE_NOTES.find(([status]) => status === availabilityByRef.get(ref))?.[1] ?? null,
+      availabilityNote: availabilityNote ?? UNAVAILABLE_NOTES.find(([status]) => status === availabilityByRef.get(ref))?.[1] ?? null,
       guide,
     };
   });
@@ -886,6 +919,9 @@ const PUBLISHED_GLOSSARY_TERMS = [
   ["entity:commitment", "commitment"],
   ["entity:commitment-contributor", "commitment-contributor"],
   ["entity:commitment-payout-plan", "commitment-payout-plan"],
+  ["entity:service-voucher", "service-voucher"],
+  ["entity:voucher-exchange-pool", "voucher-exchange-pool"],
+  ["entity:voucher-award", "voucher-award"],
   ["persona:gardener", "gardener"],
   ["persona:steward", "steward"],
   ["persona:evaluator", "evaluator"],
@@ -916,7 +952,6 @@ export function renderGlossary({ root, sources, digest }) {
   const everyday = glossaryEverydayEntries(ontology, projections);
   const everydayRefs = new Set(everyday.map((entry) => entry.ref));
   const sentence = (text) => (/[.!?]$/.test(text) ? text : `${text}.`);
-  const legacyAnchors = (ref) => (GLOSSARY_LEGACY_ANCHORS[ref] ?? []).map((id) => `<a id="${id}"></a>\n\n`).join("");
   let body = pageHeader(
     { title: "Glossary", slug: "/glossary", audience: "all", sources, digest },
     "Glossary",
@@ -934,17 +969,27 @@ export function renderGlossary({ root, sources, digest }) {
     if (entry.availabilityNote) body += `- **Availability:** ${entry.availabilityNote}\n`;
     body += `- **Read more:** [${entry.guide[0]}](${entry.guide[1]}).\n\n`;
   }
-  body += "## Builder reference {#formal-definitions}\n\n";
-  body += "Definitions, allowed surfaces, and technical terms are generated together in the [ontology](/reference/ontology). Older links still work below.\n\n";
-  for (const [anchor, target, label] of [
-    ["domain-entities", "entities", "Domain entities"],
-    ["personas", "personas", "Personas"],
-    ["term-reference", "entities", "Formal term reference"],
-    ["language-policy", "language-policy", "Language policy"],
-    ["lint-enforced-terms", "language-policy", "Vocabulary policy"],
-    ["admin-prompt-vocabulary", "language-policy", "Admin vocabulary"],
-    ["client-prompt-vocabulary", "language-policy", "Client vocabulary"],
-   ]) body += `#### [${label}](/reference/ontology#${target}) {#${anchor}}\n\n`;
+  const communityTerms = projections.community_terms ?? [];
+  const usedAnchors = new Set(everyday.flatMap(entry => [entry.anchor, ...entry.aliasAnchors]));
+  body += "## Words in the app\n\n";
+  for (const term of communityTerms) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(term.id) || usedAnchors.has(term.id)) throw new Error(`Duplicate or invalid community glossary anchor: ${term.id}`);
+    if (!term.meaning?.trim() || !term.example?.trim() || !term.guide?.startsWith("/")) throw new Error(`Incomplete community glossary term: ${term.id}`);
+    if (!term.source_of_truth?.length) throw new Error(`Missing glossary authority: ${term.id}`);
+    for (const source of term.source_of_truth) if (!existsSync(path.join(root, source))) throw new Error(`Missing glossary authority: ${source}`);
+    usedAnchors.add(term.id);
+    const publishedRef = PUBLISHED_GLOSSARY_TERMS.find(([, anchor]) => anchor === term.id)?.[0];
+    for (const id of GLOSSARY_LEGACY_ANCHORS[publishedRef] ?? []) {
+      if (usedAnchors.has(id)) throw new Error(`Duplicate community glossary alias: ${id}`);
+      usedAnchors.add(id);
+      body += `<a id="${id}"></a>\n\n`;
+    }
+    body += `### ${esc(term.label)} {#${term.id}}\n\n${esc(term.meaning)}\n\n${esc(term.example)} [Guide](${term.guide}).\n\n`;
+  }
+  // Preserve historical fragments without displaying a second technical glossary.
+  for (const [id, target] of [["formal-definitions", "entities"], ["domain-entities", "entities"], ["personas", "personas"], ["term-reference", "entities"], ["language-policy", "language-policy"], ["lint-enforced-terms", "language-policy"], ["admin-prompt-vocabulary", "language-policy"], ["client-prompt-vocabulary", "language-policy"]]) {
+    body += `<TermAnchor id="${id}" to="/reference/ontology#${target}" />\n`;
+  }
   const terms = new Map([
     ...ontology.entities.map(term => [`entity:${term.id}`, term]),
     ...ontology.personas.map(term => [`persona:${term.id}`, term]),
@@ -953,8 +998,10 @@ export function renderGlossary({ root, sources, digest }) {
   for (const [ref, anchor] of PUBLISHED_GLOSSARY_TERMS) {
     const term = terms.get(ref);
     if (!term) throw new Error(`Published glossary link ${anchor} needs a declared replacement for ${ref}`);
-    if (everydayRefs.has(ref)) continue;
-    body += `${legacyAnchors(ref)}#### [${esc(term.display)}](/reference/ontology#${term.id}) {#${anchor}}\n\n`;
+    if (everydayRefs.has(ref) || usedAnchors.has(anchor)) continue;
+    for (const id of [...(GLOSSARY_LEGACY_ANCHORS[ref] ?? []), anchor]) {
+      body += `<TermAnchor id="${id}" to="/reference/ontology#${term.id}" />\n`;
+    }
   }
   return body;
 }
@@ -1053,8 +1100,12 @@ function describeTriggers(triggers) {
   const code = (value) => `\`${esc(value)}\``;
   const parts = [];
   if (triggers.pull_request) {
-    parts.push(triggers.pull_request.paths.length ? `pull requests that touch its paths (${triggers.pull_request.paths.length} path filters)` : "every pull request");
+    const { paths, types } = triggers.pull_request;
+    if (types.length === 1 && types[0] === "edited") parts.push("edits to a pull request's title, body or base");
+    else parts.push(paths.length ? `pull requests that touch its paths (${paths.length} path filters)` : "every pull request");
   }
+  if (triggers.workflow_run) parts.push(triggers.workflow_run.types.includes("requested") ? "the start and completion of another workflow" : "completion of another workflow");
+  if (triggers.issue_comment) parts.push("comments on issues and pull requests");
   if (triggers.push) {
     const { branches, tags, paths } = triggers.push;
     if (tags.length) parts.push(`pushed tags matching ${tags.map(code).join(", ")}`);
@@ -1070,12 +1121,14 @@ export function renderGitHubActions({ root, sources, digest }) {
   const workflows = workflowInventory(root, sources.filter((source) => source.startsWith(".github/workflows/")));
   const catalog = readJson(root, declaredSource(sources, "scripts/data/workflow-catalog.json")).workflows ?? {};
   const rootManifest = readJson(root, declaredSource(sources, "package.json"));
-  // The CI Gate waits only for the workflows the validation policy gives a path rule; a workflow
-  // with no rule (scheduled, manual, or tag-only) is never part of that wait set.
-  const gated = new Set(Object.keys(readJson(root, declaredSource(sources, "scripts/data/validation-policy.json")).workflowRules ?? {}));
+  // The policy owns both path rules and author-based PR rules. Scheduled,
+  // manual and tag-only workflows without a rule are outside the wait set.
+  const gated = readJson(root, declaredSource(sources, "scripts/data/validation-policy.json")).workflowRules ?? {};
   const requiredStatus = (workflow, entry) => {
     if (entry.required) return "yes, branch protection waits for it";
-    if (gated.has(workflow.display)) return "no, but the CI Gate waits for it on a pull request that touches its paths";
+    const rule = gated[workflow.display];
+    if (rule?.pullRequestAuthor) return `no, but the CI Gate waits for same-repository pull requests authored by \`${esc(rule.pullRequestAuthor)}\``;
+    if (rule) return "no, but the CI Gate waits for it on a pull request that touches its paths";
     return "no, and the CI Gate never waits for it: it has no pull request path rule";
   };
   const missing = workflows.filter((workflow) => !catalog[workflow.source]).map((workflow) => workflow.source);
@@ -1117,8 +1170,8 @@ export function renderGitHubActions({ root, sources, digest }) {
 // same shape as the QA app's Priority view, so the page and the run sheet read
 // the same way. Priority meaning lives here; kind meaning lives in the catalog.
 const QA_PRIORITY_MEANINGS = [
-  ["P0", "walk first — the highest-priority coverage for an applicable session"],
-  ["P1", "walk next — important coverage after the P0 band"],
+  ["P0", "walk first (the highest-priority coverage for an applicable session)"],
+  ["P1", "walk next (important coverage after the P0 band)"],
   ["P2", "walk after P0 and P1 when the session scope allows"],
 ];
 
@@ -1131,11 +1184,12 @@ export function renderQaCatalog({ root, sources, digest }) {
     "Test Cases",
     "This page projects scenario definitions only. Live results, identities, owners, defect links, and session evidence are intentionally excluded."
   );
-  body += "Each surface groups its cases by priority — the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view — and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.\n\n";
-  body += QA_PRIORITY_MEANINGS.map(([priority, meaning]) => `- **${priority}** — ${meaning}.`).join("\n");
+  body += "Each surface groups its cases by priority (the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view) and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.\n\n";
+  body += "**Release scope:** Rollout Readiness (`ROLL-` IDs) contains only in-progress features. Its cases and journeys require an explicit activation gate and stay separate from the regression surfaces. An active case is available to test; it does not mean the feature is deployed or the case has passed. Confirm the build and environment before recording a verdict.\n\n";
+  body += QA_PRIORITY_MEANINGS.map(([priority, meaning]) => `- **${priority}**: ${meaning}.`).join("\n");
   body += "\n\nPriority sets run order only. A failure's severity is assigned separately during triage.";
   body += "\n\nEach case carries one **kind**, the category axis:\n\n";
-  body += catalog.kinds.map((kind) => `- **${esc(kind.label)}** — ${esc(kind.verifies)}.`).join("\n");
+  body += catalog.kinds.map((kind) => `- **${esc(kind.label)}**: ${esc(kind.verifies)}.`).join("\n");
   if (catalog.journeys?.length) {
     body += "\n\n## Guided journeys\n\n";
     body += "Guided journeys choreograph active Test IDs across surfaces. A case's kind still describes that individual check; a guided journey describes who acts, who verifies, and when the handoff happens.\n\n";
@@ -1143,7 +1197,7 @@ export function renderQaCatalog({ root, sources, digest }) {
       const lanes = new Map(journey.lanes.map((lane) => [lane.id, lane]));
       body += `### ${esc(journey.label)}\n\n${esc(journey.summary)}\n\n`;
       body += "**Parts**\n\n";
-      body += journey.lanes.map((lane) => `- **${esc(lane.label)}** — ${esc(lane.role)}.`).join("\n");
+      body += journey.lanes.map((lane) => `- **${esc(lane.label)}**: ${esc(lane.role)}.`).join("\n");
       body += "\n\n**Phases and Test IDs**\n\n";
       let stepNumber = 0;
       for (const phase of journey.phases) {
@@ -1155,10 +1209,10 @@ export function renderQaCatalog({ root, sources, digest }) {
           const verify = (step.verifyLaneIds ?? [])
             .map((laneId) => lanes.get(laneId)?.label ?? laneId)
             .join(", ");
-          const roles = `Act: ${esc(lead)}${verify ? `; verify: ${esc(verify)}` : ""}`;
+          const roles = `act: ${esc(lead)}${verify ? `; verify: ${esc(verify)}` : ""}`;
           const handoff = step.handoff ? `\n   - **Handoff:** ${esc(step.handoff)}` : "";
           const knownGate = step.knownGate ? `\n   - **Known gate:** ${esc(step.knownGate)}` : "";
-          return `${stepNumber}. \`${esc(step.caseId)}\` — ${roles}${handoff}${knownGate}`;
+          return `${stepNumber}. \`${esc(step.caseId)}\` (${roles})${handoff}${knownGate}`;
         });
         body += `**${esc(phase.label)}**\n\n${renderedSteps.join("\n")}\n\n`;
       }
@@ -1166,10 +1220,10 @@ export function renderQaCatalog({ root, sources, digest }) {
   }
   body += "\n\n## How this catalog changes {#lifecycle}\n\n";
   body += "`scripts/data/qa-test-catalog.json` is the source of truth, and it changes the way code does: by pull request. Every case carries one **status**:\n\n";
-  body += catalog.statuses.map((status) => `- **${esc(status.id)}** — ${esc(status.means)}.`).join("\n");
+  body += catalog.statuses.map((status) => `- **${esc(status.id)}**: ${esc(status.means)}.`).join("\n");
   body += "\n\n- A new case enters as `active`, takes the next number in its surface prefix, is appended to the ID ledger (`scripts/data/qa-test-id-ledger.json`), and names where it came from in `source`.\n";
-  body += "- Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.\n";
-  body += "- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.\n";
+  body += "- Wording, step, and evidence edits happen in place, so the ID keeps meaning the same check.\n";
+  body += "- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID, so every past verdict keeps its meaning.\n";
   body += "- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `node scripts/docs/generate.mjs`; CI rejects a stale copy.\n\n";
   body += "The catalog contract test enforces all of this, and [retired cases](#retired-cases) are listed at the end of this page.\n\n";
   for (const tab of catalog.tabs) {
@@ -1177,11 +1231,12 @@ export function renderQaCatalog({ root, sources, digest }) {
     const tabSlug = tab.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     let rendered = 0;
     body += `## ${tab}\n\n`;
+    if (tab === "Rollout Readiness") body += "These checks apply only to the scoped rollout build and reviewed deployment. Their results do not count as coverage of the shipped release.\n\n";
     for (const [priority] of QA_PRIORITY_MEANINGS) {
       const band = tabCases.filter((candidate) => candidate.priority === priority);
       if (band.length === 0) continue;
       rendered += band.length;
-      const bandTitle = priority === "P0" ? `${priority} — run these first` : priority;
+      const bandTitle = priority === "P0" ? `${priority}: run these first` : priority;
       body += `### ${bandTitle} (${band.length}) {#${tabSlug}-${priority.toLowerCase()}}\n\n`;
       body += "| ID | Kind | Area | Scenario | Evidence requested |\n|---|---|---|---|---|\n";
       for (const item of band) body += `| \`${esc(item.id)}\` | ${esc(kindLabels.get(item.kind) ?? item.kind)} | ${esc(item.area)} | ${esc(item.scenario)} | ${esc(item.evidence)} |\n`;
@@ -1193,7 +1248,7 @@ export function renderQaCatalog({ root, sources, digest }) {
   body += "## Retired cases {#retired-cases}\n\nRetired cases never ship to a run sheet, but their IDs stay reserved and their history stays here.\n\n";
   body += "| ID | Was | Retired on | Why | Covered now by |\n|---|---|---|---|---|\n";
   for (const item of retired) {
-    const successors = (item.replacedBy ?? []).map((id) => `\`${esc(id)}\``).join(", ") || "—";
+    const successors = (item.replacedBy ?? []).map((id) => `\`${esc(id)}\``).join(", ") || "None";
     body += `| \`${esc(item.id)}\` | ${esc(item.tab)} · ${esc(item.scenario)} | ${esc(item.retiredOn)} | ${esc(item.retiredReason)} | ${successors} |\n`;
   }
   body += "\n";

@@ -45,17 +45,17 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
   const slots = useMemo<ToolbarSlot[]>(
     () => [
       {
-        id: "hub",
-        label: "Hub",
-        labelId: "cockpit.nav.hub",
+        id: "review",
+        label: "Review",
+        labelId: "hub.nav.review",
         icon: RiAppsLine,
-        path: "/hub",
+        path: "/review",
         visible: true,
       },
       {
         id: "garden",
         label: "Garden",
-        labelId: "cockpit.nav.garden",
+        labelId: "hub.nav.garden",
         icon: RiSeedlingLine,
         path: "/garden",
         visible: !empty,
@@ -63,7 +63,7 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
       {
         id: "community",
         label: "Community",
-        labelId: "cockpit.nav.community",
+        labelId: "hub.nav.community",
         icon: RiTeamLine,
         path: "/community",
         visible: !empty,
@@ -104,15 +104,15 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
           {empty ? (
             <section className="flex min-h-full items-center justify-center text-center">
               <div>
-                <h2 className="text-title-md text-text-strong">No garden access yet</h2>
-                <p className="mt-2 text-body-md text-text-sub">
+                <h2 className="type-title-md text-text-strong">No garden access yet</h2>
+                <p className="mt-2 type-body text-text-sub">
                   Create a garden or ask an owner to add your wallet.
                 </p>
               </div>
             </section>
           ) : (
             <section className="space-y-4">
-              <h2 className="text-title-md text-text-strong">Hub workbench</h2>
+              <h2 className="type-title-md text-text-strong">Review workbench</h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl bg-bg-soft p-4 shadow-[var(--edge-rest)]">
                   Pending review
@@ -134,10 +134,10 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
           if (!next) setSettingsOpen(false);
         }}
         title="Settings"
-        tone="hub"
+        tone="review"
         size="lg"
       >
-        <div className="p-5 body-sm text-text-sub">Account settings and network details.</div>
+        <div className="p-5 type-body text-text-sub">Account settings and network details.</div>
       </AdminDialog>
     </>
   );
@@ -147,11 +147,11 @@ function StorybookRouteContent({ title }: { title: string }) {
   return (
     <section className="space-y-4 p-6" data-testid="storybook-route-content">
       <div>
-        <p className="text-label-sm text-text-soft">Storybook route</p>
-        <h1 className="text-title-md font-semibold text-text-strong">{title}</h1>
+        <p className="type-meta-sm text-text-soft">Storybook route</p>
+        <h1 className="type-title-md font-semibold text-text-strong">{title}</h1>
       </div>
       <div className="surface-section p-4">
-        <p className="text-body-md text-text-sub">
+        <p className="type-body text-text-sub">
           Real CanvasLayout shell content rendered through React Router outlet.
         </p>
       </div>
@@ -163,7 +163,7 @@ function RealCanvasLayoutStory() {
   return (
     <Routes>
       <Route element={<CanvasLayout />}>
-        <Route path="/hub/*" element={<StorybookRouteContent title="Hub workbench" />} />
+        <Route path="/review/*" element={<StorybookRouteContent title="Review workbench" />} />
         <Route path="/garden/*" element={<StorybookRouteContent title="Garden overview" />} />
         <Route
           path="/community/*"
@@ -177,7 +177,7 @@ function RealCanvasLayoutStory() {
 }
 
 type CanvasLayoutStoryArgs = MockCanvasLayoutProps;
-type AdminWorkspaceTone = "hub" | "garden" | "community" | "actions";
+type AdminWorkspaceTone = "review" | "garden" | "community" | "actions";
 
 function getCanvasLayoutRoot(canvasElement: HTMLElement): HTMLElement {
   const root = canvasElement.querySelector<HTMLElement>('[data-component="CanvasLayout"]');
@@ -185,7 +185,7 @@ function getCanvasLayoutRoot(canvasElement: HTMLElement): HTMLElement {
   return root as HTMLElement;
 }
 
-// Cockpit M3 1a: the dark canvas ground is constant (the m3 floor); workspace
+// Hub M3 1a: the dark canvas ground is constant (the m3 floor); workspace
 // identity is the faint wash overlay. The contract per route is (a) the
 // [data-tone] attribute lands, and (b) the registered wash color
 // (--tone-surface-tint-color) resolves to a real, per-tone color — collected
@@ -227,7 +227,7 @@ const meta: Meta<CanvasLayoutStoryArgs> = {
   },
   args: {
     empty: false,
-    activePath: "/hub",
+    activePath: "/review",
   },
   argTypes: {
     empty: {
@@ -236,7 +236,7 @@ const meta: Meta<CanvasLayoutStoryArgs> = {
     },
     activePath: {
       control: "select",
-      options: ["/hub", "/garden", "/community", "/actions"],
+      options: ["/review", "/garden", "/community", "/actions"],
     },
   },
 };
@@ -250,11 +250,11 @@ export const RealProviderShell: Story = {
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
-    withRouter(["/hub/work"]),
+    withRouter(["/review/work"]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   parameters: {
@@ -268,7 +268,7 @@ export const RealProviderShell: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("banner")).toHaveAttribute("data-component", "AppBar");
-    await expect(await canvas.findByRole("heading", { name: "Hub workbench" })).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Review workbench" })).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Botanic Commons" })).toBeVisible();
 
     const searchButton = canvas.queryByRole("button", { name: "Open Search" });
@@ -309,11 +309,11 @@ export const DarkRouteToneContract: Story = {
   decorators: [
     withAdminIdentityRole("deployer"),
     withSeededQueryClient(STORYBOOK_ADMIN_DEPLOYER_SEEDS),
-    withRouter(["/hub"]),
+    withRouter(["/review"]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   parameters: {
@@ -331,14 +331,14 @@ export const DarkRouteToneContract: Story = {
     const washes = new Map<AdminWorkspaceTone, string>();
 
     await withTemporaryDocumentTheme("dark", async () => {
-      await waitFor(() => expectDarkCanvasWash(root, "hub", washes));
+      await waitFor(() => expectDarkCanvasWash(root, "review", washes));
       await waitFor(() => expectAdminShellDarkPalette(canvasElement));
 
       const routeCases = [
         { label: "Garden", tone: "garden" },
         { label: "Community", tone: "community" },
         { label: "Actions", tone: "actions" },
-        { label: "Hub", tone: "hub" },
+        { label: "Review", tone: "review" },
       ] as const;
 
       for (const route of routeCases) {
@@ -362,7 +362,7 @@ export const Populated: Story = {
     withCanvasFrame({
       className: "admin-m3 workspace-canvas-grid",
       heightClassName: "h-[680px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   play: async ({ canvasElement }) => {
@@ -385,7 +385,7 @@ export const Empty: Story = {
     withCanvasFrame({
       className: "admin-m3 workspace-canvas-grid",
       heightClassName: "h-[680px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   args: {
@@ -400,7 +400,7 @@ export const Mobile: Story = {
     withCanvasFrame({
       className: "admin-m3 workspace-canvas-grid",
       heightClassName: "h-[680px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   args: {

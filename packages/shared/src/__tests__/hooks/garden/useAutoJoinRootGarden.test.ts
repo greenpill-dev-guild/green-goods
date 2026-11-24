@@ -18,7 +18,8 @@ const mockReadContract = vi.fn();
 // Use mutable config so individual tests can override rootGarden address
 let mockRootGardenAddress: string | undefined = TEST_ROOT_GARDEN;
 
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   readContract: (...args: unknown[]) => mockReadContract(...args),
 }));
 

@@ -1,0 +1,78 @@
+import type { Address } from "../../types/domain";
+import type { PasskeyCredential } from "./session";
+import {
+  LEGACY_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
+  type PasskeyDirectoryAccountProfile,
+} from "../../public-contracts/passkey-directory";
+
+export { LEGACY_PASSKEY_PROFILE, KERNEL_033_PASSKEY_PROFILE };
+export const PILOT_PASSKEY_PROFILE = "kernel-0.3.3-pilot" as const;
+export type PasskeyAccountProfileId = PasskeyDirectoryAccountProfile | typeof PILOT_PASSKEY_PROFILE;
+
+export function isKernel033PasskeyProfile(
+  profile: unknown
+): profile is typeof KERNEL_033_PASSKEY_PROFILE | typeof PILOT_PASSKEY_PROFILE {
+  return profile === KERNEL_033_PASSKEY_PROFILE || profile === PILOT_PASSKEY_PROFILE;
+}
+
+/** Deployment identity is independent of credential serialization and browser session state. */
+export function assertPasskeyAccountProfile(
+  value: unknown
+): asserts value is PasskeyAccountProfileId {
+  if (
+    value !== LEGACY_PASSKEY_PROFILE &&
+    value !== KERNEL_033_PASSKEY_PROFILE &&
+    value !== PILOT_PASSKEY_PROFILE
+  ) {
+    throw new Error("Unknown passkey account profile");
+  }
+}
+
+export function getPasskeyAccountRecipe(profile: PasskeyAccountProfileId, chainId: number) {
+  assertPasskeyAccountProfile(profile);
+  if (isKernel033PasskeyProfile(profile)) {
+    if (!supportsPasskeyAccountProfile(profile, chainId)) {
+      throw new Error(`Pilot passkey accounts are unavailable on chain ${chainId}`);
+    }
+    return {
+      version: "0.3.3" as const,
+      index: 0n,
+      useMetaFactory: true,
+      validatorAddress: "0x7ab16Ff354AcB328452F1D445b3Ddee9a91e9e69" as Address,
+      factoryAddress: "0x2577507b78c2008Ff367261CB6285d44ba5eF2E9" as Address,
+      accountLogicAddress: "0xd6CEDDe84be40893d153Be9d467CD6aD37875b28" as Address,
+      metaFactoryAddress: "0xd703aaE79538628d27099B8c4f621bE4CCd142d5" as Address,
+    };
+  }
+  if (!supportsPasskeyAccountProfile(profile, chainId)) {
+    if (chainId === 100) throw new Error("Legacy passkey accounts are unavailable on Gnosis");
+    throw new Error(
+      "Evidence-only settlement profiles are unavailable through primary passkey auth"
+    );
+  }
+  return { version: "0.3.1" as const };
+}
+
+export function supportsPasskeyAccountProfile(profile: PasskeyAccountProfileId, chainId: number) {
+  return isKernel033PasskeyProfile(profile)
+    ? [42161, 42220, 100].includes(chainId)
+    : ![100, 421614, 11142220].includes(chainId);
+}
+
+/** Only a completed ceremony establishes the canonical browser ID for a new pilot identity. */
+export function getPilotCredentialId(credential: Pick<PasskeyCredential, "signingId">): string {
+  const id = credential.signingId;
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) {
+    throw new Error("Sign in with the passkey before selecting the pilot account");
+  }
+  try {
+    const bytes = atob(id.replace(/-/g, "+").replace(/_/g, "/"));
+    if (!bytes || btoa(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") !== id) {
+      throw new Error("Invalid browser credential ID");
+    }
+  } catch {
+    throw new Error("Sign in with the passkey before selecting the pilot account");
+  }
+  return id;
+}

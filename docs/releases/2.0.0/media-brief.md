@@ -14,7 +14,7 @@ optional follow-up material and does not gate the release or announcement.
 
 The [six prepared request-flow screenshots](media/README.md) show selection, review, and pending states in both languages. Each image was inspected. They are synthetic Storybook design references, not authenticated beta acceptance. Keep that label when sharing them internally. Refresh the final publishable set from the deployed candidate or an explicitly labeled fixture demonstration before publication.
 
-## Short demo — about 45 seconds
+## Short demo (about 45 seconds)
 
 - 0–12s: open a Garden's Promises tab; show the season and one promise.
 - 12–25s: open the steward Hub and a review, stopping before an unapproved signature.

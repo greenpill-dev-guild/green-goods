@@ -48,6 +48,12 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
     rpcTemplate: "https://arb-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
     publicRpcUrl: "https://arb1.arbitrum.io/rpc",
   },
+  100: {
+    name: "gnosis",
+    easName: "gnosis",
+    blockExplorer: "https://gnosisscan.io",
+    publicRpcUrl: "https://rpc.gnosischain.com",
+  },
   42220: {
     name: "celo",
     easName: "celo",

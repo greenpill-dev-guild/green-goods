@@ -3,7 +3,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import type { Address } from "viem";
@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../../../config/query-keys/registry";
 import { useCampaignCookieJarDeposit } from "../../../hooks/cookie-jar/useCampaignCookieJar";
 import { useCookieJarDeposit } from "../../../hooks/cookie-jar/useCookieJarDeposit";
+import { isUnconfirmedTxError } from "../../../utils/errors/tx-error-classifier";
 
 const mocks = vi.hoisted(() => ({
   userAddress: "0x1111111111111111111111111111111111111111" as Address | undefined,
@@ -20,10 +21,13 @@ const mocks = vi.hoisted(() => ({
   toastLoading: vi.fn(() => "deposit-toast"),
   toastSuccess: vi.fn(),
   toastDismiss: vi.fn(),
+  toastInfo: vi.fn(),
   warn: vi.fn(),
+  followUp: undefined as (() => void) | undefined,
 }));
 
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   readContract: mocks.readContract,
   waitForTransactionReceipt: vi.fn(),
 }));
@@ -34,14 +38,17 @@ vi.mock("../../../hooks/auth/useUser", () => ({
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => 11155111,
 }));
-vi.mock("../../../hooks/blockchain/useContractTxSender", () => ({
-  useContractTxSender: () => mocks.sendContractTx,
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => ({ sendContractCall: mocks.sendContractTx }),
 }));
-vi.mock("../../../hooks/utils/useSafeMutation", () => ({
-  useSafeMutation: (mutation: unknown) => mutation,
+vi.mock("../../../providers/Auth", () => ({
+  useOptionalAuthContext: () => ({ authMode: "passkey" }),
 }));
 vi.mock("../../../hooks/utils/useTimeout", () => ({
-  useProgressiveInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
+  useProgressiveInvalidation: (invalidate: () => void) => {
+    mocks.followUp = invalidate;
+    return { start: vi.fn(), cancel: vi.fn() };
+  },
 }));
 vi.mock("../../../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: () => mocks.handleError,
@@ -51,6 +58,7 @@ vi.mock("../../../components/toast", () => ({
     loading: mocks.toastLoading,
     success: mocks.toastSuccess,
     dismiss: mocks.toastDismiss,
+    info: mocks.toastInfo,
   },
 }));
 vi.mock("../../../modules/app/logger", () => ({
@@ -61,6 +69,7 @@ const GARDEN = "0x2222222222222222222222222222222222222222" as Address;
 const JAR = "0x3333333333333333333333333333333333333333" as Address;
 const TOKEN = "0x4444444444444444444444444444444444444444" as Address;
 const TX_HASH = `0x${"a".repeat(64)}` as `0x${string}`;
+const SENT = { hash: TX_HASH, sponsored: false };
 const params = { jarAddress: JAR, assetAddress: TOKEN, amount: 10n };
 
 function wrapperFor(queryClient: QueryClient) {
@@ -89,15 +98,54 @@ function renderDeposit() {
   return renderMutation(() => useCookieJarDeposit(GARDEN));
 }
 
+/** A read of the hold and the allowance follows every send. These are the jar's own refreshes. */
+const jarRefreshes = (calls: unknown[][]) =>
+  calls.filter(([filters]) => (filters as { queryKey: unknown[] }).queryKey[1] !== "batch");
+
 describe("useCookieJarDeposit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.userAddress = "0x1111111111111111111111111111111111111111";
-    mocks.sendContractTx.mockResolvedValue(TX_HASH);
+    mocks.sendContractTx.mockResolvedValue(SENT);
     mocks.readContract.mockImplementation(
       async (_config: unknown, request: { functionName: string }) =>
         request.functionName === "balanceOf" ? 20n : 0n
     );
+  });
+
+  it.each([
+    ["garden", () => useCookieJarDeposit(GARDEN)],
+    ["campaign", () => useCampaignCookieJarDeposit()],
+  ] as const)("guards one pending %s deposit against repeat sends and page unload", async (_scope, useDeposit) => {
+    mocks.readContract.mockImplementation(async () => 20n);
+    let finishDeposit!: (result: typeof SENT) => void;
+    mocks.sendContractTx.mockImplementationOnce(
+      () =>
+        new Promise<typeof SENT>((resolve) => {
+          finishDeposit = resolve;
+        })
+    );
+    const { result } = renderMutation(useDeposit);
+    let first!: Promise<unknown>;
+    let second!: Promise<unknown>;
+    act(() => {
+      first = result.current.mutateAsync(params);
+      second = result.current.mutateAsync(params);
+    });
+    await waitFor(() => expect(mocks.sendContractTx).toHaveBeenCalledOnce());
+    const pendingUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(pendingUnload);
+    expect(pendingUnload.defaultPrevented).toBe(true);
+
+    await act(async () => {
+      finishDeposit(SENT);
+      await Promise.all([first, second]);
+    });
+    expect(mocks.sendContractTx).toHaveBeenCalledOnce();
+    expect(mocks.toastSuccess).toHaveBeenCalledOnce();
+    const completedUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(completedUnload);
+    expect(completedUnload.defaultPrevented).toBe(false);
   });
 
   it("approves the token before depositing and refreshes the jar after success", async () => {
@@ -155,6 +203,63 @@ describe("useCookieJarDeposit", () => {
     );
   });
 
+  it("keeps delayed refreshes scoped to the deposited garden after navigation", async () => {
+    let currentGarden = GARDEN;
+    const { result, rerender, invalidateQueries } = renderMutation(() =>
+      useCookieJarDeposit(currentGarden)
+    );
+    await act(async () => {
+      await result.current.mutateAsync(params);
+    });
+    const initialRefreshes = jarRefreshes(invalidateQueries.mock.calls);
+    invalidateQueries.mockClear();
+
+    currentGarden = "0x5555555555555555555555555555555555555555";
+    rerender();
+    act(() => mocks.followUp?.());
+
+    expect(jarRefreshes(invalidateQueries.mock.calls)).toEqual(initialRefreshes);
+    expect(invalidateQueries).toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "comes back with no receipt",
+      () => mocks.sendContractTx.mockResolvedValueOnce({ ...SENT, confirmation: "pending" }),
+    ],
+    [
+      "runs out of time waiting for one",
+      () =>
+        mocks.sendContractTx.mockRejectedValueOnce(
+          Object.assign(new Error("Timed out"), { name: "WaitForUserOperationReceiptTimeoutError" })
+        ),
+    ],
+  ])("reads neither done nor failed when a deposit %s", async (_case, arrange) => {
+    mocks.readContract.mockImplementation(async () => 20n);
+    arrange();
+    const { result, invalidateQueries } = renderDeposit();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(params)).rejects.toSatisfy(isUnconfirmedTxError);
+    });
+
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    expect(mocks.handleError).not.toHaveBeenCalled();
+    expect(mocks.toastInfo).toHaveBeenCalledOnce();
+    expect(invalidateQueries).toHaveBeenCalled();
+  });
+
+  it("stops before the deposit when an approval has no receipt", async () => {
+    mocks.sendContractTx.mockResolvedValueOnce({ ...SENT, confirmation: "pending" });
+    const { result } = renderDeposit();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(params)).rejects.toSatisfy(isUnconfirmedTxError);
+    });
+
+    expect(mocks.sendContractTx).toHaveBeenCalledOnce();
+  });
+
   it("rejects an insufficient balance before any transaction", async () => {
     mocks.readContract.mockResolvedValue(5n);
     const { result, invalidateQueries } = renderDeposit();
@@ -166,7 +271,7 @@ describe("useCookieJarDeposit", () => {
     });
 
     expect(mocks.sendContractTx).not.toHaveBeenCalled();
-    expect(invalidateQueries).not.toHaveBeenCalled();
+    expect(jarRefreshes(invalidateQueries.mock.calls)).toEqual([]);
   });
 
   it("rejects a disconnected account before reading or sending", async () => {

@@ -1,21 +1,68 @@
 import * as z from "zod";
 import { InterpretationUnavailableError } from "../interpretation";
+import {
+  inputTokenCeiling,
+  type ModelMeter,
+  type ModelUsage,
+  outputTokenCeiling,
+} from "../model-spend";
 import type { OpenAIConfig } from "../openai-responses";
 
 /**
  * One OpenAI Audio transcription of a normalized voice note, with the model the operator pinned.
  * Only the decoded recording and a language hint leave the Agent; the result is plain text that
  * the report rules then treat as transcribed, never as something the gardener typed. Every failure
- * becomes an InterpretationUnavailableError so the media job can retry or explain.
+ * becomes an InterpretationUnavailableError so the media job can retry or explain. The meter
+ * records every request before it is sent and settles it with the tokens or duration the reply
+ * bills.
  */
 const LANGUAGES = new Set(["en", "es", "pt"]);
 const transcriptSchema = z.object({ text: z.string().max(10_000) });
+const usageSchema = z.object({
+  usage: z.union([
+    z.object({
+      input_tokens: z.number().int().nonnegative(),
+      output_tokens: z.number().int().nonnegative(),
+    }),
+    z.object({ type: z.literal("duration"), seconds: z.number().nonnegative() }),
+  ]),
+});
+
+/**
+ * Held against the daily cap until the reply states its bill, and a true ceiling of it: the
+ * model's own context window and output limit bound what any one request can bill, while the
+ * provider's per-minute price only estimates it. A model whose limits are not recorded reserves
+ * that estimate.
+ */
+function reserved(model: string, seconds: number): ModelUsage {
+  const input = inputTokenCeiling(model);
+  const output = outputTokenCeiling(model);
+  return input !== null && output !== null
+    ? { inputTokens: input, outputTokens: output }
+    : { audioSeconds: seconds };
+}
+
+function billed(json: unknown): ModelUsage | undefined {
+  const parsed = usageSchema.safeParse(json);
+  if (!parsed.success) return undefined;
+  const { usage } = parsed.data;
+  return "seconds" in usage
+    ? { audioSeconds: usage.seconds }
+    : { inputTokens: usage.input_tokens, outputTokens: usage.output_tokens };
+}
 
 export async function transcribeVoice(
   config: OpenAIConfig & { transcriptionModel: string },
-  input: { wav: Uint8Array; locale: string },
-  signal: AbortSignal
+  input: { wav: Uint8Array; locale: string; seconds: number },
+  signal: AbortSignal,
+  meter?: ModelMeter
 ): Promise<{ model: string; text: string }> {
+  const settle = meter?.({
+    provider: "openai",
+    model: config.transcriptionModel,
+    purpose: "transcription",
+    reserve: reserved(config.transcriptionModel, input.seconds),
+  });
   const form = new FormData();
   form.append(
     "file",
@@ -36,10 +83,17 @@ export async function transcribeVoice(
       signal,
     });
   } catch {
+    settle?.({ outcome: "unanswered" });
     throw new InterpretationUnavailableError(signal.aborted ? "timeout" : "provider_error");
   }
-  if (!response.ok) throw new InterpretationUnavailableError("provider_error");
-  const body = transcriptSchema.safeParse(await response.json().catch(() => null));
+  if (!response.ok) {
+    settle?.({ outcome: "failed" });
+    throw new InterpretationUnavailableError("provider_error");
+  }
+  const json: unknown = await response.json().catch(() => null);
+  const usage = billed(json);
+  settle?.({ outcome: "answered", ...(usage ? { usage } : {}) });
+  const body = transcriptSchema.safeParse(json);
   if (!body.success) throw new InterpretationUnavailableError("malformed");
   return { model: config.transcriptionModel, text: body.data.text.trim() };
 }

@@ -7,14 +7,16 @@ import { getWorksByUIDs, parseWorkApprovalAttestation } from "../../modules/data
 import { easStoredAddress } from "../../modules/data/eas-read-validation";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
-import { type Address, type WorkApproval } from "../../types/domain";
+import { type Address, type WorkApproval, type WorkDisplayStatus } from "../../types/domain";
 import { STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { workApprovalsKeys } from "../../config/query-keys/work";
+import { useWorkVisibility } from "./useWorkVisibility";
 
 // Enhanced work approval interface for UI
 export interface EnhancedWorkApproval extends WorkApproval {
   type: "work_approval";
-  status: "approved" | "rejected" | "pending" | "syncing" | "failed";
+  /** Every review read from the attestation history has decided its work. */
+  status: Extract<WorkDisplayStatus, "approved" | "rejected">;
   size: number;
   gardenName?: string;
   // Add missing properties that UI expects
@@ -108,6 +110,7 @@ async function getWorkApprovalsByAttester(
  */
 export function useWorkApprovals(attesterAddress?: Address) {
   const chainId = DEFAULT_CHAIN_ID;
+  const visibility = useWorkVisibility(chainId);
 
   // Online work approvals query (where user is attester)
   const onlineApprovalsQuery = useQuery({
@@ -122,44 +125,45 @@ export function useWorkApprovals(attesterAddress?: Address) {
   // Convert to enhanced format for UI
   const enhancedApprovals: EnhancedWorkApproval[] = [
     // Online approvals (completed)
-    ...(onlineApprovalsQuery.data || []).map(
-      (approval): EnhancedWorkApproval => ({
-        ...approval,
-        type: "work_approval" as const,
-        status: approval.approved ? "approved" : "rejected",
-        size: JSON.stringify(approval).length,
-        // Add missing UI properties to prevent errors
-        title: approval.title || `Work ${(approval.workUID || "").slice(0, 8) || "Unknown"}...`,
-        description:
-          approval.feedback || `${approval.approved ? "Approved" : "Rejected"} work submission`,
-      })
-    ),
+    ...(onlineApprovalsQuery.data || [])
+      .filter((approval) => visibility.isVisible(approval.workUID))
+      .map(
+        (approval): EnhancedWorkApproval => ({
+          ...approval,
+          type: "work_approval" as const,
+          status: approval.approved ? "approved" : "rejected",
+          size: JSON.stringify(approval).length,
+          // Add missing UI properties to prevent errors
+          title: approval.title || `Work ${(approval.workUID || "").slice(0, 8) || "Unknown"}...`,
+          description:
+            approval.feedback || `${approval.approved ? "Approved" : "Rejected"} work submission`,
+        })
+      ),
   ];
 
   // Sort by creation date (newest first)
   const sortedApprovals = enhancedApprovals.sort((a, b) => b.createdAt - a.createdAt);
 
   // Check if we have any errors
-  const hasError = !!onlineApprovalsQuery.error;
-  const errorMessage = (onlineApprovalsQuery.error as Error)?.message;
+  const error = visibility.error || onlineApprovalsQuery.error;
+  const hasError = !!error || (!visibility.isReady && !visibility.isLoading);
+  const errorMessage = (error as Error)?.message;
 
   return {
     approvals: sortedApprovals,
-    pendingApprovals: sortedApprovals.filter((a) =>
-      ["pending", "syncing", "failed"].includes(a.status)
-    ),
-    completedApprovals: sortedApprovals.filter((a) => ["approved", "rejected"].includes(a.status)),
+    completedApprovals: sortedApprovals,
     approvedCount: sortedApprovals.filter((a) => a.status === "approved").length,
     rejectedCount: sortedApprovals.filter((a) => a.status === "rejected").length,
-    pendingCount: sortedApprovals.filter((a) => ["pending", "syncing", "failed"].includes(a.status))
-      .length,
-    isLoading: onlineApprovalsQuery.isLoading,
+    isLoading: onlineApprovalsQuery.isLoading || (!visibility.isReady && visibility.isLoading),
     isFetching: onlineApprovalsQuery.isFetching,
     /** When the review history last read successfully; 0 before the first read. */
     dataUpdatedAt: onlineApprovalsQuery.dataUpdatedAt,
-    error: onlineApprovalsQuery.error,
+    error,
     hasError,
     errorMessage,
-    refetch: () => onlineApprovalsQuery.refetch(),
+    refetch: async () => {
+      await visibility.refetch();
+      return onlineApprovalsQuery.refetch();
+    },
   };
 }

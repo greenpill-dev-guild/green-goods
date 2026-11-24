@@ -6,7 +6,7 @@ pragma solidity >=0.8.25;
  * @author Yearn.finance; adapted by [Golem Foundation](https://golem.foundation)
  * @custom:security-contact security@golem.foundation
  * @notice Interface for health checking strategy profit/loss reporting
- * @custom:origin https://github.com/yearn/tokenized-strategy-periphery/blob/master/src/HealthCheck/BaseHealthCheck.sol
+ * @custom:origin https://github.com/golemfoundation/octant-v2-core/blob/2c718d5323d92db94282453c913169f038a99149/src/strategies/interfaces/IBaseHealthCheck.sol
  */
 interface IBaseHealthCheck {
     /*//////////////////////////////////////////////////////////////

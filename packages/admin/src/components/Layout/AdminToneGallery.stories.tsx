@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
-import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { withAdminPrimitiveFrame } from "../../../../shared/.storybook/decorators";
-import { AdminButton } from "../AdminButton";
 import { AdminCard } from "../AdminCard";
 import { AdminTabRail } from "../AdminTabRail";
 
@@ -26,7 +26,7 @@ const meta: Meta = {
           "",
           "1. Canvas background (the wash on `.workspace-canvas[data-tone]`)",
           "2. GardenChip leaf icon (tone-tinted)",
-          "3. Filled AdminButton action color",
+          "3. Primary Button action color",
           "4. PageHeader bottom hairline (`rgb(var(--tone-action) / 0.10)`)",
           "5. Neutral AdminTabRail and AdminCard surfaces",
           "",
@@ -48,17 +48,17 @@ export default meta;
 type Story = StoryObj;
 
 const TabsDemo = ({ tone }: { tone: string }) => {
-  const [active, setActive] = useState("review");
+  const [active, setActive] = useState("work");
   return (
     <AdminTabRail
       ariaLabel={`${tone} sections`}
       activeId={active}
       onChange={setActive}
       tabs={[
-        { id: "review", label: "Review", count: 12 },
-        { id: "assess", label: "Assess", count: 5 },
-        { id: "certify", label: "Certify", count: 3 },
-        { id: "history", label: "History" },
+        { id: "work", label: "Work", count: 12 },
+        { id: "confirm", label: "Confirm", count: 3 },
+        { id: "assess", label: "Assessments" },
+        { id: "certify", label: "Hypercerts" },
       ]}
     />
   );
@@ -70,7 +70,7 @@ const ToneCell = ({
   tone,
   name,
 }: {
-  tone: "hub" | "garden" | "community" | "actions";
+  tone: "review" | "garden" | "community" | "actions";
   name: string;
 }) => (
   <section
@@ -84,10 +84,10 @@ const ToneCell = ({
       <div className="flex items-center gap-3">
         <GardenChip gardens={sampleGarden} selectedGarden={sampleGarden[0]} onSelectGarden={fn()} />
         <div>
-          <div className="label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="type-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
             {tone}
           </div>
-          <div className="body-md font-semibold text-text-strong">{name}</div>
+          <div className="type-title-md text-text-strong">{name}</div>
         </div>
       </div>
     </header>
@@ -98,12 +98,14 @@ const ToneCell = ({
       <AdminCard variant="elevated">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <div className="body-sm font-semibold text-text-strong">Pending review</div>
-            <div className="body-xs text-text-sub">
+            <div className="type-body font-semibold text-text-strong">Pending review</div>
+            <div className="type-meta text-text-sub">
               14 submissions waiting, oldest 3 days. Card material stays neutral.
             </div>
           </div>
-          <AdminButton size="sm">Review queue</AdminButton>
+          <Button type="button" size="compact">
+            Review queue
+          </Button>
         </div>
       </AdminCard>
     </div>
@@ -115,9 +117,9 @@ const ToneGrid = ({ theme }: { theme: "light" | "dark" }) => (
     data-theme={theme}
     className="admin-m3 space-y-3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
   >
-    <div className="text-label-md font-semibold uppercase text-text-sub">{theme}</div>
+    <div className="type-label-sm font-semibold uppercase text-text-sub">{theme}</div>
     <div className="grid gap-4 md:grid-cols-2">
-      <ToneCell tone="hub" name="Hub" />
+      <ToneCell tone="review" name="Review" />
       <ToneCell tone="garden" name="Garden" />
       <ToneCell tone="community" name="Community" />
       <ToneCell tone="actions" name="Actions" />

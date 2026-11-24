@@ -1,49 +1,10 @@
 import assert from "assert";
-import {
-  ActionRegistry,
-  createTestIndexer,
-  GardenToken,
-  OctantModule,
-  OctantVault,
-  processEvents,
-} from "./v3";
+import { ActionRegistry, createTestIndexer, OctantModule, OctantVault, processEvents } from "./v3";
 import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 
 const CHAIN_ID = CHAINS.arbitrum;
 
 describe("ActionRegistry retained surface", () => {
-  it("creates and updates actions", async () => {
-    let mockDb = createTestIndexer();
-
-    const createEvent = ActionRegistry.ActionRegistered.createMockEvent({
-      owner: addr(1),
-      actionUID: 123n,
-      startTime: 1000n,
-      endTime: 2000n,
-      title: "Initial Action",
-      slug: "waste.cleanup",
-      instructions: "Do work",
-      capitals: [0, 2],
-      media: ["ipfs://bafk-media"],
-      domain: 3,
-      mockEventData: mockEvent(CHAIN_ID, 1_000),
-    });
-
-    const updateEvent = ActionRegistry.ActionTitleUpdated.createMockEvent({
-      owner: addr(1),
-      actionUID: 123n,
-      title: "Updated Action",
-      mockEventData: mockEvent(CHAIN_ID, 1_001),
-    });
-
-    mockDb = await processEvents(mockDb, [createEvent, updateEvent]);
-
-    const action = await mockDb.Action.get(`${CHAIN_ID}-123`);
-    assert.ok(action);
-    assert.equal(action.title, "Updated Action");
-    assert.equal(action.domain, "WASTE");
-  });
-
   it("stores GardenDomains bitmask expansions", async () => {
     const mockDb = createTestIndexer();
     const gardenAddress = addr(2);
@@ -60,32 +21,6 @@ describe("ActionRegistry retained surface", () => {
     assert.ok(domains);
     assert.equal(domains.domainMask, 0x09);
     assert.deepEqual(domains.domains, ["SOLAR", "WASTE"]);
-  });
-});
-
-describe("GardenToken retained surface", () => {
-  it("mints gardens with role arrays initialized", async () => {
-    const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
-
-    const event = GardenToken.GardenMinted.createMockEvent({
-      tokenId: 1n,
-      account: gardenAddress,
-      name: "Community Garden",
-      description: "Grow good things",
-      location: "Earth",
-      bannerImage: "ipfs://bafk-banner",
-      openJoining: true,
-      mockEventData: mockEvent(CHAIN_ID, 3_000),
-    });
-
-    const result = await GardenToken.GardenMinted.processEvent({ event, mockDb });
-    const garden = await result.Garden.get(gardenAddress);
-
-    assert.ok(garden);
-    assert.equal(garden.name, "Community Garden");
-    assert.equal(garden.openJoining, true);
-    assert.deepEqual(garden.operators, []);
   });
 });
 

@@ -2,7 +2,7 @@
  * derivation utility tests
  *
  * Pins the threshold + accrual + status approximations consumed by
- * ConvictionMeter / ProposalCardConviction. The formulas are placeholders
+ * ConvictionMeter. The formulas are placeholders
  * until pool-config reads land — these tests lock the documented behavior so
  * a future formula swap can't silently regress.
  */

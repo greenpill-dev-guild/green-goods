@@ -1,17 +1,124 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
+import spanish from "@green-goods/shared/i18n/es.json";
 import { ProfileHelp } from "../../views/Profile/Help";
+
+/** The account's gardens, and whether the App's steward check passes for each. */
+const access = vi.hoisted(() => ({
+  gardens: [] as Array<{ garden: { id: string } }>,
+  manages: false,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ myGardens: { gardens: access.gardens } }),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => ({ canManageGarden: () => access.manages }),
+}));
 
 const wrap = (el: React.ReactElement) =>
   createElement(IntlProvider, { locale: "en", messages }, el);
 
+/** Headings and links in page order: each section's rows sit under its own heading. */
+const pageOrder = () =>
+  [...document.querySelectorAll("h5, a")].map((element) =>
+    element.tagName === "H5" ? `# ${element.textContent}` : element.getAttribute("href")
+  );
+
+const HUB = "https://hub.example.test";
+
 describe("ProfileHelp", () => {
   afterEach(() => {
     cleanup();
+    vi.unstubAllEnvs();
+    access.gardens = [];
+    access.manages = false;
+  });
+
+  it("keeps the Hub entry out of Help even for a steward with a configured Hub", () => {
+    vi.stubEnv("VITE_ADMIN_APP_URL", HUB);
+    access.gardens = [{ garden: { id: "0x0000000000000000000000000000000000000ga1" } }];
+    access.manages = true;
+    render(wrap(createElement(ProfileHelp)));
+
+    expect(pageOrder().slice(0, 2)).toEqual([
+      "# Learn & Connect",
+      "https://docs.greengoods.app/community/gardener-guide",
+    ]);
+    expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+  });
+
+  it("shows no Hub row to an account that stewards no garden, or where the build names no Hub", () => {
+    vi.stubEnv("VITE_ADMIN_APP_URL", HUB);
+    access.gardens = [{ garden: { id: "0x0000000000000000000000000000000000000ga1" } }];
+    render(wrap(createElement(ProfileHelp)));
+    expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+    cleanup();
+
+    vi.stubEnv("VITE_ADMIN_APP_URL", "");
+    access.manages = true;
+    render(wrap(createElement(ProfileHelp)));
+    expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+  });
+
+  // PRD-1493: the docs are English only, so a Spanish or Portuguese reader is told so.
+  it("says the guides are in English to a reader in another language, and to no one else", () => {
+    render(
+      createElement(IntlProvider, { locale: "es", messages: spanish }, createElement(ProfileHelp))
+    );
+    expect(screen.getByText("Por ahora, las guías están en inglés.")).toBeInTheDocument();
+    cleanup();
+
+    render(wrap(createElement(ProfileHelp)));
+    expect(screen.queryByText("The guides are in English for now.")).toBeNull();
+  });
+
+  it("keeps guides and socials apart from policies and requests, above the questions", () => {
+    render(wrap(createElement(ProfileHelp)));
+
+    expect(pageOrder().slice(0, 11)).toEqual([
+      "# Learn & Connect",
+      "https://docs.greengoods.app/community/gardener-guide",
+      "https://docs.greengoods.app/community/steward-guide",
+      "https://x.com/greengoodsapp",
+      "https://www.linkedin.com/company/greengoodsapp/",
+      "# Privacy & Safety",
+      "/privacy",
+      "/terms",
+      "/contact#account-deletion",
+      "/contact#report-a-concern",
+      "# Getting Started",
+    ]);
+    expect(screen.getByRole("link", { name: /Privacy Policy/ })).toHaveAttribute(
+      "href",
+      "/privacy"
+    );
+    expect(screen.getByRole("link", { name: /Steward Guide/ })).toHaveAttribute("target", "_blank");
+  });
+
+  it("links a question to the guide that walks through it, and only those questions", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileHelp)));
+
+    await user.click(screen.getByRole("button", { name: "How do I join a garden?" }));
+    const guide = within(screen.getByTestId("faq-content-howToGetInvolved")).getByRole("link", {
+      name: "Step-by-Step Guide (opens in a new tab)",
+    });
+    expect(guide).toHaveAttribute(
+      "href",
+      "https://docs.greengoods.app/community/gardener-guide/joining-a-garden"
+    );
+    expect(guide).toHaveAttribute("target", "_blank");
+    expect(guide).toHaveAttribute("hreflang", "en");
+
+    await user.click(screen.getByRole("button", { name: "What is Green Goods?" }));
+    expect(
+      within(screen.getByTestId("faq-content-whatIsGreenGoods")).queryByRole("link")
+    ).not.toBeInTheDocument();
   });
 
   it("renders journey categories, the docs guide link, and surfaced/new topics", () => {
@@ -22,7 +129,7 @@ describe("ProfileHelp", () => {
     expect(screen.getByText("Documenting Work")).toBeInTheDocument();
     expect(screen.getByText("Funds & Wallet")).toBeInTheDocument();
     expect(screen.getByText("Account & Identity")).toBeInTheDocument();
-    expect(screen.getByText("Privacy & Data")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Privacy & Data" })).toBeInTheDocument();
     expect(screen.queryByText("How it works")).not.toBeInTheDocument();
 
     // Newly authored + surfaced topics are present; the install FAQ was dropped
@@ -40,17 +147,20 @@ describe("ProfileHelp", () => {
     expect(screen.getByTestId("faq-content-photoStorage")).toBeInTheDocument();
 
     // Account/app-management + declined-work topics render
-    expect(screen.getByTestId("faq-content-profileName")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-profilePicture")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-changeLanguage")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-switchingAccounts")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-workDeclined")).toBeInTheDocument();
 
     // Docs guide link in the hub points at the public gardener guide
-    const docsLink = screen.getByRole("link", { name: /Gardener guide/i });
+    const docsLink = screen.getByRole("link", { name: /Gardener Guide/ });
     expect(docsLink).toHaveAttribute(
       "href",
       "https://docs.greengoods.app/community/gardener-guide"
     );
+    expect(
+      document.querySelector('a[href^="https://t.me/"], a[href^="https://telegram.me/"]')
+    ).toBeNull();
 
     // Onboarding form card was removed
     expect(screen.queryByText("Onboarding form")).not.toBeInTheDocument();

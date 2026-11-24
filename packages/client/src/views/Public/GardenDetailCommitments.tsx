@@ -7,6 +7,7 @@ import {
 } from "@green-goods/shared/commitment-pooling/public";
 import { useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
+import { EditorialHeading } from "@/components/Public/atoms";
 import { formatKeptRate } from "@/components/Public/keptRate";
 import {
   ListSkeleton,
@@ -31,11 +32,9 @@ import { Section } from "./GardenDetailSections";
  * grammar — headers on linen, hairline dividers, § 01-style stat rows — the
  * 2026-08-25 supersession of the PR-748 `EditorialPanel` choice (§ 02 was the
  * only card-wrapped section on either page). The record reads top to bottom:
- * the pool-state sentence beside the lifetime record (commitments made, kept,
- * and the one sanctioned percentage when `selectPublicPromiseKeptRate`
- * publishes it); then the open Season and Campaigns beside the pool-wide
- * exact-label units; then the finished cycles newest first; then the line
- * that ties fulfilled commitments to § 03. A Garden without a published pool record omits this section.
+ * the pool-state sentence beside the all-time counts and exact-label units,
+ * then each season and campaign's own record, finished periods newest first,
+ * and the link to § 03. A garden without a published pool record omits this section.
  *
  * What it never shows: pause reasons, metadata CIDs, provider rows, wallet
  * addresses, cancelled or disputed counts, cancelled cycles, rankings, or any
@@ -71,17 +70,17 @@ export function CommitmentsSection({
       id="public-garden-detail-commitments"
       kicker={formatMessage({
         id: "public.pool.garden.kicker",
-        defaultMessage: "§ 02: Commitments",
+        defaultMessage: "§ 02: Promises",
       })}
       heading={
         preparing
           ? formatMessage({
               id: "public.pool.garden.heading.preparing",
-              defaultMessage: "This Garden is preparing its pool",
+              defaultMessage: "This garden is preparing its pool",
             })
           : formatMessage({
               id: "public.pool.garden.heading",
-              defaultMessage: "Commitments between neighbours",
+              defaultMessage: "Promises between neighbors",
             })
       }
     >
@@ -124,7 +123,7 @@ function stateSentence(
     return formatMessage({
       id: "public.pool.garden.state.notReady",
       defaultMessage:
-        "Offers and requests between neighbours open once this Garden's pool is ready.",
+        "Offers and requests between neighbors open once this garden's pool is ready.",
     });
   }
   switch (state) {
@@ -137,19 +136,18 @@ function stateSentence(
     case "PAUSED":
       return formatMessage({
         id: "public.pool.garden.state.paused",
-        defaultMessage:
-          "This Garden has paused new commitments for now. Its record stays readable.",
+        defaultMessage: "This garden has paused new promises for now. Its record stays readable.",
       });
     case "CLOSED":
       return formatMessage({
         id: "public.pool.garden.state.closed",
-        defaultMessage: "This Garden's pool has closed. What it kept stays on the record.",
+        defaultMessage: "This garden's pool has closed. What it kept stays on the record.",
       });
     case "COMPOSTED":
       return formatMessage({
         id: "public.pool.garden.state.composted",
         defaultMessage:
-          "This Garden's pool has been composted, ready for the next season. Its record stays here.",
+          "This garden's pool has been composted, ready for the next season. Its record stays here.",
       });
     default:
       // OPEN. Between seasons, the record framing carries the sentence.
@@ -159,12 +157,11 @@ function stateSentence(
         ? formatMessage({
             id: "public.pool.garden.state.betweenSeasons",
             defaultMessage:
-              "The next season has not opened yet. What the Garden has kept so far stays here.",
+              "The next season has not opened yet. What the garden has kept so far stays here.",
           })
         : formatMessage({
             id: "public.pool.garden.state.open",
-            defaultMessage:
-              "Neighbours can offer and take up commitments in this Garden right now.",
+            defaultMessage: "Neighbors can offer and take up promises in this garden right now.",
           });
   }
 }
@@ -177,7 +174,7 @@ function UnavailableRecord({ onRetry }: { onRetry: () => void }) {
     <PanelLead
       lede={formatMessage({
         id: "public.pool.garden.unavailable",
-        defaultMessage: "This Garden's commitments could not be loaded just now.",
+        defaultMessage: "This garden's promises could not be loaded just now.",
       })}
       aside={
         <SectionNotice
@@ -230,6 +227,12 @@ function PoolRecord({
   return (
     <>
       <PanelLead lede={stateSentence(formatMessage, data)}>
+        <EditorialHeading as="h3" size="sub" className="mb-5">
+          {formatMessage({
+            id: "public.pool.garden.record.scope",
+            defaultMessage: "Garden totals · all time",
+          })}
+        </EditorialHeading>
         {nothingYet ? (
           <PanelNote
             kicker={formatMessage({
@@ -240,7 +243,7 @@ function PoolRecord({
             {formatMessage({
               id: "public.pool.garden.empty",
               defaultMessage:
-                "No commitments have been made yet. They appear here as neighbours offer and take them up.",
+                "No promises have been made yet. They appear here as neighbors offer and take them up.",
             })}
           </PanelNote>
         ) : (
@@ -255,7 +258,7 @@ function PoolRecord({
                 ? formatMessage({
                     id: "public.pool.garden.record.keptRateNote",
                     defaultMessage:
-                      "Kept commitments over every commitment taken up and not mutually released. Commitments still in progress count until they are kept.",
+                      "Kept promises over every promise taken up and not mutually released. Promises still in progress count until they are kept.",
                   })
                 : formatMessage({
                     id: "public.pool.garden.record.countsOnlyNote",
@@ -265,24 +268,19 @@ function PoolRecord({
             </p>
           </>
         )}
+        {hasUnits ? <PoolUnits units={poolUnitSummaries} /> : null}
       </PanelLead>
 
-      {hasOpen || hasUnits ? (
-        <div className="mt-8 grid gap-x-12 gap-y-8 border-t border-stroke-soft-200 pt-8 lg:grid-cols-2">
-          {hasOpen ? (
-            <OpenCycles
-              cycles={openCycles}
-              units={cycleUnitSummaries}
-              className={hasUnits ? undefined : "lg:col-span-2"}
-            />
-          ) : null}
-          {hasUnits ? (
-            <PoolUnits
-              units={poolUnitSummaries}
-              className={hasOpen ? undefined : "lg:col-span-2"}
-            />
-          ) : null}
-        </div>
+      {hasOpen ? (
+        <OpenCycles
+          cycles={openCycles}
+          units={cycleUnitSummaries}
+          gardenTotals={{
+            made: pool.commitmentsAccepted,
+            kept: pool.commitmentsFulfilled,
+            units: poolUnitSummaries,
+          }}
+        />
       ) : null}
 
       {finishedCycles.length > 0 ? (

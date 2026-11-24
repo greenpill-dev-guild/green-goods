@@ -1,9 +1,16 @@
+import messages from "@green-goods/shared/i18n/en.json";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, type NavigateFunction, Route, Routes, useNavigate } from "react-router-dom";
+import {
+  MemoryRouter,
+  type NavigateFunction,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import messages from "@green-goods/shared/i18n/en.json";
 
 const mockShareLink = vi.fn().mockResolvedValue(undefined);
 vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
@@ -49,7 +56,10 @@ vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
-vi.mock("@green-goods/shared/hooks/garden/useGardenTabs", () => ({
+// The tabs are held still; the access predicate (`useGardenAccess`) runs for real on the
+// garden's record and the mocked reads below.
+vi.mock("@green-goods/shared/hooks/garden/useGardenTabs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/hooks/garden/useGardenTabs")>()),
   GardenTab: {
     Work: "Work",
     Insights: "Insights",
@@ -115,8 +125,13 @@ vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
   useGardenVaults: () => ({ vaults: [] }),
 }));
 
+// The evaluator check reads yes, so every viewer reviews. The gardener check reads what a test
+// says the chain answers, and nothing without a garden to ask about.
+const NO_ROLE = { hasRole: false, isLoading: false };
+let mockGardenerRead = NO_ROLE;
 vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
-  useHasRole: () => ({ hasRole: true }),
+  useHasRole: (garden?: string, _account?: string, role?: string) =>
+    role !== "gardener" ? { hasRole: true, isLoading: false } : garden ? mockGardenerRead : NO_ROLE,
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
@@ -169,7 +184,8 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentPools: () => ({ pools: [], availability: { status: "unknown-chain" } }),
 }));
 
-vi.mock("viem", () => ({
+vi.mock("viem", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("viem")>()),
   isAddress: () => true,
 }));
 
@@ -223,6 +239,10 @@ vi.mock("@/components/Navigation", () => ({
 
 import { Garden } from "../../views/Home/Garden";
 
+afterEach(() => {
+  mockGardenerRead = NO_ROLE;
+});
+
 describe("Home garden route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -262,6 +282,37 @@ describe("Home garden route", () => {
 
     expect(screen.getByText("Loading garden...")).toBeInTheDocument();
     expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
+  });
+
+  it("says a garden read failed and offers it again, rather than calling the garden missing", () => {
+    const refetch = vi.fn();
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      refetch,
+    } as never);
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Couldn't load this garden");
+    expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledOnce();
   });
 
   // The garden list carries no assessments: they are attestations read from EAS,
@@ -483,6 +534,207 @@ describe("Home garden route", () => {
     );
 
     expect(screen.getByTestId("join-garden-button")).toHaveTextContent("Open Garden");
+  });
+
+  // The roster lags the chain after a steward welcomes a request (PRD-1209): the page asks the
+  // chain before offering the request again, and offers nothing until it answers.
+  it.each([
+    { chain: "holds no gardener role", read: { hasRole: false, isLoading: false }, offered: true },
+    { chain: "holds the gardener role", read: { hasRole: true, isLoading: false }, offered: false },
+    { chain: "has not answered yet", read: { hasRole: false, isLoading: true }, offered: false },
+  ])("offers a closed-garden join request when the chain $chain: $offered", ({ read, offered }) => {
+    const gardenId = "0x5000000000000000000000000000000000000005";
+    mockPrimaryAddress = "0x00000000000000000000000000000000000000aa";
+    mockGardenerRead = read;
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: gardenId,
+          name: "Closed Garden",
+          bannerImage: "/banner.png",
+          location: "Test Location",
+          createdAt: Date.now(),
+          description: "Garden description",
+          assessments: [],
+          gardeners: [],
+          stewards: [],
+          openJoining: false,
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: [`/home/${gardenId}`] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    expect(Boolean(screen.queryByTestId("join-request-dialog"))).toBe(offered);
+  });
+});
+
+describe("Home garden visit", () => {
+  const gardenRecord = (id: string, name: string) => ({
+    id,
+    name,
+    location: "Here",
+    createdAt: 0,
+    assessments: [],
+    gardeners: [],
+    stewards: [],
+    openJoining: false,
+  });
+
+  let navigate: NavigateFunction;
+  let location = "";
+  function Probe() {
+    navigate = useNavigate();
+    location = useLocation().pathname;
+    return null;
+  }
+
+  /**
+   * The pages around a garden visit as the app routes them, starting at `entry`: Home, Explore,
+   * Profile, and the garden's page with its child work page.
+   */
+  const renderVisit = (entry = "/home/explore") =>
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: [entry] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(Probe),
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home", element: createElement("p", null, "Home") }),
+            createElement(Route, {
+              path: "/home/explore",
+              element: createElement("p", null, "Explore gardens"),
+            }),
+            createElement(Route, {
+              path: "/profile",
+              element: createElement("p", null, "Profile"),
+            }),
+            createElement(
+              Route,
+              { path: "/home/:id", element: createElement(Garden) },
+              createElement(Route, {
+                path: "work/:workId",
+                element: createElement("p", null, "Work detail"),
+              })
+            )
+          )
+        )
+      )
+    );
+  const visitFromExplore = (id = "garden-1") =>
+    act(() => {
+      void navigate(`/home/${id}`, { state: { returnTo: "/home/explore" } });
+    });
+  const back = () => fireEvent.click(screen.getByTestId("top-nav-back"));
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrimaryAddress = null;
+    mockUseGardenTabs.mockReturnValue({ activeTab: "Work", setActiveTab: vi.fn() });
+    mockUseGardens.mockReturnValue({
+      data: [gardenRecord("garden-1", "Garden One"), gardenRecord("garden-2", "Garden Two")],
+      isLoading: false,
+      isFetching: false,
+    });
+  });
+
+  it("goes back to Explore from a garden visited there, by stepping back rather than pushing", () => {
+    renderVisit();
+    visitFromExplore();
+    expect(screen.getByRole("heading", { level: 1, name: "Garden One" })).toBeInTheDocument();
+
+    back();
+    expect(location).toBe("/home/explore");
+    expect(screen.getByText("Explore gardens")).toBeInTheDocument();
+    // The visit was popped, not covered: forward returns to it.
+    act(() => {
+      void navigate(1);
+    });
+    expect(location).toBe("/home/garden-1");
+  });
+
+  it("keeps the return target across the garden's child pages, replacing the page they return to", () => {
+    renderVisit();
+    visitFromExplore();
+    // A work's page pushes the garden's page again on its own Back, without Explore's state.
+    act(() => {
+      void navigate("/home/garden-1/work/work-1");
+    });
+    expect(screen.getByText("Work detail")).toBeInTheDocument();
+    act(() => {
+      void navigate("/home/garden-1");
+    });
+
+    back();
+    expect(location).toBe("/home/explore");
+    // The garden's second entry was replaced, so Back from here is the work page, and nothing
+    // was pushed: the history never grows from pressing Back.
+    act(() => {
+      void navigate(-1);
+    });
+    expect(location).toBe("/home/garden-1/work/work-1");
+  });
+
+  it("goes Home from a garden opened by link, replacing the entry rather than stacking on it", () => {
+    renderVisit("/home/garden-1");
+
+    back();
+    expect(location).toBe("/home");
+    act(() => {
+      void navigate(-1);
+    });
+    // Nothing before the link to go back to: the entry was replaced, so Back stays put.
+    expect(location).toBe("/home");
+  });
+
+  it("goes Home from a garden a page opened without naming itself, in place of stepping back to it", () => {
+    // Profile's garden list opens a garden this way; only Explore and Home name themselves.
+    renderVisit("/profile");
+    act(() => {
+      void navigate("/home/garden-1");
+    });
+
+    back();
+    expect(location).toBe("/home");
+    // Home took the visit's entry, so the page that opened the garden is still behind it.
+    act(() => {
+      void navigate(-1);
+    });
+    expect(location).toBe("/profile");
+  });
+
+  it("starts the garden's page afresh when the garden changes, so its open tab resets", () => {
+    renderVisit();
+    visitFromExplore("garden-1");
+    const first = screen.getByTestId("garden-header");
+
+    act(() => {
+      void navigate("/home/garden-2");
+    });
+    expect(screen.getByRole("heading", { level: 1, name: "Garden Two" })).toBeInTheDocument();
+    // A new page element: the tabs' state, which lives in the page, started over with it.
+    expect(screen.getByTestId("garden-header")).not.toBe(first);
   });
 });
 

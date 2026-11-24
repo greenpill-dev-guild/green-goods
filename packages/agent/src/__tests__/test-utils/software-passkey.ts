@@ -21,6 +21,8 @@ export type SoftwarePasskeyOptions = {
   userVerified?: boolean;
   /** COSE algorithm the authenticator claims for its key. */
   algorithm?: number;
+  /** Simulate an attestation whose ID is empty even though the response envelope has one. */
+  emptyAttestedCredentialId?: boolean;
 };
 
 export type SoftwarePasskeyRegistration = {
@@ -54,6 +56,7 @@ export function createSoftwarePasskeyRegistration(
     [cborInt(-3), cborBytes(y)],
   ]);
   const credentialId = randomBytes(16);
+  const attestedCredentialId = options.emptyAttestedCredentialId ? Buffer.alloc(0) : credentialId;
   const flags =
     USER_PRESENT | ATTESTED_CREDENTIAL_DATA | (options.userVerified === false ? 0 : USER_VERIFIED);
   const authenticatorData = Buffer.concat([
@@ -61,8 +64,8 @@ export function createSoftwarePasskeyRegistration(
     Buffer.from([flags]),
     Buffer.alloc(4),
     Buffer.alloc(16),
-    Buffer.from([0, credentialId.length]),
-    credentialId,
+    Buffer.from([0, attestedCredentialId.length]),
+    attestedCredentialId,
     coseKey,
   ]);
   const attestationObject = cborMap([

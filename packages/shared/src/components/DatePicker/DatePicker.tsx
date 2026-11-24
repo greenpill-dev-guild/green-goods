@@ -35,7 +35,7 @@ export interface DatePickerProps {
   /** Custom date formatter function */
   formatDate?: (date: Date) => string;
   /**
-   * `default` is the 16px app field; `admin` rides the cockpit field tier
+   * `default` is the 16px app field; `admin` rides the Hub field tier
    * (8px corner, 44px on touch widths and 40px from 640px; DL-030, DL-031).
    */
   surface?: "default" | "admin";
@@ -266,15 +266,14 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           </Popover.Portal>
         </Popover.Root>
 
-        {(helperText || error) && (
-          <p
-            id={`${id}-helper-text`}
-            className="gg-field-help min-h-[1rem]"
-            data-invalid={error ? "true" : undefined}
-          >
-            {error || helperText}
-          </p>
-        )}
+        {/* The shared message line, reserved like every field's, so an error never moves the form. */}
+        <p
+          id={`${id}-helper-text`}
+          className="gg-field-help gg-field-message"
+          data-invalid={error ? "true" : undefined}
+        >
+          {error || helperText}
+        </p>
       </div>
     );
   }

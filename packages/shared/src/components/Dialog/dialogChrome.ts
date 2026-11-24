@@ -9,7 +9,7 @@ export const dialogOverlayStyle = {
 } satisfies CSSProperties;
 
 export const dialogSurfaceStyle = {
-  paddingBottom: "env(safe-area-inset-bottom)",
+  paddingBottom: "var(--safe-area-bottom)",
 } satisfies CSSProperties;
 
 /**

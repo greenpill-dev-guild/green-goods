@@ -77,18 +77,7 @@ describe("useEnsAvatar", () => {
       });
       expect(result.current.data).toBe(AVATAR_URL);
       expect(mockResolveEnsAvatar).toHaveBeenCalled();
-    });
-
-    it("caches the avatar after fetching from ENS", async () => {
-      mockResolveEnsAvatar.mockResolvedValue(AVATAR_URL);
-
-      const { result } = renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
-        queryClient,
-      });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      expect(mockGetCachedAvatar).toHaveBeenCalledWith(VALID_ADDRESS.toLowerCase());
       expect(mockCacheAvatar).toHaveBeenCalledWith(VALID_ADDRESS.toLowerCase(), AVATAR_URL);
     });
 
@@ -125,19 +114,6 @@ describe("useEnsAvatar", () => {
       expect(result.current.data).toBe(AVATAR_URL);
       // resolveEnsAvatar should not be called since cache returned a value
       expect(mockResolveEnsAvatar).not.toHaveBeenCalled();
-    });
-
-    it("passes normalized (lowercase) address to cache lookup", async () => {
-      mockGetCachedAvatar.mockReturnValue(null);
-      mockResolveEnsAvatar.mockResolvedValue(null);
-
-      renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
-        queryClient,
-      });
-
-      await waitFor(() => {
-        expect(mockGetCachedAvatar).toHaveBeenCalledWith(VALID_ADDRESS.toLowerCase());
-      });
     });
   });
 

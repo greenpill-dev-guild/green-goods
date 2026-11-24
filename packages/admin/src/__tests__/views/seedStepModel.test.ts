@@ -10,10 +10,13 @@ import en from "@green-goods/shared/i18n/en.json";
 import es from "@green-goods/shared/i18n/es.json";
 import pt from "@green-goods/shared/i18n/pt.json";
 import { describe, expect, it } from "vitest";
+import { matchedUsdcLegs } from "@green-goods/shared/commitment-pooling";
 import {
   carriedOverUsd,
   needsGoodDollarPrice,
   rewardAmountAtCreate,
+  rewardFacts,
+  withoutUnavailableReward,
 } from "@/views/Garden/Pool/Seed/seedReward";
 import { seedStatusView } from "@/views/Garden/Pool/Seed/seedStatus";
 import {
@@ -66,7 +69,7 @@ describe("seedStepModel", () => {
       );
       expect(issue).toBeDefined();
       expect(seedErrorText(issue!.message, format)).toBe(
-        messages[`cockpit.garden.pool.seed.error.${key}`]
+        messages[`hub.garden.pool.seed.error.${key}`]
       );
     }
   });
@@ -91,13 +94,13 @@ describe("seedStepModel", () => {
     const open = { poolOpen: true, capacityOver: false, priceUnavailable: false };
     expect(seedBlockedReason(open)).toBeNull();
     expect(seedBlockedReason({ ...open, poolOpen: false, capacityOver: true })?.id).toBe(
-      "cockpit.garden.pool.seed.blocked.poolClosed"
+      "hub.garden.pool.seed.blocked.poolClosed"
     );
     expect(seedBlockedReason({ ...open, capacityOver: true })?.id).toBe(
-      "cockpit.garden.pool.seed.blocked.capacity"
+      "hub.garden.pool.seed.blocked.capacity"
     );
     expect(seedBlockedReason({ ...open, priceUnavailable: true })?.id).toBe(
-      "cockpit.garden.pool.seed.blocked.price"
+      "hub.garden.pool.seed.blocked.price"
     );
   });
 
@@ -194,6 +197,67 @@ describe("a reward in dollars", () => {
   });
 });
 
+describe("a G$ reward matched in USDC (PRD-1556)", () => {
+  const matched = {
+    ...COMMITMENT_COMPOSER_DEFAULTS,
+    considerationRail: "CELO_SETTLEMENT",
+    considerationUsd: "5.00",
+    considerationAmount: "",
+    rewardMatchedUsdc: true,
+  } as const;
+
+  it("declares the same dollars in USDC on the promise's chain, and nothing unmatched", () => {
+    expect(matchedUsdcLegs(matched, 42161)).toEqual([
+      {
+        version: 1,
+        chainId: 42161,
+        token: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+        amount: "5000000",
+        usdCents: "500",
+      },
+    ]);
+    expect(matchedUsdcLegs({ ...matched, rewardMatchedUsdc: undefined }, 42161)).toBeUndefined();
+    expect(matchedUsdcLegs({ ...matched, considerationRail: "NONE" }, 42161)).toBeUndefined();
+    // Clearing the reward clears the match, so a later Yes starts from G$ only.
+    expect(
+      withoutUnavailableReward({ ...matched, considerationRail: "ARBITRUM_EXTERNAL" })
+        .rewardMatchedUsdc
+    ).toBeUndefined();
+  });
+
+  it("never reads a match as promised where Create wouldn't declare it", () => {
+    const rows = rewardFacts({
+      values: matched,
+      count: 10,
+      price: { status: "ready", price: PRICE, readAt: 0 },
+      locale: "en",
+      formatMessage,
+      usdcMatchAvailable: false,
+    });
+    expect(rows.some(([label]) => label === "In USDC")).toBe(false);
+    expect(rows[0]?.[1]).toBe("{amount}, paid in G$ once it's kept");
+  });
+
+  it("names both parts in the review, and counts both in the most it could total", () => {
+    const intl = createIntl({ locale: "en", messages: en });
+    const rows = rewardFacts({
+      values: matched,
+      count: 10,
+      price: { status: "ready", price: PRICE, readAt: 0 },
+      locale: "en",
+      formatMessage: intl.formatMessage as unknown as typeof formatMessage,
+      usdcMatchAvailable: true,
+    });
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        ["Each", "$5.00 in G$ and $5.00 in USDC, paid once it's kept"],
+        ["In USDC", "5.00 USDC each, paid from the garden's Safe once it's kept"],
+        ["If all 10 are kept", "Up to $100.00"],
+      ])
+    );
+  });
+});
+
 describe("the review's status row", () => {
   type Status = SeedCopyProgress["status"];
   type Miss = SeedCopyProgress["miss"];
@@ -227,6 +291,14 @@ describe("the review's status row", () => {
     ["created", copies([10, "created"]), "created", 0],
   ] as const)("reads a %s pass, with what Try Again would send", (_, sent, phase, retry) => {
     expect(view([...sent])).toMatchObject({ phase, retry });
+  });
+
+  it("says a bundle past its ceilings sent nothing, and that Try Again asks for each", () => {
+    expect(view(copies([10, "not-sent", "over-ceilings"]))).toMatchObject({
+      phase: "refused",
+      retry: 10,
+      description: expect.stringContaining("Try Again asks for each one on its own"),
+    });
   });
 
   it("asks the wallet about the copies this Create sends, a bundle of ten at a time", () => {

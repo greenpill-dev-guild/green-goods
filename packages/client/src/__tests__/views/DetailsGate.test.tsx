@@ -8,6 +8,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it } from "vitest";
+import { workInputLabel } from "../../components/Features/Work/workInputLabel";
 import { WorkDetails } from "../../views/Garden/Details";
 
 const messages = {
@@ -16,12 +17,11 @@ const messages = {
   "app.garden.details.feedbackPlaceholder": "Provide feedback or any observations",
   "app.garden.details.timeSpent": "Time Spent (hours)",
   "app.garden.details.timeSpentPlaceholder": "e.g., 1.5 for 1h 30m",
-  "app.garden.details.timeSpentHint": "Enter hours spent on this work (decimals OK)",
   "app.garden.details.shareLocation": "Share Location",
   "app.garden.details.locationHint": "Share your location to auto-fill coordinates",
   "app.garden.details.locationCaptured": "Location captured",
   "app.garden.details.locationDenied": "Location access denied",
-  "app.garden.details.feedback": "Feedback",
+  "app.garden.details.feedback": "Notes",
   "app.garden.details.selectRange": "Select Date Range",
   "app.common.add": "Add",
   "app.common.remove": "Remove",
@@ -57,7 +57,8 @@ describe("WorkDetails Review gate", () => {
     const view = render(<GateHarness inputs={template.uiConfig.details.inputs} />);
 
     for (const input of template.uiConfig.details.inputs.filter((field) => field.required)) {
-      const label = input.unit ? `${input.title} (${input.unit})*` : `${input.title}*`;
+      // Nine templates write their unit into the title too ("Delivered Duration (min)"): it shows once.
+      const label = `${workInputLabel(input)}*`;
 
       if (input.type === "multi-select" || input.type === "repeater") {
         expect(view.getByRole("group", { name: label }), `${slug}: ${input.key}`).toBeVisible();

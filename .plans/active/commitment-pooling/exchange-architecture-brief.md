@@ -2,6 +2,7 @@
 
 **Date**: 2026-08-01  
 **Compatibility amendment**: 2026-08-03
+**Superseded in part**: 2026-10-21, Decision Log #69 / register #163  
 **Posture**: design only  
 **Linear mirror**: PRD-651  
 **Authority**: plan Decision Log #42 / #51–#53; register #76 / #86–#88
@@ -107,6 +108,11 @@ approval functions.
 instruments. `committedOf` may support eligibility and audit reads, but it does not authorize a
 voucher mint. A future exception would require its own scope lock because transferring an
 unfulfilled promise would blur settlement with promise ownership.
+
+> **Superseded in part, 2026-10-21 (Decision Log #69):** for the Cosmo-Local integration, issuers a
+> steward admits may issue against future capacity, under caps that grow with kept promises and
+> within each pool's acceptance limits. Fulfilled backing is no longer the required first mode.
+> The identity rules in section 0 still hold.
 
 The current `classId == commitmentId` convention remains valid **for the base registry only**. A
 future voucher uses its own `voucherClassId`; it does not add another class kind to the promise
@@ -338,6 +344,10 @@ needed.
 | **3 — fulfilled-backed voucher** | class registry, fulfillment receipt consumption, mint/burn, redemption terms | new contract/interface closure, legal/security review, explicit scope lock | capacity-backed issuance |
 | **4 — one bounded pool** | seed inventory, quoter, limiter, exchange in/out, redemption and failure repair | stage 3 proof plus venue audit, liquidity and operator plan | federation |
 | **5 — expansion** | capacity-backed issuance and/or pool federation | separate evidence and consent gates for each capability | any implicit cross-pool or unfulfilled-promise transfer |
+
+> **Stage order superseded in part, 2026-10-21 (Decision Log #69):** curated, capped issuance
+> through Cosmo-Local pools now comes before stage 3, and presentment opens a promise.
+> Federation and the release gates stay separately gated.
 
 Each stage is reversible as a product decision. Completing one stage does not authorize the next.
 The initial module remains useful if the voucher stages are paused or never built.

@@ -1,0 +1,133 @@
+--- a/.claude/skills/design/prompt-contract.md
++++ b/.claude/skills/design/prompt-contract.md
+@@ -8,30 +8,31 @@
+ 
+ Paste this sentence (or a trimmed version) into every AI design prompt for admin surfaces:
+ 
+-> Green Goods admin is a **restrained steward cockpit** expressing the **Warm Earth** design language through M3 anatomy, not raw M3, and not the expressive client dialect. Use `CanvasLayout` with an admin `AppBar` top context bar, one dominant `MainSheet` workspace, a bottom `NavigationBar`, and **centered `AdminDialog` overlays for every workspace action and detail/inspection flow**. The only exception: the **three global AppBar surfaces (Profile, Settings, Notifications) open a right-docked `AdminSideSheet`** on desktop. Components follow **Material 3 anatomy** with **Plus Jakarta Sans**. Dense surfaces are **solid, not frosted**. **Workspace tint** is subtle atmosphere only. Prefer **workbench rows, lists, tabs, and inspectors** over nested cards. **Utility copy only.**
++> Green Goods admin is the **steward cockpit**: the installed app's **Warm Earth** language at a **denser setting**, not raw Material 3 and not the app's expressive moments. Use `CanvasLayout` with an admin `AppBar` top context bar, one dominant `MainSheet` workspace, a bottom `NavigationBar`, and **centered `AdminDialog` overlays for every workspace action and detail/inspection flow**. The only exception: the **three global AppBar surfaces (Profile, Settings, Notifications) open a right-docked `AdminSideSheet`** on desktop. Type is **Plus Jakarta Sans** on a **linen canvas with white cards**; tabs, chips, count badges, cards and phone sheets are **the app's**. Buttons are **pills** on a **compact metric**. Dense surfaces are **solid, not frosted**. **Workspace tint** is subtle atmosphere only. Prefer **item rows, lists, tabs, and inspectors** over nested cards. **Utility copy only.**
+ 
+-## Admin is Restrained Warm Earth, Not Raw M3
++## One Language, a Denser Setting
+ 
+-The admin cockpit and the client PWA are both Warm Earth. The difference is expressiveness, not foundation:
++The admin cockpit and the installed app speak one Warm Earth language. The cockpit's strict Material 3 rule is retired: the cockpit sets the app's language denser, and keeps a few dials of its own because they serve stewards, not because Material 3 asks for them.
+ 
+-- **Shared baseline**: concentric geometry, spring motion tokens, role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers, 5 Z-layers, material system.
+-- **Admin subset**: Standard motion scheme (never Expressive); translucency restricted to the Navigation/FAB **Controlled Chrome**: flat 85% surface + 12px blur + warm ambient shadow + 1px ink ring (rules in `admin-m3-tokens.css`), never "liquid glass", while every dialog and side-sheet surface is solid and `MainSheet` is transparent; transparent admin `AppBar` root over the workspace canvas; the reduced admin radius scale 4/8/12/16/9999, where every button is a pill and the FAB is a capsule at both sizes (DL-010); the compact control metric 28/32/36/40/44 (DL-011: buttons 28/32/40, fields 44, toolbar pills 36); Title Case action labels in en (DL-012); solid surfaces over blur everywhere else; no organic/hero shapes; no decorative color.
+-- **Why**: stewards scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
++- **Shared with the app**: Plus Jakarta Sans and one set of type role names (title, body, label, meta); the linen canvas with white cards and one warm dark ladder; capsule chips with one selected fill; equal-width tabs; one count badge; one card surface built from four shapes (item row, media card, fact row, state block) with a 12px list gap; outlined fields with a 3:1 outline; one focus role; the phone sheet's surface, grip and header; one layout for empty, loading and error states; the pill behind the active bottom-bar icon. Also shared: concentric geometry, spring motion tokens, the role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers and 5 Z-layers.
++- **The cockpit's own dials**: the Standard motion scheme (never Expressive); translucency restricted to the Navigation/FAB **Controlled Chrome**: flat 85% surface + 12px blur + warm ambient shadow + 1px ink ring (rules in `admin-m3-tokens.css`), never "liquid glass", while every dialog and side-sheet surface is solid and `MainSheet` is transparent; transparent admin `AppBar` root over the workspace canvas; every button a pill and the FAB a capsule at both sizes (DL-010); the compact control metric 28/32/36/40/44 (DL-011: buttons 28/32/40, fields 44, toolbar pills 36); inline filter chips and sort in the toolbar; a tone per workspace on a four-use budget; Title Case action labels in en (DL-012); no organic/hero shapes; no decorative color.
++- **Retired with Material 3**: the filled field with an underline, elevation as a card's surface, the 12px card corner, the 8px chip, the underline tab rail, the grey count chip, the warm grey phone sheet, and the Material type role names. The `--m3-*` token names stay as an internal layer.
++- **Why**: stewards use both surfaces in one sitting. When the tabs, chips, cards and sheets are the same objects, switching keeps one mental model; density, pills, tones and navigation still say which surface they are in. Stewards scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
+ 
+ If you would not ship a move on Linear, GitHub, or Stripe Dashboard, it does not belong in the cockpit, regardless of what the Warm Earth language permits in client flows.
+ 
+ ## Overlays: Centered `AdminDialog` + the Three Global Side Sheets
+ 
+-The canonical admin overlay is the centered **`AdminDialog`** (M3 basic dialog: surface-container-high, a 32% scrim covering the **full viewport**, right-aligned M3 action row, bottom-sheet on mobile). It hosts **every** workspace action *and* every detail/inspection flow: work review, assessment, hypercert, action create/edit/detail, garden settings, member management, cookie jar, vault.
++The canonical admin overlay is the centered **`AdminDialog`** (a solid dialog with a 32% scrim covering the **full viewport** and a right-aligned action row; on mobile, the app's bottom sheet with its grip and shared header). It hosts **every** workspace action *and* every detail/inspection flow: work review, assessment, hypercert, action create/edit/detail, garden settings, member management, cookie jar, vault.
+ 
+ - **Workspace side sheets stay retired.** The old `LeftSheet` / `RightSheet` / `BottomSheet` canvas inspectors are not a pattern. Never propose a slide-in side panel for a workspace detail or creation flow. Propose an `AdminDialog`. Because the dialog portals to `<body>` (out of the `[data-tone]` scope), always pass the workspace `tone`.
+-- **Controlled Chrome stays on Navigation/FAB only.** The only translucent chrome in the cockpit is the `NavigationBar` dock with its `FabButton`: a flat 85% surface with 12px blur, a warm ambient shadow, and a 1px ink ring (the Controlled Chrome contract in `admin-m3-tokens.css`, not "liquid glass"). The `AppBar` root and `MainSheet` are transparent; every dialog surface and the side sheet are solid M3, never frosted.
++- **Controlled Chrome stays on Navigation/FAB only.** The only translucent chrome in the cockpit is the `NavigationBar` dock with its `FabButton`: a flat 85% surface with 12px blur, a warm ambient shadow, and a 1px ink ring (the Controlled Chrome contract in `admin-m3-tokens.css`, not "liquid glass"). The `AppBar` root and `MainSheet` are transparent; every dialog surface and the side sheet are solid, never frosted.
+ - **`AdminDialog` is still a mobile bottom-sheet** in its responsive presentation (it slides up from the bottom on narrow viewports). That is the dialog adapting, not the retired side-sheet system. `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* a dialog or side-sheet body.
+ - Full-surface action flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action) use `AdminDialog variant="flow"` + `className={ADMIN_FLOW_DIALOG_CLASS}` wrapping `ActionFlowShell`. See the size standard below (`xl`/`2xl` tiers no longer exist).
+ 
+ ### Side sheets: the three global surfaces (shipped scope: do not extend)
+ 
+-**`AdminSideSheet`** is the M3 modal side sheet for the **three global AppBar surfaces only**: Profile, Settings, Notifications. It is AdminDialog's sibling (same scrim, hairline header, absolute close button, tone prop, instant-exit handling), with side-sheet geometry:
++**`AdminSideSheet`** is the modal side sheet for the **three global AppBar surfaces only**: Profile, Settings, Notifications. It is AdminDialog's sibling (same scrim, hairline header, absolute close button, tone prop, instant-exit handling), with side-sheet geometry:
+ 
+ - **≥640px**: right-docked, full height, rounded inner (left) corners at 16px, slides in from the right edge; one shared width (`--canvas-right-sheet-width`, clamp 380–560px). Solid `--admin-surface-0` at elevation 2 (`--m3-elevation-2`) over the scrim, never glass.
+ - **<640px**: identical presentation to AdminDialog's mobile bottom sheet. On mobile only the notification bell opens it: Profile and Settings live in the Profile tab (`/profile`, tabs **Profile | Settings**; the page reads Profile like the desktop sheet).
+@@ -90,7 +91,7 @@
+ | `AdminDialog inspector` | Centered overlay for config & alerts (notifications, settings, account) **and** every detail/inspection flow; full-viewport scrim, bottom-sheet on mobile |
+ | `ActionFlowShell` | Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action): inner chrome of a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`); bottom-sheet on mobile |
+ | `workspace tint` | Subtle atmospheric color: Hub=blue, Garden=green, Community=orange, Actions=purple |
+-| `workbench list` | Primary data surface inside MainSheet |
++| `item row list` | Primary data surface inside MainSheet: one 88px item row per record, 12px apart |
+ | `stage rail` | Inline secondary actions/filters adjacent to the workspace |
+ | `view rail` | Collapsible navigation rail when the AppBar is tight |
+ | `utility copy` | Terse, action-oriented text, not marketing, not brand |
+@@ -103,16 +104,17 @@
+ 
+ - **Hero / celebration framing**: hero moments belong to the client PWA, never the cockpit.
+ - **Marketing / promo framing**: admin is steward-internal; no banners, no landing-page energy.
+-- **Gallery / mosaic / floating-stats framing**: admin shows workbench rows and inspectors, not curated visual layouts.
++- **Gallery / mosaic / floating-stats framing**: admin shows item rows and inspectors, not curated visual layouts. The Hub's wide desktop work card keeps its photo grid because the photos are the work under review.
++- **Material 3 framing**: "M3 anatomy", "M3 dimensions", "filled field", "underline tabs", "elevated card". The cockpit's Material 3 rule is retired; describe the shared piece by its own name.
+ - **Decorative gradient framing**: decoration without function; admin uses solid surfaces.
+ - **Glass / liquid / frosted framing**: the only translucent chrome is the Navigation/FAB Controlled Chrome (flat 85% surface + 12px blur + warm shadow + 1px ink ring), never phrased as "liquid glass"; the AppBar root and `MainSheet` remain transparent; dense surfaces, every dialog, and the side sheet must be solid.
+ 
+ ## Materials & Motion (admin)
+ 
+-- **M3 strict anatomy** (v0.192): exact dimensions, state layers (8%/12%/12%/16%), shapes, color roles.
+-- **Spring motion**: the single permitted deviation from M3 standard easing. Uses `--spring-*` tokens.
++- **The app's language, set denser**: the shared tabs, chips, count badge, cards, fields and phone sheet at the cockpit's compact metric, pill buttons, and state layers (8%/12%/12%/16%) for hover, focus and press.
++- **Spring motion**: the only easing. Uses `--spring-*` tokens.
+ - **Controlled Chrome is restricted** to Navigation/FAB: flat 85% surface (`rgb(var(--admin-surface-0)/0.85)`) + 12px blur + warm ambient shadow + 1px ink ring, per the Controlled Chrome contract in `admin-m3-tokens.css`. Do not call it "liquid glass". The admin `AppBar` root and `MainSheet` are transparent; all dialog surfaces and the `AdminSideSheet` are solid.
+-- **Typography**: Plus Jakarta Sans across the cockpit.
++- **Typography**: Plus Jakarta Sans on both steward surfaces, with the role names title, body, label and meta at the cockpit's sizes (`packages/admin/DESIGN.md` § Typography).
+ 
+ ### Motion Scheme
+ 
+@@ -125,16 +127,17 @@
+ ### Workspace Tone
+ 
+ Each workspace carries an accent hue (Hub=blue, Garden=green, Community=orange, Actions=purple),
+-but the canvas itself never tints: it stays constant linen (`--m3-surface-container-low`) in
+-light and m3 surface in dark. Tone spends a **4-use budget**: (1) the active tab underline/label
+-and active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (2) the single
++but the canvas itself never tints: it stays the installed app's constant linen
++(`--m3-surface-container-low`) in light and the shared warm dark floor in dark. Tone spends a
++**4-use budget**: (1) the active tab's tinted cell and underline and the active nav pill
++(`--tone-primary-container` / `--tone-on-primary-container`), (2) the single
+ filled header action (`--tone-action`), (3) the faint canvas wash (`--tone-surface-tint-color`,
+ 5% light / 10% dark, fading to transparent by 320px), (4) the nav-shell FAB fill
+ (`Shell/FabButton`), the one tone-filled control in the floating chrome. The mechanism is a `[data-tone]` attribute
+ on the CanvasLayout root that sets the surviving `--tone-*` roles: `--tone-action`,
+ `--tone-on-surface-accent`, `--tone-primary-container` / `--tone-on-primary-container`, and
+ `--tone-surface-tint-color` (workspace palettes live in `admin-m3-tokens.css`); components read
+-`var(--tone-action, var(--m3-primary))` so they fall back to the M3 accent when unscoped.
++`var(--tone-action, var(--m3-primary))` so they fall back to the green accent when unscoped.
+ **Portals escape the scope**: anything portaled to `<body>` (dialogs, poppers) must re-establish
+ tone via the `tone` prop or it silently falls back. Anything beyond the four sanctioned uses is
+ drift: never content surfaces, never extra washes.
+@@ -179,21 +182,22 @@
+ | `NavigationBar` | Bottom workspace tabs: Hub, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
+ | `FabButton` (`Shell/FabButton`) | Per-workspace primary action in the nav shell, a capsule at both sizes (`rounded-full`): 48px dock circle, 56px extended floating capsule with label (DL-010); integrated via `FabProvider` |
+ 
+-**M3 wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; 21 wrappers across 18 files today, since `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`):
++**Admin wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; 21 wrappers across 18 files today, since `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`). Each family moves onto the shared family in turn (buttons, then fields and chips, then dialogs and sheets, then cards and tabs); until a family moves, its wrapper is the cockpit's control:
+ 
+ `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFilterChip` · `AdminInlineField` · `AdminLinearProgress` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSettingRow` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
+ 
+ Form selects use `AdminSelect` (full field anatomy, permanently floated label, chevron slot, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only, never a form control.
+ 
+-**Field anatomy**: the filled variant with its bottom underline is the cockpit's default field look ("the line"); use `variant="outlined"` only when a field sits ON a filled surface (e.g. inside a container-highest panel) where the underline would vanish. All fields share the 44px compact height, 14px text, and one error anatomy: label + indicator/ring recolor to `--m3-error`, supporting text in the family slot (`AdminInlineField` included).
++**Field anatomy**: outlined on both surfaces, with the label above, the control-grade outline (`--m3-outline`, 3:1 or better) and one message line reserved under each field; a longer message grows the slot. All fields share the 44px compact height on touch widths and 40px from 640px, and one error anatomy: label + outline recolor to `--m3-error`, supporting text in the family slot (`AdminInlineField` included).
+ 
+ (`AdminBadge`, `AdminFab`, and `AdminListItem` were deleted 2026-08-29. Do not reintroduce them; the nav-shell FAB is `Shell/FabButton`.)
+ 
+-All follow M3 v0.192 anatomy exactly, on the reduced admin shape scale, 4/8/12/16/9999 (`--m3-shape-xs/sm/md/lg/full`). Do not override dimensions, state layers, or shape scale.
++Every wrapper sits on the cockpit's shape set, 4/8/12/16/24/9999 (`--admin-radius-*`): pill buttons and capsule chips, 24px cards and 16px item rows, 16px dialogs. Do not override dimensions, state layers, or the shape set.
+ 
+ **Shared primitives** (import from `@green-goods/shared`):
+-- Admin dashboard dialogs use `AdminDialog` / `AdminConfirmDialog` (centered M3, scrim, pinned `actions`; `palette` variant for the command palette, `flow` variant + `ADMIN_FLOW_DIALOG_CLASS` for full-surface action flows). `DialogShell` is for shared or non-admin (client PWA) surfaces only. Do not use it for admin dashboard dialogs. See the admin.mdx Dialog Contract.
+-- Identity / data display: `AddressDisplay`, `StatusBadge`, `Alert`. (`DomainBadge` stays a client primitive: admin renders a neutral white/90 domain chip on `HubWorkCard` instead.)
++- Admin dashboard dialogs use `AdminDialog` / `AdminConfirmDialog` (centered on desktop, the app's sheet on a phone, scrim, pinned `actions`; `palette` variant for the command palette, `flow` variant + `ADMIN_FLOW_DIALOG_CLASS` for full-surface action flows). `DialogShell` is for shared or non-admin (client PWA) surfaces only. Do not use it for admin dashboard dialogs. See the admin.mdx Dialog Contract.
++- Cards: the shared card surface and its four shapes, the item row, media card, fact row and state block, at the cockpit's density. Name the object's card by the shape it uses; never draw a new card primitive.
++- Identity / data display: `AddressDisplay`, `StatusBadge`, `Alert`, and the shared count badge. (`DomainBadge` stays a client primitive: admin renders a neutral white/90 domain chip on `HubWorkCard` instead.)
+ 
+ **Reference composition**: `/hub` route. Model new admin surfaces on it. `DashboardLayout` / `Sidebar` / `Header` are legacy. Do not start from them.
+ 
+@@ -207,6 +211,6 @@
+ 
+ ## Why This Contract Exists
+ 
+-The admin cockpit and the client PWA speak different dialects of the same Warm Earth language. Without an explicit contract, AI design tools blend the two and produce admin screens with marketing-page energy: hero banners, decorative gradients, oversized CTAs. This file gives the tools a tight vocabulary that reinforces the cockpit identity every time.
++The admin cockpit and the installed app speak one Warm Earth language at two densities. Without an explicit contract, AI design tools either blend in the app's expressive moments and produce admin screens with marketing-page energy (hero banners, decorative gradients, oversized CTAs), or fall back on generic Material 3 and draw a second product. This file gives the tools a tight vocabulary that reinforces the cockpit's dials every time.
+ 
+-Originated in Codex review (2026-04-15) after the admin revamp stabilized on strict M3. Previously lived in user memory (`project_design_direction.md`) but belonged in the skill itself so any agent (not just the main Claude session) can enforce it.
++Originated in Codex review (2026-04-15) after the admin revamp stabilized on strict M3. Rewritten when the Material 3 rule retired and the cockpit took the app's language at a denser setting. Previously lived in user memory (`project_design_direction.md`) but belonged in the skill itself so any agent (not just the main Claude session) can enforce it.

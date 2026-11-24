@@ -4,25 +4,43 @@
  *
  * The resume prompt, autosave and the IndexedDB store run together here, because what Start Fresh
  * promises is only visible across them: the saved draft's record and media stay as they were from
- * the moment the prompt opens, and the next save gets a record of its own.
+ * the moment the prompt opens, and the next save gets a record of its own. What a Submit leaves to
+ * resume is visible the same way, with the work mutation, the upload queue and the draft's
+ * retirement composed as Submit Work composes them.
  */
-import { act, cleanup, waitFor } from "@testing-library/react";
-import { useEffect, useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode, useEffect, useState } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getAddress } from "viem";
+import { toastService } from "../../../components/Toast/toast.service";
 import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
 import { useDraftResume } from "../../../hooks/work/useDraftResume";
+import { useDrafts } from "../../../hooks/work/useDrafts";
+import { useWorkDraftRetirement } from "../../../hooks/work/useWorkDraftRetirement";
+import { useWorkMutation } from "../../../hooks/work/useWorkMutation";
+import { useYourWorkCount } from "../../../hooks/work/useYourWorkCount";
+import en from "../../../i18n/en.json";
 import {
   parseWorkLinkIntent,
   toDraftWorkLink,
   writeWorkLinkIntent,
   type WorkLinkIntent,
 } from "../../../modules/commitment-pooling/work-link-intent";
+import { jobQueueDB } from "../../../modules/job-queue/db";
+import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { draftDB } from "../../../modules/job-queue/draft-db";
+import type { WorkContent } from "../../../modules/job-queue/draft-state";
 import { queueDraftWrite } from "../../../modules/work/draft-lifecycle";
+import { WorkSubmissionError } from "../../../modules/work/wallet-submission/types";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { WorkTab } from "../../../stores/workFlowTypes";
+import type { WorkJobPayload } from "../../../types/job-queue";
+import { createMockAction, createMockWorkDraft } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { uploadConsent } from "../../test-utils/upload-policy";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
 const GARDEN = "0x5eed000000000000000000000000000000000001";
@@ -44,26 +62,71 @@ const ANOTHER_PROMISE_PAGE = writeWorkLinkIntent(new URLSearchParams(), {
   returnTo: `/home/${GARDEN}/commitments/9`,
 }).toString();
 
+// These draft and queue scenarios start with a member who accepted the current terms.
+vi.mock("../../../hooks/work/useUploadPolicy", () => ({
+  useUploadPolicy: () => ({ request: async () => uploadConsent(ACCOUNT), prompt: null }),
+}));
 vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: ACCOUNT }),
 }));
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => CHAIN }));
+// The Your Work badge reads the real drafts and queue; which garden is active is its edge.
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => ACCOUNT }));
+vi.mock("../../../hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ inScope: () => true }),
+}));
+// Submit's queue and drafts share one chain, as they do in the app.
+vi.mock("../../../config/default-chain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/default-chain")>()),
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+// A wallet account; what the wallet does with a send is each Submit test's call.
+const wallet = vi.hoisted(() => ({
+  send: vi.fn(),
+  sender: {
+    authMode: "wallet" as const,
+    supportsBatching: false,
+    supportsSponsorship: false,
+    sendContractCall: async () => ({ hash: "0x" as const, sponsored: false }),
+  },
+}));
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => wallet.sender,
+}));
+vi.mock("../../../modules/work/wallet-submission", () => ({
+  submitWorkDirectly: wallet.send,
+}));
 
 /**
  * The wizard's draft wiring, as the Submit Work controller composes it: the address is live, so
  * a promise written into it is the promise the next save carries. `strict` mounts it as the app's
  * development build does, where the first load is interrupted and run again.
  */
-function openWizard(query = "", { strict = false } = {}) {
+/** A hook with what the app gives autosave: queries, and the words its failure toast reads. */
+function renderInApp<TResult>(hook: () => TResult, options: { reactStrictMode?: boolean } = {}) {
+  const queryClient = createTestQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(
+      IntlProvider,
+      { locale: "en", messages: en },
+      createElement(QueryClientProvider, { client: queryClient }, children)
+    );
+  return renderHook(hook, { ...options, wrapper });
+}
+
+function openWizard(
+  query = "",
+  { strict = false, work }: { strict?: boolean; work?: WorkContent } = {}
+) {
   const setSearchParams = vi.fn();
   const restoreForm = vi.fn();
-  const view = renderHookWithQueryClient(
+  const view = renderInApp(
     () => {
       const [searchParams, applySearchParams] = useState(() => new URLSearchParams(query));
       setSearchParams.mockImplementation((next: URLSearchParams) => applySearchParams(next));
       const promise = parseWorkLinkIntent(searchParams);
       const linkIntent = promise ? toDraftWorkLink(promise) : undefined;
-      return useWizard({ searchParams, setSearchParams, restoreForm, linkIntent });
+      return useWizard({ searchParams, setSearchParams, restoreForm, work, linkIntent });
     },
     { reactStrictMode: strict }
   );
@@ -74,17 +137,20 @@ function useWizard({
   searchParams,
   setSearchParams,
   restoreForm,
+  work,
   linkIntent,
 }: {
   searchParams: URLSearchParams;
   setSearchParams: (params: URLSearchParams) => void;
   restoreForm: () => void;
+  work?: WorkContent;
   linkIntent: ReturnType<typeof toDraftWorkLink> | undefined;
 }) {
   const resume = useDraftResume({
     searchParams,
     setSearchParams,
     restoreForm,
+    work,
   });
   const gardenAddress = useWorkFlowStore((state) => state.gardenAddress);
   const actionUID = useWorkFlowStore((state) => state.actionUID);
@@ -144,11 +210,236 @@ beforeEach(() => {
 });
 afterEach(async () => {
   cleanup();
+  vi.restoreAllMocks();
   // An unmounting wizard flushes its draft; let that land before the records go.
   await queueDraftWrite(async () => undefined);
   for (const draft of await draftDB.getDraftsForUser(ACCOUNT, CHAIN))
     await draftDB.deleteDraft(draft.id);
   await draftDB.setActiveDraft(ACCOUNT, CHAIN, null);
+  for (const job of await jobQueueDB.getJobs({ userAddress: ACCOUNT }))
+    await jobQueueDB.deleteJob(job.id);
+});
+
+describe("a flow with nothing in it (DL-148)", () => {
+  /** One action tile tapped on Start, which moves the flow on to Media. */
+  const tapActionTile = () =>
+    act(() => {
+      const store = useWorkFlowStore.getState();
+      store.setGardenAddress(GARDEN);
+      store.setActionUID(5);
+      store.setActiveTab(WorkTab.Media);
+    });
+  const openedWizard = async (options?: Parameters<typeof openWizard>[1]) => {
+    const wizard = openWizard("", options);
+    await waitFor(() => expect(wizard.result.current.isResumingFromUrl).toBe(false));
+    return wizard;
+  };
+  const leave = async (wizard: { unmount: () => void }) => {
+    wizard.unmount();
+    await queueDraftWrite(async () => undefined);
+  };
+  /** The Your Work badge, and whether the draft list behind it has answered. */
+  const countYourWork = () =>
+    renderHookWithQueryClient(() => ({
+      count: useYourWorkCount().count,
+      answered: !useDrafts().isLoading,
+    }));
+
+  it("leaves no draft and no badge after a tile is tapped, and the next visit starts over", async () => {
+    const first = await openedWizard();
+    tapActionTile();
+    expect(await first.result.current.saveOnExit()).toBeNull();
+    await leave(first);
+
+    expect(await draftDB.getDraftsForUser(ACCOUNT, CHAIN)).toEqual([]);
+    expect(await draftDB.getActiveDraft(ACCOUNT, CHAIN)).toBeNull();
+    const badge = countYourWork();
+    await waitFor(() => expect(badge.result.current.answered).toBe(true));
+    expect(badge.result.current.count).toBe(0);
+
+    const next = await openedWizard();
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      gardenAddress: null,
+      actionUID: null,
+      activeTab: WorkTab.Intro,
+      activeDraftId: null,
+    });
+    expect(next.restoreForm).toHaveBeenLastCalledWith({ feedback: "" });
+  });
+
+  it("leaves no draft after a promise's page is opened and left", async () => {
+    const wizard = openWizard(ANOTHER_PROMISE_PAGE);
+    await waitFor(() => expect(useWorkFlowStore.getState().actionUID).toBe(PROMISE.actionUID));
+    expect(await wizard.result.current.saveOnExit()).toBeNull();
+    await leave(wizard);
+
+    expect(await draftDB.getDraftsForUser(ACCOUNT, CHAIN)).toEqual([]);
+  });
+
+  it("keeps the same flow as a draft once it holds a photo, counted and back on the next visit", async () => {
+    const first = await openedWizard();
+    tapActionTile();
+    act(() =>
+      useWorkFlowStore
+        .getState()
+        .setImages([new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" })])
+    );
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await first.result.current.saveOnExit();
+    });
+    await leave(first);
+
+    expect(await draftDB.getDraft(draftId as string)).toMatchObject({
+      gardenAddress: GARDEN,
+      actionUID: 5,
+    });
+    const badge = countYourWork();
+    await waitFor(() => expect(badge.result.current.count).toBe(1));
+
+    const next = await openedWizard();
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeDraftId: draftId,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      activeTab: WorkTab.Media,
+    });
+    expect(next.restoreForm).not.toHaveBeenCalled();
+  });
+
+  it("takes a draft away once it is emptied and left, and only then", async () => {
+    const wizard = await openedWizard();
+    tapActionTile();
+    act(() =>
+      useWorkFlowStore
+        .getState()
+        .setImages([new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" })])
+    );
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await wizard.result.current.saveOnExit();
+    });
+
+    // Swapping the only photo is not leaving: the draft stays while the flow is open.
+    act(() => useWorkFlowStore.getState().setImages([]));
+    await act(async () => {
+      expect(await wizard.result.current.saveOnExit()).toBe(draftId);
+    });
+    expect(await draftDB.getDraft(draftId as string)).toBeDefined();
+
+    await leave(wizard);
+    expect(await draftDB.getDraft(draftId as string)).toBeUndefined();
+    expect(await draftDB.getActiveDraft(ACCOUNT, CHAIN)).toBeNull();
+    expect(useWorkFlowStore.getState()).toMatchObject({ activeDraftId: null, actionUID: null });
+    const badge = countYourWork();
+    await waitFor(() => expect(badge.result.current.answered).toBe(true));
+    expect(badge.result.current.count).toBe(0);
+  });
+
+  it("lets a member who comes straight back start over while the delete is still writing", async () => {
+    const wizard = await openedWizard();
+    tapActionTile();
+    act(() =>
+      useWorkFlowStore
+        .getState()
+        .setImages([new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" })])
+    );
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await wizard.result.current.saveOnExit();
+    });
+    act(() => useWorkFlowStore.getState().setImages([]));
+    await act(async () => {
+      await wizard.result.current.saveOnExit();
+    });
+
+    // A write still running holds the delete behind it.
+    let finishWrite!: () => void;
+    const writing = queueDraftWrite(
+      () =>
+        new Promise<void>((resolve) => {
+          finishWrite = resolve;
+        })
+    );
+    wizard.unmount();
+    expect(useWorkFlowStore.getState()).toMatchObject({ activeDraftId: null, actionUID: null });
+
+    await openedWizard();
+    act(() => useWorkFlowStore.getState().setFeedback("Turned the east beds"));
+    finishWrite();
+    await writing;
+    await queueDraftWrite(async () => undefined);
+
+    expect(await draftDB.getDraft(draftId as string)).toBeUndefined();
+    expect(useWorkFlowStore.getState().feedback).toBe("Turned the east beds");
+  });
+
+  it("says so, with Retry, when an emptied draft cannot be deleted, and Retry finishes it", async () => {
+    const wizard = await openedWizard();
+    tapActionTile();
+    act(() =>
+      useWorkFlowStore
+        .getState()
+        .setImages([new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" })])
+    );
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await wizard.result.current.saveOnExit();
+    });
+    act(() => useWorkFlowStore.getState().setImages([]));
+    await act(async () => {
+      await wizard.result.current.saveOnExit();
+    });
+
+    const toast = vi.spyOn(toastService, "error");
+    vi.spyOn(draftDB, "deleteDraft").mockRejectedValueOnce(new Error("store unavailable"));
+    await leave(wizard);
+    await waitFor(() => expect(toast).toHaveBeenCalledOnce());
+    const report = toast.mock.calls[0][0];
+    expect(report).toMatchObject({
+      title: "Delete failed",
+      message: "Could not delete the draft. Please try again.",
+      action: { label: "Retry" },
+    });
+    expect(await draftDB.getDraft(draftId as string)).toBeDefined();
+
+    report.action?.onClick();
+    await queueDraftWrite(async () => undefined);
+    expect(await draftDB.getDraft(draftId as string)).toBeUndefined();
+    expect(toast).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a draft left with an attachment it could not read", async () => {
+    const wizard = await openedWizard();
+    act(() => useWorkFlowStore.getState().setFeedback("Turned the east beds"));
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await wizard.result.current.saveOnExit();
+    });
+    act(() => {
+      useWorkFlowStore.getState().setFeedback("");
+      useWorkFlowStore.setState({
+        draftMissingAttachments: [{ id: "lost", name: "beds.jpg", order: 0, kind: "media" }],
+      });
+    });
+
+    await leave(wizard);
+    expect(await draftDB.getDraft(draftId as string)).toBeDefined();
+  });
+
+  it("does not wipe what the form still holds when no save could take it", async () => {
+    // Autosave is off while photos from before an account wait to be recovered, so what the
+    // member typed is only in the form.
+    const first = await openedWizard();
+    tapActionTile();
+    await leave(first);
+
+    const next = await openedWizard({
+      work: { images: [], audioNotes: [], feedback: "Turned the east beds", details: {} },
+    });
+    expect(useWorkFlowStore.getState()).toMatchObject({ actionUID: 5, activeTab: WorkTab.Media });
+    expect(next.restoreForm).not.toHaveBeenCalled();
+  });
 });
 
 describe("Start Fresh on a saved work draft", () => {
@@ -498,5 +789,157 @@ describe("entering work from a promise", () => {
     await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
     expect(useWorkFlowStore.getState().feedback).toBe("");
     expect(await draftDB.getImagesForDraft("old")).toHaveLength(1);
+  });
+});
+
+const ACTION = createMockAction({ id: `${CHAIN}-5`, title: "Mulch the east beds" });
+/** Navigation runs at once; stable, as the controller's managed timer is. */
+const scheduleNow = (callback: () => void) => callback();
+
+/** A saved draft with a photo, left as the wizard's active draft, for work that is not for a promise. */
+async function saveDraftForSubmit() {
+  const photo = new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" });
+  const record = await draftDB.saveSnapshot(
+    ACCOUNT,
+    CHAIN,
+    "submitted",
+    { gardenAddress: GARDEN, actionUID: 5, feedback: "mulched the east beds" },
+    [photo],
+    []
+  );
+  return { record, photo };
+}
+
+/**
+ * Submit Work's Review as its controller composes it: the wizard's draft wiring, the work
+ * mutation, and the retirement that lets the draft go once the composer's part is done. The
+ * person continues the saved draft from the Garden tab's prompt first, as in the app.
+ */
+async function continueToReview() {
+  const navigate = vi.fn();
+  const queryClient = createTestQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(
+      IntlProvider,
+      { locale: "en", messages: {}, onError: () => undefined },
+      createElement(QueryClientProvider, { client: queryClient }, children)
+    );
+  const review = renderHook(
+    () => {
+      const [searchParams, setSearchParams] = useState(() => new URLSearchParams());
+      const wizard = useWizard({
+        searchParams,
+        setSearchParams,
+        restoreForm: () => undefined,
+        linkIntent: undefined,
+      });
+      const mutation = useWorkMutation({
+        authMode: "wallet",
+        gardenAddress: GARDEN,
+        actionUID: 5,
+        actions: [ACTION],
+        userAddress: ACCOUNT,
+      });
+      useWorkDraftRetirement({
+        completed: useWorkFlowStore((state) => state.submissionCompleted),
+        paused: false,
+        attempt: 0,
+        clearActiveDraft: wizard.clearActiveDraft,
+        schedule: scheduleNow,
+        navigate,
+      });
+      return { ...wizard, mutation };
+    },
+    { wrapper }
+  );
+  await waitFor(() => expect(review.result.current.showDraftSheet).toBe(true));
+  await act(async () => {
+    await review.result.current.handleContinueDraft();
+  });
+  return { ...review, navigate };
+}
+
+/** Upload Work on Review, which rejects when the send does. */
+async function uploadWork(review: Awaited<ReturnType<typeof continueToReview>>, photo: File) {
+  await act(async () => {
+    await expect(
+      review.result.current.mutation.mutateAsync({
+        draft: createMockWorkDraft({ actionUID: 5, feedback: "mulched the east beds" }),
+        images: [photo],
+      })
+    ).rejects.toThrow();
+  });
+}
+
+/** Back on the Garden tab later: a new visit asks to continue only a draft it can resume. */
+async function offeredLater() {
+  cleanup();
+  useWorkFlowStore.getState().reset();
+  useWorkFlowStore.setState({ draftScope: null, draftHydrated: false });
+  const { result } = openWizard();
+  await waitFor(() => expect(useWorkFlowStore.getState().draftHydrated).toBe(true));
+  await act(async () => {
+    await queueDraftWrite(async () => undefined);
+  });
+  return result.current.showDraftSheet;
+}
+
+const queuedWork = async (clientWorkId: string | undefined) =>
+  (await jobQueueDB.getJobs({ userAddress: ACCOUNT, kind: "work", synced: false })).filter(
+    (job) => (job.payload as WorkJobPayload).clientWorkId === clientWorkId
+  );
+
+describe("what a Submit leaves to resume", () => {
+  it.each([
+    [
+      "a send that failed with nothing sent",
+      new WorkSubmissionError("The garden refused this work", "transaction", "batch"),
+    ],
+    [
+      "a declined wallet prompt",
+      new WorkSubmissionError(
+        "User rejected the request.",
+        "transaction",
+        "batch",
+        Object.assign(new Error("User rejected the request."), { code: 4001 })
+      ),
+    ],
+  ])("leaves no resumable draft once the queue admitted the work, after %s", async (_case, failure) => {
+    const { record, photo } = await saveDraftForSubmit();
+    const review = await continueToReview();
+    wallet.send.mockRejectedValueOnce(failure);
+
+    await uploadWork(review, photo);
+
+    // The queue holds the work now, so the draft goes as it would after a send, and the composer
+    // leaves for Your Work.
+    await waitFor(() => expect(review.navigate).toHaveBeenCalledOnce());
+    expect(await draftDB.getDraft(record.id)).toBeUndefined();
+    expect(await draftDB.getActiveDraft(ACCOUNT, CHAIN)).toBeNull();
+    // Your Work's Pending has the work and its photo to send again.
+    const [work] = await queuedWork(record.clientWorkId);
+    expect(work).toBeDefined();
+    expect(await jobQueueDB.getImagesForJob(work.id)).toHaveLength(1);
+    expect(wallet.send).toHaveBeenCalledOnce();
+    // The Garden tab has nothing to continue.
+    expect(await offeredLater()).toBe(false);
+  });
+
+  it("keeps the draft resumable when the queue never admitted the work", async () => {
+    const { record, photo } = await saveDraftForSubmit();
+    const review = await continueToReview();
+    vi.spyOn(jobQueue, "addJob").mockRejectedValueOnce(new Error("QuotaExceededError"));
+
+    await uploadWork(review, photo);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    expect(review.navigate).not.toHaveBeenCalled();
+    expect(await draftDB.getDraft(record.id)).toMatchObject({ feedback: "mulched the east beds" });
+    expect(await draftDB.getImagesForDraft(record.id)).toHaveLength(1);
+    expect(await queuedWork(record.clientWorkId)).toEqual([]);
+    expect(wallet.send).not.toHaveBeenCalled();
+    expect(await offeredLater()).toBe(true);
   });
 });

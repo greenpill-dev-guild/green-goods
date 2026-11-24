@@ -1,21 +1,21 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import { useCallback, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { parseEventLogs, type Hex } from "viem";
+import { parseEventLogs, type Hex, type TransactionReceipt } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import { INDEXER_LAG_SCHEDULE_MS, STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { cookieJarKeys } from "../../config/query-keys/vault";
 import { logger } from "../../modules/app/logger";
+import { waitForReceipt } from "../../modules/transactions/receipt-wait";
+import { TransactionRevertedError } from "../../modules/transactions/types";
 import type {
   CampaignCookieJar,
-  CookieJarDepositParams,
   CookieJarWithdrawParams,
   CreateCampaignCookieJarParams,
-  SyncCampaignCookieJarAllowlistParams,
 } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
 import {
@@ -24,18 +24,15 @@ import {
   parseCampaignCookieJarMetadata,
 } from "../../utils/cookie-jar-campaign";
 import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
-import {
-  ERC20_ALLOWANCE_ABI,
-  ERC20_BALANCE_ABI,
-  ERC20_DECIMALS_ABI,
-  ERC20_SYMBOL_ABI,
-} from "../../utils/blockchain/abis/erc20";
+import { ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI } from "../../utils/blockchain/abis/erc20";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
+import { useCookieJarDepositMutation } from "./useCookieJarDepositMutation";
 import { useCookieJarFactoryAddress } from "./useCookieJarFactoryAddress";
 
 const BASE_FIELD_COUNT = 13;
@@ -97,6 +94,32 @@ function campaignInvalidationKeys(
   chainId: number
 ) {
   return queryInvalidation.onCampaignCookieJarChanged(jarAddress, userAddress, chainId);
+}
+
+/**
+ * The jar a creation made, from its receipt on the app chain. A creation that reverted made no jar,
+ * so it fails. A creation whose receipt cannot be read went out all the same: it stays unconfirmed,
+ * returned without an address for the steward to supply.
+ */
+async function readCreatedJar(hash: Hex, chainId: number): Promise<Address | undefined> {
+  let receipt: TransactionReceipt;
+  try {
+    receipt = await waitForReceipt(getWagmiConfig(), {
+      hash,
+      chainId,
+      timeout: TX_RECEIPT_TIMEOUT_MS,
+    });
+  } catch (error) {
+    logger.warn("[CampaignCookieJar] Could not read the creation receipt", { error });
+    return undefined;
+  }
+  if (receipt.status === "reverted") throw new TransactionRevertedError(hash);
+  const [created] = parseEventLogs({
+    abi: COOKIE_JAR_FACTORY_ABI,
+    eventName: "JarCreated",
+    logs: receipt.logs,
+  });
+  return created?.args.jarAddress as Address | undefined;
 }
 
 export function useCampaignCookieJar(
@@ -318,8 +341,14 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
+  const { authMode, primaryAddress } = useUser();
   const sendContractTx = useContractTxSender();
+  const act: SendActContext = {
+    act: "cookie_jar_admin",
+    operation: "createCampaign",
+    authMode,
+    chainId,
+  };
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
     source: "useCreateCampaignCookieJar",
@@ -327,7 +356,7 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
   });
 
   return useMutation({
-    mutationFn: async (params: CreateCampaignCookieJarParams) => {
+    mutationFn: recordedSendAct(act, async (params: CreateCampaignCookieJarParams) => {
       const metadata = JSON.stringify(
         buildCampaignCookieJarMetadata({
           title: params.title,
@@ -372,23 +401,10 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
         ],
       });
 
-      let jarAddress: Address | undefined;
-      if (isCanonicalTxHash(hash)) {
-        try {
-          const receipt = await waitForTransactionReceipt(getWagmiConfig(), { hash, chainId });
-          const logs = parseEventLogs({
-            abi: COOKIE_JAR_FACTORY_ABI,
-            eventName: "JarCreated",
-            logs: receipt.logs,
-          });
-          jarAddress = logs[0]?.args.jarAddress as Address | undefined;
-        } catch (error) {
-          logger.warn("[CampaignCookieJar] Could not parse created jar event", { error });
-        }
-      }
+      const jarAddress = isCanonicalTxHash(hash) ? await readCreatedJar(hash, chainId) : undefined;
 
       return { hash, jarAddress, metadata };
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.campaignCookieJar.create.title" }),
@@ -425,125 +441,17 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
 }
 
 export function useCampaignCookieJarDeposit(options: CookieJarMutationOptions = {}) {
-  const { formatMessage } = useIntl();
-  const queryClient = useQueryClient();
-  const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
-  const sendContractTx = useContractTxSender();
-  const activeToastId = useRef<string | undefined>(undefined);
-  const lastParamsRef = useRef<{ jarAddress: string }>({ jarAddress: "" });
-  const showErrorToast = shouldShowErrorToast(options.errorMode);
-  const handleError = createMutationErrorHandler({
+  const invalidationKeys = useCallback(
+    (jarAddress: Address, chainId: number, account?: Address) =>
+      campaignInvalidationKeys(jarAddress, account, chainId),
+    []
+  );
+  return useCookieJarDepositMutation({
+    options,
     source: "useCampaignCookieJarDeposit",
     toastContext: "campaign cookie jar deposit",
-  });
-  const { start: scheduleFollowUp } = useProgressiveInvalidation(
-    useCallback(() => {
-      if (!lastParamsRef.current.jarAddress) return;
-      campaignInvalidationKeys(
-        lastParamsRef.current.jarAddress as Address,
-        primaryAddress ?? undefined,
-        chainId
-      ).forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-    }, [chainId, primaryAddress, queryClient]),
-    INDEXER_LAG_SCHEDULE_MS
-  );
-
-  return useMutation({
-    mutationFn: async (params: CookieJarDepositParams) => {
-      if (!primaryAddress) {
-        throw new Error("Connected account required");
-      }
-
-      try {
-        const balanceResult = await readContract(getWagmiConfig(), {
-          address: params.assetAddress,
-          abi: ERC20_BALANCE_ABI,
-          functionName: "balanceOf",
-          args: [primaryAddress as Address],
-          chainId,
-        });
-        const balance = typeof balanceResult === "bigint" ? balanceResult : 0n;
-        if (balance < params.amount) {
-          throw new Error("Insufficient token balance for deposit");
-        }
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("Insufficient token balance")) {
-          throw error;
-        }
-        logger.warn("[CampaignCookieJarDeposit] Balance check failed, proceeding anyway", {
-          error,
-        });
-      }
-
-      let allowance: bigint;
-      try {
-        const allowanceResult = await readContract(getWagmiConfig(), {
-          address: params.assetAddress,
-          abi: ERC20_ALLOWANCE_ABI,
-          functionName: "allowance",
-          args: [primaryAddress as Address, params.jarAddress],
-          chainId,
-        });
-        allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
-      } catch {
-        allowance = 0n;
-      }
-
-      if (allowance < params.amount) {
-        await sendContractTx({
-          address: params.assetAddress,
-          abi: ERC20_ALLOWANCE_ABI,
-          functionName: "approve",
-          args: [params.jarAddress, params.amount],
-        });
-      }
-
-      if (activeToastId.current) {
-        toastService.loading({
-          id: activeToastId.current,
-          title: formatMessage({ id: "app.cookieJar.deposit" }),
-          message: formatMessage({ id: "app.cookieJar.depositing" }),
-        });
-      }
-
-      return sendContractTx({
-        address: params.jarAddress,
-        abi: COOKIE_JAR_ABI,
-        functionName: "deposit",
-        args: [params.amount],
-      });
-    },
-    onMutate: () => {
-      const toastId = toastService.loading({
-        title: formatMessage({ id: "app.cookieJar.deposit" }),
-        message: formatMessage({ id: "app.cookieJar.approving" }),
-      });
-      activeToastId.current = toastId;
-      return { toastId };
-    },
-    onSuccess: (_txHash, params, context) => {
-      if (context?.toastId) toastService.dismiss(context.toastId);
-      toastService.success({
-        title: formatMessage({ id: "app.cookieJar.deposit" }),
-        message: formatMessage({ id: "app.cookieJar.depositSuccess" }),
-      });
-      lastParamsRef.current = { jarAddress: params.jarAddress };
-      campaignInvalidationKeys(params.jarAddress, primaryAddress ?? undefined, chainId).forEach(
-        (queryKey) => queryClient.invalidateQueries({ queryKey })
-      );
-      scheduleFollowUp();
-    },
-    onError: (error, params, context) => {
-      if (context?.toastId) toastService.dismiss(context.toastId);
-      handleError(error, {
-        metadata: {
-          jarAddress: params?.jarAddress,
-          assetAddress: params?.assetAddress,
-        },
-        showToast: showErrorToast,
-      });
-    },
+    balanceWarning: "[CampaignCookieJarDeposit] Balance check failed, proceeding anyway",
+    invalidationKeys,
   });
 }
 
@@ -551,8 +459,14 @@ export function useCampaignCookieJarWithdraw(options: CookieJarMutationOptions =
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
+  const { authMode, primaryAddress } = useUser();
   const sendContractTx = useContractTxSender();
+  const act: SendActContext = {
+    act: "cookie_jar_withdraw",
+    operation: "campaign",
+    authMode,
+    chainId,
+  };
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const lastParamsRef = useRef<{ jarAddress: string }>({ jarAddress: "" });
   const handleError = createMutationErrorHandler({
@@ -572,7 +486,7 @@ export function useCampaignCookieJarWithdraw(options: CookieJarMutationOptions =
   );
 
   return useMutation({
-    mutationFn: async (params: CookieJarWithdrawParams) => {
+    mutationFn: recordedSendAct(act, async (params: CookieJarWithdrawParams) => {
       if (!primaryAddress) {
         throw new Error("Connected account required");
       }
@@ -583,7 +497,7 @@ export function useCampaignCookieJarWithdraw(options: CookieJarMutationOptions =
         functionName: "withdraw",
         args: [params.amount, params.purpose],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.cookieJar.withdraw" }),
@@ -615,113 +529,4 @@ export function useCampaignCookieJarWithdraw(options: CookieJarMutationOptions =
   });
 }
 
-export function useSyncCampaignCookieJarAllowlist(options: CookieJarMutationOptions = {}) {
-  const { formatMessage } = useIntl();
-  const queryClient = useQueryClient();
-  const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
-  const sendContractTx = useContractTxSender();
-  const showErrorToast = shouldShowErrorToast(options.errorMode);
-  const handleError = createMutationErrorHandler({
-    source: "useSyncCampaignCookieJarAllowlist",
-    toastContext: "campaign cookie jar allowlist sync",
-  });
-
-  return useMutation({
-    mutationFn: async (params: SyncCampaignCookieJarAllowlistParams) => {
-      const hashes: Hex[] = [];
-      if (params.grant.length > 0) {
-        const grantHash = await sendContractTx({
-          address: params.jarAddress,
-          abi: COOKIE_JAR_ABI,
-          functionName: "grantJarAllowlistRole",
-          args: [params.grant],
-        });
-        hashes.push(grantHash);
-      }
-      if (params.revoke.length > 0) {
-        const revokeHash = await sendContractTx({
-          address: params.jarAddress,
-          abi: COOKIE_JAR_ABI,
-          functionName: "revokeJarAllowlistRole",
-          args: [params.revoke],
-        });
-        hashes.push(revokeHash);
-      }
-      return { hashes };
-    },
-    onMutate: () => {
-      const toastId = toastService.loading({
-        title: formatMessage({ id: "app.campaignCookieJar.sync.title" }),
-        message: formatMessage({ id: "app.campaignCookieJar.sync.pending" }),
-      });
-      return { toastId };
-    },
-    onSuccess: (_result, params, context) => {
-      if (context?.toastId) toastService.dismiss(context.toastId);
-      toastService.success({
-        title: formatMessage({ id: "app.campaignCookieJar.sync.title" }),
-        message: formatMessage({ id: "app.campaignCookieJar.sync.success" }),
-      });
-      campaignInvalidationKeys(params.jarAddress, primaryAddress ?? undefined, chainId).forEach(
-        (queryKey) => queryClient.invalidateQueries({ queryKey })
-      );
-    },
-    onError: (error, params, context) => {
-      if (context?.toastId) toastService.dismiss(context.toastId);
-      handleError(error, {
-        metadata: {
-          jarAddress: params?.jarAddress,
-          grantCount: params?.grant.length,
-          revokeCount: params?.revoke.length,
-        },
-        showToast: showErrorToast,
-      });
-    },
-  });
-}
-
-export function useUpdateCampaignCookieJarMetadata(options: CookieJarMutationOptions = {}) {
-  const { formatMessage } = useIntl();
-  const queryClient = useQueryClient();
-  const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
-  const sendContractTx = useContractTxSender();
-  const showErrorToast = shouldShowErrorToast(options.errorMode);
-  const handleError = createMutationErrorHandler({
-    source: "useUpdateCampaignCookieJarMetadata",
-    toastContext: "campaign cookie jar metadata update",
-  });
-
-  return useMutation({
-    mutationFn: async (params: {
-      factoryAddress: Address;
-      jarAddress: Address;
-      metadata: string;
-    }) =>
-      sendContractTx({
-        address: params.factoryAddress,
-        abi: COOKIE_JAR_FACTORY_ABI,
-        functionName: "updateMetadata",
-        args: [params.jarAddress, params.metadata],
-      }),
-    onSuccess: (_txHash, params) => {
-      campaignInvalidationKeys(params.jarAddress, primaryAddress ?? undefined, chainId).forEach(
-        (queryKey) => queryClient.invalidateQueries({ queryKey })
-      );
-      toastService.success({
-        title: formatMessage({ id: "app.campaignCookieJar.metadata.title" }),
-        message: formatMessage({ id: "app.campaignCookieJar.metadata.success" }),
-      });
-    },
-    onError: (error, params) => {
-      handleError(error, {
-        metadata: {
-          factoryAddress: params?.factoryAddress,
-          jarAddress: params?.jarAddress,
-        },
-        showToast: showErrorToast,
-      });
-    },
-  });
-}
+export { type CampaignJarSync, useCampaignCookieJarSync } from "./useCampaignCookieJarSync";

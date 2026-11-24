@@ -1,4 +1,5 @@
 import type { QueryKey } from "@tanstack/react-query";
+import { roleKeys } from "../src/config/query-keys/identity";
 import {
   Capital,
   CynefinPhase,
@@ -272,19 +273,23 @@ const STORYBOOK_ADMIN_COMMUNITY: GardenCommunity = {
 const STORYBOOK_ADMIN_POOLS: GardenSignalPool[] = [
   {
     poolAddress: RIO_ACTION_POOL_ADDRESS,
-    poolType: PoolType.Action,
+    poolType: PoolType.ActionSignal,
     gardenAddress: RIO_GARDEN_ADDRESS,
     communityAddress: RIO_COMMUNITY_ADDRESS,
   },
   {
     poolAddress: RIO_HYPERCERT_POOL_ADDRESS,
-    poolType: PoolType.Hypercert,
+    poolType: PoolType.HypercertSignal,
     gardenAddress: RIO_GARDEN_ADDRESS,
     communityAddress: RIO_COMMUNITY_ADDRESS,
   },
 ];
 
 export const STORYBOOK_ADMIN_SHELL_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
+  [roleKeys.protocolRoles(STORYBOOK_STEWARD_ADDRESS, DEFAULT_CHAIN_ID), {
+    team: false, productLead: false, agents: false, deployer: false,
+    isLoading: false, isError: false,
+  }],
   [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_GARDENS],
   [queryKeys.actions.byChain(DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_ACTIONS],
   [queryKeys.assessments.byChain(DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_ASSESSMENTS],
@@ -319,21 +324,34 @@ export const STORYBOOK_ADMIN_SHELL_SEEDS: ReadonlyArray<readonly [QueryKey, unkn
     queryKeys.role.deploymentPermissions(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     { isOwner: false, isInAllowlist: false, canDeploy: false },
   ],
+  // The Garden Creators card asks the registry who may manage its allowlist; a steward of other
+  // gardens may not, so no story reaches the RPC for it.
+  [queryKeys.role.allowlistManager(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID), false],
   [queryKeys.ens.name(STORYBOOK_STEWARD_ADDRESS_KEY), "steward.greengoods.eth"],
   [queryKeys.ens.avatar(STORYBOOK_STEWARD_ADDRESS_KEY), null],
 ];
 
 export const STORYBOOK_ADMIN_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  // This fixture separately wears Team; registry ownership never implies it in the app.
+  [roleKeys.protocolRoles(STORYBOOK_DEPLOYER_ADDRESS, DEFAULT_CHAIN_ID), {
+    team: true, productLead: false, agents: false, deployer: false,
+    isLoading: false, isError: false,
+  }],
   [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), STORYBOOK_DEPLOYER_ADMIN_GARDENS],
   [
     queryKeys.role.stewardGardens(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     STORYBOOK_DEPLOYER_ADMIN_GARDENS.map((garden) => ({ id: garden.id, name: garden.name })),
   ],
+  // The registry's owner: the team account that creates gardens and also opens the team's own
+  // workspaces. An account that is only allowed to create gardens does not see those.
   [
     queryKeys.role.deploymentPermissions(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
-    { isOwner: false, isInAllowlist: true, canDeploy: true },
+    { isOwner: true, isInAllowlist: true, canDeploy: true },
   ],
+  // The registry's owner may manage the allowlist, which holds it.
+  [queryKeys.role.allowlistManager(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID), true],
+  [queryKeys.role.allowlist(DEFAULT_CHAIN_ID), [STORYBOOK_DEPLOYER_ADDRESS]],
   [queryKeys.ens.name(STORYBOOK_DEPLOYER_ADDRESS_KEY), "deployer.greengoods.eth"],
   [queryKeys.ens.avatar(STORYBOOK_DEPLOYER_ADDRESS_KEY), null],
 ];

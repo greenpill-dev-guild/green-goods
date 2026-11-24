@@ -40,7 +40,7 @@ import { isZeroAddress } from "../../utils/blockchain/address";
  * Get the Hypercert Minter address for a chain from the SDK deployment map.
  * Falls back to Sepolia if the chain is not in the SDK's supported set.
  *
- * @see https://github.com/hypercerts-org/hypercerts/blob/main/contracts/deployments
+ * @see https://github.com/hypercerts-org/hypercerts-sdk/blob/v2.9.1/src/constants.ts
  */
 function getHypercertMinterFallback(chainId: number): Address {
   const deployment = CONSTANTS.DEPLOYMENTS[chainId as keyof typeof CONSTANTS.DEPLOYMENTS];

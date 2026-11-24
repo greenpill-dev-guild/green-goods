@@ -49,7 +49,7 @@ export const BothChanged: Story = {
     const purpose = await screen.findByLabelText(/what this pool is for/i);
     await userEvent.clear(purpose);
     await userEvent.type(purpose, "Keep the tool library lending all year.");
-    const cap = screen.getByLabelText(/how many commitments one person can hold/i);
+    const cap = screen.getByLabelText(/how many promises one person can hold/i);
     await userEvent.clear(cap);
     await userEvent.type(cap, "12");
     await expect(dialog).toHaveTextContent(/your wallet will ask you/i);

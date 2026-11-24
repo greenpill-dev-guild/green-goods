@@ -201,18 +201,6 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
 
       expect(result.current.rootGardenAddress).toBe("0xRootGarden123456789012345678901234567890");
     });
-
-    it("provides joinGarden function", () => {
-      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
-
-      expect(typeof result.current.joinGarden).toBe("function");
-    });
-
-    it("provides dismissPrompt function", () => {
-      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
-
-      expect(typeof result.current.dismissPrompt).toBe("function");
-    });
   });
 
   describe("joinGarden", () => {

@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
@@ -10,16 +12,22 @@ import {
 } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
+import {
+  RiArrowRightLine,
+  RiErrorWarningLine,
+  RiRefreshLine,
+  RiSeedlingLine,
+} from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { poolStatusChip } from "@/views/Garden/Pool/poolPresentation";
-import { HubConfirmQueue } from "@/views/Hub/components/HubConfirmQueue";
+import { ReviewConfirmQueue } from "@/views/Review/components/ReviewConfirmQueue";
+import { GardenCreatorsPanel } from "./GardenCreatorsCard";
 import { ProtocolFundingOperationsPanel } from "./ProtocolFundingOperationsPanel";
 import { SettlementOperationsPanel } from "./SettlementOperationsCard";
+import { VoucherIssuerOnboarding } from "./VoucherIssuerOnboarding";
 
 export interface CommunityPoolsProps {
   chainId: number;
@@ -32,11 +40,11 @@ export interface CommunityPoolsProps {
  * Community → Coordination's pooling section. It only ever speaks for the
  * garden selected in the header: that garden's pool, one tap from its console
  * in the Garden workspace. The protocol's own work (settlement, protocol
- * funding, the confirmations the team was asked to step into) appears here
- * only when the selected garden is the Green Goods Community Garden, whose
- * pool the protocol pool is. No other garden's Community tab can reach it, so
- * no setup, edit, or pause of the protocol pool starts from a garden that
- * isn't it.
+ * funding, the confirmations the team was asked to step into, who may create
+ * a garden) appears here only when the selected garden is the Green Goods
+ * Community Garden, whose pool the protocol pool is. No other garden's
+ * Community tab can reach it, so no setup, edit, or pause of the protocol pool
+ * starts from a garden that isn't it.
  */
 export function CommunityPools({ chainId, garden, canManage, railContent }: CommunityPoolsProps) {
   const { isProtocolGarden, protocolPool, ownPool, ownPoolsLoading } = useIsProtocolGarden({
@@ -60,12 +68,15 @@ export function CommunityPools({ chainId, garden, canManage, railContent }: Comm
       data-tone="community"
     >
       {isProtocolGarden ? (
-        <ProtocolOperations
-          chainId={chainId}
-          protocolPool={protocolPool}
-          gardenPool={gardenPool}
-          railContent={railContent}
-        />
+        <>
+          <ProtocolOperations
+            chainId={chainId}
+            protocolPool={protocolPool}
+            gardenPool={gardenPool}
+            railContent={railContent}
+          />
+          <GardenCreatorsPanel />
+        </>
       ) : (
         <>
           {gardenPool}
@@ -101,9 +112,9 @@ function GardenPoolCard({
           <AdminCardTitle className="truncate" title={garden.name}>
             {garden.name}
           </AdminCardTitle>
-          <p className="mt-1 body-xs text-text-soft">
+          <p className="mt-1 type-body text-text-soft">
             {formatMessage({
-              id: "cockpit.community.pools.currentGardenHint",
+              id: "hub.community.pools.currentGardenHint",
               defaultMessage:
                 "This garden's pool runs from the Garden workspace. One tap takes you there; nothing is duplicated here.",
             })}
@@ -114,28 +125,29 @@ function GardenPoolCard({
             {pool
               ? chip.label
               : formatMessage({
-                  id: "cockpit.garden.pool.unregistered.title",
+                  id: "hub.garden.pool.unregistered.title",
                   defaultMessage: "This garden has no commitment pool",
                 })}
           </StatusBadge>
         )}
       </div>
-      <AdminButton
+      <Button
         type="button"
-        variant="outlined"
-        leadingIcon={<RiArrowRightLine className="h-4 w-4" />}
+        emphasis="secondary"
+        size="sm"
+        leadingIcon={<RiArrowRightLine className="h-[18px] w-[18px]" aria-hidden="true" />}
         onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden.id }))}
         disabled={!canManage}
       >
         {formatMessage({
-          id: "cockpit.community.pools.openConsole",
+          id: "hub.community.pools.openConsole",
           defaultMessage: "Open the Pool Console",
         })}
-      </AdminButton>
+      </Button>
       {!canManage ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.community.pools.stewardOnly",
+            id: "hub.community.pools.stewardOnly",
             defaultMessage: "The pool console is for this garden's stewards.",
           })}
         </p>
@@ -187,7 +199,7 @@ function ProtocolOperations({
           className="space-y-3"
           role="status"
           aria-label={formatMessage({
-            id: "cockpit.community.pools.loading",
+            id: "hub.community.pools.loading",
             defaultMessage: "Loading the protocol pool",
           })}
         >
@@ -202,34 +214,34 @@ function ProtocolOperations({
     return (
       <>
         {gardenPool}
-        <AdminCard
-          variant="elevated"
-          className="flex min-h-40 flex-col items-center justify-center gap-3 text-center"
-        >
-          <AdminCardTitle>
-            {formatMessage({
-              id: "cockpit.community.pools.readError.title",
+        <AdminCard variant="elevated">
+          <EmptyState
+            tone="error"
+            icon={<RiErrorWarningLine />}
+            title={formatMessage({
+              id: "hub.community.pools.readError.title",
               defaultMessage: "Couldn’t read the protocol pool",
             })}
-          </AdminCardTitle>
-          <p className="max-w-md body-sm text-text-soft">
-            {formatMessage({
-              id: "cockpit.community.pools.readError.body",
+            description={formatMessage({
+              id: "hub.community.pools.readError.body",
               defaultMessage:
                 "The module could not be reached. Nothing about the protocol pool has changed.",
             })}
-          </p>
-          <AdminButton
-            type="button"
-            variant="filled"
-            leadingIcon={<RiRefreshLine className="h-4 w-4" />}
-            onClick={() => void protocolPool.refetch()}
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.readError.retry",
-              defaultMessage: "Try Again",
-            })}
-          </AdminButton>
+            action={
+              <Button
+                type="button"
+                emphasis="primary"
+                size="sm"
+                leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
+                onClick={() => void protocolPool.refetch()}
+              >
+                {formatMessage({
+                  id: "hub.garden.pool.readError.retry",
+                  defaultMessage: "Try Again",
+                })}
+              </Button>
+            }
+          />
         </AdminCard>
         {railContent}
       </>
@@ -239,24 +251,19 @@ function ProtocolOperations({
     return (
       <>
         {gardenPool}
-        <AdminCard
-          variant="elevated"
-          className="space-y-2"
-          data-testid="protocol-pool-unregistered"
-        >
-          <AdminCardTitle>
-            {formatMessage({
-              id: "cockpit.community.pools.unregistered.title",
+        <AdminCard variant="elevated" data-testid="protocol-pool-unregistered">
+          <EmptyState
+            icon={<RiSeedlingLine />}
+            title={formatMessage({
+              id: "hub.community.pools.unregistered.title",
               defaultMessage: "No protocol pool is registered yet",
             })}
-          </AdminCardTitle>
-          <p className="body-sm text-text-soft">
-            {formatMessage({
-              id: "cockpit.community.pools.unregistered.body",
+            description={formatMessage({
+              id: "hub.community.pools.unregistered.body",
               defaultMessage:
                 "Registering it is a deployment operation by the Green Goods team. Until then, the team cannot step in as a fallback confirmer anywhere.",
             })}
-          </p>
+          />
         </AdminCard>
         {railContent}
       </>
@@ -266,24 +273,24 @@ function ProtocolOperations({
     <AdminCard
       className="space-y-2"
       aria-label={formatMessage({
-        id: "cockpit.community.pools.confirmations",
+        id: "hub.community.pools.confirmations",
         defaultMessage: "Protocol Confirmations",
       })}
     >
       <AdminCardTitle>
         {formatMessage({
-          id: "cockpit.community.pools.confirmations",
+          id: "hub.community.pools.confirmations",
           defaultMessage: "Protocol Confirmations",
         })}
       </AdminCardTitle>
-      <p className="body-xs text-text-soft">
+      <p className="type-body text-text-soft">
         {formatMessage({
-          id: "cockpit.community.pools.confirmationsHint",
+          id: "hub.community.pools.confirmationsHint",
           defaultMessage:
-            "Commitments from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
+            "Promises from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
         })}
       </p>
-      <HubConfirmQueue
+      <ReviewConfirmQueue
         toConfirm={protocolToConfirm}
         chainId={chainId}
         normalizedSearch=""
@@ -315,6 +322,7 @@ function ProtocolOperations({
                 {funding}
                 {gardenPool}
                 <SettlementOperationsPanel chainId={chainId} />
+                <VoucherIssuerOnboarding canPrepare={toConfirm.isProtocolSteward} />
                 {railContent}
               </div>
             </aside>

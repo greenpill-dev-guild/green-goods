@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-23T00:54:02.893241+00:00",
+  "status": "candidate_insufficient_for_atomic_credential_cleanup",
+  "evidenceClass": "source review and offline encoding only; no native batch execution, signing or deployment",
+  "encoding": {
+    "evidenceClass": "offline encoding only; native batch not executed or approved",
+    "account": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
+    "mode": "0x0100000000000000000000000000000000000000000000000000000000000000",
+    "tryMode": "0x0101000000000000000000000000000000000000000000000000000000000000",
+    "payloadKeccak256": "0xd065ce92dd56f6a8881c1b642c7594a2c6765017f105f1e5faaf8ae4625083a4",
+    "migrationReady": false,
+    "sourceSha256": {
+      ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/native-batch-encoding-proof.mjs": "aac2fa0ec813296ef6abc63143fb9558a6f5be0831282ec1d194befb26960ffd",
+      ".plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-2026-10-22.json": "a771b2f0f63e3091cbfc0ed39e8af51e68722099e14f7b2874ed0a5649d84d64",
+      "packages/shared/node_modules/permissionless/package.json": "c443b281bb452e1a9e735ff06f2221f822f7687fc7f63cae1132f61e0a6f20e7",
+      "packages/shared/node_modules/permissionless/accounts/kernel/utils/encodeCallData.ts": "ee62df7e7b662a9bb895c87ada7a18c4ffd2d7c6571ac65e3734a6903cde1654",
+      "packages/shared/node_modules/permissionless/utils/encode7579Calls.ts": "00d9c0b62b6e9c9fc3174a7ca70c55bd7117cb66cb8ee162922b5c5c592588e6",
+      "packages/shared/node_modules/permissionless/actions/erc7579/supportsExecutionMode.ts": "dd24b3d1ee0de6bd9a570dd2456f2021b6ce2ba8b0f7b562831775af8afcca1c"
+    }
+  },
+  "kernelProvenance": {
+    "source": "https://arbiscan.io/address/0xBAC849bB641841b44E965fB01A4Bf5F074f84b4D#code",
+    "compiler": "0.8.25+commit.b61c2a91",
+    "compilerInputSha256": "c465925565a628b4355593f7afdbea6e4a18aa7d2dc9b441702c750af042b6eb",
+    "sourceHashesRechecked": 23,
+    "sourceSha256": {
+      "src/Kernel.sol": "13f9287eccb559dd71acc34a3c0b15cc0992dd253069561952dd45160c43045f",
+      "src/core/ValidationManager.sol": "e0ff58d3f1d720927b380b92475381ed6dd9925334d87892358d5bed11f88cdb",
+      "src/utils/ExecLib.sol": "bf12b6d16943d9f9c4dc9684e578062efbcd65980e95b074c4bcfad6fe46f4b7",
+      "src/utils/ModuleLib.sol": "41aafdda4e1dc02d1844e84d3b7461566e35eda07f635fa5973fc1849c5d2315",
+      "src/types/Constants.sol": "a1ba2b1df22f6c1afe77c2115f0098fed577165a57e85485bdcedf29f4f6a651"
+    },
+    "runtimeProof": "Historical exact rebuild and chain-specific immutable/runtime matches remain in member-migration-helper-provenance-2026-10-22.json; no fresh runtime execution in this continuation"
+  },
+  "sourceFindings": [
+    {
+      "source": "src/Kernel.sol",
+      "lines": "72-94,124-144,314-316,443-451",
+      "observation": "execute, root change and module uninstall accept the EntryPoint, self or the active root validator hook path; native self-calls use existing account authority, not a new helper"
+    },
+    {
+      "source": "src/utils/ExecLib.sol",
+      "lines": "23-36,69-104",
+      "observation": "Default batch propagates subcall reverts; TRY records failed subcalls and continues"
+    },
+    {
+      "source": "src/core/ValidationManager.sol",
+      "lines": "166-183",
+      "observation": "Current root removal rejects. Legacy uninstall after root change clears the validation hook and calls ModuleLib without checking its returned result"
+    },
+    {
+      "source": "src/utils/ModuleLib.sol",
+      "lines": "10-16",
+      "observation": "Validator onUninstall failure is returned and emitted as ModuleUninstallResult, rather than reverted"
+    },
+    {
+      "classification": "inference",
+      "observation": "A two-call default batch can complete with the legacy module disabled but validator-local key cleanup unsuccessful. Default batch alone cannot establish atomic full cleanup. Credential state and exact postconditions require separate enforcement/proof"
+    },
+    {
+      "classification": "historical execution boundary",
+      "observation": "Existing EntryPoint failure proof shows validation-time creation and nonce consumption may survive execution revert. Batch execution rollback must not be equated with account-creation rollback"
+    }
+  ],
+  "providerRecheck": {
+    "checkedLocalDate": "2026-10-22",
+    "pimlico": {
+      "url": "https://docs.pimlico.io/guides/supported-chains#gnosis",
+      "chainId": 100,
+      "entryPoint07Bundler": true,
+      "entryPoint07Paymaster": true,
+      "kernel031ListedSupported": false
+    },
+    "alchemy": {
+      "url": "https://www.alchemy.com/docs/wallets/supported-chains",
+      "gnosisInWalletApiTable": false
+    },
+    "limits": "Published matrix only; no configured endpoint, actual operation, sponsorship policy, recovery or member credential tested"
+  },
+  "limits": [
+    "Original creation data and fictional member address remain unchanged; no production initializer/profile replacement selected",
+    "No helper source/build/privilege certification; helper remains unverified",
+    "No account or validator deployment, no Anvil signing run, no hosted bundler request and no production chain-100 activation",
+    "No complete permission inventory or actual member possession established",
+    "No CLC implementation source read, imported or vendored",
+    "Native batch remains an unapproved candidate; no migration readiness or deployment authorization follows"
+  ],
+  "retainedFailure": "Initial proof assertion compared mixed-case hex strings; corrected byte-equivalent case comparison. Fixture assertion repair, not product RED/GREEN."
+}

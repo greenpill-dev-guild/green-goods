@@ -32,8 +32,8 @@ const FAILURES: Record<
 > = {
   declined: {
     tone: "warning",
-    title: "Transaction cancelled",
-    description: "Transaction was cancelled. Please try again when ready.",
+    title: "Transaction canceled",
+    description: "Transaction was canceled. Please try again when ready.",
   },
   broken: {
     tone: "error",
@@ -204,7 +204,7 @@ export const GardensWithoutSteward: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const label = await canvas.findByText("Gardens without a steward");
-    await expect(label.nextElementSibling).toHaveTextContent(/^1$/);
+    await expect(label.closest("dt")?.nextElementSibling).toHaveTextContent(/^1$/);
   },
 };
 

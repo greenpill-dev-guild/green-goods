@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { AudioRecorder } from "./AudioRecorder";
 
 const meta: Meta<typeof AudioRecorder> = {
@@ -130,5 +130,35 @@ export const InteractiveDisabled: Story = {
       name: "Start recording audio note",
     });
     expect(recordButton).toBeDisabled();
+  },
+};
+
+/** Exercise real browser recording with a generated tone, without microphone access. */
+export const RecordedPreview: Story = {
+  args: { onRecordingComplete: fn() },
+  beforeEach: () => {
+    const original = navigator.mediaDevices.getUserMedia;
+    const contexts: AudioContext[] = [];
+    navigator.mediaDevices.getUserMedia = async () => {
+      const context = new AudioContext();
+      contexts.push(context);
+      const tone = context.createOscillator();
+      const destination = context.createMediaStreamDestination();
+      tone.connect(destination);
+      tone.start();
+      return destination.stream;
+    };
+    return () => {
+      navigator.mediaDevices.getUserMedia = original;
+      contexts.forEach((context) => void context.close());
+    };
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Start recording audio note" }));
+    await userEvent.click(await canvas.findByRole("button", { name: "Stop recording" }));
+    await expect(canvas.findByRole("button", { name: "Confirm recording" })).resolves.toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Discard recording" })).toBeEnabled();
+    await expect(args.onRecordingComplete).not.toHaveBeenCalled();
   },
 };

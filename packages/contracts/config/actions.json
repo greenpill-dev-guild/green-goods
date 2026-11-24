@@ -344,19 +344,36 @@
           "key": "installedCapacityKw",
           "unit": "kW",
           "aggregation": "sum",
-          "derivedFrom": ["milestoneValue"]
+          "derivedFrom": ["milestoneValue"],
+          "when": { "milestoneType": ["Solar kW installed"] }
         },
         {
           "key": "batteryCapacityKwh",
           "unit": "kWh",
           "aggregation": "sum",
-          "derivedFrom": ["milestoneValue"]
+          "derivedFrom": ["milestoneValue"],
+          "when": { "milestoneType": ["Battery kWh added"] }
         },
         {
           "key": "internetMbps",
           "unit": "Mbps",
           "aggregation": "latest",
-          "derivedFrom": ["milestoneValue"]
+          "derivedFrom": ["milestoneValue"],
+          "when": { "milestoneType": ["Internet Mbps provisioned"] }
+        },
+        {
+          "key": "retrofitsCompleted",
+          "unit": "sites",
+          "aggregation": "sum",
+          "derivedFrom": ["milestoneValue"],
+          "when": { "milestoneType": ["Retrofit completed"] }
+        },
+        {
+          "key": "systemsCommissioned",
+          "unit": "systems",
+          "aggregation": "sum",
+          "derivedFrom": ["milestoneValue"],
+          "when": { "milestoneType": ["Commissioning"] }
         },
         {
           "key": "progressCount",

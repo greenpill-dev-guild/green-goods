@@ -71,10 +71,8 @@ export const DraftLimit: Story = {
 export const RecoverPhotos: Story = {
   args: { legacyRecovery: true },
   play: async () => {
-    await expect(
-      await screen.findByRole("dialog", { name: "Recover saved photos?" })
-    ).toBeVisible();
-    await expect(screen.getByRole("button", { name: "Recover photos" })).toBeVisible();
+    await expect(await screen.findByRole("dialog", { name: "Recover saved media?" })).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Recover Media" })).toBeVisible();
   },
 };
 

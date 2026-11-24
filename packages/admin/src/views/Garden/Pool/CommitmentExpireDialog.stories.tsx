@@ -52,7 +52,7 @@ export const Open: Story = {
     // AdminConfirmDialog portals to <body>, so query the document, not the canvas root.
     const body = within(canvasElement.ownerDocument.body);
     await waitFor(() => {
-      expect(body.getByRole("alertdialog", { name: "Expire This Commitment" })).toBeInTheDocument();
+      expect(body.getByRole("alertdialog", { name: "Expire This Promise" })).toBeInTheDocument();
     });
     // The blast radius names the record; danger confirm carries the act verb.
     expect(body.getByText(/Saturday compost workshop/)).toBeInTheDocument();
@@ -74,7 +74,7 @@ export const Sending: Story = {
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
     await waitFor(() => {
-      expect(body.getByRole("alertdialog", { name: "Expire This Commitment" })).toBeInTheDocument();
+      expect(body.getByRole("alertdialog", { name: "Expire This Promise" })).toBeInTheDocument();
     });
   },
 };

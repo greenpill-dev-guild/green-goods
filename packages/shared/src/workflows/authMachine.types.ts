@@ -12,10 +12,13 @@
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
-import type { AuthMode, SmartAccountClientResolver } from "../types/auth";
+import type { AuthMode, OpenfortSignInMethod, SmartAccountClientResolver } from "../types/auth";
+import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
+import type { OpenfortOperationInput, OpenfortSessionResult } from "./auth-openfort-session";
 
 export type WalletConnectionType = "wallet" | "embedded";
-type RestorableAuthMode = Extract<AuthMode, WalletConnectionType>;
+/** Sessions restored by intent saved at sign-in; passkeys restore from their own credential. */
+type RestorableAuthMode = Extract<AuthMode, WalletConnectionType | "openfort">;
 
 // ============================================================================
 // CONTEXT
@@ -28,12 +31,20 @@ export interface AuthContext {
   smartAccountClient: SmartAccountClient | null;
   resolveSmartAccountClient: SmartAccountClientResolver | null;
   smartAccountAddress: Hex | null;
+  passkeyAccountProfile?: PasskeyAccountProfileId | null;
+  originalAccount?: boolean;
+  createIfMissing?: boolean;
 
   // Wallet session state (when authenticated via wallet)
   walletAddress: Hex | null;
 
   // Embedded wallet state (AppKit email/social auth)
   embeddedAddress: Hex | null;
+
+  // Email session (Openfort). It shares smartAccountClient, resolveSmartAccountClient,
+  // smartAccountAddress and userName with passkeys and has no credential. Set when an attempt
+  // starts, so a failed attempt knows it was one.
+  openfortMethod: OpenfortSignInMethod | null;
 
   // External wallet state (always tracked, even when not primary auth)
   // This allows us to know a wallet is available for switching
@@ -60,12 +71,19 @@ export type AuthEvent =
   // User-initiated actions
   // ─────────────────────────────────────────────────────────────────────────
   | { type: "LOGIN_PASSKEY_NEW"; userName: string }
-  | { type: "LOGIN_PASSKEY_EXISTING"; userName: string }
+  | {
+      type: "LOGIN_PASSKEY_EXISTING";
+      userName: string;
+      originalAccount?: boolean;
+      createIfMissing?: boolean;
+    }
   | { type: "LOGIN_WALLET" }
   | { type: "LOGIN_EMBEDDED"; address: Hex } // Login via AppKit embedded wallet (email/social)
+  | { type: "LOGIN_OPENFORT"; email: string; code: string }
   | { type: "SWITCH_TO_WALLET" } // Switch from passkey to wallet (requires external wallet)
   | { type: "SWITCH_TO_PASSKEY"; userName: string } // Switch from wallet to passkey
   | { type: "SIGN_OUT" }
+  | { type: "SELECT_PILOT_ACCOUNT"; output: PasskeySessionResult }
   | { type: "RETRY" }
   | { type: "DISMISS_ERROR" }
   // ─────────────────────────────────────────────────────────────────────────
@@ -83,10 +101,13 @@ export type AuthEvent =
   | { type: "done.invoke.registerPasskey"; output: PasskeySessionResult }
   | { type: "error.platform.registerPasskey"; error: unknown }
   | { type: "done.invoke.authenticatePasskey"; output: PasskeySessionResult }
-  | { type: "error.platform.authenticatePasskey"; error: unknown };
+  | { type: "error.platform.authenticatePasskey"; error: unknown }
+  | { type: "done.invoke.authenticateOpenfort"; output: OpenfortSessionResult }
+  | { type: "done.invoke.restoreOpenfort"; output: OpenfortSessionResult | null };
 
 // Service result types
 export interface PasskeySessionResult {
+  accountProfile?: PasskeyAccountProfileId;
   credential: P256Credential;
   smartAccountClient: SmartAccountClient;
   resolveSmartAccountClient?: SmartAccountClientResolver;
@@ -109,6 +130,8 @@ export interface RestoreSessionInput {
 export interface PasskeyOperationInput {
   userName: string | null;
   chainId: number;
+  originalAccount?: boolean;
+  createIfMissing?: boolean;
 }
 
 // ============================================================================
@@ -120,3 +143,5 @@ export interface AuthInput {
   restoreAuthMode?: RestorableAuthMode | null;
   restoreAddress?: Hex | null;
 }
+
+export type { OpenfortOperationInput, OpenfortSessionResult };

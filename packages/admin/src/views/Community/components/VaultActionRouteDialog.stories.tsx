@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, within } from "storybook/test";
 import {
@@ -8,8 +9,8 @@ import {
 import {
   withAdminIdentityRole,
   withCanvasFrame,
+  withDataRouter,
   withSeededQueryClient,
-  withRouter,
 } from "../../../../../shared/.storybook/decorators";
 import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
@@ -69,7 +70,7 @@ export const RouteBackedDeposit: Story = {
     await expect(
       await within(dialog).findByRole(
         "heading",
-        { name: "Deposit" },
+        { name: ENDOWMENT_DEPOSITS_ENABLED ? "Deposit" : "New endowment deposits are paused" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();
@@ -93,10 +94,11 @@ export const RouteBackedWithdraw: Story = {
 };
 
 export const RejectedGardenAddress: Story = {
-  args: { action: "deposit" },
+  args: { action: "withdraw" },
   tags: ["storybook-ci"],
-  decorators: [withRouter(["/community/endowment/vault/deposit?gardenId=community-garden"])],
-  render: () => <VaultActionRouteDialog action="deposit" gardenAddress="community-garden" />,
+  // The garden comes from the prop; the dialog holds route changes, which needs a data router.
+  decorators: [withDataRouter("/community/endowment/vault/withdraw")],
+  render: () => <VaultActionRouteDialog action="withdraw" gardenAddress="community-garden" />,
   play: async () => {
     const body = within(document.body);
     const dialog = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);

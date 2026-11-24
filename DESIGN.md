@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Green Goods Warm Earth Core
-description: Core semantic tokens and reasoning for Warm Earth across admin cockpit, installed PWA, public browser, and docs surfaces.
+description: Core semantic tokens and reasoning for Warm Earth across the Green Goods Hub, App, and Website, and the docs.
 colors:
   primary: "#292524"
   primary-inverse: "#F5F5F4"
@@ -17,24 +17,40 @@ colors:
   on-tertiary-dark: "#0C0A09"
   amber: "#D97706"
   sky: "#3B82F6"
+  violet: "#5B2CC9"
   neutral: "#FAF8F5"
-  neutral-dark: "#1C1917"
+  neutral-dark: "#110C08"
 typography:
   body-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 16px
     fontWeight: 400
     lineHeight: 1.5
   label-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 12px
     fontWeight: 500
     lineHeight: 16px
+  count:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 11px
+    fontWeight: 600
+    lineHeight: 16px
+  card-title:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 15px
+    fontWeight: 500
+    lineHeight: 20px
   app-title:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 22px
     fontWeight: 600
     lineHeight: 28px
+  website-label:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: 600
+    lineHeight: 24px
   editorial:
     fontFamily: Fraunces
     fontSize: 48px
@@ -76,7 +92,7 @@ components:
   count-badge:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
-    typography: "{typography.label-md}"
+    typography: "{typography.count}"
     rounded: "{rounded.full}"
   accent-ink:
     textColor: "{colors.on-tertiary}"
@@ -93,6 +109,9 @@ components:
     typography: "{typography.label-md}"
     padding: "{spacing.sm}"
     rounded: "{rounded.full}"
+  alpha-install-ground:
+    backgroundColor: "{colors.violet}"
+    textColor: "{colors.on-tertiary-action}"
   button-primary:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
@@ -118,7 +137,7 @@ components:
   button-primary-website:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
-    typography: "{typography.label-md}"
+    typography: "{typography.website-label}"
     padding: "{spacing.md}"
     rounded: "{rounded.full}"
   button-secondary:
@@ -138,6 +157,13 @@ components:
     textColor: "{colors.primary}"
     typography: "{typography.app-title}"
     rounded: "{rounded.md}"
+  card:
+    rounded: "{rounded.2xl}"
+  item-row:
+    textColor: "{colors.primary}"
+    typography: "{typography.card-title}"
+    rounded: "{rounded.lg}"
+    height: 88px
 ---
 
 # Green Goods Design System
@@ -150,7 +176,7 @@ components:
 
 ## Relationship to Codebase
 
-This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming — `--color-primary`, `bg-primary`, and `bg-primary-base` are historical implementation labels that resolve to the **green accent/action family**, not the DesignMD `primary` role. Neither renames — this file translates between them.
+This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming: `--color-primary`, `bg-primary`, and `bg-primary-base` are historical implementation labels that resolve to the **green accent/action family**, not the DesignMD `primary` role. Neither renames. This file translates between them.
 
 Green fills that carry text, a number, or a glyph use a contrast-safe action pair: filled CTAs, count badges, step markers, selected chips, and pills. Light mode uses `tertiary-action` with white `on-tertiary-action` (5.72:1; DL-017). In the dark PWA, `tertiary-dark` pale mint pairs with near-black `on-tertiary-dark` ink (16.34:1; DL-088). White text never sits on mint or bright `tertiary` fills.
 
@@ -162,41 +188,44 @@ Green foregrounds and selection marks on a PWA surface use `--primary-on-surface
 
 ## Creative Direction
 
-**Empathy statement:** Green Goods is a community garden. When users arrive, they should feel they've stepped into an open, sun-warmed garden where diverse beds grow side by side. The interface is the soil — warm, grounding, and ready for planting. Not a dashboard. Not a terminal. A place where impact takes root.
+**Empathy statement:** Green Goods is a community garden. When users arrive, they should feel they've stepped into an open, sun-warmed garden where diverse beds grow side by side. The interface is the soil: warm, grounding, and ready for planting. Not a dashboard. Not a terminal. A place where impact takes root.
 
-**Design concept:** *Warm Earth* — architectural warmth of sun-bleached linen, the quiet authority of a well-kept garden journal, and the vibrant punctuation of new growth. Handmade but precise, like a beautifully organized seed catalog.
+**Design concept:** *Warm Earth*. The architectural warmth of sun-bleached linen, the quiet authority of a well-kept garden journal, and the vibrant punctuation of new growth. Handmade but precise, like a beautifully organized seed catalog.
 
 **Key aesthetic words:**
 - Sun-bleached linen, warm parchment, garden journal
 - Soft charcoal ink on cream paper
 - Terracotta clay, worn wood, pressed leaves
-- The green of new growth — vivid but not neon
-- Spring physics — things settle, bounce gently, feel alive
+- The green of new growth, vivid but not neon
+- Spring physics: things settle, bounce gently, feel alive
 
 ## Design Language: Warm Earth
 
 A synthesis of Material Design 3 Expressive warmth with Apple Liquid Glass structural precision. Three qualities guide every decision:
 
-1. **Warmth** — Higher chroma, spring motion, shape morphing. Friendly and alive, not sterile.
-2. **Clarity** — Concentricity, functional layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
-3. **Purpose** — Every element serves the mission. No engagement hacking. No dark patterns.
+1. **Warmth**: Higher chroma, spring motion, shape morphing. Friendly and alive, not sterile.
+2. **Clarity**: Concentricity, clear layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
+3. **Purpose**: Every element serves the mission. No engagement hacking. No dark patterns.
 
 ## Color Hierarchy
 
-Four roles, defined by **how much of the screen each occupies** — not a palette ranking:
+Four roles, defined by **how much of the screen each occupies**, not a palette ranking:
 
 | Role | Volume | Color | Hex (light / dark) | Job |
 |------|--------|-------|--------------------|-----|
-| **Neutral (canvas)** | 80-90% | Warm linen | #FAF8F5 / #1C1917 | Background, breathing room |
+| **Neutral (canvas)** | 80-90% | Warm linen | #FAF8F5 / #110C08 | Background, breathing room |
 | **Primary (ink)** | 8-15% | Warm charcoal | #292524 / #F5F5F4 | Headings, body, core content |
 | **Secondary (stone)** | 3-5% | Earth stone | #78716C / #A8A29E | Metadata, borders, labels |
 | **Tertiary (accent)** | 1-3% | Garden green | #1FC16B | CTAs, active states, value-flow |
 
-**Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower — draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 failure mode.
+**Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 failure mode.
+
+**Ground.** The installed app and the Hub lay white cards on the linen canvas; the public website keeps its white ground. In dark both build from one warm ladder, the Earth ramp in shared `theme.css`: the canvas at its floor (`neutral-dark`) and the card ten points of lightness above it, so a card reads against the canvas by a lightness step rather than a shadow. Error, feature and information text take one lighter step in dark, where the lifted card would put them under AA; a fill that carries white keeps its deep action step (`--error-action`, `--information-action`). The browser's status bar and the install manifest take the ground of the presentation they belong to.
 
 **Supporting accents** (situational, not core hierarchy):
-- **Amber** #D97706 — Warnings, seasonal indicators, secondary warmth
-- **Sky** #3B82F6 — Information, external links, evaluation/assessment context
+- **Amber** #D97706: Warnings, seasonal indicators, secondary warmth
+- **Sky** #3B82F6: Information, external links, evaluation/assessment context
+- **Violet** #5B2CC9: Marks the alpha environment only (its install icon, title bar and splash); never a product accent
 
 **State colors:** Information (Sky), Warning (Amber), Error (red), Success (Tertiary green).
 
@@ -204,16 +233,33 @@ Four roles, defined by **how much of the screen each occupies** — not a palett
 
 | Role | Font | Weight | Use |
 |------|------|--------|-----|
-| **Editorial headlines** | Serif display (Fraunces, Lora, or Newsreader) | 600-700 | Browser site only — garden/impact editorial pages |
-| **App headlines** | Inter (client PWA) / Plus Jakarta Sans (admin) | 600-700 | Functional headings |
-| **Body** | Inter (client) / Plus Jakarta Sans (admin) | 400-500 | Core reading text |
-| **Labels / timestamps** | Inter (client) / Plus Jakarta Sans (admin) | 500 | Utility text, metadata |
+| **Editorial headlines** | Serif display (Fraunces, Lora, or Newsreader) | 600-700 | Browser site only (garden/impact editorial pages) |
+| **App headlines** | Plus Jakarta Sans (installed app and Hub) | 600-700 | Functional headings |
+| **Body** | Plus Jakarta Sans (installed app and Hub) / Inter (public website) | 400-500 | Core reading text |
+| **Labels / timestamps** | Plus Jakarta Sans (installed app and Hub) / Inter (public website) | 500 | Utility text, metadata; the website's button labels are Inter 600 (`website-label`) |
 
-**Rationale:** The serif headline only appears on the public browser site where editorial weight matters. PWA and admin stay utilitarian with their respective sans-serif workhorses.
+**Rationale:** The installed app and the Hub share one sans face, so the two read as one product (DL-096). The public website keeps Inter beside its editorial serif, which only appears there, where editorial weight matters; a public page opened inside the installed app keeps the website's Inter.
+
+**Type roles.** Text takes its size from one set of role names on both surfaces: the `type-*` utilities in shared `theme.css`. Each surface sets its own sizes, so a shared component keeps one class and takes the density of the surface that draws it. The installed app reads at 16px and the Hub at 14px.
+
+| Role | Installed app | Hub | Use |
+|------|---------------|---------|-----|
+| `type-title-lg` | 24/32, 600 | 22/28, 600 | Page, dialog, flow, and step titles |
+| `type-title-md` | 18/24, 600 | 16/24, 600 | Section, sheet, and card titles |
+| `type-title-sm` | 16/24, 600 | 14/20, 600 | Compact titles: list items, values |
+| `type-card-title` | 15/20, 500 | 13/18, 600 | A card's one-line title: item rows and media cards |
+| `type-body` | 16/24 | 14/20 | Reading text |
+| `type-label` | 16/24, 500 | 14/20, 500 | Labels and actions |
+| `type-label-sm` | 14/20 | 12/16, 500 | Small labels, field labels, and secondary lines |
+| `type-meta` | 12/16 | 12/16 | Metadata and supporting text |
+| `type-meta-sm` | 11/16 | 11/16 | Chips and the smallest supporting lines |
+| `type-field` | 16/24 | 16/20, 14/20 from 640px | Field text and checkbox and choice labels |
+
+Values are size and line height in pixels at the default text size, then weight (400 where none is named). The tokens are rem, so text follows the reader's text size. Text at 16px tracks at -0.011em, at 14px at -0.006em, and otherwise at 0. A weight, leading, or tracking utility on the same element adjusts a role (`type-label-sm font-medium`). Status pills are the exception to density: they are one size on both surfaces, the Hub's chip size (`StatusBadge` `xs` and `sm` on `type-meta-sm`, `md` on `type-meta`). The Material aliases (`text-title-*`, `text-body-*`, `text-label-*` in the Hub's theme) and the `label-*`, `body-*`, and `subheading-*` classes are retired, and `check:design-tokens` fails on them and on the shared scale's sizes (`text-paragraph-*`, `text-title-h*`, and the like) in the Hub's and Shared's source. The app's own views still use the shared scale until they move.
 
 ## Voice & Copy
 
-> Companion to the visual creative direction. Same brief — verbal expression instead of visual.
+> Companion to the visual creative direction. Same brief: verbal expression instead of visual.
 
 **Voice:** Green Goods speaks like a knowledgeable neighbor who runs the community garden. Warm but not gushing. Practical but not clinical. Knows soil science but explains it by pointing at the compost pile.
 
@@ -237,10 +283,10 @@ Tone shifts by context while voice stays constant:
 | **Onboarding** | Encouraging, patient | "Start by describing what you see. We'll help with the rest." |
 | **Submitting work** | Supportive, clear | "Add a photo and a few words about what you did today." |
 | **Hero moments** | Celebratory, genuine | "Your first contribution. This garden is growing because of you." |
-| **Errors** | Calm, constructive | "That didn't go through. Your work is saved — try again when you're ready." |
-| **Offline** | Reassuring, matter-of-fact | "You're offline. Everything is saved locally and will sync when you reconnect." |
-| **Admin / steward** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
-| **Funding / impact** | Respectful, concrete | "This garden has documented 47 actions across 3 seasons." |
+| **Errors** | Calm, constructive | "That didn't go through. Your work is saved. Try again when you're ready." |
+| **Offline** | Reassuring, matter-of-fact | "You're offline. Your work is saved on this phone. When you're back online, open Your Work and tap Upload all." |
+| **Hub / steward** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
+| **Funding / impact** | Respectful, concrete | "This garden has documented [count] actions across [seasons] seasons." (both values from live data) |
 
 ### Terminology
 
@@ -250,21 +296,44 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 |-----|-----------|-----|
 | Garden | Project, organization, DAO | Gardens are the metaphor. |
 | Gardener | User, contributor, member | People who do the work have a name. |
-| Steward | Admin, manager | They operate the garden. |
+| Steward | Admin, manager | They steward the garden; "operator" is retired. |
 | Evaluator | Reviewer, auditor, assessor | They evaluate impact, not audit compliance. |
-| Funder | Donor, investor, backer | Funding a garden, not donating to a cause. |
+| Funder | Investor, backer | Funding a garden, not buying a return. A person who gives through the Donate path is still a funder. |
 | Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
-| Work | Task, activity, submission | Regenerative work is the core concept. |
-| Action | Action type, template | The thing a gardener can do. |
-| Fund | Donate, contribute, invest | Funding a garden. |
-| Impact | Output, result, metric | Bridges community and chain. |
-| Document | Log, record, capture | Gardeners document their work. |
+| Work | Task, activity | Regenerative work is the core concept. "Submission" names the act of sending work and the Work Submissions list, never the work itself. |
+| Action | Action type | The thing a gardener can do. "Action template" names the browsable template records on the Green Goods Website. |
+| Fund | Invest | Funding a garden. "Contribute" is the umbrella word before a supporter picks Donate or Endow; "Donate" names only the direct-giving path. |
+| Impact | Result (as a vague synonym) | Bridges community and chain. "Output" and "Outcome" are stages of the impact model, not synonyms; "Metric" names an assessment field (DL-079). |
+| Document | Log, capture | Gardeners document their work. "Record" is fine in plain explanation of what the product keeps. |
+| Green Goods Hub | Admin, dashboard, admin panel, steward dashboard | The steward surface at admin.greengoods.app; "the Hub" after the first mention. Its workspace for reviewing work is Review, and its design dialect is the Hub dialect. |
+| Green Goods App | Client app | The app installed on a phone; "the app" after the first mention. |
+| Green Goods Website | Public site | The site anyone reads in a browser at greengoods.app. |
+
+**Lower case in running text (DL-090).** In a sentence, garden, gardener, steward, evaluator,
+funder, and community member stay lower case in English, Spanish, and Portuguese ("this garden",
+"este jardín", "o responsável"); Title Case stays only where DL-012 and DL-013 put it, in titles,
+action labels, and named acts, and in a garden's own name ("Community Garden").
+
+**Domain nouns follow (DL-093).** Work, action, assessment, promise, pool, season, campaign, vault,
+cookie jar, and impact certificate take the same rule: lower case in running text, Title Case only
+in titles, action labels, and named acts ("Submit Work", the Work tab).
+
+**Protocol names (DL-094).** A protocol or chain name appears only where the reader needs it to act
+or to verify: a funding surface, a builder page, the labeled "using your own wallet" box, a transaction
+step (a confirmation that spends gas or cannot be undone, or a wallet action on a named network), a
+privacy or permanence notice, and a link that names the explorer it opens. Never as positioning,
+and never in onboarding, work capture, review, or community copy; progress and status copy stays
+plain.
 
 **Plain titles, methods in helper text (DL-047).** Step, section, and field titles use plain
 questions and nouns ("How Predictable Is This Work?", "What You'll Measure"); a framework or
 method name (strategy kernel, Cynefin, SMART) appears only as helper text, in parentheses after the
 plain question. A flow never preselects a choice the person has to make, such as an assessment's
 domain.
+
+**US spelling (2026-10-17).** All English copy uses US spelling (canceled, neighbor, color, gray, fulfill); quoted third-party names keep theirs, and the vocabulary check, the docs audit and the agent's copy test reject the common UK forms.
+
+**No em dashes (2026-10-18).** Human-facing copy never uses an em dash (U+2014). Restructure the sentence with a period, colon, comma, or parentheses, never a hyphen or a spaced en dash. Ontology definitions keep their punctuation, and a lone em dash standing in for a missing or unreadable figure is a data placeholder, not prose (2026-10-19). `bun run check --only em-dashes` rejects em dashes in the i18n catalogs, the agent's chat copy, the authored docs pages, and the design guides (each `DESIGN*.md` and `.claude/skills/design`).
 
 ### Writing Checklist
 
@@ -273,22 +342,29 @@ Before shipping copy:
 - [ ] Is it concrete? (Can the reader picture it?)
 - [ ] Is it active? (Subject → verb → object?)
 - [ ] Is the audience right? (Gardener ≠ steward ≠ funder)
-- [ ] Is blockchain invisible? (On-chain = implementation, not copy)
+- [ ] Is blockchain invisible except where the reader needs a protocol name to act or verify (DL-094)? On-chain is implementation, not copy.
 - [ ] Would it make sense to someone who's never heard of web3?
 - [ ] Is it shorter than your first draft?
 
-Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin utility) live in the matching prompt contracts: [`.claude/skills/design/prompt-contract.md`](.claude/skills/design/prompt-contract.md) (admin) and [`.claude/skills/design/client-prompt-contract.md`](.claude/skills/design/client-prompt-contract.md) (client).
+The full guideline (audiences, the three dialects, claims discipline, the pre-ship checklist, localization) is the docs page [Brand voice guidelines](docs/docs/reference/brand-voice.mdx), also reachable as `.claude/brand-voice-guidelines.md`; this section stays the voice core it restates. Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin utility) live in the matching prompt contracts: [`.claude/skills/design/prompt-contract.md`](.claude/skills/design/prompt-contract.md) (admin) and [`.claude/skills/design/client-prompt-contract.md`](.claude/skills/design/client-prompt-contract.md) (client).
 
 ## Quick Token Reference
 
 Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/language.md). AI prompts should honor these one-line rules:
 
-- **Shape** — *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and colour carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
-- **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
-- **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
-- **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
-- **Progressive disclosure** — Four layers: Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
-- **Hero moments** — Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
+- **Shape**: *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
+- **Controls**: fields, chips and secondary buttons draw a control-grade outline (`--gg-control-outline`, 3:1 or better in both themes), and focus is one solid 2px ring with a 2px offset: the installed app's green (mint in dark) and the Hub's workspace tone. The installed app's button labels are weight 500, the Hub's. Fields in the installed app and the Hub take one anatomy: the label above, the outlined control, and a message line that reserves two lines (DL-105); `FileUploadField` still puts its help above the upload well. The public website keeps its hairline and its focus halo.
+- **Counts**: one count badge (`CountBadge`) on both surfaces: a capsule 16px tall and at least 16px wide, with 11px numerals at weight 600 (`typography.count`), on the green action pair in the installed app and on the workspace tone's accent in the Hub. Where it sits on an icon or a control's edge it draws a 2px ring of the surface behind it; beside a label it draws none. It reads 99+ above 99, and 9+ on the installed app's bottom bar.
+- **Cards**: one card surface on both surfaces (`.gg-card`): white, or the lifted card in dark, with a 1px edge that reads in both themes, a faint shadow in light, and the 24px corner (`rounded.2xl`). A list of items is a column of item rows (`ItemRow`): 88px tall in every state and language, a 16px corner (`rounded.lg`), the item's own 88px photo or a centered 56px icon tile, a one-line title (`typography.card-title`, 15px in the installed app and 13px in the Hub), the one status pill under it, one 11px detail line of at most two details that drops a detail whole rather than wrap, and the row's one action in its right slot, or, on a row with none, the amount the item carries: a jar's or a vault's value with its asset, never cut, over what it is (DL-113); a work row adds the 2px status edge. A list of people is the person row (`PersonRow`): an item row led by the person's 56px round avatar, with their highest role as its one pill and their name from the shared address display (DL-112). Every card list keeps 12px between its cards (`--gg-list-gap`).
+- **Facts**: the facts about one thing, on a review, a record's details or a settings list, are fact rows on both surfaces (`FactRow` in a `FactList`, DL-109): a label beside its value in divided rows, the labels in one column as wide as the longest (up to 40%) on `type-label-sm` in the sub ink and the value on `type-body` at 500 (14 and 16px in the installed app, 12 and 14px in the Hub), wrapping rather than cut. A row's one action takes its right slot; a setting is a row with no value whose control takes the slot and whose label reads as a field title.
+- **Tabs**: one tab anatomy on both surfaces (DL-100): equal-width cells, the active cell tinted with its accent at 10% under the accent label and a 2px underline, and the count badge beside the label. Each surface keeps its height, 44px in the installed app (48px from 640px) and 36px in the Hub; labels are 12px below 640px and 14px from 640px, at weight 500. From 640px the Hub's row is at most 180px per tab and keeps to the left. A Hub cell is never narrower than its icon, label and count on one line, so a label never clips or wraps there: a cell that needs more than its share takes it, past 180px if it must (Spanish "Configuración de medios" is 191px), and a row that cannot hold its cells scrolls with its edge fade. The installed app's tabs let a long label take a second line.
+- **Navigation**: both bottom bars mark the active tab with a pill behind its icon and an ink label at weight 600: the workspace tone's container in the Hub, and in the installed app the green container (`--primary-container`) behind a deep green icon. Each bar keeps its chrome: the Hub's translucent dock, the app's solid white bar (DL-107).
+- **States**: one state block (`EmptyState`) on both surfaces for an empty list, a loading screen with words, a failed read, a feature that is not ready yet, and a page that cannot open: a 56px round tile with a 24px glyph, the title on `type-title-md`, one line on `type-body`, and the surface's own action. A calm tile takes the installed app's green tint and the Hub's neutral one (`--gg-state-mark-fill`, `--gg-state-mark-ink`); a warning or a failure takes its status tint, and a failure is announced (DL-106). Logo and boot screens keep their own anatomy (`SplashScaffold`, `AppLaunchError`, DL-084), as do skeletons (DL-056), spinners with no words and notices beside content.
+- **Motion**: Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
+- **Material**: Solid surfaces everywhere: cards, sheets, dialogs, menus, and bars draw an opaque fill, and depth comes from shadow and the scrim. The one translucent surface is the Hub's nav dock (Navigation/FAB chrome: an 85% fill with a 12px blur). Transparent chrome draws no fill and no blur at all, so it is not glass: the admin `AppBar` root over the canvas and the website's `SiteHeader` over its hero (DL-108).
+- **Elevation**: Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
+- **Progressive disclosure**: Four layers. Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
+- **Hero moments**: Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
 
 ## Interface Principles
 
@@ -310,20 +386,20 @@ The principles come from three books, restated in our own words and applied to G
 4. **Show where the steward is and what they are acting on.** From any screen it must be obvious which section this is and which garden is in scope; the trunk test (drop someone on the page and ask them to name it) should pass without hesitation. A control never acts outside the scope the page announces. When the scope genuinely differs, as with the protocol pool, the screen looks different; a different default tab is not enough. *(DMMT ch. 6, pp. 96–113; ch. 3, p. 56)* The garden in the header is the only garden a screen can change, and protocol work lives in the Green Goods Community Garden, whose pool the protocol pool is.
 5. **Keep conventions, and break them only for clarity.** Reuse patterns people already know, ours and the wider web's, so they learn once. When sameness would hide a difference that matters, clarity wins over consistency. *(DMMT ch. 3, pp. 48–56)*
 6. **Cut what is not earning its place.** Remove happy talk and instructions nobody reads. Say the one thing the steward needs, where they need it. *(DMMT ch. 5, pp. 77–80)*
-7. **Spend goodwill carefully.** Patience is a reserve. Silence at a moment of uncertainty (a wallet prompt with no word about why, a wait with no progress) drains it fastest; candour, saved steps, and recoverable mistakes refill it. *(DMMT ch. 11, pp. 204–211)*
+7. **Spend goodwill carefully.** Patience is a reserve. Silence at a moment of uncertainty (a wallet prompt with no word about why, a wait with no progress) drains it fastest; candor, saved steps, and recoverable mistakes refill it. *(DMMT ch. 11, pp. 204–211)*
 8. **Watch one real person use it.** Opinions do not settle design questions; watching someone try the flow does. Before a consequential flow ships, one person outside the build walks it cold while thinking aloud, and the worst problems are fixed first. *(DMMT ch. 8–9, pp. 135–170)*
 
 ### How a screen shows what matters
 
-9. **Rank everything.** Decide what is primary, secondary, and tertiary on each screen, and let weight, colour, and position carry that ranking. When something does not stand out, quiet its neighbours rather than making it louder. *(RUI "Not all elements are equal" and "Emphasize by de-emphasizing", pp. 36–47)* On a screen that ends in a signature, the target of the write is the most prominent fact after the title.
+9. **Rank everything.** Decide what is primary, secondary, and tertiary on each screen, and let weight, color, and position carry that ranking. When something does not stand out, quiet its neighbors rather than making it louder. *(RUI "Not all elements are equal" and "Emphasize by de-emphasizing", pp. 36–47)* On a screen that ends in a signature, the target of the write is the most prominent fact after the title.
 10. **One primary action per moment.** Actions form a pyramid: one clear primary, a few secondary, the rest tertiary. A destructive act stays modest where it sits and becomes the loud, primary action only inside its own confirmation. *(RUI "Semantics are secondary", pp. 60–62)*
 11. **Let values speak for themselves.** Format and context often already say what a value is. Add a label only when they do not, and keep it quieter than the value. *(RUI "Labels are a last resort", pp. 48–52)*
 12. **Design the in-between states on purpose.** Empty, loading, waiting on a wallet, three of six done, stopped part-way, finished: each is a screen someone will see, and each is designed rather than left to a spinner. *(RUI "Don't overlook empty states", pp. 234–237; AD ch. 4, p. 99)* A multi-signature act says how many prompts are coming, shows each one landing, names where it stopped, and ends on a clear done state.
-13. **Choose from the systems, not from scratch.** Spacing, type sizes, colour shades, elevation, and radii come from the defined scales; a value outside them is drift, not a decision. Colour is never the only signal. *(RUI "Limit your choices", pp. 28–32; spacing pp. 66–75; type pp. 102–107; colour pp. 142–168; depth pp. 180–185)*
+13. **Choose from the systems, not from scratch.** Spacing, type sizes, color shades, elevation, and radii come from the defined scales; a value outside them is drift, not a decision. Color is never the only signal. *(RUI "Limit your choices", pp. 28–32; spacing pp. 66–75; type pp. 102–107; color pp. 142–168; depth pp. 180–185)*
 
 ### How the system stays whole
 
-14. **Name each piece by what it is responsible for.** Atoms (a button, a step marker), molecules (a labelled field, the line naming a write's target), organisms (a pool console, a setup flow), templates, and pages. The larger and more stateful the piece, the more care each new placement needs. *(AD ch. 2, pp. 39–61)*
+14. **Name each piece by what it is responsible for.** Atoms (a button, a step marker), molecules (a labeled field, the line naming a write's target), organisms (a pool console, a setup flow), templates, and pages. The larger and more stateful the piece, the more care each new placement needs. *(AD ch. 2, pp. 39–61)*
 15. **Reuse is a decision, and an organism is handed its context.** Promote a pattern to shared when a second real need matches the first one's context, not because the pattern already exists. An organism that writes is told its target and never infers it from wherever it happens to be mounted, and we keep track of everywhere it is used. *(AD ch. 5, p. 155; ch. 1, pp. 35–36; ch. 3, pp. 88–91)* The pool console has one home, the Garden workspace's Pool tab, and its protocol context comes from the pool itself.
 16. **Prove patterns with real and worst-case content.** A pattern is finished when real pages hold up: long names, zero items, errors, pending states, elevated permissions. Storybook carries those states for every pattern, not only the tidy one. *(AD ch. 2, pp. 48–54; ch. 3, pp. 77–81)*
 17. **Fix at the pattern, everywhere it lives.** When a flaw shows up in one placement, check every other placement and fix the shared piece once. The pattern library and the product are built from the same components, so they cannot drift apart. *(AD ch. 5, pp. 140–163)*
@@ -347,7 +423,7 @@ These are how the principles above apply to on-chain acts, not a separate rulebo
   2. Is the most important thing the most prominent, with one primary action? (9, 10)
   3. Does any control act outside the scope the page announces, or any tab change scope without saying so? (4)
   4. Are the in-between states designed and in Storybook: empty, loading, waiting, part-way, failed, done? (12, 16)
-  5. Is every value on the defined scales, and does no status rely on colour alone? (13)
+  5. Is every value on the defined scales, and does no status rely on color alone? (13)
   6. If a shared organism changed: where else is it mounted, and does each mount hand it its context? (15, 17)
 - **Before a consequential flow ships,** someone outside the build walks it cold, thinking aloud (8).
 - **Where it is enforced:** this section is the source. The design review checklist carries it as its clarity lens (`.claude/skills/design/review-checklist.md`), and every frontend rule points here (`.claude/rules/frontend-design.md`, Rule 20).
@@ -357,8 +433,8 @@ These are how the principles above apply to on-chain acts, not a separate rulebo
 **Do:**
 - Use role vocabulary (canvas/ink/stone/green) when describing designs to AI tools
 - Use semantic color tokens in code, never raw values
-- Let the canvas breathe — generous whitespace
-- Give every button on a surface the same corner; show importance with fill, outline, and colour
+- Let the canvas breathe: generous whitespace
+- Give every button on a surface the same corner; show importance with fill, outline, and color
 - Celebrate milestone moments with expressive motion
 - Design for sunlight readability (high contrast on warm backgrounds)
 - Use spring physics for all transitions
@@ -370,13 +446,13 @@ These are how the principles above apply to on-chain acts, not a separate rulebo
 
 **Don't:**
 - Let a control act outside the garden the page announces, or a tab change scope silently (Interface Principle 4)
-- Flood the screen with green — it's the accent (1-3%), not the canvas
-- Use dark scrims behind parallel admin sheets — depth comes from canvas recession and sheet material
+- Flood the screen with green: it's the accent (1-3%), not the canvas
+- Use dark scrims behind parallel admin sheets: depth comes from canvas recession and sheet material
 - Mix serif and sans-serif on the same surface (except browser editorial)
 - Add decorative gradients behind routine UI
-- Use generic placeholder copy — real content makes the design real
-- Animate without intent — every motion should aid comprehension
+- Use generic placeholder copy: real content makes the design real
+- Animate without intent: every motion should aid comprehension
 - Use countdown timers, leaderboards, or streak mechanics
 - Add re-engagement notifications or FOMO-driven urgency
-- Design competitive comparisons — show verified impact, not rankings
-- Use trading-floor aesthetics — this is a garden, not a terminal
+- Design competitive comparisons: show verified impact, not rankings
+- Use trading-floor aesthetics: this is a garden, not a terminal

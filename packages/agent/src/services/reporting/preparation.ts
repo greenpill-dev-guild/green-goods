@@ -7,9 +7,9 @@ import {
 import { buildWorkMetadataPayload } from "@green-goods/shared/utils/eas/work-metadata";
 import type { ReportingCatalog } from "./catalog";
 import type { ReportingChain } from "./chain";
-import { activeConsentId, hasPublicationConsent } from "./consent";
+import { activeConsentId, hasPublicationConsent, workUploadConsent } from "./consent";
+import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
 import { confirmationById } from "./confirmations";
-import { issueContinuation } from "./continuations";
 import { readControl } from "./controls";
 import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
 import { gardenLabel, promptNextStepFor } from "./coordinator/prompting";
@@ -17,16 +17,18 @@ import { inTransaction } from "./database";
 import { type DraftRecord, loadDraft } from "./drafts";
 import { enqueueJob, type ClaimedJob } from "./jobs";
 import { type PrivateMediaStore, sha256Hex } from "./media-store";
-import { conversationRealm, participantWriter } from "./notify";
+import { participantWriter } from "./notify";
 import {
   freezeEnvelope,
+  operationById,
   type OperationRecord,
   operationForSubject,
   setOperationState,
 } from "./operations";
-import { accountById, participantEpoch } from "./participants";
+import { accountById } from "./participants";
 import { findGarden, isUnlisted } from "./gardens";
 import type { ReportingCore } from "./runtime";
+import { rewatchSigningLink, sendSigningLink } from "./signing-links";
 import type { EvidenceUploader } from "./uploader";
 import type { JobOutcome } from "./worker";
 
@@ -48,6 +50,7 @@ export interface PreparationDeps {
 type Blocker =
   | "paused"
   | "consent_withdrawn"
+  | "policy_changed"
   | "stale"
   | "role_missing"
   | "garden_unlisted"
@@ -68,12 +71,22 @@ function stillPublishable(
     lifecycleState(current) !== "preparing"
   )
     return "stale";
-  if (
-    !confirmation ||
-    !hasPublicationConsent(core, draft.id, current.revision, confirmation.summaryDigest)
-  )
-    return "consent_withdrawn";
-  if (!activeConsentId(core, subjectId, "processing")) return "consent_withdrawn";
+  if (!confirmation) return "consent_withdrawn";
+  const hasProcessing = activeConsentId(core, subjectId, "processing", WORK_UPLOAD_POLICY_VERSION);
+  const hasPublication = hasPublicationConsent(
+    core,
+    draft.id,
+    current.revision,
+    confirmation.summaryDigest,
+    WORK_UPLOAD_POLICY_VERSION
+  );
+  if (!hasProcessing || !hasPublication) {
+    const wasProcessingAllowed = hasProcessing || activeConsentId(core, subjectId, "processing");
+    const wasPublicationAllowed =
+      hasPublication ||
+      hasPublicationConsent(core, draft.id, current.revision, confirmation.summaryDigest);
+    return wasProcessingAllowed && wasPublicationAllowed ? "policy_changed" : "consent_withdrawn";
+  }
   if (!readControl(core, "publication").enabled) return "paused";
   return null;
 }
@@ -222,7 +235,20 @@ export async function prepareOperation(
     }
 
     const confirmation = confirmationById(core, operation.confirmationId);
+    const uploadConsent =
+      confirmation &&
+      workUploadConsent(core, {
+        subjectId,
+        resourceId: draft.id,
+        revision: draft.revision,
+        digest: confirmation.summaryDigest,
+        account: account.address as `0x${string}`,
+        locale: writer()?.target.locale ?? "en",
+      });
+    if (!uploadConsent)
+      return { status: "retry", errorCode: "publication_blocked", delayMs: 60_000 };
     const { payload } = buildWorkMetadataPayload({
+      uploadConsent,
       title: draft.content.title ?? "",
       feedback: draft.content.feedback ?? "",
       actionUID: snapshot.definition.actionUID,
@@ -275,28 +301,12 @@ export async function prepareOperation(
         });
         return;
       }
-      if (typeof job.payload.activationGrantId === "string") return;
+      // The permission page signs this one; if it has closed meanwhile, the chat hears so.
+      if (typeof job.payload.activationGrantId === "string")
+        return rewatchSigningLink(core, draft.id);
       const out = writer();
-      if (!out?.target.binding) return;
-      const { url } = issueContinuation(core, {
-        purpose: "publish_work",
-        participantId: draft.participantId,
-        subjectId: out.target.subjectId,
-        bindingId: out.target.binding.bindingId,
-        conversationId: draft.conversationId,
-        providerRealm: conversationRealm(core, draft.conversationId),
-        resourceKind: "draft",
-        resourceId: draft.id,
-        resourceRevision: draft.revision,
-        resourceDigest: envelope.payloadDigest,
-        expectedAccount: account.address,
-        identityEpoch: participantEpoch(core, draft.participantId),
-      });
-      out.say(
-        "publish.signLink",
-        { kind: out.text(account.kind === "eoa" ? "account.wallet" : "account.passkey") },
-        { url, label: out.text("publish.signLabel") }
-      );
+      const frozen = operationById(core, operation.id);
+      if (out && frozen) sendSigningLink(core, out, current, frozen);
     });
     return { status: "done" };
   } catch (error) {
@@ -318,7 +328,8 @@ export function retryPreparation(core: ReportingCore, draftId: string): boolean 
     !draft ||
     !operation ||
     lifecycleState(draft) !== "preparationFailed" ||
-    operation.state !== "preparation_failed"
+    operation.state !== "preparation_failed" ||
+    operation.failureCode === "policy_changed"
   ) {
     return false;
   }

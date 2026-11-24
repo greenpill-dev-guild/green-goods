@@ -6,12 +6,12 @@
  * nobody on the ordinary path can confirm any more, where the steward may
  * step in with a reason.
  *
- * **Ordinary.** A garden is a party like any other. When it takes something
- * up (a garden claim) it is the counterparty; when it asked for something it
- * is the creator of a Request; when a commitment names it to confirm, it is
- * in the confirmer list. In every case the people who act for it are its
- * steward and owner Hat wearers, and none of those commitments appear in
- * their personal inbox, because the garden is the party, not the person.
+ * **Ordinary.** A garden confirms an Offer it took up as a garden (a garden
+ * claim) with nobody named to confirm: the contract then accepts its steward
+ * and owner Hat wearers (CreditLib.sol `isOrdinaryConfirmer`). A garden that
+ * created a Request, or is named to confirm, would have to sign as its own
+ * account, which no act here does. None of these sit in a steward's personal
+ * inbox, because the garden is the party, not the person.
  *
  * Two rules kept here so the tab and the header badge cannot drift:
  *
@@ -19,7 +19,8 @@
  *    offers the garden a `confirm`, the same question the detail screen asks.
  * 2. **Nothing duplicates Live.** A commitment the reader is personally a
  *    party to already sits in their own inbox, so it is left out here even
- *    when the garden could also confirm it.
+ *    when the garden could also confirm it. Review has no Live, so it asks
+ *    for the reader's own confirmations as a group of their own (`includeOwn`).
  *
  * The roster is not loaded at list scope, so team membership is read from the
  * viewer's own account-scoped set instead: that query already resolves active
@@ -56,16 +57,23 @@ import { useMemo } from "react";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { selectCommitmentActKind } from "../../modules/commitment-pooling/acts";
+import { countConfirmQueue } from "../../modules/commitment-pooling/confirm-queue";
 import {
   getCommitments,
   getFallbackConfirmationCandidates,
   getViewerConfirmedCommitmentIds,
 } from "../../modules/commitment-pooling/data";
 import {
+  isSameAccount,
   selectCommitmentSeat,
   selectConfirmationEligibility,
 } from "../../modules/commitment-pooling/selectors";
-import { selectOrdinaryConfirmationReachable } from "../../modules/commitment-pooling/steward-selectors";
+import {
+  isPersonalParty,
+  selectOrdinaryConfirmationReachable,
+  selectOwnConfirmations,
+  withEffectiveConfirmers,
+} from "../../modules/commitment-pooling/steward-selectors";
 import type {
   CommitmentReadModel,
   FallbackConfirmationCandidate,
@@ -80,6 +88,7 @@ import type {
   ToConfirmDisputedRow,
   ToConfirmFallbackRow,
   ToConfirmGroup,
+  ToConfirmOwnRow,
   ToConfirmPoolAuthority,
   ToConfirmRow,
 } from "./commitments-to-confirm.types";
@@ -91,54 +100,57 @@ export type {
   ToConfirmDisputedRow,
   ToConfirmFallbackRow,
   ToConfirmGroup,
+  ToConfirmOwnRow,
   ToConfirmPoolAuthority,
   ToConfirmRow,
 } from "./commitments-to-confirm.types";
-
-/**
- * Whether the reader is personally a party. Without the roster this answers
- * for the named parties only, which is what the personal inbox lists.
- */
-function isPersonalParty(commitment: CommitmentReadModel, viewer: Address): boolean {
-  const seat = selectCommitmentSeat({ commitment, contributors: [], viewer });
-  return seat !== null && seat !== "bystander";
-}
-
-function isSameGarden(left: Address | null | undefined, right: Address): boolean {
-  return Boolean(left) && left!.toLowerCase() === right.toLowerCase();
-}
 
 export function useCommitmentsToConfirm({
   chainId,
   viewer,
   includeProtocolFallback = false,
+  includeOwn = false,
   refreshWhileOpen = false,
+  inScope,
+  enabled = true,
 }: {
   chainId: number;
   viewer?: Address;
+  /**
+   * The active garden's scope (`useActiveGarden`, DL-129): only the gardens it shows are
+   * asked, so the queue and `isSteward` answer for the active garden alone.
+   */
+  inScope?: (gardens: readonly (string | null | undefined)[]) => boolean;
   /**
    * Also read the protocol stewards' queue: opted-in commitments from any
    * garden whose ordinary path is unreachable. Off unless the surface is the
    * protocol pool console, because those rows come from other gardens.
    */
   includeProtocolFallback?: boolean;
+  /** Also list the reader's own confirmations in their stewarded pools: Review has no Live. */
+  includeOwn?: boolean;
   /** Keep the steward's visible review queue current across other sessions. */
   refreshWhileOpen?: boolean;
+  /** False reads nothing at all, the pools included, for a caller that cannot use the queue. */
+  enabled?: boolean;
 }): CommitmentsToConfirm {
   const availability = useCommitmentPoolingAvailability({ chainId });
   const { data: gardens = [] } = useGardens(chainId);
   const { canManageGarden } = useGardenPermissions();
-  const protocolPool = useProtocolPool({ chainId });
+  const protocolPool = useProtocolPool({ chainId }, { enabled });
 
   const { stewarded, protocolGarden } = useMemo(() => {
-    const stewarded: Garden[] = viewer ? gardens.filter((garden) => canManageGarden(garden)) : [];
+    const stewarded: Garden[] =
+      enabled && viewer
+        ? gardens.filter((garden) => canManageGarden(garden) && (!inScope || inScope([garden.id])))
+        : [];
     const root = protocolPool.rootGarden;
     const protocolGarden =
-      root && stewarded.some((garden) => isSameGarden(garden.id as Address, root))
-        ? (stewarded.find((garden) => isSameGarden(garden.id as Address, root)) ?? null)
+      root && stewarded.some((garden) => isSameAccount(garden.id as Address, root))
+        ? (stewarded.find((garden) => isSameAccount(garden.id as Address, root)) ?? null)
         : null;
     return { stewarded, protocolGarden };
-  }, [gardens, viewer, canManageGarden, protocolPool.rootGarden]);
+  }, [enabled, gardens, viewer, canManageGarden, inScope, protocolPool.rootGarden]);
 
   // The viewer's own set, which the account query resolves through the
   // contributor roster as well as the named party fields. It is what tells a
@@ -177,7 +189,7 @@ export function useCommitmentsToConfirm({
   // are different questions, and only the pool's garden may dispute or
   // resolve (`GuardLib.isPoolSteward`), so the queue reads the registered
   // pools once rather than guessing from the confirming garden.
-  const poolsQuery = useCommitmentPools({ chainId }, { refreshWhileOpen });
+  const poolsQuery = useCommitmentPools({ chainId }, { refreshWhileOpen, enabled });
   const { poolGardens, stewardedSet } = useMemo(() => {
     const poolGardens = new Map<string, Address>();
     for (const pool of poolsQuery.pools) {
@@ -249,7 +261,7 @@ export function useCommitmentsToConfirm({
         .filter((pool) => pool.garden && stewardedSet.has(pool.garden.toLowerCase()))
         .map((pool) => ({
           poolId: pool.poolId,
-          garden: stewarded.find((garden) => isSameGarden(pool.garden, garden.id as Address)),
+          garden: stewarded.find((garden) => isSameAccount(pool.garden, garden.id as Address)),
         }))
         .filter((scope): scope is { poolId: bigint; garden: Garden } => scope.garden !== undefined),
     [poolsQuery.pools, stewardedSet, stewarded]
@@ -267,10 +279,11 @@ export function useCommitmentsToConfirm({
     }),
   });
 
-  const { groups, fallback, disputed } = useMemo(() => {
+  const { groups, ownRows, fallback, disputed } = useMemo(() => {
     if (!viewer) {
       return {
         groups: [] as ToConfirmGroup[],
+        ownRows: [] as ToConfirmOwnRow[],
         fallback: [] as ToConfirmFallbackRow[],
         disputed: [] as ToConfirmDisputedRow[],
       };
@@ -285,7 +298,8 @@ export function useCommitmentsToConfirm({
       return {
         poolGarden,
         poolGardenName: poolGarden
-          ? (gardens.find((garden) => isSameGarden(poolGarden, garden.id as Address))?.name ?? null)
+          ? (gardens.find((garden) => isSameAccount(poolGarden, garden.id as Address))?.name ??
+            null)
           : null,
         canDispute: poolGarden !== null && stewardedSet.has(poolGarden.toLowerCase()),
       };
@@ -295,7 +309,8 @@ export function useCommitmentsToConfirm({
     stewarded.forEach((garden, index) => {
       const gardenAddress = garden.id as Address;
       const rows: ToConfirmRow[] = [];
-      for (const commitment of ordinaryQueries[index]?.data ?? []) {
+      for (const row of ordinaryQueries[index]?.data ?? []) {
+        const commitment = withEffectiveConfirmers(row);
         if (isPersonalParty(commitment, viewer)) continue;
         // Already in the reader's own set: they are a named party or on the
         // team. Live carries it, and a contributor's confirmation reverts.
@@ -327,7 +342,8 @@ export function useCommitmentsToConfirm({
       candidate: FallbackConfirmationCandidate,
       authority: { garden: Garden; local: boolean }
     ) => {
-      const { commitment, activeContributors } = candidate;
+      const { activeContributors } = candidate;
+      const commitment = withEffectiveConfirmers(candidate.commitment);
       if (listed.has(commitment.id) || ordinaryIds.has(commitment.id)) return;
       if (isPersonalParty(commitment, viewer)) return;
       const ordinaryReachable = selectOrdinaryConfirmationReachable({
@@ -382,6 +398,22 @@ export function useCommitmentsToConfirm({
       Number(right.commitment.commitmentId - left.commitment.commitmentId)
     );
 
+    // The reader's own confirmations in the same pools, which only Review asks for.
+    const ownRows: ToConfirmOwnRow[] = !includeOwn
+      ? []
+      : stewarded.flatMap((garden, index) =>
+          selectOwnConfirmations({
+            candidates: fallbackQueries[index]?.data ?? [],
+            viewer,
+            confirmed: confirmedIds,
+            listed: ordinaryIds,
+          }).map((commitment) => ({
+            commitment,
+            garden: garden.id as Address,
+            gardenName: garden.name,
+          }))
+        );
+
     // Disputed rows are the pool steward's to resolve. Being a party neither
     // grants that authority nor removes it, and Live carries no Resolve, so
     // unlike a confirmation these are not left out for the reader's own set.
@@ -401,7 +433,7 @@ export function useCommitmentsToConfirm({
     disputed.sort((left, right) =>
       Number(right.commitment.commitmentId - left.commitment.commitmentId)
     );
-    return { groups, fallback, disputed };
+    return { groups, ownRows, fallback, disputed };
   }, [
     stewarded,
     ordinaryQueries,
@@ -409,6 +441,7 @@ export function useCommitmentsToConfirm({
     disputedQueries,
     disputedScopes,
     viewer,
+    includeOwn,
     readProtocol,
     protocolGarden,
     ownIds,
@@ -421,10 +454,10 @@ export function useCommitmentsToConfirm({
   const queries = [...ordinaryQueries, ...fallbackQueries, ...disputedQueries];
   return {
     groups,
+    own: ownRows,
     fallback,
     disputed,
-    count:
-      groups.reduce((sum, group) => sum + group.rows.length, 0) + fallback.length + disputed.length,
+    count: countConfirmQueue({ groups, own: ownRows, fallback, disputed }),
     isSteward: stewarded.length > 0,
     isProtocolSteward: protocolGarden !== null,
     availability,
@@ -441,17 +474,24 @@ export function useCommitmentsToConfirm({
       poolsQuery.isLoading ||
       protocolPool.isLoading ||
       queries.some((q) => q.isLoading),
+    isFetching:
+      own.isFetching ||
+      confirmed.isFetching ||
+      poolsQuery.isFetching ||
+      protocolPool.isFetching ||
+      queries.some((query) => query.isFetching),
     isError:
       own.isError ||
       confirmed.isError ||
       poolsQuery.isError ||
       queries.some((query) => query.isError),
+    // A refresh rereads only what the queue reads now: a read its gate keeps
+    // off (pooling unavailable on the chain, no stewarded garden) stays off.
     refetch: () =>
-      Promise.all([
-        own.refetch(),
-        confirmed.refetch(),
-        poolsQuery.refetch(),
-        ...queries.map((query) => query.refetch()),
-      ]),
+      Promise.all(
+        [own, confirmed, poolsQuery, ...queries]
+          .filter((query) => query.isEnabled)
+          .map((query) => query.refetch())
+      ),
   };
 }

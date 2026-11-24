@@ -1,5 +1,5 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import { type Chain, createPublicClient, fallback, http } from "viem";
+import { type Chain, createPublicClient, fallback, http, type PublicClientConfig } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";
 import { ENV } from "../lib/env";
@@ -9,6 +9,7 @@ import { getChain, isChainSupported } from "./chains";
 // Pimlico API endpoints by chain
 const PIMLICO_API_ENDPOINTS = {
   1: "https://api.pimlico.io/v2/1/rpc", // Mainnet
+  100: "https://api.pimlico.io/v2/100/rpc", // Gnosis pilot (provider acceptance needs live proof)
   11155111: "https://api.pimlico.io/v2/11155111/rpc", // Sepolia
   42161: "https://api.pimlico.io/v2/42161/rpc", // Arbitrum
   42220: "https://api.pimlico.io/v2/42220/rpc", // Celo
@@ -106,7 +107,14 @@ export function createPimlicoClientForChain(chainId: number) {
   });
 }
 
-export function createPublicClientForChain(chainId: number) {
+/**
+ * A public client for reads on `chainId`. `batch` is viem's own option, off unless a caller
+ * asks: the ENS reads turn on multicall so a list's lookups go out together.
+ */
+export function createPublicClientForChain(
+  chainId: number,
+  { batch }: Pick<PublicClientConfig, "batch"> = {}
+) {
   const chain = getPimlicoChain(chainId);
   const rpcUrl =
     chainId === 421614 || chainId === 11142220
@@ -120,5 +128,6 @@ export function createPublicClientForChain(chainId: number) {
         ? fallback([http(rpcUrl), http(publicRpcUrl)])
         : http(rpcUrl),
     chain,
+    batch,
   });
 }

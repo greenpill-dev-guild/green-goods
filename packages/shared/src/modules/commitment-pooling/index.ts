@@ -7,9 +7,17 @@ export * from "./credit";
 export * from "./cycle-metadata";
 export * from "./data-public-impact";
 export * from "./data-public-pools";
-export * from "./document-store";
+export * from "./data-settlement-chain";
+export * from "./data-settlement-operations";
 export { DEMO_POOLING_PARAM, isDemoPoolingActive } from "./demo/demo-mode";
 export * from "./disclosure";
+export * from "./document-store";
+export {
+  type CycleStanding,
+  cycleStanding,
+  type DueClock,
+  isOpenToTakeUp,
+} from "./due-dates";
 export * from "./evidence";
 export * from "./ids";
 export * from "./jobs";
@@ -20,14 +28,69 @@ export * from "./pool-lifecycle";
 export * from "./pool-setup";
 export * from "./proof-draft-repository";
 export * from "./reasons";
+export * from "./reward-legs";
+export {
+  gardenRewardPayment,
+  rewardBeneficiarySafeMissing,
+  rewardShareRecipientsOf,
+  rewardSharesOwed,
+  type RewardShareRecipient,
+} from "./reward-payer";
+export type { RewardPayOutcome, RewardSafePaymentRead } from "./reward-pay-send";
+export type { RewardSafeSyncOutcome } from "./reward-safe-sync";
 export * from "./selectors";
+export * from "./service-access";
+export { liveVoucherIssuerName } from "./service-access-live-config";
+export * from "./service-access-pilot-types";
+export * from "./service-access-types";
+export * from "./service-access-voucher-types";
+// The member's Start the Booking is a fallback for the steward's (DL-193).
+export { voucherStartFallbackDue } from "./voucher-start";
+export type { ServiceOfferLine } from "./service-offer-line";
+export {
+  hasVoucherWalletRoute,
+  readIssuerSafeThreshold,
+  requestRewardDeliveries,
+  serviceVoucherHolder,
+  voucherBookingEscrow,
+  voucherPendingReturn,
+} from "./service-access-wallet";
+export type * from "./service-access-wallet-types";
+export type * from "./service-issuer-types";
+export type {
+  ServiceIssuerDraft,
+  ServiceIssuerDraftRecord,
+  ServiceIssuerSignedApproval,
+  ServiceIssuerTerms,
+  ServiceIssuerTermsSetting,
+} from "./service-issuer-approval";
+export {
+  serviceIssuerApprovalProvenance,
+  serviceIssuerDraftApproval,
+  serviceIssuerTermsDigest,
+} from "./service-issuer-approval";
+export {
+  SERVICE_ISSUER_ROUTES,
+  serviceIssuerIssuanceLimit,
+  issuerPool,
+  issuerPoolPolicy,
+} from "./service-issuer-metadata";
+export { issuerPoolStatus } from "./service-issuer-pool";
+export {
+  serviceIssuerDelistingDraft,
+  serviceIssuerDelistingRecord,
+  serviceIssuerGovernanceDrafts,
+} from "./service-issuer-governance";
 export * from "./settlement";
 export * from "./settlement-workflow";
-export * from "./data-settlement-chain";
-export * from "./data-settlement-operations";
 export * from "./steward-selectors";
 export * from "./types";
-export * from "./work-decisions";
 export * from "./work-decision-readback";
+export * from "./work-decisions";
 export * from "./work-identity";
 export * from "./work-link-intent";
+
+export {
+  serviceIssuerExchangeChoices,
+  type ServiceIssuerExchangeChoice,
+} from "./service-issuer-checkout";

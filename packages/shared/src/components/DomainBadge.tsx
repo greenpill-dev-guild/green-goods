@@ -29,7 +29,7 @@ export function DomainBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-2 text-label-sm font-medium text-text-sub-600",
+          "inline-flex items-center gap-2 type-meta-sm font-medium text-text-sub-600",
           className
         )}
       >
@@ -54,7 +54,7 @@ export function DomainBadge({
         "inline-flex items-center gap-1 rounded-full font-medium backdrop-blur-md",
         config.colors.bg,
         config.colors.text,
-        size === "sm" ? "px-2.5 py-1 text-label-sm" : "px-3 py-1.5 text-label-md",
+        size === "sm" ? "px-2.5 py-1 type-label-sm" : "px-3 py-1.5 type-label",
         className
       )}
     >

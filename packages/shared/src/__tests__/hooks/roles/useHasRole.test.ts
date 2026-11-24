@@ -13,7 +13,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
-const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
 const TEST_USER = "0x2222222222222222222222222222222222222222" as `0x${string}`;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as `0x${string}`;

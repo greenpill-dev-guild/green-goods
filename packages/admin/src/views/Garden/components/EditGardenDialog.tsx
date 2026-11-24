@@ -1,11 +1,12 @@
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
+import { Button } from "@green-goods/shared/components/Button";
 import type { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowGoBackLine, RiCloseLine, RiImageLine } from "@remixicon/react";
-import { type ReactNode, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
@@ -16,6 +17,7 @@ import {
   type GardenSettingsEditorHandle,
   type GardenSettingsFormState,
 } from "@/components/Garden/GardenSettingsEditor";
+import { GardenSettingsHoldAlert } from "@/components/Garden/GardenSettingsHoldAlert";
 import {
   buildGardenSettingsSaveRows,
   gardenSettingsSaveLine,
@@ -38,17 +40,20 @@ const INITIAL_FORM: GardenSettingsFormState = {
   isSaving: false,
   hasValidationError: false,
   dirtyCount: 0,
+  oneSignature: false,
   canEdit: false,
   run: null,
+  hold: null,
+  isSettlingHold: false,
 };
 
 /**
  * Edit Garden, opened by the workspace action of the same name. The form owns
  * the draft and the save; this dialog owns the close guard, the identity
- * preview, and the pinned footer. The footer says how many wallet
- * confirmations a save takes before it starts; once it starts, the body shows
- * each write landing, a stop says where and what was saved, and Try Again
- * sends only the rest (Rule 20).
+ * preview, and the pinned footer. The footer says how many signatures a save
+ * takes before it starts; once it starts, the body shows each write landing, a
+ * stop says where and what was saved, and Try Again sends only the rest (Rule
+ * 20). A save whose outcome is unknown stays at the top until it is settled.
  */
 export function EditGardenDialog({
   open,
@@ -101,67 +106,62 @@ export function EditGardenDialog({
     void settingsEditorRef.current?.save();
   };
 
-  const buttons = (): ReactNode => {
+  const buttons = (): Pick<SheetActionsProps, "primary" | "secondary"> => {
     if (run?.status === "complete") {
-      return (
-        <AdminButton
-          type="button"
-          variant="filled"
-          onClick={() => settingsDirtyClose.onOpenChange(false)}
-        >
-          {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </AdminButton>
-      );
+      return {
+        primary: {
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: () => settingsDirtyClose.onOpenChange(false),
+        },
+      };
     }
-    if (run?.status === "stopped" || (run?.status === "running" && retrying)) {
-      return (
-        <>
-          <AdminButton
-            type="button"
-            variant="text"
-            onClick={() => settingsEditorRef.current?.dismissRun()}
-            disabled={settingsForm.isSaving}
-          >
-            {formatMessage({
-              id: "app.garden.settings.save.keepEditing",
-              defaultMessage: "Keep Editing",
-            })}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            variant="filled"
-            onClick={() => save(true)}
-            disabled={!settingsForm.isDirty || settingsForm.isSaving}
-            loading={settingsForm.isSaving}
-          >
-            {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-          </AdminButton>
-        </>
-      );
+    if (
+      run?.status === "stopped" ||
+      run?.status === "unconfirmed" ||
+      (run?.status === "running" && retrying)
+    ) {
+      return {
+        // An unknown save is not sent again: its alert says what can happen next.
+        primary:
+          run.status === "unconfirmed"
+            ? undefined
+            : {
+                label: formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" }),
+                onClick: () => save(true),
+                disabled:
+                  !settingsForm.isDirty || settingsForm.isSaving || settingsForm.isSettlingHold,
+                loading: settingsForm.isSaving,
+              },
+        secondary: {
+          label: formatMessage({
+            id: "app.garden.settings.save.keepEditing",
+            defaultMessage: "Keep Editing",
+          }),
+          onClick: () => settingsEditorRef.current?.dismissRun(),
+          disabled: settingsForm.isSaving,
+        },
+      };
     }
-    return (
-      <>
-        <AdminButton
-          type="button"
-          variant="text"
-          onClick={() => settingsDirtyClose.onOpenChange(false)}
-          disabled={settingsForm.isSaving}
-        >
-          {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </AdminButton>
-        <AdminButton
-          type="button"
-          variant="filled"
-          onClick={() => save(false)}
-          disabled={
-            !settingsForm.isDirty || settingsForm.hasValidationError || settingsForm.isSaving
-          }
-          loading={settingsForm.isSaving}
-        >
-          {formatMessage({ id: "app.garden.settings.saveChanges", defaultMessage: "Save Changes" })}
-        </AdminButton>
-      </>
-    );
+    return {
+      primary: {
+        label: formatMessage({
+          id: "app.garden.settings.saveChanges",
+          defaultMessage: "Save Changes",
+        }),
+        onClick: () => save(false),
+        disabled:
+          !settingsForm.isDirty ||
+          settingsForm.hasValidationError ||
+          settingsForm.isSaving ||
+          settingsForm.isSettlingHold,
+        loading: settingsForm.isSaving,
+      },
+      secondary: {
+        label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+        onClick: () => settingsDirtyClose.onOpenChange(false),
+        disabled: settingsForm.isSaving,
+      },
+    };
   };
 
   return (
@@ -178,23 +178,35 @@ export function EditGardenDialog({
         })}
         bodyClassName="space-y-6"
         actions={
-          settingsForm.canEdit ? (
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p
-                className={cn(
-                  "body-xs",
-                  settingsForm.isDirty ? "text-warning-dark" : "text-text-soft"
-                )}
-                aria-live="polite"
-                data-slot="dirty-state"
-              >
-                {gardenSettingsSaveLine(run, settingsForm.dirtyCount, formatMessage)}
-              </p>
-              <div className="flex items-center justify-end gap-2">{buttons()}</div>
-            </div>
-          ) : undefined
+          settingsForm.canEdit
+            ? {
+                note: (
+                  <span
+                    className={settingsForm.isDirty ? "text-warning-dark" : undefined}
+                    data-slot="dirty-state"
+                  >
+                    {gardenSettingsSaveLine(
+                      run,
+                      settingsForm.dirtyCount,
+                      formatMessage,
+                      settingsForm.oneSignature
+                    )}
+                  </span>
+                ),
+                ...buttons(),
+              }
+            : undefined
         }
       >
+        {settingsForm.hold ? (
+          <GardenSettingsHoldAlert
+            hold={settingsForm.hold}
+            isSettling={settingsForm.isSettlingHold}
+            isSaving={settingsForm.isSaving}
+            onCheckAgain={() => void settingsEditorRef.current?.checkHold()}
+            onMoveOn={() => void settingsEditorRef.current?.moveOnFromHold()}
+          />
+        ) : null}
         {run ? (
           <TxProgressList
             testId="garden-settings-save"
@@ -208,12 +220,7 @@ export function EditGardenDialog({
         ) : null}
         {/* The form stays mounted under a save's progress: it owns the draft
             that Keep Editing returns to and Try Again sends. */}
-        <div
-          className={cn(
-            "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]",
-            run && "hidden"
-          )}
-        >
+        <div className={cn("min-w-0", run && "hidden")}>
           <GardenSettingsEditor
             ref={settingsEditorRef}
             gardenAddress={garden.id as Address}
@@ -230,85 +237,87 @@ export function EditGardenDialog({
             isOwner={isOwner}
             onBannerPreviewChange={setBannerPreview}
             onDirtyStateChange={setSettingsForm}
-          />
-
-          <div className="space-y-4">
-            {/* Identity preview — the single place the banner renders (saved,
+            renderAside={(bannerUpload) => (
+              <div className="space-y-3">
+                {/* Identity preview — the single place the banner renders (saved,
                 staged draft, or staged removal, reported by the form), plus the
                 garden name and location. Remove / Undo sit on the image so a
                 pending removal is always visible. */}
-            <AdminCard variant="filled" density="none" className="overflow-hidden">
-              <div className="relative">
-                {bannerRemovalStaged ? (
-                  <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
-                    <RiImageLine className="h-5 w-5" />
-                    <span className="body-xs">
-                      {formatMessage({
-                        id: "app.garden.settings.bannerWillBeRemoved",
-                        defaultMessage: "Will be removed on save",
-                      })}
-                    </span>
-                    <AdminButton
-                      type="button"
-                      variant="text"
-                      size="sm"
-                      leadingIcon={<RiArrowGoBackLine />}
-                      onClick={() => settingsEditorRef.current?.undoBannerRemoval()}
-                    >
-                      {formatMessage({ id: "app.common.undo", defaultMessage: "Undo" })}
-                    </AdminButton>
+                <AdminCard variant="filled" density="none" className="overflow-hidden">
+                  <div className="relative">
+                    {bannerRemovalStaged ? (
+                      <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
+                        <RiImageLine className="h-5 w-5" />
+                        <span className="type-meta">
+                          {formatMessage({
+                            id: "app.garden.settings.bannerWillBeRemoved",
+                            defaultMessage: "Will be removed on save",
+                          })}
+                        </span>
+                        <Button
+                          type="button"
+                          emphasis="tertiary"
+                          size="compact"
+                          leadingIcon={<RiArrowGoBackLine className="h-4 w-4" aria-hidden="true" />}
+                          onClick={() => settingsEditorRef.current?.undoBannerRemoval()}
+                        >
+                          {formatMessage({ id: "app.common.undo", defaultMessage: "Undo" })}
+                        </Button>
+                      </div>
+                    ) : bannerSrc ? (
+                      <>
+                        <img src={bannerSrc} alt="" className="h-28 w-full object-cover" />
+                        {bannerCanRemove ? (
+                          <Button
+                            type="button"
+                            emphasis="tertiary"
+                            size="compact"
+                            leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+                            onClick={() => settingsEditorRef.current?.stageBannerRemoval()}
+                            className="absolute right-2 top-2 bg-bg-white/90 text-text-sub shadow-[var(--edge-rest)] hover:bg-bg-white"
+                          >
+                            {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                          </Button>
+                        ) : null}
+                        {bannerIsDraft ? (
+                          <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 type-meta-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
+                            {formatMessage({
+                              id: "app.garden.settings.bannerDraft",
+                              defaultMessage: "Preview · uploads on save",
+                            })}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
+                        <RiImageLine className="h-6 w-6" />
+                      </div>
+                    )}
                   </div>
-                ) : bannerSrc ? (
-                  <>
-                    <img src={bannerSrc} alt="" className="h-28 w-full object-cover" />
-                    {bannerCanRemove ? (
-                      <AdminButton
-                        type="button"
-                        variant="text"
-                        size="sm"
-                        leadingIcon={<RiCloseLine />}
-                        onClick={() => settingsEditorRef.current?.stageBannerRemoval()}
-                        className="absolute right-2 top-2 bg-bg-white/90 text-text-sub shadow-[var(--edge-rest)] hover:bg-bg-white"
-                      >
-                        {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-                      </AdminButton>
+                  <div className="space-y-1 p-3 type-body text-text-sub">
+                    <h3 className="type-label-sm truncate text-text-strong" title={garden.name}>
+                      {garden.name}
+                    </h3>
+                    {garden.location ? (
+                      <p className="truncate" title={garden.location}>
+                        {garden.location}
+                      </p>
                     ) : null}
-                    {bannerIsDraft ? (
-                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-label-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
-                        {formatMessage({
-                          id: "app.garden.settings.bannerDraft",
-                          defaultMessage: "Preview · uploads on save",
-                        })}
-                      </span>
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
-                    <RiImageLine className="h-6 w-6" />
                   </div>
-                )}
-              </div>
-              <div className="space-y-1 p-3 body-sm text-text-sub">
-                <h3 className="label-md truncate text-text-strong" title={garden.name}>
-                  {garden.name}
-                </h3>
-                {garden.location ? (
-                  <p className="truncate" title={garden.location}>
-                    {garden.location}
-                  </p>
-                ) : null}
-              </div>
-            </AdminCard>
+                  <div className="px-3 pb-3">{bannerUpload}</div>
+                </AdminCard>
 
-            {/* On-chain identifiers fill the column beside the form instead of
+                {/* On-chain identifiers fill the column beside the form instead of
                 dangling below the grid. */}
-            <GardenMetadata
-              gardenId={garden.id as Address}
-              tokenAddress={garden.tokenAddress as Address}
-              tokenId={BigInt(garden.tokenID)}
-              chainId={garden.chainId}
-            />
-          </div>
+                <GardenMetadata
+                  gardenId={garden.id as Address}
+                  tokenAddress={garden.tokenAddress as Address}
+                  tokenId={BigInt(garden.tokenID)}
+                  chainId={garden.chainId}
+                />
+              </div>
+            )}
+          />
         </div>
       </AdminDialog>
       <DiscardChangesDialog

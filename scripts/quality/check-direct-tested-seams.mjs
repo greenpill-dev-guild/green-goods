@@ -296,10 +296,36 @@ function readJson(filePath, fallback) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
+function isImplementationFilePath(value) {
+  if (
+    typeof value !== "string" ||
+    !value ||
+    value.includes("\\") ||
+    value.includes("\0") ||
+    path.posix.isAbsolute(value) ||
+    path.posix.normalize(value) !== value ||
+    value.split("/").some((part) => part === ".." || part === ".")
+  ) {
+    return false;
+  }
+  const absolutePath = path.join(root, value);
+  const relative = path.relative(root, canonicalFile(absolutePath));
+  return (
+    relative !== "" &&
+    relative !== ".." &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative) &&
+    (!fs.existsSync(absolutePath) || fs.statSync(absolutePath).isFile())
+  );
+}
+
 function registryFiles(entry, exportInfo) {
   const proof = entry.proof ?? {};
   return [
     entry.modulePath,
+    ...(Array.isArray(entry.implementationFiles)
+      ? entry.implementationFiles.filter(isImplementationFilePath)
+      : []),
     ...(entry.compositionRoots ?? []),
     ...(entry.directConsumers ?? []),
     ...(proof.direct ?? []),
@@ -322,6 +348,10 @@ function evidenceFingerprint(entry, exportInfo) {
     publicSpecifier: entry.publicSpecifier,
     interfaceSummary: entry.interfaceSummary,
     dependencyCategory: entry.dependencyCategory,
+    // Explicit leaves retain freshness when reviewed code moves out of a facade/root.
+    ...(entry.implementationFiles !== undefined
+      ? { implementationFiles: entry.implementationFiles }
+      : {}),
     compositionRoots: entry.compositionRoots ?? [],
     directConsumers: entry.directConsumers ?? [],
     proof: entry.proof ?? { direct: [], conformance: [], integration: [] },
@@ -388,6 +418,19 @@ function validateRegistry(registry) {
     }
     for (const field of ["compositionRoots", "directConsumers"]) {
       if (!Array.isArray(entry[field])) errors.push(`registry-invalid-field|${label}|${field}`);
+    }
+    if (entry.implementationFiles !== undefined) {
+      if (!Array.isArray(entry.implementationFiles)) {
+        errors.push(`registry-invalid-field|${label}|implementationFiles`);
+      } else {
+        for (const implementationFile of entry.implementationFiles) {
+          if (!isImplementationFilePath(implementationFile)) {
+            errors.push(
+              `registry-invalid-implementation-file|${label}|${JSON.stringify(implementationFile)}`
+            );
+          }
+        }
+      }
     }
     for (const field of ["direct", "conformance", "integration"]) {
       if (!Array.isArray(entry.proof?.[field])) errors.push(`registry-invalid-proof|${label}|${field}`);

@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
 import { selectExpectedWorkflows } from "./select-validation.mjs";
 
 const requiredJobs = new Map([
   ["Shared", ["Test (1/2)", "Test (2/2)"]],
   ["Client", ["Playwright Client CI"]],
   ["Admin", ["Playwright Admin CI"]],
+  ["Dependabot Sync", ["Synchronized dependency files"]],
 ]);
 
-export function expectedWorkflowNames(files) {
-  return selectExpectedWorkflows({ changedPaths: files, intent: "merge", ci: true });
+export function expectedWorkflowNames(files, context = {}) {
+  return selectExpectedWorkflows({ ...context, changedPaths: files, intent: "merge", ci: true });
 }
 
 async function githubJson(token, path) {
@@ -77,6 +79,7 @@ export async function runGate(
     repository,
     pullNumber,
     headSha,
+    pullRequest,
     // 96 * 20s = 32 minutes of polling. ci-gate.yml sets timeout-minutes: 40, so
     // this leaves ~8 minutes for checkout, setup, and the fixture test step and
     // the gate still reports its own timeout error instead of being cancelled.
@@ -99,7 +102,7 @@ export async function runGate(
   } = dependencies;
 
   const files = await loadChangedFiles(token, repository, pullNumber);
-  const expected = selectWorkflows(files);
+  const expected = selectWorkflows(files, { pullRequest, repository });
   logger.log(`Changed files: ${files.length}`);
   logger.log(`Expected workflows: ${expected.length > 0 ? expected.join(", ") : "(none)"}`);
 
@@ -161,6 +164,7 @@ if (isDirectRun) {
     repository: process.env.REPO,
     pullNumber: process.env.PR_NUMBER,
     headSha: process.env.HEAD_SHA,
+    pullRequest: process.env.GITHUB_EVENT_PATH ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")).pull_request : undefined,
   }).catch((error) => {
     console.error(`::error::${error.message}`);
     process.exitCode = 1;

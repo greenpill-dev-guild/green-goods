@@ -2,15 +2,12 @@
  * Slug Availability Hook
  *
  * Debounced RPC check for ENS slug availability across the L2 cache and L1 receiver.
- * This is tier 2 of the three-tier validation:
- *   1. Sync Zod (instant) -- useSlugForm
- *   2. Debounced RPC (300ms) -- this hook
- *   3. On-submit recheck -- useENSClaim
+ * A slug that fails the format check (`slugSchema`) is never sent.
  *
  * @module hooks/ens/useSlugAvailability
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -20,36 +17,48 @@ import { logger } from "../../modules/app/logger";
 import { createClients, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { useDebouncedValue } from "../utils/useDebouncedValue";
 import { isSlugAvailableAcrossChains } from "./availability";
-import { slugSchema } from "./useSlugForm";
+import { slugSchema } from "../../modules/ens/slug";
 
+/** Whether a slug can still be claimed. Throws when the chain cannot be asked. */
+export async function readSlugAvailability(slug: string): Promise<boolean> {
+  const ensAddress = getNetworkContracts(DEFAULT_CHAIN_ID).greenGoodsENS;
+  const { publicClient } = createClients(DEFAULT_CHAIN_ID);
+  return isSlugAvailableAcrossChains({
+    slug,
+    ensAddress,
+    publicClient,
+    chainId: DEFAULT_CHAIN_ID,
+  });
+}
+
+/**
+ * `data` is only ever the chain's answer. When the chain cannot be asked, the query fails
+ * instead, so a check that never ran does not read as a taken name. Create Garden's submit
+ * asks again, and the mint has the final say.
+ */
 export function useSlugAvailability(slug: string | undefined) {
   const debouncedSlug = useDebouncedValue(slug, 300);
-  const isValidFormat = debouncedSlug
-    ? slugSchema.safeParse({ slug: debouncedSlug }).success
-    : false;
-
-  const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
-  const ensAddress = contracts.greenGoodsENS;
+  const ensAddress = getNetworkContracts(DEFAULT_CHAIN_ID).greenGoodsENS;
+  // Ask only about a well-formed slug, and only where an ENS module is deployed.
+  const slugToCheck =
+    debouncedSlug &&
+    ensAddress !== zeroAddress &&
+    slugSchema.safeParse({ slug: debouncedSlug }).success
+      ? debouncedSlug
+      : undefined;
 
   return useQuery<boolean>({
     queryKey: ensKeys.availability(debouncedSlug ?? ""),
-    queryFn: async () => {
-      if (!debouncedSlug || !ensAddress || ensAddress === zeroAddress) return false;
-
-      try {
-        const { publicClient } = createClients(DEFAULT_CHAIN_ID);
-        return isSlugAvailableAcrossChains({
-          slug: debouncedSlug,
-          ensAddress,
-          publicClient,
-          chainId: DEFAULT_CHAIN_ID,
-        });
-      } catch (error) {
-        logger.warn("Slug availability check failed", { slug: debouncedSlug, error });
-        return false; // Fail closed — treat as unavailable when RPC fails
-      }
-    },
-    enabled: Boolean(debouncedSlug) && isValidFormat && ensAddress !== zeroAddress,
+    queryFn: slugToCheck
+      ? async () => {
+          try {
+            return await readSlugAvailability(slugToCheck);
+          } catch (error) {
+            logger.warn("Slug availability check failed", { slug: slugToCheck, error });
+            throw error;
+          }
+        }
+      : skipToken,
     staleTime: STALE_TIME_FAST, // 5s -- names can be claimed quickly
     retry: false, // Don't retry RPC failures — debounced input will re-trigger
   });

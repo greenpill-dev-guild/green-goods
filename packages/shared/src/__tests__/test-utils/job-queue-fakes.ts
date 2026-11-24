@@ -142,6 +142,9 @@ export function createFakeJobQueueAnalytics(): JobQueueAnalytics {
     storageWarning: vi.fn(),
     privateEvent: vi.fn(),
     processingStarted: vi.fn(),
+    jobSkipped: vi.fn(),
+    receiptWaitLimitReached: vi.fn(),
+    jobDiscarded: vi.fn(),
   };
 }
 
@@ -167,7 +170,11 @@ export function createFakeJobQueueHandle(overrides: Partial<JobQueueHandle> = {}
   return {
     addJob: vi.fn(async <K extends keyof JobKindMap>(_kind: K) => "job-1"),
     processJob: vi.fn().mockResolvedValue({ success: true }),
+    processTogether: vi
+      .fn()
+      .mockResolvedValue({ lead: { success: true }, follower: { success: true } }),
     flush: vi.fn().mockResolvedValue(empty),
+    requestSync: vi.fn(),
     retryJob: vi.fn().mockResolvedValue(undefined),
     discardJob: vi.fn().mockResolvedValue(true),
     getStats: vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 }),
@@ -205,7 +212,12 @@ export function createJobQueueDependencies(
     connectivity: createFakeJobQueueConnectivity(),
     backgroundSync: createFakeBackgroundSync(),
     clock: createFakeJobQueueClock(),
-    config: { defaultChainId: 11155111, maxRetries: 5, storageQuotaCacheTTL: 30_000 },
+    config: {
+      defaultChainId: 11155111,
+      maxRetries: 5,
+      storageQuotaCacheTTL: 30_000,
+      receiptWaitLimitMs: 120_000,
+    },
     lifecycle: { attach: vi.fn(() => () => undefined) },
     logger: { debug: vi.fn(), warn: vi.fn() },
     ...overrides,

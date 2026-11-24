@@ -1,9 +1,13 @@
-import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { AdminUploadConsentDialog } from "@/components/AdminUploadConsentDialog";
+import { UploadPolicyCancelledError } from "@green-goods/shared/modules/work/upload-policy";
+import { Button } from "@green-goods/shared/components/Button";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   useProfileAvatarEditor,
   useResolvedProfileAvatar,
 } from "@green-goods/shared/hooks/profile/useProfileAvatar";
+import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import {
   getProfileAvatarFailureMessage,
   getProfileAvatarStageMessage,
@@ -11,7 +15,6 @@ import {
 import { RiCameraLine, RiDeleteBinLine, RiImageAddLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "../AdminButton";
 import { AdminConfirmDialog, AdminDialog } from "../AdminDialog";
 
 const AVATAR_PREVIEW_TRACKING_ID = "admin-profile-avatar-editor";
@@ -83,7 +86,9 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.save(selectedFile);
       setSelectedFile(null);
-    } catch {
+    } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
+      if (caught instanceof UploadPolicyCancelledError) return;
       setSelectedFile(null);
       setError(getProfileAvatarFailureMessage("save", formatMessage));
     }
@@ -94,7 +99,8 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.clear();
       setSelectedFile(null);
-    } catch {
+    } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       setError(getProfileAvatarFailureMessage("remove", formatMessage));
     }
   };
@@ -103,7 +109,9 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     setError(null);
     try {
       await editor.continueAfterReconnect();
-    } catch {
+    } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
+      if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("continue", formatMessage));
     }
   };
@@ -120,6 +128,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
 
   return (
     <>
+      <AdminUploadConsentDialog kind="profile-photo" prompt={editor.uploadPolicy} />
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -136,7 +145,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
             className="h-full w-full object-cover"
           />
         ) : (
-          <span className="body-sm font-semibold">{fallbackInitials}</span>
+          <span className="type-body font-semibold">{fallbackInitials}</span>
         )}
         <span className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[var(--color-material-solid)] bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]">
           <RiCameraLine className="h-3.5 w-3.5" aria-hidden="true" />
@@ -153,30 +162,30 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         })}
         icon={RiCameraLine}
         size="md"
-        tone="hub"
+        tone="review"
         preventClose={busy}
-        actions={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {resolved.source === "app" ? (
-              <AdminButton
-                variant="danger"
-                onClick={() => setRemoveConfirmOpen(true)}
-                disabled={busy}
-                leadingIcon={<RiDeleteBinLine />}
-              >
-                {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" })}
-              </AdminButton>
-            ) : null}
-            <AdminButton
-              variant="filled"
-              onClick={save}
-              disabled={!selectedFile || busy}
-              loading={busy && Boolean(selectedFile)}
-            >
-              {saveLabel}
-            </AdminButton>
-          </div>
-        }
+        actions={{
+          primary: {
+            label: saveLabel,
+            onClick: save,
+            disabled: !selectedFile || busy,
+            loading: busy && Boolean(selectedFile),
+          },
+          // Removing the photo is the destructive way out, so it is outlined in the danger tone.
+          secondary:
+            resolved.source === "app"
+              ? {
+                  label: formatMessage({
+                    id: "profile.avatar.remove",
+                    defaultMessage: "Remove Photo",
+                  }),
+                  tone: "danger",
+                  icon: <RiDeleteBinLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+                  onClick: () => setRemoveConfirmOpen(true),
+                  disabled: busy,
+                }
+              : undefined,
+        }}
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
@@ -184,11 +193,11 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
               {previewSrc ? (
                 <img src={previewSrc} alt="" className="h-full w-full object-cover" />
               ) : (
-                <span className="text-title-lg font-semibold">{fallbackInitials}</span>
+                <span className="type-title-lg font-semibold">{fallbackInitials}</span>
               )}
             </div>
             {hasUnpublishedDraft ? (
-              <p className="body-sm font-medium text-text-strong" aria-live="polite">
+              <p className="type-body font-medium text-text-strong" aria-live="polite">
                 {formatMessage({
                   id: "profile.avatar.unpublishedDraft",
                   defaultMessage: "This draft photo has not been published.",
@@ -199,7 +208,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
 
           <label
             htmlFor={inputId}
-            className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-stroke-soft px-4 py-2 body-sm font-medium text-text-strong transition-colors hover:bg-bg-soft focus-within:ring-2 focus-within:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-within:ring-offset-2"
+            className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-stroke-soft px-4 py-2 type-body font-medium text-text-strong transition-colors hover:bg-bg-soft focus-within:ring-2 focus-within:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-within:ring-offset-2"
           >
             <input
               id={inputId}
@@ -223,7 +232,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
           </label>
 
           {status ? (
-            <output className="flex items-center gap-2 body-sm text-text-sub" aria-live="polite">
+            <output className="flex items-center gap-2 type-body text-text-sub" aria-live="polite">
               <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden="true" />
               {status}
             </output>
@@ -233,7 +242,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
               className="rounded-[var(--radius-md)] border border-stroke-soft bg-bg-soft p-3"
               aria-live="polite"
             >
-              <p className="body-sm text-text-sub">
+              <p className="type-body text-text-sub">
                 {formatMessage({
                   id: "profile.avatar.offlineSavedForRetry",
                   defaultMessage:
@@ -241,9 +250,10 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
                 })}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <AdminButton
-                  variant="text"
-                  size="md"
+                <Button
+                  type="button"
+                  emphasis="tertiary"
+                  size="sm"
                   onClick={continueAfterReconnect}
                   disabled={!isOnline || busy}
                 >
@@ -253,18 +263,24 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
                         id: "profile.avatar.reconnect",
                         defaultMessage: "Reconnect to publish",
                       })}
-                </AdminButton>
-                <AdminButton variant="text" size="md" onClick={discardDraft} disabled={busy}>
+                </Button>
+                <Button
+                  type="button"
+                  emphasis="tertiary"
+                  size="sm"
+                  onClick={discardDraft}
+                  disabled={busy}
+                >
                   {formatMessage({
                     id: "profile.avatar.discardDraft",
                     defaultMessage: "Discard Draft",
                   })}
-                </AdminButton>
+                </Button>
               </div>
             </div>
           ) : null}
           {displayedError ? (
-            <p role="alert" className="body-sm text-error-base">
+            <p role="alert" className="type-body text-error-base">
               {displayedError}
             </p>
           ) : null}
@@ -293,7 +309,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         cancelLabel={formatMessage({ id: "profile.avatar.cancel", defaultMessage: "Cancel" })}
         variant="danger"
         isLoading={busy}
-        tone="hub"
+        tone="review"
       />
     </>
   );

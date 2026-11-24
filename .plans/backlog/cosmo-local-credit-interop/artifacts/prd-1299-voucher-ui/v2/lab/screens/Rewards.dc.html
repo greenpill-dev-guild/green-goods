@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A request that pays G$ and vouchers</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: 130px">
+    <div class="topnav">
+      <a class="close" href="Main.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <span class="mid">Riverside Commons Garden</span>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>Request · Riverside Commons Garden</span>
+      <h1>Teach two compost workshops</h1>
+      <sc-if value="{{after}}" hint-placeholder-val="{{false}}"><span class="pill ok">Confirmed kept · Oct 29</span></sc-if>
+      <sc-if value="{{before}}" hint-placeholder-val="{{true}}"><p class="para">Two Saturday sessions on hot composting for new members. Bring your own notes; the garden supplies materials.</p></sc-if>
+    </div>
+
+    <div class="sec"><h2>{{rewardsHead}}</h2></div>
+
+    <sc-if value="{{isLines}}" hint-placeholder-val="{{true}}">
+      <div class="mx16 card">
+        <div class="legs">
+          <div class="leg">
+            <span style="display: flex; gap: 12px; align-items: center"><span class="tile" style="width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg></span><span><b style="display: block">120.00 G$</b><span class="small">{{gSub}}</span></span></span>
+            <sc-if value="{{after}}" hint-placeholder-val="{{false}}"><span class="pill {{gPillCls}}">{{gPill}}</span></sc-if>
+          </div>
+          <div class="leg">
+            <span style="display: flex; gap: 12px; align-items: center"><span class="tile sun" style="width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg></span><span><b style="display: block">20 Sunroot vouchers</b><span class="small">{{vSub}}</span></span></span>
+            <sc-if value="{{after}}" hint-placeholder-val="{{false}}"><span class="pill {{vPillCls}}">{{vPill}}</span></sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isChips}}" hint-placeholder-val="{{false}}">
+      <div class="mx16" style="display: flex; flex-direction: column; gap: 10px">
+        <div class="chips">
+          <span class="chip big"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg>120.00 G$</span>
+          <span class="chip big" style="background: var(--sun-soft)"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg>20 Sunroot vouchers</span>
+        </div>
+        <sc-if value="{{after}}" hint-placeholder-val="{{false}}">
+          <div class="card"><div class="facts">
+            <div class="fact"><span class="k">G$</span><span class="v"><span class="pill {{gPillCls}}">{{gPill}}</span><small>{{gSub}}</small></span></div>
+            <div class="fact"><span class="k">Vouchers</span><span class="v"><span class="pill {{vPillCls}}">{{vPill}}</span><small>{{vSub}}</small></span></div>
+          </div></div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <div class="stack" style="margin-top: 10px">
+      <p class="small">Two rewards, each tracked on its own. They're never added together.</p>
+      <sc-if value="{{noGno}}" hint-placeholder-val="{{false}}"><div class="notice info"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-wallet-3-line"/></svg>Add a Gnosis wallet to receive vouchers</span><p>You can't agree to a voucher reward without a wallet to receive it.</p></div></sc-if>
+      <sc-if value="{{delayed}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg>Your vouchers are delayed</span><p>Delivery didn't complete. Riverside Commons Garden's stewards retry; it can't arrive twice.</p></div></sc-if>
+      <sc-if value="{{after}}" hint-placeholder-val="{{false}}"><p class="small">Using vouchers for a service is a separate step.</p></sc-if>
+    </div>
+  </div>
+
+  <sc-if value="{{before}}" hint-placeholder-val="{{true}}">
+    <div class="fbar">
+      <sc-if value="{{canTake}}" hint-placeholder-val="{{true}}"><button type="button" class="btn" onClick="{{openConsent}}">Take Up</button></sc-if>
+      <sc-if value="{{noGno}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Add Gnosis Wallet</button><button type="button" class="btn sec off" disabled>Take Up</button></sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{consent}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet half" role="dialog" aria-modal="true" aria-label="Agree to these rewards">
+      <div class="grip" aria-hidden="true"></div>
+      <div class="shead"><h2 class="stitle">Agree to These Rewards</h2><button type="button" class="close" aria-label="Close" onClick="{{closeConsent}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="sbody">
+        <div class="card"><div class="facts">
+          <div class="fact"><span class="k">120.00 G$</span><span class="v"><span>To your account on Celo</span><small class="mono">0x3C1e…7A2e</small></span></div>
+          <div class="fact"><span class="k">20 Sunroot vouchers</span><span class="v"><span>To your Gnosis wallet</span><small class="mono">0x9A40…41bD</small></span></div>
+        </div></div>
+        <p class="small">If the garden changes these, you'll agree again first.</p>
+      </div>
+      <div class="sacts"><button type="button" class="btn" onClick="{{closeConsent}}">Agree and Take Up</button></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Two lines","Reward chips"],"default":"Two lines","section":"Direction"},"state":{"editor":"enum","options":["Open","Consent","No Gnosis wallet","Kept, vouchers on the way","Both received","Voucher delayed"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) {
+    if (prev.state !== this.props.state) this.setState({ consent: undefined });
+  }
+  renderVals() {
+    var v = this.props.variant ?? 'Two lines';
+    var st = this.props.state ?? 'Open';
+    var dark = this.props.dark ?? false;
+    var s = this.state || {};
+    var self = this;
+    var after = st === 'Kept, vouchers on the way' || st === 'Both received' || st === 'Voucher delayed';
+    var consent = s.consent !== undefined ? s.consent : st === 'Consent';
+    var vState = { 'Kept, vouchers on the way': ['info', 'On the way', 'Sent to Gnosis · waiting for delivery'], 'Both received': ['ok', 'Received', 'Oct 30 · in your Gnosis wallet'], 'Voucher delayed': ['warn', 'Delayed', 'Delivery didn’t complete'] };
+    var vs = vState[st];
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isLines: v === 'Two lines', isChips: v === 'Reward chips',
+      before: !after, after: after, rewardsHead: after ? 'Rewards' : 'What it pays',
+      gSub: after ? 'Oct 30 · on Celo' : 'From Riverside Commons Garden · on Celo',
+      vSub: after ? vs[2] : "From Riverside Commons Garden's vouchers · on Gnosis",
+      gPillCls: 'ok', gPill: 'Received',
+      vPillCls: vs ? vs[0] : '', vPill: vs ? vs[1] : '',
+      noGno: st === 'No Gnosis wallet', canTake: st === 'Open' || st === 'Consent', delayed: st === 'Voucher delayed',
+      consent: consent && !after,
+      openConsent: function () { self.setState({ consent: true }); },
+      closeConsent: function () { self.setState({ consent: false }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

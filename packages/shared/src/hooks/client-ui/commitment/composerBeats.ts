@@ -26,6 +26,7 @@ export type ComposerBlockedReason =
   | "action"
   | "rowCount"
   | "closedAction"
+  | "uncheckedAction"
   | "noteTooLong"
   | null;
 
@@ -67,6 +68,15 @@ function selectReason(beat: ComposerBeat, values: CommitmentComposerValues): Com
   return null;
 }
 
+/** The garden-work actions chosen, by uid, in the order they were chosen. */
+function chosenActionUIDs(values: CommitmentComposerValues): string[] {
+  return values.kind === "GARDEN_WORK" ? values.requirements.map((row) => row.actionUID) : [];
+}
+
+function findAction(actions: readonly Action[], chainId: number, uid: string): Action | undefined {
+  return actions.find((candidate) => candidate.id === `${chainId}-${uid}`);
+}
+
 /**
  * The chosen actions whose window has ended by `now`, in the order they were
  * chosen. A commitment naming one could never be kept.
@@ -77,26 +87,41 @@ export function selectClosedActionUIDs(
   chainId: number,
   now: number
 ): string[] {
-  if (values.kind !== "GARDEN_WORK") return [];
-  return values.requirements
-    .map((row) => row.actionUID)
-    .filter((uid) => {
-      const action = actions.find((candidate) => candidate.id === `${chainId}-${uid}`);
-      return action !== undefined && hasActionEnded(action, now);
-    });
+  return chosenActionUIDs(values).filter((uid) => {
+    const action = findAction(actions, chainId, uid);
+    return action !== undefined && hasActionEnded(action, now);
+  });
+}
+
+/**
+ * The chosen actions not among `actions`, in the order they were chosen: the
+ * list is offline or still loading, or doesn't reach that far back. Until an
+ * action's window is known nobody can say it still takes work, so a commitment
+ * naming it waits (PRD-1004).
+ */
+export function selectUncheckedActionUIDs(
+  values: CommitmentComposerValues,
+  actions: readonly Action[],
+  chainId: number
+): string[] {
+  return chosenActionUIDs(values).filter((uid) => findAction(actions, chainId, uid) === undefined);
 }
 
 /**
  * Pure schema-backed validity and human-readable blocking reason for one beat.
- * A chosen action that has closed stops the beat that chose it and placement.
+ * A chosen action that has closed, or whose window isn't known yet, stops the
+ * beat that chose it and placement. A closed one is said first, since only
+ * removing it helps.
  */
 export function selectBeatValidity(
   beat: ComposerBeat,
   values: CommitmentComposerValues,
-  closedActionUIDs: readonly string[] = []
+  closedActionUIDs: readonly string[] = [],
+  uncheckedActionUIDs: readonly string[] = []
 ): ComposerBeatValidity {
-  if ((beat === "howMuch" || beat === "review") && closedActionUIDs.length > 0) {
-    return { canAdvance: false, reason: "closedAction" };
+  if (beat === "howMuch" || beat === "review") {
+    if (closedActionUIDs.length > 0) return { canAdvance: false, reason: "closedAction" };
+    if (uncheckedActionUIDs.length > 0) return { canAdvance: false, reason: "uncheckedAction" };
   }
   const fields: readonly (keyof CommitmentComposerValues)[] = BEAT_FIELDS[beat];
   if (fields.length === 0) return { canAdvance: true, reason: null };

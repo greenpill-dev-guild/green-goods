@@ -1,8 +1,10 @@
 import type { Database } from "bun:sqlite";
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import { REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/modules/agent-reporting";
+import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
 import type { GardenDirectory } from "./gardens";
 import type { ReportingKeyring } from "./keyring";
+import type { QuestionProfile } from "./questions";
 
 /** Time and identity sources are injected so tests replay exact schedules and identifiers. */
 export interface ReportingClock {
@@ -50,7 +52,7 @@ export interface ReportingSettings {
 }
 
 export const DEFAULT_REPORTING_SETTINGS: Omit<ReportingSettings, "chainId" | "browserOrigin"> = {
-  noticeVersion: "2026-10-04",
+  noticeVersion: WORK_UPLOAD_POLICY_VERSION,
   supportContact: REPORTING_SUPPORT_CONTACT,
   preConsentRetentionMs: 24 * 60 * 60 * 1000,
   inactiveDraftRetentionMs: 7 * 24 * 60 * 60 * 1000,
@@ -71,6 +73,8 @@ export interface ReportingCore {
   clock: ReportingClock;
   ids: ReportingIds;
   settings: ReportingSettings;
+  /** How activities' fields are asked; the built-in profiles when left out. */
+  questions?: readonly QuestionProfile[];
   /** Every garden that accepts chat reports, refreshed from the indexer by the worker. */
   gardens: GardenDirectory;
 }

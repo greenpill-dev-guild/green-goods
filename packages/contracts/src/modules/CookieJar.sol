@@ -8,9 +8,15 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
 import { ICookieJarFactory } from "../interfaces/ICookieJarFactory.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { GardenAccountsLib } from "../lib/GardenAccounts.sol";
+
+/// @dev Release C jars expose their immutable currency, including after asset support is removed.
+interface ICookieJarCurrency {
+    function CURRENCY() external view returns (address);
+}
 
 /// @title CookieJarModule
-/// @notice Creates per-asset Cookie Jar vaults for gardens during mint using the 1Hive CookieJarFactory
+/// @notice Creates per-asset Cookie Jar vaults for gardens during mint using the Greenpill Dev Guild CookieJarFactory
 /// @dev UUPS upgradeable. Called by GardenToken during mintGarden() via try/catch.
 ///      Delegates jar deployment to the external CookieJarFactory and uses ERC1155 (Hats Protocol)
 ///      access gating so that garden members (gardeners, operators, owners) can withdraw from jars.
@@ -28,7 +34,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     /// @notice The YieldResolver contract (for auto-registration)
     address public yieldSplitter;
 
-    /// @notice The 1Hive CookieJarFactory used to deploy jars
+    /// @notice The Greenpill Dev Guild CookieJarFactory used to deploy jars
     ICookieJarFactory public cookieJarFactory;
 
     /// @notice The Hats Protocol ERC1155 contract address used for access gating
@@ -88,7 +94,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     /// @param _owner The owner address
     /// @param _hatsModule HatsModule address for resolving garden hat IDs
     /// @param _yieldSplitter YieldResolver address
-    /// @param _cookieJarFactory The 1Hive CookieJarFactory address
+    /// @param _cookieJarFactory The Greenpill Dev Guild CookieJarFactory address
     /// @param _hatsProtocol The Hats Protocol ERC1155 contract address
     /// @param _supportedAssets Array of supported ERC-20 asset addresses
     function initialize(
@@ -131,6 +137,54 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     ///      via the CookieJarFactory using ERC1155 (Hats) access gating on the
     ///      garden's gardener hat ID.
     function onGardenMinted(address garden) external override onlyGardenToken nonReentrant returns (address[] memory jars) {
+        jars = _createMissingJars(garden);
+    }
+
+    /// @notice Create the jars a garden on an upgradeable account is missing, one per supported asset
+    /// @dev Callable by the module owner or the garden's Owner, who pays for the jars, which take the shape a mint
+    ///      gives them. Older garden accounts get none: their jar share of yield goes to their treasury.
+    /// @param garden The garden account address
+    /// @return jars The garden's jar for each supported asset, existing or new
+    function createGardenJars(address garden) external nonReentrant returns (address[] memory jars) {
+        if (!GardenAccountsLib.isUpgradeableGardenAccount(gardenToken, garden)) revert UnsupportedGarden(garden);
+        if (msg.sender != owner() && !hatsModule.isOwnerOf(garden, msg.sender)) revert UnauthorizedCaller(msg.sender);
+        jars = _createMissingJars(garden);
+    }
+
+    /// @notice Stop listing the jars of older garden accounts, so neither yield nor the apps find them
+    /// @dev The jars themselves are unchanged. Clears recorded currencies, including removed assets.
+    /// @param gardens Older garden accounts
+    function unlistOlderGardenJars(address[] calldata gardens) public virtual onlyOwner {
+        uint256 assetCount = supportedAssets.length;
+        for (uint256 g = 0; g < gardens.length; g++) {
+            address garden = gardens[g];
+            if (!GardenAccountsLib.isOlderGardenAccount(gardenToken, garden)) revert UnsupportedGarden(garden);
+
+            // The jar list is historical; supportedAssets is only the current deployment policy.
+            // Read the immutable currency instead of losing records when that policy changes.
+            address[] storage recordedJars = gardenJarList[garden];
+            for (uint256 j = 0; j < recordedJars.length; j++) {
+                address jar = recordedJars[j];
+                address asset = ICookieJarCurrency(jar).CURRENCY();
+                if (gardenJars[garden][asset] != jar) revert InvalidJarRecord(garden, asset, jar);
+                delete gardenJars[garden][asset];
+                emit JarUnlisted(garden, asset, jar);
+            }
+
+            // Also clear older orphan mappings whose list was removed before this upgrade.
+            for (uint256 i = 0; i < assetCount; i++) {
+                address asset = supportedAssets[i];
+                address jar = gardenJars[garden][asset];
+                if (jar == address(0)) continue;
+                delete gardenJars[garden][asset];
+                emit JarUnlisted(garden, asset, jar);
+            }
+            delete gardenJarList[garden];
+        }
+    }
+
+    /// @dev Deploys a jar for each supported asset the garden has none for, and lists it
+    function _createMissingJars(address garden) private returns (address[] memory jars) {
         uint256 assetCount = supportedAssets.length;
         jars = new address[](assetCount);
 

@@ -19,8 +19,10 @@ import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { TOTAL_UNITS, validateAllowlist as validateAllowlistEntries } from "../../lib/hypercerts";
-import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { logger } from "../../modules/app/logger";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
+import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
 import type { Address } from "../../types/domain";
@@ -39,11 +41,11 @@ import { type MintHypercertInput, mintHypercertMachine } from "../../workflows/m
 import { useAuth } from "../auth/useAuth";
 import { resolveHypercertContracts } from "./hypercert-contracts";
 import {
-  createUploadMetadataActor,
-  createUploadAllowlistActor,
   createBuildAndSignActor,
   createPollForReceiptActor,
   createRegisterInSignalPoolActor,
+  createUploadAllowlistActor,
+  createUploadMetadataActor,
 } from "./services";
 
 /** Maps XState machine states to public status values */
@@ -56,6 +58,7 @@ const MINT_STATUS_MAP: Record<string, UseMintHypercertResult["status"]> = {
   submitting: "submitting",
   pending: "pending",
   registeringProposal: "registering_proposal",
+  awaitingRegistration: "registering_proposal",
   confirmed: "confirmed",
   failed: "failed",
 };
@@ -102,7 +105,8 @@ function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
 }
 
 export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMintHypercertResult {
-  const { smartAccountClient, authMode, smartAccountAddress, eoaAddress } = useAuth();
+  const { smartAccountClient, authMode, smartAccountAddress, eoaAddress, walletRestore } =
+    useAuth();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const setMintingState = useHypercertWizardStore((state) => state.setMintingState);
   const { formatMessage } = useIntl();
@@ -115,6 +119,14 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
   const eoaAddressRef = useRef(eoaAddress);
   const authModeRef = useRef(authMode);
   const chainIdRef = useRef(chainId);
+  const walletRestoreRef = useRef(walletRestore);
+  const smartAccountAddressRef = useRef(smartAccountAddress);
+  const mintScopeRef = useRef<string | null>(null);
+  const currentScope = useCallback(
+    () =>
+      `${authModeRef.current}:${chainIdRef.current}:${(smartAccountAddressRef.current ?? eoaAddressRef.current ?? "").toLowerCase()}`,
+    []
+  );
 
   useEffect(() => {
     smartAccountClientRef.current = smartAccountClient;
@@ -128,6 +140,10 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
   useEffect(() => {
     chainIdRef.current = chainId;
   }, [chainId]);
+  useEffect(() => {
+    walletRestoreRef.current = walletRestore;
+    smartAccountAddressRef.current = smartAccountAddress;
+  }, [walletRestore, smartAccountAddress]);
 
   const machine = useMemo(() => {
     const deps = { smartAccountClientRef, eoaAddressRef, authModeRef, chainIdRef };
@@ -141,17 +157,38 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
         uploadAllowlist: createUploadAllowlistActor(deps),
         buildAndSignUserOp: createBuildAndSignActor(deps),
         pollForReceipt: createPollForReceiptActor(deps),
-        registerInSignalPool: createRegisterInSignalPoolActor(deps),
+        registerInSignalPool: createRegisterInSignalPoolActor(deps, () => {
+          if (mintScopeRef.current !== currentScope())
+            throw new WalletReconnectRequiredError(false);
+          if (authModeRef.current === "wallet" && walletRestoreRef.current) refuseWithoutWallet();
+        }),
       },
       // XState's strict typing for provide() expects exact type matches for actors.
       // The runtime implementation is type-safe, but TypeScript cannot infer the
       // correct types through the provide() boundary. We use 'as unknown as typeof'
       // to maintain some type safety while satisfying the compiler.
-      // See: https://stately.ai/docs/actors#fromPromise
+      // See: https://stately.ai/docs/actors#frompromise
     } as unknown as typeof mintHypercertMachine.implementations);
-  }, []); // Machine created once — actors read current values from refs
+  }, [currentScope]); // Stable scope reader; actors read current values from refs.
 
   const [state, send] = useMachine(machine);
+  useEffect(() => {
+    if (
+      state.matches("awaitingRegistration") &&
+      mintScopeRef.current === currentScope() &&
+      !(authMode === "wallet" && walletRestore)
+    )
+      send({ type: "RETRY" });
+  }, [
+    state,
+    send,
+    authMode,
+    walletRestore,
+    smartAccountAddress,
+    eoaAddress,
+    chainId,
+    currentScope,
+  ]);
 
   // Track previous values to avoid redundant store writes
   const prevMintStateRef = useRef<string>("");
@@ -195,7 +232,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
           title: formatMessage({
             id: errorView.titleKey,
             defaultMessage:
-              errorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+              errorView.severity === "warning" ? "Transaction canceled" : "Transaction failed",
           }),
           message: displayMessage,
           context: "hypercert minting",
@@ -224,6 +261,10 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
     }
   }, [formatMessage, setMintingState, showErrorToast, state]);
 
+  const assertReadyToMint = useCallback(() => {
+    if (authMode === "wallet" && walletRestore) refuseWithoutWallet();
+  }, [authMode, walletRestore]);
+
   const mint = useCallback(
     async (params: {
       draft: HypercertDraft;
@@ -231,6 +272,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
       allowlist: AllowlistEntry[];
       metadata: HypercertMetadata;
     }) => {
+      assertReadyToMint();
       logger.debug("[useMintHypercert] mint() called", {
         gardenId: params.draft.gardenId,
         attestationCount: params.attestations.length,
@@ -302,6 +344,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
       });
 
       try {
+        mintScopeRef.current = currentScope();
         send({ type: "START_MINT", input });
         logger.debug("[useMintHypercert] START_MINT event sent successfully");
       } catch (err) {
@@ -312,7 +355,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
         throw err;
       }
     },
-    [send, smartAccountAddress]
+    [assertReadyToMint, send, smartAccountAddress, currentScope]
   );
 
   return {
@@ -327,7 +370,10 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
     poolRegistered: state.context.poolRegistered,
     signalPoolAddress: state.context.signalPoolAddress,
     mint,
-    retry: () => send({ type: "RETRY" }),
+    retry: () => {
+      if (!state.context.userOpHash || state.matches("awaitingRegistration")) assertReadyToMint();
+      send({ type: "RETRY" });
+    },
     cancel: () => send({ type: "CANCEL" }),
   };
 }

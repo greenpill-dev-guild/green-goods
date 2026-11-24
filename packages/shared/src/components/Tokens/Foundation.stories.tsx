@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { RiArrowRightLine, RiSearchLine } from "@remixicon/react";
-import { CardBase, CardContent, CardDescription, CardHeader, CardTitle } from "../Cards";
+import type { ReactNode } from "react";
 import { FormInput } from "../Form/FormInput";
 import { FormTextarea } from "../Form/FormTextarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Form/Select";
@@ -14,15 +14,32 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** A specimen panel on the one card surface (.gg-card). */
+function Panel({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="gg-card flex flex-col gap-4 p-6">
+      <header className="flex flex-col gap-1">
+        <h3 className="type-title-sm text-text-strong">{title}</h3>
+        <p className="type-meta text-text-sub">{description}</p>
+      </header>
+      {children}
+    </section>
+  );
+}
+
 export const ControlsAndChrome: Story = {
   render: () => (
     <div className="grid gap-6 lg:grid-cols-2">
-      <CardBase size="auto">
-        <CardHeader>
-          <CardTitle>Control Scale</CardTitle>
-          <CardDescription>Shared inputs, textarea, and select sizing.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+      <Panel title="Control Scale" description="Shared inputs, textarea, and select sizing.">
+        <div className="flex flex-col gap-4">
           <FormInput id="foundation-input-sm" label="Small input" placeholder="40px" />
           <FormInput id="foundation-input-md" label="Medium input" placeholder="44px" />
           <FormTextarea
@@ -38,15 +55,14 @@ export const ControlsAndChrome: Story = {
               <SelectItem value="shared">Shared foundation</SelectItem>
             </SelectContent>
           </Select>
-        </CardContent>
-      </CardBase>
+        </div>
+      </Panel>
 
-      <CardBase size="auto">
-        <CardHeader>
-          <CardTitle>Icon Buttons And Cards</CardTitle>
-          <CardDescription>Shared icon-button and card shell contract.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
+      <Panel
+        title="Icon Buttons And Cards"
+        description="Shared icon-button and card shell contract."
+      >
+        <div className="flex flex-col gap-5">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -68,15 +84,13 @@ export const ControlsAndChrome: Story = {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <CardBase size="sm">
-              <CardContent>Compact card spacing</CardContent>
-            </CardBase>
-            <CardBase size="md" interactive>
-              <CardContent>Interactive card shell</CardContent>
-            </CardBase>
+            <div className="gg-card p-2">Compact card spacing</div>
+            <button type="button" className="gg-card p-4 text-left">
+              Interactive card shell
+            </button>
           </div>
-        </CardContent>
-      </CardBase>
+        </div>
+      </Panel>
     </div>
   ),
 };

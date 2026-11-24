@@ -46,6 +46,12 @@ describe.each(["indexedDB", "storage"])("legacy migration via %s", (backend) => 
     const target = new QueryClient();
     await persistence.restore(target);
     keys.forEach((key) => expect(target.getQueryData(key)).toEqual([{ id: "cached" }]));
+    if (backend === "storage") expect(window.localStorage.getItem("__rq_pc__")).toBeNull();
+    // TEST-QUALITY: allow-local-query-setup - Restore into a fresh production-default client without reusing memory or the legacy source.
+    const reopened = new QueryClient();
+    await createQueryPersistence({ dbName: `migration-${suffix}` }).restore(reopened);
+    keys.forEach((key) => expect(reopened.getQueryData(key)).toEqual([{ id: "cached" }]));
+    reopened.clear();
     source.clear();
     target.clear();
     await persistence.clear();

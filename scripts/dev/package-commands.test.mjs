@@ -25,6 +25,11 @@ const clearMachine = async () => ({ status: "clear" });
 test("package test selections retain their actual scope", () => {
   const admin = resolve("admin", "test", ["--suite", "hub"]);
   assert.equal(ADMIN_HUB_TESTS.length, 13);
+  for (const path of ADMIN_HUB_TESTS) {
+    assert.ok(existsSync(new URL(`../../packages/admin/${path}`, import.meta.url)), path);
+  }
+  assert.ok(ADMIN_HUB_TESTS.includes("src/__tests__/routes/IndexRoute.test.tsx"));
+  assert.ok(ADMIN_HUB_TESTS.includes("src/__tests__/components/CanvasLayout.test.tsx"));
   assert.deepEqual(admin.steps[0].args.slice(3), ADMIN_HUB_TESTS);
   assert.equal(admin.steps[0].env.APP_ENV, "test");
   assert.ok(resolve("shared", "test").steps[0].args.includes("src/**/*.live.test.ts"));
@@ -70,7 +75,7 @@ test("indexer preserves codegen, full assertion, coverage reporter and integrati
   assert.deepEqual(covered.steps[0].args.slice(1, 6), ["c8", "--reporter", "text", "--reporter", "json"]);
   assert.deepEqual(covered.steps[0].env, {});
   const events = resolve("indexer", "test", ["--scope", "contract-events"]);
-  assert.ok(events.steps[0].args.includes("480000"));
+  assert.ok(events.steps[0].args.includes("780000"));
   assert.equal(events.steps[0].env.GG_RUN_LOCAL_CONTRACT_EVENT_INTEGRATION, "1");
 });
 

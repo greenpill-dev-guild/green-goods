@@ -3,11 +3,10 @@ import {
   calculateDistribution,
   sumUnits,
   validateAllowlist,
-  type DistributionMode,
+  type ContributorWeight,
 } from "../../../lib/hypercerts/distribution";
 import { TOTAL_UNITS } from "../../../lib/hypercerts/constants";
 import type { AllowlistEntry } from "../../../types/hypercerts";
-import type { ContributorWeight } from "../../../lib/hypercerts/distribution";
 
 // ============================================
 // Test Helpers
@@ -22,15 +21,6 @@ function createContributors(count: number): ContributorWeight[] {
   }));
 }
 
-function createAllowlistEntries(
-  addresses: string[],
-  units: bigint[]
-): AllowlistEntry[] {
-  return addresses.map((address, i) => ({
-    address: address as `0x${string}`,
-    units: units[i],
-  }));
-}
 
 // ============================================
 // sumUnits Tests

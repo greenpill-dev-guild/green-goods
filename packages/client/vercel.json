@@ -1,9 +1,17 @@
 {
   "ignoreCommand": "node ../../scripts/ops/vercel-ignore.mjs client",
-  "installCommand": "bun install --frozen-lockfile",
+  "installCommand": "cd ../.. && rm -rf node_modules packages/*/node_modules docs/node_modules && bun install --frozen-lockfile",
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "main": true,
+      "develop": true,
+      "alpha": true
+    }
+  },
   "routes": [
     {
       "src": "/assets/(.*)\\.map",
@@ -11,6 +19,16 @@
     }
   ],
   "headers": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "alpha.greengoods.app" }],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
     {
       "source": "/sw.js",
       "headers": [

@@ -2,8 +2,9 @@ import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-rep
 import { RiAttachment2, RiFileFill, RiFileTextFill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { FormCard } from "@/components/Cards";
-import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
+import { FormCard } from "@/components/Cards/Form/FormCard";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/Display/Carousel/Carousel";
+import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 
 type Resource = NonNullable<AgentReportingCeremony["resource"]>;
 type HeadingLevel = "h2" | "h3";

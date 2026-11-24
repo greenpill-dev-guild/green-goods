@@ -7,12 +7,17 @@
  * role never reaches the list, so the wallet is never asked to sign for nothing.
  */
 
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type {
+  AddMembersOutcome,
+  useAddMembersBatch,
+} from "@green-goods/shared/hooks/garden/useGardenOperations";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { renderWithProviders as render } from "../../test-utils";
 
 vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
@@ -56,9 +61,23 @@ vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
 }));
 
 vi.mock("@/components/EnsAddressText", () => ({
-  EnsAddressText: ({ address }: { address: string }) =>
-    createElement("span", { "data-testid": "staged-address" }, address.slice(0, 10)),
+  EnsAddressText: ({ address }: { address: string }) => createElement("span", null, address),
 }));
+
+// The staged list names each person through the shared address display; nobody here has
+// published a name, so each reads as a short address with the full one in its title.
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: null }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
+
+/** The staged person's name in the Add Members queue. */
+const stagedName = (address: Address) =>
+  within(screen.getByRole("group", { name: "Members to add" })).getByTitle(
+    new RegExp(`· ${address}$`)
+  );
 
 // Stub the confirm to a plain element. The real DiscardChangesDialog mounts the
 // Radix AdminConfirmDialog stack, whose portal content flickers out when opened
@@ -98,6 +117,54 @@ const NO_MEMBERS: Record<GardenRole, Address[]> = {
 // ADDRESS_A already gardens here.
 const WITH_GARDENER_A: Record<GardenRole, Address[]> = { ...NO_MEMBERS, gardener: [ADDRESS_A] };
 
+type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
+
+const SIGNER = "0xabcdef3333333333333333333333333333333333" as Address;
+const CHECKSUMMED_SIGNER = "0xABCDEF3333333333333333333333333333333333" as Address;
+const OTHER_SIGNER = "0x4444444444444444444444444444444444444444" as Address;
+const ROW_A = { address: ADDRESS_A, role: "gardener" as const };
+const ROW_B = { address: ADDRESS_B, role: "gardener" as const };
+const NOTHING: AddMembersOutcome = {
+  added: [],
+  alreadyHeld: [],
+  refused: [],
+  notSent: [],
+  notBatchable: [],
+  unknown: [],
+};
+const HOLD_ON_A = {
+  operationIds: ["held-add"],
+  rows: [ROW_A],
+  onChain: [{ ...ROW_A, wearsRole: true }],
+};
+
+function batchWith(overrides: Partial<AddMembersBatch> = {}): AddMembersBatch {
+  return {
+    account: SIGNER,
+    hold: null,
+    saved: [],
+    lastReadAt: 0,
+    isSettlingHold: false,
+    checkAgain: vi.fn(async () => undefined),
+    moveOn: vi.fn(async () => undefined),
+    available: true,
+    signaturesFor: (count) => Math.ceil(count / 10),
+    add: vi.fn<AddMembersBatch["add"]>(async () => NOTHING),
+    ...overrides,
+  };
+}
+
+async function stage(user: ReturnType<typeof userEvent.setup>, ...addresses: Address[]) {
+  const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+  for (const address of addresses) {
+    await user.click(input);
+    await user.paste(address);
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
+  }
+}
+
+const stagedList = () => within(screen.getByRole("group", { name: "Members to add" }));
+
 describe("components/Garden/AddMembersDialog", () => {
   const defaultProps = {
     open: true,
@@ -113,6 +180,100 @@ describe("components/Garden/AddMembersDialog", () => {
     mockUseGardenRoleHat.mockReturnValue({ wearsHat: undefined, isLoading: false, isError: false });
   });
 
+  it("requires an explicit additional role for the fixed member, then signs for that person", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <AddMembersDialog {...defaultProps} memberAddress={ADDRESS_A} roleMembers={WITH_GARDENER_A} />
+    );
+    expect(screen.getByRole("dialog", { name: "Add role" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Members to add" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Gardener" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add role" })).toBeDisabled();
+    fireEvent.submit(document.getElementById("admin-add-members-dialog")!);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    await waitFor(() => expect(defaultProps.onAdd).toHaveBeenCalledWith("steward", ADDRESS_A));
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a failed role add on the same person and role for retry", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onAdd = vi
+      .fn()
+      .mockResolvedValueOnce({ success: false })
+      .mockResolvedValueOnce({ success: true });
+    render(
+      <AddMembersDialog
+        {...defaultProps}
+        onAdd={onAdd}
+        memberAddress={ADDRESS_A}
+        roleMembers={WITH_GARDENER_A}
+      />
+    );
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    expect(await screen.findByText("Failed to add member")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Steward" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(2));
+    expect(onAdd.mock.calls).toEqual([
+      ["steward", ADDRESS_A],
+      ["steward", ADDRESS_A],
+    ]);
+  });
+
+  it("guards a chosen role when closing without saving", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <AddMembersDialog {...defaultProps} memberAddress={ADDRESS_A} roleMembers={WITH_GARDENER_A} />
+    );
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("clears a failed role choice when its recovery row is removed", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onAdd = vi.fn(async () => ({ success: false }));
+    render(
+      <AddMembersDialog
+        {...defaultProps}
+        onAdd={onAdd}
+        memberAddress={ADDRESS_A}
+        roleMembers={WITH_GARDENER_A}
+      />
+    );
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    await screen.findByText("Failed to add member");
+    await user.click(stagedList().getByRole("button", { name: "Remove" }));
+    expect(screen.getByRole("button", { name: "Add role" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Steward" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores only this member's unsettled role when a bulk attempt included other people", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      hold: { ...HOLD_ON_A, rows: [ROW_A, ROW_B] },
+      lastReadAt: 1,
+    });
+    const props = { ...defaultProps, memberAddress: ADDRESS_A, batch };
+    const { rerender } = render(<AddMembersDialog {...props} />);
+    expect(await stagedList().findAllByRole("listitem")).toHaveLength(1);
+    expect(screen.queryByText(ADDRESS_B)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Gardener Role" })).toBeDisabled();
+    // The recovery read unlocks this row. Retrying must never include the other person.
+    rerender(<AddMembersDialog {...props} batch={{ ...batch, hold: null, lastReadAt: 2 }} />);
+    await user.click(screen.getByRole("button", { name: "Add Gardener Role" }));
+    await waitFor(() => expect(batch.add).toHaveBeenCalled());
+    expect(vi.mocked(batch.add).mock.calls[0][0]).toEqual([ROW_A]);
+  });
+
   it("stages resolved addresses into the reserved list and clears the input", async () => {
     const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
@@ -120,10 +281,10 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("staged-address")).toHaveTextContent(ADDRESS_A.slice(0, 10));
+      expect(stagedName(ADDRESS_A)).toBeInTheDocument();
     });
     expect(input).toHaveValue("");
     // The staging region exists even before entries (reserved geometry).
@@ -137,7 +298,7 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await user.click(input);
     await user.paste(ADDRESS_B);
 
@@ -166,7 +327,7 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await user.click(input);
     await user.paste(ADDRESS_B);
     await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
@@ -176,7 +337,7 @@ describe("components/Garden/AddMembersDialog", () => {
       expect(screen.getByText("Failed to add member")).toBeInTheDocument();
     });
     expect(defaultProps.onClose).not.toHaveBeenCalled();
-    expect(screen.getByTestId("staged-address")).toHaveTextContent(ADDRESS_A.slice(0, 10));
+    expect(stagedName(ADDRESS_A)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeInTheDocument();
   });
 
@@ -202,8 +363,8 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.click(input);
     await user.paste("not-a-wallet");
 
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add to list" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
   });
 
@@ -216,7 +377,7 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.paste(ADDRESS_A);
 
     // Calm guidance, not an error: the address is fine, only this role is taken.
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add to list" })).toBeDisabled();
     expect(
       screen.getByText(/is already a Gardener\. Choose another role to add them\./)
     ).toBeInTheDocument();
@@ -224,7 +385,7 @@ describe("components/Garden/AddMembersDialog", () => {
 
     await user.selectOptions(screen.getByLabelText("Role"), "steward");
     expect(screen.getByText(/is currently a Gardener\./)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
 
     // The row names the role being added and the roles held today.
     const list = screen.getByRole("group", { name: "Members to add" });
@@ -250,7 +411,7 @@ describe("components/Garden/AddMembersDialog", () => {
       enabled: true,
     });
     expect(screen.queryByText(/is already a Gardener/)).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     // The staged row trusts the chain too: no "Currently a Gardener" beside Gardener.
     const list = screen.getByRole("group", { name: "Members to add" });
     expect(within(list).getByText("Gardener")).toBeInTheDocument();
@@ -274,7 +435,7 @@ describe("components/Garden/AddMembersDialog", () => {
     expect(mockUseGardenRoleHat).toHaveBeenLastCalledWith(GARDEN, ADDRESS_A, "gardener", {
       enabled: true,
     });
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add to list" })).toBeDisabled();
     expect(screen.getByText(/is already a Gardener/)).toBeInTheDocument();
   });
 
@@ -285,11 +446,11 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await user.selectOptions(screen.getByLabelText("Role"), "steward");
     await user.click(input);
     await user.paste(ADDRESS_B);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
 
     const list = screen.getByRole("group", { name: "Members to add" });
     expect(within(list).getByText("Gardener")).toBeInTheDocument();
@@ -309,11 +470,11 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await user.click(input);
     await user.paste(ADDRESS_A);
 
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add to list" })).toBeDisabled();
     expect(screen.getByText(/is already in the list as a Gardener\./)).toBeInTheDocument();
   });
 
@@ -342,9 +503,9 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await waitFor(() => {
-      expect(screen.getByTestId("staged-address")).toBeInTheDocument();
+      expect(stagedName(ADDRESS_A)).toBeInTheDocument();
     });
 
     // Closing via the dialog X raises the discard confirm instead of dropping
@@ -360,6 +521,330 @@ describe("components/Garden/AddMembersDialog", () => {
     await waitFor(() => {
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("says how many signatures a list takes, whichever way it goes", async () => {
+    const user = userEvent.setup({ delay: null });
+    const { rerender } = render(createElement(AddMembersDialog, defaultProps));
+    expect(screen.queryByText(/signature/)).not.toBeInTheDocument();
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    // A maximum: someone who has gained the role by then is skipped, with nothing to sign.
+    expect(screen.getByText("Up to 2 signatures")).toBeInTheDocument();
+
+    rerender(createElement(AddMembersDialog, { ...defaultProps, batch: batchWith() }));
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
+  });
+
+  it("adds a list through one call and closes once every row has landed", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith();
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(batch.add).mock.calls[0][0]).toEqual([ROW_A, ROW_B]);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("sends one person through the journal too, so another tab's hold can refuse it", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith();
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(batch.add).mock.calls[0][0]).toEqual([ROW_A]);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("asks before a list past its ceilings takes more signatures than it promised", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(
+      await screen.findByText(/can’t share one signature.*Press Add 2 Gardeners again/)
+    ).toBeInTheDocument();
+    expect(screen.getByText("Up to 2 signatures")).toBeInTheDocument();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+    await waitFor(() => expect(defaultProps.onAdd).toHaveBeenCalledTimes(2));
+    expect(batch.add).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it("gives a changed list another try under one signature", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+    expect(await screen.findByText("Up to 2 signatures")).toBeInTheDocument();
+
+    // A typed person changes the list too, without being staged first.
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste("0x5555555555555555555555555555555555555555");
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
+    expect(screen.queryByText(/can’t share one signature/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 3 Gardeners" }));
+
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(batch.add).mock.calls[1][0]).toHaveLength(3);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("drops the past-ceilings note once a row is removed, so it never names a stale button", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+    expect(await screen.findByText(/Press Add 2 Gardeners again/)).toBeInTheDocument();
+
+    await user.click(stagedList().getAllByRole("button", { name: "Remove" })[0]);
+
+    expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeInTheDocument();
+    expect(screen.queryByText(/can’t share one signature/)).not.toBeInTheDocument();
+  });
+
+  it("removes only the row pressed when a person has two", async () => {
+    const user = userEvent.setup({ delay: null });
+    const rows = [ROW_A, { address: ADDRESS_A, role: "steward" as const }];
+    const held = { operationIds: ["held-add"], rows, onChain: [] };
+    const { rerender } = render(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ hold: held, lastReadAt: 1 }),
+      })
+    );
+    await waitFor(() => expect(stagedList().getAllByRole("listitem")).toHaveLength(2));
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ hold: null, lastReadAt: 2 }),
+      })
+    );
+    await waitFor(() =>
+      expect(stagedList().getAllByRole("button", { name: "Remove" })[0]).toBeEnabled()
+    );
+    await user.click(stagedList().getAllByRole("button", { name: "Remove" })[0]);
+
+    const left = stagedList().getAllByRole("listitem");
+    expect(left).toHaveLength(1);
+    expect(within(left[0]).getByText("Steward")).toBeInTheDocument();
+  });
+
+  it("says why a list stopped before anything went out", async () => {
+    const user = userEvent.setup({ delay: null });
+    const failure = new Error("NotGardenOwner");
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notSent: [ROW_A, ROW_B], failure })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(parseAndFormatError(failure).message)).toBeInTheDocument();
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(stagedList().getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("leaves another account's unsettled rows behind", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({ hold: HOLD_ON_A, lastReadAt: 1 });
+    const { rerender } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+    expect(await screen.findByText("Not confirmed yet · On chain now")).toBeInTheDocument();
+    await stage(user, ADDRESS_B);
+
+    // A wallet dropping and coming back is the same person, so the draft stays.
+    rerender(
+      createElement(AddMembersDialog, { ...defaultProps, batch: batchWith({ account: null }) })
+    );
+    // Wallets can report one address in different casings.
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ account: CHECKSUMMED_SIGNER }),
+      })
+    );
+    expect(stagedList().getAllByRole("listitem")).toHaveLength(2);
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ account: OTHER_SIGNER }),
+      })
+    );
+    await waitFor(() => expect(stagedList().queryAllByRole("listitem")).toHaveLength(0));
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
+  });
+
+  it("keeps a refused row's reason, and sends the rest only once the person changes the list", async () => {
+    const user = userEvent.setup({ delay: null });
+    const reason = "This person can't hold this role";
+    const batch = batchWith({
+      add: vi
+        .fn<AddMembersBatch["add"]>(async () => NOTHING)
+        .mockResolvedValueOnce({
+          ...NOTHING,
+          refused: [{ ...ROW_A, reason }],
+          notSent: [ROW_B],
+        }),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(reason)).toBeInTheDocument();
+    expect(screen.getByText(/We can’t add 1 person, so nothing was sent/)).toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+
+    await user.click(stagedList().getAllByRole("button", { name: "Remove" })[0]);
+    expect(screen.queryByText(reason)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(batch.add).mock.calls[1][0]).toEqual([ROW_B]);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("names what else stopped a send, rather than promising the rest once a refused row goes", async () => {
+    const user = userEvent.setup({ delay: null });
+    const reason = "This person can't hold this role";
+    const batch = batchWith({
+      add: vi.fn<AddMembersBatch["add"]>(async () => ({
+        ...NOTHING,
+        refused: [{ ...ROW_A, reason }],
+        notSent: [ROW_B],
+        failure: new Error("The whole call reverts"),
+      })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(reason)).toBeInTheDocument();
+    expect(screen.getByText("Failed to add member")).toBeInTheDocument();
+    expect(screen.queryByText(/Remove them to add the rest/)).not.toBeInTheDocument();
+  });
+
+  it("stays open with an unknown add, and takes off the rows that did land", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async (_rows, onLanded) => {
+        onLanded?.([ROW_A]);
+        return {
+          ...NOTHING,
+          added: [{ ...ROW_A, transactionHash: `0x${"ab".repeat(32)}` as const }],
+          unknown: [ROW_B],
+        };
+      }),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    await waitFor(() => expect(stagedName(ADDRESS_B)).toBeInTheDocument());
+    await waitFor(() => expect(stagedList().getAllByRole("listitem")).toHaveLength(1));
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+  });
+
+  it("locks a held row and leaves it out of the send, until a read or moving on settles it", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({ hold: HOLD_ON_A, lastReadAt: 1 });
+    const { rerender } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    expect(await screen.findByText("Not confirmed yet · On chain now")).toBeInTheDocument();
+    expect(stagedList().getByRole("button", { name: "Remove" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Move On" }));
+    expect(batch.moveOn).toHaveBeenCalledTimes(1);
+
+    // Held rows hold no unsaved input of the person's, and the draft can't drop them.
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
+    expect(stagedName(ADDRESS_A)).toBeInTheDocument();
+
+    // Others can still go, without the held row.
+    await stage(user, ADDRESS_B);
+    expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeEnabled();
+
+    // Moved on, unproven: the row is the person's again.
+    const movedOn = { ...batch, hold: null, lastReadAt: 2 };
+    rerender(createElement(AddMembersDialog, { ...defaultProps, batch: movedOn }));
+    await waitFor(() =>
+      expect(stagedList().getAllByRole("button", { name: "Remove" })[0]).toBeEnabled()
+    );
+    expect(screen.getByRole("button", { name: "Add 2 Gardeners" })).toBeEnabled();
+
+    // A later read proved it landed: it leaves the list.
+    const landed = { ...batch, hold: null, saved: [ROW_A], lastReadAt: 3 };
+    rerender(createElement(AddMembersDialog, { ...defaultProps, batch: landed }));
+    await waitFor(() => expect(stagedList().getAllByRole("listitem")).toHaveLength(1));
+  });
+
+  it("leaves a send's result behind when the account changed while it ran", async () => {
+    const user = userEvent.setup({ delay: null });
+    let finish: (outcome: AddMembersOutcome) => void = () => undefined;
+    const batch = batchWith({
+      add: vi.fn(
+        () =>
+          new Promise<AddMembersOutcome>((resolve) => {
+            finish = resolve;
+          })
+      ),
+    });
+    const { rerender } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: { ...batch, account: OTHER_SIGNER },
+      })
+    );
+    await waitFor(() => expect(stagedList().queryAllByRole("listitem")).toHaveLength(0));
+
+    await act(async () => finish({ ...NOTHING, notSent: [ROW_A, ROW_B] }));
+
+    expect(stagedList().queryAllByRole("listitem")).toHaveLength(0);
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+  });
+
+  it("waits for the chain before it lets anyone send", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({ isSettlingHold: true });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A);
+    expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeDisabled();
   });
 
   it("lets the footer Cancel exit directly without a discard confirm", async () => {

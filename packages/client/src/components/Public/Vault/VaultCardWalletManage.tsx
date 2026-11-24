@@ -167,7 +167,7 @@ function CardOwnerPositions({
     <p className="rounded-none bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
       {formatMessage({
         id: "public.vaults.manage.card.readOnly",
-        defaultMessage: "View only. Restore your email recovery wallet to redeem.",
+        defaultMessage: "View only. Restore your email recovery wallet to withdraw.",
       })}
     </p>
   );
@@ -301,7 +301,7 @@ function CardVaultPositionRow({
             throw new Error(
               formatMessage({
                 id: "public.vaults.manage.withdraw.exceeds",
-                defaultMessage: "Enter an amount no higher than what is redeemable now.",
+                defaultMessage: "Enter an amount no higher than what you can withdraw now.",
               })
             );
           }
@@ -315,7 +315,7 @@ function CardVaultPositionRow({
               : formatMessage({
                   id: "public.vaults.manage.withdraw.error",
                   defaultMessage:
-                    "Redemption could not be completed. Review the wallet message and try again.",
+                    "Withdrawal could not be completed. Review the wallet message and try again.",
                 })
           );
           throw caught;
@@ -590,14 +590,14 @@ function RestoreEmailWallet({
       <h3 className="font-serif text-lg font-normal text-text-strong-950">
         {formatMessage({
           id: "public.vaults.manage.card.restoreTitle",
-          defaultMessage: "Restore access to redeem",
+          defaultMessage: "Restore access to withdraw",
         })}
       </h3>
       <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
         {formatMessage({
           id: "public.vaults.manage.card.restoreBody",
           defaultMessage:
-            "To redeem this endowment, restore the email you used during card checkout.",
+            "To withdraw this endowment, restore the email you used during card checkout.",
         })}
       </p>
 

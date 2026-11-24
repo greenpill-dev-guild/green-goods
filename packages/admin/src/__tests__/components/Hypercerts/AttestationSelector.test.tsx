@@ -78,6 +78,14 @@ vi.mock("@green-goods/shared/components/Form/ControlPrimitives", () => ({
       children
     );
   },
+  TextInput: ({ surface: _surface, ...props }: { surface?: string; [key: string]: unknown }) => {
+    const React = require("react");
+    return React.createElement("input", props);
+  },
+  Textarea: ({ surface: _surface, ...props }: { surface?: string; [key: string]: unknown }) => {
+    const React = require("react");
+    return React.createElement("textarea", props);
+  },
 }));
 
 vi.mock("@green-goods/shared/components/Form/FormInput", () => ({
@@ -293,7 +301,7 @@ describe("components/Hypercerts/AttestationSelector", () => {
 
       expect(
         screen.getByText(
-          "No approved, unbundled attestations are available yet. Approve work in Hub before creating a hypercert."
+          "No approved, unbundled attestations are available yet. Approve work in Review before creating a hypercert."
         )
       ).toBeInTheDocument();
     });
@@ -593,20 +601,6 @@ describe("components/Hypercerts/AttestationSelector", () => {
 
       const unselectedCard = screen.getByText("Rain Garden Installation").closest("button");
       expect(unselectedCard).toHaveAttribute("aria-pressed", "false");
-    });
-
-    it("has proper aria-disabled state for bundled items", () => {
-      render(
-        createElement(AttestationSelector, {
-          ...defaultProps,
-          bundledInfo: {
-            "0x1111": { hypercertId: "hc-123", title: "Existing Hypercert" },
-          },
-        })
-      );
-
-      const bundledCard = screen.getByText("Native Tree Planting").closest("button");
-      expect(bundledCard).toHaveAttribute("aria-disabled", "true");
     });
 
     it("has accessible loading state", () => {

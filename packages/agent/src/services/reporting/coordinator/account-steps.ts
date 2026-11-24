@@ -4,9 +4,11 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Address } from "@green-goods/shared/types/domain";
 import { pairFromChat } from "../channel-pairing";
-import { issueContinuation } from "../continuations";
+import { issueContinuation, revokeOpenRequests } from "../continuations";
+import { forgetGoal, type PendingGoal, pendingGoal } from "../dialogue-goal";
 import { commitDraft, type DraftRecord } from "../drafts";
 import { gardenScope, isUnlisted, type ReportingGarden } from "../gardens";
+import { retireUnusedGrants } from "../grants-store";
 import { enqueueJob } from "../jobs";
 import { conversationRealm } from "../notify";
 import { upsertOperation } from "../operations";
@@ -19,6 +21,7 @@ import { commitLifecycle, lifecycleState } from "./draft-commit";
 import { askGarden } from "./garden-step";
 import { askConfirmation } from "./prompting";
 import { recordDraftConfirmation } from "./report-commands";
+import { listWorkToReview } from "./review-steps";
 import {
   apply,
   finish,
@@ -132,6 +135,16 @@ export function requestConnection(writer: TurnWriter, named: Address | null): vo
   if (hadAccount(writer, ctx.binding.participantId)) writer.say("link.otherAccountHint");
 }
 
+/**
+ * `ACCOUNT` says which account this chat reports as and which gardens it is in, or that none is
+ * linked yet. Unlike CONNECT it never sends a verification link: it only shows where things stand.
+ */
+export function describeAccount(writer: TurnWriter): void {
+  const linked = writer.ctx.account?.address;
+  if (!linked) return writer.say("link.notLinked");
+  writer.sayWithAccount("link.already", { gardens: linkedGardens(writer, linked) }, linked);
+}
+
 /** Whether this chat's person was linked to an account before, which they have since let go. */
 function hadAccount(writer: TurnWriter, participantId: string): boolean {
   return (
@@ -152,6 +165,8 @@ const ACCOUNT_PROMPTS = new Set([
   "join_community",
   "grant_choice",
   "connect_offer",
+  // The last report it offers is this account's; another account must never take it.
+  "suggest_last",
 ]);
 
 /**
@@ -203,6 +218,9 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
   revokeParticipantSessions(core, binding.participantId);
   endRecognition(core, binding.participantId);
   const gardenQuestion = ctx.prompt?.kind === "select_garden";
+  // An offer of this account's last garden is closed below; a report still without a garden is
+  // asked for one again.
+  const offered = ctx.prompt?.kind === "suggest_last" && !ctx.draft?.content.garden;
   // A garden question listed this account's gardens. The account that is linked next gets its own
   // list when it pairs, so until then the question is closed and not left to be answered.
   if (ctx.prompt && (ACCOUNT_PROMPTS.has(ctx.prompt.kind) || (gardenQuestion && thenConnect)))
@@ -214,7 +232,7 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
   // be pressed for a publication from an account that summary never named.
   if (ctx.draft && ctx.prompt?.kind === "confirm_report") askConfirmation(writer, ctx.draft, null);
   // A chat that stays without an account chooses from every garden again.
-  if (ctx.draft && gardenQuestion && !thenConnect) askGarden(writer, ctx.draft, null);
+  if (ctx.draft && (gardenQuestion || offered) && !thenConnect) askGarden(writer, ctx.draft, null);
   if (thenConnect) requestConnection(writer, null);
 }
 
@@ -253,6 +271,18 @@ function resumeUnderAccount(writer: TurnWriter, draft: DraftRecord, external: Tu
 }
 
 /**
+ * What the chat was asked for before its account was linked carries on once it is: a steward who
+ * asked to review is shown the work waiting, without asking again. An open report keeps the
+ * conversation, so the goal is dropped and REVIEW asks for the list when the steward wants it.
+ */
+function resumeGoal(writer: TurnWriter, goal: PendingGoal | null): void {
+  const { core, ctx } = writer;
+  if (goal !== "review" || !ctx.binding || !ctx.account) return;
+  if (ctx.draft) return forgetGoal(core, ctx.conversationId);
+  listWorkToReview(writer, ctx.binding.participantId);
+}
+
+/**
  * Linking and publication consent in chat. Pairing completes only when the code shown in the
  * verifying browser arrives from this chat. A confirmation made before the account was linked is
  * replaced by a new one that names the account, recorded with publication consent for that digest.
@@ -260,6 +290,13 @@ function resumeUnderAccount(writer: TurnWriter, draft: DraftRecord, external: Tu
 export function handlePairing(writer: TurnWriter, code: string, external: TurnExternal): void {
   const { core, ctx } = writer;
   if (!ctx.binding) return writer.say("link.pairFailed");
+  // Read as the chat stood when it asked: pairing may join it to a person known from another
+  // channel, and the goal belongs to the one who set it here.
+  const goal = pendingGoal(core, {
+    conversationId: ctx.conversationId,
+    participantId: ctx.binding.participantId,
+    identityEpoch: ctx.binding.identityEpoch,
+  });
   const result = pairFromChat(core, ctx.subjectId, ctx.binding.participantId, code);
   if (result.status === "no_match") return writer.say("link.pairFailed");
   if (result.status === "account_taken") return writer.say("link.accountTaken");
@@ -279,6 +316,7 @@ export function handlePairing(writer: TurnWriter, code: string, external: TurnEx
   // summary is put again naming the account, so what is confirmed next is the publication as it
   // will be made.
   if (draft && ctx.account) resumeUnderAccount(writer, draft, external);
+  resumeGoal(writer, goal);
   if (draft && lifecycleState(draft) === "authority") {
     enqueueJob(core, {
       kind: "resolve_authority",
@@ -343,6 +381,21 @@ export function answerGrantChoice(writer: TurnWriter, choice: string): void {
     return writer.say("report.noStatus");
   }
   if (ctx.prompt) resolvePrompt(core, ctx.prompt.id);
+  // Either answer replaces an earlier permission page: "this report only" must not leave it able to
+  // install its permission, and a new page proposes its own. Its link is retired, so a proposal
+  // it still has in flight is refused, and a permission it proposed that nobody authorized ends.
+  revokeOpenRequests(core, {
+    purpose: "grant_reporting",
+    resourceKind: "grant",
+    resourceId: draft.id,
+    subjectId: ctx.subjectId,
+  });
+  retireUnusedGrants(core, {
+    accountBindingId: account.id,
+    purpose: "reporting",
+    chainId: draft.content.garden.chainId,
+    gardenAddress: draft.content.garden.address,
+  });
   if (choice === "once") {
     const { draft: preparing } = commitLifecycle(core, draft, [{ type: "SIGN_ONCE_CHOSEN" }], {
       participantAction: true,

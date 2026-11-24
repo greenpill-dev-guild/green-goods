@@ -4,15 +4,19 @@ import {
   resolveAccountFactoryArgs,
 } from "../../modules/auth/account-message-signer";
 import type { Address } from "../../types/domain";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 
 const address = "0x1234567890abcdef1234567890abcdef12345678" as Address;
 
 describe("account message signing", () => {
-  it("fails without falling back to another wallet when the passkey signer is missing", async () => {
+  it("fails without falling back to another wallet when the smart account signer is missing", async () => {
     const signMessage = vi.fn();
     await expect(
       createAccountMessageSigner({ authMode: "passkey", signMessage })("message")
     ).rejects.toThrow("Reconnect your passkey account");
+    await expect(
+      createAccountMessageSigner({ authMode: "openfort", signMessage })("message")
+    ).rejects.toThrow("Sign in with your email again");
     expect(signMessage).not.toHaveBeenCalled();
   });
 
@@ -36,6 +40,17 @@ describe("account message signing", () => {
     const account = { getFactoryArgs: vi.fn().mockResolvedValue({ factoryData: "0x1234" }) };
     await expect(resolveAccountFactoryArgs(account, { factory: address })).resolves.toBeUndefined();
     await expect(resolveAccountFactoryArgs()).resolves.toBeUndefined();
+  });
+
+  // PRD-1499: the App opens on a remembered wallet account before its wallet answers.
+  it("asks a wallet account to reconnect instead of signing while its wallet has not answered", async () => {
+    const signMessage = vi.fn().mockResolvedValue("0xwallet");
+    await expect(
+      createAccountMessageSigner({ authMode: "wallet", walletRestore: "failed", signMessage })(
+        "message"
+      )
+    ).rejects.toBeInstanceOf(WalletReconnectRequiredError);
+    expect(signMessage).not.toHaveBeenCalled();
   });
 
   it("uses the wagmi signer for wallet and embedded accounts", async () => {

@@ -12,7 +12,7 @@ import { FormattedMessage } from "react-intl";
  */
 export function CommitmentPeople({
   commitment,
-  className = "body-xs",
+  className = "type-meta",
 }: {
   commitment: Pick<CommitmentReadModel, "direction" | "creator" | "counterparty" | "leadProvider">;
   className?: string;
@@ -26,7 +26,7 @@ export function CommitmentPeople({
   if (provider && receiver && provider !== receiver) {
     return (
       <FormattedMessage
-        id="cockpit.garden.pool.row.people"
+        id="hub.garden.pool.row.people"
         defaultMessage="{provider} for {receiver}"
         values={{
           provider: <AddressDisplay address={provider} interactive={false} className={className} />,

@@ -29,7 +29,7 @@ export interface ImagePreviewDialogProps {
   filenames?: string[];
   /**
    * Control chrome. `app` (default) is the installed-PWA dialect: the shared
-   * `IconButton` circles (the surface's md size: 44px in the app, the cockpit's
+   * `IconButton` circles (the surface's md size: 44px in the app, the Hub's
    * 40px in admin; DL-031) with the translucent viewer palette from
    * utilities.css. `editorial` matches the public website's record drawer —
    * hairline pills with mono uppercase labels. The two surface identities are
@@ -75,6 +75,7 @@ function ViewerControl({
   }
   return (
     <IconButton
+      data-piece-control
       onClick={onClick}
       emphasis="secondary"
       data-slot="control"
@@ -172,9 +173,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
-        case "Escape":
-          onClose();
-          break;
         case "ArrowLeft":
           navigatePrev();
           break;
@@ -320,6 +318,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
           data-testid="image-preview-dialog"
         />
         <Dialog.Content
+          onEscapeKeyDown={(event) => event.stopPropagation()}
           data-component="ImagePreviewDialog"
           data-slot="content"
           data-variant={variant}
@@ -388,6 +387,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                       </button>
                     ) : (
                       <IconButton
+                        data-piece-control
                         emphasis="secondary"
                         data-slot="control"
                         aria-label={resolvedLabels.closePreview}

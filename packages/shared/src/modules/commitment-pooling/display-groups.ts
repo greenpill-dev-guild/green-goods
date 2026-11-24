@@ -11,7 +11,9 @@
  *   match too. The same words with a different deadline, reward rail, claim
  *   mode, cycle or creator never become one entry.
  * - The reward amount is left out of the terms, because Edit Reward changes it
- *   on the copies nobody has taken; the group stays one row (D14).
+ *   on the copies nobody has taken; the group stays one row (D14). So is the
+ *   confirmer rule among copies made together, for Edit Confirmers. Copies made
+ *   apart still need the same confirmers to fold.
  * - Counts come from published records only. What a steward meant to create
  *   is never shown as something to take up.
  * - A record whose metadata is missing, unreadable or of a later version is an
@@ -133,6 +135,23 @@ function countDisplayGroup(children: readonly GroupableCommitment[]): DisplayGro
   return counts;
 }
 
+/** Whether this build can read a record's words, which copies are compared by. */
+function hasReadableWords(metadata: CommitmentMetadataV1): boolean {
+  return (
+    metadata.version === 1 &&
+    typeof metadata.title === "string" &&
+    (metadata.note === undefined || typeof metadata.note === "string") &&
+    (metadata.links === undefined ||
+      (Array.isArray(metadata.links) &&
+        metadata.links.every(
+          (link) =>
+            link &&
+            typeof link.url === "string" &&
+            (link.label === undefined || typeof link.label === "string")
+        )))
+  );
+}
+
 /** The display group a record's metadata names, or null when it names none this build can read. */
 function displayGroupIdOf(
   record: Pick<GroupableCommitment, "metadataCID">,
@@ -142,17 +161,7 @@ function displayGroupIdOf(
   const metadata = metadataByCID.get(record.metadataCID.trim());
   if (
     !metadata ||
-    metadata.version !== 1 ||
-    typeof metadata.title !== "string" ||
-    (metadata.note !== undefined && typeof metadata.note !== "string") ||
-    (metadata.links !== undefined &&
-      (!Array.isArray(metadata.links) ||
-        !metadata.links.every(
-          (link) =>
-            link &&
-            typeof link.url === "string" &&
-            (link.label === undefined || typeof link.label === "string")
-        ))) ||
+    !hasReadableWords(metadata) ||
     metadata.displayGroup?.version !== 1 ||
     typeof metadata.displayGroup.id !== "string"
   )
@@ -222,10 +231,18 @@ export function hasKnownDisplayTerms(
 /**
  * The terms that make two copies the same promise to someone taking one up.
  * The reward amount is not among them (Edit Reward), and neither is anything
- * that changes as a copy is taken up or kept.
+ * that changes as a copy is taken up or kept. The confirmer rule is, unless the
+ * copies were made together: Edit Confirmers changes it on the copies nobody
+ * has taken, and their group stays one row.
  */
-function materialTermsKey(record: GroupableCommitment, metadata: CommitmentMetadataV1): string {
-  const confirmers = [...(record.confirmers ?? [])].map((a) => a.toLowerCase()).sort();
+function materialTermsKey(
+  record: GroupableCommitment,
+  metadata: Pick<CommitmentMetadataV1, "title" | "note" | "links">,
+  options: { confirmerRule: boolean }
+): string {
+  const confirmers = options.confirmerRule
+    ? [...(record.confirmers ?? [])].map((a) => a.toLowerCase()).sort()
+    : [];
   return JSON.stringify(
     [
       metadata.title,
@@ -252,7 +269,7 @@ function materialTermsKey(record: GroupableCommitment, metadata: CommitmentMetad
       record.dueDate,
       record.requiresAssessment,
       confirmers.join(","),
-      record.confirmationThreshold,
+      options.confirmerRule ? record.confirmationThreshold : null,
       record.protocolFallbackEnabled,
       record.considerationRail,
       record.considerationSource?.toLowerCase(),
@@ -263,6 +280,29 @@ function materialTermsKey(record: GroupableCommitment, metadata: CommitmentMetad
       record.declaredValueBasis,
     ].map(text)
   );
+}
+
+/**
+ * What an open record shares with its identical copies, or null when it has its own row.
+ *
+ * Copies made apart have no group id between them, so a list goes by this instead (DL-150):
+ * the same state and the same words and material terms, confirmers included, though copies
+ * made together leave those out so an edited group stays one row.
+ * Once one is taken up it is nobody's copy. Words not read yet are still one document under
+ * one CID, so those copies fold under it; words this build can't read stay an ordinary row.
+ */
+export function identicalOpenCopyKey(
+  record: GroupableCommitment,
+  metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>
+): string | null {
+  if (displayBucketOf(record.onchainState) !== "available") return null;
+  if (!hasKnownDisplayTerms(record) || !isResolvableMetadataCID(record.metadataCID)) return null;
+  const cid = record.metadataCID.trim();
+  const metadata = metadataByCID.get(cid);
+  if (metadata && !hasReadableWords(metadata)) return null;
+  return `${record.onchainState}|${materialTermsKey(record, metadata ?? { title: cid }, {
+    confirmerRule: true,
+  })}`;
 }
 
 /**
@@ -284,7 +324,7 @@ export function groupCommitmentsForDisplay<T extends GroupableCommitment>(input:
       order.push({ single: record });
       continue;
     }
-    const key = `${displayGroupId}|${materialTermsKey(record, input.metadataByCID.get(record.metadataCID!.trim())!)}`;
+    const key = `${displayGroupId}|${materialTermsKey(record, input.metadataByCID.get(record.metadataCID!.trim())!, { confirmerRule: false })}`;
     const existing = groups.get(key);
     if (existing) {
       existing.children.push(record);
@@ -310,6 +350,39 @@ export function groupCommitmentsForDisplay<T extends GroupableCommitment>(input:
 }
 
 /**
+ * Whether a promise's reward and confirmers change from its group's inspector rather than its
+ * own (PRD-1548). Words that name a group are not enough: a group shows only with two published
+ * copies, so a copy whose siblings were abandoned lists as an ordinary promise and is edited
+ * there. While the group still has copies queued to send it keeps both edits, as its group row
+ * does. It answers from the pool's list, as the list shows it: a copy read on its own lacks the
+ * terms the list folds by. Null while the list or its words are still being read, or until the
+ * list has the copy.
+ */
+export function editsTermsFromGroup<T extends GroupableCommitment & { id: string }>(
+  record: T,
+  input: {
+    /** The group the promise's own words name, if any. */
+    groupId: string | null | undefined;
+    /** The pool's promises, or null while they are being read. */
+    commitments: readonly T[] | null;
+    metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>;
+    /** No word in the pool is still being read; one that failed lists on its own, as here. */
+    wordsSettled: boolean;
+    queuedCopies: number;
+  }
+): boolean | null {
+  if (!input.groupId) return false;
+  if (input.queuedCopies > 0) return true;
+  if (!input.commitments?.some((row) => row.id === record.id)) return null;
+  const shownInGroup = groupCommitmentsForDisplay({
+    commitments: input.commitments,
+    metadataByCID: input.metadataByCID,
+  }).some((entry) => entry.kind === "group" && entry.children.some((row) => row.id === record.id));
+  if (shownInGroup) return true;
+  return input.wordsSettled ? false : null;
+}
+
+/**
  * Edit Reward, for a group or a single commitment (D14): open until one copy is
  * kept, and it changes only the copies nobody has taken, because the contract
  * locks a reward at take-up. A copy still waiting to be created keeps the
@@ -322,6 +395,22 @@ export function selectRewardEdit<T extends Pick<GroupableCommitment, "onchainSta
   if (children.some((child) => child.onchainState === "FULFILLED")) {
     return { open: false, reason: "kept" };
   }
+  if ((options.unsent ?? 0) > 0) return { open: false, reason: "unsent" };
+  const targets = children.filter((child) => displayBucketOf(child.onchainState) === "available");
+  return targets.length > 0 ? { open: true, targets } : { open: false, reason: "none-available" };
+}
+
+/**
+ * Edit Confirmers, for a group or a single commitment: it changes only the
+ * copies nobody has taken, because the contract fixes the confirmer rule at
+ * take-up, and stays open while any copy is still available, kept ones or not.
+ * A copy still waiting to be created carries the rule it was frozen with, so
+ * the edit waits until none is left.
+ */
+export function selectConfirmerEdit<T extends Pick<GroupableCommitment, "onchainState">>(
+  children: readonly T[],
+  options: { unsent?: number } = {}
+): { open: true; targets: T[] } | { open: false; reason: "unsent" | "none-available" } {
   if ((options.unsent ?? 0) > 0) return { open: false, reason: "unsent" };
   const targets = children.filter((child) => displayBucketOf(child.onchainState) === "available");
   return targets.length > 0 ? { open: true, targets } : { open: false, reason: "none-available" };

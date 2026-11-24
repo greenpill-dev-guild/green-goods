@@ -10,7 +10,11 @@
  * nothing.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { webcrypto } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { uploadConsent } from "./test-utils/upload-policy";
+import { bytesOf, cameraPhoto, cleanPhoto, photoFile } from "./test-utils/photo-fixtures";
+import { parseCommitmentEvidenceDocument } from "../modules/commitment-pooling/evidence";
 
 const store = new Map<string, Record<string, unknown>>();
 const images = new Map<string, Array<{ id: string; file: File; url: string }>>();
@@ -79,7 +83,9 @@ function job(overrides: Record<string, unknown> = {}) {
     kind: "evidence",
     userAddress: HOLDER,
     meta: {},
+    ...overrides,
     payload: {
+      uploadConsent: uploadConsent(HOLDER),
       clientEvidenceId: "proof-1",
       commitmentId: 9n,
       creditedContributors: [HOLDER],
@@ -88,11 +94,10 @@ function job(overrides: Record<string, unknown> = {}) {
       links: ["https://example.org/before"],
       ...(overrides.payload as object),
     },
-    ...overrides,
   } as never;
 }
 
-const photo = new File(["jpeg-bytes"], "beds.jpg", { type: "image/jpeg" });
+const photo = photoFile(cleanPhoto("image/jpeg", { label: "beds" }), "beds.jpg", "image/jpeg");
 const voice = new File(["webm-bytes"], "note.webm", { type: "audio/webm" });
 
 describe("publishing proof at sync", () => {
@@ -102,21 +107,59 @@ describe("publishing proof at sync", () => {
     images.clear();
     mocks.executeCommitmentJob.mockResolvedValue({ status: "sent", txHash: "0xabc" });
     mocks.convertQueuedHeicMedia.mockResolvedValue({ status: "ready" });
+    // Photos are binary, so they are hashed with real WebCrypto, not the setup's text-only stand-in.
+    vi.stubGlobal("crypto", { ...crypto, subtle: webcrypto.subtle });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each([
+    ["missing", undefined],
+    ["stale", { ...uploadConsent(HOLDER), policyVersion: "2025-01-01" }],
+    ["another account's", uploadConsent(GARDEN)],
+  ])("holds proof with %s consent before processing files or publishing", async (_label, consent) => {
+    const result = await executeCommitmentQueueJob(
+      "job-evidence",
+      job({ payload: { uploadConsent: consent } }),
+      42161,
+      {} as never
+    );
+
+    expect(result).toEqual({ status: "unavailable", reason: "upload-policy-required" });
+    expect(mocks.convertQueuedHeicMedia).not.toHaveBeenCalled();
+    expect(mocks.uploadFileToIPFS).not.toHaveBeenCalled();
+    expect(mocks.uploadJSONToIPFS).not.toHaveBeenCalled();
+    expect(mocks.executeCommitmentJob).not.toHaveBeenCalled();
   });
 
   it("uploads the media, pins the document, writes the CID back, then attaches", async () => {
+    const picked = photoFile(
+      cameraPhoto("image/jpeg", { label: "beds" }),
+      "beds.jpg",
+      "image/jpeg"
+    );
+    const certificate = new File(["%PDF-1.7"], "Repair certificate.pdf", {
+      type: "application/pdf",
+    });
     images.set("job-evidence", [
-      { id: "img-1", file: photo, url: "blob:photo" },
+      { id: "img-1", file: picked, url: "blob:photo" },
       { id: "img-2", file: voice, url: "blob:voice" },
+      { id: "img-3", file: certificate, url: "blob:certificate" },
     ]);
     mocks.uploadFileToIPFS
       .mockResolvedValueOnce({ cid: "bafy-photo" })
-      .mockResolvedValueOnce({ cid: "bafy-voice" });
+      .mockResolvedValueOnce({ cid: "bafy-voice" })
+      .mockResolvedValueOnce({ cid: "bafkreicertificate00000000000000000000" });
     mocks.uploadJSONToIPFS.mockResolvedValue({ cid: "bafy-proof" });
 
     const result = await executeCommitmentQueueJob("job-evidence", job(), 42161, {} as never);
 
     expect(result).toEqual({ status: "complete", txHash: "0xabc" });
+    // The photo was pinned without where, or with what, it was taken.
+    const pinned = mocks.uploadFileToIPFS.mock.calls[0]?.[0] as File;
+    expect(pinned.name).toBe("beds.jpg");
+    expect(await bytesOf(pinned)).toEqual(
+      cleanPhoto("image/jpeg", { orientation: 6, label: "beds" })
+    );
     // The document names every piece by its own CID and carries the words.
     expect(mocks.uploadJSONToIPFS).toHaveBeenCalledWith(
       {
@@ -125,6 +168,15 @@ describe("publishing proof at sync", () => {
         links: [{ url: "https://example.org/before" }],
         media: [{ cid: "bafy-photo", mime: "image/jpeg", kind: "photo" }],
         audio: [{ cid: "bafy-voice", mime: "audio/webm" }],
+        // A document is listed apart from the photos, which readers draw as pictures.
+        documents: [
+          {
+            cid: "bafkreicertificate00000000000000000000",
+            mime: "application/pdf",
+            name: "Repair certificate.pdf",
+            size: 8,
+          },
+        ],
       },
       expect.objectContaining({ gardenAddress: GARDEN })
     );
@@ -194,7 +246,7 @@ describe("publishing proof at sync", () => {
   });
 
   it("keeps each photo's CID, so a retry uploads only what did not make it", async () => {
-    const path = new File(["path-bytes"], "path.jpg", { type: "image/jpeg" });
+    const path = photoFile(cleanPhoto("image/jpeg", { label: "path" }), "path.jpg", "image/jpeg");
     images.set("job-evidence", [
       { id: "img-1", file: photo, url: "blob:photo" },
       { id: "img-2", file: path, url: "blob:path" },
@@ -225,6 +277,18 @@ describe("publishing proof at sync", () => {
     );
   });
 
+  it("ends a proof whose photo cannot be published, without spending a gateway attempt", async () => {
+    const unreadable = new File(["jpeg"], "beds.jpg", { type: "image/jpeg" });
+    images.set("job-evidence", [{ id: "img-1", file: unreadable, url: "blob:photo" }]);
+
+    const result = await executeCommitmentQueueJob("job-evidence", job(), 42161, {} as never);
+
+    expect(result).toEqual({ status: "unavailable", reason: "photo-unreadable" });
+    expect(mocks.uploadFileToIPFS).not.toHaveBeenCalled();
+    expect(mocks.executeCommitmentJob).not.toHaveBeenCalled();
+    expect(store.get("job-evidence")).toBeUndefined();
+  });
+
   it("waits for a HEIC photo to convert before uploading anything, without spending an attempt", async () => {
     images.set("job-evidence", [{ id: "img-1", file: photo, url: "blob:photo" }]);
     mocks.convertQueuedHeicMedia.mockResolvedValue({ status: "pending" });
@@ -235,5 +299,25 @@ describe("publishing proof at sync", () => {
     expect(mocks.uploadFileToIPFS).not.toHaveBeenCalled();
     expect(mocks.uploadJSONToIPFS).not.toHaveBeenCalled();
     expect(store.get("job-evidence")).toBeUndefined();
+  });
+});
+
+// Anyone can pin an evidence document, so the documents it lists are read as untrusted input.
+describe("reading documents attached as proof", () => {
+  it("reads a proof that holds only a document, and drops one without a content identifier", () => {
+    const cid = "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy";
+    expect(
+      parseCommitmentEvidenceDocument({
+        version: 1,
+        documents: [
+          { cid, mime: "application/pdf", name: "  Repair   certificate.pdf ", size: 2048 },
+          { cid: "https://example.org/x.pdf", mime: "application/pdf", name: "x.pdf" },
+        ],
+      })
+    ).toEqual({
+      version: 1,
+      documents: [{ cid, mime: "application/pdf", name: "Repair certificate.pdf", size: 2048 }],
+    });
+    expect(parseCommitmentEvidenceDocument({ version: 1, documents: [{ cid: "x" }] })).toBeNull();
   });
 });

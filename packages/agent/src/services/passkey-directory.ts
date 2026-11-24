@@ -15,6 +15,11 @@ import {
   normalizePasskeyName,
   PASSKEY_NAME_MAX_LENGTH,
   PASSKEY_NAME_MIN_LENGTH,
+  PASSKEY_DISPLAY_NAMES_BATCH_LIMIT,
+  LEGACY_PASSKEY_PROFILE,
+  PASSKEY_ACCOUNT_PROFILE_VERSION,
+  getDefaultPasskeyRegistrationProfile,
+  type PasskeyDirectoryAccountProfile,
   type PasskeyDirectoryCredential,
 } from "@green-goods/shared/public-contracts";
 import {
@@ -23,7 +28,9 @@ import {
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
 import { cose } from "@simplewebauthn/server/helpers";
+import { BaseError, isAddress, type Address } from "viem";
 import type {
+  PasskeyChallengePurpose,
   PasskeyInsertResult,
   PendingPasskeyRegistration,
   StoredPasskey,
@@ -52,10 +59,17 @@ export type PasskeyRelyingParty = {
 export type PasskeyDirectoryStore = {
   findByName(userName: string): Promise<StoredPasskey | undefined>;
   insert(passkey: StoredPasskey): Promise<PasskeyInsertResult>;
-  /** Remember a started sign-up, and drop the ones that expired before `now`. */
+  /** Remember a started ceremony, and drop the ones that expired before `now`. */
   saveChallenge(pending: PendingPasskeyRegistration, now: number): Promise<void>;
-  /** Hand out a pending registration once; expired or unknown challenges return nothing. */
-  takeChallenge(challenge: string, now: number): Promise<PendingPasskeyRegistration | undefined>;
+  /**
+   * Hand out a pending challenge once, for its own purpose only. It is spent either way; an
+   * expired, unknown or mismatched challenge returns nothing.
+   */
+  takeChallenge(
+    challenge: string,
+    now: number,
+    purpose: PasskeyChallengePurpose
+  ): Promise<PendingPasskeyRegistration | undefined>;
 };
 
 /** Whether the hosted passkey server that predates this directory already holds a name. */
@@ -63,18 +77,22 @@ export type HostedPasskeyNameCheck = (userName: string) => Promise<boolean>;
 
 export type PasskeyDirectoryErrorCode =
   | "invalid_name"
+  | "invalid_display_name_request"
   | "name_taken"
   | "origin_not_allowed"
   | "registration_expired"
   | "verification_failed"
+  | "account_profile_required"
   | "unavailable";
 
 const ERROR_MESSAGES: Record<PasskeyDirectoryErrorCode, string> = {
   invalid_name: `Names need ${PASSKEY_NAME_MIN_LENGTH} to ${PASSKEY_NAME_MAX_LENGTH} characters.`,
+  invalid_display_name_request: "Provide a chain and a list of account addresses.",
   name_taken: "That name is already registered.",
   origin_not_allowed: "Passkeys are not available from this origin.",
   registration_expired: "Passkey verification expired. Start again.",
   verification_failed: "Passkey verification failed.",
+  account_profile_required: "Update Green Goods to sign in to this account.",
   unavailable: "Passkey sign-up is unavailable right now.",
 };
 
@@ -87,6 +105,7 @@ export class PasskeyDirectoryError extends Error {
 }
 
 export type VerifiedPasskeyRegistration = {
+  accountProfile: PasskeyDirectoryAccountProfile;
   success: true;
   id: string;
   publicKey: `0x${string}`;
@@ -97,18 +116,30 @@ export type PasskeyDirectory = {
   startRegistration(input: {
     userName: unknown;
     origin: string;
-  }): Promise<PublicKeyCredentialCreationOptionsJSON>;
+    accountProfileVersion?: unknown;
+  }): Promise<
+    PublicKeyCredentialCreationOptionsJSON & { accountProfile: PasskeyDirectoryAccountProfile }
+  >;
   verifyRegistration(input: {
     response: unknown;
     userName: unknown;
     origin: string;
+    accountProfileVersion?: unknown;
   }): Promise<VerifiedPasskeyRegistration>;
-  getCredentials(input: { userName: unknown }): Promise<PasskeyDirectoryCredential[]>;
+  getCredentials(input: {
+    userName: unknown;
+    accountProfileVersion?: unknown;
+  }): Promise<PasskeyDirectoryCredential[]>;
+  getDisplayNames(input: unknown): Promise<(string | null)[]>;
 };
 
 export type PasskeyDirectoryDeps = {
   store: PasskeyDirectoryStore;
   relyingParty: PasskeyRelyingParty;
+  displayNames?: {
+    chainId: number;
+    lookup(addresses: readonly Address[]): Promise<(string | null)[]>;
+  };
   /** Omit only where no hosted list exists, as in local development. */
   hostedNameTaken?: HostedPasskeyNameCheck;
   /** Lets `localhost` pages register passkeys under `localhost`. Never set in production. */
@@ -173,6 +204,10 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
     async startRegistration(input) {
       const userName = requireName(input.userName);
       const rpId = requireDomain(input.origin);
+      const accountProfile =
+        input.accountProfileVersion === PASSKEY_ACCOUNT_PROFILE_VERSION
+          ? getDefaultPasskeyRegistrationProfile(new URL(input.origin).hostname)
+          : LEGACY_PASSKEY_PROFILE;
       await assertNameFree(userName);
 
       const options = await generateRegistrationOptions({
@@ -194,14 +229,16 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       await deps.store.saveChallenge(
         {
           challenge: options.challenge,
+          purpose: "registration",
           userName,
           rpId,
           origin: input.origin,
+          accountProfile,
           expiresAt: startedAt + REGISTRATION_TTL_MS,
         },
         startedAt
       );
-      return options;
+      return { ...options, accountProfile };
     },
 
     async verifyRegistration(input) {
@@ -211,9 +248,15 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       if (!response || !challenge) throw new PasskeyDirectoryError("verification_failed");
 
       // The challenge is spent whether or not the rest succeeds: one sign-up, one attempt.
-      const pending = await deps.store.takeChallenge(challenge, now());
+      const pending = await deps.store.takeChallenge(challenge, now(), "registration");
       if (!pending || pending.userName !== userName || pending.origin !== input.origin) {
         throw new PasskeyDirectoryError("registration_expired");
+      }
+      if (
+        pending.accountProfile !== LEGACY_PASSKEY_PROFILE &&
+        input.accountProfileVersion !== PASSKEY_ACCOUNT_PROFILE_VERSION
+      ) {
+        throw new PasskeyDirectoryError("account_profile_required");
       }
 
       let verification: Awaited<ReturnType<typeof verifyRegistrationResponse>>;
@@ -234,14 +277,18 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
 
       const { credential } = verification.registrationInfo;
       const publicKey = uncompressedP256PublicKey(credential.publicKey);
-      if (!publicKey) throw new PasskeyDirectoryError("verification_failed");
+      if (!credential.id || !publicKey) throw new PasskeyDirectoryError("verification_failed");
 
       const result = await deps.store.insert({
         userName,
         credentialId: credential.id,
+        // A sign-up's ID is the browser's own base64url ID, so it is also the credential's key.
+        credentialKey: credential.id,
         publicKey,
         rpId: pending.rpId,
         origin: pending.origin,
+        source: "registered",
+        accountProfile: pending.accountProfile,
         createdAt: new Date(now()).toISOString(),
       });
       if (!result.ok) {
@@ -251,7 +298,13 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       }
       // The site and domain only: a name is a person's, and stays out of the log.
       log.info({ rpId: pending.rpId, origin: pending.origin }, "Passkey registered");
-      return { success: true, id: credential.id, publicKey, userName };
+      return {
+        success: true,
+        id: credential.id,
+        publicKey,
+        userName,
+        accountProfile: pending.accountProfile,
+      };
     },
 
     async getCredentials(input) {
@@ -259,9 +312,62 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       if (!userName) return [];
       const stored = await deps.store.findByName(userName);
       if (!stored) return [];
-      return [{ id: stored.credentialId, publicKey: stored.publicKey, rpId: stored.rpId }];
+      if (
+        stored.accountProfile !== LEGACY_PASSKEY_PROFILE &&
+        input.accountProfileVersion !== PASSKEY_ACCOUNT_PROFILE_VERSION
+      ) {
+        throw new PasskeyDirectoryError("account_profile_required");
+      }
+      return [
+        {
+          id: stored.credentialId,
+          signingId: stored.credentialKey,
+          publicKey: stored.publicKey,
+          rpId: stored.rpId,
+          accountProfile: stored.accountProfile,
+        },
+      ];
+    },
+
+    async getDisplayNames(input) {
+      const { chainId, addresses } = readDisplayNameRequest(input);
+      if (deps.displayNames?.chainId !== chainId) return addresses.map(() => null);
+      try {
+        return await deps.displayNames.lookup(addresses);
+      } catch (error) {
+        log.warn(
+          { reason: displayNameFailureReason(error) },
+          "Could not look up passkey display names"
+        );
+        throw new PasskeyDirectoryError("unavailable");
+      }
     },
   };
+}
+
+// Error messages and causes can include RPC URLs or private passkey identifiers.
+function displayNameFailureReason(error: unknown) {
+  if (error instanceof BaseError) return "chain_client_error";
+  if (error instanceof Error && error.name === "SQLiteError") return "storage_error";
+  return "lookup_failed";
+}
+
+function readDisplayNameRequest(input: unknown): { chainId: number; addresses: Address[] } {
+  const { chainId, addresses } = (input ?? {}) as { chainId?: unknown; addresses?: unknown };
+  if (
+    typeof chainId !== "number" ||
+    !Number.isSafeInteger(chainId) ||
+    chainId < 1 ||
+    !Array.isArray(addresses) ||
+    addresses.length < 1 ||
+    addresses.length > PASSKEY_DISPLAY_NAMES_BATCH_LIMIT ||
+    !addresses.every(
+      (address) => typeof address === "string" && isAddress(address, { strict: false })
+    )
+  ) {
+    throw new PasskeyDirectoryError("invalid_display_name_request");
+  }
+  return { chainId, addresses };
 }
 
 function readName(value: unknown): string | undefined {

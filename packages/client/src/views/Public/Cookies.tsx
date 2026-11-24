@@ -28,7 +28,7 @@ function CookiesLoadingPage() {
         lede={formatMessage({
           id: "public.cookies.description",
           defaultMessage:
-            "Campaign jars hold funds for seasonal work, event rewards, and Garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
+            "Campaign jars hold funds for seasonal work, event rewards, and garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
         })}
       />
       <section className="bg-bg-weak-50 px-6 py-24 sm:px-10 md:py-32">

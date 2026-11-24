@@ -9,8 +9,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { createApprovalToasts, toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
-import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
+import { worksKeys } from "../../config/query-keys/work";
 import {
   trackWorkApprovalFailed,
   trackWorkApprovalLifecycle,
@@ -19,6 +18,8 @@ import {
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
 import type { JobQueueHandle } from "../../modules/job-queue/ports";
+import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
+import { refreshApprovalReads } from "../../modules/work/approval-read-refresh";
 import {
   clearLapsedOverlay,
   LOCAL_OVERLAY_GRACE_MS,
@@ -26,7 +27,9 @@ import {
   overlayDeadline,
 } from "../../modules/work/local-status-overlay";
 import {
+  ApprovalAlreadyDecidedError,
   ApprovalConnectionUnconfirmedError,
+  ApprovalDecisionUnreadError,
   createDefaultSubmitApprovalPorts,
   submitApproval,
   type SubmitApprovalOutcome,
@@ -40,7 +43,7 @@ import { classifyTxError, isCancelledTxError } from "../../utils/errors/tx-error
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
-import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
+import { useTimeout } from "../utils/useTimeout";
 import {
   useWorkApprovalLifecycle,
   type PendingWorkApproval,
@@ -50,6 +53,20 @@ import {
 interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
   work: Work;
+  /**
+   * Asked once more as the send starts, before anything is signed, queued or shown as decided:
+   * false when the work can no longer be decided (its status turned unknown or decided while the
+   * decision was being prepared).
+   */
+  stillDecidable?: () => boolean;
+}
+
+/** Nothing was signed or sent: the work could no longer be decided when the send began. */
+class DecisionWithdrawnError extends Error {
+  constructor() {
+    super("This work can no longer be decided here.");
+    this.name = "DecisionWithdrawnError";
+  }
 }
 
 interface UseWorkApprovalDependencies {
@@ -62,10 +79,13 @@ interface UseWorkApprovalDependencies {
   onApprovalComplete?: (completion: WorkApprovalCompletion) => void | Promise<void>;
 }
 
+export type { StagedReview } from "../../stores/useReviewBatchStore";
+export { type ReviewBatch, useReviewBatch } from "./useReviewBatch";
+
 const PENDING_AUTO_CLEAR_MS = LOCAL_OVERLAY_GRACE_MS;
 type PendingWork = OverlayWork;
 interface WorkDecisionCacheSnapshot {
-  gardenId: string;
+  work: Work;
   merged?: PendingWork[];
   online?: PendingWork[];
 }
@@ -78,26 +98,10 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const { set: scheduleAutoClear } = useTimeout();
-  const lastGardenRef = useRef<string>("");
   // Decided once, before the wallet is involved, and handed to the command so the
   // two never disagree about whether this decision goes to the wallet or the queue.
   const walletSendsNowRef = useRef(true);
   const decisionCacheRef = useRef<WorkDecisionCacheSnapshot | null>(null);
-  const { start: scheduleFollowUp } = useProgressiveInvalidation(
-    useCallback(() => {
-      if (lastGardenRef.current) {
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.online(lastGardenRef.current, chainId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.merged(lastGardenRef.current, chainId),
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
-    }, [queryClient, chainId]),
-    INDEXER_LAG_SCHEDULE_MS
-  );
-
   const recordDecision = useCallback(
     (
       completion: WorkApprovalCompletion,
@@ -111,70 +115,78 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       // decision still waiting on its receipt gets a deadline, so a dropped
       // transaction cannot leave the work looking resolved forever.
       const holdsUntilIndexed = isOfflineHash || !awaitingConfirmation;
+      const isConfirmed = !isOfflineHash && !awaitingConfirmation;
       const cacheSnapshot =
-        decisionCacheRef.current?.gardenId.toLowerCase() === completion.gardenId.toLowerCase()
+        decisionCacheRef.current?.work.gardenAddress.toLowerCase() ===
+        completion.gardenId.toLowerCase()
           ? decisionCacheRef.current
           : null;
+      const matchesWork = (work: Work) => work.id === completion.workUID;
+      const withDecision = (work: PendingWork): PendingWork => ({
+        ...work,
+        status,
+        _isPending: awaitingConfirmation,
+        _txHash: isOfflineHash ? undefined : txHash,
+        _pendingUntilMs: holdsUntilIndexed ? undefined : overlayDeadline(),
+        reviewFeedback,
+      });
+      const confirmedWork = isConfirmed
+        ? [
+            cacheSnapshot?.work,
+            queryClient.getQueryData<Work>(worksKeys.byUID(completion.workUID, chainId)),
+            queryClient
+              .getQueryData<Work[]>(
+                worksKeys.local(completion.gardenId, chainId, primaryAddress ?? undefined)
+              )
+              ?.find(matchesWork),
+            queryClient
+              .getQueryData<Work[]>(worksKeys.online(completion.gardenId, chainId))
+              ?.find(matchesWork),
+          ].find(
+            (work) =>
+              work &&
+              matchesWork(work) &&
+              work.gardenAddress.toLowerCase() === completion.gardenId.toLowerCase()
+          )
+        : undefined;
       const update =
-        (fallback: PendingWork[] | undefined) =>
-        (old: PendingWork[] = []): PendingWork[] =>
-          (old.length > 0 ? old : (fallback ?? old)).map((work) =>
-            work.id === completion.workUID
-              ? {
-                  ...work,
-                  status,
-                  _isPending: awaitingConfirmation,
-                  _txHash: isOfflineHash ? undefined : txHash,
-                  _pendingUntilMs: holdsUntilIndexed ? undefined : overlayDeadline(),
-                  // This decision's feedback shows before the indexer reports
-                  // it, and replaces a cached one even when it has none.
-                  reviewFeedback,
-                }
-              : work
-          );
+        (fallback: PendingWork[] | undefined, insert?: Work) =>
+        (old: PendingWork[] = []): PendingWork[] => {
+          const rows = old.length > 0 ? old : (fallback ?? old);
+          if (insert && !rows.some(matchesWork)) return [...rows, withDecision(insert)];
+          return rows.map((work) => (matchesWork(work) ? withDecision(work) : work));
+        };
+      // The client projects a separate local list. Persist the decision in the
+      // shared overlay even when no garden list has been opened on this device.
       queryClient.setQueryData(
         worksKeys.merged(completion.gardenId, chainId),
-        update(cacheSnapshot?.merged)
+        update(cacheSnapshot?.merged, confirmedWork)
       );
       queryClient.setQueryData(
         worksKeys.online(completion.gardenId, chainId),
         update(cacheSnapshot?.online?.length ? cacheSnapshot.online : cacheSnapshot?.merged)
       );
     },
-    [chainId, queryClient]
-  );
-
-  const invalidateApprovalQueries = useCallback(
-    async (completion: WorkApprovalCompletion) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.online(completion.gardenId, chainId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.merged(completion.gardenId, chainId),
-        }),
-        queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all }),
-        queryClient.invalidateQueries({ queryKey: approvalsKeys.all }),
-      ]);
-      lastGardenRef.current = completion.gardenId;
-      scheduleFollowUp();
-    },
-    [chainId, queryClient, scheduleFollowUp]
+    [chainId, primaryAddress, queryClient]
   );
 
   const reportApprovalError = useCallback(
     (error: unknown, completion: WorkApprovalCompletion) => {
-      // Refused before the wallet was asked: nothing was signed or sent.
-      if (error instanceof ApprovalConnectionUnconfirmedError) {
-        toastService.info({
-          id: "approval-submit",
-          title: formatMessage({ id: "app.offline.degraded" }),
-          message: formatMessage({ id: "app.approval.connectionUnconfirmed" }),
-          context: "approval submission",
-          suppressLogging: true,
-        });
+      // Withdrawn before anything was signed or shown: the review form already says why, and the
+      // shared toast may still belong to another decision, so it is left alone.
+      if (error instanceof DecisionWithdrawnError) return;
+      // The chain already has this work decided: nothing was sent, and the reads catch up.
+      if (error instanceof ApprovalAlreadyDecidedError) {
+        approvalToasts.alreadyReviewed();
+        refreshApprovalReads(queryClient, chainId, completion, true);
         return;
       }
+      // The chain could not say whether the work is still waiting: nothing was signed or sent.
+      if (error instanceof ApprovalDecisionUnreadError)
+        return void approvalToasts.decisionUnread(error);
+      // Refused before the wallet was asked: nothing was signed or sent.
+      if (error instanceof ApprovalConnectionUnconfirmedError)
+        return void approvalToasts.connectionUnconfirmed();
       if (isCancelledTxError(error)) {
         toastService.error({
           id: "approval-submit",
@@ -219,14 +231,13 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         },
       });
     },
-    [authMode, chainId, formatMessage]
+    [approvalToasts, authMode, chainId, formatMessage, queryClient]
   );
 
   const onLifecycleConfirmed = useCallback(
-    async (approval: PendingWorkApproval) => {
+    (approval: PendingWorkApproval) => {
       if (!approval.txHash) return;
       recordDecision(approval, approval.txHash, false);
-      await invalidateApprovalQueries(approval);
       decisionCacheRef.current = null;
       hapticSuccess();
       if (approval.approved) {
@@ -251,8 +262,9 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         context: "wallet confirmation",
         suppressLogging: true,
       });
+      refreshApprovalReads(queryClient, chainId, approval, true);
     },
-    [authMode, formatMessage, invalidateApprovalQueries, recordDecision]
+    [authMode, chainId, formatMessage, queryClient, recordDecision]
   );
 
   const lifecycle = useWorkApprovalLifecycle({
@@ -303,7 +315,10 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
     },
     onMutate: async (variables) => {
       if (!variables) return;
-      const { draft, work } = variables;
+      const { draft, work, stillDecidable } = variables;
+      // Asked before anything starts: no wallet, no event, and no optimistic status of this
+      // steward's own, which the form would otherwise read as the work being decided already.
+      if (stillDecidable && !stillDecidable()) throw new DecisionWithdrawnError();
       trackWorkApprovalStarted({
         workUID: draft.workUID,
         gardenAddress: work.gardenAddress,
@@ -333,7 +348,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         worksKeys.online(work.gardenAddress, chainId)
       );
       decisionCacheRef.current = {
-        gardenId: work.gardenAddress,
+        work,
         merged: previousMerged,
         online: previousOnline,
       };
@@ -392,11 +407,12 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
           toastService.success({
             id: "approval-submit",
             title: completion.approved ? "Approval submitted" : "Decision submitted",
-            message: formatMessage({ id: "app.toast.approval.walletConfirm.message" }),
+            // It went out and its receipt has not come: still confirming (PRD-1552).
+            message: formatMessage(SEND_STAGE_WORDS["still-confirming"].detail),
             context: "wallet confirmation",
             suppressLogging: true,
           });
-          await invalidateApprovalQueries(completion);
+          refreshApprovalReads(queryClient, chainId, completion, false);
           decisionCacheRef.current = null;
           return;
         }
@@ -425,7 +441,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       // The decision waits on this device for Upload all: nothing sends it on its own.
       if (isOfflineHash) approvalToasts.savedOffline(completion.approved);
       else approvalToasts.success(completion.approved);
-      await invalidateApprovalQueries(completion);
+      refreshApprovalReads(queryClient, chainId, completion, !isOfflineHash);
       decisionCacheRef.current = null;
     },
     onError: (error: unknown, variables, context) => {
@@ -447,8 +463,17 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         gardenId: variables.work.gardenAddress,
         workUID: variables.draft.workUID,
       };
-      if (isCancelledTxError(error)) lifecycle.cancel();
-      else lifecycle.fail();
+      // A withdrawn decision began nothing, so it leaves the lifecycle, and any earlier
+      // decision it still holds, as it was.
+      if (!(error instanceof DecisionWithdrawnError)) {
+        if (
+          isCancelledTxError(error) ||
+          error instanceof ApprovalAlreadyDecidedError ||
+          error instanceof ApprovalDecisionUnreadError
+        ) {
+          lifecycle.cancel();
+        } else lifecycle.fail();
+      }
       decisionCacheRef.current = null;
       reportApprovalError(error, completion);
     },

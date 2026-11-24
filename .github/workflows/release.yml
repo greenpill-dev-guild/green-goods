@@ -36,15 +36,15 @@ jobs:
       # This job carries release credentials, so neither setup action may restore
       # a cache: a poisoned entry would execute before the release step runs.
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          node-version: "22.22.1"
+          node-version: "22.23.4"
           package-manager-cache: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
-          bun-version: "1.4.2"
+          bun-version: "1.4.4"
           no-cache: true
 
       - name: Verify release version markers
@@ -71,6 +71,6 @@ jobs:
         run: |
           set -euo pipefail
           gh release create "${{ steps.meta.outputs.tag }}" \
-            --title "${{ steps.meta.outputs.month }} — ${{ steps.meta.outputs.tag }}" \
+            --title "${{ steps.meta.outputs.month }}: ${{ steps.meta.outputs.tag }}" \
             --generate-notes \
             --verify-tag

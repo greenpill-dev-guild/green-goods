@@ -93,9 +93,10 @@ const toReview = async (canvas: Canvas) => {
 };
 
 /**
- * Adding proof, in Submit Work's page (D6, D16): Media, Details and Review with
- * the promise pinned under the heading, and Submit Work's bar. Amara leads the
- * fence repair and Dele helps; fictional data from the design frames.
+ * Adding proof, in Submit Work's page (D6, D16): Media, Details and Review under
+ * the four step markers with Start already checked (DL-153), the promise pinned
+ * under the heading, and Submit Work's bar. Amara leads the fence repair and Dele
+ * helps; fictional data from the design frames.
  */
 const meta: Meta<typeof ProofComposer> = {
   title: "Client/Commitments/ProofComposer",
@@ -151,7 +152,7 @@ const recoveryInLocale =
     }
   };
 
-/** Nothing added yet: no tap box; the bar's photo, camera and voice tools add proof (O1). */
+/** Nothing added yet: no tap box; the bar's photo, camera, voice and document tools add proof (O1). */
 export const Media: Story = {
   tags: ["storybook-ci"],
   beforeEach: atStage("media"),
@@ -159,13 +160,19 @@ export const Media: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Show What Was Done" })).toBeVisible();
     await expect(canvas.getByRole("status")).toHaveTextContent("Nothing added yet");
+    // The four markers, with Start already checked and the path opening on Media (DL-153).
+    const steps = within(canvas.getByRole("list", { name: "Steps" })).getAllByRole("listitem");
+    await expect(steps).toHaveLength(4);
+    await expect(steps[0]).toHaveTextContent("Start");
+    await expect(steps[1]).toHaveAttribute("aria-current", "step");
     // The heading leads and the promise follows it (O9).
     const heading = canvas.getByRole("heading", { name: "Show What Was Done" });
     const pinned = canvas.getByTestId("pinned-promise");
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    for (const tool of ["Choose from Your Photos", "Take a Photo", "Record a voice note"]) {
+    const tools = ["Choose Media", "Take a Photo", "Record a voice note", "Choose Documents"];
+    for (const tool of tools) {
       await expect(canvas.getByRole("button", { name: tool })).toBeVisible();
     }
     await expect(canvas.getByRole("button", { name: "Details" })).toBeEnabled();
@@ -215,7 +222,7 @@ export const DetailsEmpty: Story = {
     const review = canvas.getByRole("button", { name: "Review Proof" });
     await expect(review).toBeDisabled();
     await expect(review).toHaveAccessibleDescription(
-      "Add a photo, a voice note, a link or a few words first."
+      "Add media, a voice note, a link or a few words first."
     );
   },
 };
@@ -237,7 +244,7 @@ export const ProofForSheet: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await toDetails(canvas);
-    await userEvent.click(canvas.getByRole("button", { name: /^Proof for / }));
+    await userEvent.click(canvas.getByRole("button", { name: /Proof for / }));
     const page = within(canvasElement.ownerDocument.body);
     const body = await page.findByRole("region", { name: "Promise details" });
     // A read-only body that scrolls takes focus, so a keyboard can scroll it.
@@ -271,6 +278,20 @@ export const ReviewSend: Story = {
     await expect(canvas.getByRole("button", { name: "Add and Send" })).toBeVisible();
     await expect(
       canvas.getByText("You'll be asked to sign twice: once for the proof, once to send it.")
+    ).toBeVisible();
+  },
+};
+
+/** The proof and confirmation can go together under one signature. */
+export const ReviewSendTogether: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("reviewSendTogether"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toReview(canvas);
+    await expect(canvas.getByRole("button", { name: "Add and Send" })).toBeEnabled();
+    await expect(
+      canvas.getByText("Sign once to add the proof and send it for confirmation.")
     ).toBeVisible();
   },
 };
@@ -389,4 +410,22 @@ export const DraftSaveFailedPortuguese: Story = {
   ...DraftSaveFailed,
   decorators: [inLocale("pt")],
   play: recoveryInLocale("pt", "saveFailed"),
+};
+
+/** Documentation keeps the evidence to the photos and explanatory note being taught. */
+export const DocumentationReview: Story = {
+  beforeEach: () => {
+    const cleanup = atStage("reviewSend")();
+    mocked(useProofComposerController).mockReturnValue({
+      ...proofFlowFixture("reviewSend"),
+      audioNotes: [],
+      links: [],
+    });
+    return cleanup;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toReview(canvas);
+    await expect(canvas.getByRole("button", { name: "Add and Send" })).toBeVisible();
+  },
 };

@@ -2,9 +2,19 @@ import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import { useState } from "react";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
+import { lazy, Suspense, useState } from "react";
 import { useIntl } from "react-intl";
-import { JoinGardenConfirmDialog } from "./JoinGardenConfirmDialog";
+import { useNavigate } from "react-router-dom";
+import { APP_ROUTES } from "@/config/pwaRouting";
+
+// The confirmation, and the dialog primitives with it, load with the first press: Home and the
+// garden page draw the button long before anyone asks to join.
+const JoinGardenConfirmDialog = lazy(() =>
+  import("./JoinGardenConfirmDialog").then(({ JoinGardenConfirmDialog }) => ({
+    default: JoinGardenConfirmDialog,
+  }))
+);
 
 export interface JoinGardenButtonProps {
   gardenId: string;
@@ -13,17 +23,22 @@ export interface JoinGardenButtonProps {
 
 /**
  * The garden page's Join Garden action. It asks the shared join confirmation
- * first, the same one the Profile gardens list uses, then joins and reports the
- * outcome.
+ * first, then joins, reports the outcome and opens Home in the garden, which the
+ * join has made the active one (DL-147). The visit is over, so Back does not
+ * return to its page.
  */
 export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps) {
   const intl = useIntl();
+  const navigate = useNavigate();
   const { joinGarden, isJoining } = useJoinGarden();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Mounted from the first press on, so every later opening and closing plays as before.
+  const [confirmRequested, setConfirmRequested] = useState(false);
 
   const join = async () => {
     try {
       const result = await joinGarden(gardenId);
+      if (result === "already-joining") return;
       if (result === "already-member") {
         toastService.success({
           title: intl.formatMessage({
@@ -39,7 +54,10 @@ export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps
           }),
         });
       }
+      navigate(APP_ROUTES.home, { replace: true, viewTransition: true });
     } catch (error) {
+      // A wallet that has not answered was already asked to reconnect; nothing was sent.
+      if (wasAskedToReconnect(error)) return;
       logger.error("Failed to join garden", { error, gardenId });
       toastService.error({
         title: intl.formatMessage({
@@ -54,19 +72,33 @@ export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps
 
   return (
     <>
-      <Button type="button" size="compact" onClick={() => setConfirmOpen(true)} loading={isJoining}>
+      <Button
+        type="button"
+        size="compact"
+        onClick={(event) => {
+          // Safari does not focus buttons on a pointer press; remember this opener before loading.
+          event.currentTarget.focus({ preventScroll: true });
+          setConfirmRequested(true);
+          setConfirmOpen(true);
+        }}
+        loading={isJoining}
+      >
         {intl.formatMessage({
           id: "app.garden.join",
           defaultMessage: "Join Garden",
         })}
       </Button>
-      <JoinGardenConfirmDialog
-        isOpen={confirmOpen}
-        gardenName={gardenName}
-        isJoining={isJoining}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={join}
-      />
+      {confirmRequested ? (
+        <Suspense fallback={null}>
+          <JoinGardenConfirmDialog
+            isOpen={confirmOpen}
+            gardenName={gardenName}
+            isJoining={isJoining}
+            onClose={() => setConfirmOpen(false)}
+            onConfirm={join}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

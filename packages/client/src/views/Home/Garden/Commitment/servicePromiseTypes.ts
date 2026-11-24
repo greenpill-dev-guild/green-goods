@@ -1,0 +1,79 @@
+import type {
+  CommitmentReadModel,
+  ServiceAccessKey,
+  ServiceAccessSnapshot,
+} from "@green-goods/shared/commitment-pooling";
+import type { ReactNode } from "react";
+import type { CommitmentIdentityProps } from "./CommitmentIdentity";
+import type { BookingTracker, ServiceBookingView } from "./serviceBookingTypes";
+/** What a voucher booking or a request's rewards hand the promise page. */
+export interface ServicePromiseParts {
+  /**
+   * What the service says in the status block and What was promised: its band, what a booking of
+   * the reader's own offer takes, whether a request's rewards draw below, and whether a booking's
+   * own card says what was promised.
+   */
+  identity: Required<
+    Pick<
+      CommitmentIdentityProps,
+      "serviceBand" | "serviceTakes" | "rewardsBelow" | "promisedInBooking"
+    >
+  >;
+  /** The door under the band and the service's section card, in the page's order. */
+  body: ReactNode;
+  /** The service's own bar, or null when the promise's act leads. */
+  bar: ReactNode | null;
+  delivery: ServiceBookingView["delivery"];
+  /** Promise kept? after a booking's split: the tracker, the split and its note. */
+  confirm: ServiceBookingView["confirm"];
+  /**
+   * The reader's own booking of a service, or the offer before they book it: the page draws it
+   * slim, with its tracker in the top bar and only the facts that matter now.
+   */
+  booking: boolean;
+  /** Where the booking stands on Book, Deposit, Service and Done; null for no booking. */
+  tracker: BookingTracker | null;
+  sheets: ReactNode;
+}
+
+export interface ServicePromiseProps {
+  serviceKey: ServiceAccessKey | null;
+  /** The page's read of the service, which also settles its own acts. */
+  access: {
+    data?: ServiceAccessSnapshot | null;
+    refetch: () => unknown;
+    isFetching?: boolean;
+    isError?: boolean;
+    dataUpdatedAt?: number;
+  };
+  /**
+   * The promise as the booking reads it: its state; who made it, since the chain refuses their own
+   * take-up so they read no buyer's path; and whether it holds proof, which a dispute keeps.
+   */
+  commitment: Pick<
+    CommitmentReadModel,
+    "derivedState" | "creator" | "evidenceCount" | "acceptanceAt"
+  >;
+  /** The request's garden, whose pool pays any G$. */
+  gardenName: string;
+  heading: string;
+  /** The promise's own description, which a booking's card says once, before anyone books. */
+  note?: string | null;
+  /** The promise has its own act (Confirm It Was Kept), which leads where the booking has none. */
+  hasCoreAct: boolean;
+  isOnline: boolean;
+  /** Report a Problem raises a dispute, which the chain takes only from some readers. */
+  onReport: (() => void) | null;
+  /**
+   * The promise's own Confirm It Was Kept, when the chain offers it to the reader. Confirm Your
+   * Visit runs it last, after the split and its transfer (DL-192), so the member closes a booking
+   * in one sheet. It reports its own failure.
+   */
+  confirmKept: (() => Promise<unknown>) | null;
+  /**
+   * The reader's take-up of a request, when the page offers one: at once (open) or by asking its
+   * stewards. A request's voucher reward is agreed to first, from the reward's own bar.
+   */
+  takeUp: { mode: "open" | "reviewed"; run: () => void } | null;
+  children: (parts: ServicePromiseParts) => ReactNode;
+}

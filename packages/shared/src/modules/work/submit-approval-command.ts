@@ -1,4 +1,4 @@
-import type { SmartAccountClient } from "permissionless";
+import type { AuthMode } from "../../types/auth";
 import { connectivityStore } from "../../stores/connectivity";
 import type { Address, Work, WorkApprovalDraft } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
@@ -13,7 +13,7 @@ export interface SubmitApprovalCommand {
    * from (admin) leaves this off, so a decision never waits where nothing sends it.
    */
   queueWalletDecisions?: boolean;
-  authMode: "wallet" | "passkey" | "embedded" | null;
+  authMode: AuthMode;
   draft: WorkApprovalDraft;
   work: Work;
   chainId: number;
@@ -32,6 +32,11 @@ export interface SubmitApprovalPorts {
     process(jobId: string, sender: TransactionSender): Promise<ProcessJobResult>;
   };
   sender: TransactionSender | null;
+  /**
+   * Whether the chain already holds a decision for the work, read just before a wallet send.
+   * Throws when it cannot tell, and nothing is sent: unknown is not "no".
+   */
+  decisions: { isDecided(input: SubmitApprovalCommand): Promise<boolean> };
 }
 
 export interface SubmitApprovalOutcome {
@@ -40,32 +45,11 @@ export interface SubmitApprovalOutcome {
   kind: "direct" | "queued" | "processed";
 }
 
-export interface BatchApprovalItem {
-  draft: WorkApprovalDraft;
-  work: Work;
-}
-
-export interface SubmitBatchApprovalsCommand {
-  authMode: "wallet" | "passkey" | "embedded" | null;
-  items: BatchApprovalItem[];
-  chainId: number;
-}
-
-export interface SubmitBatchApprovalsPorts {
-  direct(items: BatchApprovalItem[], chainId: number): Promise<`0x${string}`>;
-  sponsored(items: BatchApprovalItem[], chainId: number): Promise<`0x${string}`>;
-}
-
-export interface SubmitBatchApprovalsOutcome {
-  hash: `0x${string}`;
-  count: number;
-}
-
 function validateApproval(command: SubmitApprovalCommand): void {
   if (!command.draft.workUID) throw new Error("Work UID is required for approval");
   if (!command.work.gardenAddress) throw new Error("Garden address is missing from work data");
   if (command.work.status === "approved" || command.work.status === "rejected") {
-    throw new Error(`This work has already been ${command.work.status}`);
+    throw new ApprovalAlreadyDecidedError();
   }
 }
 
@@ -77,6 +61,39 @@ export class ApprovalConnectionUnconfirmedError extends Error {
   }
 }
 
+/** The chain already holds a decision for this work: a second one is never sent. */
+export class ApprovalAlreadyDecidedError extends Error {
+  constructor() {
+    super("This work has already been reviewed.");
+    this.name = "ApprovalAlreadyDecidedError";
+  }
+}
+
+/**
+ * Why the queue settles a kept decision without sending it: the chain already holds a decision
+ * for the work. A job failed for it reads `unavailable:` and then this reason.
+ */
+export const APPROVAL_ALREADY_DECIDED_REASON = "work-already-decided";
+
+/** The chain could not say whether the work is decided, so nothing was sent: unknown is not "no". */
+export class ApprovalDecisionUnreadError extends Error {
+  constructor(cause: unknown) {
+    super("We couldn't check whether this work is still waiting, so nothing was sent.", { cause });
+    this.name = "ApprovalDecisionUnreadError";
+  }
+}
+
+/** Read right before a wallet send, since a list read earlier may be old by now. */
+async function refuseIfDecided(command: SubmitApprovalCommand, ports: SubmitApprovalPorts) {
+  let decided: boolean;
+  try {
+    decided = await ports.decisions.isDecided(command);
+  } catch (error) {
+    throw new ApprovalDecisionUnreadError(error);
+  }
+  if (decided) throw new ApprovalAlreadyDecidedError();
+}
+
 export async function submitApproval(
   command: SubmitApprovalCommand,
   ports: SubmitApprovalPorts
@@ -86,6 +103,7 @@ export async function submitApproval(
   const wallet = command.authMode === "wallet";
   if (wallet) {
     if (await ports.connectivity.confirm()) {
+      await refuseIfDecided(command, ports);
       const result = await ports.direct(command);
       return { ...result, kind: "direct" };
     }
@@ -97,6 +115,8 @@ export async function submitApproval(
     throw new Error("User address is required for approval submission");
   }
 
+  // Kept first, so the decision outlives anything that follows; the queue rereads the work's
+  // decision on chain right before it sends.
   const queued = await ports.queue.enqueue({ ...command, userAddress: command.userAddress });
   // A queued wallet decision waits for Upload all: sending it from here would
   // open the wallet on a connection that was just found unsteady.
@@ -106,24 +126,14 @@ export async function submitApproval(
       return { hash: processed.txHash as `0x${string}`, kind: "processed" };
     }
     if (!processed.success && processed.error && !processed.skipped) {
+      if (processed.error === `unavailable:${APPROVAL_ALREADY_DECIDED_REASON}`) {
+        throw new ApprovalAlreadyDecidedError();
+      }
       throw new Error(processed.error);
     }
   }
 
   return { hash: queued.txHash, kind: "queued" };
-}
-
-export async function submitBatchApprovals(
-  command: SubmitBatchApprovalsCommand,
-  ports: SubmitBatchApprovalsPorts
-): Promise<SubmitBatchApprovalsOutcome> {
-  if (command.items.length === 0) throw new Error("No items to approve");
-
-  const hash =
-    command.authMode === "wallet"
-      ? await ports.direct(command.items, command.chainId)
-      : await ports.sponsored(command.items, command.chainId);
-  return { hash, count: command.items.length };
 }
 
 export function createDefaultSubmitApprovalPorts(
@@ -153,37 +163,11 @@ export function createDefaultSubmitApprovalPorts(
       },
     },
     sender,
-  };
-}
-
-export function createDefaultSubmitBatchApprovalsPorts(
-  smartAccountClient: SmartAccountClient | null
-): SubmitBatchApprovalsPorts {
-  return {
-    direct: async (items, chainId) => {
-      const { submitBatchApprovalsDirectly } = await import("./wallet-submission");
-      return submitBatchApprovalsDirectly(
-        items.map(({ draft, work }) => ({
-          draft,
-          gardenAddress: work.gardenAddress,
-          gardenerAddress: work.gardenerAddress,
-        })),
-        chainId
-      );
-    },
-    sponsored: async (items, chainId) => {
-      if (!smartAccountClient) {
-        throw new Error("Smart account not available. Please re-authenticate.");
-      }
-      const { submitBatchApprovalsWithPasskey } = await import("./passkey-submission");
-      return submitBatchApprovalsWithPasskey({
-        client: smartAccountClient,
-        approvals: items.map(({ draft, work }) => ({
-          draft,
-          gardenAddress: work.gardenAddress,
-        })),
-        chainId,
-      });
+    decisions: {
+      isDecided: async ({ draft, chainId }) => {
+        const { createReviewChain } = await import("./review-chain");
+        return createReviewChain(chainId).isDecided(draft.workUID);
+      },
     },
   };
 }

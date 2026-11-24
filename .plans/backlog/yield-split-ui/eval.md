@@ -13,7 +13,7 @@
 | ID | Check | Owner | Evidence |
 |---|---|---|---|
 | AC-1 | `useSplitConfig`, `useSetOperatorYieldSplit`, and `useYieldStatus` are exported from shared and use the intended on-chain reads/mutations | `state_api` | Hook tests |
-| AC-2 | `GardenYieldCard` reads real split config in Phase 1 and exposes operator preset chips with confirmation only after Phase 2 | `ui` | Component test |
+| AC-2 | The garden's vault page (`GardenVaultView`; `GardenYieldCard` was removed unused in #1252 on 2026-10-24) reads real split config in Phase 1 and exposes operator preset chips with confirmation only after Phase 2 | `ui` | Component test |
 | AC-3 | `PositionCard` exposes operator-only `splitYield()` plus pending/escrowed status | `ui` | Component test |
 | AC-4 | `ConvictionDrawer` reads live split config instead of `DEFAULT_SPLIT_CONFIG` | `ui` | Client verification |
 | AC-5 | New yield UI strings exist in `en`, `es`, and `pt` | `qa_pass_1` | i18n diff review |

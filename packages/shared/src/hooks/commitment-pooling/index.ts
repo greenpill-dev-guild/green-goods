@@ -19,6 +19,23 @@ export {
   usePoolParticipationSummary,
 } from "./useCommitmentPooling";
 export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
+export {
+  useServiceAccess,
+  useServiceAccessMutation,
+  useServiceAccessReads,
+} from "./useServiceAccess";
+export { useServiceOfferLines } from "./useServiceOfferLines";
+export { useServiceIssuerOperations } from "./useServiceIssuerOperations";
+export {
+  serviceIssuerListingKey,
+  type ServiceIssuerListings,
+  useServiceIssuerListings,
+} from "./useServiceIssuerOnboarding";
+export {
+  useIssuerSafeThreshold,
+  useVoucherIssuerApproval,
+  useVoucherWallet,
+} from "./useVoucherWallet";
 export { useCommitmentWorkDecisions } from "./useCommitmentWorkDecisions";
 export { useWorkLinkChoices } from "./useWorkLinkChoices";
 export type {
@@ -38,6 +55,7 @@ export type { CommitmentCycleNameMap } from "./useCommitmentCycleNames";
 export { useCommitmentCycleNames } from "./useCommitmentCycleNames";
 export type { CommitmentCycleLabel } from "./useCommitmentCycleLabel";
 export { useCommitmentCycleLabel } from "./useCommitmentCycleLabel";
+export { useCycleClock } from "./useCycleClock";
 export type { CommitmentMetadataMap } from "./useCommitmentMetadata";
 export {
   useCommitmentMetadata,
@@ -122,6 +140,12 @@ export type {
   PoolSetupStepStatus,
 } from "./useCommitmentPoolSetupSequence";
 export { useCommitmentPoolSetupSequence } from "./useCommitmentPoolSetupSequence";
+export type { RewardShareState } from "./useRewardShares";
+export {
+  usePromiseRewardShares,
+  useRewardShares,
+  useRewardShareTransaction,
+} from "./useRewardShares";
 export type { SavedOffersApi } from "./useSavedOffers";
 export {
   useSavedOffer,
@@ -133,3 +157,10 @@ export {
   useSettlementMutation,
   useSettlementOperationsCapabilities,
 } from "./useSettlement";
+
+export { useVoucherAwards } from "./useVoucherAwards";
+export { useServiceIssuerDesk } from "./useServiceIssuerDesk";
+export type {
+  ServiceIssuerDeskRecord,
+  ServiceIssuerDeskSelection,
+} from "../../public-contracts/service-issuer-desk";

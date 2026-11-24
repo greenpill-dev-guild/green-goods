@@ -5,6 +5,7 @@
 import type {
   PoolConsoleActs,
   PoolConsoleController,
+  VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   commitmentFixture,
@@ -31,6 +32,7 @@ type GardenWorkspaceModule =
 
 const mocks = vi.hoisted(() => ({
   controller: null as PoolConsoleController | null,
+  vouchers: null as VoucherConsoleView | null,
   gardenController: null as ReturnType<typeof gardenController> | null,
   navigate: vi.fn(),
 }));
@@ -40,9 +42,17 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
     mocks.gardenController!) as unknown as GardenWorkspaceModule["useGardenWorkspaceController"],
 }));
 
-vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () => ({
-  usePoolConsoleController: () => mocks.controller!,
-}));
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", async () => {
+  const { voucherConsoleViewFixture } = await import(
+    "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+  );
+  // No voucher pilot here: the console reads it as unavailable, as it is until adoption.
+  const vouchers = voucherConsoleViewFixture();
+  return {
+    usePoolConsoleController: () => mocks.controller!,
+    useVoucherConsole: () => mocks.vouchers ?? vouchers,
+  };
+});
 
 // This view proves pool actions; name resolution has its own coverage.
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
@@ -80,6 +90,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
+  useFocusAfterFlip: () => undefined,
 }));
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -284,6 +295,8 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
     compostCycle: vi.fn().mockResolvedValue("0x1"),
     expire: vi.fn().mockResolvedValue("0x1"),
     acceptClaim: vi.fn().mockResolvedValue("0x1"),
+    acceptServiceClaim: vi.fn().mockResolvedValue("0x1"),
+    acceptAndStartBooking: vi.fn().mockResolvedValue("started"),
     declineClaim: vi.fn().mockResolvedValue("0x1"),
     retryQueued: vi.fn().mockResolvedValue(undefined),
     discardQueued: vi.fn().mockResolvedValue(undefined),
@@ -353,7 +366,7 @@ function gardenController(canManage: boolean) {
     hypercertsLoading: false,
     hypercerts: [],
     view: "health",
-    derived: { overviewAlerts: [], impactBadge: { count: undefined } },
+    derived: { overviewAlerts: [] as unknown[] },
     handleTabChange: vi.fn(),
     desktopActions: [],
     canManage,
@@ -369,6 +382,7 @@ describe("GardenPoolTab (W7)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.controller = controller();
+    mocks.vouchers = null;
   });
 
   it("shows skeletons while the pool loads and a retry when the read fails", () => {
@@ -389,7 +403,7 @@ describe("GardenPoolTab (W7)", () => {
     mocks.controller = controller({ pool: null, poolId: undefined, cycles: [], commitments: [] });
     renderTab();
     expect(screen.getByText(/no commitment pool/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /set up commitments/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /set up promises/i })).not.toBeInTheDocument();
   });
 
   it("renders the setup checklist for a pool that has never opened and opens the setup flow", () => {
@@ -407,12 +421,12 @@ describe("GardenPoolTab (W7)", () => {
       charter: { charter: null, isLoading: false, isUnavailable: false },
     });
     renderTab();
-    expect(screen.getByText(/not taking commitments yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/not taking promises yet/i)).toBeInTheDocument();
     expect(screen.getByText(/agreement not written yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/commitment limit not set/i)).toBeInTheDocument();
+    expect(screen.getByText(/promise limit not set/i)).toBeInTheDocument();
     // Before the pool is ready the first-run flow owns the charter and the cap.
     expect(screen.queryByRole("button", { name: /edit pool/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /set up commitments/i }));
+    fireEvent.click(screen.getByRole("button", { name: /set up promises/i }));
     expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("first-run");
   });
 
@@ -431,7 +445,7 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.click(screen.getByRole("button", { name: /edit pool/i }));
     const dialog = await screen.findByRole("dialog");
     expect(
-      within(dialog).getByLabelText(/how many commitments one person can hold at once/i)
+      within(dialog).getByLabelText(/how many promises one person can hold at once/i)
     ).toBeInTheDocument();
   });
 
@@ -471,7 +485,7 @@ describe("GardenPoolTab (W7)", () => {
     expect(screen.getByText("Market rides")).toBeInTheDocument();
     expect(screen.getByText("Neighbourly help in Rocinha")).toBeInTheDocument();
     expect(screen.getByText(/24 per person at once/i)).toBeInTheDocument();
-    expect(screen.getByText(/taking commitments/i)).toBeInTheDocument();
+    expect(screen.getByText(/taking promises/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /start campaign/i }));
     expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("campaign");
   });
@@ -484,8 +498,8 @@ describe("GardenPoolTab (W7)", () => {
       cycles: [cycle({ commitmentsAccepted: 3n, commitmentsFulfilled: 2n })],
     });
     renderTab();
-    expect(screen.getByText(/3 commitments/)).toHaveTextContent(/2 kept/);
-    expect(screen.queryByText(/5 commitments/)).not.toBeInTheDocument();
+    expect(screen.getByText(/3 promises/)).toHaveTextContent(/2 kept/);
+    expect(screen.queryByText(/5 promises/)).not.toBeInTheDocument();
   });
 
   it("groups commitments under Open · Confirmed · Past and opens a row in the inspector", () => {
@@ -539,7 +553,10 @@ describe("GardenPoolTab (W7)", () => {
     renderTab();
     const row = screen.getByTestId("pool-commitment-1");
     expect(within(row).getByText(/past due/i)).toBeInTheDocument();
-    fireEvent.click(within(row).getByRole("button", { name: /expire now/i }));
+    // The act is its icon on a narrow row and its words on a wide one, and either opens it.
+    const expires = within(row).getAllByRole("button", { name: /expire now/i });
+    expect(expires).toHaveLength(2);
+    fireEvent.click(expires[0]!);
     // A governing act never fires from a bare row act: the confirm names the
     // blast radius before anything reaches the chain.
     const dialog = await screen.findByRole("alertdialog");
@@ -615,17 +632,34 @@ describe("GardenPoolTab (W7)", () => {
       pendingCreates: [
         { ...queued, jobId: "job-a", title: "Compost workshop" },
         { ...queued, jobId: "job-b", title: "Seed swap", direction: "REQUEST" as const },
+        { ...queued, jobId: "job-c", title: "Tool library" },
       ],
       queuedPhase: (jobId: string) =>
-        jobId === "job-b" ? { status: "signing", key: "job-b" } : { status: "idle" },
+        jobId === "job-b"
+          ? { status: "signing", key: "job-b" }
+          : jobId === "job-c"
+            ? { status: "failed", key: "job-c" }
+            : { status: "idle" },
     });
     renderTab();
     const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
-    expect(within(rows[0]).queryByText("Confirm in your wallet.")).not.toBeInTheDocument();
-    expect(within(rows[1]).getByText("Confirm in your wallet.")).toBeInTheDocument();
-    // A queued row wears its direction's edge before the index has it.
-    expect(rows[0]).toHaveClass("border-s-primary-base");
-    expect(rows[1]).toHaveClass("border-s-information-base");
+    const phaseLine = (row: HTMLElement) => row.querySelector('[data-component="ActPhaseLine"]');
+    expect(phaseLine(rows[0])).toBeNull();
+    expect(within(rows[0]).getByText("Not sent")).toBeInTheDocument();
+    // The act in flight takes the pill and leads the details, and its line is still announced.
+    expect(within(rows[1]).getByText("Confirming…")).toBeInTheDocument();
+    expect(phaseLine(rows[1])).toHaveAttribute("role", "status");
+    expect(phaseLine(rows[1])).toHaveTextContent("Confirm in your wallet");
+    expect(rows[1].querySelector(".gg-item-row-details")).toHaveTextContent(
+      "Confirm in your wallet"
+    );
+    // A failed act leads in the error color, as its phase line did.
+    expect(rows[2].querySelector('.gg-item-row-detail[data-tone="error"]')).toHaveTextContent(
+      /didn.t go through/
+    );
+    // A queued row leads with its direction before the index has it (DL-110).
+    expect(within(rows[0]).getByRole("img", { name: "Offer" })).toBeInTheDocument();
+    expect(within(rows[1]).getByRole("img", { name: "Request" })).toBeInTheDocument();
   });
 
   it("approves a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
@@ -646,7 +680,7 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.change(within(dialog).getByLabelText(/^reason/i), {
       target: { value: "Crew is full" },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: /decline request/i }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^decline$/i }));
     await waitFor(() =>
       expect(mocks.controller!.acts.declineClaim).toHaveBeenCalledWith(2n, CLAIMANT, "Crew is full")
     );
@@ -655,7 +689,7 @@ describe("GardenPoolTab (W7)", () => {
   it("keeps Close pool out of reach while anything is live, and names the live count", () => {
     renderTab();
     expect(screen.queryByRole("button", { name: /close pool/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/2 live commitments/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 live promises/i)).toBeInTheDocument();
   });
 
   it("offers Close pool only once every cycle and commitment has finished", async () => {
@@ -733,14 +767,208 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(stats).queryByRole("button", { name: /to review/i })).not.toBeInTheDocument();
 
     const list = screen.getByTestId("pool-commitments");
-    fireEvent.click(within(stats).getByRole("button", { name: /2\s*needs recovery/i }));
+    fireEvent.click(within(stats).getByRole("button", { name: /^needs recovery\s+2$/i }));
     expect(within(list).queryByTestId("pool-commitment-1")).not.toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-2")).toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
 
-    fireEvent.click(within(stats).getByRole("button", { name: /1\s*past due/i }));
+    fireEvent.click(within(stats).getByRole("button", { name: /^past due\s+1$/i }));
     expect(within(list).queryByTestId("pool-commitment-2")).not.toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+  });
+
+  // Review Promises holds booking acts too (hub-day review, 18 Nov), so To review counts them.
+  it("counts a booking act that waits on the steward under To review, with the asks", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const observedAt = Number(NOW);
+    const holder = "0x7c40000000000000000000000000000000005c3d" as const;
+    mocks.controller = controller({ commitments: [commitment()] });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: observedAt,
+      snapshot: {
+        status: "observed",
+        observedAt,
+        bookings: [
+          {
+            commitmentId: 1n,
+            holder,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: { kind: "individual", name: "Teo", chainId: 100, account: holder, decimals: 6 },
+            voucherUnits: 1_000_000n,
+            service: {
+              kind: "visit",
+              startsAt: observedAt - 86_400,
+              endsAt: observedAt - 72_000,
+              report: { checkedIn: true, usableHours: 4, ofHours: 4, photos: 2 },
+            },
+            stage: { kind: "in-progress" },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const stats = screen.getByRole("list", { name: /what needs you/i });
+    expect(within(stats).getByRole("button", { name: /^to review\s+1$/i })).toBeInTheDocument();
+  });
+
+  // A pool can close with a transfer still owed: its retry stays reachable (PR #1740, Codex).
+  it("keeps a failed voucher transfer's Retry Transfer in a pool that has closed, with no asks to decide", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const holder = "0x7c40000000000000000000000000000000005c3d" as const;
+    mocks.controller = controller({
+      pool: pool({ state: "CLOSED" }),
+      commitments: [
+        commitment({ onchainState: "FULFILLED", derivedState: "FULFILLED", state: "FULFILLED" }),
+      ],
+      claims: [pendingClaim()],
+    });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: Number(NOW),
+      snapshot: {
+        status: "observed",
+        observedAt: Number(NOW),
+        bookings: [
+          {
+            commitmentId: 1n,
+            holder,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: { kind: "individual", name: "Teo", chainId: 100, account: holder, decimals: 6 },
+            voucherUnits: 1_000_000n,
+            service: { kind: "access", daysUsed: 12, daysOf: 30 },
+            stage: { kind: "return-failed", units: 500_000n },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const queue = screen.getByTestId("pool-claims");
+    expect(within(queue).getByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+    expect(within(queue).queryByRole("button", { name: /^approve$/i })).not.toBeInTheDocument();
+    expect(
+      within(queue).getByText("Bookings that still owe a transfer or a return.")
+    ).toBeVisible();
+  });
+
+  // A visit's report writes to the pool, which a closed pool refuses (PR #1740 re-review).
+  it("holds a visit's report in a closed pool, and shows the queue only for what can still go", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const holder = "0x7c40000000000000000000000000000000005c3d" as const;
+    const booking = {
+      commitmentId: 1n,
+      holder,
+      setupId: `0x${"a4".repeat(32)}` as const,
+      issuer: {
+        kind: "individual" as const,
+        name: "Teo",
+        chainId: 100,
+        account: holder,
+        decimals: 6,
+      },
+      voucherUnits: 1_000_000n,
+      service: {
+        kind: "visit" as const,
+        startsAt: Number(NOW) - 86_400,
+        endsAt: Number(NOW) - 72_000,
+        report: { checkedIn: true, usableHours: 4, ofHours: 4, photos: 2 },
+      },
+      stage: { kind: "in-progress" as const },
+    };
+    mocks.controller = controller({ pool: pool({ state: "CLOSED" }), commitments: [commitment()] });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: Number(NOW),
+      snapshot: { status: "observed", observedAt: Number(NOW), bookings: [booking] },
+    });
+    renderTab();
+    expect(screen.queryByTestId("pool-claims")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Report Visit…" })).not.toBeInTheDocument();
+  });
+
+  // The live read gives every booking under way a return ceiling before the final split; an
+  // optional return waits on no one, so it stays on the list row (PR #1740 review).
+  it("leaves a live booking under way out of Review Promises, with its optional return on its row", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const holder = "0x7c40000000000000000000000000000000005c3d" as const;
+    mocks.controller = controller({ commitments: [commitment()] });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: Number(NOW),
+      snapshot: {
+        status: "observed",
+        observedAt: Number(NOW),
+        bookings: [
+          {
+            commitmentId: 1n,
+            holder,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: { kind: "individual", name: "Teo", chainId: 100, account: holder, decimals: 6 },
+            voucherUnits: 1_000_000n,
+            service: {
+              kind: "units",
+              units: 1n,
+              label: "session",
+              returnLimit: 1_000_000n,
+              returnCeiling: 0n,
+            },
+            stage: { kind: "in-progress" },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const stats = screen.getByRole("list", { name: /what needs you/i });
+    expect(within(stats).queryByRole("button", { name: /^to review/i })).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pool-claims")).queryByRole("listitem")
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pool-commitment-1")).getAllByRole("button", {
+        name: "Propose Return…",
+      })
+    ).not.toHaveLength(0);
+  });
+
+  // The voucher read can show a booking before the pool read drops the ask it came from.
+  it("counts a booking and the ask it came from once under To review", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const ask = pendingClaim();
+    const observedAt = Number(NOW);
+    mocks.controller = controller({ commitments: [commitment()], claims: [ask] });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: observedAt,
+      snapshot: {
+        status: "observed",
+        observedAt,
+        bookings: [
+          {
+            commitmentId: ask.claim.commitmentId,
+            holder: ask.claim.claimant,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: {
+              kind: "individual",
+              name: "Teo",
+              chainId: 100,
+              account: ask.claim.claimant,
+              decimals: 6,
+            },
+            voucherUnits: 1_000_000n,
+            service: { kind: "access", daysUsed: 12, daysOf: 30 },
+            stage: { kind: "return-failed", units: 500_000n },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const stats = screen.getByRole("list", { name: /what needs you/i });
+    expect(within(stats).getByRole("button", { name: /^to review\s+1$/i })).toBeInTheDocument();
   });
 
   it("folds copies made together into one group row, which opens the group's inspector", async () => {
@@ -753,7 +981,7 @@ describe("GardenPoolTab (W7)", () => {
     });
     renderTab();
     const group = screen.getByTestId("pool-group-group-00000001");
-    expect(group).toHaveTextContent(/10 promises/);
+    expect(group).toHaveTextContent(/A group of 10 separate promises/);
     expect(group).toHaveTextContent(/4 available.*3 in progress.*2 kept.*1 ended/);
     // The copies are the group's: none is a row of its own.
     expect(screen.queryByTestId("pool-commitment-21")).not.toBeInTheDocument();
@@ -762,6 +990,129 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.click(within(group).getByRole("button", { name: /household water survey/i }));
     const inspector = await screen.findByRole("dialog", { name: "Household water survey" });
     expect(within(inspector).getByText("4 not taken up yet")).toBeInTheDocument();
+  });
+
+  // A grouped copy's live booking can only propose a return here: it folds into its group, and
+  // the live read never reports an early end (PR #1740 re-review).
+  it("offers a grouped live booking's optional return in the group's inspector", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const ana = STORY_GROUP_COPIES.find((copy) => copy.commitmentId === 27n)!;
+    mocks.controller = controller({
+      commitments: [commitment(), ...STORY_GROUP_COPIES],
+      titles: new Map([
+        ["bafy-1", { version: 1, title: "Prune the north beds" }],
+        ...STORY_GROUP_TITLES,
+      ]),
+    });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: Number(NOW),
+      snapshot: {
+        status: "observed",
+        observedAt: Number(NOW),
+        bookings: [
+          {
+            commitmentId: 27n,
+            holder: ana.counterparty!,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: {
+              kind: "individual",
+              name: "Teo",
+              chainId: 100,
+              account: ana.counterparty!,
+              decimals: 6,
+            },
+            voucherUnits: 1_000_000n,
+            service: {
+              kind: "units",
+              units: 1n,
+              label: "survey",
+              returnLimit: 1_000_000n,
+              returnCeiling: 0n,
+            },
+            stage: { kind: "in-progress" },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const group = screen.getByTestId("pool-group-group-00000001");
+    expect(
+      within(group).queryByRole("button", { name: "Propose Return…" })
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(group).getByRole("button", { name: /household water survey/i }));
+    const inspector = await screen.findByRole("dialog", { name: "Household water survey" });
+    fireEvent.click(within(inspector).getAllByRole("button", { name: "Propose Return…" })[0]!);
+    expect(await screen.findByRole("dialog", { name: /Propose a Return/ })).toBeInTheDocument();
+  });
+
+  // The return step closes back to the inspector, so the group row keeps opening it.
+  it("closes the inspector's return step back to the inspector, on cancel and when the booking leaves the read", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const ana = STORY_GROUP_COPIES.find((copy) => copy.commitmentId === 27n)!;
+    const read = (bookings: VoucherConsoleView["snapshot"]["bookings"]) =>
+      voucherConsoleViewFixture({
+        now: Number(NOW),
+        snapshot: { status: "observed", observedAt: Number(NOW), bookings },
+      });
+    mocks.controller = controller({
+      commitments: [commitment(), ...STORY_GROUP_COPIES],
+      titles: new Map([
+        ["bafy-1", { version: 1, title: "Prune the north beds" }],
+        ...STORY_GROUP_TITLES,
+      ]),
+    });
+    mocks.vouchers = read([
+      {
+        commitmentId: 27n,
+        holder: ana.counterparty!,
+        setupId: `0x${"a4".repeat(32)}`,
+        issuer: {
+          kind: "individual",
+          name: "Teo",
+          chainId: 100,
+          account: ana.counterparty!,
+          decimals: 6,
+        },
+        voucherUnits: 1_000_000n,
+        service: {
+          kind: "units",
+          units: 1n,
+          label: "survey",
+          returnLimit: 1_000_000n,
+          returnCeiling: 0n,
+        },
+        stage: { kind: "in-progress" },
+      },
+    ]);
+    renderTab();
+    const openReturn = async () => {
+      const inspector = await screen.findByRole("dialog", { name: "Household water survey" });
+      fireEvent.click(within(inspector).getAllByRole("button", { name: "Propose Return…" })[0]!);
+      return screen.findByRole("dialog", { name: /Propose a Return/ });
+    };
+    fireEvent.click(
+      within(screen.getByTestId("pool-group-group-00000001")).getByRole("button", {
+        name: /household water survey/i,
+      })
+    );
+    fireEvent.click(within(await openReturn()).getByRole("button", { name: "Cancel" }));
+    expect(await screen.findByRole("dialog", { name: "Household water survey" })).toBeVisible();
+
+    await openReturn();
+    // The final split closed and the next read no longer lists the booking.
+    const booked = mocks.vouchers;
+    mocks.vouchers = read([]);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed", hidden: true }));
+    expect(await screen.findByRole("dialog", { name: "Household water survey" })).toBeVisible();
+    // A later read lists it again: the return stays closed until the steward opens it.
+    mocks.vouchers = booked;
+    fireEvent.click(screen.getByRole("button", { name: "Open", hidden: true }));
+    expect(screen.getByRole("dialog", { name: "Household water survey" })).toBeVisible();
+    expect(screen.queryByRole("dialog", { name: /Propose a Return/ })).not.toBeInTheDocument();
   });
 
   it("counts a group's queued copy on its row as didn't send, with Finish Creating, not as a queued row", async () => {
@@ -789,7 +1140,7 @@ describe("GardenPoolTab (W7)", () => {
     });
     renderTab();
     const group = screen.getByTestId("pool-group-group-00000001");
-    expect(group).toHaveTextContent(/9 created.*1 didn’t send/);
+    expect(group).toHaveTextContent(/1 didn’t send.*9 created/);
     const queuedRows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
     expect(queuedRows.map((row) => row.textContent)).toEqual([
       expect.stringContaining("Seed swap"),
@@ -828,6 +1179,40 @@ describe("GardenPoolTab (W7)", () => {
     expect(send).toBeDisabled();
     fireEvent.click(send);
     expect(mocks.controller.acts.retryQueued).not.toHaveBeenCalled();
+    expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
+  });
+
+  it("says why the queue refused a promise, and offers only Discard", () => {
+    mocks.controller = controller({
+      pendingCreates: [
+        {
+          jobId: "refused",
+          chainId: 42161,
+          poolId: "7",
+          direction: "OFFER",
+          title: "Prune the north beds",
+          unitLabel: "hours",
+          targetUnits: "6",
+          waitingForMembership: false,
+          failed: true,
+          refusal: "cycle-ended",
+          discardable: true,
+          createdAt: 1,
+        },
+      ],
+      // The Send Now that found the refusal reported a failure; the row still says why.
+      queuedPhase: (jobId: string) => ({ status: "failed", key: jobId }),
+    });
+    renderTab();
+    const row = within(screen.getByTestId("pool-queued")).getByRole("listitem");
+    expect(row).toHaveTextContent("Its season or campaign ended before it was sent");
+    expect(row).not.toHaveTextContent("You can try again");
+    // The send's live line now announces why, so a screen reader hears the refusal too.
+    const line = row.querySelector('[data-component="ActPhaseLine"]');
+    expect(line).toHaveAttribute("role", "status");
+    expect(line).toHaveTextContent("Its season or campaign ended before it was sent");
+    // Sending it again cannot help, so nothing offers to.
+    expect(within(row).queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
     expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
   });
 
@@ -899,25 +1284,53 @@ describe("GardenPoolTab (W7)", () => {
     );
   });
 
-  it("keeps Review Promises, Pool Status and Pool Funding in the right column, in that order", () => {
+  // Decision 4 of the hub-day review: below two columns the queue comes first, then the
+  // promises, then the rest of the rail; from 1024px the queue tops the right column.
+  it("puts the voucher notice and Review Promises first, ahead of the promises, and keeps Pool Status and Pool Funding in the right column", () => {
     mocks.controller = controller({
       claims: [pendingClaim()],
       titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
     });
     renderTab();
+    const layout = screen.getByTestId("pool-claims").closest(".garden-tab-layout")!;
+    const cells = Array.from(layout.children, (cell) => cell.className.split(" ")[0]);
+    // The voucher read failed (this pool reads none), so its notice comes first of all: it
+    // warns about what the queue shows. From 1024px a grid area puts it atop the left column.
+    expect(cells.slice(0, 4)).toEqual([
+      "garden-tab-notice",
+      "garden-tab-lead",
+      "garden-tab-main",
+      "garden-tab-rail",
+    ]);
+    expect(layout.querySelector(".garden-tab-notice")).toContainElement(
+      screen.getByText(/Voucher bookings could not be loaded/)
+    );
+    expect(layout.querySelector(".garden-tab-lead")).toContainElement(
+      screen.getByTestId("pool-claims")
+    );
     const aside = screen.getByRole("complementary");
     const cards = Array.from(aside.querySelectorAll("[data-component]"), (node) =>
       node.getAttribute("data-component")
-    ).filter((name) =>
-      ["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"].includes(name ?? "")
-    );
-    expect(cards).toEqual(["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"]);
+    ).filter((name) => ["PoolStatusCard", "PoolFundingSection"].includes(name ?? ""));
+    expect(cards).toEqual(["PoolStatusCard", "PoolFundingSection"]);
     // Each is headed by the name a steward reads (DL-077).
+    expect(
+      within(layout as HTMLElement)
+        .getAllByRole("heading")
+        .map((heading) => heading.textContent)
+    ).toEqual(
+      expect.arrayContaining([
+        "Review Promises",
+        "Offers and Requests",
+        "Pool Status",
+        "Pool Funding",
+      ])
+    );
     expect(
       within(aside)
         .getAllByRole("heading")
         .map((heading) => heading.textContent)
-    ).toEqual(["Review Promises", "Pool Status", "Pool Funding"]);
+    ).toEqual(["Pool Status", "Pool Funding"]);
     // The promises stay on the left, so nothing on the right moves them.
     expect(within(aside).queryByTestId("pool-commitments")).not.toBeInTheDocument();
     expect(
@@ -947,7 +1360,7 @@ describe("GardenPoolTab (W7)", () => {
       commitments: [],
     });
     renderTab();
-    const setUp = screen.getByRole("button", { name: /set up commitments/i });
+    const setUp = screen.getByRole("button", { name: /set up promises/i });
     expect(setUp).toBeDisabled();
     // The reason sits with the act it holds, not only in the status card.
     const card = setUp.closest("[data-component='PoolNotReadyCard']") as HTMLElement;
@@ -976,6 +1389,18 @@ describe("Garden workspace Promises tab visibility", () => {
     expect(screen.queryByRole("tab", { name: "Promises" })).not.toBeInTheDocument();
   });
 
+  it("counts Health's open alerts and draws no badge for Impact's flag (DL-134)", () => {
+    mocks.gardenController = {
+      ...gardenController(true),
+      derived: { overviewAlerts: [{ key: "impact-stale" }, { key: "treasury-warning" }] },
+    };
+    renderWithProviders(<GardenView />);
+
+    expect(screen.getByRole("tab", { name: "Health 2 waiting" })).toBeInTheDocument();
+    // A count would join the tab's accessible name, so this exact name proves none.
+    expect(screen.getByRole("tab", { name: "Impact" })).toBeInTheDocument();
+  });
+
   it("keeps management controls from a reader who reaches the route directly while retaining funding facts", () => {
     // The rail hides the tab, but a deep link is the other way in: every write
     // control here would otherwise invite a call the contract refuses.
@@ -985,6 +1410,6 @@ describe("Garden workspace Promises tab visibility", () => {
     expect(screen.getByRole("heading", { name: /pool funding/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /pause/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /close pool/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /set up commitments/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /set up promises/i })).not.toBeInTheDocument();
   });
 });

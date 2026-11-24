@@ -7,19 +7,20 @@
  *   - spinner (loading)
  *   - WalletRequiredConnectShell (embedded auth)
  *   - connect prompt (unauthenticated)
- *   - <Navigate to="/hub/work" /> (authenticated + eligible gardens)
+ *   - <Navigate to="/review/work" /> (authenticated + eligible gardens)
  *   - CanvasGardenAccessState (authenticated + zero eligible gardens)
  */
 
 import type React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, userEvent } from "../test-utils";
 vi.mock("@/components/Layout/StewardAccessRequest", () => ({
   StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
 }));
 
-const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
+const { mockNavigate, mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
+  mockNavigate: vi.fn(),
   mockAuthState: {
     current: {
       isAuthenticated: true,
@@ -89,7 +90,6 @@ vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () =>
   useAdminLoginController: () => ({
     mode: "entry",
     changeMode: vi.fn(),
-    createAccountByName: vi.fn(),
     username: "",
     setUsername: vi.fn(),
     error: null,
@@ -97,8 +97,11 @@ vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () =>
     canSignInByName: false,
     hasStoredCredential: false,
     storedUsername: null,
-    signInByName: vi.fn(),
+    continueByName: vi.fn(),
     signInWithStoredPasskey: vi.fn(),
+    // Email sign-in off: the entry keeps a wallet second.
+    codeSignIn: { enabled: false },
+    walletReleaseStalled: false,
   }),
 }));
 
@@ -114,6 +117,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return {
     ...actual,
+    useNavigate: () => mockNavigate,
     Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
   };
 });
@@ -184,7 +188,7 @@ describe("IndexRoute", () => {
     );
 
     expect(screen.getByTestId("wallet-required-shell")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /sign out & connect wallet/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign out & sign in again/i })).toBeInTheDocument();
   });
 
   it("renders the connect prompt for unauthenticated users", () => {
@@ -202,10 +206,12 @@ describe("IndexRoute", () => {
     );
 
     expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
-    expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
+    // The signed-out Hub is the boot screen's connect surface, with no top bar (PRD-1491).
+    expect(screen.getByRole("heading", { name: "Connect to continue" })).toBeInTheDocument();
+    expect(screen.queryByTestId("top-context-bar")).toBeNull();
   });
 
-  it("redirects to /hub when authenticated with at least one eligible garden", () => {
+  it("redirects to /review when authenticated with at least one eligible garden", () => {
     mockEligibleAdminGardens.current = {
       ...mockEligibleAdminGardens.current,
       eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
@@ -217,10 +223,10 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/hub/work");
+    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/review/work");
   });
 
-  it("renders the no-garden-access state when authenticated with zero gardens", () => {
+  it("opens garden creation from the no-access state when permitted", async () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/"]}>
         <IndexRoute />
@@ -228,6 +234,20 @@ describe("IndexRoute", () => {
     );
 
     expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: /create garden/i }));
+    expect(mockNavigate).toHaveBeenCalledWith("/garden/create");
+  });
+
+  it("hides garden creation when the wallet lacks permission", () => {
+    mockEligibleAdminGardens.current.canCreateGarden = false;
+    renderWithProviders(
+      <MemoryRouter>
+        <IndexRoute />
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create garden/i })).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it("renders the indexer-error state when useEligibleAdminGardens reports isError", () => {
@@ -248,10 +268,10 @@ describe("IndexRoute", () => {
     expect(screen.queryByTestId("canvas-no-garden-access")).not.toBeInTheDocument();
   });
 
-  it("redirects to the hub when role-confirmed gardens land via the stale-base-list cross-check", () => {
+  it("redirects to Review when role-confirmed gardens land via the stale-base-list cross-check", () => {
     // Simulates the steward/no-garden symptom: useGardens returned [] but
     // useRole proved a steward garden, so useEligibleAdminGardens injected
-    // a stub. IndexRoute must redirect to the hub instead of the no-access shell.
+    // a stub. IndexRoute must redirect to Review instead of the no-access shell.
     mockEligibleAdminGardens.current = {
       ...mockEligibleAdminGardens.current,
       eligibleGardens: [{ id: "garden-stub", name: "Stub Garden", location: "" }],
@@ -264,6 +284,6 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/hub/work");
+    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/review/work");
   });
 });

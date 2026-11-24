@@ -15,6 +15,12 @@ export interface AdminSelectableCardProps
   meta?: ReactNode;
 }
 
+/**
+ * AdminSelectableCard — a choice that needs a title, a description, an icon or
+ * metadata: a toggle in a multi-select set, or a radio. It keeps its own anatomy
+ * (DL-118): the shared picker is for objects with a picture of their own (an
+ * action's or a garden's banner), and none of these choices has one.
+ */
 export const AdminSelectableCard = React.forwardRef<HTMLButtonElement, AdminSelectableCardProps>(
   (
     {
@@ -61,7 +67,7 @@ export const AdminSelectableCard = React.forwardRef<HTMLButtonElement, AdminSele
         <span className="min-w-0 flex-1">
           <span
             className={cn(
-              "block pr-7 text-title-sm font-semibold leading-snug",
+              "block pr-7 type-title-sm font-semibold leading-snug",
               selected
                 ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                 : "text-[rgb(var(--m3-on-surface))]"
@@ -70,7 +76,7 @@ export const AdminSelectableCard = React.forwardRef<HTMLButtonElement, AdminSele
             {title}
           </span>
           {description ? (
-            <span className="mt-1 block text-body-sm leading-snug text-[rgb(var(--m3-on-surface-variant))]">
+            <span className="mt-1 block type-meta leading-snug text-[rgb(var(--m3-on-surface-variant))]">
               {description}
             </span>
           ) : null}

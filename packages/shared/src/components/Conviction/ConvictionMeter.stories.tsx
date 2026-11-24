@@ -10,7 +10,7 @@ const meta: Meta<typeof ConvictionMeter> = {
     docs: {
       description: {
         component:
-          "Single-bar conviction visualisation with threshold tick + accrual rate + ETA. " +
+          "Single-bar conviction visualization with threshold tick + accrual rate + ETA. " +
           "Spec: design_handoff_admin-revamp/screens/UI Review.html § 03. " +
           "Decay UI deferred per audit §5.4.2 — ships without the ghost trailing fill in v1.",
       },

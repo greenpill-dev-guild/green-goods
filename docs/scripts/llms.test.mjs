@@ -6,6 +6,22 @@ import {describe, test} from "node:test";
 import {inlineCopyCommands, integrationStatusMarkdown, leadSentence, markdownTwin, projectionMarkdown, renderLlmsIndex, twinPath} from "./llms.mjs";
 
 describe("markdown twins", () => {
+  test("publishes rich-text content blocks as readable Markdown with stable heading links", () => {
+    const twin = markdownTwin([
+      '<AnchoredHeading text="A garden" id="what-a-garden-is" level="2" />',
+      '<GuideImage src="/img/garden.webp" alt="Our garden" maxWidth="480px">Caption with <InlineLabel>Upload</InlineLabel>.</GuideImage>',
+      '<Callout title="Read first" kind="warning">Keep a copy.</Callout>',
+      '<ContentLink href="/faq.md" target="_blank">All answers</ContentLink>',
+      '<FaqQuestion question="More > less &amp; why?" id="new-question">Answer.</FaqQuestion>',
+      '```mdx\n<GuideImage src="example" />\n```',
+    ].join("\n\n"), "Example");
+    assert.ok(twin.includes("## A garden {#what-a-garden-is}"));
+    assert.ok(twin.includes("![Our garden](/img/garden.webp)\n\nCaption with **Upload**."));
+    assert.ok(twin.includes(":::warning Read first\n\nKeep a copy.\n\n:::"));
+    assert.ok(twin.includes("[All answers](/faq.md)"));
+    assert.ok(twin.includes("### More > less & why? {#new-question}"));
+    assert.ok(twin.includes('```mdx\n<GuideImage src="example" />\n```'));
+  });
   test("serve each page at its URL plus .md", () => {
     assert.equal(twinPath("/builders/getting-started"), "/builders/getting-started.md");
     assert.equal(twinPath("/builders/testing/"), "/builders/testing.md");
@@ -71,6 +87,9 @@ No. Treat submissions as public. [Recovery](/community/gardener-guide/recovery-a
     const twin = markdownTwin('import TermAnchor from "@site/src/components/docs/TermAnchor";\n\n| Term | Meaning |\n|---|---|\n| <TermAnchor id="attestation" />Attestation | A record |\n', "Ontology");
     assert.match(twin, /<a id="attestation"><\/a>Attestation/);
     assert.doesNotMatch(twin, /TermAnchor/);
+    const legacy = markdownTwin('<TermAnchor id="eas" to="/reference/ontology#eas" />', "Glossary");
+    assert.match(legacy, /<a id="eas"><\/a>\[Reference\]\(\/reference\/ontology#eas\)/);
+    assert.doesNotMatch(legacy, /TermAnchor/);
   });
 
   test("give a title to pages without their own heading", () => {
@@ -206,7 +225,7 @@ describe("data-backed component fallbacks", () => {
     assert.ok(tokens.includes("| `body-md` | Inter | 16px | 400 | 1.5 |"));
     assert.ok(tokens.includes("#### Radii") && tokens.includes("| `sm` | `8px` |"));
 
-    const brand = markdownTwin("<BrandAssets />\n\n## Usage\n", "Brand kit", {
+    const brand = markdownTwin("<BrandAssets />\n\n## Usage\n", "Brand Kit", {
       brandKit: {
         version: 3,
         canonicalColor: "dark-green",
@@ -219,7 +238,7 @@ describe("data-backed component fallbacks", () => {
         files: [{file: "primary/a.svg", format: "svg"}, {file: "primary/a.png", format: "png"}, {file: "palette/p.json", format: "json"}],
       },
     });
-    assert.ok(brand.startsWith("# Brand kit\n\nKit v3. Dark green `#367D44` is the canonical brand color."), brand);
+    assert.ok(brand.startsWith("# Brand Kit\n\nKit v3. Dark green `#367D44` is the canonical brand color."), brand);
     assert.ok(brand.includes("- [Download the whole kit (ZIP)](/brand/kit.zip)\n- [Logos bundle (ZIP)](/brand/logos.zip)"));
     assert.ok(brand.includes("| `primary` | 2 | svg, png |") && brand.includes("| `palette` | 1 | json |"));
     assert.ok(brand.includes("| Inter | Body copy | [Inter source](https://example.org/inter) |"));

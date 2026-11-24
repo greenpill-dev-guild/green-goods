@@ -1,7 +1,8 @@
 import { activeConsentId } from "../consent";
 import { readControl } from "../controls";
 import { DraftContentUnavailableError, type DraftRecord, openDraftFor } from "../drafts";
-import { type InboxEventRow, readInboxPayload } from "../inbox";
+import { albumItems, type InboxEventRow, readInboxPayload } from "../inbox";
+import { modelProcessingOn } from "../model-spend";
 import {
   type AccountBinding,
   activeAccount,
@@ -20,8 +21,22 @@ import type { ReportingCore } from "../runtime";
 import type { InboundMediaReference, InboundMessageEvent } from "../transport";
 import { type ChatCommand, consentAnswer, parseCommand, replyCommand } from "./commands";
 
+/**
+ * An album's files arrive one event each, in any order, and no provider marks the last one. The
+ * album is read as one message once it has been quiet for `ALBUM_QUIET_MS`, and at the latest
+ * `ALBUM_MAX_WAIT_MS` after its first file arrived; a file arriving after that is a message of
+ * its own.
+ */
+export const ALBUM_QUIET_MS = 2_000;
+const ALBUM_MAX_WAIT_MS = 10_000;
+
 export interface TurnContext {
   event: InboxEventRow;
+  /** The album's other files when `event` opens one: read with it, and consumed with it. */
+  album: InboxEventRow[];
+  /** When an album may be read; 0 for a message that is not part of one. */
+  albumReadyAt: number;
+  /** The inbound message, or an album's files and captions merged into one in the order sent. */
   message: InboundMessageEvent;
   command: ChatCommand | null;
   conversationId: string;
@@ -36,7 +51,13 @@ export interface TurnContext {
   review: ReviewRecord | null;
   account: AccountBinding | null;
   intakeEnabled: boolean;
+  /** The model may read this turn: its operator switch is on and today's spend is under the cap. */
   modelEnabled: boolean;
+  /**
+   * The operator's model switch alone, which the consent notice follows: a consent given on a day
+   * the spend cap was reached still covers the days after it, when the model reads again.
+   */
+  modelSwitchOn: boolean;
   noticeSent: boolean;
 }
 
@@ -55,7 +76,9 @@ export type TurnPlan =
 const TEXT_ANSWER_PROMPTS = new Set([
   "select_garden",
   "select_action",
+  "suggest_last",
   "field",
+  "fields",
   "time",
   "time_unit",
   "title",
@@ -82,9 +105,52 @@ function typedCommand(text: string | undefined, prompt: PromptRecord | null): Ch
   return answers && choiceLabelled(prompt, text) ? null : command;
 }
 
-export function loadTurnContext(core: ReportingCore, event: InboxEventRow): TurnContext | null {
-  const message = readInboxPayload<InboundMessageEvent>(core, event);
-  if (!message || !event.conversation_id || !event.channel_subject_id) return null;
+/** An album as one message: its captions and files in the order the sender sent them. */
+function albumMessage(
+  first: InboundMessageEvent,
+  others: readonly InboundMessageEvent[]
+): InboundMessageEvent {
+  const sent = [first, ...others].sort(
+    (a, b) =>
+      a.sentAt - b.sentAt ||
+      a.providerMessageId.localeCompare(b.providerMessageId, undefined, { numeric: true })
+  );
+  const text = sent
+    .map((item) => item.text?.trim())
+    .filter(Boolean)
+    .join("\n");
+  const replyTo = sent.find((item) => item.replyToProviderMessageId)?.replyToProviderMessageId;
+  const { text: _text, replyToProviderMessageId: _replyTo, ...rest } = first;
+  return {
+    ...rest,
+    sentAt: sent[0]?.sentAt ?? first.sentAt,
+    ...(text ? { text } : {}),
+    ...(replyTo ? { replyToProviderMessageId: replyTo } : {}),
+    media: sent.flatMap((item) => item.media ?? []),
+  };
+}
+
+/** `wholeAlbum: false` reads an album's file on its own, as every file was read before albums. */
+export function loadTurnContext(
+  core: ReportingCore,
+  event: InboxEventRow,
+  { wholeAlbum = true }: { wholeAlbum?: boolean } = {}
+): TurnContext | null {
+  const first = readInboxPayload<InboundMessageEvent>(core, event);
+  if (!first || !event.conversation_id || !event.channel_subject_id) return null;
+  const grouped = wholeAlbum ? first.mediaGroupId : undefined;
+  const album = grouped ? albumItems(core, event, grouped) : [];
+  const message =
+    album.length > 0
+      ? albumMessage(
+          first,
+          album.map((item) => item.message)
+        )
+      : first;
+  const arrivals = [event.received_at, ...album.map((item) => item.row.received_at)];
+  const albumReadyAt = grouped
+    ? Math.min(Math.max(...arrivals) + ALBUM_QUIET_MS, Math.min(...arrivals) + ALBUM_MAX_WAIT_MS)
+    : 0;
   const binding = bindingForSubject(core, event.channel_subject_id);
   let draft: DraftRecord | null = null;
   let draftUnavailable = false;
@@ -123,16 +189,26 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
           })
       : null;
   const notice = core.db
-    .query("SELECT notice_sent_at FROM channel_subjects WHERE id = $id")
-    .get({ id: event.channel_subject_id }) as { notice_sent_at: number | null } | null;
+    .query("SELECT notice_sent_at, notice_version FROM channel_subjects WHERE id = $id")
+    .get({ id: event.channel_subject_id }) as {
+    notice_sent_at: number | null;
+    notice_version: string | null;
+  } | null;
+  const processingConsent =
+    activeConsentId(core, event.channel_subject_id, "processing", core.settings.noticeVersion) !==
+    null;
+  const olderConsent =
+    !processingConsent && activeConsentId(core, event.channel_subject_id, "processing") !== null;
   return {
     event,
+    album: album.map((item) => item.row),
+    albumReadyAt,
     message,
     command: waitingForPair ? { kind: "pair", code: bareCode as string } : parsed,
     conversationId: event.conversation_id,
     subjectId: event.channel_subject_id,
     binding,
-    processingConsent: activeConsentId(core, event.channel_subject_id, "processing") !== null,
+    processingConsent,
     locale: binding?.locale ?? message.locale ?? "en",
     prompt,
     draft,
@@ -140,19 +216,48 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
     review: binding ? openReviewFor(core, binding.participantId, event.conversation_id) : null,
     account: binding ? activeAccount(core, binding.participantId, core.settings.chainId) : null,
     intakeEnabled: readControl(core, "intake").enabled,
-    modelEnabled: readControl(core, "model_processing").enabled,
-    noticeSent: Boolean(notice?.notice_sent_at),
+    modelEnabled: modelProcessingOn(core),
+    modelSwitchOn: readControl(core, "model_processing").enabled,
+    noticeSent:
+      Boolean(notice?.notice_sent_at) &&
+      notice?.notice_version === core.settings.noticeVersion &&
+      (!olderConsent || prompt?.kind === "processing_consent"),
   };
 }
 
-export function planTurn(ctx: TurnContext): TurnPlan {
+/**
+ * Plans the turn an inbox event opens. An album is read as one report message. Words that answer
+ * the consent notice or name a command are taken as they always were: the file whose caption
+ * carries them is read first and alone, whatever order the album arrived in, and the album's
+ * other files are then read together, instead of being consumed by a reply that reads none.
+ */
+export function planEventTurn(
+  core: ReportingCore,
+  loaded: TurnContext
+): { ctx: TurnContext; plan: TurnPlan; wholeAlbum: boolean } {
+  const plan = planTurn(loaded);
+  if (loaded.album.length === 0 || !["consent_answer", "command"].includes(plan.kind)) {
+    return { ctx: loaded, plan, wholeAlbum: true };
+  }
+  const captioned =
+    [loaded.event, ...loaded.album].find((row) =>
+      readInboxPayload<InboundMessageEvent>(core, row)?.text?.trim()
+    ) ?? loaded.event;
+  const single = loadTurnContext(core, captioned, { wholeAlbum: false }) as TurnContext;
+  return { ctx: single, plan: planTurn(single), wholeAlbum: false };
+}
+
+function planTurn(ctx: TurnContext): TurnPlan {
   const { message, prompt } = ctx;
   const command = ctx.command;
 
   if (!ctx.processingConsent) {
     if (command?.kind === "stop" || command?.kind === "delete")
       return { kind: "consent_answer", answer: "decline" };
-    if (prompt?.kind === "processing_consent") {
+    // The notice offers HELP, and its reply reads nothing of what was sent, so it is answered
+    // before consent too. Every other command waits for the answer to the notice.
+    if (command?.kind === "help") return { kind: "command", command };
+    if (ctx.noticeSent && prompt?.kind === "processing_consent") {
       const option = matchReply(prompt, message.replyId);
       const answer = option ? (option.value as "agree" | "decline") : consentAnswer(message.text);
       return answer ? { kind: "consent_answer", answer } : { kind: "hold" };

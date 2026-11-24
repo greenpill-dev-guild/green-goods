@@ -18,6 +18,8 @@ library SettlementLifecycleLib {
         uint256 feeReserveMinimum;
         uint16 batchSizeLimit;
         address protocolGarden;
+        address poolingModule;
+        address gDollarToken;
         ISettlementModule.CcipRoute route;
     }
 
@@ -239,21 +241,46 @@ library SettlementLifecycleLib {
     }
 
     function retry(
-        mapping(bytes32 executionKey => ISettlementModule.CommandRecord record) storage records,
-        mapping(bytes32 executionKey => bytes payload) storage payloads,
-        mapping(bytes32 commandMessageId => bytes32 executionKey) storage executionKeys,
+        mapping(uint256 => ISettlementModule.Disbursement) storage disbursements,
+        mapping(uint256 => ISettlementModule.Batch) storage batches,
+        mapping(bytes32 => ISettlementModule.CommandRecord) storage records,
+        mapping(bytes32 => bytes) storage payloads,
+        mapping(bytes32 => bytes32) storage executionKeys,
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
+        SettlementPlanLib.State storage planState,
         RuntimeConfig memory config,
-        bytes32 key
+        bool isBatch,
+        uint256 subjectId
     )
         public
         returns (bytes32 messageId)
     {
+        bytes32 key;
+        if (isBatch) {
+            ISettlementModule.Batch storage batch = _knownBatch(batches, subjectId);
+            if (batch.state != ISettlementModule.DisbursementState.Dispatched) {
+                revert ISettlementModule.BatchNotInState(subjectId, batch.state);
+            }
+            for (uint256 i; i < batch.disbursementIds.length; ++i) {
+                uint256 id = batch.disbursementIds[i];
+                _recheckPersonal(accounts, planState, config, id, disbursements[id]);
+            }
+            key = batch.executionKey;
+        } else {
+            ISettlementModule.Disbursement storage entry = _knownDisbursement(disbursements, subjectId);
+            if (entry.state != ISettlementModule.DisbursementState.Dispatched) {
+                revert ISettlementModule.DisbursementNotInState(subjectId, entry.state);
+            }
+            if (entry.batchId != 0) revert ISettlementModule.BatchEntryMismatch(subjectId);
+            _recheckPersonal(accounts, planState, config, subjectId, entry);
+            key = entry.executionKey;
+        }
         ISettlementModule.CommandRecord storage record = records[key];
         if (record.subjectId == 0 || record.acknowledged) revert ISettlementModule.InvalidExecutionKey();
         if (!canStillAcknowledge(config.route, record.destinationChainSelector, record.destinationExecutor)) {
             revert ISettlementModule.RetiredPeerRetry(record.destinationExecutor);
         }
-        return SettlementCommandLib.retry(
+        messageId = SettlementCommandLib.retry(
             records,
             payloads,
             executionKeys,
@@ -261,16 +288,44 @@ library SettlementLifecycleLib {
                 router: config.router, feeReserveMinimum: config.feeReserveMinimum, executionKey: key
             })
         );
+        _recordRetryMessage(disbursements, batches, isBatch, subjectId, messageId);
+    }
+
+    function _recordRetryMessage(
+        mapping(uint256 => ISettlementModule.Disbursement) storage disbursements,
+        mapping(uint256 => ISettlementModule.Batch) storage batches,
+        bool isBatch,
+        uint256 subjectId,
+        bytes32 messageId
+    )
+        private
+    {
+        if (isBatch) {
+            ISettlementModule.Batch storage batch = batches[subjectId];
+            batch.commandMessageId = messageId;
+            for (uint256 i; i < batch.disbursementIds.length; ++i) {
+                disbursements[batch.disbursementIds[i]].commandMessageId = messageId;
+            }
+        } else {
+            disbursements[subjectId].commandMessageId = messageId;
+        }
     }
 
     function requeue(
         mapping(uint256 disbursementId => ISettlementModule.Disbursement disbursement) storage disbursements,
         SettlementPlanLib.State storage planState,
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
+        mapping(bytes32 => ISettlementModule.CommandRecord) storage records,
+        RuntimeConfig memory config,
         uint256 disbursementId
     )
         public
     {
         ISettlementModule.Disbursement storage disbursement = _knownDisbursement(disbursements, disbursementId);
+        SettlementFundingLib.requirePersonalRequeue(
+            disbursementId, disbursement, records[disbursement.executionKey].acknowledged
+        );
+        _recheckPersonal(accounts, planState, config, disbursementId, disbursement);
         if (disbursement.state != ISettlementModule.DisbursementState.Failed) {
             revert ISettlementModule.DisbursementNotInState(disbursementId, disbursement.state);
         }
@@ -297,6 +352,7 @@ library SettlementLifecycleLib {
         public
     {
         ISettlementModule.Disbursement storage disbursement = _knownDisbursement(disbursements, disbursementId);
+        SettlementFundingLib.rejectPersonalTerminalRecovery(disbursementId, disbursement);
         if (disbursement.kind == ISettlementModule.DisbursementKind.Refund) {
             revert ISettlementModule.RefundDisbursementCannotBeCancelled(disbursementId);
         }
@@ -332,6 +388,7 @@ library SettlementLifecycleLib {
         public
     {
         ISettlementModule.Batch storage batch = _knownBatch(batches, batchId);
+        _rejectPersonalBatchRecovery(disbursements, batch);
         if (batch.state != ISettlementModule.DisbursementState.Queued) {
             revert ISettlementModule.BatchNotInState(batchId, batch.state);
         }
@@ -377,6 +434,8 @@ library SettlementLifecycleLib {
     )
         public
     {
+        if (isBatch) _rejectPersonalBatchRecovery(disbursements, _knownBatch(batches, subjectId));
+        else SettlementFundingLib.rejectPersonalTerminalRecovery(subjectId, _knownDisbursement(disbursements, subjectId));
         bytes32 executionKey = isBatch
             ? _knownBatch(batches, subjectId).executionKey
             : _knownDisbursement(disbursements, subjectId).executionKey;
@@ -493,6 +552,7 @@ library SettlementLifecycleLib {
         private
         view
     {
+        _recheckPersonal(accounts, planState, config, disbursementId, disbursement);
         if (
             disbursement.kind == ISettlementModule.DisbursementKind.ContributorConsideration
                 || disbursement.kind == ISettlementModule.DisbursementKind.GardenBeneficiary
@@ -520,6 +580,62 @@ library SettlementLifecycleLib {
         } else {
             revert ISettlementModule.InvalidPayoutVector();
         }
+    }
+
+    function _recheckPersonal(
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
+        SettlementPlanLib.State storage planState,
+        RuntimeConfig memory config,
+        uint256 id,
+        ISettlementModule.Disbursement storage entry
+    )
+        private
+        view
+    {
+        SettlementFundingLib.recheckPersonalDisbursement(
+            accounts,
+            SettlementFundingLib.RuntimeConfig(
+                address(0), config.poolingModule, config.gDollarToken, config.destinationEvmChainId, false
+            ),
+            planState,
+            id,
+            entry
+        );
+    }
+
+    function _rejectPersonalBatchRecovery(
+        mapping(uint256 => ISettlementModule.Disbursement) storage disbursements,
+        ISettlementModule.Batch storage batch
+    )
+        private
+        view
+    {
+        for (uint256 i; i < batch.disbursementIds.length; ++i) {
+            uint256 id = batch.disbursementIds[i];
+            SettlementFundingLib.rejectPersonalTerminalRecovery(id, disbursements[id]);
+        }
+    }
+
+    function getDisbursement(
+        mapping(uint256 => ISettlementModule.Disbursement) storage disbursements,
+        uint256 id
+    )
+        public
+        view
+        returns (ISettlementModule.Disbursement memory)
+    {
+        return _knownDisbursement(disbursements, id);
+    }
+
+    function getBatch(
+        mapping(uint256 => ISettlementModule.Batch) storage batches,
+        uint256 id
+    )
+        public
+        view
+        returns (ISettlementModule.Batch memory)
+    {
+        return _knownBatch(batches, id);
     }
 
     function _activeAccountMatches(

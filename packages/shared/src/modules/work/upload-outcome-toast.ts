@@ -11,6 +11,8 @@ type Tone = "success" | "info" | "error";
 type Message = { id: string; values?: { count: number } };
 
 const UPLOADED_TITLE = "app.uploads.uploadedTitle";
+/** A failure after some items went: it names the part that did not, so it never denies what did. */
+const PARTLY_SENT_TITLE = "app.uploads.partlySentTitle";
 
 /** Tone, title and message for each way a tap ends, before what went or was flagged changes the message. */
 const TOASTS: Record<Exclude<UploadOutcome["status"], "declined">, [Tone, string, string]> = {
@@ -25,10 +27,13 @@ const TOASTS: Record<Exclude<UploadOutcome["status"], "declined">, [Tone, string
     "app.uploads.sendUnconfirmedTitle",
     "app.uploads.sendUnconfirmedMessage",
   ],
-  failed: ["error", "app.uploads.failedTitle", "app.uploads.failedMessage"],
+  failed: ["error", "app.uploads.notSentTitle", "app.uploads.failedMessage"],
 };
 
-/** `undefined` when nothing should be said: the person declined, and nothing had gone. */
+/**
+ * `undefined` when nothing should be said: the person declined and nothing had gone, or every
+ * ready item was already done elsewhere and the queue said so.
+ */
 export function uploadOutcomeToast(
   outcome: UploadOutcome
 ): { tone: Tone; title: Message; message: Message; error?: unknown } | undefined {
@@ -41,6 +46,11 @@ export function uploadOutcomeToast(
     return { tone: "success", title: uploaded, message: { id: "app.uploads.restWaitingMessage" } };
   }
 
+  // Everything ready was already done elsewhere: the queue already said so for each, and nothing
+  // is left on this device to send.
+  if (outcome.status === "nothing-sent" && flagged === 0 && (outcome.settled ?? 0) > 0)
+    return undefined;
+
   const [tone, title, rest] = TOASTS[outcome.status];
   // An upload that stops partway still sent what went before it. Saying nothing
   // was sent would deny a signature the person already gave.
@@ -51,7 +61,7 @@ export function uploadOutcomeToast(
     flagged > 0 && (outcome.status === "uploaded" || outcome.status === "nothing-sent");
   return {
     tone,
-    title: title === UPLOADED_TITLE ? uploaded : { id: title },
+    title: title === UPLOADED_TITLE ? uploaded : { id: stoppedPartway ? PARTLY_SENT_TITLE : title },
     message: stoppedPartway
       ? { id: "app.uploads.partlySentMessage", values: { count: sent } }
       : needsAttention

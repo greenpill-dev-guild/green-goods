@@ -41,7 +41,7 @@ const meta: Meta<typeof PublicCommitmentsBand> = {
         component:
           "Community commitments on the public Impact page: offers and requests made, " +
           "and commitments kept. No money figure: payouts to Gardens are not part of this " +
-          "story. Unavailable figures are labelled and never replaced with zero.",
+          "story. Unavailable figures are labeled and never replaced with zero.",
       },
     },
   },

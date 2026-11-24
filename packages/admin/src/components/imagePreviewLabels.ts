@@ -3,7 +3,7 @@ import type { IntlShape } from "react-intl";
 
 /**
  * The shared image preview's labels in the steward's language. The dialog falls
- * back to English for any it is not given, so a cockpit surface that opens it
+ * back to English for any it is not given, so a Hub surface that opens it
  * passes these.
  */
 export function imagePreviewLabels(

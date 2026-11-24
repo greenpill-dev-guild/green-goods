@@ -23,7 +23,7 @@ const meta: Meta<typeof PoolGroupRow> = {
     docs: {
       description: {
         component:
-          "Copies made together, as one row in Offers and Requests (PRD-1022 D3): the record row with a count chip, and a count line over every published copy: available, in progress, kept and, once any, ended. While a copy still waits in the steward's queue, the line says what was created and what didn't send, beside Finish Creating (n), in place of a separate queued row. The row opens the group's inspector.",
+          "Copies made together, as one row in Offers and Requests (PRD-1022 D3), on the shared commitment row: the direction's icon carries the number of copies, the pill says how many are still available, and the details give the shared due date and the rest of the counts. While a copy still waits in the steward's queue, the pill says how many didn't send, the details what was created, and Finish Creating (n) takes the right slot, in place of a separate queued row. The row opens the group's inspector.",
       },
     },
   },
@@ -38,9 +38,9 @@ const meta: Meta<typeof PoolGroupRow> = {
   },
   decorators: [
     (Story) => (
-      <ul className="max-w-2xl p-4" data-tone="garden">
+      <div className="flex max-w-2xl flex-col gap-(--gg-list-gap) p-4" data-tone="garden">
         <Story />
-      </ul>
+      </div>
     ),
   ],
 };

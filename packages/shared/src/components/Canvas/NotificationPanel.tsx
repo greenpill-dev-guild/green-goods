@@ -5,6 +5,7 @@ import {
   RiInformationLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { EmptyState } from "../ListPrimitives";
 import { SheetBody } from "./SheetBody";
 
 export type NotificationPanelTone = "info" | "warn" | "critical";
@@ -91,7 +92,7 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
           className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-bg-white-0"
           style={{ background: "rgb(var(--tone-action, var(--green-800)))" }}
           aria-label={formatMessage({
-            id: "cockpit.notifications.unread",
+            id: "hub.notifications.unread",
             defaultMessage: "Unread",
           })}
         />
@@ -159,10 +160,11 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
   );
 }
 
-// Sentence-case label role per the admin dialog interior grammar (admin.mdx):
-// section labels ride the label utilities, never ad-hoc uppercase tracking.
+// A section label is the sheet body's one heading: 14px semibold in the strong
+// ink, as the Profile and Settings sections draw theirs (qa-session 2026-10-30
+// OBS-19), in sentence case and never ad-hoc uppercase tracking.
 function SectionHeading({ title }: { title: string }) {
-  return <h3 className="text-label-sm font-medium text-text-soft">{title}</h3>;
+  return <h3 className="type-body font-semibold text-text-strong">{title}</h3>;
 }
 
 function SkeletonRow() {
@@ -240,23 +242,18 @@ export function NotificationPanel({
 
   return (
     <SheetBody padded={true}>
-      <div className="flex flex-col items-center gap-3 py-12 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-bg-soft">
-          <RiInboxLine className="h-6 w-6 text-text-soft" />
-        </div>
-        <h3 className="text-sm font-semibold text-text-strong">
-          {formatMessage({
-            id: "cockpit.notifications.empty.title",
-            defaultMessage: "No notifications",
-          })}
-        </h3>
-        <p className="max-w-[240px] text-xs text-text-sub">
-          {formatMessage({
-            id: "cockpit.notifications.empty.description",
-            defaultMessage: "Work submissions, assessments, and system alerts will appear here.",
-          })}
-        </p>
-      </div>
+      <EmptyState
+        icon={<RiInboxLine />}
+        title={formatMessage({
+          id: "hub.notifications.empty.title",
+          defaultMessage: "No notifications",
+        })}
+        description={formatMessage({
+          id: "hub.notifications.empty.description",
+          defaultMessage:
+            "Joins, role changes and other stewards' decisions show here, with what needs your attention.",
+        })}
+      />
     </SheetBody>
   );
 }

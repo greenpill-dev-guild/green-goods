@@ -2,23 +2,23 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, expect, it, vi } from "vitest";
 
-const offline = vi.hoisted(() => ({ useActiveOfflineGarden: vi.fn() }));
+const offline = vi.hoisted(() => ({ useOfflineGardenInView: vi.fn() }));
+const navigate = vi.hoisted(() => vi.fn());
 vi.mock("@green-goods/shared/hooks/offline/useOfflineContent", () => offline);
 vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
-  useNavigateToTop: () => vi.fn(),
+  useNavigateToTop: () => navigate,
 }));
 vi.mock("@/components/Cards", () => ({
-  MinimalWorkCard: ({ work }: { work: { title: string } }) => (
-    <div data-testid="cached-work">{work.title}</div>
+  MinimalWorkCard: ({ work, onClick }: { work: { title: string }; onClick?: () => void }) => (
+    <button type="button" data-testid="cached-work" onClick={onClick}>
+      {work.title}
+    </button>
   ),
-}));
-vi.mock("@/components/Communication", async () => ({
-  ...(await import("../../components/Communication/EmptyState")),
-  Loader: () => <div>Loading</div>,
 }));
 
 import enMessages from "@green-goods/shared/i18n/en";
-import type { Work } from "@green-goods/shared/types/domain";
+import { type Action, Domain, type Work } from "@green-goods/shared/types/domain";
+import { domainMaskOf } from "@green-goods/shared/utils/domain";
 import { GardenWork } from "../../components/Features/Garden/Work";
 
 afterEach(() => {
@@ -56,10 +56,11 @@ it("says nothing about offline content while online", () => {
     lastSuccessfulRefresh: Date.now(),
   });
 
-  // Online, the header's status line is the count, never a saved-copy line.
-  expect(screen.getByRole("status")).toHaveTextContent("1 submission");
+  // Online, the header's status line is the count with what it counts, as the one text everyone
+  // reads (DL-166), never a saved-copy line.
+  expect(screen.getByRole("status")).toHaveTextContent(/^1 submission$/);
   expect(screen.queryByText(/Offline/)).toBeNull();
-  expect(offline.useActiveOfflineGarden).toHaveBeenCalledWith("0xgarden");
+  expect(offline.useOfflineGardenInView).toHaveBeenCalledWith("0xgarden");
 });
 
 it("keeps saved work visible without an online refresh-failure accent", () => {
@@ -189,6 +190,35 @@ it("reads the rest of the garden's history before listing it oldest first", () =
   expect(loadOlderWork).toHaveBeenCalledTimes(1);
 });
 
+it("sends a work's page back to the garden's page, or to Home when the list is a sheet over it", () => {
+  const view = renderList({
+    works: [savedWork(1)],
+    workFetchStatus: "success",
+    gardenId: "0xgarden",
+  });
+  fireEvent.click(screen.getByTestId("cached-work"));
+  expect(navigate).toHaveBeenLastCalledWith("/home/0xgarden/work/cached-1", {
+    state: { from: "garden", returnTo: "/home/0xgarden" },
+  });
+
+  // The same list as the Work sheet over Home (DL-128): the work's Back returns to Home.
+  view.rerender(
+    <IntlProvider locale="en" messages={enMessages}>
+      <GardenWork
+        works={[savedWork(1)]}
+        actions={[]}
+        gardenId="0xgarden"
+        workFetchStatus="success"
+        returnTo="/home"
+      />
+    </IntlProvider>
+  );
+  fireEvent.click(screen.getByTestId("cached-work"));
+  expect(navigate).toHaveBeenLastCalledWith("/home/0xgarden/work/cached-1", {
+    state: { from: "home", returnTo: "/home" },
+  });
+});
+
 it("hides older work offline, where a wider window cannot be read", () => {
   renderList({
     works: [savedWork(1)],
@@ -197,4 +227,42 @@ it("hides older work offline, where a wider window cannot be read", () => {
   });
 
   expect(screen.queryByRole("button", { name: "Show older work" })).toBeNull();
+});
+
+it("clears an unsupported Type choice and keeps historical work when domain support changes", () => {
+  const actions: Action[] = [
+    { id: "42161-1", title: "Planting", domain: Domain.AGRO },
+    { id: "42161-2", title: "Composting", domain: Domain.WASTE },
+    { id: "42161-3", title: "Weeding", domain: Domain.AGRO },
+  ].map((action) => ({
+    ...action,
+    slug: action.id,
+    description: "",
+    startTime: 0,
+    endTime: 0,
+    createdAt: 0,
+    capitals: [],
+    inputs: [],
+    media: [],
+  }));
+  const works = actions.map((_, index) => ({ ...savedWork(index), actionUID: index + 1 }));
+  const list = (domains: Domain[]) => (
+    <IntlProvider locale="en" messages={enMessages}>
+      <GardenWork works={works} actions={actions} domainMask={domainMaskOf(domains)} />
+    </IntlProvider>
+  );
+  const view = render(list([Domain.AGRO, Domain.WASTE]));
+  fireEvent.change(screen.getByRole("combobox", { name: "Type of work" }), {
+    target: { value: "2" },
+  });
+  expect(screen.getAllByTestId("cached-work")).toHaveLength(1);
+
+  view.rerender(list([Domain.AGRO]));
+  expect(screen.getByRole("combobox", { name: "Type of work" })).toHaveValue("all");
+  expect(screen.queryByRole("option", { name: "Composting" })).toBeNull();
+  expect(screen.getAllByTestId("cached-work")).toHaveLength(3);
+
+  view.rerender(list([Domain.AGRO, Domain.WASTE]));
+  expect(screen.getByRole("combobox", { name: "Type of work" })).toHaveValue("all");
+  expect(screen.getAllByTestId("cached-work")).toHaveLength(3);
 });

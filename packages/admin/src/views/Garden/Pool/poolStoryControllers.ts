@@ -1,10 +1,11 @@
 /**
  * Controller-shaped builders over the pool fixtures: the pool console, the
- * commitment dialog and the Hub confirm queue, each returning the shape the
+ * commitment dialog and the Review confirm queue, each returning the shape the
  * real hook hands its view. Acts resolve without sending anything.
  */
 
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { VOUCHER_START_IDLE } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type {
   CommitmentDialogController,
   PoolFundingControllerView,
@@ -62,6 +63,9 @@ export function storyPoolFunding(
       feeBuffer: 18n * G,
       quotedFees: 10n * G,
       feeQuotes: [],
+      feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
+      executorPaused: false,
+      commandExecutors: [],
       available: 2_302n * G,
       shortfall: 0n,
       suggestedTopUp: 0n,
@@ -115,6 +119,8 @@ export function storyPoolConsole(
     compostCycle: noop,
     expire: noop,
     acceptClaim: noop,
+    acceptServiceClaim: noop,
+    acceptAndStartBooking: async () => "started",
     declineClaim: noop,
     retryQueued: async () => undefined,
     discardQueued: async () => undefined,
@@ -133,6 +139,7 @@ export function storyPoolConsole(
       pendingClaimCount: claims.length,
       now: STORY_NOW,
     }),
+    now: STORY_NOW,
     cycles,
     cycleNames: STORY_CYCLE_NAMES,
     commitments,
@@ -143,7 +150,7 @@ export function storyPoolConsole(
       charter: {
         version: 1,
         purpose:
-          "Neighbours in Rio offer help and ask for it: rides, tools, workshops, garden work. Commitments are kept in the open and confirmed by the person they were made to.",
+          "Neighbors in Rio offer help and ask for it: rides, tools, workshops, garden work. Commitments are kept in the open and confirmed by the person they were made to.",
       },
       isLoading: false,
       isUnavailable: false,
@@ -157,6 +164,7 @@ export function storyPoolConsole(
     claimPhase: () => ({ status: "idle" }),
     claimDecisions: {},
     claimInFlight: false,
+    voucherStartFor: () => VOUCHER_START_IDLE,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,
@@ -202,6 +210,7 @@ export function storyCommitmentDialog(
     viewer: STORY_STEWARD,
     isOnline: true,
     availability: { status: "available", capability: availableCapability },
+    editsTermsFromGroup: false,
     commitment,
     detail: commitment
       ? {
@@ -339,6 +348,7 @@ export function storyCommitmentDialog(
     claimantStanding: () => null,
     metadata: null,
     sendPhase: { status: "idle" },
+    confirmPhase: { status: "idle" },
     isActing: false,
     isLoading: false,
     isError: false,

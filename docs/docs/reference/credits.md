@@ -36,7 +36,7 @@ The code and documentation are available under the MIT License. Read the [Licens
 
 ### The Green Goods team
 
-Development happens in the open on [GitHub](https://github.com/greenpill-dev-guild/green-goods). The work includes the app, steward dashboard, contracts, infrastructure, documentation, and community support.
+Development happens in the open on [GitHub](https://github.com/greenpill-dev-guild/green-goods). The work includes the Green Goods App, Website and Hub, contracts, infrastructure, documentation, and community support.
 
 ## Contributors
 
@@ -68,7 +68,7 @@ The project also depends on work from OpenZeppelin, Viem, TanStack Query, Zustan
 
 ### Grants & Sponsors
 
-To discuss supporting Green Goods, contact the team through [Telegram](https://t.me/+N3o3_43iRec1Y2Jh). To support a garden directly, follow the [Funder Guide](/community/funder-guide/).
+To discuss supporting Green Goods, contact the team through the [Contact page](https://greengoods.app/contact). To support a garden directly, follow the [Funder Guide](/community/funder-guide/).
 
 ## Community Partners
 
@@ -80,7 +80,7 @@ Green Goods grew from the Greenpill network's work on regenerative funding and c
 
 Gardens, local organizers, testers, and community members shape the work through their experience and feedback. Contact the team about collaboration through the community chat.
 
-## Acknowledgements
+## Acknowledgments {#acknowledgements}
 
 ### Inspiration
 
@@ -94,19 +94,18 @@ Thank you to early users and testers who point out confusing instructions, missi
 
 ### Logo & Identity
 
-Use the [Brand kit](/brand) for current logos, icons, palette, fonts, and editable templates. Keep proportions and space around the artwork. Do not imply official endorsement without permission. Brand usage guidance and open questions are on that page.
+Use the [Brand kit](/brand-kit) for current logos, icons, palette, fonts, and editable templates. Keep proportions and space around the artwork. Do not imply official endorsement without permission. Brand usage guidance and open questions are on that page.
 
 ## Contact
 
 ### Development Team
 
-- [Telegram community chat](https://t.me/+N3o3_43iRec1Y2Jh)
 - [GitHub repository](https://github.com/greenpill-dev-guild/green-goods)
 - [Green Goods on X](https://x.com/greengoodsapp)
 
 ### For Press & Media
 
-Contact the team through Telegram for media inquiries and attribution questions.
+Contact the team through the [Contact page](https://greengoods.app/contact) for media inquiries and attribution questions.
 
 ## Contributing
 

@@ -1,8 +1,12 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { UNAVAILABLE_VOUCHER_CONSOLE } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import type { ComponentType } from "react";
+import { IntlProvider } from "react-intl";
 import { expect, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
 import {
@@ -11,7 +15,29 @@ import {
   withSeededQueryClient,
 } from "../../../../../shared/.storybook/decorators";
 import { GardenPoolTab } from "./index";
-import { POOL_STORY_SEEDS, STORY_GARDEN, storyNotReadyPool } from "./poolStoryFixtures";
+import {
+  POOL_STORY_SEEDS,
+  STORY_CYCLES,
+  STORY_GARDEN,
+  STORY_PRICE_SEED,
+  storyNotReadyPool,
+  storyPool,
+} from "./poolStoryFixtures";
+import {
+  nameVoucherMembers,
+  STORY_GREEN_GOODS_CLAIMS,
+  STORY_GREEN_GOODS_COMMITMENTS,
+  STORY_GREEN_GOODS_RETURN_FAILED,
+  STORY_GREEN_GOODS_SAFE,
+  STORY_MARA_VISITED,
+  STORY_TECH_AND_SUN_CLAIMS,
+  STORY_TECH_AND_SUN_COMMITMENTS,
+  STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_SHORT,
+  STORY_TECH_AND_SUN_VOUCHERS,
+  STORY_VOUCHER_TITLES,
+  voucherConsoleSeeds,
+} from "./poolStoryVouchers";
 
 const OPEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -36,6 +62,41 @@ const UNREGISTERED_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   [queryKeys.commitmentPooling.pools(DEFAULT_CHAIN_ID, STORY_GARDEN), []],
 ];
+
+/** An issuing garden's pool, its voucher bookings and its Safe's rule (PRD-1297 surface 6). */
+function voucherSeeds(
+  commitments: typeof STORY_TECH_AND_SUN_COMMITMENTS,
+  claims: typeof STORY_TECH_AND_SUN_CLAIMS,
+  vouchers: Parameters<typeof voucherConsoleSeeds>[0],
+  safe: Parameters<typeof voucherConsoleSeeds>[1]
+): ReadonlyArray<readonly [QueryKey, unknown]> {
+  return [
+    ...STORYBOOK_ADMIN_SHELL_SEEDS,
+    STORY_PRICE_SEED,
+    [queryKeys.commitmentPooling.pools(DEFAULT_CHAIN_ID, STORY_GARDEN), [storyPool()]],
+    [queryKeys.commitmentPooling.cycles(DEFAULT_CHAIN_ID, 7n, {}), STORY_CYCLES],
+    [
+      queryKeys.commitmentPooling.commitments(DEFAULT_CHAIN_ID, {
+        chainId: DEFAULT_CHAIN_ID,
+        poolId: 7n,
+      }),
+      commitments,
+    ],
+    [queryKeys.commitmentPooling.poolClaims(DEFAULT_CHAIN_ID, 7n, "PENDING"), claims],
+    ...[...STORY_VOUCHER_TITLES].map(
+      ([cid, metadata]) => [queryKeys.commitmentPooling.metadata(cid), metadata] as const
+    ),
+    ...voucherConsoleSeeds(vouchers, safe),
+  ];
+}
+
+// Mara's hub day was yesterday, so its report waits in Review Promises beside the two asks.
+const TECH_AND_SUN_SEEDS = voucherSeeds(
+  STORY_TECH_AND_SUN_COMMITMENTS,
+  STORY_TECH_AND_SUN_CLAIMS,
+  { ...STORY_TECH_AND_SUN_VOUCHERS, bookings: [STORY_MARA_VISITED] },
+  STORY_TECH_AND_SUN_SAFE
+);
 
 function decorators(seeds: ReadonlyArray<readonly [QueryKey, unknown]>) {
   return [
@@ -78,7 +139,7 @@ export const Open: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText("Season of First Rains")).toBeVisible();
-    await expect(await canvas.findByText("Taking commitments")).toBeVisible();
+    await expect(await canvas.findByText("Taking promises")).toBeVisible();
   },
 };
 
@@ -86,7 +147,7 @@ export const NotReady: Story = {
   decorators: decorators(NOT_READY_SEEDS),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("button", { name: "Set Up Commitments" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Set Up Promises" })).toBeVisible();
   },
 };
 
@@ -102,5 +163,106 @@ export const ReaderView: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText("Pool Funding")).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Seed Commitment" })).toBeNull();
+  },
+};
+
+/**
+ * Tech and Sun's Promises console with the voucher pilot read in: Review
+ * Promises holds two hub days asked (one waits on the Safe's approval, one can
+ * be accepted) and Mara's visit to report, the hub days are rows in Offers and
+ * Asks, and Tech and Sun's reserve leads the rest of the rail. Fictional
+ * people, working pilot terms.
+ */
+export const TechAndSunVouchers: Story = {
+  args: { garden: { id: STORY_GARDEN, name: "Tech and Sun" } },
+  decorators: decorators(TECH_AND_SUN_SEEDS),
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Your Reserve")).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Accept and Start…" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Report Visit…" })).toBeVisible();
+  },
+};
+
+/** Riverside Commons' allowance is used up, so Lina's reward waits beside the asks. */
+export const TechAndSunReserveShort: Story = {
+  args: TechAndSunVouchers.args,
+  decorators: decorators(
+    voucherSeeds(
+      STORY_TECH_AND_SUN_COMMITMENTS,
+      STORY_TECH_AND_SUN_CLAIMS,
+      STORY_TECH_AND_SUN_SHORT,
+      STORY_TECH_AND_SUN_SAFE
+    )
+  ),
+  beforeEach: nameVoucherMembers,
+};
+
+/** Green Goods' console: Lina's Claude access returned 6 that didn't arrive, so it needs recovery. */
+export const GreenGoodsTransferFailed: Story = {
+  args: { garden: { id: STORY_GARDEN, name: "Green Goods Community Garden" } },
+  decorators: decorators(
+    voucherSeeds(
+      STORY_GREEN_GOODS_COMMITMENTS,
+      STORY_GREEN_GOODS_CLAIMS,
+      STORY_GREEN_GOODS_RETURN_FAILED,
+      STORY_GREEN_GOODS_SAFE
+    )
+  ),
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeVisible();
+  },
+};
+
+/** Tech and Sun's console in Spanish, the drafts awaiting a native reviewer. */
+export const TechAndSunVouchersEs: Story = {
+  ...TechAndSunVouchers,
+  decorators: [
+    (Story: ComponentType) => (
+      <IntlProvider locale="es" messages={esMessages}>
+        <Story />
+      </IntlProvider>
+    ),
+    ...decorators(TECH_AND_SUN_SEEDS),
+  ],
+  play: undefined,
+};
+
+/** Tech and Sun's console in Portuguese, the drafts awaiting a native reviewer (PRD-1312). */
+export const TechAndSunVouchersPt: Story = {
+  ...TechAndSunVouchersEs,
+  decorators: [
+    (Story: ComponentType) => (
+      <IntlProvider locale="pt" messages={ptMessages}>
+        <Story />
+      </IntlProvider>
+    ),
+    ...decorators(TECH_AND_SUN_SEEDS),
+  ],
+};
+
+/**
+ * The voucher read failed and nothing waits: its notice comes first, above an empty Review
+ * Promises on a phone and atop the main column from two columns, so the steward reads why the
+ * queue may be missing bookings before acting on it.
+ */
+export const VoucherReadFailed: Story = {
+  tags: ["storybook-ci"],
+  args: TechAndSunVouchers.args,
+  decorators: decorators(
+    voucherSeeds(
+      STORY_TECH_AND_SUN_COMMITMENTS,
+      [],
+      UNAVAILABLE_VOUCHER_CONSOLE,
+      STORY_TECH_AND_SUN_SAFE
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText(/Voucher bookings could not be loaded/)).toBeVisible();
+    await expect(canvas.getByText("Nothing to review.")).toBeVisible();
   },
 };

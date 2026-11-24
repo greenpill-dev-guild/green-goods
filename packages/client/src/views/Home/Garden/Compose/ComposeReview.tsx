@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import {
   type CommitmentComposerValues,
@@ -168,14 +169,11 @@ export function ComposeReview({
         <h2 className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
           {formatMessage({ id: "app.compose.review.detailsHeading" })}
         </h2>
-        <dl className="mt-3 space-y-3 text-sm">
+        <FactList frame="inset" className="mt-1">
           {rows.map((row) => (
-            <div key={row.label}>
-              <dt className="text-xs text-text-soft-400">{row.label}</dt>
-              <dd className="mt-0.5 text-text-strong-950">{row.value}</dd>
-            </div>
+            <FactRow key={row.label} label={row.label} value={row.value} />
           ))}
-        </dl>
+        </FactList>
       </section>
 
       {note || values.links.length > 0 ? (

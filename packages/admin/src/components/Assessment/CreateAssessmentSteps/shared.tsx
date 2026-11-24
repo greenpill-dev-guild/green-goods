@@ -1,65 +1,18 @@
+import { DOMAIN_LABELS, DOMAIN_SLUG_PREFIX } from "@green-goods/shared/utils/domain";
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode } from "react";
-import { type IntlShape, useIntl } from "react-intl";
-
-// ─── Domain Display Constants ────────────────────────────
-
-/** Domain icon and color (stable), labels resolved via i18n */
-export const DOMAIN_ICON_CONFIG: Record<Domain, { icon: string; color: string; labelId: string }> =
-  {
-    [Domain.SOLAR]: {
-      icon: "ri-sun-line",
-      color: "amber",
-      labelId: "app.admin.assessment.domainAction.domain.solar",
-    },
-    [Domain.AGRO]: {
-      icon: "ri-plant-line",
-      color: "green",
-      labelId: "app.admin.assessment.domainAction.domain.agroforestry",
-    },
-    [Domain.EDU]: {
-      icon: "ri-book-open-line",
-      color: "blue",
-      labelId: "app.admin.assessment.domainAction.domain.education",
-    },
-    [Domain.WASTE]: {
-      icon: "ri-recycle-line",
-      color: "orange",
-      labelId: "app.admin.assessment.domainAction.domain.waste",
-    },
-  };
-
-const DOMAIN_LABEL_DEFAULTS: Record<string, string> = {
-  "app.admin.assessment.domainAction.domain.solar": "Solar",
-  "app.admin.assessment.domainAction.domain.agroforestry": "Agroforestry",
-  "app.admin.assessment.domainAction.domain.education": "Education",
-  "app.admin.assessment.domainAction.domain.waste": "Waste",
-};
+import type { IntlShape } from "react-intl";
 
 export function resolveDomainLabel(intl: IntlShape, domain: Domain): string {
-  const config = DOMAIN_ICON_CONFIG[domain];
-  return intl.formatMessage({
-    id: config.labelId,
-    defaultMessage: DOMAIN_LABEL_DEFAULTS[config.labelId],
-  });
+  const label = DOMAIN_LABELS[domain];
+  return intl.formatMessage({ id: label.assessmentLabelId, defaultMessage: label.defaultMessage });
 }
 
-/** All domains for when no mask is provided */
-export const ALL_DOMAINS = [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE];
-
-// ─── Domain Guidance ─────────────────────────────────────
-
-const DOMAIN_SLUGS: Record<Domain, string> = {
-  [Domain.SOLAR]: "solar",
-  [Domain.AGRO]: "agro",
-  [Domain.EDU]: "edu",
-  [Domain.WASTE]: "waste",
-};
+export { ALL_DOMAINS } from "@green-goods/shared/utils/domain";
 
 /** Resolve a domain-specific i18n key */
-export function domainKey(base: string, domain: Domain): string {
-  return `${base}.${DOMAIN_SLUGS[domain]}`;
+function domainKey(base: string, domain: Domain): string {
+  return `${base}.${DOMAIN_SLUG_PREFIX[domain]}`;
 }
 
 /**
@@ -68,7 +21,9 @@ export function domainKey(base: string, domain: Domain): string {
  * text instead of falling back to one domain's examples.
  */
 export function knownDomain(domain: Domain | null | undefined): Domain | null {
-  return domain !== null && domain !== undefined && domain in DOMAIN_SLUGS ? domain : null;
+  return domain !== null && domain !== undefined && Object.hasOwn(DOMAIN_SLUG_PREFIX, domain)
+    ? domain
+    : null;
 }
 
 /** A domain's placeholder or example text; undefined until a known domain is chosen. */
@@ -99,15 +54,15 @@ interface DomainGuidance {
 /** Domain-specific guidance for wizard fields — placeholders and help text adapt to the selected domain */
 export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
   [Domain.SOLAR]: {
-    titlePlaceholder: "e.g., Kigali Community Solar — Phase 2 Deployment",
-    locationPlaceholder: "e.g., Kigali, Rwanda — Sector 5 hub network",
+    titlePlaceholder: "e.g., Kigali Community Solar: Phase 2 Deployment",
+    locationPlaceholder: "e.g., Kigali, Rwanda (Sector 5 hub network)",
     descriptionPlaceholder:
       "What solar energy challenge is being addressed? What scale of deployment is involved and who benefits?",
     descriptionHelp:
       "Describe the energy access situation, infrastructure being deployed, and target community.",
     diagnosisPlaceholder:
       "e.g., Rural households in Sector 5 rely on diesel generators averaging 4 hours daily. High fuel cost ($12/week) limits productive electricity use and creates indoor health risks...",
-    smartOutcomeExample: "e.g., Households in the neighbourhood have reliable power after dark",
+    smartOutcomeExample: "e.g., Households in the neighborhood have reliable power after dark",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
         "Standard rooftop installation with proven equipment and trained installers.",
@@ -119,8 +74,8 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
     },
   },
   [Domain.AGRO]: {
-    titlePlaceholder: "e.g., Cerrado Reforestation — Q1 Planting Assessment",
-    locationPlaceholder: "e.g., Alto Paraíso, Goiás — Farm cooperative lot 3",
+    titlePlaceholder: "e.g., Cerrado Reforestation: Q1 Planting Assessment",
+    locationPlaceholder: "e.g., Alto Paraíso, Goiás (farm cooperative lot 3)",
     descriptionPlaceholder:
       "What land area and species are being assessed? What ecological or agricultural challenge does this address?",
     descriptionHelp:
@@ -139,8 +94,8 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
     },
   },
   [Domain.EDU]: {
-    titlePlaceholder: "e.g., Field Worker Training — Solar Maintenance Certification",
-    locationPlaceholder: "e.g., Medellín, Colombia — Community learning center",
+    titlePlaceholder: "e.g., Field Worker Training: Solar Maintenance Certification",
+    locationPlaceholder: "e.g., Medellín, Colombia (community learning center)",
     descriptionPlaceholder:
       "What training or educational program is being assessed? Who are the learners and what skills are targeted?",
     descriptionHelp: "Describe the training program, target audience, and learning objectives.",
@@ -159,8 +114,8 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
     },
   },
   [Domain.WASTE]: {
-    titlePlaceholder: "e.g., Dharavi Riverbank Cleanup — Monthly Impact Review",
-    locationPlaceholder: "e.g., Dharavi, Mumbai — Mithi River corridor (2km stretch)",
+    titlePlaceholder: "e.g., Dharavi Riverbank Cleanup: Monthly Impact Review",
+    locationPlaceholder: "e.g., Dharavi, Mumbai (Mithi River corridor, 2km stretch)",
     descriptionPlaceholder:
       "What waste management challenge is being tracked? What materials and community are involved?",
     descriptionHelp: "Describe the waste stream, collection infrastructure, and target outcomes.",
@@ -201,7 +156,7 @@ export function Section({
   action?: ReactNode;
   children: ReactNode;
 }) {
-  const heading = <h3 className="min-w-0 text-title-md font-semibold text-text-strong">{title}</h3>;
+  const heading = <h3 className="min-w-0 type-title-md font-semibold text-text-strong">{title}</h3>;
   return (
     <section className="space-y-3">
       <div>
@@ -217,48 +172,9 @@ export function Section({
         ) : (
           heading
         )}
-        {description ? <p className="mt-0.5 body-sm text-text-soft">{description}</p> : null}
+        {description ? <p className="mt-0.5 type-body text-text-soft">{description}</p> : null}
       </div>
       {children}
     </section>
-  );
-}
-
-/**
- * One answer on the Review step: its label over its value, wrapped in full so
- * nothing the attestation carries is cut short. A list of answers goes in as
- * children; an answer left empty reads "Not provided". Rows sit in a `<dl>`.
- */
-export function ReviewRow({
-  label,
-  value,
-  wide = false,
-  children,
-}: {
-  label: string;
-  value?: string | null;
-  /** Long text: the row takes the section's full width. */
-  wide?: boolean;
-  children?: ReactNode;
-}) {
-  const intl = useIntl();
-  const provided = Boolean(children) || Boolean(value && value.trim().length > 0);
-  return (
-    <div className={cn("min-w-0", wide && "sm:col-span-2")}>
-      <dt className="label-xs text-text-soft">{label}</dt>
-      <dd
-        className={cn(
-          "mt-0.5 whitespace-pre-wrap break-words body-sm",
-          provided ? "text-text-strong" : "text-text-soft"
-        )}
-      >
-        {provided
-          ? (children ?? value)
-          : intl.formatMessage({
-              id: "admin.assessment.review.notProvided",
-              defaultMessage: "Not provided",
-            })}
-      </dd>
-    </div>
   );
 }

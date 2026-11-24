@@ -4,12 +4,28 @@
     "href": "/community/steward-guide/managing-members"
   },
   {
-    "label": "Make an Assessment",
+    "label": "Make an Initial Assessment",
     "href": "/community/evaluator-guide/making-an-assessment"
   },
   {
     "label": "Review Work",
     "href": "/community/steward-guide/reviewing-work"
+  },
+  {
+    "label": "Open a Pool",
+    "href": "/community/steward-guide/open-a-pool"
+  },
+  {
+    "label": "Seed Promises",
+    "href": "/community/steward-guide/seed-promises"
+  },
+  {
+    "label": "Review Promises",
+    "href": "/community/steward-guide/review-promises"
+  },
+  {
+    "label": "End a Season",
+    "href": "/community/steward-guide/end-a-season"
   },
   {
     "label": "Mint Impact Certificate",

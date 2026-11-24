@@ -33,13 +33,14 @@ import { reviewRefreshOptions } from "./review-refresh";
 
 export function useCommitmentPools(
   input: { chainId: number; garden?: Address },
-  options: { refreshWhileOpen?: boolean } = {}
+  /** A caller that needs the pools only some of the time gates here; the key stays the same. */
+  options: { enabled?: boolean; refreshWhileOpen?: boolean } = {}
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: commitmentPoolingKeys.pools(input.chainId, input.garden),
     queryFn: () => getCommitmentPools(input.chainId, input.garden),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
     ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });

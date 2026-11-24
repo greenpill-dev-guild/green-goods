@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { CommitmentPoolingDisputeStorageLib } from "./DisputeStorageLib.sol";
+
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
@@ -112,6 +114,7 @@ library CommitmentPoolingTerminalLib {
 
         commitment.preDisputeState = previous;
         commitment.state = ICommitmentPoolingModule.CommitmentState.Disputed;
+        CommitmentPoolingDisputeStorageLib.state().raiser[commitmentId] = msg.sender;
         emit ICommitmentPoolingModule.CommitmentDisputed(commitmentId, msg.sender, previous, reasonCID);
     }
 
@@ -149,6 +152,14 @@ library CommitmentPoolingTerminalLib {
             revert ICommitmentPoolingModule.InvalidDisputeResolution(commitmentId, resolution);
         }
 
+        if (resolution == ICommitmentPoolingModule.DisputeResolution.Fulfilled) {
+            address raiser = CommitmentPoolingDisputeStorageLib.state().raiser[commitmentId];
+            // A pre-upgrade dispute has no recorded actor. Restore and re-raise it before
+            // fulfillment; cancellation and expiry remain available even while paused.
+            if (raiser == address(0)) revert ICommitmentPoolingModule.UnknownDisputeRaiser(commitmentId);
+            if (raiser == msg.sender) revert ICommitmentPoolingModule.SelfDisputeResolution(commitmentId);
+        }
+
         ICommitmentPoolingModule.CommitmentState finalState = _applyDisputeResolution(
             env,
             pools,
@@ -163,6 +174,7 @@ library CommitmentPoolingTerminalLib {
             wasExpired
         );
 
+        delete CommitmentPoolingDisputeStorageLib.state().raiser[commitmentId];
         emit ICommitmentPoolingModule.DisputeResolved(commitmentId, resolution, finalState, reasonCID);
     }
 

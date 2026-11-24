@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { SettlementCommandLib } from "../../lib/Settlement/CommandLib.sol";
 import { SettlementFundingLib } from "../../lib/Settlement/FundingLib.sol";
+import { SettlementLifecycleLib } from "../../lib/Settlement/LifecycleLib.sol";
 import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
 import { SettlementPlanLib } from "../../lib/Settlement/PlanLib.sol";
 import { SettlementLifecycle } from "./Lifecycle.sol";
@@ -10,16 +11,50 @@ import { SettlementLifecycle } from "./Lifecycle.sol";
 /// @title SettlementViews
 /// @notice Read-only surface over disbursements, batches, plans, commands, and fee reserve.
 abstract contract SettlementViews is SettlementLifecycle {
+    function getPersonalServicePurchase(uint256 fundingId) external view override returns (PersonalServicePurchase memory) {
+        _forwardSettlementView(abi.encodeWithSelector(SettlementFundingLib.getPersonalServicePurchase.selector, fundingId));
+        // Unreachable: prevent an unused default-return tuple encoder in this shell.
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") { revert(0, 0) }
+    }
+
+    function fundingOfPersonalServicePurchase(bytes32 purchaseId) external view override returns (uint256) {
+        return SettlementFundingLib.fundingOfPersonalServicePurchase(purchaseId);
+    }
+
+    function personalServiceDepositFunding(
+        uint64 chainId,
+        bytes32 transactionHash,
+        uint32 logIndex
+    )
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return SettlementFundingLib.personalServiceDepositFunding(chainId, transactionHash, logIndex);
+    }
+
     function getDisbursement(uint256 disbursementId) external view override returns (Disbursement memory) {
-        if (_disbursements[disbursementId].state == DisbursementState.None) {
-            revert UnknownDisbursement(disbursementId);
-        }
-        return _disbursements[disbursementId];
+        uint256 slot;
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") { slot := _disbursements.slot }
+        _forwardSettlementView(
+            abi.encodeWithSelector(SettlementLifecycleLib.getDisbursement.selector, slot, disbursementId)
+        );
+        // Unreachable: prevent an unused default-return tuple encoder in this shell.
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") { revert(0, 0) }
     }
 
     function getBatch(uint256 batchId) external view override returns (Batch memory) {
-        if (_batches[batchId].state == DisbursementState.None) revert UnknownBatch(batchId);
-        return _batches[batchId];
+        uint256 slot;
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") { slot := _batches.slot }
+        _forwardSettlementView(abi.encodeWithSelector(SettlementLifecycleLib.getBatch.selector, slot, batchId));
+        // Unreachable: prevent an unused default-return tuple encoder in this shell.
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") { revert(0, 0) }
     }
 
     function settlementAccountOf(address garden) external view override returns (SettlementAccount memory) {
@@ -31,8 +66,13 @@ abstract contract SettlementViews is SettlementLifecycle {
     }
 
     function getPayoutPlan(uint256 payoutPlanId) external view override returns (CommitmentPayoutPlan memory) {
-        if (_planState.payoutPlans[payoutPlanId].commitmentId == 0) revert UnknownPayoutPlan(payoutPlanId);
-        return _planState.payoutPlans[payoutPlanId];
+        uint256 slot;
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") { slot := _planState.slot }
+        _forwardSettlementView(abi.encodeWithSelector(SettlementPlanLib.getPayoutPlan.selector, slot, payoutPlanId));
+        // Unreachable: prevent an unused default-return tuple encoder in this shell.
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") { revert(0, 0) }
     }
 
     function contributorPayoutOf(
@@ -146,6 +186,51 @@ abstract contract SettlementViews is SettlementLifecycle {
 
     function isFeeReserveLow() external view override returns (bool) {
         return address(this).balance < feeReserveMinimum;
+    }
+
+    error UnsupportedSettlementView();
+
+    /// @notice Self-only executor for four fixed read selectors in already-linked libraries.
+    /// @dev View shells enter through STATICCALL, which remains static through DELEGATECALL.
+    /// The allowlist prevents a future internal caller from selecting a mutation or target.
+    function settlementViewDelegate(bytes calldata data) external {
+        if (msg.sender != address(this)) revert UnauthorizedCaller(msg.sender);
+        if (data.length < 4) revert UnsupportedSettlementView();
+        bytes4 selector = bytes4(data[:4]);
+        address target;
+        if (selector == SettlementPlanLib.getPayoutPlan.selector) {
+            target = address(SettlementPlanLib);
+        } else if (
+            selector == SettlementLifecycleLib.getDisbursement.selector
+                || selector == SettlementLifecycleLib.getBatch.selector
+        ) {
+            target = address(SettlementLifecycleLib);
+        } else if (selector == SettlementFundingLib.getPersonalServicePurchase.selector) {
+            target = address(SettlementFundingLib);
+        } else {
+            revert UnsupportedSettlementView();
+        }
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool ok, bytes memory result) = target.delegatecall(data);
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            switch ok
+            case 0 { revert(add(result, 0x20), mload(result)) }
+            default { return(add(result, 0x20), mload(result)) }
+        }
+    }
+
+    /// @dev Return and revert data pass through verbatim; no tuple repacking or storage layout guesses.
+    function _forwardSettlementView(bytes memory data) private view {
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool ok, bytes memory result) =
+            address(this).staticcall(abi.encodeWithSelector(this.settlementViewDelegate.selector, data));
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            switch ok
+            case 0 { revert(add(result, 0x20), mload(result)) }
+            default { return(add(result, 0x20), mload(result)) }
+        }
     }
 
     function MAX_PAYOUT_CONTRIBUTORS() external pure override returns (uint256) {

@@ -1,5 +1,9 @@
 # Integration Tensions — Green Goods × Cosmo-Local Credit
 
+> Historical research from August 2026. The [current architecture](spec.md) supersedes retired
+> assumptions about weighted issuance, venue ownership and dispatch order. Reverify external
+> configuration before use; this record grants no implementation or transaction authority.
+
 **Date**: 2026-08-25
 **Posture**: analysis only
 **Source basis**: `cosmo-local-credit/protocol` `README.md` / `docs/SPEC.md` / `docs/DEPLOY.md`,
@@ -119,6 +123,11 @@ sense.** Fulfilment confirmation and redemption confirmation become two differen
 different confirmers, and only the first fits the machinery that exists. Needs a design answer before
 any redemption path ships.
 
+**Resolved in design, 21 October:** presentment opens a Green Goods promise, so whoever presents the
+vouchers becomes that promise's counterparty and confirms by default. Fulfillment confirmation and
+redemption confirmation become one event. See decision 3 of the
+[voucher direction](spec.md#voucher-direction-decided-2026-10-21).
+
 ---
 
 ## 5. Expiry is a cliff, and should not be used
@@ -231,8 +240,8 @@ remains satisfiable.
 ## Cross-cutting: what none of this fixes
 
 The gates in Linear [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651) are unchanged.
-Federation is stage four of four: field evidence of real exchange demand → fulfilled-backed issuance
-→ one bounded pool proving authorised issue, bounded seed, exchange in/out, redemption, liquidity,
+Federation is stage four of four: field evidence of real exchange demand → curated, capped issuance
+(which replaced fulfilled-backed issuance first on 21 October) → one bounded pool proving authorised issue, bounded seed, exchange in/out, redemption, liquidity,
 failed-redemption visibility and repair → then separately gated federation. Every pooling-tier
 mainnet action still needs external audit, 3-of-5 Safe ownership, a 48-hour timelock, two weeks of
 testnet operation, tested rollback, and explicit human authorization.

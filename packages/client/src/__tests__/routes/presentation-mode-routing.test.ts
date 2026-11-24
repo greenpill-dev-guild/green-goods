@@ -6,7 +6,7 @@ import { render } from "@testing-library/react";
 import { createElement } from "react";
 import { matchRoutes, type LoaderFunctionArgs, type RouteObject } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
-import { appRoutes, CLIENT_ROUTE_IDS } from "../../config/routes";
+import { appRoutes, CLIENT_ROUTE_IDS, publicAppRoutes, pwaAppRoutes } from "../../config/routes";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
@@ -161,6 +161,18 @@ function setStandaloneMode() {
 }
 
 describe("presentation-mode route guards", () => {
+  it.each([
+    ["public", publicAppRoutes, "/"],
+    ["PWA", pwaAppRoutes, "/home"],
+  ] as const)("redirects an unknown %s path to its production fallback", async (_mode, routes, expected) => {
+    const url = "https://www.greengoods.app/this-page-does-not-exist-12345";
+    const route = matchRoutes(routes, new URL(url).pathname)?.at(-1)?.route;
+    expect(route?.path).toBe("*");
+    expect(route?.loader).toBeTypeOf("function");
+    const result = await (route!.loader as (args: LoaderFunctionArgs) => unknown)(loaderArgs(url));
+    expectRedirect(result, expected);
+  });
+
   afterEach(() => {
     Object.defineProperty(global, "navigator", {
       value: originalNavigator,
@@ -210,6 +222,10 @@ describe("presentation-mode route guards", () => {
       "/vaults",
       "/actions",
       "/cookies",
+      "/strategy",
+      "/privacy",
+      "/terms",
+      "/contact",
       "/agent/reporting/abcdefghijklmnop",
       "/agent/reporting/recover/abcdefghijklmnop",
     ]) {
@@ -287,6 +303,27 @@ describe("presentation-mode route guards", () => {
     const result = requirePwaPresentationLoader(loaderArgs(`https://www.greengoods.app${path}`));
 
     expectRedirect(result, "/");
+  });
+
+  it.each([
+    "/home",
+    "/home/explore",
+    "/home/profile",
+    "/home/unknown/nested",
+    "/login",
+    "/garden",
+    "/profile",
+  ])("takes a direct browser visit to %s back to the homepage", async (path) => {
+    setWebsiteMode();
+    const route = matchRoutes(publicAppRoutes, path)?.at(-1)?.route;
+    const loader = route?.loader;
+    expect(loader).toBeTypeOf("function");
+    expectRedirect(
+      await (loader as (args: LoaderFunctionArgs) => unknown)(
+        loaderArgs(`https://www.greengoods.app${path}`)
+      ),
+      "/"
+    );
   });
 
   it("redirects /home with website override back to the public root", () => {

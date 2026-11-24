@@ -115,8 +115,18 @@ vi.mock("@/components/Inputs", async () => {
         children
       );
     },
-    SelectTrigger: ({ children, className }: any) =>
-      React.createElement("div", { "data-testid": "select-trigger", className }, children),
+    // The trigger is the select's combo box (Radix renders one); its name comes from the caller.
+    SelectTrigger: ({ children, className, "aria-labelledby": labelledBy }: any) =>
+      React.createElement(
+        "div",
+        {
+          "data-testid": "select-trigger",
+          role: "combobox",
+          "aria-labelledby": labelledBy,
+          className,
+        },
+        children
+      ),
     SelectValue: ({ placeholder }: any) => React.createElement("span", null, placeholder),
   };
 });
@@ -192,6 +202,14 @@ describe("AppSettings", () => {
     await user.click(screen.getByRole("option", { name: "Spanish" }));
 
     expect(mockAppState.switchLanguage).toHaveBeenCalledWith("es");
+  });
+
+  it("names the theme and language selects by their row titles", () => {
+    // Unnamed, a screen reader announced each as a bare combo box (axe button-name, critical).
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.getByRole("combobox", { name: "Theme" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Language" })).toBeInTheDocument();
   });
 
   it("keeps every select value on one line", () => {
@@ -402,6 +420,16 @@ describe("vibration row", () => {
     expect(toggle).toHaveAttribute("aria-checked", "true");
     expect(vibrate).toHaveBeenCalledWith(5);
   });
+
+  it("puts the switch in the selects' column, so its hint wraps where theirs do (PRD-1531)", () => {
+    Object.defineProperty(navigator, "vibrate", { value: vi.fn(), configurable: true });
+    render(wrap(createElement(AppSettings)));
+
+    const slot = screen.getByRole("switch", { name: "Vibration" }).parentElement as HTMLElement;
+    const [themeTrigger] = screen.getAllByTestId("select-trigger");
+    expect(widthClasses(themeTrigger)).not.toHaveLength(0);
+    expect(slot).toHaveClass(...widthClasses(themeTrigger), "justify-end");
+  });
 });
 
 describe("offline content row", () => {
@@ -427,14 +455,16 @@ describe("offline content row", () => {
     vi.clearAllMocks();
   });
 
-  it("keeps the title on one line and the status on exactly two truncated lines", () => {
+  it("keeps the title and status on one line each, and lets a long detail wrap rather than cut", () => {
     const { status } = renderRow({ state: "ready", savedBytes: 42_000_000 });
 
     expect(screen.getByText("Offline")).toHaveClass("truncate");
     expect(status).toHaveClass("min-h-8");
     const lines = status.querySelectorAll("span");
     expect(lines).toHaveLength(2);
-    for (const line of lines) expect(line).toHaveClass("block", "truncate");
+    expect(lines[0]).toHaveClass("block", "truncate");
+    expect(lines[1]).toHaveClass("block");
+    expect(lines[1]).not.toHaveClass("truncate");
   });
 
   it("shows megabytes and progress while downloading, with Pause instead of Retry", async () => {

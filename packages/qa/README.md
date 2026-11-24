@@ -85,7 +85,7 @@ SHAs) beside the per-run shards, and exactly one run is open at any time:
   failing, regressed, and newly walked, and the **Re-QA** filter lists what the compared run left
   failing or blocked. A verdict on a case retired since that run is read on each active successor
   named by the catalog's `replacedBy` chain (the build ships that reverse map as `replaces`) and
-  labelled *inherited*.
+  labeled *inherited*.
 
 ### Work stranded by a closed run
 
@@ -94,7 +94,7 @@ happens to it depends on who typed it, because the page cannot tell a verdict re
 from one recorded on another day:
 
 - **Typed in this page session** — it follows the run boundary and is sent, which is the case the
-  behaviour exists for: a tester mid-save when a teammate rolls over, where losing the work is the
+  behavior exists for: a tester mid-save when a teammate rolls over, where losing the work is the
   worse outcome.
 - **Recovered from storage** — it stays under the run it was recorded in and is offered instead, with
   how many cases it holds and when the tester last edited them. They send it to the open run or keep
@@ -113,7 +113,8 @@ render through `Intl.RelativeTimeFormat`, so they follow the tester's language w
 unit in each locale file.
 
 - N/A means out of scope for this run; a skipped case has no entry. A note starting with
-  `[beta]`, `[prod]`, or `[local]` marks a verdict taken outside the run's environment.
+  `[beta]`, `[prod]`, `[local]`, or `[alpha]` marks a verdict taken outside the run's environment.
+  Alpha, the experiments site at `alpha.greengoods.app`, is never a run's own environment.
 
 The run lifecycle itself — what a run is, the index shape, rollover, the legacy baseline — lives
 in `runs.ts`, one pure module both the deployed functions and the local server import.
@@ -169,6 +170,24 @@ Journey copy lives in the three locale files beside the page. The build requires
 cover the same journeys, lanes, phases, case instructions, handoffs, and gates, and requires English
 to match the canonical catalog so the two sources cannot quietly drift.
 
+### Regression and rollout scope
+
+The Green Goods Website, Green Goods App, Green Goods Hub, Docs, Agent Reporting, and QA Operations tabs define
+regression checks. Confirm the deployment and prerequisites before running them; an `active` case
+means available to test, not deployed or passed.
+
+**Rollout Readiness** is separate. Every `ROLL-` case carries an `in-progress` tag, an
+`In progress:` scenario label, and an `Activation gate:` prerequisite. Its journeys use only
+rollout cases and carry the same visible label. The catalog validator rejects mixed journeys or
+missing gates. Select `--surface rollout` when preparing a rollout-only workbook. A release owner
+must confirm activation and review the definitions before rollout coverage becomes part of the
+shipped release's regression scope; preserve issued IDs and their histories.
+
+The required CI Guidance integrity job runs `agent-tools-test` for QA application and tooling
+changes, including the catalog, localization, authentication, concurrent recording, run rollover,
+and reporting tests. It also checks the append-only ID ledger. These automated checks do not
+replace the authenticated two-person recording journey (`QA-001` through `QA-004`).
+
 ## Journey mode
 
 **Walk** remains the default order. **Priority** keeps its P0/P1/P2 bands. **Journey** can cross
@@ -194,7 +213,7 @@ commitment records: the protocol Request stays in the protocol pool with the Gar
 then the Garden creates a separate local commitment for its member. The treasury top-up has no
 commitment identity and does not substitute for earned compensation.
 
-Two-person sessions use two allowlisted wallets throughout. The protocol reviewer and Garden member
+Two-person sessions use two allowlisted wallets throughout. The protocol reviewer and garden member
 each select their own Part, wait for the other person to observe every named handoff, and may both
 record a verdict on explicitly shared verification cases. Existing results remain keyed only by Test
 ID and signing wallet, so Journey mode needs no state API, Blob, or migration change.

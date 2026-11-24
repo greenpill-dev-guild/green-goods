@@ -70,16 +70,16 @@ export function TxProgressList({
             <p
               className={cn(
                 // Setup titles fit in two lines; a steward's own title stops there.
-                "line-clamp-2 break-words text-body-md font-medium",
+                "line-clamp-2 break-words type-body font-medium",
                 row.marker === "complete" ? "text-text-sub" : "text-text-strong"
               )}
               title={row.title}
             >
               {row.title}
             </p>
-            {row.why ? <p className="mt-0.5 body-xs text-text-soft">{row.why}</p> : null}
+            {row.why ? <p className="mt-0.5 type-meta text-text-soft">{row.why}</p> : null}
           </div>
-          <div className="flex shrink-0 items-center gap-2 pt-0.5 body-xs">
+          <div className="flex shrink-0 items-center gap-2 pt-0.5 type-meta">
             {row.label ? <span className={TONE[row.tone]}>{row.label}</span> : null}
             {row.marker === "complete" && row.hash ? (
               <a
@@ -89,13 +89,13 @@ export function TxProgressList({
                 className="font-medium text-primary-dark underline"
                 aria-label={formatMessage(
                   {
-                    id: "cockpit.garden.pool.setup.viewTxFor",
+                    id: "hub.garden.pool.setup.viewTxFor",
                     defaultMessage: "View the transaction for “{step}”",
                   },
                   { step: row.title }
                 )}
               >
-                {formatMessage({ id: "cockpit.garden.pool.setup.viewTx", defaultMessage: "View" })}
+                {formatMessage({ id: "hub.garden.pool.setup.viewTx", defaultMessage: "View" })}
               </a>
             ) : null}
           </div>

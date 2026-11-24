@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import {
   BASELINE_MAX_DAYS,
+  checkEntityAnchorSymbols,
+  checkStandaloneSchemaRegistration,
   checkProjectionIntegrity,
   checkDomainDocumentation,
   checkQaCatalogRoles,
@@ -609,7 +614,7 @@ const miniOntology = {
       display: "Garden",
       semantic_status: "canonical",
       definition: "A community of gardeners.",
-      layers: { solidity: ["a.sol"], docs: "g.md" },
+      layers: { solidity: [{ file: "a.sol", symbol: "Garden" }], docs: "g.md" },
       surfaces: ["admin", "client"],
     },
   ],
@@ -1197,4 +1202,264 @@ test("regenerated formal definitions with MDX-sensitive text remain equal to the
   assert.deepEqual(checkDomainDocumentation(changed, projections, glossary, formal).findings, []);
   const tampered = formal.replace("&lt;value&gt;", "&lt;different&gt;");
   assert.ok(checkDomainDocumentation(changed, projections, glossary, tampered).findings.some(f => f.subject === "docs:definition:garden"));
+});
+
+
+test("canonical-only additions, removals and reorderings cannot diverge from every live representation", () => {
+  for (const members of [["SOLAR", "AGRO", "WATER"], ["SOLAR"], ["AGRO", "SOLAR"]]) {
+    const changed = structuredClone(miniOntology);
+    changed.vocabularies[0].canonical.members = members;
+    assert.ok(checkSidecarIntegrity(changed, () => true).some((error) => /vocabulary domain:.*canonical/.test(error)), members.join(", "));
+  }
+});
+
+test("canonical vocabulary words may map explicitly and totally to a differently spelled representation", () => {
+  const changed = structuredClone(miniOntology);
+  changed.vocabularies[0].representations[0].members = ["solar", "agro", "unknown"];
+  changed.vocabularies[0].mappings = [{
+    id: "canonical-to-solidity", from: "canonical", to: "solidity", kind: "explicit",
+    total_from: true, bijective: true, pairs: { SOLAR: "solar", AGRO: "agro" }, unmapped_to: ["unknown"],
+  }];
+  assert.deepEqual(checkSidecarIntegrity(changed, () => true).filter((error) => /vocabulary/.test(error)), []);
+  changed.vocabularies[0].canonical.members.push("WATER");
+  assert.ok(checkSidecarIntegrity(changed, () => true).some((error) => /vocabulary domain:.*canonical/.test(error)));
+});
+
+test("object vocabulary extractors skip brace-bearing type annotations and quoted assignment signs", () => {
+  const source = `const ROLES: { [key: string]: number; marker?: "=" } = {
+    gardener: 0,
+    evaluator: 1,
+  } as const;`;
+  assert.deepEqual(parseTsObjectKeys(source, "ROLES"), { keys: ["gardener", "evaluator"], values: [0, 1] });
+  assert.deepEqual(parseTsObjectValues(`const TOKENS: { [key: number]: string } = {
+    [Domain.SOLAR]: "solar", [Domain.AGRO]: "agro",
+  };`, "TOKENS"), ["solar", "agro"]);
+});
+
+test("object vocabulary extractors do not end the initializer at a quoted brace", () => {
+  assert.deepEqual(parseTsObjectValues('const TOKENS: Record<string, string> = { token: "right } side" };', "TOKENS"), ["right } side"]);
+  assert.equal(parseTsObjectValues("const TOKENS: { x: string } = buildTokens();", "TOKENS"), null);
+});
+
+test("schema documentation is independent of JSON schema key insertion order", () => {
+  const changed = structuredClone(miniOntology);
+  changed.schemas.badge = { ...changed.schemas.work, name: "Badge" };
+  const reversed = structuredClone(changed);
+  reversed.schemas = Object.fromEntries(Object.entries(reversed.schemas).reverse());
+  assert.equal(renderOntologyMdx(changed, miniProjections), renderOntologyMdx(reversed, miniProjections));
+});
+
+test("a protocol's first mapping updates matrix sections and counts without claiming a code integration", () => {
+  const changed = structuredClone(miniOntology);
+  changed.integration_matrix.rows[0].cells.Unlock = "Lock";
+  const rendered = renderEntityMatrixMdx(changed);
+  assert.ok(rendered.includes("| Unlock | Vocabulary mapping only, no code integration | — | 1 |"));
+  assert.ok(rendered.includes("### Unlock"));
+  assert.ok(rendered.includes("| Garden | Lock | Entity |"));
+  assert.equal(rendered.includes("Protocols in the matrix with no mapped terms yet: Unlock."), false);
+  assert.equal(rendered.includes("Active integrations"), false);
+});
+
+
+function entityAnchorFixture() {
+  const ontology = structuredClone(miniOntology);
+  ontology.entities[0].layers = {
+    solidity: [{ file: "a.sol", symbol: "Garden" }],
+    shared: [{ file: "a.ts", symbol: "Garden" }],
+    indexer: { file: "a.graphql", type: "Garden" },
+  };
+  const sources = new Map([
+    ["a.sol", "// A gardener's account.\ncontract Garden {}"],
+    ["a.ts", "// A gardener's record.\nexport interface Garden { id: string }"],
+    ["a.graphql", "# The garden's record.\ntype Garden @entity { id: ID! }"],
+  ]);
+  return { ontology, sources, check: () => checkEntityAnchorSymbols(ontology, (file) => sources.get(file) ?? null) };
+}
+
+test("entity anchors verify declarations across Solidity, shared and indexer sources", () => {
+  const fixture = entityAnchorFixture();
+  assert.deepEqual(fixture.check(), { checked: 3, errors: [] });
+  assert.deepEqual(checkSidecarIntegrity(fixture.ontology, () => true).filter((error) => /entity garden/.test(error)), []);
+});
+
+test("an entity rename fails even when its file survives and imports or references keep the old name", () => {
+  for (const file of ["a.sol", "a.ts", "a.graphql"]) {
+    const fixture = entityAnchorFixture();
+    fixture.sources.set(file, fixture.sources.get(file).replace(/(contract|interface|type) Garden\b/, "$1 OldGarden") + "\n// Garden remains a reference.\n");
+    const errors = fixture.check().errors;
+    assert.equal(errors.length, 1);
+    assert.ok(errors[0].includes(`no longer declares Garden in ${file}`));
+  }
+});
+
+test("entity comments, strings, GraphQL descriptions and imported names never stand in for declarations", () => {
+  const fixture = entityAnchorFixture();
+  fixture.sources.set("a.sol", '/* contract Garden {} */ string constant NOTE = "contract Garden {}";');
+  fixture.sources.set("a.ts", 'import type { Garden } from "elsewhere"; const note = `interface Garden {}`;');
+  fixture.sources.set("a.graphql", '# type Garden { id: ID! }\n"""\ntype Garden { id: ID! }\n"""\ntype Other { garden: Garden }');
+  assert.equal(fixture.check().errors.length, 3);
+});
+
+test("type-only imports cannot satisfy an entity's local declaration anchor", () => {
+  for (const imported of [
+    'import type Garden from "elsewhere";',
+    'import\n type Garden from "elsewhere";',
+    'import type Garden = require("elsewhere");',
+    'import { type Garden } from "elsewhere";',
+    'import { type Garden as ImportedGarden } from "elsewhere";',
+  ]) {
+    const fixture = entityAnchorFixture();
+    fixture.sources.set("a.ts", `${imported}\nexport interface RenamedGarden {}`);
+    assert.equal(fixture.check().errors.length, 1, imported);
+    fixture.sources.set("a.ts", `${imported.replace(/Garden/g, "OtherGarden")}\nexport interface Garden {}`);
+    assert.equal(fixture.check().errors.length, 0, imported);
+  }
+  const fixture = entityAnchorFixture();
+  fixture.sources.set("a.ts", 'import "./setup"\ntype Garden = { id: string };');
+  assert.equal(fixture.check().errors.length, 0);
+});
+
+test("entity anchors require declared symbols rather than bare surviving paths", () => {
+  const fixture = entityAnchorFixture();
+  fixture.ontology.entities[0].layers.shared = ["a.ts"];
+  delete fixture.ontology.entities[0].layers.indexer.type;
+  const errors = checkSidecarIntegrity(fixture.ontology, () => true);
+  assert.ok(errors.includes("entity garden: shared anchor requires a file and symbol identifier"));
+  assert.ok(errors.includes("entity garden: indexer anchor requires a file and type identifier"));
+});
+
+const standaloneSchema = {
+  source_symbol: "BADGE_SCHEMA", name: "GreenGoodsBadge", revocable: true, resolver: null,
+  registration: { name_symbol: "BADGE_NAME", revocable_symbol: "REVOCABLE", resolver_argument: "address(0)" },
+  fields: [{ name: "badgeType", type: "string" }, { name: "recipient", type: "address" }],
+};
+const standaloneRegistration = `contract Registrar {
+  string internal constant BADGE_SCHEMA = "string badgeType, address recipient";
+  string internal constant BADGE_NAME = "GreenGoodsBadge";
+  bool internal constant REVOCABLE = true;
+  function run() external {
+    ISchemaRegistry(registry).register(BADGE_SCHEMA, address(0), REVOCABLE);
+  }
+}`;
+
+test("standalone schema registration pins fields, name, revocability and the actual register call", () => {
+  assert.deepEqual(checkStandaloneSchemaRegistration(standaloneSchema, standaloneRegistration), { fatal: [], diffs: [] });
+  const formatted = standaloneRegistration.replace('address(0), REVOCABLE', 'address( /* no resolver */ 0 ),\n REVOCABLE');
+  assert.deepEqual(checkStandaloneSchemaRegistration(standaloneSchema, formatted), { fatal: [], diffs: [] });
+});
+
+test("standalone schema checking preserves comment markers inside constant values", () => {
+  for (const marker of ["/*changed*/", "//changed"]) {
+    for (const [original, diagnostic] of [
+      ["string badgeType, address recipient", "registration string"],
+      ["GreenGoodsBadge", "name expected"],
+    ]) {
+      const changed = standaloneRegistration.replace(`"${original}"`, `"${original}${marker}"`);
+      const checked = checkStandaloneSchemaRegistration(standaloneSchema, changed);
+      assert.deepEqual(checked.fatal, [], `${original}${marker}`);
+      assert.ok(checked.diffs.some((diff) => diff.includes(diagnostic)), `${original}${marker}`);
+    }
+  }
+  assert.equal(extractQuotedConstant('string constant URL = "https://example.test/*path*/";', "URL"), "https://example.test/*path*/");
+});
+
+test("object vocabulary extraction preserves quoted comment markers and strips real comments", () => {
+  assert.deepEqual(parseTsObjectValues('const TOKENS: { value: string } = { value: "solar/*panel*/ // roof" /* comment */ };', "TOKENS"), ["solar/*panel*/ // roof"]);
+});
+
+test("standalone schema metadata and actual registration arguments cannot drift independently", () => {
+  for (const [from, to, diagnostic] of [
+    ['"string badgeType, address recipient"', '"uint256 extra, string badgeType, address recipient"', 'registration string'],
+    ['"string badgeType, address recipient"', '"string badgeType,address recipient"', 'registration string'],
+    ['"GreenGoodsBadge"', '"AnotherBadge"', 'name expected'],
+    ['REVOCABLE = true', 'REVOCABLE = false', 'revocable expected'],
+    ['address(0), REVOCABLE', 'address(resolver), REVOCABLE', 'registration resolver argument'],
+    ['address(0), REVOCABLE', 'address(0), false', 'registration revocable argument'],
+    ['register(BADGE_SCHEMA', 'register(OTHER_SCHEMA', 'registration schema argument'],
+  ]) {
+    const checked = checkStandaloneSchemaRegistration(standaloneSchema, standaloneRegistration.replace(from, to));
+    assert.deepEqual(checked.fatal, [], diagnostic);
+    assert.ok(checked.diffs.some((diff) => diff.includes(diagnostic)), diagnostic);
+  }
+});
+
+test("standalone schema checking fails closed for missing constants, ambiguous calls and malformed arguments", () => {
+  for (const [source, diagnostic] of [
+    [standaloneRegistration.replace("REVOCABLE = true", "REVOCABLE = enabled"), "boolean constant REVOCABLE"],
+    [standaloneRegistration.replace("BADGE_NAME =", "RENAMED ="), "quoted constant BADGE_NAME"],
+    [standaloneRegistration.replace(".register(", ".other("), "expected one register call; found 0"],
+    [standaloneRegistration + " x.register(OTHER, address(0), false);", "expected one register call; found 2"],
+    [standaloneRegistration.replace("address(0), REVOCABLE", "address(0)"), "requires three arguments"],
+  ]) {
+    assert.ok(checkStandaloneSchemaRegistration(standaloneSchema, source).fatal.some((error) => error.includes(diagnostic)), diagnostic);
+  }
+});
+
+test("standalone schema checking rejects composed constant initializers", () => {
+  for (const [from, to, symbol] of [
+    ['"string badgeType, address recipient";', '"string badgeType, address recipient" "uint256 extra";', "BADGE_SCHEMA"],
+    ['"GreenGoodsBadge";', '"GreenGoodsBadge" "Other";', "BADGE_NAME"],
+  ]) {
+    const checked = checkStandaloneSchemaRegistration(standaloneSchema, standaloneRegistration.replace(from, to));
+    assert.ok(checked.fatal.some((error) => error.includes(`quoted constant ${symbol}`)), symbol);
+  }
+});
+
+test("a null schema resolver cannot be paired with a nonzero registration declaration", () => {
+  const changed = structuredClone(miniOntology);
+  changed.schemas.badge = { ...standaloneSchema, check: "existence-only", source_status: "implemented", source: "badge.sol", note: "A standalone badge." };
+  changed.schemas.badge.registration = { ...standaloneSchema.registration, resolver_argument: "address(resolver)" };
+  assert.ok(checkSidecarIntegrity(changed, () => true).includes("schema badge: a null resolver requires registration resolver_argument address(0)"));
+});
+
+
+test("entity type anchors cannot be satisfied by same-named values; implementation anchors are explicit", () => {
+  const fixture = entityAnchorFixture();
+  fixture.sources.set("a.ts", "export const Garden = {}; ");
+  assert.equal(fixture.check().errors.length, 1);
+  fixture.ontology.entities[0].layers.shared[0].kind = "value";
+  assert.deepEqual(fixture.check(), { checked: 3, errors: [] });
+});
+
+
+test("standalone registration constants must be declarations, not quoted examples or longer identifiers", () => {
+  const source = `string constant NOTE = 'string constant BADGE_NAME = "GreenGoodsBadge";';
+    string constant OTHER_BADGE_NAME = "Other";
+    string constant BADGE$NAME = "Actual";`;
+  assert.equal(extractQuotedConstant(source, "BADGE_NAME"), null);
+  assert.equal(extractQuotedConstant(source, "BADGE$NAME"), "Actual");
+});
+
+
+test("the real sidecar rejects a canonical-only Domain addition from the completion-review probe", () => {
+  const ontology = JSON.parse(readFileSync(new URL("../../packages/shared/src/ontology/green-goods-ontology.json", import.meta.url), "utf8"));
+  assert.deepEqual(checkSidecarIntegrity(ontology, () => true), []);
+  ontology.vocabularies.find((vocabulary) => vocabulary.id === "domain").canonical.members.push("UNREPRESENTED");
+  const errors = checkSidecarIntegrity(ontology, () => true);
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /vocabulary domain: canonical members must match/);
+});
+
+
+test("object vocabulary extraction requires a real declaration and standalone constants must be unambiguous", () => {
+  assert.equal(parseTsObjectValues(`const EXAMPLE = 'const TOKENS = { token: "ghost" }';`, "TOKENS"), null);
+  assert.equal(extractQuotedConstant(standaloneRegistration + ' contract Other { string constant BADGE_NAME = "Other"; }', "BADGE_NAME"), null);
+  const ambiguous = standaloneRegistration + " contract Other { bool constant REVOCABLE = false; }";
+  assert.ok(checkStandaloneSchemaRegistration(standaloneSchema, ambiguous).fatal.some((error) => error.includes("boolean constant REVOCABLE; found 2")));
+});
+
+
+test("the ontology gate and its extractors load without installing packages", (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), "green-goods-ontology-no-deps-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const file of ["scripts/quality/check-ontology.mjs", "scripts/quality/ontology-render.mjs", "scripts/docs/generator-core.mjs"]) {
+    const target = path.join(root, file);
+    mkdirSync(path.dirname(target), { recursive: true });
+    copyFileSync(new URL(`../../${file}`, import.meta.url), target);
+  }
+  execFileSync(process.execPath, ["--input-type=module", "--eval", `
+    import assert from "node:assert/strict";
+    import { parseTsObjectValues } from "./scripts/quality/check-ontology.mjs";
+    assert.deepEqual(parseTsObjectValues('const TOKENS: { [key: number]: string } = { 0: "solar" };', "TOKENS"), ["solar"]);
+  `], { cwd: root, timeout: 10_000 });
 });

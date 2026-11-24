@@ -98,6 +98,7 @@ const meta: Meta<ReviewStoryArgs> = {
     cycleOptions: CYCLE_OPTIONS,
     protocolRegistered: true,
     price: STORY_PRICE_STATE,
+    usdcMatchAvailable: false,
     capacity: { cap: 3, room: 3, full: false, over: false },
     submitError: null,
     queueUnavailable: false,
@@ -122,6 +123,9 @@ export const Ready: Story = {};
 export const Approving: Story = { args: { phase: "asking" } };
 
 export const Declined: Story = { args: { phase: "declined" } };
+
+/** The bundle was past one signature's ceilings and never went out: Try Again asks once per promise. */
+export const PastCeilings: Story = { args: { phase: "overCeilings", mode: "one-by-one" } };
 
 /** The answer was lost: the answers are fixed, and Try Again finishes what the chain has. */
 export const Unconfirmed: Story = { args: { phase: "unconfirmed" } };
@@ -198,3 +202,32 @@ export const MoreOffersThanRoom: Story = {
 };
 
 export const QueueUnavailable: Story = { args: { queueUnavailable: true } };
+
+const documentationValues = {
+  ...COMMITMENT_COMPOSER_DEFAULTS,
+  kind: "SERVICE" as const,
+  direction: "REQUEST" as const,
+  cycleId: "12",
+  title: "Check the household rainwater barrels",
+  unitLabel: "check",
+  targetUnits: 1,
+  dueInDays: 14,
+  count: 10,
+  openTeam: false,
+  claimMode: "APPROVAL_GATED" as const,
+  note: "Check one household barrel for leaks, clear its inlet and record the water level.",
+};
+export const Documentation: Story = {
+  args: {
+    values: documentationValues,
+    cycleOptions: [{ value: "12", label: "Season · Autumn Planting" }],
+  },
+};
+export const DocumentationPartial: Story = {
+  args: {
+    values: documentationValues,
+    cycleOptions: [{ value: "12", label: "Season · Autumn Planting" }],
+    phase: "partial",
+    mode: "one-by-one",
+  },
+};

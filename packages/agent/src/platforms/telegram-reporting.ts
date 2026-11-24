@@ -10,7 +10,13 @@
  */
 
 import { type Context, type Middleware, type Telegram, TelegramError } from "telegraf";
-import type { InlineKeyboardButton, Message, Update } from "telegraf/types";
+import type {
+  InlineKeyboardButton,
+  InlineKeyboardMarkup,
+  MaybeInaccessibleMessage,
+  Message,
+  Update,
+} from "telegraf/types";
 import { loggers } from "../services/logger";
 import { parseCommand } from "../services/reporting/coordinator/commands";
 import { acceptChannelEvent } from "../services/reporting/inbox";
@@ -19,6 +25,7 @@ import type {
   InboundMediaFetcher,
   InboundMediaReference,
   InboundMessageEvent,
+  OutboundMessage,
   OutboundRequest,
   OutboundResult,
   OutboundTransport,
@@ -29,6 +36,10 @@ const log = loggers.platform;
 /** Telegram's limit on one message's text, in UTF-16 code units. */
 const MAX_TEXT = 4096;
 const SEND_TIMEOUT_MS = 15_000;
+/** Retiring an old question's buttons holds up the conversation's next reply, so it waits less. */
+const RETIRE_TIMEOUT_MS = 5_000;
+/** Telegram's refusal of an edit that would change nothing. */
+const NOT_MODIFIED = /message is not modified/i;
 /** Bot API 7.11 copy_text; Telegraf 4.16 has not added it to its button union. */
 type ReportingButton = InlineKeyboardButton | { text: string; copy_text: { text: string } };
 
@@ -95,6 +106,10 @@ export function toReportingEvent(
     sentAt: message.date * 1000,
     ...(text ? { text } : {}),
     ...(media ? { media: [media] } : {}),
+    // An album is one message per file sharing a media group ID; only one of them has a caption.
+    ...(media && "media_group_id" in message && message.media_group_id
+      ? { mediaGroupId: message.media_group_id }
+      : {}),
     ...("reply_to_message" in message && message.reply_to_message
       ? { replyToProviderMessageId: String(message.reply_to_message.message_id) }
       : {}),
@@ -149,35 +164,16 @@ function mediaOf(message: Message): InboundMediaReference | null {
   };
 }
 
-/** Sends the core's replies through the Bot API; choices become buttons carrying the reply IDs. */
+/**
+ * Sends the core's replies through the Bot API; choices become inline buttons carrying the reply
+ * IDs, attached to the question they answer. No reply keyboard is ever sent, so typing stays the
+ * person's own and no stale labels sit under the message box. Once the next question is sent, the
+ * one it replaced loses its choices; a link, a copy button or records on it stay.
+ */
 export function createTelegramTransport(telegram: Telegram): OutboundTransport {
   return {
     async send(request) {
-      const { choices = [], copy, link, records = [], text } = request.message;
-      const linkButton = link && isPublicHttps(link.url) ? link : null;
-      const recordButtons = records.filter((record) => isPublicHttps(record.url));
-      const written = [
-        ...(link && !linkButton ? [link] : []),
-        ...records.filter((record) => !recordButtons.includes(record)),
-      ];
-      const body =
-        written.length > 0
-          ? `${text}\n\n${written.map((entry) => `${entry.label}: ${entry.url}`).join("\n")}`
-          : text;
-      const keyboard: ReportingButton[][] = choices.map((choice) => [
-        { text: choice.label, callback_data: choice.id },
-      ]);
-      if (linkButton) {
-        keyboard.push([{ text: linkButton.label, url: linkButton.url }]);
-        // Only a link the writer marked for copying gets the second button: one to a page where
-        // an account signs. Telegram refuses copy text longer than 256 characters.
-        if (linkButton.copyLabel && linkButton.url.length <= 256)
-          keyboard.push([{ text: linkButton.copyLabel, copy_text: { text: linkButton.url } }]);
-      }
-      // One record to a row, in the order the core gave them, so the first is the one that leads.
-      for (const record of recordButtons) keyboard.push([{ text: record.label, url: record.url }]);
-      if (copy && copy.text.length <= 256)
-        keyboard.push([{ text: copy.label, copy_text: { text: copy.text } }]);
+      const { body, keyboard } = layout(request.message);
       const parts = splitText(body);
       try {
         for (const part of parts.slice(0, -1)) await sendText(telegram, request, part, []);
@@ -187,8 +183,70 @@ export function createTelegramTransport(telegram: Telegram): OutboundTransport {
         return sendFailure(error);
       }
     },
+    async retireChoices(question) {
+      // The question is laid out again without its choices. Once a discarded report's sent text is
+      // purged there is nothing to lay out, and with no reply_markup every button comes off.
+      const kept = question.message ? layout({ ...question.message, choices: [] }).keyboard : [];
+      try {
+        await telegram.callApi(
+          "editMessageReplyMarkup",
+          {
+            chat_id: question.externalChatId,
+            message_id: Number(question.providerMessageId),
+            ...(kept.length > 0 ? { reply_markup: inlineMarkup(kept) } : {}),
+          },
+          { signal: timeoutSignal(RETIRE_TIMEOUT_MS) }
+        );
+      } catch (error) {
+        // A tap on one of its choices already took them off: nothing is left to retire.
+        if (error instanceof TelegramError && NOT_MODIFIED.test(error.description)) return;
+        // A deleted message or a rate limit costs only the tidy-up; a stale tap puts the open
+        // question again.
+        const code = error instanceof TelegramError ? error.code : "network";
+        log.warn({ code }, "Could not retire a Telegram question's buttons");
+      }
+    },
   };
 }
+
+/**
+ * A reply as Telegram shows it. Choices, a public link (with its copy button when the writer asked
+ * for one), public records and a value to copy become inline buttons; a link or record to a local
+ * address is written into the text instead.
+ */
+function layout(message: OutboundMessage): { body: string; keyboard: ReportingButton[][] } {
+  const { choices = [], copy, link, records = [], text } = message;
+  const linkButton = link && isPublicHttps(link.url) ? link : null;
+  const recordButtons = records.filter((record) => isPublicHttps(record.url));
+  const written = [
+    ...(link && !linkButton ? [link] : []),
+    ...records.filter((record) => !recordButtons.includes(record)),
+  ];
+  const body =
+    written.length > 0
+      ? `${text}\n\n${written.map((entry) => `${entry.label}: ${entry.url}`).join("\n")}`
+      : text;
+  const keyboard: ReportingButton[][] = choices.map((choice) => [
+    { text: choice.label, callback_data: choice.id },
+  ]);
+  if (linkButton) {
+    keyboard.push([{ text: linkButton.label, url: linkButton.url }]);
+    // Only a link the writer marked for copying gets the second button: one to a page where an
+    // account signs. Telegram refuses copy text longer than 256 characters.
+    if (linkButton.copyLabel && linkButton.url.length <= 256)
+      keyboard.push([{ text: linkButton.copyLabel, copy_text: { text: linkButton.url } }]);
+  }
+  // One record to a row, in the order the core gave them, so the first is the one that leads.
+  for (const record of recordButtons) keyboard.push([{ text: record.label, url: record.url }]);
+  if (copy && copy.text.length <= 256)
+    keyboard.push([{ text: copy.label, copy_text: { text: copy.text } }]);
+  return { body, keyboard };
+}
+
+/** Telegraf's markup type predates copy buttons, so the rows are cast to it. */
+const inlineMarkup = (keyboard: ReportingButton[][]) => ({
+  inline_keyboard: keyboard as InlineKeyboardButton[][],
+});
 
 function sendText(
   telegram: Telegram,
@@ -202,9 +260,7 @@ function sendText(
       chat_id: request.externalChatId,
       text,
       ...(request.threadId ? { message_thread_id: Number(request.threadId) } : {}),
-      ...(keyboard.length > 0
-        ? { reply_markup: { inline_keyboard: keyboard as InlineKeyboardButton[][] } }
-        : {}),
+      ...(keyboard.length > 0 ? { reply_markup: inlineMarkup(keyboard) } : {}),
     },
     { signal: timeoutSignal(SEND_TIMEOUT_MS) }
   );
@@ -308,6 +364,18 @@ async function readAtMost(body: ReadableStream<Uint8Array>, limit: number): Prom
   return bytes;
 }
 
+/** A pressed message's buttons other than its choices, or none, which takes the keyboard off. */
+function withoutChoices(
+  message: MaybeInaccessibleMessage | undefined
+): InlineKeyboardMarkup | undefined {
+  const rows =
+    message && "reply_markup" in message ? (message.reply_markup?.inline_keyboard ?? []) : [];
+  const kept = rows
+    .map((row) => row.filter((button) => !("callback_data" in button)))
+    .filter((row) => row.length > 0);
+  return kept.length > 0 ? { inline_keyboard: kept } : undefined;
+}
+
 /** Storing an update failed; the bot must surface it so Telegram delivers the update again. */
 class TelegramIntakeError extends Error {
   override name = "TelegramIntakeError";
@@ -345,11 +413,14 @@ export function createTelegramReporting(
   };
 }
 
-/** Stops the pressed button's spinner and removes its keyboard; the reply follows from the outbox. */
+/**
+ * Stops the pressed button's spinner and takes the message's choices off, keeping a link or copy
+ * button on it, as retiring a replaced question does. The reply follows from the outbox.
+ */
 async function settleButtonPress(ctx: Context): Promise<void> {
   const results = await Promise.allSettled([
     ctx.answerCbQuery(),
-    ctx.editMessageReplyMarkup(undefined),
+    ctx.editMessageReplyMarkup(withoutChoices(ctx.callbackQuery?.message)),
   ]);
   for (const result of results) {
     if (result.status === "fulfilled") continue;

@@ -1,13 +1,14 @@
 /** @vitest-environment happy-dom */
 
-import { QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "../config/query-keys";
 import { useCommitmentDialogController } from "../hooks/admin-ui/pool/useCommitmentDialogController";
-import type { CommitmentMutationInput } from "../hooks/commitment-pooling/useCommitmentMutations";
-import { useCommitmentMutation } from "../hooks/commitment-pooling/useCommitmentMutations";
+import {
+  type CommitmentMutationInput,
+  useCommitmentMutation,
+} from "../hooks/commitment-pooling/useCommitmentMutations";
 import {
   useCommitment,
   useCommitmentActivity,
@@ -112,9 +113,11 @@ vi.mock("../hooks/assessment/useGardenAssessments", () => ({
 
 vi.mock("../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadataFor: () => null,
+  useCommitmentMetadata: () => ({ byCID: new Map(), isLoading: false, isError: false }),
 }));
 
-vi.mock("../hooks/commitment-pooling/useCommitmentJobs", () => ({
+vi.mock("../hooks/commitment-pooling/useCommitmentJobs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../hooks/commitment-pooling/useCommitmentJobs")>()),
   useCommitmentJobs: () => mocks.jobs,
 }));
 
@@ -141,6 +144,9 @@ vi.mock("../hooks/blockchain/useTransactionSender", () => ({
 vi.mock("../utils/blockchain/contracts", () => ({
   CommitmentPoolingModuleABI: [],
   getNetworkContracts: () => ({ commitmentPoolingModule: mocks.moduleAddress }),
+}));
+vi.mock("../utils/blockchain/contract-abis/commitment-service-offers", () => ({
+  CommitmentServiceOffersABI: [{ type: "function", name: "acceptServiceClaim" }],
 }));
 
 vi.mock("../utils/errors/contract-errors", () => ({
@@ -247,62 +253,62 @@ describe("commitment pooling query hooks", () => {
   const listAndDetailCases = [
     {
       name: "pool detail",
-      render: () => useCommitmentPool({ chainId: 42161, poolId: 9n }),
+      useHook: () => useCommitmentPool({ chainId: 42161, poolId: 9n }),
       select: (value: Record<string, unknown>) => value.pool,
       expected: pool,
     },
     {
       name: "cycles",
-      render: () => useCommitmentCycles({ chainId: 42161, poolId: 9n, state: "OPEN" }),
+      useHook: () => useCommitmentCycles({ chainId: 42161, poolId: 9n, state: "OPEN" }),
       select: (value: Record<string, unknown>) => value.cycles,
       expected: [{ id: "cycle" }],
     },
     {
       name: "cycle detail",
-      render: () => useCommitmentCycle({ chainId: 42161, cycleId: 10n }),
+      useHook: () => useCommitmentCycle({ chainId: 42161, cycleId: 10n }),
       select: (value: Record<string, unknown>) => value.cycle,
       expected: { id: "cycle" },
     },
     {
       name: "commitments",
-      render: () => useCommitments({ chainId: 42161, account: ACCOUNT }),
+      useHook: () => useCommitments({ chainId: 42161, account: ACCOUNT }),
       select: (value: Record<string, unknown>) => value.commitments,
       expected: [{ id: "commitment" }],
     },
     {
       name: "commitment detail",
-      render: () => useCommitment({ chainId: 42161, commitmentId: 11n }),
+      useHook: () => useCommitment({ chainId: 42161, commitmentId: 11n }),
       select: (value: Record<string, unknown>) => value.commitment,
       expected: { id: "commitment" },
     },
     {
       name: "claim requests",
-      render: () =>
+      useHook: () =>
         useCommitmentClaimRequests({ chainId: 42161, commitmentId: 11n, state: "PENDING" }),
       select: (value: Record<string, unknown>) => value.claimRequests,
       expected: [{ id: "claim" }],
     },
     {
       name: "series list",
-      render: () => useCommitmentSeries({ chainId: 42161, holder: ACCOUNT }),
+      useHook: () => useCommitmentSeries({ chainId: 42161, holder: ACCOUNT }),
       select: (value: Record<string, unknown>) => value.series,
       expected: [{ id: "series" }],
     },
     {
       name: "series detail",
-      render: () => useCommitmentSeriesDetail({ chainId: 42161, seriesId: 12n }),
+      useHook: () => useCommitmentSeriesDetail({ chainId: 42161, seriesId: 12n }),
       select: (value: Record<string, unknown>) => value.series,
       expected: { id: "series" },
     },
     {
       name: "need lineage",
-      render: () => useNeedCommitments({ chainId: 42161, needUID: "0xneed" }),
+      useHook: () => useNeedCommitments({ chainId: 42161, needUID: "0xneed" }),
       select: (value: Record<string, unknown>) => value.lineage,
       expected: { needUID: "0xneed" },
     },
     {
       name: "exchange",
-      render: () =>
+      useHook: () =>
         useCommitmentExchange({
           chainId: 42161,
           poolId: 9n,
@@ -314,26 +320,26 @@ describe("commitment pooling query hooks", () => {
     },
     {
       name: "Hypercert bundle",
-      render: () => useCommitmentHypercertBundle({ chainId: 42161, hypercertId: 13n }),
+      useHook: () => useCommitmentHypercertBundle({ chainId: 42161, hypercertId: 13n }),
       select: (value: Record<string, unknown>) => value.bundle,
       expected: { id: "bundle" },
     },
     {
       name: "funding",
-      render: () => useCommitmentFunding({ chainId: 42161, commitmentId: 11n, funder: ACCOUNT }),
+      useHook: () => useCommitmentFunding({ chainId: 42161, commitmentId: 11n, funder: ACCOUNT }),
       select: (value: Record<string, unknown>) => value.funding,
       expected: [{ id: "funding" }],
     },
     {
       name: "activity",
-      render: () => useCommitmentActivity({ chainId: 42161, poolId: 9n, limit: 20 }),
+      useHook: () => useCommitmentActivity({ chainId: 42161, poolId: 9n, limit: 20 }),
       select: (value: Record<string, unknown>) => value.events,
       expected: [{ id: "event" }],
     },
   ];
 
   it.each(listAndDetailCases)("returns $name data through the shared hook", async (testCase) => {
-    const { result } = renderHookWithProviders(() => testCase.render());
+    const { result } = renderHookWithProviders(() => testCase.useHook());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(testCase.select(result.current as unknown as Record<string, unknown>)).toEqual(
       testCase.expected
@@ -549,6 +555,78 @@ describe("useCommitmentMutation", () => {
         chainId: 42161,
       });
     }
+  });
+
+  // A voucher service offer refuses the generic acceptClaim on chain
+  // (ServiceClaimPathRequired), and the service path is on the offers interface,
+  // not the core module's: the steward's acceptance names the member's exact consent.
+  it("accepts a voucher booking through acceptServiceClaim on the service offers interface", async () => {
+    const queryClient = createTestQueryClient();
+    vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const { result } = renderHookWithProviders(() => useCommitmentMutation({ chainId: 42161 }), {
+      queryClient,
+    });
+    const claimHash = `0x${"c1".repeat(32)}` as const;
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        action: "acceptServiceClaim",
+        commitmentId: 41n,
+        buyer: ACCOUNT,
+        expectedClaimHash: claimHash,
+      });
+    });
+    expect(mocks.sender.sendContractCall).toHaveBeenLastCalledWith({
+      address: MODULE,
+      abi: [{ type: "function", name: "acceptServiceClaim" }],
+      functionName: "acceptServiceClaim",
+      args: [41n, ACCOUNT, claimHash],
+      chainId: 42161,
+    });
+  });
+
+  // PRD-1574: an answer with no receipt that isn't a Safe proposal may still land, and the act
+  // that sent it must hear so; one waiting on a Safe's signers says that instead.
+  it("tells the act when its answer has no receipt yet and waits on no Safe", async () => {
+    const queryClient = createTestQueryClient();
+    vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const { result } = renderHookWithProviders(() => useCommitmentMutation({ chainId: 42161 }), {
+      queryClient,
+    });
+    const claimHash = `0x${"c1".repeat(32)}` as const;
+    const accept = (onUnconfirmed: () => void) =>
+      result.current.mutateAsync({
+        action: "acceptServiceClaim",
+        commitmentId: 41n,
+        buyer: ACCOUNT,
+        expectedClaimHash: claimHash,
+        send: { onUnconfirmed },
+      });
+
+    const opaque = vi.fn();
+    mocks.sender.sendContractCall.mockResolvedValueOnce({
+      hash: "0x1234",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    await act(async () => {
+      await accept(opaque);
+    });
+    expect(opaque).toHaveBeenCalledTimes(1);
+    // The callback stays with the act: the sender is never handed it.
+    expect(mocks.sender.sendContractCall.mock.lastCall?.[1]).not.toHaveProperty("onUnconfirmed");
+
+    const proposal = vi.fn();
+    mocks.sender.sendContractCall.mockResolvedValueOnce({
+      hash: `0x${"5a".repeat(32)}`,
+      sponsored: false,
+      confirmation: "pending",
+      awaiting: "safe-signers",
+    });
+    await act(async () => {
+      await accept(proposal);
+    });
+    expect(proposal).not.toHaveBeenCalled();
   });
 
   it("invalidates the chain prefix plus the directly changed entity", async () => {
@@ -793,6 +871,36 @@ describe("useCommitmentDialogController", () => {
     expect(result.current.can.sendForConfirmation).toBe(false);
   });
 
+  it("offers a steward's cancel while nobody has taken the promise up and once accepted, never after", async () => {
+    const states: Array<[string, boolean]> = [
+      ["OFFERED", true],
+      ["REQUESTED", true],
+      ["ACCEPTED", true],
+      // TerminalLib.cancelCommitment refuses every later state.
+      ["READY_FOR_CONFIRMATION", false],
+      ["FULFILLED", false],
+      ["CANCELLED", false],
+    ];
+
+    for (const [onchainState, expected] of states) {
+      mocks.getCommitmentDetail.mockResolvedValue(detail({ onchainState, state: onchainState }));
+      const { result, unmount } = render();
+      await waitFor(() => expect(result.current.commitment?.onchainState).toBe(onchainState));
+      expect(result.current.can.cancel, onchainState).toBe(expected);
+      unmount();
+    }
+
+    // A gardener who is no steward never gets it, even on an untaken record.
+    mocks.roles.mockReturnValue({ roles: ["gardener"], isLoading: false, error: null });
+    mocks.getCommitmentDetail.mockResolvedValue(
+      detail({ onchainState: "OFFERED", state: "OFFERED" })
+    );
+    const gardener = render();
+    await waitFor(() => expect(gardener.result.current.commitment?.onchainState).toBe("OFFERED"));
+    expect(gardener.result.current.can.cancel).toBe(false);
+    gardener.unmount();
+  });
+
   it("offers a dispute only in the three states raiseDispute accepts", async () => {
     const states: Array<[string, boolean]> = [
       ["ACCEPTED", true],
@@ -952,6 +1060,74 @@ describe("useCommitmentDialogController", () => {
     expect(again.result.current.can.confirmOrdinary).toBe(false);
   });
 
+  // CreditLib.isOrdinaryConfirmer takes a Request's creator by account while nobody
+  // is named, so a garden role lost before the queue sends must not hold it. Once a
+  // group is named the creator is not taken by account, and the membership check stays.
+  it("queues the ordinary Confirm free of the membership wait only for a confirmer by account", async () => {
+    const NAMED = "0x6666666666666666666666666666666666666666";
+    for (const [confirmers, byAccount] of [
+      [[], true],
+      [[NAMED], false],
+    ] as const) {
+      mocks.getCommitmentDetail.mockResolvedValue(
+        detail({
+          onchainState: "READY_FOR_CONFIRMATION",
+          state: "READY_FOR_CONFIRMATION",
+          derivedState: "READY_FOR_CONFIRMATION",
+          direction: "REQUEST",
+          creator: STEWARD,
+          leadProvider: TAKER,
+          counterparty: TAKER,
+          confirmers: [...confirmers],
+          contributorsFrozen: true,
+        })
+      );
+      const { result, unmount } = render();
+      await waitFor(() => expect(result.current.commitment?.confirmers).toEqual(confirmers));
+
+      // The queue says the confirmation landed: the inspector follows it (PRD-1205).
+      mocks.jobs.enqueue.mockImplementationOnce(
+        async (input: { report?: (event: { stage: string; txHash: null }) => void }) => {
+          input.report?.({ stage: "landed", txHash: null });
+          return "job";
+        }
+      );
+      expect(result.current.confirmPhase.status).toBe("idle");
+      await act(async () => {
+        await result.current.acts.confirmOrdinary();
+      });
+      expect(mocks.jobs.enqueue).toHaveBeenLastCalledWith({
+        act: "confirm",
+        commitmentId: 9n,
+        gardenAddress: ACCOUNT,
+        membershipNotRequired: byAccount,
+        report: expect.any(Function),
+      });
+      expect(result.current.confirmPhase.status).toBe("confirmed");
+      unmount();
+    }
+  });
+
+  it("uses the effective confirmer rule in the inspector without changing the indexed terms", async () => {
+    const indexed = detail({
+      onchainState: "READY_FOR_CONFIRMATION",
+      state: "READY_FOR_CONFIRMATION",
+      derivedState: "READY_FOR_CONFIRMATION",
+      direction: "REQUEST",
+      creator: TAKER,
+      counterparty: LEAD,
+      confirmers: [LEAD],
+      protocolFallbackEnabled: true,
+      contributorsFrozen: true,
+    });
+    mocks.getCommitmentDetail.mockResolvedValue(indexed);
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.commitment?.confirmers).toEqual([]));
+    expect(result.current.can.confirmFallback).toBe(false);
+    expect(indexed.commitment.confirmers).toEqual([LEAD]);
+  });
+
   // GuardLib.requirePoolState(Open) and freezeAndReady's Open-cycle check both
   // gate on state a failed read cannot report, so the acts wait for the read.
   it("fails closed on the acts a failed pool or cycle read cannot vouch for", async () => {
@@ -1008,7 +1184,7 @@ describe("useCommitmentDialogController", () => {
 
     // As is a named confirmer who is neither party.
     mocks.getCommitmentDetail.mockResolvedValue(
-      detail({ ...gardenClaimed, confirmers: [STEWARD] })
+      detail({ ...gardenClaimed, leadProvider: LEAD, confirmers: [STEWARD] })
     );
     const named = render();
     await waitFor(() => expect(named.result.current.commitment).not.toBeNull());

@@ -191,18 +191,27 @@ contract JsonBuilderTest is Test {
         string memory json =
             wrapper.buildImpact("Planted Trees", "Planted 100 trees", "QmProof", workUID, garden, 1_700_000_000, "");
 
-        assertTrue(_contains(json, "\"title\":\"Planted Trees\""), "Should contain title");
+        assertTrue(
+            _contains(json, "\"title\":\"Planted Trees (00000000)\""), "Should suffix the title with the short Work UID"
+        );
         assertTrue(_contains(json, "\"text\":\"Planted 100 trees"), "Should contain text");
         assertTrue(_contains(json, "\"type\":\"project-update\""), "Should have correct type");
+
+        // Karma shows only the newest update per title, so two Works sharing a title must stay distinct.
+        string memory other = wrapper.buildImpact(
+            "Planted Trees", "Planted 100 trees", "QmProof", bytes32(uint256(0xABCDEF) << 224), garden, 1_700_000_000, ""
+        );
+        assertTrue(_contains(other, "\"title\":\"Planted Trees (00abcdef)\""), "Second Work keeps its own title");
     }
 
     function testGAPJsonBuilder_impactUsesSupportedProjectUpdateDates() public {
         string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "");
 
-        assertTrue(_contains(json, "\"startsAt\":1700000000"));
-        assertTrue(_contains(json, "\"endsAt\":1700000000"));
-        assertFalse(_contains(json, "\"startDate\""));
+        // Karma's update card draws its date line from ISO `startDate`/`endDate`; a start alone shows one date.
+        assertTrue(_contains(json, "\"startDate\":\"2023-11-14T22:13:20.000Z\""));
         assertFalse(_contains(json, "\"endDate\""));
+        assertFalse(_contains(json, "\"startsAt\""));
+        assertFalse(_contains(json, "\"endsAt\""));
     }
 
     function testImpactDeliverables() public {
@@ -286,8 +295,7 @@ contract JsonBuilderTest is Test {
 
         assertTrue(_contains(json, "\"title\""));
         assertTrue(_contains(json, "\"text\""));
-        assertTrue(_contains(json, "\"startsAt\""));
-        assertTrue(_contains(json, "\"endsAt\""));
+        assertTrue(_contains(json, "\"startDate\""));
         assertTrue(_contains(json, "\"deliverables\""));
         assertTrue(_contains(json, "\"type\":\"project-update\""));
         assertFalse(_contains(json, "\"links\""));

@@ -96,3 +96,10 @@ export const HarvestReverted: Story = {
 export const HarvestUnverifiable: Story = {
   args: result({ status: "harvest_incomplete", hash: HASH, failure: "unverifiable" }),
 };
+
+export const Documentation: Story = {
+  args: {
+    ...result({ status: "distributed", hash: HASH, amounts: AMOUNTS }),
+    formatAmount: (amount: bigint) => `${Number(amount) / 10 ** 18} DAI`,
+  },
+};

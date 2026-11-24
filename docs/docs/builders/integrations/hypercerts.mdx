@@ -4,17 +4,24 @@ sidebar_label: Hypercerts
 slug: /builders/integrations/hypercerts
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-25
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Hypercerts.sol
+  - packages/contracts/src/lib/CommitmentPooling/RecognitionLib.sol
   - packages/shared/src/modules/data/hypercerts-fetch.ts
   - packages/shared/src/modules/data/hypercerts-metadata.ts
   - packages/shared/src/modules/data/hypercerts-repository.ts
   - packages/shared/src/modules/data/hypercerts-attestations.ts
+  - packages/shared/src/modules/commitment-pooling/pool-lifecycle.ts
   - packages/shared/src/hooks/hypercerts
+  - packages/admin/src/views/Review/CreateHypercert.tsx
+  - packages/admin/src/views/Garden/Pool/SetupFlow/AllocationEditor.tsx
+  - packages/indexer/schema.graphql
+  - packages/indexer/src/handlers/hypercert-allocations.ts
+  - packages/indexer/src/handlers/metadata.ts
 keywords:
   - hypercerts
   - impact certificates
@@ -25,12 +32,54 @@ import {IntegrationProjection} from "@site/src/components/docs";
 
 # Hypercerts
 
-[Hypercerts](https://hypercerts.org) turn a body of approved work into a certified impact claim
-with ownable fractions. When a steward mints an impact certificate for a garden's season of work,
-funders can hold a piece of that claim; it's how verified work becomes something the funding side
-can actually own and retro-fund.
+[Hypercerts](https://hypercerts.org) represent an impact claim with ownable fractions. Green Goods
+reads two kinds, told apart by the `bundleKind` its metadata carries. A commitment certificate
+(`COMMITMENT`) is built from the fulfilled commitments of one reconciled season or campaign, with
+the approved work inside them kept as evidence; the indexer reads this kind, but no app path
+mints it yet. The admin wizard mints the older kind (`WORK_LEGACY`), which bundles approved work
+directly and records each contributor's share. Claiming and buying shares inside Green Goods
+remain unavailable; the [steward guide](/community/steward-guide/creating-impact-certificates)
+explains the current limits.
 
-## How it flows
+```mermaid
+flowchart TB
+  accTitle: Two impact certificate kinds
+  accDescr: A commitment certificate is built from a reconciled cycle's fulfilled commitments, which the indexer can read but no app mints yet. The admin wizard selects approved work, prepares metadata and shares, then mints and registers a work certificate. Fraction claiming and purchase are outside the current app flow.
+  kept["Fulfilled commitments · one reconciled cycle"] --> composer["Commitment certificate · no app mints it yet"]
+  work["Approved work"] --> wizard["Admin wizard · metadata and shares"]
+  composer --> mint["Mint and register certificate"]
+  wizard --> mint
+  mint --> record["Public certificate record"]
+```
+
+## How a commitment certificate shares recognition
+
+A commitment certificate divides its units in a fixed order, so anyone can recompute the result
+from the chain.
+
+1. The cycle's six-role split, fixed when the season or campaign opened, sets each class's units:
+   gardeners, treasury, steward, evaluator, community and funder.
+2. The gardeners' units divide equally across the cycle's fulfilled commitments, not by how much
+   work each one needed.
+3. Within each commitment, the eligible contributors are the members of its frozen team with at
+   least one counted work approval or evidence credit. They share that commitment's budget by the
+   cycle's recognition policy: a part split equally for taking part and the rest by verified
+   contribution. The protocol default is 20% and 80%, and stewards may choose another policy when
+   the cycle opens. Recognition and payment are separate: these weights never move money.
+4. Each share becomes whole units, with remainders assigned in a deterministic order, so the
+   total always matches the budget.
+
+The indexer expands a certificate only when every bundled commitment is fulfilled, has its team
+frozen and belongs to the same cycle, so a commitment without a cycle cannot join one. The
+designed composer also requires that cycle to be reconciled, which is why
+[End a Season](/community/steward-guide/end-a-season) keeps a season **Reconciled** until a
+garden decides about certification. Nothing gives a share to the lead by default: a commitment
+cannot become ready for confirmation without at least one counted contribution. The indexer
+records the result per certificate as `HypercertCommitmentContributorAllocation` rows, so a
+second certificate that includes the same commitment gets its own units without changing the
+first.
+
+## How the work certificate flows
 
 In the admin wizard a certificate starts from work that's already approved, so a claim minted
 there traces back to real records. The contract does not enforce that rule: `registerHypercert`
@@ -39,22 +88,11 @@ checks operator authority, pause state, and that the claim is minted, and
 calling the module directly can register any minted claim. Treat approved work as the
 application's constraint, not the contract's.
 
-```mermaid
-flowchart LR
-  work["A season of approved work"] --> steward([Steward])
-  steward -->|mints| minter["Hypercert minter"]
-  minter --> claim["Impact claim<br/>with fractions"]
-  claim --> funders([Funders hold fractions])
-```
-
 <div className="gg-figure-grid">
-  <figure className="gg-figure">
-    <img src="/img/builders/admin-hub-hypercerts.webp" alt="The admin Hub's Hypercerts tab with one minted certificate, Rainforest canopy baseline, tagged Canopy and Water" loading="lazy" width="2000" height="1250" />
-    <figcaption>A steward's view: the Hub's Hypercerts tab, where a garden's certificates are minted and listed.</figcaption>
-  </figure>
+
   <figure className="gg-figure">
     <img src="/img/builders/site-impact.webp" alt="The public Impact page: a hero reading See how Garden work becomes evidence, above counts of the work, assessments, and gardens in the public record" loading="lazy" width="2000" height="1250" />
-    <figcaption>The public Impact page, where certificates and the records behind them are read by anyone.</figcaption>
+    <figcaption>Anyone can read certificates and their supporting records on the Impact page.</figcaption>
   </figure>
 </div>
 
@@ -65,6 +103,7 @@ flowchart LR
 | Module | `packages/contracts/src/modules/Hypercerts.sol` |
 | Data access | `packages/shared/src/modules/data/hypercerts*.ts` (fetch, metadata, repository, attestations) |
 | Hooks | `packages/shared/src/hooks/hypercerts` |
+| Commitment certificate read model | `packages/indexer/src/handlers/hypercert-allocations.ts` and the `Hypercert.bundleKind` field in `packages/indexer/schema.graphql` |
 
 The steward-facing flow lives in the community docs'
 [minting guide](/community/steward-guide/creating-impact-certificates); these sources are the
@@ -89,6 +128,7 @@ real funds.
 
 ## Next steps
 
-- [Anatomy of a Work Submission](/builders/architecture/anatomy) shows the approved work a hypercert bundles.
+- [Anatomy of a Work Submission](/builders/architecture/anatomy) shows the approved work both certificate kinds draw on.
+- [Architecture](/builders/architecture#commitment-pooling-settlement-and-pilots) separates recognition from settlement payouts.
 - [Octant](/builders/integrations/octant) covers the vaults that fund gardens.
 - [Karma GAP](/builders/integrations/karma) reports the same progress to grant programs.

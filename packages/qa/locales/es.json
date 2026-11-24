@@ -29,9 +29,11 @@
   "cases": {
     "ADM-012": {
       "scenario": "La ruta completa de revisión termina con las acciones visibles",
-      "preconditions": ["Sesión de Steward; al menos un envío pendiente en el Garden seleccionado"],
+      "preconditions": [
+        "Sesión de responsable; al menos un envío pendiente en el jardín seleccionado"
+      ],
       "steps": [
-        "Abre /hub/work",
+        "Abre /review/work",
         "Abre una entrega pendiente",
         "Revisa las pruebas multimedia",
         "Elige un nivel de confianza (al principio no hay ninguno elegido) y escribe tus comentarios",
@@ -40,26 +42,26 @@
         "Confirma que la cola se actualice"
       ],
       "expected": "La ruta completa de decisión funciona y las acciones de confirmar o cancelar nunca quedan ocultas dentro de una zona de desplazamiento recortada",
-      "role": "Steward"
+      "role": "Responsable"
     },
     "ADM-145": {
       "scenario": "Confirmar cumplido… revisa el compromiso antes de confirmarlo",
       "preconditions": [
-        "Steward con el Garden que confirma el compromiso seleccionado en el encabezado",
-        "Un compromiso que espera la confirmación de ese Garden y marcado como Listo para confirmar; la cuenta que confirma no ha contribuido"
+        "Responsable con el jardín que confirma el compromiso seleccionado en el encabezado",
+        "Un compromiso que espera la confirmación de ese jardín y marcado como Listo para confirmar; la cuenta que confirma no ha contribuido"
       ],
       "steps": [
-        "Abre Hub → Confirmar y pulsa Confirmar cumplido… en la fila del compromiso",
+        "Abre Revisión → Confirmar y pulsa Confirmar cumplido… en la fila del compromiso",
         "Lee la revisión",
         "Pulsa Confirmar cumplido y confirma en la wallet",
-        "Lee Hub → Confirmar y el compromiso después"
+        "Lee Revisión → Confirmar y el compromiso después"
       ],
-      "expected": "Antes de enviar nada, la revisión nombra el compromiso, el pool del Garden en el que está y quién lo cumplió, e indica si esta confirmación lo cierra como cumplido para todos o qué confirmación de cuántas es, y que no se puede deshacer; confirmar es una sola transacción; después el compromiso aparece como Cumplido y sale de la cola, o su fila muestra una confirmación más",
-      "role": "Steward"
+      "expected": "Antes de enviar nada, la revisión nombra el compromiso, el pool del jardín en el que está y quién lo cumplió, e indica si esta confirmación lo cierra como cumplido para todos o qué confirmación de cuántas es, y que no se puede deshacer; confirmar es una sola transacción; después el compromiso aparece como Cumplido y sale de la cola, o su fila muestra una confirmación más",
+      "role": "Responsable"
     },
     "ADM-014": {
       "scenario": "Los estados, la creación y el detalle de la consola del pool son coherentes",
-      "preconditions": ["Sesión de Steward; Garden con un pool"],
+      "preconditions": ["Sesión de responsable; jardín con un pool"],
       "steps": [
         "Abre /garden/pool",
         "Revisa el estado de financiación y preparación",
@@ -68,12 +70,12 @@
         "Cancela de forma segura"
       ],
       "expected": "Los estados son claros, las acciones destructivas o en cadena requieren una revisión y cancelar conserva el estado",
-      "role": "Steward"
+      "role": "Responsable"
     },
     "ADM-140": {
       "scenario": "Crea un compromiso: asistente de 4 pasos, confirmadores identificados y revisión antes de enviar",
       "preconditions": [
-        "El pool del Garden está abierto; el compromiso local del Garden designa como confirmador a un steward o evaluador independiente, nunca a quien contribuyó"
+        "El pool del jardín está abierto; el compromiso local del jardín designa como confirmador a una persona responsable o evaluadora independiente, nunca a quien contribuyó"
       ],
       "steps": [
         "Completa el asistente de creación de 4 pasos",
@@ -81,109 +83,109 @@
         "Revisa, pulsa Sembrar este compromiso y confirma en la wallet; después pulsa Listo y comprueba que se cierra el asistente"
       ],
       "expected": "Cada paso valida antes de Siguiente; una dirección de confirmador incorrecta o duplicada se rechaza de forma visible; la revisión muestra todas las respuestas antes de enviar nada; al sembrar, la wallet pide confirmar una sola creación, y el asistente la muestra como Creado hasta que Listo lo cierra",
-      "role": "Steward"
+      "role": "Responsable"
     },
     "ADM-037": {
-      "scenario": "Registra una evaluación inicial para el Garden de prueba",
+      "scenario": "Registra una evaluación inicial para el jardín de prueba",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
-        "Tester A puede evaluar el Garden de prueba"
+        "Tester A puede evaluar el jardín de prueba"
       ],
       "steps": [
-        "Selecciona el Garden de prueba e inicia una evaluación",
-        "Registra el contexto inicial del Garden con suficiente detalle para que Tester B lo reconozca",
+        "Selecciona el jardín de prueba e inicia una evaluación",
+        "Registra el contexto inicial del jardín con suficiente detalle para que Tester B lo reconozca",
         "Revisa y envía la evaluación",
-        "Espera a que la evaluación enviada aparezca en el Garden"
+        "Espera a que la evaluación enviada aparezca en el jardín"
       ],
-      "expected": "La evaluación queda registrada en el Garden de prueba y se muestra como contexto inicial, sin presentarse como requisito para abrir una Temporada o Campaña",
-      "role": "Steward"
+      "expected": "La evaluación queda registrada en el jardín de prueba y se muestra como contexto inicial, sin presentarse como requisito para abrir una Temporada o Campaña",
+      "role": "Responsable"
     },
     "PWA-046": {
-      "scenario": "La persona miembro del Garden puede leer la evaluación inicial",
+      "scenario": "La persona miembro del jardín puede leer la evaluación inicial",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester B",
-        "Tester B es miembro del Garden de prueba",
+        "Tester B es miembro del jardín de prueba",
         "ADM-037 está completado"
       ],
       "steps": [
-        "Abre el Garden de prueba",
+        "Abre el jardín de prueba",
         "Abre su historial de evaluaciones",
         "Busca la evaluación inicial registrada por Tester A",
         "Lee suficiente información para confirmar que pertenece a este ciclo de QA"
       ],
-      "expected": "La misma evaluación inicial se puede leer desde la experiencia del Garden y se presenta como contexto, no como una condición del ciclo",
-      "role": "Miembro del Garden"
+      "expected": "La misma evaluación inicial se puede leer desde la experiencia del jardín y se presenta como contexto, no como una condición del ciclo",
+      "role": "Miembro del jardín"
     },
     "ADM-038": {
       "scenario": "Abre la Temporada y la Campaña de prueba independientemente del estado de la evaluación",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
-        "Tester A es Steward del Garden de prueba",
-        "El pool de compromisos del Garden de prueba está listo"
+        "Tester A es responsable del jardín de prueba",
+        "El pool de compromisos del jardín de prueba está listo"
       ],
       "steps": [
-        "Abre la configuración del pool del Garden de prueba",
+        "Abre la configuración del pool del jardín de prueba",
         "Crea o selecciona la Temporada de QA",
         "Abre una Campaña para el relevo de compromisos",
         "Confirma que el ciclo abierto sea visible antes de crear compromisos"
       ],
       "expected": "La Temporada y la Campaña se abren aunque la evaluación inicial aún no haya terminado de indexarse; la evaluación sigue siendo contextual",
-      "role": "Steward"
+      "role": "Responsable"
     },
     "ADM-139": {
-      "scenario": "Crea en el protocolo una Solicitud de trabajo de jardín sujeta a aprobación que el Garden de prueba pueda entregar",
+      "scenario": "Crea en el protocolo una Solicitud de trabajo de jardín sujeta a aprobación que el jardín de prueba pueda entregar",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
-        "Tester A es Steward del protocolo",
+        "Tester A es responsable del protocolo",
         "El pool del protocolo tiene un ciclo abierto"
       ],
       "steps": [
         "Abre el pool del protocolo Green Goods",
-        "Crea una Solicitud del tipo Trabajo de jardín (impacto) con una fila de acción para la que el Garden de prueba pueda enviar Trabajo",
+        "Crea una Solicitud del tipo Trabajo de jardín (impacto) con una fila de acción para la que el jardín de prueba pueda enviar Trabajo",
         "Mantén el modo de reclamo en Revisado por responsables para que haya que aceptar a quien la reclame",
         "Revisa y crea la Solicitud, confirmando en la wallet",
         "Espera a que la Solicitud aparezca en el pool del protocolo"
       ],
       "expected": "Aparece una Solicitud revisada por responsables en el pool del protocolo con su fila de acción, su objetivo y sus expectativas de confirmación intactos. Es del tipo trabajo de jardín, así que queda lista mediante Trabajo vinculado y aprobado, no mediante pruebas y Enviar para confirmación",
-      "role": "Steward"
+      "role": "Responsable"
     },
     "PWA-047": {
-      "scenario": "Reclama la Solicitud del protocolo para el Garden de prueba",
+      "scenario": "Reclama la Solicitud del protocolo para el jardín de prueba",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester B",
-        "Tester B es Steward del Garden de prueba",
+        "Tester B es responsable del jardín de prueba",
         "ADM-139 está completado"
       ],
       "steps": [
         "Abre la Solicitud del protocolo",
-        "Elige asumirla para el Garden de prueba",
-        "Revisa la identidad del Garden y envía la reclamación",
+        "Elige asumirla para el jardín de prueba",
+        "Revisa la identidad del jardín y envía la reclamación",
         "Espera a que la reclamación figure como pendiente de aprobación"
       ],
-      "expected": "La reclamación queda pendiente para el Garden de prueba; no se presenta como una reclamación personal y la Solicitud no sale del pool del protocolo",
-      "role": "Steward"
+      "expected": "La reclamación queda pendiente para el jardín de prueba; no se presenta como una reclamación personal y la Solicitud no sale del pool del protocolo",
+      "role": "Responsable"
     },
     "ADM-040": {
-      "scenario": "Acepta la reclamación institucional del Garden de prueba",
+      "scenario": "Acepta la reclamación institucional del jardín de prueba",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
-        "Tester A es Steward del protocolo",
+        "Tester A es responsable del protocolo",
         "PWA-047 está completado"
       ],
       "steps": [
         "Abre las reclamaciones pendientes de la Solicitud del protocolo",
-        "Identifica la reclamación del Garden de prueba",
-        "Acepta la reclamación del Garden",
+        "Identifica la reclamación del jardín de prueba",
+        "Acepta la reclamación del jardín",
         "Vuelve a abrir la Solicitud después de que se actualice el estado"
       ],
-      "expected": "La reclamación pasa a Aceptada, el Garden es el proveedor institucional y la Solicitud original permanece en el pool del protocolo",
-      "role": "Steward"
+      "expected": "La reclamación pasa a Aceptada, el jardín es el proveedor institucional y la Solicitud original permanece en el pool del protocolo",
+      "role": "Responsable"
     },
     "PWA-048": {
       "scenario": "Envía el Trabajo y las pruebas para la Solicitud original del protocolo",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester B",
-        "Tester B es la persona responsable y contribuyente del Garden de prueba",
+        "Tester B es la persona responsable de la entrega y contribuyente del jardín de prueba",
         "ADM-040 está completado"
       ],
       "steps": [
@@ -193,24 +195,24 @@
         "Envía el Trabajo",
         "Vuelve a la Solicitud y comprueba que el Trabajo esté vinculado"
       ],
-      "expected": "El Trabajo y las pruebas de Tester B quedan vinculados a la Solicitud original del pool del protocolo mientras el Garden de prueba sigue siendo el proveedor responsable",
-      "role": "Miembro del Garden"
+      "expected": "El Trabajo y las pruebas de Tester B quedan vinculados a la Solicitud original del pool del protocolo mientras el jardín de prueba sigue siendo el proveedor responsable",
+      "role": "Miembro del jardín"
     },
     "ADM-041": {
       "scenario": "Aprueba el Trabajo vinculado a la Solicitud del protocolo sin unirte a sus contribuyentes",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
-        "Tester A puede revisar el Garden de prueba, pero no contribuye",
+        "Tester A puede revisar el jardín de prueba, pero no contribuye",
         "PWA-048 está completado"
       ],
       "steps": [
         "Abre el Trabajo pendiente vinculado a la Solicitud del protocolo",
-        "Revisa las pruebas de Tester B y el contexto del Garden",
+        "Revisa las pruebas de Tester B y el contexto del jardín",
         "Aprueba el Trabajo",
         "Comprueba que el estado de revisión se actualice sin añadir a Tester A como contribuyente"
       ],
       "expected": "Una persona revisora independiente aprueba el Trabajo vinculado y Tester A permanece fuera de la lista de contribuyentes",
-      "role": "Steward"
+      "role": "Responsable"
     },
     "ADM-042": {
       "scenario": "Confirma la Solicitud del protocolo después de aprobar su Trabajo",
@@ -225,131 +227,411 @@
         "Confirma el cumplimiento como creador de la Solicitud",
         "Vuelve a abrir la Solicitud después de que se actualice el estado"
       ],
-      "expected": "La Solicitud pasa a Completada con el Garden de prueba todavía indicado como proveedor y el Trabajo de Tester B conservado como prueba",
-      "role": "Steward"
+      "expected": "La Solicitud pasa a Completada con el jardín de prueba todavía indicado como proveedor y el Trabajo de Tester B conservado como prueba",
+      "role": "Responsable"
     },
     "ADM-043": {
-      "scenario": "Liquida la compensación en G$ ganada por el Garden desde el protocolo",
+      "scenario": "Liquida la compensación en G$ ganada por el jardín desde el protocolo",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
         "ADM-042 está completado",
-        "Se conoce el Safe de destino del Garden"
+        "Se conoce el Safe de destino del jardín"
       ],
       "steps": [
         "Abre la acción de liquidación de la Solicitud Completada del protocolo",
-        "Comprueba que el beneficiario sea el Safe de destino del Garden",
+        "Comprueba que el beneficiario sea el Safe de destino del jardín",
         "Si la interfaz de liquidación y la autorización para mover valor están disponibles, revisa y envía el pago",
         "Si no, detente en la condición visible y registra Bloqueado",
         "Pide a Tester B que verifique el estado de destino"
       ],
-      "expected": "Cuando está habilitada, la compensación ganada se dirige al Safe del Garden y el resultado es visible; cuando no lo está, la interfaz explica la condición y no da a entender que se movió valor",
-      "role": "Steward"
+      "expected": "Cuando está habilitada, la compensación ganada se dirige al Safe del jardín y el resultado es visible; cuando no lo está, la interfaz explica la condición y no da a entender que se movió valor",
+      "role": "Responsable"
     },
     "PWA-049": {
-      "scenario": "Asume el compromiso local separado del Garden",
+      "scenario": "Asume el compromiso local separado del jardín",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester B",
-        "Tester B es miembro del Garden de prueba",
+        "Tester B es miembro del jardín de prueba",
         "ADM-140 está completado"
       ],
       "steps": [
-        "Abre la Campaña actual del Garden de prueba",
+        "Abre la Campaña actual del jardín de prueba",
         "Abre el compromiso local creado para la persona miembro",
         "Asume el compromiso con la identidad de Tester B",
         "Comprueba que su identidad sea distinta de la Solicitud del protocolo"
       ],
-      "expected": "Tester B asume un compromiso separado del pool del Garden; no se mueve desde el pool del protocolo ni se refleja allí",
-      "role": "Miembro del Garden"
+      "expected": "Tester B asume un compromiso separado del pool del jardín; no se mueve desde el pool del protocolo ni se refleja allí",
+      "role": "Miembro del jardín"
     },
     "PWA-050": {
-      "scenario": "Envía el Trabajo y las pruebas del compromiso local del Garden",
+      "scenario": "Envía el Trabajo y las pruebas del compromiso local del jardín",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester B",
         "PWA-049 está completado"
       ],
       "steps": [
-        "Abre el compromiso local del Garden",
+        "Abre el compromiso local del jardín",
         "Inicia o vincula su Trabajo",
         "Añade pruebas que identifiquen la entrega local",
         "Envía el Trabajo",
         "Comprueba que el Trabajo esté vinculado al compromiso local"
       ],
-      "expected": "El Trabajo y las pruebas de la persona miembro se envían para el compromiso separado del Garden y quedan listos para una revisión independiente",
-      "role": "Miembro del Garden"
+      "expected": "El Trabajo y las pruebas de la persona miembro se envían para el compromiso separado del jardín y quedan listos para una revisión independiente",
+      "role": "Miembro del jardín"
     },
     "ADM-044": {
-      "scenario": "Liquida el pago del Garden a la persona miembro contribuyente",
+      "scenario": "Liquida el pago del jardín a la persona miembro contribuyente",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
-        "El compromiso local del Garden está completado",
+        "El compromiso local del jardín está completado",
         "Se conoce la cuenta receptora de Tester B"
       ],
       "steps": [
-        "Abre la acción de pago del compromiso local completado del Garden",
+        "Abre la acción de pago del compromiso local completado del jardín",
         "Comprueba que Tester B sea la persona contribuyente que debe recibirlo",
         "Si la interfaz de pago a contribuyentes y la autorización para mover valor están disponibles, revisa y envía el pago",
         "Si no, detente en la condición visible y registra Bloqueado",
         "Pide a Tester B que verifique el estado de recepción"
       ],
-      "expected": "Cuando está habilitado, el Garden paga a la persona miembro contribuyente y el resultado es visible; cuando no lo está, la interfaz explica la condición y conserva intacto el flujo sin valor ya completado",
-      "role": "Steward"
+      "expected": "Cuando está habilitado, el jardín paga a la persona miembro contribuyente y el resultado es visible; cuando no lo está, la interfaz explica la condición y conserva intacto el flujo sin valor ya completado",
+      "role": "Responsable"
     },
     "ADM-045": {
-      "scenario": "Pon en cola una recarga discrecional de tesorería del protocolo a un Garden",
+      "scenario": "Pon en cola una recarga discrecional de tesorería del protocolo a un jardín",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
         "ADM-014 ha confirmado que la financiación está lista",
-        "El Garden de destino y el importe están autorizados explícitamente"
+        "El jardín de destino y el importe están autorizados explícitamente"
       ],
       "steps": [
         "Abre la acción de financiación de la tesorería del protocolo",
-        "Elige el Garden de destino en Jardín receptor e introduce la cantidad",
+        "Elige el jardín de destino en Jardín receptor e introduce la cantidad",
         "Comprueba que no se solicite ni adjunte ningún compromiso",
         "Si hay autorización para mover valor, pulsa Revisar aporte…, lee la confirmación y pulsa Poner aporte en cola",
         "Si no, detente en la condición visible y registra Bloqueado",
-        "Pide a Tester B que verifique el saldo o el estado de preparación del Garden"
+        "Pide a Tester B que verifique el saldo o el estado de preparación del jardín"
       ],
-      "expected": "Cuando está autorizada y habilitada, la recarga se pone en cola para el Garden correcto y su saldo refleja el resultado; nunca sustituye a la compensación ganada ni hace referencia a un compromiso",
-      "role": "Steward"
+      "expected": "Cuando está autorizada y habilitada, la recarga se pone en cola para el jardín correcto y su saldo refleja el resultado; nunca sustituye a la compensación ganada ni hace referencia a un compromiso",
+      "role": "Responsable"
+    },
+    "ADM-202": {
+      "scenario": "Resuelve la solicitud y verifica el acceso confirmado al Hub",
+      "preconditions": [
+        "Solicitud ADM-201 pendiente",
+        "Persona revisora autorizada e independiente y solicitante con cuentas distintas",
+        "Transacción de asignación de rol autorizada"
+      ],
+      "steps": [
+        "Abre la cola de acceso de responsables y aprueba la solicitud",
+        "Espera la confirmación del rol y la resolución de la solicitud",
+        "Como solicitante, actualiza y entra al Hub; compara con una solicitud de membresía ordinaria"
+      ],
+      "expected": "La aprobación asigna el rol de responsable, no una membresía ordinaria. El acceso se abre solo tras confirmar la autoridad; una asignación pendiente o fallida no se presenta como acceso concedido.",
+      "role": "responsable"
+    },
+    "QA-004": {
+      "scenario": "Verifica la revisión del catálogo y separa regresión de despliegue en curso",
+      "preconditions": [
+        "Implementación QA con la revisión prevista del catálogo; identificadores de versiones conocidos",
+        "Participantes requeridos: persona autorizada para QA."
+      ],
+      "steps": [
+        "Compara la revisión desplegada con el catálogo revisado y registra las versiones del producto",
+        "Selecciona una superficie normal, después Rollout Readiness y un recorrido En curso",
+        "Lee el informe privado por superficie y revisa los IDs retirados"
+      ],
+      "expected": "La ejecución identifica catálogo y versiones exactos. Los casos de despliegue están separados y no demuestran comportamiento ya publicado; los IDs retirados conservan historial y no se ejecutan.",
+      "role": "cualquier persona"
+    },
+    "ROLL-006": {
+      "scenario": "En curso: aplica una política diferida y recupera un jar pausado",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Par de jars Hats revisado y autoridad de gobierno; saldo desechable y destino de recuperación aprobado",
+        "Participantes requeridos: persona propietaria y responsable."
+      ],
+      "steps": [
+        "Propón una política, intenta ejecutarla antes de tiempo, cancélala y propón otra",
+        "Aplica tras la espera y rechaza la propuesta obsoleta",
+        "Pausa y comprueba el rechazo de retiros; verifica autoridades de reanudación y recuperación y rechaza un destino incorrecto"
+      ],
+      "expected": "Solo la política actual se ejecuta tras la espera. La pausa bloquea retiros; reanudar y recuperar requiere la autoridad designada. La recuperación usa el destino aprobado y comprueba confirmaciones inciertas antes de reintentar.",
+      "role": "responsable"
+    },
+    "AGT-001": {
+      "scenario": "Da consentimiento y vincula un informe de Telegram con la cuenta prevista",
+      "preconditions": [
+        "Canal de informes de Telegram habilitado en el entorno elegido",
+        "Conversación desechable y cuenta miembro; consentimiento para medios privados de prueba",
+        "Participantes requeridos: persona que informa."
+      ],
+      "steps": [
+        "Inicia el informe y lee el consentimiento y el enlace de cuenta",
+        "Rechaza una vez; reinicia y abre el enlace con la cuenta prevista",
+        "Completa la prueba de cuenta y vuelve a la conversación"
+      ],
+      "expected": "Rechazar no registra un informe. La vinculación une solo la cuenta demostrada y la conversación prevista; no concede otros roles del jardín.",
+      "role": "miembro"
+    },
+    "PWA-141": {
+      "scenario": "Recibe el servicio y concilia los vales retenidos, gastados y devueltos",
+      "preconditions": [
+        "Implementación de vales habilitada y servicio con condiciones acordadas",
+        "Miembro y responsable independiente; fondos y operaciones de prueba autorizados",
+        "Reserva cuya entrega puede resolver la persona responsable independiente"
+      ],
+      "steps": [
+        "Anota los importes retenido y disponible",
+        "Pide a la persona responsable que complete la entrega acordada y vuelve a abrir la reserva",
+        "Compara wallet, reserva y registro de revisión tras la confirmación"
+      ],
+      "expected": "La entrega y cualquier reparto o devolución concilian con el importe original. El valor retenido no está disponible para gastarlo; el historial de confirmaciones permanece visible.",
+      "role": "miembro"
+    },
+    "AGT-003": {
+      "scenario": "Revisa de forma independiente el trabajo de chat y comprueba el resultado",
+      "preconditions": [
+        "Trabajo publicado mediante AGT-002",
+        "Responsable independiente fuera de la lista de contribuyentes; revisión autorizada",
+        "Participantes requeridos: responsable e informante."
+      ],
+      "steps": [
+        "Busca el mismo trabajo y su evidencia en el Hub",
+        "Aprueba o rechaza con comentarios y espera la confirmación",
+        "Como informante, consulta el resultado en chat y app"
+      ],
+      "expected": "La revisión independiente y los comentarios coinciden en chat, App y Hub. La confirmación del trabajo no se confunde con aprobación ni pago.",
+      "role": "responsable"
+    },
+    "AGT-002": {
+      "scenario": "Corrige un informe y publica un trabajo con autorización en el navegador",
+      "preconditions": [
+        "Miembro vinculado mediante AGT-001; envío de prueba autorizado",
+        "Muestras desechables de texto, foto, voz y documento; solo se acepta evidencia compatible",
+        "Participantes requeridos: persona que informa."
+      ],
+      "steps": [
+        "Crea un informe, adjunta medios compatibles y corrige acción, descripción o jardín antes de confirmar",
+        "Abre la autorización en el navegador y rechaza la firma una vez",
+        "Reintenta, confirma y espera la confirmación; abre el trabajo en la app"
+      ],
+      "expected": "La revisión coincide con el informe corregido y la evidencia aceptada. Las entradas no compatibles se explican. Rechazar no envía nada; el envío confirmado publica un trabajo bajo la cuenta vinculada, sin aprobación automática.",
+      "role": "miembro"
+    },
+    "ROLL-002": {
+      "scenario": "En curso: elige el pool de intercambio y concilia la confirmación",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Revisión aprobada del emisor; dos pools de intercambio de jardín configurados; fondos de prueba autorizados",
+        "Participantes requeridos: miembro y responsable."
+      ],
+      "steps": [
+        "Elige el pool de destino y revisa ruta, activo y condiciones",
+        "Rechaza una ruta incorrecta o no disponible y envía por la aprobada",
+        "Recarga durante la consulta de confirmación y concilia la operación conocida"
+      ],
+      "expected": "Solo se usa el pool explícito y revisado. Una ruta no disponible no envía; recargar no duplica intercambio ni aprobación, y la confirmación registra el pool real.",
+      "role": "miembro"
+    },
+    "QA-002": {
+      "scenario": "Concilia dos dispositivos y recupera un veredicto sin conexión",
+      "preconditions": [
+        "Persona de QA-001 en dos dispositivos; segunda persona en otro caso",
+        "Participantes requeridos: persona autorizada para QA."
+      ],
+      "steps": [
+        "Cambia el veredicto en un dispositivo y su nota en el otro",
+        "Desconecta la red, edita otra nota y recarga",
+        "Reconecta y compara ambos dispositivos y el registro de la otra persona"
+      ],
+      "expected": "Los campos convergen sin sobrescribir cambios confirmados ni otro registro. Los cambios sin conexión permanecen locales con un aviso honesto y se sincronizan una vez en su ejecución original abierta.",
+      "role": "cualquier persona"
+    },
+    "ROLL-007": {
+      "scenario": "En curso: ensaya la migración atómica y concilia los dos jars por jardín",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Fork fijado antes de migrar y manifiesto revisado de cada jardín y par de activos",
+        "Sin transacciones en vivo; usa el ensayo de migración y las pruebas directas del adaptador",
+        "Participantes requeridos: persona a cargo de la publicación."
+      ],
+      "steps": [
+        "Captura registro antiguo, saldos, roles y destinos de rendimiento",
+        "Ensaya retirar entradas antiguas y crear pares; inyecta un fallo en el segundo activo y cambios de Hats o fábrica",
+        "Reintenta desde la misma base y lee ambas entradas, identidades de fábrica y destinos"
+      ],
+      "expected": "Un par fallido no deja creación ni registro parciales. Cambios de roles, fábrica o entradas existentes rechazan llamadas antiguas. Los pares válidos asignan los activos previstos; se conserva el historial y no se retiran jars nuevos como antiguos.",
+      "role": "cualquier persona"
+    },
+    "ADM-201": {
+      "scenario": "Solicita acceso de responsable sin obtener privilegios mientras está pendiente",
+      "preconditions": [
+        "Solicitante con sesión iniciada sin acceso de responsable; jardín elegible; API habilitada",
+        "Participantes requeridos: solicitante."
+      ],
+      "steps": [
+        "Elige el jardín en la pantalla sin acceso y revisa la solicitud",
+        "Cancela la firma una vez; después firma y envía",
+        "Recarga y abre una ruta protegida del jardín"
+      ],
+      "expected": "Cancelar no crea una solicitud. La solicitud enviada queda pendiente para el jardín elegido; no concede ningún rol y las acciones protegidas siguen sin estar disponibles.",
+      "role": "cualquier persona"
+    },
+    "ROLL-005": {
+      "scenario": "En curso: ajusta límites dentro de la política y comprueba la pérdida de rol",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Par de jars Hats revisado en jardín de prueba; cuentas propietaria, responsable, miembro y ajena",
+        "Participantes requeridos: persona propietaria y responsable."
+      ],
+      "steps": [
+        "Inspecciona y cambia límites operativos con cada rol",
+        "Intenta superar el máximo de política, acortar la espera y exceder el presupuesto diario",
+        "Revoca el rol antes de confirmar y reintenta; inspecciona los jars antiguos por separado"
+      ],
+      "expected": "Solo el rol designado actúa dentro de la política. Límites, espera y presupuesto rechazan excesos y se vuelve a comprobar el rol. Los jars antiguos y nuevos conservan permisos distintos.",
+      "role": "responsable"
+    },
+    "PWA-145": {
+      "scenario": "Firma después de recuperar la passkey y aísla los cambios de cuenta",
+      "preconditions": [
+        "PWA-144 completado en el mismo origen compatible",
+        "Un trabajo de prueba pequeño u otra operación de cuenta autorizada",
+        "Segunda cuenta y un elemento sin enviar en el dispositivo original"
+      ],
+      "steps": [
+        "Rechaza la primera firma y reintenta la operación autorizada",
+        "Espera la confirmación y verifica la cuenta autora original",
+        "Cambia de cuenta, recarga y vuelve a la cuenta original"
+      ],
+      "expected": "Rechazar no envía nada. El reintento se confirma una vez bajo la cuenta recuperada. La otra cuenta no puede ver, enviar ni descartar los elementos sin enviar; al volver se recuperan.",
+      "role": "miembro"
+    },
+    "ROLL-001": {
+      "scenario": "En curso: revisa un borrador de emisor y consigue una aprobación nueva",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Mesa de emisores habilitada; emisor y persona revisora autorizada con borrador desechable",
+        "Participantes requeridos: emisor y responsable."
+      ],
+      "steps": [
+        "Crea y revisa un borrador con condiciones y pool propuesto",
+        "Aprueba una revisión y cambia una condición relevante",
+        "Intenta activar con la aprobación anterior y revisa la versión actual"
+      ],
+      "expected": "Se conserva el historial. La aprobación anterior no autoriza condiciones cambiadas; la activación espera la revisión actual exacta y las autoridades aprobadas.",
+      "role": "cualquier persona"
+    },
+    "QA-001": {
+      "scenario": "Autentícate y conserva un veredicto privado tras recargar",
+      "preconditions": [
+        "App QA alojada; persona autorizada y wallet no autorizada",
+        "Ejecución desechable; registra entorno, revisión del catálogo y versión probada",
+        "Participantes requeridos: persona autorizada para QA."
+      ],
+      "steps": [
+        "Intenta entrar con la wallet no autorizada; después cancela y completa el acceso autorizado",
+        "Registra un veredicto y una nota en la ejecución desechable",
+        "Espera la confirmación de guardado, recarga y lee el mismo caso"
+      ],
+      "expected": "El acceso no autorizado se rechaza y cancelar permite reintentar. El veredicto y la nota persisten en la ejecución prevista sin publicar datos privados.",
+      "role": "cualquier persona"
+    },
+    "PWA-140": {
+      "scenario": "Aprueba las condiciones y reserva el importe acordado",
+      "preconditions": [
+        "Implementación de vales de servicio habilitada y servicio con condiciones acordadas",
+        "Miembro y responsable independiente; fondos de prueba y operaciones autorizadas"
+      ],
+      "steps": [
+        "Abre la promesa de servicio y revisa emisor, unidad, importe y condiciones",
+        "Cancela una vez; después aprueba las condiciones actuales y reserva",
+        "Espera la confirmación y abre la reserva desde Tu wallet"
+      ],
+      "expected": "Cancelar no envía nada. Una sola reserva usa las condiciones y el importe aprobados; el saldo retenido coincide con el enlace de la wallet. Una confirmación pendiente no figura como completada.",
+      "role": "miembro"
+    },
+    "QA-003": {
+      "scenario": "Abre la siguiente ejecución con cambios pendientes y conserva el historial",
+      "preconditions": [
+        "Ejecución QA desechable; dos personas; una edición activa sin guardar y una cola recuperada al recargar",
+        "Participantes requeridos: persona autorizada para QA."
+      ],
+      "steps": [
+        "Ambas personas intentan abrir la siguiente ejecución casi a la vez",
+        "Lee el resultado y el tratamiento de las ediciones activas y recuperadas",
+        "Abre la ejecución cerrada y compárala con la siguiente"
+      ],
+      "expected": "Solo queda una ejecución abierta. El historial cerrado no se edita; las ediciones activas explican su nuevo destino y las antiguas recuperadas esperan una decisión explícita. Ningún veredicto cambia de ejecución en silencio.",
+      "role": "cualquier persona"
+    },
+    "ADM-205": {
+      "scenario": "Resuelve una reserva con las condiciones y el importe aprobados",
+      "preconditions": [
+        "Implementación de vales habilitada y servicio con condiciones acordadas",
+        "Miembro y responsable independiente; fondos y operaciones de prueba autorizados",
+        "Reserva PWA-140 pendiente de resolución autorizada"
+      ],
+      "steps": [
+        "Abre la reserva en la consola de vales",
+        "Revisa condiciones y entrega, reparto o devolución propuestos",
+        "Cancela una vez; después confirma el resultado acordado y espera la confirmación"
+      ],
+      "expected": "Solo la persona responsable autorizada puede resolverla. Cancelar no cambia nada; el resultado conserva el importe reservado y llega al miembro sin presentar la aprobación del trabajo como un pago.",
+      "role": "responsable"
+    },
+    "PWA-144": {
+      "scenario": "Recupera una cuenta antigua con passkey sin cambiar su identidad",
+      "preconditions": [
+        "Cuenta antigua con passkey y dirección original guardada de forma privada",
+        "Origen alojado compatible; segundo navegador o dispositivo con la passkey disponible en la cuenta Apple o Google prevista"
+      ],
+      "steps": [
+        "Cierra sesión y recupera por el nombre existente en un navegador sin datos locales de la cuenta",
+        "Compara dirección, membresías y saldos recuperados con los originales",
+        "Recarga, cierra sesión y repite en cada origen compatible incluido"
+      ],
+      "expected": "Se recupera la cuenta original con la misma dirección y membresías. Un origen distinto o una passkey no disponible ofrece una recuperación honesta y nunca crea otra cuenta en silencio.",
+      "role": "miembro"
     }
   },
   "journeys": {
     "service-relay": {
-      "label": "Relevo de servicios: Green Goods → Garden → miembros",
-      "summary": "Dos personas siguen una Solicitud del pool de Green Goods durante la entrega del Garden y después usan un compromiso separado del Garden para reconocer el trabajo de la persona miembro. Ambos compromisos son del tipo trabajo de jardín: cada uno queda listo mediante Trabajo vinculado y aprobado, no mediante pruebas y Enviar para confirmación.",
+      "label": "Relevo de servicios: Green Goods → jardín → miembros",
+      "summary": "Dos personas siguen una Solicitud del pool de Green Goods durante la entrega del jardín y después usan un compromiso separado del jardín para reconocer el trabajo de la persona miembro. Ambos compromisos son del tipo trabajo de jardín: cada uno queda listo mediante Trabajo vinculado y aprobado, no mediante pruebas y Enviar para confirmación.",
       "lanes": {
         "protocol-review": {
           "label": "Protocolo y revisión",
-          "role": "Responsable del protocolo y steward o persona evaluadora independiente del Garden de prueba; nunca participa como contribuyente"
+          "role": "Responsable del protocolo y persona responsable o evaluadora independiente del jardín de prueba; nunca participa como contribuyente"
         },
         "garden-member": {
-          "label": "Garden y miembro",
-          "role": "Steward y miembro del Garden de prueba; representa al Garden en la solicitud, lidera la entrega y contribuye"
+          "label": "Jardín y miembro",
+          "role": "Responsable y miembro del jardín de prueba; representa al jardín en la solicitud, lidera la entrega y contribuye"
         }
       },
       "phases": {
         "prepare": "Preparar",
         "protocol-asks": "Solicitud del protocolo",
-        "garden-delivers": "El Garden entrega",
-        "garden-earns": "El Garden recibe",
-        "garden-distributes": "El Garden distribuye",
+        "garden-delivers": "El jardín entrega",
+        "garden-earns": "El jardín recibe",
+        "garden-distributes": "El jardín distribuye",
         "member-receives": "El miembro recibe"
       },
       "steps": {
         "ADM-037": {
-          "handoff": "Espera hasta que la persona miembro del Garden pueda ver la evaluación inicial."
+          "handoff": "Espera hasta que la persona miembro del jardín pueda ver la evaluación inicial."
         },
         "ADM-038": {
-          "handoff": "Ambas personas confirman que ven el mismo Garden y el ciclo abierto; la evaluación aporta contexto, pero no es un requisito previo."
+          "handoff": "Ambas personas confirman que ven el mismo jardín y el ciclo abierto; la evaluación aporta contexto, pero no es un requisito previo."
         },
         "ADM-139": {
-          "handoff": "Espera hasta que la Solicitud aparezca en el pool del protocolo para la persona miembro del Garden."
+          "handoff": "Espera hasta que la Solicitud aparezca en el pool del protocolo para la persona miembro del jardín."
         },
         "PWA-047": {
-          "handoff": "La persona revisora del protocolo espera a que aparezca la solicitud pendiente del Garden antes de aceptarla."
+          "handoff": "La persona revisora del protocolo espera a que aparezca la solicitud pendiente del jardín antes de aceptarla."
         },
         "ADM-040": {
-          "handoff": "Ambas personas verifican que la Solicitud siga en el pool del protocolo y nombre al Garden como proveedor."
+          "handoff": "Ambas personas verifican que la Solicitud siga en el pool del protocolo y nombre al jardín como proveedor."
         },
         "PWA-048": {
           "handoff": "La persona revisora espera hasta que el Trabajo vinculado y sus pruebas sean visibles antes de decidir."
@@ -358,11 +640,11 @@
           "handoff": "Ambas personas verifican que la Solicitud aprobada figure como Completada antes de pasar a la compensación."
         },
         "ADM-043": {
-          "handoff": "La persona miembro del Garden verifica el Safe de destino del Garden o su estado de preparación.",
-          "knownGate": "La liquidación de G$ del protocolo al Garden requiere una interfaz de liquidación habilitada y autorización para mover valor. Si falta alguna, registra Bloqueado y continúa con los pasos que no mueven valor."
+          "handoff": "La persona miembro del jardín verifica el Safe de destino del jardín o su estado de preparación.",
+          "knownGate": "La liquidación de G$ del protocolo al jardín requiere una interfaz de liquidación habilitada y autorización para mover valor. Si falta alguna, registra Bloqueado y continúa con los pasos que no mueven valor."
         },
         "ADM-140": {
-          "handoff": "Créalo como Trabajo de jardín con una fila de acción, para que el Trabajo de la persona miembro pueda vincularse. Espera hasta que el compromiso local separado aparezca en la Campaña abierta del Garden."
+          "handoff": "Créalo como Trabajo de jardín con una fila de acción, para que el Trabajo de la persona miembro pueda vincularse. Espera hasta que el compromiso local separado aparezca en la Campaña abierta del jardín."
         },
         "PWA-050": {
           "handoff": "La persona revisora espera el Trabajo local y sus pruebas antes de abrir la revisión."
@@ -371,22 +653,22 @@
           "handoff": "Ambas personas verifican que el compromiso local esté completo y siga siendo distinto de la Solicitud del protocolo."
         },
         "ADM-044": {
-          "handoff": "La persona miembro del Garden verifica la cuenta receptora o el estado de preparación visible.",
-          "knownGate": "La liquidación de G$ del Garden a la persona miembro requiere una interfaz de pago a contribuyentes habilitada y autorización para mover valor. Si falta alguna, registra Bloqueado sin cambiar el flujo sin valor ya completado."
+          "handoff": "La persona miembro del jardín verifica la cuenta receptora o el estado de preparación visible.",
+          "knownGate": "La liquidación de G$ del jardín a la persona miembro requiere una interfaz de pago a contribuyentes habilitada y autorización para mover valor. Si falta alguna, registra Bloqueado sin cambiar el flujo sin valor ya completado."
         }
       }
     },
     "protocol-treasury-top-up": {
       "label": "Recarga de la tesorería del protocolo",
-      "summary": "Comprueba que la financiación discrecional esté preparada, pon en cola una recarga ProtocolToGarden cuando esté autorizada y verifica el saldo del Garden sin hacer referencia a un compromiso.",
+      "summary": "Comprueba que la financiación discrecional esté preparada, pon en cola una recarga ProtocolToGarden cuando esté autorizada y verifica el saldo del jardín sin hacer referencia a un compromiso.",
       "lanes": {
         "protocol-review": {
           "label": "Protocolo y revisión",
           "role": "Responsable del protocolo con autoridad para inspeccionar y, cuando se apruebe, poner en cola fondos de tesorería"
         },
         "garden-member": {
-          "label": "Garden y miembro",
-          "role": "Steward del Garden de prueba que verifica el Garden de destino y su saldo"
+          "label": "Jardín y miembro",
+          "role": "Responsable del jardín de prueba que verifica el jardín de destino y su saldo"
         }
       },
       "phases": {
@@ -395,8 +677,178 @@
       },
       "steps": {
         "ADM-045": {
-          "handoff": "El steward del Garden verifica el Garden de destino y el saldo; no interviene ningún ID de compromiso.",
+          "handoff": "La persona responsable del jardín verifica el jardín de destino y el saldo; no interviene ningún ID de compromiso.",
           "knownGate": "La financiación de tesorería del protocolo requiere autorización explícita para mover valor y una vía ProtocolToGarden activa. Si no están disponibles, registra Bloqueado y no des a entender que se movieron fondos."
+        }
+      }
+    },
+    "service-vouchers": {
+      "label": "Reserva de servicio: miembro, responsable y wallet",
+      "summary": "Recorre una reserva habilitada desde la aprobación hasta la entrega y conciliación. Confirma implementación y operaciones autorizadas; registra requisitos ausentes como Bloqueado, nunca como intercambio completado.",
+      "lanes": {
+        "member": {
+          "label": "Miembro",
+          "role": "Miembro que reserva el servicio"
+        },
+        "steward": {
+          "label": "Responsable",
+          "role": "Responsable independiente con autoridad para resolver esta reserva"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "PWA-140": {
+          "handoff": "La persona responsable verifica ID de reserva, condiciones aprobadas, importe y saldo retenido antes de resolverla."
+        },
+        "ADM-205": {
+          "handoff": "El miembro ve la resolución confirmada en la misma reserva antes de revisar los saldos."
+        },
+        "PWA-141": {
+          "handoff": "Ambas personas concilian la misma reserva con los vales retenidos, gastados y devueltos."
+        }
+      }
+    },
+    "steward-access": {
+      "label": "Acceso de responsable: solicitud, rol y Hub",
+      "summary": "Usa cuentas distintas. Una solicitud pendiente no concede privilegios; verifica el rol confirmado antes de entrar al Hub.",
+      "lanes": {
+        "requester": {
+          "label": "Solicitante",
+          "role": "Cuenta sin acceso de responsable"
+        },
+        "reviewer": {
+          "label": "Persona revisora",
+          "role": "Persona revisora autorizada del jardín"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "ADM-201": {
+          "handoff": "Quien revisa ve la solicitud pendiente de la misma cuenta y jardín; quien solicita aún no tiene acceso de responsable."
+        },
+        "ADM-202": {
+          "handoff": "Quien solicita actualiza y verifica el rol confirmado y el acceso al Hub del jardín previsto."
+        }
+      }
+    },
+    "telegram-reporting": {
+      "label": "Informe de Telegram: consentimiento, trabajo y revisión",
+      "summary": "Usa el adaptador Telegram habilitado y evidencia privada desechable. Autorización, publicación y revisión son resultados distintos; servicios no disponibles quedan Bloqueados.",
+      "lanes": {
+        "reporter": {
+          "label": "Informante",
+          "role": "Miembro del jardín que da consentimiento"
+        },
+        "reviewer": {
+          "label": "Persona revisora",
+          "role": "Responsable autorizado fuera de la lista de contribuyentes"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "AGT-002": {
+          "handoff": "Quien revisa de forma independiente encuentra el mismo trabajo publicado y su evidencia en el Hub antes de revisarlo."
+        },
+        "AGT-003": {
+          "handoff": "Quien informa ve el resultado confirmado de la revisión del mismo trabajo en el chat y la app."
+        }
+      }
+    },
+    "passkey-continuity": {
+      "label": "Recuperación de passkey: misma cuenta y operación firmada",
+      "summary": "Recorre los orígenes alojados compatibles y las familias de dispositivos reales incluidas. Los autenticadores virtuales y sustitutos locales no prueban recuperación real.",
+      "lanes": {
+        "member": {
+          "label": "Miembro",
+          "role": "Titular de la cuenta con passkey antigua"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {}
+    },
+    "qa-recording": {
+      "label": "Operaciones QA: veredictos guardados y nueva ejecución",
+      "summary": "Usa una ejecución desechable y notas privadas. Confirma catálogo y versiones; después verifica el registro y cambio de ejecución con dos dispositivos.",
+      "lanes": {
+        "tester": {
+          "label": "Persona de QA",
+          "role": "Persona autorizada para QA"
+        },
+        "peer": {
+          "label": "Otra persona de QA",
+          "role": "Segunda persona autorizada para QA"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "QA-002": {
+          "handoff": "Ambos dispositivos muestran el veredicto y la nota confirmados; la otra persona comprueba que su entrada sigue siendo independiente."
+        },
+        "QA-003": {
+          "handoff": "Ambas personas identifican la nueva ejecución abierta y leen la cerrada; las entradas antiguas recuperadas siguen pendientes de decisión."
+        }
+      }
+    },
+    "rollout-service-issuer": {
+      "label": "En curso: revisión de emisor e intercambio",
+      "summary": "Solo preparación de despliegue. No cuenta como cobertura publicada ni autorización de activación. Confirma implementación revisada, revisión del emisor y operaciones permitidas.",
+      "lanes": {
+        "issuer": {
+          "label": "Emisor",
+          "role": "Emisor que prepara las condiciones revisadas"
+        },
+        "steward": {
+          "label": "Responsable",
+          "role": "Persona que revisa el emisor y el pool de destino"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "ROLL-001": {
+          "handoff": "Quien revisa verifica la revisión actual del emisor y la nueva aprobación antes de preparar un intercambio."
+        },
+        "ROLL-002": {
+          "handoff": "Ambas personas concilian el pool seleccionado y el recibo, manteniendo el resultado en la ejecución de despliegue."
+        }
+      }
+    },
+    "rollout-hats-jars": {
+      "label": "En curso: migración y permisos de jars Hats",
+      "summary": "Solo preparación de despliegue. Ensaya en un fork fijado antes de una prueba autorizada. Un ensayo aprobado no autoriza migración en vivo ni certifica todos los jardines.",
+      "lanes": {
+        "operator": {
+          "label": "Responsable de publicación",
+          "role": "Persona a cargo del ensayo de migración revisado"
+        },
+        "steward": {
+          "label": "Responsable",
+          "role": "Responsable del jardín con autoridad de rol verificada por separado"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "ROLL-007": {
+          "handoff": "La persona responsable verifica las asignaciones de ambos activos y la evidencia de reversión antes de probar los controles de ensayo."
+        },
+        "ROLL-005": {
+          "handoff": "Quien opera verifica límites de política, presupuesto y rechazo del rol revocado en el mismo par revisado."
+        },
+        "ROLL-006": {
+          "handoff": "Ambas personas verifican política aplicada, pausa y destino de recuperación aprobado sin inferir activación de todos los jardines."
         }
       }
     }

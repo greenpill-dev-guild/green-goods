@@ -12,14 +12,14 @@ const meta = {
     docs: {
       description: {
         component:
-          "Admin fork of the Canvas MainSheet (Cockpit M3, finished). A transparent content zone — the linen canvas and its faint tone wash are the page ground, and route content sits directly on it. No glass, no recession.",
+          "Admin fork of the Canvas MainSheet (Hub M3, finished). A transparent content zone — the linen canvas and its faint tone wash are the page ground, and route content sits directly on it. No glass, no recession.",
       },
     },
   },
-  decorators: [withCanvasFrame({ heightClassName: "min-h-[320px]", workspace: "hub" })],
+  decorators: [withCanvasFrame({ heightClassName: "min-h-[320px]", workspace: "review" })],
   args: {
     children: (
-      <div className="p-6 text-body-md text-text-sub">
+      <div className="p-6 type-body text-text-sub">
         Route content renders directly on the canvas.
       </div>
     ),

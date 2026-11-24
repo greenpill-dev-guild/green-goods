@@ -44,7 +44,9 @@ packages/shared/src/
 
 ```typescript
 // ✅ Correct — import from shared
-import { useAuth, useWorks, useRole } from "@green-goods/shared";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
+import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
 
 // ❌ Wrong — never create hooks in client/admin
 // packages/client/src/hooks/useLocalHook.ts
@@ -75,75 +77,45 @@ EAS attestation data (assessments, work approvals, work submissions) is queried 
 
 ```typescript
 // Schema UIDs come from deployment artifacts, not hardcoded
-import { getEASConfig } from "@green-goods/shared";
+import { getEASConfig } from "@green-goods/shared/config/blockchain";
 const easConfig = getEASConfig(chainId);
 const assessmentSchemaUID = easConfig.ASSESSMENT.uid;
 
 // EAS GraphQL endpoint per chain
-import { getEasGraphqlUrl } from "@green-goods/shared";
+import { getEasGraphqlUrl } from "@green-goods/shared/config/blockchain";
 const url = getEasGraphqlUrl(chainId); // e.g., "https://arbitrum.easscan.org/graphql"
 ```
 
 ### Query Key Pattern (MANDATORY)
 
-Always use centralized query keys — never ad-hoc strings:
+Use the owning domain's centralized key factory instead of an ad-hoc array. Shared production
+imports the domain leaf under `config/query-keys/`; the source-structure checker rejects importing
+the combined registry there. App consumers use declared package entrypoints.
 
-```typescript
-import { queryKeys, queryInvalidation } from "@green-goods/shared";
+| Owner | Examples |
+|---|---|
+| [`garden.ts`](../../packages/shared/src/config/query-keys/garden.ts) | `gardensKeys.byChain(chainId)` for a chain's gardens; `gardensKeys.detail(gardenId, chainId)` for one garden |
+| [`work.ts`](../../packages/shared/src/config/query-keys/work.ts) | `worksKeys.online(gardenId, chainId)` for remote work; `worksKeys.offline(gardenId, chainId, userAddress)` for the account's local work |
 
-// ✅ Correct — centralized keys
-useQuery({ queryKey: queryKeys.gardens.all(chainId) });
-queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-
-// ❌ Wrong — ad-hoc keys
-useQuery({ queryKey: ["gardens", chainId] });
-queryClient.invalidateQueries({ queryKey: ["works", gardenId] });
-```
-
-**Key factories:**
-- `queryKeys.gardens.all(chainId)` — All gardens
-- `queryKeys.gardens.detail(gardenId, chainId)` — Single garden
-- `queryKeys.works.merged(gardenId, chainId)` — Online + offline works
-- `queryKeys.queue.stats()` — Job queue statistics
+`gardensKeys.all` is a tuple prefix, not a callable factory. Read the domain leaf and the consuming
+hook before changing a key or its invalidation scope; preserve chain and account partitioning.
 
 ### Provider Nesting Order (MANDATORY)
 
-Providers must nest in dependency order (outermost first). Wrong order causes runtime "context not found" crashes.
+Read the owning composition before changing provider order. Client public routes, the installed
+app, and admin have different boot paths:
 
-**Client** (`packages/client/src/main.tsx`):
-```tsx
-<HelmetProvider>
-  <AppErrorBoundary>
-    <AppKitProvider>      {/* Wallet connection (wraps Wagmi + QueryClient internally) */}
-      <AuthProvider>      {/* Auth state — depends on wallet context */}
-        <AppProvider>     {/* App context (i18n, analytics) — depends on auth */}
-          <App />
-        </AppProvider>
-      </AuthProvider>
-    </AppKitProvider>
-  </AppErrorBoundary>
-</HelmetProvider>
-```
+| Surface | Composition owners |
+|---|---|
+| Client entry selection | [`config/bootstrap.ts`](../../packages/client/src/config/bootstrap.ts) selects the public or PWA bootstrap |
+| Client public shell | [`bootstrapPublic.tsx`](../../packages/client/src/bootstrapPublic.tsx) owns recovery, Helmet, App and service-worker update providers; the public shell does not eagerly load wallet/auth providers |
+| Client installed app | [`bootstrapPwa.tsx`](../../packages/client/src/bootstrapPwa.tsx) owns the outer providers; [`PwaApp.tsx`](../../packages/client/src/PwaApp.tsx) adds query persistence; [`PwaRuntime.tsx`](../../packages/client/src/routes/PwaRuntime.tsx) loads the wallet runtime |
+| Client wallet/auth runtime | [`WalletRuntimeProviders.tsx`](../../packages/client/src/routes/WalletRuntimeProviders.tsx) nests `AuthGate` inside `AppKitProvider`; authenticated [`AppShell.tsx`](../../packages/client/src/routes/AppShell.tsx) owns `JobQueueProvider` and `WorkProvider` |
+| Admin | [`AdminRoot.tsx`](../../packages/admin/src/components/Boot/AdminRoot.tsx) owns query persistence, the error boundary, AppKit and `AuthGate`; its lazy [`AdminWorkspace.tsx`](../../packages/admin/src/components/Boot/AdminWorkspace.tsx) owns `AppProvider` and the app |
 
-**Admin** (`packages/admin/src/main.tsx`):
-```tsx
-<QueryPersistenceProvider>  {/* Reading cache, one record per query (admin database) */}
-  <ErrorBoundary>
-    <AppKitProvider>          {/* Wallet connection */}
-      <AuthProvider>          {/* Auth state — depends on wallet context */}
-        <AppProvider>         {/* App context — depends on auth */}
-          <App />
-        </AppProvider>
-      </AuthProvider>
-    </AppKitProvider>
-  </ErrorBoundary>
-</QueryPersistenceProvider>
-```
-
-**Dependency chain**: AppKitProvider (wallet) -> AuthProvider (auth) -> AppProvider (app)
-- AppKitProvider must be outermost because auth and app hooks depend on wallet context
-- AuthProvider must wrap AppProvider because app-level hooks (analytics, i18n) need auth state
-- JobQueueProvider and WorkProvider (used in client views) nest inside AppProvider
+Auth consumers require the wallet/auth runtime, and work-flow consumers require their queue and
+work contexts. Preserve each surface's loading and recovery boundaries when moving providers;
+`main.tsx` delegates startup rather than owning these complete trees.
 
 ### State Tool Selection
 
@@ -157,19 +129,10 @@ Providers must nest in dependency order (outermost first). Wrong order causes ru
 
 ### Event-Driven Updates (MANDATORY)
 
-**Never poll. Always react to events:**
-
-```typescript
-// ✅ Correct — event-driven
-import { useJobQueueEvents, queryKeys } from "@green-goods/shared";
-
-useJobQueueEvents(["job:completed"], () => {
-  queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-});
-
-// ❌ Wrong — polling
-setInterval(() => refetch(), 5000);
-```
+Use the shared queue event bus to refresh work queries instead of polling. The
+[`useWorks`](../../packages/shared/src/hooks/work/useWorks.ts) implementation shows the current
+subscription, cleanup, and centralized-key invalidation. Queue subscriptions belong in the
+owning shared hook so client and admin consumers use the same refresh behavior.
 
 ### TypeScript Strictness
 
@@ -233,7 +196,7 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 
 | Store | Purpose |
 |-------|---------|
-| `useAdminStore` | Admin cockpit state + tx status (`TransactionInfo`/`TransactionStatus`) |
+| `useAdminStore` | Hub state + tx status (`TransactionInfo`/`TransactionStatus`) |
 | `useCreateGardenStore` | Multi-step garden-creation flow (`persist`) |
 | `useCreateAssessmentStore` | Multi-step assessment-creation flow (`persist` + `partialize`) |
 | `useHypercertWizardStore` | Hypercert minting wizard |
@@ -242,7 +205,7 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 | `useSheetOrchestratorStore` | Sheet/overlay orchestration |
 | `useUIStore` | Global UI state |
 
-**Multi-step wizard shape**: `useCreateGardenStore` + `useCreateAssessmentStore` use `persist` and share `currentStep` / `setField` / `nextStep` / `prevStep` / computed `isStepValid(stepId)` / `reset()`. Exceptions — `useHypercertWizardStore` persists in-progress minting to **sessionStorage** (custom, not `persist`; no `isStepValid`) and loads drafts from IndexedDB; `useWorkFlowStore` is non-persisted and its `reset()` revokes tracked object URLs.
+**Multi-step wizard shape**: `useCreateGardenStore` + `useCreateAssessmentStore` use `persist` and share `currentStep` / `setField` / `nextStep` / `previousStep` / computed `isStepValid(stepId)` / `reset()`. Exceptions — `useHypercertWizardStore` persists in-progress minting to **sessionStorage** (custom, not `persist`; no `isStepValid`) and loads drafts from IndexedDB; `useWorkFlowStore` is non-persisted and its `reset()` revokes tracked object URLs.
 
 ### Offline Job Queue + IndexedDB
 
@@ -257,7 +220,7 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 **Two IndexedDB databases** (not one), both typed Dexie databases whose version history is the
 schema (`modules/job-queue/db-schema.ts`, `modules/job-queue/draft-connection.ts`). Dexie stores a
 declared version ×10, so these open the `idb`-era databases in place. `jobQueueDB.observeJobs` /
-`observeStats` and `useLiveQuery` expose live views (`usePendingWorksCount`, `useQueueStatistics`).
+`observeStats` and `useLiveQuery` expose live views (`usePendingWorksCount`, `useQueueStats`).
 
 | DB | Dexie version | Object stores |
 |----|---------------|---------------|
@@ -266,13 +229,13 @@ declared version ×10, so these open the `idb`-era databases in place. `jobQueue
 
 ### Error Utilities
 
-Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (the mutation error helpers in this package), `utils/errors/` (barrel) provides:
+Beyond `parseContractError` / `createMutationErrorHandler` (the mutation error helpers in this package), `utils/errors/` (barrel) provides:
 
 - `categorizeError(error) → ErrorCategory` = `network | validation | auth | permission | blockchain | storage | unknown` (`categorize-error.ts`, message pattern-matched)
 - `extractErrorMessage(error)` / `extractErrorMessageOr(error, fallback)` (`extract-message.ts`)
 - `ValidationError` — throw for precondition/programming-error checks (`validation-error.ts`)
 - `createMutationErrorHandler` config: `{ source, toastContext, toastId?, trackError?, getFallbackMessage?, getFallbackDescription?, formatMessage? }`; returned handler takes `(error, { authMode, gardenAddress, metadata?, showToast? })`. Pass a hook's `formatMessage` and a known error whose parser names its copy (`titleKey`, `messageKey`, `messageValues`) shows in the reader's language: a wallet on another network, an earlier version still queued, and offline (`unsent-failures.ts`). Every other known error still shows the parser's English.
-- `USER_FRIENDLY_ERRORS` lives in `contract-errors.ts`; blockchain/tx specifics in `blockchain-errors.ts` + `tx-error-classifier.ts`
+- `parseContractError` and its toast formatters (`formatErrorForToast`, `parseAndFormatError`) live in `contract-errors.ts`; blockchain/tx specifics in `blockchain-errors.ts` + `tx-error-classifier.ts`
 
 ### React Compiler
 
@@ -288,7 +251,9 @@ Use `isGreenWillDeployed(chainId?)` from `@green-goods/shared` to detect when a 
 
 ### Optimistic-UI Memos over localStorage
 
-When a memo depends on a value written to localStorage in the same tab (e.g. pending-join membership), include `usePendingJoinsVersion()` from `@green-goods/shared` in its `useMemo` deps. The hook returns an incrementing counter that ticks on every in-tab pending-join change. Standard `storage` events only fire across tabs, so without this same-tab consumers go stale until an unrelated re-render. The pattern is generalizable — propose a sibling `use<Thing>Version()` hook when introducing new localStorage-backed optimistic state.
+When a memo depends on a value written to localStorage in the same tab (e.g. pending-join membership), include `usePendingJoinsVersion()` from `@green-goods/shared` in its `useMemo` deps. The hook returns an incrementing counter that ticks on every in-tab pending-join change, a join lapsing at its 15-minute limit included. Standard `storage` events only fire across tabs, so without this same-tab consumers go stale until an unrelated re-render. The pattern is generalizable — propose a sibling `use<Thing>Version()` hook when introducing new localStorage-backed optimistic state.
+
+Give that deps line the `eslint-disable-next-line react-hooks/exhaustive-deps` comment `useMyGardens` carries: the comment is what makes the counter work in a built app. The memo never reads the counter, so the React Compiler would leave it out of the memo's key, and `void version` inside the memo changes nothing because the compiler removes it as dead code. The disable line makes the compiler skip the hook and honor the deps as written. Tests and stories run uncompiled, so they pass either way.
 
 ## Anti-Patterns
 

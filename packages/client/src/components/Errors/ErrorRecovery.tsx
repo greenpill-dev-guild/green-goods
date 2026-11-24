@@ -23,7 +23,7 @@ import {
  * Where the failure is shown, which decides what it looks like:
  *
  * - `page`: a public page, inside the site's header and footer.
- * - `ceremony`: a reporting ceremony page, inside its focused bar. It is drawn as the app draws.
+ * - `ceremony`: a reporting ceremony page, inside its focused bar, in the website's voice (DL-121).
  * - `screen`: one screen of the installed app, inside its shell and over its bottom bar.
  * - `frame`: the frame itself failed, so nothing around the failure can be trusted: the website
  *   as one card, the installed app as its could-not-open screen.

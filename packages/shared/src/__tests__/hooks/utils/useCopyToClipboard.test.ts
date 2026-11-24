@@ -196,26 +196,6 @@ describe("useCopyToClipboard", () => {
   });
 
   // ------------------------------------------
-  // Unmount cleanup
-  // ------------------------------------------
-
-  describe("unmount cleanup", () => {
-    it("cleans up reset timer on unmount", async () => {
-      const { result, unmount } = renderHook(() => useCopyToClipboard());
-
-      await act(async () => {
-        await result.current.copy("test");
-      });
-
-      // Unmount before auto-reset timer fires
-      unmount();
-
-      // Should not throw or cause issues
-      vi.advanceTimersByTime(5000);
-    });
-  });
-
-  // ------------------------------------------
   // Rapid copies
   // ------------------------------------------
 

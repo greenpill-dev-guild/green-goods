@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkStatusNotice } from "@/views/Home/Garden/WorkStatusNotice";
 import { WorkUploadFooter, type WorkUploadFooterProps } from "@/views/Home/Garden/WorkUploadFooter";
 
-function queuedWork(submissionState: string, blockedReason?: string): Work {
+function queuedWork(submissionState: string, blockedReason?: string, sendStage?: string): Work {
   return {
     id: "job-1",
     title: "Planting Event",
@@ -14,7 +14,7 @@ function queuedWork(submissionState: string, blockedReason?: string): Work {
     gardenerAddress: "0x1111111111111111111111111111111111111111",
     gardenAddress: "0x2222222222222222222222222222222222222222",
     feedback: "",
-    metadata: JSON.stringify({ submissionState, blockedReason }),
+    metadata: JSON.stringify({ submissionState, blockedReason, sendStage }),
     media: [],
     createdAt: 1_700_000_000,
     status: "offline",
@@ -25,7 +25,7 @@ function renderFooter(work: Work, overrides: Partial<WorkUploadFooterProps> = {}
   const props: WorkUploadFooterProps = {
     work,
     isOnline: true,
-    pausedForDataSaver: false,
+    preparation: "working",
     onPrepareNow: vi.fn(),
     onRetry: vi.fn(),
     isRetrying: false,
@@ -102,9 +102,33 @@ describe("WorkUploadFooter", () => {
     expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
   });
 
-  it("holds discard while an explicit send is active", () => {
+  it("offers no discard while an explicit send is active", () => {
     renderFooter(queuedWork("ready"), { isRetrying: true });
-    expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("says on Upload now when the wallet is asked and when the send is confirming", () => {
+    renderFooter(queuedWork("sending", undefined, "wallet"), { isRetrying: true });
+    expect(screen.getByRole("button", { name: "Confirm in your wallet" })).toBeInTheDocument();
+    cleanup();
+
+    renderFooter(queuedWork("sending", undefined, "confirming"), { isRetrying: true });
+    expect(screen.getByRole("button", { name: "Confirming…" })).toBeInTheDocument();
+  });
+
+  // The queue puts the stage on the row however the send started (PRD-1552).
+  it("says the stage of a send this page did not start, and offers nothing while it runs", () => {
+    renderFooter(queuedWork("sending", undefined, "confirming"));
+    expect(screen.getByRole("button", { name: "Confirming…" })).toHaveAttribute(
+      "aria-busy",
+      "true"
+    );
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("says where a promise taken up in the same tap stands while it goes first", () => {
+    renderFooter(queuedWork("ready"), { isRetrying: true, takeUpStage: "wallet" });
+    expect(screen.getByRole("button", { name: "Confirm in your wallet" })).toBeInTheDocument();
   });
 
   it("does not offer signing while a photo is still preparing", () => {
@@ -118,10 +142,31 @@ describe("WorkUploadFooter", () => {
   });
 
   it("lets the person start photo preparation under Data Saver", () => {
-    const props = renderFooter(queuedWork("photo-pending"), { pausedForDataSaver: true });
+    const props = renderFooter(queuedWork("photo-pending"), { preparation: "data-saver" });
 
     fireEvent.click(screen.getByRole("button", { name: "Prepare now" }));
     expect(props.onPrepareNow).toHaveBeenCalledOnce();
+  });
+
+  it("offers Try Again and Discard once a preparation failed, instead of a spinner", () => {
+    // PRD-1488: the bar spun on "Preparing uploads…" while preparation waited out a backoff.
+    const props = renderFooter(queuedWork("preparing"), { preparation: "retrying" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(props.onTryAgain).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Preparing uploads…" })).not.toBeInTheDocument();
+  });
+
+  it("waits for the connection or an app update without a spinner, and lets the work go", () => {
+    for (const preparation of ["connection", "app-update"] as const) {
+      renderFooter(queuedWork("preparing"), { preparation });
+
+      expect(screen.getByRole("button", { name: "Upload now" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
+      expect(screen.queryByRole("button", { name: "Preparing uploads…" })).not.toBeInTheDocument();
+      cleanup();
+    }
   });
 
   it("offers to try refused work again or discard it", async () => {
@@ -174,12 +219,47 @@ describe("WorkUploadFooter", () => {
 });
 
 describe("WorkStatusNotice", () => {
-  const renderNotice = (work: Work, isOnline = true) =>
+  const renderNotice = (
+    work: Work,
+    isOnline = true,
+    preparation: WorkUploadFooterProps["preparation"] = "working"
+  ) =>
     render(
       <IntlProvider locale="en" messages={messages}>
-        <WorkStatusNotice work={work} isOnline={isOnline} />
+        <WorkStatusNotice work={work} isOnline={isOnline} preparation={preparation} />
       </IntlProvider>
     );
+  const spinning = () => document.querySelector(".animate-spin");
+
+  it("spins only while preparation is working on the work", () => {
+    renderNotice(queuedWork("preparing"));
+    expect(screen.getByText("Getting it ready to upload")).toBeInTheDocument();
+    expect(spinning()).not.toBeNull();
+  });
+
+  it("says a failed preparation will be tried again, and what the person can do", () => {
+    renderNotice(queuedWork("preparing"), true, "retrying");
+
+    expect(screen.getByText("Couldn't get it ready")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nothing was sent. We'll keep trying, or choose Try Again.")
+    ).toBeInTheDocument();
+    expect(spinning()).toBeNull();
+  });
+
+  it("names what a paused preparation waits for, without a spinner", () => {
+    for (const [preparation, isOnline, title] of [
+      ["connection", true, "Waiting for a steady connection"],
+      ["connection", false, "Waiting for a steady connection"],
+      ["data-saver", true, "Paused for Data Saver"],
+      ["app-update", true, "Waiting for an app update"],
+    ] as const) {
+      renderNotice(queuedWork("preparing"), isOnline, preparation);
+      expect(screen.getByText(title)).toBeInTheDocument();
+      expect(spinning()).toBeNull();
+      cleanup();
+    }
+  });
 
   it("says why waiting work is still on this phone, and what to do offline", () => {
     renderNotice(queuedWork("ready"));
@@ -213,5 +293,18 @@ describe("WorkStatusNotice", () => {
         "It may already be on its way, so it can't be discarded or edited until we know."
       )
     ).toBeInTheDocument();
+  });
+
+  // Its broadcast is on record, so it went out: still confirming, never "may already be sent".
+  it("says a sent work is still confirming and that nothing needs sending again", () => {
+    renderNotice(queuedWork("awaiting-confirmation"));
+
+    expect(screen.getByText("Still confirming…")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("May already be sent")).not.toBeInTheDocument();
   });
 });

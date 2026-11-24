@@ -1,96 +1,306 @@
-# Cosmo-Local Credit Voucher Interoperability — Evaluation Plan
+# Cosmo-Local Integration — acceptance evidence
 
-**Posture**: no implementation authorized. These gates describe what each slice must prove *if and
-when* it is dispatched.
+## Garden exchange acceptance — selected 7 November 2026 Pacific
 
-## Slice Gates
+The [two-pool acceptance matrix](garden-exchange-pools.md#acceptance-and-operational-decisions)
+supersedes the shared-pool topology in earlier criteria. Required evidence now covers the reused
+GG pool and new TAS pool, independent admission/pricing/caps, the same TSV token in both pools,
+all three member journeys and bounded two-hop recovery. Retrospective awards have a separate
+acceptance gate. The implementation uses the existing Agent SQLite owner to bind each award to
+an immutable Safe transaction and verifies delivery before recording a confirmed award.
+Earlier single-pool tests are historical evidence only; they do not certify these requirements.
 
-Each slice has an exit condition that must be met before the next may be scoped. They are not
-schedule milestones.
+The planning amendment alone is not implementation evidence. The
+[two-pool handoff](handoffs/two-pool-implementation.md) records current runtime, whole-suite and
+rendered Storybook proof, initial failures and their corrections, and remaining rollout gates.
+Authenticated signing proof and live deployment remain separate.
+Preserve exact issuer/holder consent, service capacity, refund/recovery and accepted Safe controls.
+The amendment's original planning record retains its document-only proof scope.
 
-| Slice | Gate |
+## Member and garden issuer acceptance — 23 October Pacific
+
+The user selected individual issuance with steward-assisted onboarding in the same shared pool.
+These are new required proofs, not results of the earlier two-organization rehearsal. The current
+deployment handoff records the selected pilot profile's successful member-signing proof; that
+evidence does not certify another issuer or new issuance/approval operations.
+
+| Boundary | Required success and rejection evidence |
 |---|---|
-| 0 — Due diligence | Live CLC configuration read and recorded; `burn`-after-expiry settled on a fork; §10 questions answered; pool ownership established; documented go / no-go on network membership |
-| 1 — Interfaces + read bridgehead | Green Goods renders live CLC pool state. Zero writes, zero custody. No AGPL source in the tree |
-| 2 — `ValuationPolicy` + voice | A garden declares, publishes and freezes a weighted valuation; gardeners see it before committing and register alignment or dissent; layer-1 hour records provably unchanged by any layer-2 revision |
-| 3 — Pool passport | An external party inspects a Green Goods pool with their own tools; every fulfilment figure traces to counterparty confirmations on Arbitrum; no address enumeration on public surfaces |
-| 4 — Mint authorization | A confirmed Arbitrum contribution produces a weighted Gnosis-native voucher in the contributor's own Gnosis Kernel account; the same facts cannot authorize a second mint |
-| 5a — Exchange mechanics | A voucher moves through a third party and is redeemed, with the full path traceable, against our own Chiado deployment of the published CPP implementations or interface-conformant mocks |
-| 5b — CLC venue behaviour | Against the live mainnet venue: de-listing with a held balance, rate change mid-flight, limit exhaustion and pool insolvency each produce a defined, surfaced outcome. **Mainnet-only and gate-bound — not provable on a venue we control** |
+| Ownership | Individual token and reserve belong to the approved member account; collective assets keep their approved Safe controls. Wrong member, pool steward and deployment sender cannot act as issuer. Distinguish token owner, mint writer and proxy administrator. |
+| Assisted consent | Steward prepares terms and performs allowed administrative calls; exact member approval is still required. Reject missing approval, changed terms after approval, wrong service/issuer/token and an administrator signing as the member. |
+| Onboarding | Source authority registration obeys its owner/pause boundary. Reserve configuration comes from the real reserve authority. New registrations cannot alter frozen bookings or already prepared reward commands. |
+| Shared exchange | Collective and member tokens use the same pool with explicit rates, fees, inventory and caps. Test denied admission, stale quote, minimum-output/deadline failure, exhaustion and a token at its holding cap. No default 1:1 member rate. |
+| Capacity | Keep supply, outstanding promises, finite allowance, reserve, pool holdings and remaining service budget distinct. A returned delivered voucher does not replenish service capacity; a holding cap is not a global issuance cap. |
+| Full member lifecycle | Issue and exchange a member voucher, then bind issuer/holder consent, escrow before acceptance, activate and settle one immutable partial split to the member reserve and original holder. Existing core service confirmation remains separate. |
+| Failure/recovery | Duplicate/lost/late messages, failed one-leg transfer and interrupted member signing recover without a second issue, swap or payout. A refund returns the original service voucher; no automatic reverse swap or G$ compensation. |
+| Product/data | Issuer identity and exact terms survive indexing and replay. Display access held and services owed separately; stale/pending actions cannot look final. Labeled UI proof and actual signing evidence cover their respective boundaries. |
+| Deployment | The regenerated plan includes every member token and approved administration component, correct nonce/address effects and exact authorities. Simulation and live readback match; old two-issuer artifacts are not silently adopted for changed inputs. |
 
-## Release Gates
+The selected TAS impact-website rehearsal requires three distinct designer, analyst and engineer
+accounts, with three separately accepted commitments, evidence records and outcomes under one
+shared brief. Include two individually controlled voucher assets alongside collective assets in
+the same Gnosis pool. Prove a bounded member-to-member asset exchange, then booking/redemption of
+the received service, immutable partial delivery/refund and correct member-reserve return. The
+peer-help service and its capacity/evidence must be distinct from a separately rewarded project
+deliverable. Neither a GG/TAS-only swap nor three labels for one operator account meets this proof.
 
-1. **Correctness** — weight arithmetic is deterministic and bounded; no double consumption of
-   fulfilment facts; a layer-2 revision never mutates a layer-1 record.
-2. **Usability** — a gardener understands what their contribution is worth and why before they
-   commit; a steward understands what they are freezing.
-3. **Regression safety** — `CommitmentRegistry` remains non-transferable with no transfer or
-   approval surface; no custody enters `CommitmentPoolingModule`; existing pooling behavior unchanged.
-4. **Evidence quality** — research evidence and open assumptions recorded before implementation;
-   every external fact re-verified against its primary source at implementation time.
-5. **Human judgment** — protected surfaces and maintainer-call decisions named before merge; the
-   open decisions in `plan.todo.md` resolved by Afo, not inferred.
-6. **Licensing** — no AGPL source read, imported, or vendored; interfaces traceable to
-   `docs/SPEC.md`.
+Label independent bookings and rewards accurately. One fulfilled
+multi-contributor Request uses canonical recognition over one agreed issuer/token total; it does
+not prove arbitrary role percentages, multiple reward assets, atomic project completion or a new
+collective project voucher. A fractional allocation must not be displayed as a whole service unit.
+An implemented aggregate project state, project token, arbitrary split, atomic bundle, automatic
+dependency scheduler or multi-issuer escrow is not required or claimed. Actual issuer approvals,
+services, capacities, rates and funded rewards remain gates for live configuration.
 
-## Acceptance Checks
+## Earlier acceptance criteria and dated evidence
 
-| ID | Behavior Boundary | Check | Owner | Evidence |
-|---|---|---|---|---|
-| AC-1 | Valuation authoring | Steward sets weights; cycle opens; weights are immutable for the cycle's life | `ui` | |
-| AC-2 | See-before-commit | The frozen table is visible on the commit path before a gardener commits | `ui` | |
-| AC-3 | Two-sided signal | Align and dissent both record against the cycle policy; aggregate readable; non-binding | `ui` | |
-| AC-4 | Layer separation | A revised equivalence table produces a new version; prior hour records byte-identical | `state_api` | |
-| AC-5 | CLC read client | Listing, limit, rate, fee and inventory read correctly from live Gnosis state | `state_api` | |
-| AC-6 | MCC profile | Profile validates against the MCC field set; freshness bounds present; no address enumeration | `state_api` | |
-| AC-7 | Mint authorization | Confirmed contribution → bounded weighted mint; a repeated `messageId` **and** a distinct message reusing a consumed `authorizationId` are both rejected | `contracts` | |
-| AC-8 | Cross-chain **garden** identity | On a pinned fork, the Gnosis garden account matches the Arbitrum address **and** its bound `(chainId, tokenContract, tokenId)` tuple, deployed runtime code hash, and owner/Safe topology all match the expected values. Covers garden accounts only — gardener accounts are AC-15 | `contracts` | |
-| AC-9 | Non-transferability preserved | `CommitmentRegistry` exposes no transfer or approval function after all changes | `contracts` | |
-| AC-10 | Bounded swap only | Every exchange path uses the `minAmountOut` + `deadline` form | `contracts` | |
-| AC-11 | Failure modes | De-listing with a held balance, rate change mid-flight, limit exhaustion and pool insolvency each produce a defined, surfaced outcome. Adapter-side handling is provable on a controlled venue; the venue's own behaviour is Slice 5b, mainnet-only | `qa_pass_1` | |
-| AC-12 | Regression review | Existing pooling, settlement and credit behavior unchanged | `qa_pass_2` | |
-| AC-13 | Credit line traces to evidence | The limit request cites named delivery figures from the pool passport over a stated window, and the citation is recorded. A cap with no evidence input fails this check even if the limit reads back correctly | `state_api` | |
-| AC-14 | Per-contributor quantity | Every mint amount traces to a recorded per-contributor quantity. No allocation is inferred by splitting `targetUnits` across contributors | `contracts` | |
-| AC-15 | Gardener recipient path | Vouchers for individuals land in the contributor's own Kernel account, never a garden account. Proven on a fork with a multi-contributor commitment | `contracts` | |
+**Reconciled:** 2026-10-22 UTC. These criteria apply to separately accepted implementation slices.
+No check below is certified by planning, a Linear state or the completed foundation project.
+PRD-1096 covers its approved fork scope only: its report must keep exact-revision claimant consent,
+issuer-cap enforcement, the live escrow-to-promise handshake, claimant-funded Offer payments and
+distinct gardener issuer identity/cap isolation, and independent steward issuer suspension unproved
+where the defaults do not exercise them. The handshake limit includes escrow placement/custody.
+Steward approval is not claimant consent, and the service-desk stand-in is not the live handshake.
 
-## Test Strategy
+**Current hackathon release criteria, 22 October Pacific:** target a controlled live pilot with
+deployed contracts on Saturday, 24 October. The user exempts external audit/audit intake and
+replaces the two-week testnet wait with focused pre-deployment tests, exact deployment simulation
+and post-deployment smoke checks. Do not treat either superseded prerequisite as pending approval.
+Keep existing Safe controls, the accepted zero-delay policy and contract-enforced safeguards intact. Require
+a concrete candidate, exact networks and operations, owner/admin/writer controls, issuer terms
+and caps, persisted artifacts, and demonstrated failure/recovery behavior. The
+[deployment package](handoffs/codex-live-pilot-deployment.md) records actual evidence and gaps;
+the waiver alone proves none of those technical facts.
 
-- **Unit**: weight arithmetic and rounding bounds; double-spend prevention; `ValuationPolicy` freeze
-  semantics; interface encode/decode against documented shapes.
-- **Integration**: cycle open → weighted authorization → CCIP command → Gnosis mint on forked
-  Arbitrum + Chiado; MCC profile assembly from indexer output.
-- **Fork**: exact-address GardenAccount derivation on Gnosis; gardener Kernel-account derivation,
-  proven separately; `GiftableToken` expiry and burn;
-  bounded-swap slippage and deadline; de-listing with a held balance.
-- **E2E**: steward authors and freezes → gardener sees → commits → confirmed → voucher appears →
-  transfers to a third party → third party redeems.
-- **Manual**: locale tone en/es/pt; the contribution ledger reading as a ledger, not a wallet.
-- **TDD proof**: RED/GREEN commands and evidence recorded in lane handoffs and summarized in
-  `status.json` when lanes are dispatched.
+**Current account/provider proof, 22 October:** require exact root/module nonce discrimination
+and traces identifying the actual validator, successful same-address patched-root operation,
+explicit removed-legacy rejection, AA24 signature binding, AA25 replay rejection and repaired
+signature retry without consuming a rejected nonce. Keep node RPC, published provider support,
+configured hosted bundler/paymaster acceptance, sponsorship and actual member ceremony separate.
+The [current account/provider record](handoffs/codex-gnosis-account-provider-proof.md) records eleven
+passing fictional Gnosis cases and all still-open live prerequisites. No production profile or
+migration is approved by these tests.
 
-## QA Sequence
+Distinguish default batch rollback from validator cleanup failure that Kernel records without
+reverting. The earlier two-call native batch remains insufficient. Nine new isolated pinned-fork cases
+prove an ordered three-call candidate with explicit cleanup before module removal, atomic
+rollback on a cleanup fault, next-nonce retry and patched-root recovery. Fresh account creation
+can persist after execution failure. The [exact native evidence](artifacts/member-native-batch-execution-2026-10-22.json)
+clears no actual-member, hosted-provider or live migration gate.
 
-### Claude QA Pass 1
+**Preceding blocker/readiness proof, 22 October:** require the source-structure gate against
+refreshed origin/develop, complete compiled ABI equality, unchanged recursive linear/namespaced
+storage, production sizes and the complete selected contract override after internal extraction.
+Require all three actual Admin components to have truthful stories, story quality/typechecking,
+static build and labeled rendered proof. Pending concurrent implementation inputs must be named
+as working-tree dependencies. Fresh Alchemy observations and COM-46 evidence refresh establish no
+actual member control or issuer approval. See [the current record](handoffs/codex-local-blockers-and-readiness.md).
 
-Focus on failure modes, UX comprehension of the valuation table, missing requirements, and test
-gaps. The motivation-crowding and measurement-capture risks in `spec.md` §10 are QA concerns, not
-only design concerns — check whether the surfaces read as recognition or as transaction.
+**Newer acceptance boundary, 23:42 UTC:** existing code/tests are checkpoint evidence only for
+the newly adopted safeguards. Require RED/GREEN at every direct core acceptance path for exact
+earned/payment voucher consent; full authenticated Gnosis escrow before accepted-counterparty
+assignment, with convergent Activate/Abort recovery; and one holder-approved immutable final
+delivered/refundable allocation before independent fixed transfer legs. A successful incremental
+release walk does not satisfy the final-allocation criterion. See the selected design, proof and
+limits in [the reconciliation handoff](handoffs/codex-voucher-reconciliation.md). Personal G$,
+existing confirmation provenance and all live/manual gates remain independent.
 
-### Codex QA Pass 2
+**Current local reconciliation:** focused contract, real-core and pinned-fork safeguards proof
+passes; full Shared 7,502/16 skips, Client 1,774, serial Admin 1,307, Agent and Indexer proof
+passes. The repaired critical selector passes 6/6 fresh, including every mandatory contract
+override: both package/verifier phases pass 2,191 Solidity, three production G$ gas, 31 CLI and
+331 script tests. Fresh Gnosis 41/41, Celo 12/12, all sizes, 16 layouts/eight namespaces and the
+eight global components pass. The original gas failure and later repairs remain recorded.
+This is working-tree evidence, with no full-lifecycle or live-readiness claim.
 
-Starts only after `qa_pass_1` passes. Re-run targeted validation; close remaining defects; verify
-no AGPL source entered the tree and that every interface is traceable to `docs/SPEC.md`.
+| Boundary | Required observable evidence | Owner |
+|---|---|---|
+| Authority | Unauthorized source chain/sender/hat/issuer rejected; adapter and Arbitrum stewards lack pool authority. The issuer Safe owns the selected pool and can call `withdrawLiquidity` after sealing; P7 proves and discloses that retained custody power | PRD-1096 |
+| Linked rewards | One commitment receives agreed vouchers and G$ independently; neither receipt implies the other or later service delivery | PRD-1315 / PRD-1326 |
+| Accepted voucher terms | Issuer and counterparty consent freeze the exact approved revision, amount/allocation policy and eligibility while Offered/Requested, before both immediate open-claim and approval-gated acceptance. Direct core claimCommitment/acceptClaim cannot bypass it; frontend wrappers, post-acceptance consent and dispatch exclusion are insufficient. If the unchanged core cannot enforce this, return the boundary to PRD-1315 before dispatch; later revisions cannot silently replace a pending claimant's or accepted counterparty's terms; existing commitments gain no implicit entitlement; earned-reward recipients equal to the reserve holder are rejected before accepting the voucher obligation (the rehearsal proves only Offer approval and Request dispatch rejection) | RESR-73 / PRD-1315 / PRD-1317 |
+| Presentment setup recovery | Deposit success plus rejected/delayed receipt or failed promise creation converges through idempotent retry or authenticated setup cancellation/expiry/refund. Test delayed/duplicate/reordered activation and abort, refund failure/retry, no duplicate promise or stranded balance, no activation after setup refund and no setup-abort refund after activation; ordinary authorized service remedies remain available. Timeout alone proves no remote failure | PRD-1315 / PRD-1317 / PRD-1318 |
+| Retained earned fee floor | Unset/zero minimum rejects dispatch; owner-only paused configuration. Initial send and retry retain the minimum at below/exact/above boundaries; router failure or floor refusal rolls back state, balances and message history. Top-up preserves entitlement and bytes | PRD-1317 |
+| Administrative earned close-out | Owner-only, evidence-backed, already-dispatched Pending/Failed rewards; reject unknown/prepared/delivered and conflicting closure. Identical closure is idempotent, further source sends reject, destination repair and late authenticated success remain valid, and no replacement reward or G$ repeat is authorized. Indexer annotation never implies paid/cancelled | PRD-1317 |
+| Partial cross-chain outcome | G$ success with voucher delay, voucher delivery with lost acknowledgment and safe reconciliation do not duplicate either asset | PRD-1318 / PRD-1326 |
+| Protocol version | Selected Gnosis implementations match the published build artifacts (four established on 20 October, the rest pending) and controllers and proxy admins are recorded; re-read at the deployment block | PRD-1319 / PRD-1325 |
+| Earned issuance | Source entitlement, eligibility and actual confirmer path retained; no assumed beneficiary confirmation | PRD-1096 / COM-46 |
+| Purchased issuance | The issuer pool's bounded swap settles payment and voucher delivery atomically; record finality, recipient, actual output, minimum output, deadline and inventory delta. No separate purchase message or entitlement exists under this route. A later route with separate settlement must define its entitlement and payment cancellation/refund rules; COM-46 owns service cancellation/refund terms in either case | PRD-1096 / COM-46 |
+| Replay and recovery | Same message and distinct-message reuse both rejected; retry cannot deliver twice; failed and pending states reconcile. G17/G18 prove explicit Safe-authorized retired-peer recovery after expiry or zero-grace rotation, with the old source unavailable and economic terms unchanged | PRD-1096 |
+| Upgrade immutables | M17/G16 reject non-owner/unpaused upgrades and replacement router/local-selector mismatch or missing getters; compatible UUPS upgrades preserve commands, results, consumption and spend | PRD-1096 / PRD-1319 |
+| Issuer/cap enforcement scope | Explicit member account or existing collective Safe, issuer/token/source authority/reserve isolation; reviewed client/operator capacity policy, finite onchain allowance and pool exposure caps remain distinct. Hard global cap, selective issuer suspension and actual member proof remain open release gates | COM-46 / PRD-1096 / PRD-1317 |
+| Steward issuer suspension | Record steward/admission authority independent of issuer-Safe cooperation, authenticated cross-chain state/order, per-issuer stop scope and recovery. Test affected mint/earned/purchase routes, bypass attempts, replay/unauthorized controls, in-flight commands and issuer isolation; preserve the approved outstanding service/discharge/refund path. Required unenforceable stops block release. The fork's owner pause does not prove this | PRD-1315 / PRD-1318 |
+| Issuer budget | The adapter delivers from the issuer reserve within a finite token allowance, with no mint/writer fallback. Acceptance is unreserved: allowance is shared and revocable, not earmarked per entitlement; oversubscription and depleted reserve/allowance must fail safely and recover. The adapter holds no pool or limiter authority | PRD-1318 / COM-46 |
+| Member account | Gnosis derivation, ownership, sponsored signing and recovery proved independently of garden accounts; each facet assessed separately in the [22 October proof](handoffs/codex-member-issuer-readiness.md) | PRD-1096 |
+| Exchange | Executable direct swap with minimum output/deadline; stale quote, de-list, depleted inventory, limit and sponsorship failures | PRD-1096 |
+| Service discharge | Presentment, partial/full delivery, confirmation and once-only discharge; failed delivery has a visible remedy. If COM-46 permits partial delivery, authenticated live commands bind delivered/refundable quantities to one escrow and conserve presented units. One immutable full-discharge/full-return/partial-split decision owns shared escrow progress; conflicts reject and terminal state follows settlement of every authorized leg. Test discharge after full return, repeated return, return after full discharge and repeated discharge, with another same-token escrow untouched. Partial legs settle once in either order without consuming or stranding each other. The fork desk tests its atomic stand-in separately | COM-46 / PRD-1096 / PRD-1317 / PRD-1318 |
+| Presentment handshake | An authenticated, replay-safe receipt binds presenter, promise, token, amount and escrow receipt; the Gnosis escrow is proved to exist before the presenter becomes the Arbitrum counterparty; replay and unknown escrow are rejected | PRD-1315 / PRD-1317 / PRD-1318 |
+| Voucher-accepting Offer payment | The selected claimant is bound as payer after claim selection, authorizes the exact payment and funds the approved reservation/escrow/debit route. Missing authorization or funds cannot appear paid; issuer-funded rewards cannot substitute. Failure/cancellation releases or refunds once under the recorded rule | PRD-1315 / PRD-1317 / PRD-1318 |
+| Gardener issuer identity | Two gardeners sharing a garden or Safe retain distinct issuer identifiers, each with recorded token/admission-authority bindings and isolated authorization/caps; one cannot consume the other's cap or spend under the other's authority | PRD-1315 / PRD-1317 / PRD-1318 |
+| Foundation invariants | Non-transferable promise identity, existing settlement meaning and no bridged value preserved | PRD-1096 |
+| Passport | Definitions, units, windows, source/freshness and receipt links; earned/purchased/payment/delivery/obligations separate | PRD-1097 |
+| Privacy | Separate publication consent, privacy-safe aggregates, no addresses or individual ranking | COM-46 / PRD-1097 |
+| Usability | Member and steward complete meaningful tasks, recover from interruption and explain balances and obligations | RESR-93 / COM-28 |
+| Live gate | Exact candidate and human decision; accepted hackathon audit exemption, testnet substitution and zero-delay policy recorded; focused tests, simulation, Safe/owner controls, recovery and post-deployment smoke proved | PRD-1197 |
+| Live outcome | Authorized deployment readback plus a real service delivered and confirmed; otherwise explicit no-go | PRD-1100 |
+| Pitch integrity | Claim ledger, primary sources, live/rehearsal labels and audience-specific offer; no invented traction or financial rights | RESR-94 / MAR-32 |
+| Fiat stretch | Qualified corridor/account/recipient, all-in costs, payment recovery and separate live-pilot approval | RESR-82 / PRD-1031 / PRD-1038 |
+| Voucher language | CLC instruments are called vouchers; promises, money, credit facilities and fulfillment retain distinct meanings | RESR-73 / MAR-32 |
+| App cohesion | Accepted member/steward scope, shared patterns, truthful states and labeled rendered proof in en/es/pt | RESR-93 / PRD-1260 / PRD-1261 |
+| Public Q4 strategy | Approved October–December priorities and asks at a stable public URL, source dates and working asset links | GROW-68 / PRD-1194 |
+| App release | Admitted and deferred scope, included journey proof and final beta walk; no implied live CLC requirement | PRD-1262 |
 
-## Pilot Evidence Alignment
+## First earned-voucher slice acceptance
 
-This work feeds, and does not bypass, `commitment-pooling/pilot-evidence-spec.md`:
+The contracts handoff must name RED/GREEN commands and results for: authority and issuer isolation;
+preacceptance terms and issuer approval; expected-revision consent/update races and legacy rejection;
+real complete recognition validation and exact total conservation (including tiny totals); finite
+allowance and reserve exhaustion/revocation/repair; duplicate message and entitlement payload conflicts;
+atomic rollback after a later transfer fails; successful delivery with lost acknowledgment; independent
+acknowledgment retry; paused intake/recovery and bounded Safe retry; authenticated return and stale
+result ordering; and preservation of existing commitment/G$ behavior.
 
-- §3 reciprocity — what reciprocal relation remains after fulfilment
-- §5 exchange demand — repeated bilateral or multilateral demand, not one-off feature interest
-- §6 safeguards — who is disadvantaged by transferability and how repair works without scoring people
-- §8 circulation — in-pool use, redemption, reseed, leak and hoarding; **low volume or mixed findings
-  are valid evidence**
-- §9 privacy — publication rules for event-derived pair and holding data
-- §11 the September evidence packet
+The pinned Gnosis fork uses GiftableToken implementation and factory conformance at block 48,848,261.
+Published documentation/hand-written interfaces and chain bytecode are permitted; upstream AGPL
+implementation source is not. Label mock CCIP transport and fictional Safe/account/token fixtures.
+A fork receipt is not live DON delivery, member passkey signing, issuer service capacity or release
+readiness. The validator was rechecked without code at Gnosis block 48,879,904 on 22 October UTC;
+both selected factory paths revert in read-only simulation. Matching fictional derivation on three
+chains proves no member control. Current app rejection tests pass; actual signing, sponsorship,
+recovery and each issuer's COM-46 evidence remain open. Exact configuration, pins, proof limits and
+the independent issuer matrix are in the [proof handoff](handoffs/codex-member-issuer-readiness.md).
 
-A pilot that shows all exchange settling bilaterally is a successful evaluation, not a failed one.
+Observed local implementation on 21 October: all five critical QA checks passed fresh, including
+2,003 Solidity tests and the package's script/CLI and production G$ gas proof. Nine final pinned
+GiftableToken fork tests also passed. The handoff binds these results to the nine-file working-tree
+digest and records baseline reconciliation, exact commands and simulated components. This is
+uncommitted testing evidence; it certifies no release, whole lifecycle or unrelated execution lane.
+
+Purchases, redemption, indexer/apps and live authorities remain separately uncompleted. Retain actual
+confirmation paths in later reporting; every legitimate core Fulfilled qualifies for this earned slice.
+
+## Direct purchase slice evidence — 21 October
+
+The bounded interface and 22 purchase cases are implemented in the current uncommitted tree.
+All 22 passed against published CLC bytecode and creation-initialized WXDAI in a disposable
+synthetic-state replay, with 32 conservation fuzz runs. This is not pinned-fork execution.
+Creation-bytecode conformance for registry, quoter and fee dependencies is recorded separately.
+Fresh runtime reads at Gnosis block 48,848,261 are blocked: public RPC network policy and
+`GNOSIS_MAINNET is not enabled for this app` from the user-selected Green Goods Alchemy app.
+No app configuration was changed. The real fork test fails closed rather than skipping identity.
+
+The new suite covers the named learner and sponsor receipts, payer allowance/balance repair,
+minimum output, exact deadline boundary, price/fee movement, asset de-listing, local holding caps,
+inventory depletion/replenishment, owner/writer isolation and 48-hour proxy administrators,
+independent pool prices, fee conservation and full rollback after the final transfer fails.
+Neither a purchase receipt nor a repeated paid call is modeled as an Arbitrum earned entitlement.
+No new forwarding router or purchase registry is needed for the existing bounded pool API.
+
+The current full package command passed 2,003 Solidity tests, all 3 production G$ gas fixtures
+and all 31 Node CLI tests, then exited 1 on a release-CLI test's 30-second timeout (318/319
+Vitest tests passed). Its unchanged 33-test file passed in isolation, and the complete script
+phase subsequently passed 319/319 plus 31/31 CLI. No assertions, timeout, concurrency settings
+or runtime code were changed. Keep the original failed command distinct from these passing
+component runs; neither is a default root-runner receipt.
+
+At the purchase checkpoint, all nine earned-voucher files remained byte-identical to their receipt. The complete
+critical selector remains selected; current manual command evidence and root-runner permission
+limits are in [the purchases handoff](handoffs/codex-contracts-purchases.md). Repository-wide
+formatting currently fails on four unrelated dirty files, which this slice preserves. No current
+claim closes the pinned fork, default automation, member signing, COM-46, service access or release
+gates. The prompt-preparation session confirmed the newer personal G$ / cross-garden service
+amendment is planning-only alongside this dispatched direct-purchase slice.
+
+## Validation strategy
+
+### Proof-gap continuation — 21 October
+
+At proof closure, repository formatting passed after four whitespace-only JSON fixes, with exact backups and
+parsed-value equality. All 256 selector-chosen review guardrail tests passed. The thirteen prior
+voucher source/test files were byte-identical at that checkpoint; their earlier results are not recertified as
+service-access proof. Remote GitHub comparison confirms develop matches the local baseline.
+
+The user enabled Gnosis on the selected Green Goods Alchemy app. Fresh pinned conformance now
+passes all 22 purchase and nine reserve tests at chain 100/block 48,848,261; all eight CLC runtime
+hashes and WXDAI match. The approved validator repair computes secret fingerprints only for opted-in,
+permitted receipt reuse. The 59 runner tests and full 399-test validation-system suite pass. A
+Node-version doctor test now uses unchanged source in a temporary workspace instead of depending
+on developer secrets. No environment-readiness check or release gate was waived. The complete
+five-check contract critical selector subsequently passed fresh. These results preceded service
+runtime edits. The service extension has its own RED/GREEN, compatibility and final-gate evidence in
+[the execution handoff](handoffs/codex-service-access-execution.md).
+
+The service runtime now has 42 core, 35 funding, 34 voucher unit and five real-core integration
+passes, plus Gnosis 39/39 and Celo 12/12 at their recorded pins. All deployable artifacts fit; all 16
+protected layouts and five namespaces pass. Receiver extraction preserves compiled storage and
+canonical ABI; the earned allocation extraction preserves compiled ABI/storage and arithmetic.
+Twelve prior voucher files are byte-identical and that one extraction is separately evidenced.
+The broad selector's forced ABI-consumer suites pass. Its release-script failure was repaired
+only in disposable test fixtures; canonical historical release inputs remain unchanged and reject
+the new artifacts. Final package and verifier each pass 2,119 Solidity, three production G$ gas,
+31 CLI and 322 script tests. The final critical run has eight fresh passes; its naming-only
+supply-chain failure is followed by a successful two-check run and fresh Celo fork. This is
+component coverage across recorded commands, not a fabricated aggregate pass. Lint, source,
+ontology, supply chain, size, storage and both pinned forks are closed for this local slice.
+
+### Service-access acceptance
+
+- **Personal circulation:** a Garden A member earns G$ from its course commitment, then uses their
+  own Celo balance for an opted-in Garden B offer and, separately, a Green Goods protocol-pool
+  offer. Neither provider-garden membership nor treasury sponsorship is required. Same-garden
+  purchases and legacy Request/Garden claims retain their behavior.
+- **Authority and consent:** reject wrong buyer garden, lost membership, stale terms, unauthorized
+  funder/refund changes and provider attempts to spend buyer-garden funds. Bind buyer, service
+  recipient, both gardens, canonical asset, amount, Safe, mode and exact terms revision. Default
+  legacy offers do not silently open to external consumers.
+- **Funding truth:** the buyer-garden steward verifies the canonical Celo receipt offchain; source
+  contracts validate its bound facts and privileged recorder, not a cryptographic cross-chain proof.
+  Reject replay and wrong token/chain/Safe/depositor. Record actual shortfalls or over-cap receipts
+  for exact-net refund recovery; reject their consumption. A balance change or supplied hash alone
+  is not receipt verification. A core acceptance without matching consumed personal funding cannot enter any legacy
+  treasury-funded payout path. Existing earmarks are not presented as locks.
+- **Exclusive resolution:** exercise acceptance before consumption, competing funded claims,
+  repricing, withdrawal, cancellation, disputes, refund/payout races, insufficient Safe balance,
+  pause, replay and lost/stale acknowledgments. No amount is both paid and refunded; timeout
+  proves neither. Reuse existing fee, cap, recovery and cross-garden zero-retention constraints.
+- **Voucher service use:** bind escrow to holder, issuer, asset, service promise, terms and units.
+  Require explicit holder approval for releases; generic Fulfilled and payment receipts are
+  insufficient. Cumulative releases plus returns cannot exceed escrow, partial units resolve
+  once, and duplicate commands/acks cannot repeat movements. Preserve all earned-voucher invariants.
+- **Independent routes:** a G$ service purchase does not mint a voucher or discharge a voucher;
+  voucher redemption does not charge G$. One prior commitment may still reward both assets.
+  G$ stays on Celo and vouchers stay on Gnosis. Test actual membership provisioning separately
+  from payment/fulfillment records in the later app/service integration.
+- **Upgrade and release:** exact storage/event/ABI compatibility, default legacy behavior and
+  bounded critical proof are required for planned core/settlement upgrades. Keep settlement
+  disabled in the released app until its separate release gates pass. Local fixtures and existing
+  slice receipts certify neither these changes nor a live purchase.
+
+### Check selection and evidence
+
+Select focused checks for each implementation change using the repository validation policy;
+critical financial surfaces retain their complete overrides. Unit tests should protect authorization,
+accounting, replay and meaningful failure behavior. Integration and fork evidence should identify
+chain/block, exact implementation and configuration, simulated components and remaining live unknowns.
+A local fork demonstrates the tested deployment at the pinned state, not a later live configuration.
+
+Rendered evidence follows AGENTS.md: identify the browser/session, distinguish authenticated signing
+or installed-PWA proof from mocks, and record unavailable proof honestly. The earned-contracts slice changes
+no UI; rendered proof is **none**. Preserved checkout app work is not new voucher UI proof.
+The voucher-direction deck pass changed deck text and accessible narration while preserving CSS and
+element structure. Its rendered proof is **pending** because the browser security policy blocked
+the local file. Static HTML/JSON and paired notes are checked directly; text wrapping and overflow
+remain unverified.
+
+The whitepaper review records 275 historical foundation tests; they remain dated evidence.
+Current service evidence belongs to [the execution handoff](handoffs/codex-service-access-execution.md);
+the [earned](handoffs/codex-contracts.md) and [purchase](handoffs/codex-contracts-purchases.md)
+handoffs retain their dated scope. Each records commands and working-tree boundaries. Plan structure, source links, status consistency,
+preserved lane blockers, read-only Linear readback and `git diff --check` accompany runtime proof.
+
+## Useful pilot outcomes
+
+Measure useful service use, repeated participation, outstanding obligations, assistance and recovery.
+Capture whether a third-party voucher exchange solves a real need; a bilateral-only result is valid.
+Money, volunteer time, knowledge, equipment and relationships do not become one invented total.
+Impact certificates require their own claim and verification basis. The pitch must show both the
+supported benefit and the evidence still missing.

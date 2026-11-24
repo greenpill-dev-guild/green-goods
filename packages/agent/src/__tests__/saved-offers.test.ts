@@ -539,6 +539,45 @@ describe("saved offers public API", () => {
     }
   });
 
+  it("enforces the SQLite owner cap while allowing updates and another owner's records", () => {
+    const database = new Database(":memory:");
+    const cipher = createSavedOfferCipher(KEY);
+    const write = (savedOfferId: string, expectedVersion = 0, owner = account.address) =>
+      compareAndSwapSavedOffer(database, cipher, {
+        chainId: CHAIN_ID,
+        owner,
+        savedOfferId,
+        expectedVersion,
+        payload: canonicalSavedOfferPayload(payload({ savedOfferId })),
+        updatedAt: new Date(NOW).toISOString(),
+      });
+    try {
+      initSchema(database);
+      for (let index = 0; index < SAVED_OFFER_MAX_RECORDS_PER_OWNER; index += 1) {
+        expect(write(`offer-${index}`).ok).toBe(true);
+      }
+      expect(write("over-limit")).toEqual({
+        ok: false,
+        currentVersion: 0,
+        reason: "owner_limit_exceeded",
+      });
+      expect(write("offer-0", 1)).toMatchObject({ ok: true, record: { version: 2 } });
+      expect(write("other-owner", 0, other.address)).toMatchObject({ ok: true });
+      expect(
+        tombstoneSavedOffer(database, {
+          chainId: CHAIN_ID,
+          owner: account.address,
+          savedOfferId: "offer-1",
+          expectedVersion: 1,
+          updatedAt: new Date(NOW).toISOString(),
+        }).ok
+      ).toBe(true);
+      expect(write("after-tombstone").ok).toBe(true);
+    } finally {
+      database.close();
+    }
+  });
+
   it("bounds retained tombstones per owner", () => {
     const database = new Database(":memory:");
     initSchema(database);

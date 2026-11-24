@@ -46,8 +46,8 @@ const config: KnipConfig = {
       ignore: [
         // Passed to vitest as `--config` by scripts/dev/run-storybook-vitest-ci.mjs
         "vitest.storybook.config.ts",
-        // Manually-invoked Storybook screenshot pipeline for design exports.
-        // No durable caller by design — see .plans/archive/admin-claude-design-export/.
+        // Manually invoked by the active Commitment Pooling walk's capture instructions:
+        // .plans/active/commitment-pooling/commitment-walk-artifact.build.ts.
         ".storybook/capture-admin-stories.mjs",
       ],
       entry: [
@@ -62,7 +62,6 @@ const config: KnipConfig = {
         "src/types/index.ts",
         "src/__mocks__/index.ts",
         "src/__mocks__/browser/index.ts",
-        "src/__mocks__/server/index.ts",
         ".storybook/main.ts",
         ".storybook/preview.ts",
       ],
@@ -96,6 +95,16 @@ const config: KnipConfig = {
         "storybook",
       ],
     },
+    "packages/extension": {
+      // WXT discovers entrypoints by convention; the g0 rig is run by hand from the package
+      // (`bun run --cwd packages/extension g0`), never imported.
+      entry: ["entrypoints/**/*.{ts,tsx}", "wxt.config.ts", "g0/*.mjs"],
+      ignoreDependencies: [
+        // Transitive companions Pi Durable requires at matching versions (prototype decision 17).
+        "@earendil-works/chord",
+        "@earendil-works/pi-ai",
+      ],
+    },
     "packages/qa": {
       // The build script and the Vercel function are both entry points reached
       // by platform convention (vercel.json buildCommand, the api/ directory),
@@ -104,6 +113,11 @@ const config: KnipConfig = {
     },
     "packages/agent": {
       entry: ["src/index.ts"],
+      ignore: [
+        // Types for chat-copy.mjs, which the copy tests import. Consumed by tsc, never by a
+        // runtime import.
+        "scripts/chat-copy.d.mts",
+      ],
       ignoreDependencies: [
         // Referenced as a pino transport `target` string in services/logger.ts,
         // which is resolved at runtime rather than imported.
@@ -126,6 +140,8 @@ const config: KnipConfig = {
       entry: [
         "script/*.{ts,mjs}",
         "script/utils/*.{ts,mjs}",
+        // Run by path from script/cli/operations.mjs (`release conviction-sync`).
+        "script/deploy/conviction-sync.ts",
       ],
       ignoreDependencies: [
         // Consumed by Solidity through remappings.txt, which TS analysis

@@ -126,10 +126,10 @@ function IndexRouteScenario({ state }: { state: AuthStateValue }) {
       <Routes>
         <Route path="/" element={<IndexRoute />} />
         <Route
-          path="/hub/work"
+          path="/review/work"
           element={
             <div className="flex min-h-full items-center justify-center p-6" role="status">
-              Redirected to Hub workbench
+              Redirected to Review workbench
             </div>
           }
         />
@@ -196,7 +196,9 @@ export const ConnectRequired: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Connect to continue" })).toBeVisible();
-    await expect(await canvas.findByRole("button", { name: "Connect Wallet" })).toBeVisible();
+    await expect(
+      await canvas.findByRole("button", { name: "Sign in with a Wallet" })
+    ).toBeVisible();
   },
 };
 
@@ -207,7 +209,7 @@ export const WalletRequired: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByTestId("wallet-required-shell")).toBeVisible();
     await expect(
-      await canvas.findByRole("button", { name: "Sign Out & Connect Wallet" })
+      await canvas.findByRole("button", { name: "Sign Out & Sign In Again" })
     ).toBeVisible();
   },
 };
@@ -267,7 +269,7 @@ export const RedirectReady: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("status")).toHaveTextContent(
-      "Redirected to Hub workbench"
+      "Redirected to Review workbench"
     );
   },
 };
@@ -291,7 +293,7 @@ function HomeShellHarness({ children }: { children: ReactNode }) {
       <div className="canvas-area-top">
         <AppBar
           gardenChip={
-            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
+            <span className="inline-flex items-center gap-1.5 type-body font-semibold text-text-strong">
               <SeedlingIllustration className="h-5 w-5" />
               Green Goods
             </span>

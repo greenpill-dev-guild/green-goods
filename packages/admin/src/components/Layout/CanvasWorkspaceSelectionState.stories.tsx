@@ -14,7 +14,7 @@ const meta: Meta<typeof CanvasWorkspaceSelectionState> = {
   component: CanvasWorkspaceSelectionState,
   tags: ["autodocs"],
   decorators: [
-    withRouter(["/hub"]),
+    withRouter(["/review"]),
     withCanvasFrame({
       className: "flex items-center justify-center p-6",
       heightClassName: "min-h-[480px]",

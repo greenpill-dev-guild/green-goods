@@ -19,7 +19,7 @@ const meta: Meta<typeof EventTime> = {
   args: { ms: NOW_MS - 18 * 60_000, children: "Today, 3:42 PM" },
   decorators: [
     (Story) => (
-      <div className="p-8 body-xs text-text-soft" data-tone="garden">
+      <div className="p-8 type-meta text-text-soft" data-tone="garden">
         <Story />
       </div>
     ),

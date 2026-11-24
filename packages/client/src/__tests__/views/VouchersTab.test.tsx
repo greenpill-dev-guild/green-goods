@@ -1,0 +1,330 @@
+import { IntlProvider } from "react-intl";
+import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
+/**
+ * The wallet's Vouchers tab (PRD-1297 surface 4): what the account holds per issuer, a voucher
+ * a booking holds as its own row that opens the booking at its garden, and a return on its way
+ * as a pending row until it arrives.
+ * @vitest-environment happy-dom
+ */
+
+import type { VoucherIssuer, VoucherWalletSnapshot } from "@green-goods/shared/commitment-pooling";
+import { fireEvent, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render, screen } from "../test-utils";
+
+const navigate = vi.fn();
+const awards = vi.hoisted(() => ({
+  records: [] as unknown[],
+  load: { mutate: vi.fn(), isPending: false, isError: false, isSuccess: false },
+}));
+vi.mock("react-router-dom", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useNavigate: () => navigate,
+}));
+
+// A booking row reads its offer's title and the booking itself; each read has its own coverage.
+const booked = vi.hoisted(() => ({
+  service: vi.fn((..._key: unknown[]) => ({ data: undefined as unknown })),
+  state: "OFFERED",
+}));
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useVoucherAwards: () => awards,
+  useCommitment: () => ({
+    commitment: { metadataCID: "bafy-hub-day", derivedState: booked.state },
+  }),
+  useCommitmentMetadataFor: () => ({ version: 1, title: "Hub day, up to 4 hours" }),
+  useServiceAccess: (...key: unknown[]) => booked.service(...key),
+}));
+
+import { VouchersTab } from "../../views/Home/WalletSheet/VouchersTab";
+
+const VOUCHER = 1_000_000n;
+const ACCOUNT = "0x6666666666666666666666666666666666666666" as const;
+const HUB = "0x7777777777777777777777777777777777777777" as const;
+const COMMONS = "0x8888888888888888888888888888888888888888" as const;
+
+const issuer = (
+  name: string,
+  account: `0x${string}`,
+  gender: VoucherIssuer["gender"],
+  garden: `0x${string}`
+): VoucherIssuer => ({
+  account,
+  kind: "collective",
+  name,
+  gender,
+  asset: { chainId: 100, token: account, symbol: null, decimals: 6 },
+  garden,
+  standing: { bookings: "open", exchange: "listed" },
+});
+const TECH_AND_SUN = issuer(
+  "Tech and Sun",
+  "0x5afe00000000000000000000000000000000a1b2",
+  "feminine",
+  HUB
+);
+const GREEN_GOODS = issuer(
+  "Green Goods",
+  "0x5afe00000000000000000000000000000000c3d4",
+  "masculine",
+  COMMONS
+);
+
+const ref = (commitmentId: bigint) => ({
+  sourceChainId: 42161,
+  coreModule: "0x000000000000000000000000000000000000f100" as const,
+  commitmentId,
+  garden: HUB,
+  setupId: `0x${"a1".repeat(32)}` as const,
+});
+
+function wallet(overrides: Partial<VoucherWalletSnapshot> = {}): VoucherWalletSnapshot {
+  return {
+    account: ACCOUNT,
+    evidence: "onchain",
+    complete: true,
+    reason: null,
+    issuers: [TECH_AND_SUN, GREEN_GOODS],
+    holdings: [
+      { issuer: TECH_AND_SUN, available: 9n * VOUCHER },
+      { issuer: GREEN_GOODS, available: 2n * VOUCHER },
+    ],
+    bookings: [],
+    returns: [],
+    ...overrides,
+  };
+}
+
+describe("VouchersTab", () => {
+  it("loads award receipts only after an explicit action, separately from current holdings", async () => {
+    render(<VouchersTab wallet={wallet()} onClose={vi.fn()} />);
+    expect(awards.load.mutate).not.toHaveBeenCalled();
+    // The section and what it holds are there to be found before anything is loaded.
+    expect(screen.getByText("Awards for Past Contributions")).toBeInTheDocument();
+    expect(screen.getByText(/awarded you for past contributions show here/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Load My Award Receipts" }));
+    expect(awards.load.mutate).toHaveBeenCalledOnce();
+  });
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each([
+    ["en", en, "Hub visit: 4 hours for 1 voucher"],
+    ["es", es, "Visita al centro: 4 horas por 1 vale"],
+    ["pt", pt, "Visita ao centro: 4 horas por 1 vale"],
+  ] as const)("shows the service and booking quantity in %s when a holding opens", (locale, messages, expected) => {
+    const named = {
+      ...TECH_AND_SUN,
+      services: [
+        {
+          name: "Hub visit",
+          unit: "hours",
+          serviceUnits: 4n,
+          voucherUnits: VOUCHER,
+          serviceTermsRef: `0x${"a".repeat(64)}` as const,
+        },
+      ],
+    };
+    render(
+      <IntlProvider locale={locale} messages={messages}>
+        <VouchersTab
+          wallet={wallet({ issuers: [named], holdings: [{ issuer: named, available: VOUCHER }] })}
+          onClose={() => {}}
+        />
+      </IntlProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { expanded: false }));
+    expect(screen.getByText(expected)).toBeInTheDocument();
+  });
+
+  it("shows unavailable reads without claiming the account has no vouchers", () => {
+    render(
+      <VouchersTab
+        wallet={wallet({
+          evidence: "unavailable",
+          reason: "canonical-read-unavailable",
+          complete: false,
+          issuers: [],
+          holdings: [],
+        })}
+        onClose={() => {}}
+      />
+    );
+    expect(
+      screen.getByText(
+        "Voucher balances and bookings could not be read. Check your connection and try again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No vouchers yet")).not.toBeInTheDocument();
+  });
+  it("lists each issuer's vouchers with what's available, and opens one in place to book from its garden", () => {
+    const onClose = vi.fn();
+    render(<VouchersTab wallet={wallet()} onClose={onClose} />);
+
+    const row = screen.getByRole("button", { name: /Tech and Sun vouchers/ });
+    expect(within(row).getByText("9")).toBeInTheDocument();
+    expect(within(row).getByText("available")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Green Goods vouchers/ })).toHaveTextContent("2");
+
+    fireEvent.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Issued by")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Book a Service" }));
+    expect(onClose).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(`/home/${HUB}`, { state: { from: "home" } });
+  });
+
+  it("shows a voucher a booking holds as its own row, which opens the booking at its garden", () => {
+    const onClose = vi.fn();
+    const booking = {
+      booking: ref(1023n),
+      issuer: TECH_AND_SUN.account,
+      asset: TECH_AND_SUN.asset,
+      agreed: VOUCHER,
+      held: VOUCHER,
+      stage: "held" as const,
+    };
+    render(<VouchersTab wallet={wallet({ bookings: [booking] })} onClose={onClose} />);
+
+    const row = screen.getByRole("button", { name: /Hub day, up to 4 hours/ });
+    expect(within(row).getByText("Booked")).toBeInTheDocument();
+    expect(within(row).getByText("in a booking")).toBeInTheDocument();
+    fireEvent.click(row);
+    expect(onClose).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(`/home/${HUB}/commitments/1023`, {
+      state: { from: "home" },
+    });
+  });
+
+  it.each([
+    ["awaiting-deposit", "readyToDeposit", "OFFERED", "Needs you", "to deposit"],
+    ["held", "readyToClose", "READY_FOR_CONFIRMATION", "Needs you", "in a booking"],
+    ["held", "returnProposed", "ACCEPTED", "Needs you", "in a booking"],
+    ["held", "inProgress", "ACCEPTED", "Booked", "in a booking"],
+  ] as const)("marks a %s booking at %s with what it needs from the reader", async (escrowStage, stage, state, pill, caption) => {
+    const { bookingStorySnapshot } = await import(
+      "../../../../shared/.storybook/voucherBookingFixtures"
+    );
+    booked.state = state;
+    booked.service.mockImplementation(() => ({ data: bookingStorySnapshot("hubDay", stage) }));
+    const booking = {
+      booking: ref(1023n),
+      issuer: TECH_AND_SUN.account,
+      asset: TECH_AND_SUN.asset,
+      agreed: VOUCHER,
+      held: escrowStage === "held" ? VOUCHER : 0n,
+      stage: escrowStage,
+    };
+    render(<VouchersTab wallet={wallet({ bookings: [booking] })} onClose={vi.fn()} />);
+
+    const row = screen.getByRole("button", { name: /Hub day, up to 4 hours/ });
+    expect(within(row).getByText(pill)).toBeInTheDocument();
+    expect(within(row).getByText(caption)).toBeInTheDocument();
+    // The booking is read as its own page reads it: this promise, for the wallet's own reader.
+    expect(booked.service).toHaveBeenLastCalledWith({
+      sourceChainId: 42161,
+      coreModule: "0x000000000000000000000000000000000000f100",
+      commitmentId: 1023n,
+      buyer: ACCOUNT,
+    });
+    booked.service.mockImplementation(() => ({ data: undefined }));
+    booked.state = "OFFERED";
+  });
+
+  it("shows a return on its way as a pending row until it arrives, not as a booking", () => {
+    const settling = {
+      booking: ref(1027n),
+      issuer: GREEN_GOODS.account,
+      asset: GREEN_GOODS.asset,
+      agreed: 10n * VOUCHER,
+      held: 6n * VOUCHER,
+      stage: "settling" as const,
+    };
+    const back = {
+      booking: ref(1027n),
+      issuer: GREEN_GOODS.account,
+      asset: GREEN_GOODS.asset,
+      amount: 6n * VOUCHER,
+      cause: "split" as const,
+      state: "pending" as const,
+      attempts: 0n,
+    };
+    const view = render(
+      <VouchersTab wallet={wallet({ bookings: [settling], returns: [back] })} onClose={vi.fn()} />
+    );
+
+    const row = screen.getByRole("button", { name: /6 coming back/ });
+    expect(within(row).getByText("Pending")).toBeInTheDocument();
+    expect(screen.queryByText("Booked")).not.toBeInTheDocument();
+
+    view.rerender(
+      <VouchersTab
+        wallet={wallet({ returns: [{ ...back, state: "failed", attempts: 1n }] })}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Didn't go through")).toBeInTheDocument();
+  });
+
+  it("says the list may be missing something while the read can't see every booking", () => {
+    render(<VouchersTab wallet={wallet({ complete: false })} onClose={vi.fn()} />);
+
+    expect(screen.getByText(/may be missing a booking or a return/)).toBeInTheDocument();
+  });
+
+  it("leaves out an issuer the account holds none of, and says No vouchers yet when that is all", () => {
+    const none = (of: VoucherIssuer) => ({ issuer: of, available: 0n });
+    const view = render(
+      <VouchersTab
+        wallet={wallet({
+          holdings: [{ issuer: TECH_AND_SUN, available: 9n * VOUCHER }, none(GREEN_GOODS)],
+        })}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("button", { name: /Tech and Sun vouchers/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Green Goods vouchers/ })).not.toBeInTheDocument();
+
+    view.rerender(
+      <VouchersTab
+        wallet={wallet({ holdings: [none(TECH_AND_SUN), none(GREEN_GOODS)] })}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByText("No vouchers yet")).toBeInTheDocument();
+    expect(screen.queryByText("available")).not.toBeInTheDocument();
+  });
+
+  it("writes a booking's and a return's amounts in their own asset, listed issuer or not", () => {
+    // An issuer the wallet no longer lists, whose vouchers carry no decimals.
+    const retired = "0x5afe00000000000000000000000000000000e5f6" as const;
+    const asset = { chainId: 100, token: retired, symbol: null, decimals: 0 };
+    const booking = {
+      booking: ref(1023n),
+      issuer: retired,
+      asset,
+      agreed: 3n,
+      held: 3n,
+      stage: "held" as const,
+    };
+    const back = {
+      booking: ref(1027n),
+      issuer: retired,
+      asset,
+      amount: 2n,
+      cause: "split" as const,
+      state: "pending" as const,
+      attempts: 0n,
+    };
+    render(
+      <VouchersTab wallet={wallet({ bookings: [booking], returns: [back] })} onClose={vi.fn()} />
+    );
+
+    expect(
+      within(screen.getByRole("button", { name: /Booked/ })).getByText("3")
+    ).toBeInTheDocument();
+    expect(screen.getByText("2 coming back")).toBeInTheDocument();
+  });
+});

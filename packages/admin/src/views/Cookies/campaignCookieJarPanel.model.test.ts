@@ -142,6 +142,18 @@ describe("campaign cookie jar admin model", () => {
         metadataDescriptionFits: false,
       })
     ).toBe(false);
+
+    // A late landing of an earlier sync could still change who has access.
+    expect(
+      canSyncCampaignCookieJarAllowlist({
+        jarAddress: JAR,
+        isJarOwner: true,
+        invalidAddressCount: 0,
+        grantCount: 1,
+        revokeCount: 0,
+        earlierSyncInDoubt: true,
+      })
+    ).toBe(false);
   });
 
   it("requires confirmed ERC20 decimals before enabling campaign creation", () => {
@@ -154,7 +166,7 @@ describe("campaign cookie jar admin model", () => {
       hasValidClaimConfig: true,
       allowlistCount: 1,
       invalidAddressCount: 0,
-      isDeployer: true,
+      isProtocolTeam: true,
       metadataUrlsValid: true,
     };
 

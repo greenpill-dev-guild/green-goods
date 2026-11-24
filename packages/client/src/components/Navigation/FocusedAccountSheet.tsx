@@ -1,12 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/config/app";
-import {
-  RiArrowDropRightLine,
-  RiExternalLinkLine,
-  RiGlobalLine,
-  RiUserLine,
-} from "@remixicon/react";
+import { RiArrowDropRightLine, RiExternalLinkLine, RiMailLine, RiUserLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 // Named files, not the Cards and Display barrels: this sheet loads with the website's frame on
@@ -17,8 +12,12 @@ import { Card, FlexCard } from "@/components/Cards/Card";
 import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display/Accordion/Faq";
 import { Avatar } from "@/components/Display/Avatar/Avatar";
 
-/** The questions someone has on a reporting page, in the order they tend to come up. */
-const TOPICS = ["page", "public", "cost", "change", "permission", "chat"] as const;
+/**
+ * The questions someone has on a reporting page, in the order they tend to come up. Signing out
+ * has its own: the browser's sign-out, the chat's Disconnect and removing a permission are three
+ * acts, and the answer says where each one is.
+ */
+const TOPICS = ["page", "public", "cost", "change", "permission", "signOut", "chat"] as const;
 
 /** A section's heading inside the sheet, as the app's Profile labels its sections. */
 function SectionHeading({ children }: { children: ReactNode }) {
@@ -102,7 +101,7 @@ export function ManagePermissionsLink() {
 
 /**
  * Account and Help for a reporting page, opened from the top bar's profile button. It is the app's
- * sheet below 640px and comes in from the right from there, under the top bar, as the cockpit shows
+ * sheet below 640px and comes in from the right from there, under the top bar, as the Hub shows
  * Profile. One scroll, as the app's Profile page stacks its sections: who is signed in to this page
  * and what they can do about it, how to reach a person, then the page's own questions as the app's
  * Help draws its dropdowns.
@@ -129,7 +128,7 @@ export function FocusedAccountSheet({
       open={open}
       onOpenChange={onOpenChange}
       placement="right"
-      // The app's tallest sheet: an account, its acts and six questions want the room.
+      // The app's tallest sheet: an account, its acts and seven questions want the room.
       sheetSize="full"
       // From 640px, clear of the 5rem top bar, so the bar and its steps stay in view above the
       // sheet. Below that it is the bottom sheet, which this does not touch.
@@ -157,19 +156,19 @@ export function FocusedAccountSheet({
             defaultMessage: "Get in touch",
           })}
         </SectionHeading>
-        <a href={`https://${REPORTING_SUPPORT_CONTACT}`} target="_blank" rel="noreferrer">
+        <a href={`mailto:${REPORTING_SUPPORT_CONTACT}`}>
           <FlexCard>
             <div className="flex grow flex-row items-center gap-3">
               <Avatar>
                 <div className="mx-auto flex items-center justify-center text-center text-grey-200">
-                  <RiGlobalLine aria-hidden="true" />
+                  <RiMailLine aria-hidden="true" />
                 </div>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="text-base">
                   {intl.formatMessage({
-                    id: "public.reporting.help.site",
-                    defaultMessage: "Visit Green Goods",
+                    id: "public.reporting.help.email",
+                    defaultMessage: "Email Green Goods",
                   })}
                 </div>
                 <div className="text-xs text-text-sub-600 [overflow-wrap:anywhere]">
@@ -181,6 +180,23 @@ export function FocusedAccountSheet({
               </div>
             </div>
           </FlexCard>
+        </a>
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center self-start text-sm text-text-sub-600 underline underline-offset-4"
+        >
+          {intl.formatMessage({
+            id: "public.reporting.help.privacy",
+            defaultMessage: "Privacy Policy",
+          })}
+          <span className="sr-only">
+            {intl.formatMessage({
+              id: "public.reporting.opensInNewTab",
+              defaultMessage: "(opens in a new tab)",
+            })}
+          </span>
         </a>
 
         <SectionHeading>

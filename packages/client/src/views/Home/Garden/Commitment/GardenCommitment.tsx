@@ -1,50 +1,55 @@
+import { useServiceAccess } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import type { Address } from "@green-goods/shared/types/domain";
-import { writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
-import { useMemo, useState } from "react";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
+import type { Address } from "@green-goods/shared/types/domain";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
+import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { describeProofContents } from "@/components/Features/Commitments";
+import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
-import { commitmentActForKind } from "./commitmentActions";
 import { CommitmentClaims } from "./CommitmentClaims";
 import { CommitmentDetailShell, CommitmentDetailState } from "./CommitmentDetailShell";
 import { CommitmentEvidence } from "./CommitmentEvidence";
 import { CommitmentHistory } from "./CommitmentHistory";
 import { CommitmentIdentity } from "./CommitmentIdentity";
 import { CommitmentPlace } from "./CommitmentPlace";
+import { stewardsForPromiseGarden } from "./CommitmentPeople";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
+import { addProofReach, commitmentActForKind, takeUpMode } from "./commitmentActions";
+import { parseCommitmentId, savedCommitmentForRoute, workSubmissionPath } from "./commitmentRoute";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
-import { QueuedActNotice } from "./QueuedActRow";
+import { proofOnPhoneLine } from "./proofOnPhone";
+import { SavedCommitment } from "./SavedCommitment";
+import { ServicePromise } from "./ServicePromise";
+import type { ServicePromiseParts } from "./servicePromiseTypes";
+import { mayBeBooking, serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
-
-function parseCommitmentId(value: string | undefined): bigint | null {
-  if (!value) return null;
-  try {
-    return BigInt(value);
-  } catch {
-    return null;
-  }
-}
+import { TakeUpReviewSheet } from "./TakeUpReviewSheet";
 
 /** Errors are already surfaced by the shared mutation hooks; the view keeps its current surface. */
 function keepSurfaceOnFailure(promise: Promise<unknown>): void {
   void promise.catch(() => undefined);
 }
 
-/** One commitment rendered from the shared reader, selector, queue, and mutation contract. */
+/** Closes a sheet once its act lands or may still land (PRD-1551); a failure keeps it open. */
+function closeOnceSent(promise: Promise<unknown>, close: () => void, failed?: () => void): void {
+  void promise.then(close, (error: unknown) => (mayStillLand(error) ? close() : failed?.()));
+}
+
 export function GardenCommitment() {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -61,9 +66,27 @@ export function GardenCommitment() {
     commitmentId,
     routeGarden: gardenAddress,
   });
+  const serviceKey = useMemo(
+    () =>
+      controller.viewer && commitmentId !== null
+        ? {
+            sourceChainId: controller.chainId,
+            coreModule: getNetworkContracts(controller.chainId).commitmentPoolingModule,
+            commitmentId,
+            buyer: controller.viewer,
+          }
+        : null,
+    [controller.viewer, controller.chainId, commitmentId]
+  );
+  const serviceAccess = useServiceAccess(serviceKey);
+  const serviceRead = serviceReadOutcome(serviceAccess);
+  // Member take-up follows consent; earned requests still need the stewards' ordinary decisions.
+  const ordinary = serviceRead === "ordinary";
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState<"kept" | "report" | null>(null);
   const [contextOpen, setContextOpen] = useState(false);
+  const [takeUpReviewOpen, setTakeUpReviewOpen] = useState(false);
+  useEffect(() => setTakeUpReviewOpen(false), [controller.viewer, commitmentId]);
   const [notYetFailed, setNotYetFailed] = useState(false);
   const [linkOpen, setLinkOpen] = useState<
     { workUID: string; requirementIndex: number | null } | true | null
@@ -75,6 +98,12 @@ export function GardenCommitment() {
       return navigate("../..", { relative: "path", replace: true });
     navigate(-1);
   };
+
+  const saved =
+    !controller.isOnline && !controller.detail
+      ? savedCommitmentForRoute(location.state, gardenAddress, commitmentId)
+      : null;
+  if (saved) return <SavedCommitment commitment={saved} onBack={back} />;
 
   if (controller.status !== "ready") {
     if (controller.status === "error") {
@@ -88,99 +117,68 @@ export function GardenCommitment() {
     }
     return <CommitmentDetailState kind={controller.status} onBack={back} />;
   }
-  if (!controller.detail) {
-    return <CommitmentDetailState kind="error" onBack={back} />;
-  }
+  if (!controller.detail) return <CommitmentDetailState kind="error" onBack={back} />;
 
-  const { commitment, contributors, requirements } = controller.detail;
+  const detail = controller.detail;
+  const { commitment, contributors, requirements } = detail;
+  const bookingUnread = serviceRead === "unresolved" && mayBeBooking(commitment, controller.viewer);
   const requiredWorkApproved =
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
-  const selectedAct = commitmentActForKind(controller.actKind);
+  const genericAct = commitmentActForKind(controller.actKind);
+  const mode = takeUpMode(genericAct, controller.queue.pendingAct, commitment.claimMode);
+  const selectedAct = !ordinary && mode ? null : genericAct;
+  // A request's voucher reward is agreed to first, from its own bar, which then takes it up. A
+  // claim that must first name its garden (the protocol pool) isn't offered there yet.
+  const rewardTakeUp =
+    mode && !controller.claimNeedsContext
+      ? { mode, run: () => keepSurfaceOnFailure(controller.acts.claimPersonal()) }
+      : null;
   // Linking the required work advances Garden Work promises; proof stays available.
   const workIsPrimary =
     selectedAct?.kind === "addProof" && controller.linkable && !requiredWorkApproved;
   const act = workIsPrimary
     ? { kind: "linkWork" as const, labelId: "app.commitment.act.linkWork" }
     : selectedAct;
-  // A signed-in reader who does not belong to the garden gets no act; the card
-  // under the status band says how to join instead. Nothing shows while
-  // membership is still being read, or while an act is already on its way.
+  // Nonmembers see joining guidance instead of an act, once membership is read and none is sending.
   const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
-  const showJoinToAct =
-    !act && !controller.queue.hasPendingJob && controller.membership.isMember === false && untaken;
+  const noActToOffer = ordinary && !act && !controller.queue.hasPendingJob && untaken;
+  const showJoinToAct = noActToOffer && controller.membership.isMember === false;
   // A read the answer depends on failed: say so and offer it again, rather than
   // an empty bar or a join card for someone who may already belong.
-  const showMembershipRetry =
-    !act && !controller.queue.hasPendingJob && controller.membership.unavailable && untaken;
+  const showMembershipRetry = noActToOffer && controller.membership.unavailable;
   const band = selectStatusBand({
     commitment,
     seat: controller.seat,
     actKind: controller.actKind,
-    hasLinkedWork: controller.detail.workAttributions.some((row) => row.linked),
+    hasLinkedWork: detail.workAttributions.some((row) => row.linked),
     requiredWorkApproved,
+    pastDue: controller.pastDue,
+    takeUpPending: controller.takeUpPending,
   });
   const isPending = controller.isQueueing || controller.isSending;
-  // Proof still on this phone and not being sent: the notice above says what
-  // it waits for; the progress and the history say it is not on the promise yet.
-  const proofJob =
-    controller.queue.pendingAct?.kind === "evidence" ? controller.queue.pendingAct : null;
-  const failedProof =
-    controller.queue.failedJob?.kind === "evidence" ? controller.queue.failedJob : null;
-  const proofOnPhone = controller.queue.proofSending
-    ? null
-    : failedProof
-      ? { text: formatMessage({ id: "app.commitment.history.local.failed" }), at: failedProof.at }
-      : proofJob
-        ? {
-            text: formatMessage({
-              id:
-                proofJob.waitingReason === "send-intent-expired"
-                  ? "app.commitment.history.local.cancelled"
-                  : proofJob.waitingReason === "awaiting-confirmation"
-                    ? "app.commitment.history.local.checking"
-                    : "app.commitment.history.local.saved",
-            }),
-            at: proofJob.createdAt,
-          }
-        : null;
+  const proofOnPhone = proofOnPhoneLine(controller.queue, formatMessage);
   const units = commitment.unitLabel
     ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
     : null;
   const heading =
     controller.metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
-  // The stewards of the promise's own garden, so whoever confirms it carries the
-  // role. The page holds the route garden's record, which is the pool's garden
-  // unless the promise sits in another garden's pool.
-  const poolGarden = controller.pool?.garden;
-  const gardenRecord = controller.roles.garden;
-  const stewards =
-    poolGarden && gardenRecord && gardenRecord.id.toLowerCase() === poolGarden.toLowerCase()
-      ? gardenRecord.stewards
-      : [];
+  const stewards = stewardsForPromiseGarden(controller.pool?.garden, controller.roles.garden);
   const openWorkSubmission = (requirementIndex: number, actionUID: number | bigint) => {
-    const parsedActionUID = Number(actionUID);
-    if (!controller.routeGarden || !controller.workGarden || !Number.isSafeInteger(parsedActionUID))
-      return;
-    const returnTo = `/home/${controller.routeGarden}/commitments/${commitment.commitmentId.toString()}`;
-    const params = writeWorkLinkIntent(new URLSearchParams(), {
+    const path = workSubmissionPath({
+      routeGarden: controller.routeGarden,
+      workGarden: controller.workGarden,
       commitmentId: commitment.commitmentId,
+      title: heading,
       requirementIndex,
-      actionUID: parsedActionUID,
-      garden: controller.workGarden,
-      commitmentTitle: heading,
-      requirementLabel: String(requirementIndex + 1),
-      returnTo,
+      actionUID,
     });
+    if (!path) return;
     setLinkOpen(null);
-    dashboardNavigation.forward(`/home/garden?${params.toString()}`);
+    dashboardNavigation.forward(path);
   };
 
-  const claim = (context: ClaimContext) => {
-    void controller.acts
-      .claim(context)
-      .then(() => setContextOpen(false))
-      .catch(() => undefined);
-  };
+  const claim = (context: ClaimContext) =>
+    closeOnceSent(controller.acts.claim(context), () => setContextOpen(false));
   const runAct = () => {
     if (!act) return;
     switch (act.kind) {
@@ -190,13 +188,13 @@ export function GardenCommitment() {
       case "takeUp":
       case "askToTakeUp":
         if (controller.claimNeedsContext) setContextOpen(true);
-        else keepSurfaceOnFailure(controller.acts.claimPersonal());
+        else setTakeUpReviewOpen(true);
         return;
       case "sendForConfirmation":
         keepSurfaceOnFailure(controller.acts.sendForConfirmation());
         return;
       case "confirm":
-        setConfirmOpen(true);
+        setConfirmOpen("kept");
         return;
       case "linkWork":
         setLinkOpen(true);
@@ -222,12 +220,12 @@ export function GardenCommitment() {
       }
     }
   };
-
-  return (
+  const page = (service: ServicePromiseParts) => (
     <>
       <CommitmentDetailShell
         onBack={back}
         title={heading}
+        tracker={service.tracker}
         subtitle={
           <CommitmentPlace
             chainId={controller.chainId}
@@ -236,7 +234,8 @@ export function GardenCommitment() {
           />
         }
         bar={
-          act ? (
+          service.bar ??
+          (act ? (
             <CommitmentActionBar
               act={act}
               isPending={isPending}
@@ -260,12 +259,12 @@ export function GardenCommitment() {
             />
           ) : controller.queue.hasPendingJob && !controller.queue.pendingAct ? (
             <p
-              className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-text-sub-600"
+              className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,var(--safe-area-bottom))] text-sm text-text-sub-600"
               role="status"
             >
               {formatMessage({ id: "app.commitment.queue.waiting" })}
             </p>
-          ) : null
+          ) : null)
         }
       >
         {controller.queue.proofSending ? null : controller.queue.sendFailed ? (
@@ -292,7 +291,9 @@ export function GardenCommitment() {
           joinable={controller.joinable}
           viewer={controller.viewer}
           stewards={stewards}
+          {...service.identity}
         />
+        {service.body}
         <PromiseGroupNote
           chainId={controller.chainId}
           commitment={commitment}
@@ -305,46 +306,62 @@ export function GardenCommitment() {
         {showMembershipRetry ? (
           <MembershipCheckFailed onRetry={controller.membership.retry} />
         ) : null}
-        <CommitmentTeam
-          commitment={commitment}
-          contributors={contributors}
-          requirements={requirements}
-          actions={controller.actions}
-          chainId={controller.chainId}
-          seat={controller.seat}
-          viewer={controller.viewer}
-          canJoin={controller.joinable}
-          isOnline={controller.isOnline}
-          isJoining={controller.isSending}
-          onJoin={() => keepSurfaceOnFailure(controller.acts.join())}
-        />
-        <CommitmentClaims
-          commitment={commitment}
-          viewer={controller.viewer}
-          ownRequest={controller.ownRequest}
-          pendingRequests={controller.pendingClaimRequests}
-          canAskAgain={controller.canAskAgain}
-          stewardsPoolGarden={controller.roles.stewardsPoolGarden}
-          claimGardens={controller.roles.claimGardens}
-          contextOpen={contextOpen}
-          onContextOpenChange={setContextOpen}
-          isClaiming={controller.isQueueing}
-          isDeciding={controller.isSending}
-          onAskAgain={() => {
-            if (controller.claimNeedsContext) setContextOpen(true);
-            else keepSurfaceOnFailure(controller.acts.claimPersonal());
-          }}
-          onContinue={claim}
-          onBackToBrowse={() => navigate("../..", { relative: "path" })}
-          onAccept={(claimant) => keepSurfaceOnFailure(controller.acts.acceptClaim(claimant))}
-          onDecline={(claimant, reason) =>
-            keepSurfaceOnFailure(controller.acts.declineClaim(claimant, reason))
-          }
-        />
+        {serviceRead === "failed" ? (
+          <MembershipCheckFailed check="service" onRetry={() => void serviceAccess.refetch()} />
+        ) : null}
+        {service.booking || bookingUnread ? null : (
+          <CommitmentTeam
+            commitment={commitment}
+            contributors={contributors}
+            requirements={requirements}
+            actions={controller.actions}
+            chainId={controller.chainId}
+            seat={controller.seat}
+            viewer={controller.viewer}
+            canJoin={controller.joinable}
+            isOnline={controller.isOnline}
+            isJoining={controller.isSending}
+            onJoin={() => keepSurfaceOnFailure(controller.acts.join())}
+          />
+        )}
+        {!service.booking &&
+        (ordinary || serviceAccess.data?.acceptancePolicy.kind === "earned") ? (
+          <CommitmentClaims
+            commitment={commitment}
+            acceptancePolicy={serviceAccess.data?.acceptancePolicy}
+            viewer={controller.viewer}
+            ownRequest={controller.ownRequest}
+            pendingRequests={controller.pendingClaimRequests}
+            canAskAgain={ordinary && controller.canAskAgain}
+            stewardsPoolGarden={controller.roles.stewardsPoolGarden}
+            claimGardens={controller.roles.claimGardens}
+            contextOpen={ordinary && contextOpen}
+            onContextOpenChange={setContextOpen}
+            isClaiming={controller.isQueueing}
+            isDeciding={controller.isSending}
+            onAskAgain={() => {
+              if (controller.claimNeedsContext) setContextOpen(true);
+              else setTakeUpReviewOpen(true);
+            }}
+            onContinue={claim}
+            onBackToBrowse={() => navigate("../..", { relative: "path" })}
+            onAccept={(claimant) => keepSurfaceOnFailure(controller.acts.acceptClaim(claimant))}
+            onDecline={(claimant, reason) =>
+              keepSurfaceOnFailure(controller.acts.declineClaim(claimant, reason))
+            }
+          />
+        ) : null}
         <CommitmentProgress
           chainId={controller.chainId}
           commitment={commitment}
           requirements={requirements}
+          delivery={service.delivery}
+          addProof={addProofReach(
+            // The bar's own act, or the one beside required work; a service's own bar has neither.
+            service.bar ? null : selectedAct,
+            controller.seat,
+            controller.takeUpOpen
+          )}
           onPhone={
             controller.queue.proofOnItsWay
               ? {
@@ -360,14 +377,15 @@ export function GardenCommitment() {
           }
         >
           <CommitmentEvidence
-            attributions={controller.detail.evidenceAttributions}
+            attributions={detail.evidenceAttributions}
             recordedCount={commitment.evidenceCount}
           />
         </CommitmentProgress>
         <CommitmentWork
           commitment={commitment}
           requirements={requirements}
-          attributions={controller.detail.workAttributions}
+          attributions={detail.workAttributions}
+          visibility={controller.workVisibility}
           workDecisions={controller.workDecisions}
           works={controller.works}
           actions={controller.actions}
@@ -383,36 +401,49 @@ export function GardenCommitment() {
           }
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />
-        <CommitmentHistory
-          chainId={controller.chainId}
-          commitment={commitment}
-          viewer={controller.viewer}
-          localLine={proofOnPhone}
-        />
+        {service.booking || bookingUnread ? null : (
+          <CommitmentHistory
+            chainId={controller.chainId}
+            commitment={commitment}
+            viewer={controller.viewer}
+            localLine={proofOnPhone}
+          />
+        )}
       </CommitmentDetailShell>
-
+      <TakeUpReviewSheet
+        open={ordinary && takeUpReviewOpen}
+        onOpenChange={setTakeUpReviewOpen}
+        controller={controller}
+        identity={{ commitment, contributors, band, units, stewards }}
+        heading={heading}
+        canConfirm={Boolean(mode || controller.canAskAgain)}
+      />
       <ConfirmSheet
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
+        open={confirmOpen !== null}
+        onOpenChange={(open) => !open && setConfirmOpen(null)}
+        startInNotYet={confirmOpen === "report"}
+        service={service.confirm}
         commitment={commitment}
         requirements={requirements}
         contributors={contributors}
-        evidenceAttributions={controller.detail.evidenceAttributions}
+        evidenceAttributions={detail.evidenceAttributions}
         viewer={controller.viewer}
         isOnline={controller.isOnline}
         phase={controller.confirmation.phase}
         isPending={isPending}
         notYetFailed={notYetFailed}
         canNotYet={controller.confirmation.canNotYet}
+        canConfirm={act?.kind === "confirm"}
         onConfirm={() => keepSurfaceOnFailure(controller.acts.confirm())}
         onNotYet={(reason) => {
           setNotYetFailed(false);
-          void controller.acts
-            .notYet(reason)
-            .then(() => setConfirmOpen(false))
-            .catch(() => setNotYetFailed(true));
+          closeOnceSent(
+            controller.acts.notYet(reason),
+            () => setConfirmOpen(null),
+            () => setNotYetFailed(true)
+          );
         }}
-        onDone={() => setConfirmOpen(false)}
+        onDone={() => setConfirmOpen(null)}
       />
       <LinkWorkSheet
         open={linkOpen !== null}
@@ -426,27 +457,43 @@ export function GardenCommitment() {
         onSubmitRequirement={(requirement) =>
           openWorkSubmission(requirement.requirementIndex, requirement.actionUID)
         }
-        onConfirm={(workUID, requirementIndex, clientOperationId) => {
-          void controller.acts
-            .linkWork(workUID, requirementIndex, clientOperationId)
-            .then(() => setLinkOpen(null))
-            .catch(() => undefined);
-        }}
+        onConfirm={(workUID, requirementIndex, clientOperationId) =>
+          closeOnceSent(
+            controller.acts.linkWork(workUID, requirementIndex, clientOperationId),
+            () => setLinkOpen(null)
+          )
+        }
       />
+      {service.sheets}
       <WithdrawSheet
         open={withdrawOpen}
         onOpenChange={setWithdrawOpen}
         direction={commitment.direction === "REQUEST" ? "REQUEST" : "OFFER"}
         isPending={controller.isSending}
         pinFailed={controller.pinFailed}
-        onConfirm={(reason) => {
-          void controller.acts
-            .withdraw(reason)
-            .then(() => setWithdrawOpen(false))
-            .catch(() => undefined);
-        }}
+        onConfirm={(reason) =>
+          closeOnceSent(controller.acts.withdraw(reason), () => setWithdrawOpen(false))
+        }
       />
     </>
+  );
+
+  return (
+    <ServicePromise
+      serviceKey={serviceKey}
+      access={serviceAccess}
+      commitment={commitment}
+      gardenName={controller.roles.garden?.name ?? ""}
+      heading={heading}
+      note={controller.metadata?.note ?? null}
+      hasCoreAct={Boolean(act)}
+      isOnline={controller.isOnline}
+      onReport={controller.confirmation.canNotYet ? () => setConfirmOpen("report") : null}
+      confirmKept={act?.kind === "confirm" ? controller.acts.confirm : null}
+      takeUp={rewardTakeUp}
+    >
+      {page}
+    </ServicePromise>
   );
 }
 

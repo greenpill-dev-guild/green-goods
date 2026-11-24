@@ -41,9 +41,9 @@ export function AdminAccessHomeShell({
       <div className="canvas-area-top">
         <AppBar
           gardenChip={
-            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
+            <span className="inline-flex items-center gap-1.5 type-body font-semibold text-text-strong">
               <SeedlingIllustration className="h-5 w-5" />
-              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
+              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods Hub" })}
             </span>
           }
           onOpenProfile={showProfile ? () => setProfileOpen(true) : undefined}
@@ -55,8 +55,8 @@ export function AdminAccessHomeShell({
         <AdminSideSheet
           open={profileOpen}
           onOpenChange={setProfileOpen}
-          title={intl.formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" })}
-          tone="hub"
+          title={intl.formatMessage({ id: "hub.profile.title", defaultMessage: "Profile" })}
+          tone="review"
         >
           <AccountProfilePanelContainer />
         </AdminSideSheet>
@@ -152,10 +152,11 @@ export function CanvasLayout() {
             data-tone={workspaceId}
             className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
           >
-            {/* Skip to content */}
+            {/* Skip to content. Keyboard focus draws the Hub's focus ring (DL-098): one
+                solid 2px ring in the workspace tone, 2px off the link's fill. */}
             <a
               href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:body-sm focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:type-body focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
             >
               {intl.formatMessage({
                 id: "app.admin.layout.skipToContent",
@@ -190,7 +191,9 @@ export function CanvasLayout() {
                   paddingBottom: isDesktop
                     ? "var(--admin-main-bottom-clearance-desktop, 6.25rem)"
                     : "var(--admin-main-bottom-clearance-mobile, calc(env(safe-area-inset-bottom) + 9.5rem))",
-                  overscrollBehaviorY: "contain",
+                  // A pull past the top chains to the root, which runs the browser's
+                  // pull-to-refresh, as the App does (PRD-1534).
+                  overscrollBehaviorY: "auto",
                   WebkitOverflowScrolling: "touch",
                 }}
               >
@@ -228,7 +231,7 @@ export function CanvasLayout() {
                 desktop, full-width bottom sheet on mobile (where only the
                 notification bell can open it — Profile/Settings live in the
                 Profile tab there). The same orchestrator contentId drives
-                open/close. Tone is the neutral steward "hub" accent: this is
+                open/close. Tone is the neutral steward "review" accent: this is
                 global account chrome, not workspace content, so it should not
                 inherit the active garden's tint, and the sheet portals out of
                 CanvasLayout's [data-tone] scope. */}
@@ -238,7 +241,7 @@ export function CanvasLayout() {
                 if (!next) closeSheet();
               }}
               title={rightSheetDescriptor?.title ?? ""}
-              tone="hub"
+              tone="review"
             >
               {rightSheetDescriptor?.content}
             </AdminSideSheet>

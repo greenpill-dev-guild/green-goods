@@ -1,5 +1,10 @@
+import type { CommitmentRowPending } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import type { PendingCommitmentCreation } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
-import type { ConfirmQueueEligibility } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  ConfirmQueueEligibility,
+  TxActPhase,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { cycleStanding } from "@green-goods/shared/commitment-pooling";
 import type { CycleMetadataNameResolution } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
 import type { PoolConsoleStatus } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type {
@@ -28,15 +33,15 @@ export function poolStatusChip(
     case "not-ready":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.status.notReady",
-          defaultMessage: "Not taking commitments yet",
+          id: "hub.garden.pool.status.notReady",
+          defaultMessage: "Not taking promises yet",
         }),
         variant: "neutral",
       };
     case "ready":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.status.ready",
+          id: "hub.garden.pool.status.ready",
           defaultMessage: "Set up, no season yet",
         }),
         variant: "warning",
@@ -45,32 +50,32 @@ export function poolStatusChip(
       return hasSeason
         ? {
             label: formatMessage({
-              id: "cockpit.garden.pool.status.open",
-              defaultMessage: "Taking commitments",
+              id: "hub.garden.pool.status.open",
+              defaultMessage: "Taking promises",
             }),
             variant: "success",
           }
         : {
             label: formatMessage({
-              id: "cockpit.garden.pool.status.openNoCycle",
+              id: "hub.garden.pool.status.openNoCycle",
               defaultMessage: "Open, no season running",
             }),
             variant: "warning",
           };
     case "paused":
       return {
-        label: formatMessage({ id: "cockpit.garden.pool.status.paused", defaultMessage: "Paused" }),
+        label: formatMessage({ id: "hub.garden.pool.status.paused", defaultMessage: "Paused" }),
         variant: "warning",
       };
     case "closed":
       return {
-        label: formatMessage({ id: "cockpit.garden.pool.status.closed", defaultMessage: "Closed" }),
+        label: formatMessage({ id: "hub.garden.pool.status.closed", defaultMessage: "Closed" }),
         variant: "neutral",
       };
     case "composted":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.status.composted",
+          id: "hub.garden.pool.status.composted",
           defaultMessage: "Archived",
         }),
         variant: "neutral",
@@ -78,7 +83,7 @@ export function poolStatusChip(
     default:
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.status.unknown",
+          id: "hub.garden.pool.status.unknown",
           defaultMessage: "Not readable yet",
         }),
         variant: "neutral",
@@ -96,10 +101,10 @@ export function cycleName(
   if (resolution?.status === "resolved") return resolution.name;
   const kind =
     cycle.cycleType === "CAMPAIGN"
-      ? formatMessage({ id: "cockpit.garden.pool.cycle.campaign", defaultMessage: "Campaign" })
-      : formatMessage({ id: "cockpit.garden.pool.cycle.season", defaultMessage: "Season" });
+      ? formatMessage({ id: "hub.garden.pool.cycle.campaign", defaultMessage: "Campaign" })
+      : formatMessage({ id: "hub.garden.pool.cycle.season", defaultMessage: "Season" });
   return formatMessage(
-    { id: "cockpit.garden.pool.cycle.unnamed", defaultMessage: "{kind} {id}" },
+    { id: "hub.garden.pool.cycle.unnamed", defaultMessage: "{kind} {id}" },
     { kind, id: cycle.cycleId.toString() }
   );
 }
@@ -108,13 +113,21 @@ export function cycleName(
 export function cycleStateChip(
   cycle: CommitmentCycleRecord,
   poolPaused: boolean,
+  /** The chain's clock the pool's model was read on: an Open cycle past its end has ended. */
+  now: bigint,
   formatMessage: FormatMessage
 ): { label: string; variant: ChipVariant } {
+  if (cycleStanding(cycle, now) === "ended") {
+    return {
+      label: formatMessage({ id: "hub.garden.pool.cycle.state.ended", defaultMessage: "Ended" }),
+      variant: "warning",
+    };
+  }
   switch (cycle.state) {
     case "SEEDED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.cycle.state.seeded",
+          id: "hub.garden.pool.cycle.state.seeded",
           defaultMessage: "Prepared, not open yet",
         }),
         variant: "warning",
@@ -123,14 +136,14 @@ export function cycleStateChip(
       return poolPaused
         ? {
             label: formatMessage({
-              id: "cockpit.garden.pool.cycle.state.openPaused",
+              id: "hub.garden.pool.cycle.state.openPaused",
               defaultMessage: "Open · participation paused",
             }),
             variant: "warning",
           }
         : {
             label: formatMessage({
-              id: "cockpit.garden.pool.cycle.state.open",
+              id: "hub.garden.pool.cycle.state.open",
               defaultMessage: "Open",
             }),
             variant: "success",
@@ -138,7 +151,7 @@ export function cycleStateChip(
     case "RECONCILED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.cycle.state.reconciled",
+          id: "hub.garden.pool.cycle.state.reconciled",
           defaultMessage: "Reconciled",
         }),
         variant: "info",
@@ -146,7 +159,7 @@ export function cycleStateChip(
     case "COMPOSTED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.cycle.state.composted",
+          id: "hub.garden.pool.cycle.state.composted",
           defaultMessage: "Finished",
         }),
         variant: "neutral",
@@ -154,15 +167,15 @@ export function cycleStateChip(
     case "CANCELLED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.cycle.state.cancelled",
-          defaultMessage: "Cancelled",
+          id: "hub.garden.pool.cycle.state.cancelled",
+          defaultMessage: "Canceled",
         }),
         variant: "neutral",
       };
     default:
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.cycle.state.unknown",
+          id: "hub.garden.pool.cycle.state.unknown",
           defaultMessage: "Not readable yet",
         }),
         variant: "neutral",
@@ -179,7 +192,7 @@ export function commitmentStateChip(
     case "OFFERED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.row.state.offered",
+          id: "hub.garden.pool.row.state.offered",
           defaultMessage: "Offered",
         }),
         variant: "info",
@@ -187,7 +200,7 @@ export function commitmentStateChip(
     case "REQUESTED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.row.state.requested",
+          id: "hub.garden.pool.row.state.requested",
           defaultMessage: "Requested",
         }),
         variant: "info",
@@ -197,14 +210,14 @@ export function commitmentStateChip(
         commitment.derivedState === "PARTIALLY_APPROVED"
         ? {
             label: formatMessage({
-              id: "cockpit.garden.pool.row.state.proofIn",
+              id: "hub.garden.pool.row.state.proofIn",
               defaultMessage: "Proof in",
             }),
             variant: "warning",
           }
         : {
             label: formatMessage({
-              id: "cockpit.garden.pool.row.state.accepted",
+              id: "hub.garden.pool.row.state.accepted",
               defaultMessage: "Accepted",
             }),
             variant: "info",
@@ -212,28 +225,28 @@ export function commitmentStateChip(
     case "READY_FOR_CONFIRMATION":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.row.state.ready",
+          id: "hub.garden.pool.row.state.ready",
           defaultMessage: "Waiting to be confirmed",
         }),
         variant: "warning",
       };
     case "FULFILLED":
       return {
-        label: formatMessage({ id: "cockpit.garden.pool.row.state.kept", defaultMessage: "Kept" }),
+        label: formatMessage({ id: "hub.garden.pool.row.state.kept", defaultMessage: "Kept" }),
         variant: "success",
       };
     case "CANCELLED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.row.state.cancelled",
-          defaultMessage: "Cancelled",
+          id: "hub.garden.pool.row.state.cancelled",
+          defaultMessage: "Canceled",
         }),
         variant: "neutral",
       };
     case "EXPIRED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.row.state.expired",
+          id: "hub.garden.pool.row.state.expired",
           defaultMessage: "Expired",
         }),
         variant: "neutral",
@@ -241,7 +254,7 @@ export function commitmentStateChip(
     case "DISPUTED":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.row.state.disputed",
+          id: "hub.garden.pool.row.state.disputed",
           defaultMessage: "In dispute",
         }),
         variant: "error",
@@ -249,7 +262,7 @@ export function commitmentStateChip(
     default:
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.row.state.unknown",
+          id: "hub.garden.pool.row.state.unknown",
           defaultMessage: "Not readable yet",
         }),
         variant: "neutral",
@@ -257,14 +270,14 @@ export function commitmentStateChip(
   }
 }
 
-/** Offer or Request, the row's first chip. */
+/** Offer or Ask, the row's first chip. */
 export function directionLabel(
   direction: CommitmentReadModel["direction"],
   formatMessage: FormatMessage
 ): string {
   return direction === "REQUEST"
-    ? formatMessage({ id: "cockpit.garden.pool.row.request", defaultMessage: "Request" })
-    : formatMessage({ id: "cockpit.garden.pool.row.offer", defaultMessage: "Offer" });
+    ? formatMessage({ id: "hub.garden.pool.row.request", defaultMessage: "Request" })
+    : formatMessage({ id: "hub.garden.pool.row.offer", defaultMessage: "Offer" });
 }
 
 /**
@@ -357,9 +370,9 @@ export function formatGoodDollarsCompact(wei: bigint, locale: string): string {
 }
 
 /**
- * The Confirm queue's eligibility chip: ordinary, this garden's fallback, or
- * the Green Goods team's. Kept beside the other pool chips so the queue and
- * the commitment dialog read the same words.
+ * The Confirm queue's eligibility chip: ordinary, the reader's own, this
+ * garden's fallback, or the Green Goods team's. Kept beside the other pool
+ * chips so the queue and the commitment dialog read the same words.
  */
 export function confirmEligibilityChip(
   eligibility: ConfirmQueueEligibility,
@@ -369,8 +382,17 @@ export function confirmEligibilityChip(
     return {
       variant: "success",
       label: formatMessage({
-        id: "cockpit.hub.confirm.eligibility.ordinary",
+        id: "hub.review.confirm.eligibility.ordinary",
         defaultMessage: "Ready to confirm",
+      }),
+    };
+  }
+  if (eligibility === "OWN") {
+    return {
+      variant: "success",
+      label: formatMessage({
+        id: "hub.review.confirm.eligibility.own",
+        defaultMessage: "Yours to confirm",
       }),
     };
   }
@@ -378,7 +400,7 @@ export function confirmEligibilityChip(
     return {
       variant: "warning",
       label: formatMessage({
-        id: "cockpit.hub.confirm.eligibility.garden",
+        id: "hub.review.confirm.eligibility.garden",
         defaultMessage: "Needs a steward step-in",
       }),
     };
@@ -386,40 +408,72 @@ export function confirmEligibilityChip(
   return {
     variant: "warning",
     label: formatMessage({
-      id: "cockpit.hub.confirm.eligibility.protocol",
+      id: "hub.review.confirm.eligibility.protocol",
       defaultMessage: "Needs the Green Goods team",
     }),
   };
 }
 
-/** A retained reward is deferred, rather than failed or ready for another send. */
-export function queuedCreationChip(
-  row: Pick<PendingCommitmentCreation, "settlementDeferred" | "failed" | "waitingForMembership">,
+/**
+ * What a creation still on this device says in its row's one pill (DL-110): an act in
+ * flight first, then the shared queue states where one fits ("Not sent" while it waits
+ * here, "Didn't send" once a send failed), and the pool's own words for a retained reward
+ * and a wait for membership.
+ */
+export function queuedCreationPill(
+  row: Pick<
+    PendingCommitmentCreation,
+    "settlementDeferred" | "failed" | "waitingForMembership" | "waitingForSettlementAccount"
+  >,
+  phase: TxActPhase["status"],
   formatMessage: FormatMessage
-): { label: string; variant: ChipVariant } {
-  if (row.settlementDeferred)
+): { pending?: CommitmentRowPending; status?: { label: string; tone: ChipVariant } } {
+  if (phase === "signing" || phase === "confirming") return { pending: "confirming" };
+  if (phase === "confirmed") {
     return {
-      label: formatMessage({
-        id: "app.pool.queued.settlementDeferred",
-        defaultMessage: "G$ reward deferred",
-      }),
-      variant: "info",
+      status: {
+        label: formatMessage({
+          id: "hub.garden.pool.queued.sentShort",
+          defaultMessage: "Sent",
+        }),
+        tone: "success",
+      },
     };
-  if (row.failed)
+  }
+  if (phase === "failed") return { pending: "sendFailed" };
+  if (row.settlementDeferred) {
     return {
-      label: formatMessage({
-        id: "cockpit.garden.pool.queued.failed",
-        defaultMessage: "Failed to send",
-      }),
-      variant: "error",
+      status: {
+        label: formatMessage({
+          id: "app.pool.queued.settlementDeferred",
+          defaultMessage: "G$ reward deferred",
+        }),
+        tone: "info",
+      },
     };
-  return {
-    label: formatMessage({
-      id: row.waitingForMembership
-        ? "cockpit.garden.pool.queued.waiting"
-        : "cockpit.garden.pool.queued.queued",
-      defaultMessage: row.waitingForMembership ? "Waiting for membership" : "Queued",
-    }),
-    variant: "info",
-  };
+  }
+  if (row.failed) return { pending: "sendFailed" };
+  if (row.waitingForMembership) {
+    return {
+      status: {
+        label: formatMessage({
+          id: "hub.garden.pool.queued.waiting",
+          defaultMessage: "Needs membership",
+        }),
+        tone: "info",
+      },
+    };
+  }
+  if (row.waitingForSettlementAccount) {
+    return {
+      status: {
+        label: formatMessage({
+          id: "hub.garden.pool.queued.needsSettlement",
+          defaultMessage: "Needs settlement account",
+        }),
+        tone: "info",
+      },
+    };
+  }
+  return { pending: "notSent" };
 }

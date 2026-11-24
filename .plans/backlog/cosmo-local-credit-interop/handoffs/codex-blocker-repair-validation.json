@@ -1,0 +1,563 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-22T23:37:43.920316+00:00",
+  "status": "local_selected_proof_passed",
+  "evidenceClass": "working-tree execution with signed source-blob attribution pending; not a clean whole-commit or release receipt",
+  "startingHead": "efa04cc52ddf5123e19997084f207d6aa137ea57",
+  "base": "d7bbbf00d6af63f39a1aea6fe84fb6f2bbcc72be",
+  "scope": [
+    "packages/contracts/src/modules/GnosisVoucherEscrow.sol",
+    "packages/contracts/src/modules/VoucherRedemptionModule.sol",
+    "packages/contracts/src/lib/VoucherService/VoucherServiceOutboxLib.sol",
+    "packages/contracts/src/lib/VoucherService/VoucherFinalAllocationLib.sol",
+    "packages/admin/src/components/Boot/AdminStartupConnect.stories.tsx",
+    "packages/admin/src/components/Boot/AdminWorkspace.stories.tsx",
+    "packages/admin/src/components/Layout/ConnectPrompt.stories.tsx",
+    "packages/shared/.storybook/preview.tsx",
+    "packages/shared/.storybook/adminWorkspaceMocks.ts",
+    ".plans/backlog/cosmo-local-credit-interop/spec.md",
+    ".plans/backlog/cosmo-local-credit-interop/plan.todo.md",
+    ".plans/backlog/cosmo-local-credit-interop/eval.md",
+    ".plans/backlog/cosmo-local-credit-interop/status.json",
+    ".plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md",
+    ".plans/backlog/cosmo-local-credit-interop/handoffs/codex-member-issuer-readiness.md",
+    ".plans/backlog/cosmo-local-credit-interop/handoffs/codex-local-blockers-and-readiness.md",
+    ".plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-refresh-2026-10-22.json",
+    ".plans/backlog/cosmo-local-credit-interop/handoffs/codex-blocker-repair-validation.json"
+  ],
+  "commands": {
+    "plan": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true TURBO_FORCE=true bun --no-env-file run check --plan -- --intent checkpoint --changed packages/contracts/src/modules/GnosisVoucherEscrow.sol,packages/contracts/src/modules/VoucherRedemptionModule.sol,packages/contracts/src/lib/VoucherService/VoucherServiceOutboxLib.sol,packages/contracts/src/lib/VoucherService/VoucherFinalAllocationLib.sol,packages/admin/src/components/Boot/AdminStartupConnect.stories.tsx,packages/admin/src/components/Boot/AdminWorkspace.stories.tsx,packages/admin/src/components/Layout/ConnectPrompt.stories.tsx,packages/shared/.storybook/preview.tsx,packages/shared/.storybook/adminWorkspaceMocks.ts,.plans/backlog/cosmo-local-credit-interop/spec.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-member-issuer-readiness.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-local-blockers-and-readiness.md,.plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-refresh-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-blocker-repair-validation.json --test-path contracts:test/unit/VoucherServiceSource.t.sol --check storybook-build --check agentic-readiness --json > /private/tmp/green-goods-blocker-repair-20261022/final-plan.json",
+    "firstExecution": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true TURBO_FORCE=true bun --no-env-file run check -- --intent checkpoint --changed packages/contracts/src/modules/GnosisVoucherEscrow.sol,packages/contracts/src/modules/VoucherRedemptionModule.sol,packages/contracts/src/lib/VoucherService/VoucherServiceOutboxLib.sol,packages/contracts/src/lib/VoucherService/VoucherFinalAllocationLib.sol,packages/admin/src/components/Boot/AdminStartupConnect.stories.tsx,packages/admin/src/components/Boot/AdminWorkspace.stories.tsx,packages/admin/src/components/Layout/ConnectPrompt.stories.tsx,packages/shared/.storybook/preview.tsx,packages/shared/.storybook/adminWorkspaceMocks.ts,.plans/backlog/cosmo-local-credit-interop/spec.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-member-issuer-readiness.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-local-blockers-and-readiness.md,.plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-refresh-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-blocker-repair-validation.json --test-path contracts:test/unit/VoucherServiceSource.t.sol --check storybook-build --check agentic-readiness > /private/tmp/green-goods-blocker-repair-20261022/full-validation.log 2>&1",
+    "lintRepairedExecution": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true TURBO_FORCE=true bun --no-env-file run check -- --intent checkpoint --changed packages/contracts/src/modules/GnosisVoucherEscrow.sol,packages/contracts/src/modules/VoucherRedemptionModule.sol,packages/contracts/src/lib/VoucherService/VoucherServiceOutboxLib.sol,packages/contracts/src/lib/VoucherService/VoucherFinalAllocationLib.sol,packages/admin/src/components/Boot/AdminStartupConnect.stories.tsx,packages/admin/src/components/Boot/AdminWorkspace.stories.tsx,packages/admin/src/components/Layout/ConnectPrompt.stories.tsx,packages/shared/.storybook/preview.tsx,packages/shared/.storybook/adminWorkspaceMocks.ts,.plans/backlog/cosmo-local-credit-interop/spec.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-member-issuer-readiness.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-local-blockers-and-readiness.md,.plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-refresh-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-blocker-repair-validation.json --test-path contracts:test/unit/VoucherServiceSource.t.sol --check storybook-build --check agentic-readiness > /private/tmp/green-goods-blocker-repair-20261022/full-validation-repaired.log 2>&1",
+    "loopbackExecution": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true TURBO_FORCE=true bun --no-env-file run check -- --intent checkpoint --changed packages/contracts/src/modules/GnosisVoucherEscrow.sol,packages/contracts/src/modules/VoucherRedemptionModule.sol,packages/contracts/src/lib/VoucherService/VoucherServiceOutboxLib.sol,packages/contracts/src/lib/VoucherService/VoucherFinalAllocationLib.sol,packages/admin/src/components/Boot/AdminStartupConnect.stories.tsx,packages/admin/src/components/Boot/AdminWorkspace.stories.tsx,packages/admin/src/components/Layout/ConnectPrompt.stories.tsx,packages/shared/.storybook/preview.tsx,packages/shared/.storybook/adminWorkspaceMocks.ts,.plans/backlog/cosmo-local-credit-interop/spec.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-member-issuer-readiness.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-local-blockers-and-readiness.md,.plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-refresh-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-blocker-repair-validation.json --test-path contracts:test/unit/VoucherServiceSource.t.sol --check storybook-build --check agentic-readiness > /private/tmp/green-goods-blocker-repair-20261022/full-validation-loopback.log 2>&1",
+    "pinnedGnosis": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true FOUNDRY_PROFILE=fork GNOSIS_RPC_URL=http://127.0.0.1:59179 bun --no-env-file run --cwd packages/contracts test --suite solidity --profile match -- 'test/fork/GnosisVoucher*.t.sol' > /private/tmp/green-goods-blocker-repair-20261022/pinned-gnosis.log 2>&1",
+    "protectedStorage": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true FOUNDRY_PROFILE=production bun --no-env-file run --cwd packages/contracts check:storage-layout",
+    "productionSizes": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true bun --no-env-file run --cwd packages/contracts check:sizes -- --skip-build",
+    "memberBoundaries": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/settlement-aa-profile.test.ts src/__tests__/config/pimlico.test.ts src/__tests__/workflows/auth-passkey-adapters.test.ts src/__tests__/workflows/authPasskeyOwner.test.ts src/__tests__/modules/agent-reporting/owner-validator.test.ts src/__tests__/service-access-voucher-recovery.test.ts"
+  },
+  "checkpoint": {
+    "intent": "checkpoint",
+    "risk": "critical",
+    "freshPassed": 13,
+    "reused": 0,
+    "unrun": 0,
+    "checks": [
+      {
+        "id": "format",
+        "mandatory": false,
+        "selectedBy": ["automatic-hygiene"],
+        "command": "bunx @biomejs/biome format .",
+        "builtin": null,
+        "expectedSignal": "repository formatting is unchanged",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 2.579
+      },
+      {
+        "id": "lint",
+        "mandatory": false,
+        "selectedBy": ["automatic-hygiene"],
+        "command": "bun run lint",
+        "builtin": null,
+        "expectedSignal": "repository lint rules pass",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 12.029
+      },
+      {
+        "id": "abi-artifacts",
+        "mandatory": true,
+        "selectedBy": ["critical-override"],
+        "command": null,
+        "builtin": "abiArtifacts",
+        "expectedSignal": "shared contract ABI imports resolve to current committed artifacts",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 0.015
+      },
+      {
+        "id": "shared-test-typecheck",
+        "mandatory": false,
+        "selectedBy": ["validation-only:shared:types"],
+        "command": "bun run typecheck --scope tests",
+        "builtin": null,
+        "expectedSignal": "shared test and story TypeScript graph has no errors",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 1.734
+      },
+      {
+        "id": "admin-test-typecheck",
+        "mandatory": false,
+        "selectedBy": ["validation-only:admin:types"],
+        "command": "bun run typecheck --scope tests",
+        "builtin": null,
+        "expectedSignal": "admin test and story TypeScript graph has no errors",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 1.373
+      },
+      {
+        "id": "contracts-build",
+        "mandatory": true,
+        "selectedBy": ["surface:contracts", "critical-override"],
+        "command": "bun run build",
+        "builtin": null,
+        "expectedSignal": "contract Bun build wrapper succeeds",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 1.75
+      },
+      {
+        "id": "contracts-test",
+        "mandatory": true,
+        "selectedBy": ["surface:contracts", "critical-override"],
+        "command": "bun run test",
+        "builtin": null,
+        "expectedSignal": "contract unit tests pass through the Bun wrapper",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 172.528
+      },
+      {
+        "id": "contracts-verify-fast",
+        "mandatory": true,
+        "selectedBy": ["critical-override"],
+        "command": "./scripts/contracts/verify-production.sh --skip-e2e --skip-dry-run",
+        "builtin": null,
+        "expectedSignal": "fast contract verification suite passes",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 202.646
+      },
+      {
+        "id": "source-structure",
+        "mandatory": false,
+        "selectedBy": ["conditional:source-structure"],
+        "command": "node scripts/quality/check-source-structure.js --base 'd7bbbf00d6af63f39a1aea6fe84fb6f2bbcc72be'",
+        "builtin": null,
+        "expectedSignal": "package source changed since the comparison base, committed or not, passes structure policy",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 3.805
+      },
+      {
+        "id": "supply-chain",
+        "mandatory": false,
+        "selectedBy": ["conditional:supply-chain"],
+        "command": "node scripts/quality/check-codex-docs.js && node scripts/quality/check-guidance-links.mjs && node scripts/quality/check-immutable-plan-reports.mjs && bash scripts/quality/check-test-quality.sh && node scripts/harness/plan-hub.mjs validate && node --test scripts/harness/plan-hub.test.mjs",
+        "builtin": null,
+        "expectedSignal": "supply-chain and guidance guardrails pass",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 19.474
+      },
+      {
+        "id": "story-quality",
+        "mandatory": false,
+        "selectedBy": ["validation-only:shared:stories", "validation-only:admin:stories"],
+        "command": "bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
+        "builtin": null,
+        "expectedSignal": "story coverage and quality guardrails pass",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 0.292
+      },
+      {
+        "id": "storybook-build",
+        "mandatory": false,
+        "selectedBy": ["explicit-request", "validation-only:shared:storybook-config"],
+        "command": "bun run build-storybook",
+        "builtin": null,
+        "expectedSignal": "the shared Storybook static build completes",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 45.988
+      },
+      {
+        "id": "agentic-readiness",
+        "mandatory": false,
+        "selectedBy": ["explicit-request"],
+        "command": "DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search \"agentic frontend CSS accessibility browser validation DevTools MCP\" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility && bun scripts/check-browser-verification-policy.mjs && node scripts/quality/check-skill-behavior-contracts.mjs && design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md && design.md lint --format json docs/DESIGN.md && node scripts/design/md-generate.mjs --check && bash scripts/design/check-tokens.sh && node scripts/dev/node-cli.js node --test scripts/quality/check-ontology.test.mjs && node scripts/quality/check-ontology.mjs && bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
+        "builtin": null,
+        "expectedSignal": "agentic-readiness completes successfully",
+        "result": "passed",
+        "fresh": true,
+        "seconds": 20.105
+      }
+    ],
+    "executionPermission": "Scoped approved loopback execution after the default sandbox blocked local 3012 fixtures; defaults and persistent policy unchanged."
+  },
+  "contracts": {
+    "focusedBaselinePassed": 112,
+    "focusedFinalPassed": 112,
+    "solidityPassedPerPackagePhase": 2195,
+    "soliditySuites": 170,
+    "fuzzRuns": 1000,
+    "productionGdollarGasFixturesPassed": 3,
+    "nodeCliPassed": 31,
+    "scriptTestsPassed": 331,
+    "abiStorageRuntimeComparison": {
+      "afterStorageEvidence": "Installed solc0.8.28 StandardJSON storage-only compilation; every source and setting verified against final fork artifact; ABI multiset matches artifact. Foundry ABI before/after byte-identical.",
+      "GnosisVoucherEscrow": {
+        "fullAbiIdentical": true,
+        "methodIdentifiersIdentical": true,
+        "normalizedRecursiveStorageIdentical": true,
+        "linearEntries": 24,
+        "unchangedNamespaces": {
+          "src/libraries/VoucherServiceEscrowStorage.sol": "0x40a8c0227f66783b8243af654f4e837e33690d74800b89c58c1b8e88fc80514a"
+        },
+        "linkInventory": [
+          "src/libraries/VoucherRedemptionTransfers.sol:VoucherRedemptionTransfers"
+        ],
+        "beforeRuntime": {
+          "bytes": 24491,
+          "compilerObjectSha256": "535ea490f22ee3f5bda92eceb0796e859519737313c7b5c77044b4e7b1f8fc18",
+          "unlinkedRuntimeKeccak": null
+        },
+        "afterRuntime": {
+          "bytes": 24554,
+          "compilerObjectSha256": "00e8edcd2dd3ad82021c5802bbcfe5aceb31f4dd3559a4f98fc4458939122e13",
+          "unlinkedRuntimeKeccak": null
+        },
+        "recursiveLayoutSha256": "c63c861597b88233b3961f56ee7ccd53a35ca6b920be907a24b9feec4c34c0c7",
+        "layoutDigestEncoding": "SHA256 of recursively expanded storage JSON, AST IDs omitted, sorted keys and compact separators; arrays retain order.",
+        "orderedAbiSha256": "5e7e39a57b83bd321d6622a41d47494df272f8f6f8134692209aa5408663b2e0"
+      },
+      "VoucherRedemptionModule": {
+        "fullAbiIdentical": true,
+        "methodIdentifiersIdentical": true,
+        "normalizedRecursiveStorageIdentical": true,
+        "linearEntries": 24,
+        "unchangedNamespaces": {
+          "src/lib/VoucherService/VoucherServiceSourceStorage.sol": "0x967b171637fe215ede61fdc8c27a0e808a40cdaeb3521bb2ddc6f1700524b5d2"
+        },
+        "linkInventory": [
+          "src/lib/VoucherService/VoucherServiceConsentLib.sol:VoucherServiceConsentLib",
+          "src/lib/VoucherService/VoucherServiceResultLib.sol:VoucherServiceResultLib"
+        ],
+        "beforeRuntime": {
+          "bytes": 23985,
+          "compilerObjectSha256": "6c3a5a98974c250c2864ba5748ba254e6383589d021cbc7177d157b87473fa5d",
+          "unlinkedRuntimeKeccak": null
+        },
+        "afterRuntime": {
+          "bytes": 24317,
+          "compilerObjectSha256": "ddb5fd483c334c8ad24b45054d0b8dac489c7442cef07e757a4b4f22be2cd926",
+          "unlinkedRuntimeKeccak": null
+        },
+        "recursiveLayoutSha256": "da7ed8ae4dcac89dcf2a356eaf07901e0b4c75174dea494ed51500f2b43e9be1",
+        "layoutDigestEncoding": "SHA256 of recursively expanded storage JSON, AST IDs omitted, sorted keys and compact separators; arrays retain order.",
+        "orderedAbiSha256": "2e8ba68104afbbe199e9080fdf20bfb1242f3f72e22b8c002a0864025f782034"
+      },
+      "completeLocalComparison": {
+        "path": "/private/tmp/green-goods-blocker-repair-20261022/contracts/exact-abi-storage-runtime-proof.json",
+        "sha256": "7b6d782b61a7d144cf53d5ac9c0f8f75b0cd95327a81be5b20a81409147a6ffb",
+        "note": "Complete recursive layouts and link/immutable offsets remain in this local evidence file. Canonical recursive-layout digests below preserve the equality result without duplicating both trees."
+      }
+    },
+    "productionComparison": {
+      "GnosisVoucherEscrow": {
+        "fullAbiIdentical": true,
+        "recursiveStorageIdentical": true,
+        "linearEntries": 24,
+        "productionRuntimeObjectBytes": 24202
+      },
+      "VoucherRedemptionModule": {
+        "fullAbiIdentical": true,
+        "recursiveStorageIdentical": true,
+        "linearEntries": 24,
+        "productionRuntimeObjectBytes": 24000
+      }
+    },
+    "productionSizeGate": "All deployable artifacts fit 24576 bytes; source files remain under350. Warnings retain headroom information.",
+    "protectedStorage": "All protected linear baselines and ERC7201 namespaces match.",
+    "rawSelectorProof": [
+      {
+        "library": "VoucherFinalAllocationLib.sol",
+        "concrete": "GnosisVoucherEscrow",
+        "signature": "ConflictingFinalAllocation()",
+        "selector": "0xcda7ef29",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherFinalAllocationLib.sol",
+        "concrete": "GnosisVoucherEscrow",
+        "signature": "ExecutionPaused()",
+        "selector": "0x692da15f",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherFinalAllocationLib.sol",
+        "concrete": "GnosisVoucherEscrow",
+        "signature": "SetupNotActive()",
+        "selector": "0x2c99eb20",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherFinalAllocationLib.sol",
+        "concrete": "GnosisVoucherEscrow",
+        "signature": "InvalidRedemptionQuantity()",
+        "selector": "0x8cec2fe6",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherFinalAllocationLib.sol",
+        "concrete": "GnosisVoucherEscrow",
+        "signature": "VoucherCustodyDeficit()",
+        "selector": "0x018e9c03",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherFinalAllocationLib.sol",
+        "concrete": "GnosisVoucherEscrow",
+        "signature": "SetupNotActive()",
+        "selector": "0x2c99eb20",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherFinalAllocationLib.sol",
+        "concrete": "GnosisVoucherEscrow",
+        "signature": "NoRetryableAction()",
+        "selector": "0xb0c6f4ab",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherServiceOutboxLib.sol",
+        "concrete": "VoucherRedemptionModule",
+        "signature": "InvalidEndpoint()",
+        "selector": "0xf1cbb567",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherServiceOutboxLib.sol",
+        "concrete": "VoucherRedemptionModule",
+        "signature": "UnknownRedemption()",
+        "selector": "0x9bbe9a5f",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherServiceOutboxLib.sol",
+        "concrete": "VoucherRedemptionModule",
+        "signature": "InvalidServiceAuthorization()",
+        "selector": "0x18e1b935",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherServiceOutboxLib.sol",
+        "concrete": "VoucherRedemptionModule",
+        "signature": "VoucherSetupNotReady()",
+        "selector": "0xb017a389",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherServiceOutboxLib.sol",
+        "concrete": "VoucherRedemptionModule",
+        "signature": "VoucherSetupAlreadyAccepted()",
+        "selector": "0xa66ff206",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherServiceOutboxLib.sol",
+        "concrete": "VoucherRedemptionModule",
+        "signature": "VoucherSetupNotReady()",
+        "selector": "0xb017a389",
+        "revertBytes": 4
+      },
+      {
+        "library": "VoucherServiceOutboxLib.sol",
+        "concrete": "VoucherRedemptionModule",
+        "signature": "VoucherSetupAborted()",
+        "selector": "0x2c2e839f",
+        "revertBytes": 4
+      }
+    ],
+    "solhint": {
+      "warnings": 288,
+      "newWarnings": 2,
+      "newWarningRule": "no-inline-assembly",
+      "reason": "Memory-safe exact four-byte selector reverts preserve concrete-qualified errors and exact ABI metadata; no diagnostics disabled."
+    },
+    "sourceLines": {
+      "GnosisVoucherEscrow": 341,
+      "VoucherRedemptionModule": 342,
+      "VoucherFinalAllocationLib": 90,
+      "VoucherServiceOutboxLib": 107
+    }
+  },
+  "stories": {
+    "requiredSurfacesCovered": 312,
+    "requiredSurfacesTotal": 312,
+    "qualityFiles": 279,
+    "newStories": 9,
+    "renderedProof": "Brave extension; Storybook fictional/local rehearsal. No authenticated member-signing proof.",
+    "workspaceScope": "Actual AdminWorkspace/AppProvider/CanvasLayout with a substituted production route entry, synchronous actual English catalogue and inert analytics spy. Production asynchronous boot remains outside proof.",
+    "workingTreeDependencies": [
+      "packages/admin/src/components/Boot/AdminStartupConnect.tsx",
+      "packages/admin/src/components/Boot/AdminWorkspace.tsx",
+      "packages/admin/src/components/Layout/ConnectPrompt.tsx",
+      "packages/admin/src/components/Boot/BootSurface.tsx",
+      "packages/admin/src/App.tsx",
+      "packages/admin/src/components/Layout/CanvasLayout.tsx",
+      "packages/shared/src/providers/App.tsx",
+      "packages/shared/src/providers/Auth.tsx",
+      "packages/shared/src/modules/app/locale-messages.ts",
+      "packages/shared/src/i18n/en.json"
+    ],
+    "pendingDependencyLimit": "The three component implementations were pre-existing untracked concurrent work and are deliberately excluded from the story commit. Its isolated committed tree is not a standalone boot receipt.",
+    "startupScenarios": [
+      "readiness",
+      "passkey-before-readiness",
+      "wallet-modal-dismissal",
+      "wallet-retry-and-passkey-fallback",
+      "restored-identity",
+      "ordinary-startup-before-readiness"
+    ],
+    "workspaceFreshConsoleErrors": 0,
+    "staticGallery": {
+      "components": 434,
+      "stories": 2322,
+      "groups": 44
+    },
+    "freshWorkspaceProofAt": "2026-10-22T23:37:59.108Z",
+    "freshWorkspaceScreenshot": "/private/tmp/green-goods-blocker-repair-20261022/browser/workspace-final.png"
+  },
+  "memberIssuerRefresh": "../artifacts/member-readiness-refresh-2026-10-22.json",
+  "memberBoundaryFilesPassed": 6,
+  "memberBoundaryTestsPassed": 45,
+  "publicInputHashes": {
+    "packages/contracts/src/modules/GnosisVoucherEscrow.sol": "4c4f4da4fa589145fe1dfff8aac4c06162ab5d1bb1d281c2f4c4019c4663c7dc",
+    "packages/contracts/src/modules/VoucherRedemptionModule.sol": "f80ea47bf3491093f2d05d8b2d4e8122a269c42bd8948670dd34ad1acec02cb4",
+    "packages/contracts/src/lib/VoucherService/VoucherServiceOutboxLib.sol": "78d23c4817aba4a76410a9cd2582a849a8dee5fa0578fe8565ad41998df7b945",
+    "packages/contracts/src/lib/VoucherService/VoucherFinalAllocationLib.sol": "af0783c96598302d832d94c43dcbeb46211070972f272ef8f34e6b4f01fa39b7",
+    "packages/admin/src/components/Boot/AdminStartupConnect.stories.tsx": "d1885380fe001e6483c9c7cd88837b587502068d0ec974e82c5c6047e6b1805b",
+    "packages/admin/src/components/Boot/AdminWorkspace.stories.tsx": "614cf2cf1c1f9726b9df05bbae981defb834a304d5e1ec385c384f5045d40870",
+    "packages/admin/src/components/Layout/ConnectPrompt.stories.tsx": "cbbf8e6d278c606404d67d2ec0bf44447c534c97bd7ae3c809d88fd9c2e8e3ae",
+    "packages/shared/.storybook/preview.tsx": "60ee54f6e49ea81be450ef19ad7ed0d85549dc85158a5b4303bedf643dd90912",
+    "packages/shared/.storybook/adminWorkspaceMocks.ts": "79aba789625159baefda066e5935d8dd864873ea2d90560b888e7afa6ccf189a",
+    "packages/admin/src/components/Boot/AdminStartupConnect.tsx": "9a2feb5e23cab08011341b564d7637281bcb3c7764b4d50192a78f8a3435ff9c",
+    "packages/admin/src/components/Boot/AdminWorkspace.tsx": "76de6cd0ca12a07ce823935c984e218d8e0ce3a5b663845466ea9a0291521f12",
+    "packages/admin/src/components/Layout/ConnectPrompt.tsx": "5438a534080f3252c2af1d28a146e52ebc0b976f47887c51cea0804cd7e2b59a",
+    "packages/admin/src/components/Boot/BootSurface.tsx": "f78e1cb40f9ba30052b375e3752d3852dc3b0f7b7df9c600a4f220d61b8aa568",
+    "packages/admin/src/App.tsx": "0065511eb7d5ad7a9b04874c6697a35c50e9a7679d84d500bf587f389c4f795b",
+    "packages/admin/src/components/Layout/CanvasLayout.tsx": "01304ee7077ec986e0a4939b14e99e9b3c2fdc42f42a5cc9c7a052c6526be9a2",
+    "packages/shared/src/providers/App.tsx": "43ede86a861afa6ad3eedfde8931fe0eb229115f085bff088e05a8bfe717da5c",
+    "packages/shared/src/providers/Auth.tsx": "410109da49e4fd6575719dfc29b36664ee350b7a7b6c8e0e95718eba337f67fa",
+    "packages/shared/src/modules/app/locale-messages.ts": "36d9c73ddccd3d94165d2b8b1bf20021154120da1db6da8e27287a2abca19f75",
+    "packages/shared/src/i18n/en.json": "20dc3eb2294bd783bb6a08ce0a70d10610cfd17566926f247f9deed4b4f647d5",
+    "package.json": "b1d7f8dbd2a765efc7f970bc7d6292db59a764873252ab5b00e3e362204f81f5",
+    "bun.lock": "85cb5b30fabdce6225c2b44337336ca7f90a95fe99aea26d5637606c8d0094d6",
+    "packages/contracts/package.json": "e948e9693b93cd14c09caac1bffed2cf62a088386722cf0d7c24d5a77ab3a69e",
+    "packages/contracts/foundry.toml": "15cc15d84e9d12c566ca2a6a5a9562fee1d51b373c7f81cb2a9ea83ce5028244",
+    "packages/admin/package.json": "fb86ebe4ce1dd330471f665a494dbc1758a463154cef0b099646941558423bd5",
+    "packages/shared/package.json": "949369a983568bcae31abcdcc6c5e644e6eba3c2bc39f10437e86bba126be5c9",
+    "packages/shared/.storybook/main.ts": "d90ab908b17c23fccd523957943f71b06c6440f4cb167429fd9185e16f73b59f",
+    "packages/shared/.storybook/decorators.tsx": "918e213894041840711fcff52e049daa81d168fa606a0903532ad012a77b7bb7",
+    "packages/shared/.storybook/moduleMocks.ts": "8e927e684378e6fa6ef1eb85a43a2c0970ecb1e0c9ab6c9eb8a3a9cbd5ec50b1",
+    "scripts/dev/ci-local.js": "b963fd0dba96cf73233df29b17055a9645019b319619100fa09f416317f61840",
+    "scripts/data/validation-policy.json": "ebf109c7b1075e19f995790134b7ce41454abcb220233107f91d9dc894f15e64",
+    ".husky/pre-commit": "76f284a05eaa72fb3746be17f62e45a2869c1b8923f85dd133dd9962530083c5",
+    "scripts/data/source-structure-baseline.json": "f8aa05bd31c1c70cb1192482990e411001f92f3d1d6efce6197ac709e4ec0681",
+    "scripts/data/module-seam-registry.json": "68711ca341e20eae47f941f3d2d2579cda6413f77f390d30127ea37b15ff1c68",
+    "scripts/data/design-token-usage-baseline.tsv": "4ee5f10e2b0343764cbe1956f99d49d2fdd2f8d47841c98e6b508c640fcbe0dc",
+    "packages/contracts/test/fork/GnosisVoucherReserve.t.sol": "e4bfb863c601efe6a7a7d3374036d7c82f06853f5fd83f82525d99c616ad1629",
+    "packages/contracts/test/fork/GnosisVoucherPurchase.t.sol": "44245724623f00021920e15a13430a571e2de8feef365a88f120fc7f8484cb46",
+    "packages/contracts/test/fork/GnosisVoucherRedemption.t.sol": "3a9c03aab5d9b7460d9e831ad90d0f7ee9d5d8efd39fa011e9186329a027c6c6",
+    "packages/contracts/test/fork/GnosisVoucherPilot.t.sol": "0aa6aef1dd78a0ec26045addb23df53d4605f7fb499c65f715bca6b170516a51",
+    "packages/contracts/test/helpers/CLCVoucherPilotFixture.sol": "3fc146e4da707ba698b6adc9a465d60e7823f43a55d619af13bac11d2a03b03a",
+    "packages/contracts/test/helpers/CLCPurchaseFixture.sol": "e8541022fd08c0a702049fbcc13e2bd218b149d5ce7f470f5531db04797e35dd",
+    "packages/contracts/test/unit/SettlementFunding.t.sol": "d1e9d6f582ae77108b232247417d99f68f6b842794a3598de7dce525e663acd8"
+  },
+  "configuration": {
+    "bun": "1.4.2",
+    "node": "22.22.1",
+    "foundry": "1.7.1",
+    "solc": "0.8.28",
+    "evm": "cancun",
+    "production": {
+      "viaIR": true,
+      "optimizerRuns": 1
+    },
+    "fork": {
+      "viaIR": true,
+      "optimizerRuns": 200,
+      "fuzzRuns": 32
+    },
+    "secretReads": "No protected root environment/keyring/private-key files read; no-env/no-install Bun shim used.",
+    "dependencies": "No install, upgrade or lockfile mutation."
+  },
+  "retainedFailures": [
+    "Initial source-size387/389 and312-story contract309covered gates reproduced.",
+    "Abstract-base probe broke concrete-qualified error names and ABI internalType; rejected.",
+    "First internal extraction added duplicate ABI declarations; repaired before exact ABI proof.",
+    "Mechanical draft compilation and old-draft default stack-depth failures retained; final builds pass.",
+    "Process-only extra-output did not produce storage; exact-source/settings StandardJSON replay and later production baseline build establish layout.",
+    "First full selector:1fresh format pass, ownstory callbacklint failure,11unrun.",
+    "Second full selector:6fresh passes, contracts-test blocked by EPERM127.0.0.1:3012;2195Solidity+3gas+31CLI+320script passed,11script cases not executed.",
+    "Same full selected plan passed13fresh after scoped loopback permission; no source/assertion/safety setting changed for that repair.",
+    "Initial workspace fixture catalog errors repaired with explicit synchronous story catalog; fresh render has zero errors."
+  ],
+  "proofLimits": [
+    "No clean whole-commit receipt: concurrent tracked/untracked Admin/Auth/configuration inputs remain outside this task and outside its commits.",
+    "No upstream CLC AGPL implementation source read/imported/vendored; published interfaces/docs and pinned runtime evidence only.",
+    "No real CCIP DON, actual member credential/signing/sponsorship/recovery or issuer approval proved.",
+    "Helper exact source/build/security provenance and all Safe/timelock/audit/testnet/rollback/live release gates remain open.",
+    "No push, PR, deployment, live broadcast, funds movement or external tracker write."
+  ],
+  "sourceBlobAttribution": {
+    "contracts": {
+      "commit": "6168fca1d38a0049f0dc56e3ce90eabda2b57167",
+      "signature": "G",
+      "committedAt": "2026-10-22T23:36:31Z",
+      "paths": 4
+    },
+    "stories": {
+      "commit": "38d93d03a33aaa358cd9c59c5696318ad478c5c2",
+      "signature": "G",
+      "committedAt": "2026-10-22T23:36:50Z",
+      "paths": 5
+    },
+    "records": "this evidence follows the signed source slices; self-attributed full-head receipt is not claimed",
+    "postCommitVerification": "All41 public source/configuration input hashes unchanged; exact reviewed staged blobs equal committed trees and working copies. Owned source paths clean. Pending concurrent Admin/Auth inputs remain outside commits, so no whole-head receipt."
+  },
+  "pinnedGnosis": {
+    "loopback": "http://127.0.0.1:59179",
+    "chainId": 100,
+    "block": 48848261,
+    "blockHex": "0x2e95d85",
+    "blockHash": "0x03be75732ad238a0c04d6044a42d2fd7baec4b48f89afed9670886ca0477b60d",
+    "network": "gnosis-mainnet",
+    "provider": "Green Goods Alchemy; genuine earlier pin cache plus validated connector queue responses",
+    "methods": "pinned reads only; no transaction submission",
+    "testsPassed": 57,
+    "suites": 4,
+    "cases": {
+      "reserve": 9,
+      "purchase": 22,
+      "redemption": 10,
+      "connectedPilot": 16
+    },
+    "compileSeconds": 37.76,
+    "newConnectorQueueReads": 0,
+    "existingConformance": "Eight pinned CLC runtime hash assertions and existing documentation/artifact pin ce090fd3d5a7493c726fb939da39af15ef1c9d7c retained.",
+    "limits": "Fresh local pinned execution reuses genuine earlier read/cache responses. It is not fresh independent authentication of all Gnosis state, live transport, actual member signing or issuer capacity."
+  },
+  "signing": {
+    "commitGpgsign": true,
+    "format": "ssh",
+    "fingerprint": "SHA256:e6JoWyhjWlLTONmWfaucTHD0S3vvlflu2QRoW9XLoYk",
+    "permissionScope": "Approved dedicated agent socket access for signing only; no private key read or persistent sandbox change.",
+    "hooks": "Temporary exact copy of original hooks, identity check preserved; lint-staged --no-stash --no-hide-partially-staged. Persistent core.hooksPath remains .husky/_.",
+    "publication": "No push, PR, broadcast or deployment."
+  },
+  "recordChecks": {
+    "recordSelector": "1/1fresh format;0reused/unrun",
+    "planHubValidate": "34feature hubs passed",
+    "guidanceLinks": "94guidance files passed; existingDL-042stale-decision warning retained",
+    "commands": [
+      "node scripts/harness/plan-hub.mjs validate",
+      "node scripts/quality/check-guidance-links.mjs",
+      "git diff --check"
+    ]
+  }
+}

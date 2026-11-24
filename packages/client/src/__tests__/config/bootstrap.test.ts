@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../bootstrapPublic", () => ({ default: () => null }));
 vi.mock("../../bootstrapPwa", () => ({ default: () => null }));
+vi.mock("../../routes/PublicShell", () => ({ default: () => null }));
+vi.mock("../../views/Public/Home", () => ({ default: () => null }));
 
 import { getBootPresentation, loadClientBootstrap } from "../../config/bootstrap";
 

@@ -15,7 +15,8 @@ const UNAVAILABLE = {
 
 const COPY = {
   loadingId: "app.commitments.live.loading",
-  errorId: "app.commitments.live.error",
+  errorId: "app.commitments.live.error.title",
+  errorDescriptionId: "app.commitments.live.error.description",
   emptyTitleId: "app.commitments.live.emptyTitle",
   emptyDescriptionId: "app.commitments.live.emptyDescription",
 };
@@ -34,7 +35,7 @@ const meta: Meta<typeof CommitmentStateLadder> = {
   globals: { viewport: { value: "mobile" } },
   decorators: [
     (Story) => (
-      <div className="flex h-[560px] flex-col bg-bg-white-0">
+      <div className="flex h-[560px] flex-col bg-bg-canvas">
         <Story />
       </div>
     ),

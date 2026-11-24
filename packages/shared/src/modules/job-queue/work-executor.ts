@@ -176,6 +176,7 @@ export async function executeWorkJob(
   // Encode attestation data (includes IPFS upload)
   const encodeWork = deps.encodeWork ?? (await import("../../utils/eas/encoders")).encodeWorkData;
   const attestationData = await encodeWork(draft, chainId, {
+    uploaderAddress: job.userAddress as `0x${string}`,
     clientWorkId: payload.clientWorkId,
     checkpoint: payload.uploadCheckpoint,
     onCheckpoint: async (checkpoint) => {

@@ -19,6 +19,7 @@ vi.mock("../config/default-chain", () => ({
 }));
 
 import { getPublicCommitmentImpact } from "../modules/commitment-pooling/data-public-impact";
+import { communityRehearsals } from "./test-utils/public-rehearsal-fixtures";
 
 function containsAddressValue(value: unknown): boolean {
   if (typeof value === "string") return /^0x[0-9a-f]{40}$/i.test(value);
@@ -36,6 +37,8 @@ describe("public commitment impact reader", () => {
     vi.clearAllMocks();
     mocks.valueFunding.mockResolvedValue(1234n);
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
       if (operation === "getPublicCommitmentImpactPools")
         return {
           data: {
@@ -85,8 +88,8 @@ describe("public commitment impact reader", () => {
     expect(documents).not.toMatch(/provider|recipient/i);
     expect(containsAddressValue(result)).toBe(false);
     expect(result).toEqual({
-      commitmentsMade: 27n,
-      commitmentsFulfilled: 12n,
+      commitmentsMade: 22n,
+      commitmentsFulfilled: 10n,
       confirmedDisbursementTotal: 8000000000000000000n,
       confirmedDisbursementUsdCents: 1234n,
       partialData: false,
@@ -117,8 +120,8 @@ describe("public commitment impact reader", () => {
     mocks.valueFunding.mockRejectedValue(new Error("historical price missing"));
     const result = await getPublicCommitmentImpact(42161);
     expect(result).toMatchObject({
-      commitmentsMade: 27n,
-      commitmentsFulfilled: 12n,
+      commitmentsMade: 22n,
+      commitmentsFulfilled: 10n,
       confirmedDisbursementTotal: 8000000000000000000n,
       confirmedDisbursementUsdCents: null,
       partialData: true,
@@ -237,9 +240,182 @@ describe("public commitment impact reader", () => {
     );
     const result = await getPublicCommitmentImpact(42161);
     const poolFailed = failedOperation === "getPublicCommitmentImpactPools";
-    expect(result.commitmentsMade).toBe(poolFailed ? null : 27n);
-    expect(result.commitmentsFulfilled).toBe(poolFailed ? null : 12n);
+    expect(result.commitmentsMade).toBe(poolFailed ? null : 22n);
+    expect(result.commitmentsFulfilled).toBe(poolFailed ? null : 10n);
     expect(result.confirmedDisbursementUsdCents).toBe(poolFailed ? 1234n : null);
     expect(result.partialData).toBe(true);
+  });
+
+  it.each([
+    "new commitment",
+    "fulfilled lifecycle",
+  ])("withholds totals when rehearsal history changes during the aggregate reads: %s", async (change) => {
+    const normal = mocks.query.getMockImplementation();
+    let reads = 0;
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] !== "getPublicCommitmentExclusions") return normal?.(...args);
+      const rows = communityRehearsals();
+      if (++reads > 1) {
+        if (change === "new commitment")
+          rows.push({ ...rows[0]!, id: "42161-99", commitmentId: "99" });
+        else rows[0]!.countedLifecycleStates = ["FULFILLED"];
+      }
+      return { data: { Commitment: rows } };
+    });
+    const result = await getPublicCommitmentImpact(42161);
+    expect(result).toMatchObject({
+      commitmentsMade: null,
+      commitmentsFulfilled: null,
+      confirmedDisbursementTotal: null,
+      partialData: true,
+    });
+    expect(reads).toBe(2);
+  });
+
+  it("retains TAS funding independently of rehearsal exclusions", async () => {
+    const normal = mocks.query.getMockImplementation();
+    const amount = 7_200_000n * 10n ** 18n;
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicCommitmentImpactSettlement")
+        return {
+          data: { Disbursement_aggregate: { aggregate: { sum: { amount: String(amount) } } } },
+        };
+      if (args[2] === "getPublicCommitmentFundingReceipts")
+        return {
+          data: {
+            Disbursement: [200_000n, 7_000_000n].map((value, index) => ({
+              id: `42161-${index + 2}`,
+              amount: String(value * 10n ** 18n),
+              token: TOKEN,
+              executionKey: KEY,
+            })),
+          },
+        };
+      return normal?.(...args);
+    });
+    const result = await getPublicCommitmentImpact(42161);
+    expect(result.confirmedDisbursementTotal).toBe(amount);
+    expect(result.commitmentsMade).toBe(22n);
+    expect(
+      mocks.query.mock.calls.find((args) => args[2] === "getPublicCommitmentImpactSettlement")?.[0]
+    ).toContain("commitmentId: { _is_null: true }");
+  });
+
+  it("continues excluding a rehearsal after its lifecycle advances", async () => {
+    const normal = mocks.query.getMockImplementation();
+    const rows = communityRehearsals();
+    rows.find((row) => row.commitmentId === "15")!.state = "FULFILLED";
+    rows.find((row) => row.commitmentId === "15")!.acceptanceSeen = true;
+    rows.find((row) => row.commitmentId === "15")!.countedLifecycleStates = ["FULFILLED"];
+    mocks.query.mockImplementation(async (...args) =>
+      args[2] === "getPublicCommitmentExclusions"
+        ? { data: { Commitment: rows } }
+        : normal?.(...args)
+    );
+    const result = await getPublicCommitmentImpact(42161);
+    expect(result.commitmentsMade).toBe(22n);
+    expect(result.commitmentsFulfilled).toBe(9n);
+  });
+
+  it("excludes future rehearsal commitments and linked funding while retaining TAS", async () => {
+    const normal = mocks.query.getMockImplementation();
+    const rows = communityRehearsals();
+    rows.push({
+      ...rows[0]!,
+      id: "42161-99",
+      commitmentId: "99",
+      direction: "OFFER",
+      state: "FULFILLED",
+      countedLifecycleStates: ["FULFILLED"],
+    });
+    const receipts = [
+      { id: "42161-2", commitmentId: null, amount: "200000", token: TOKEN, executionKey: KEY },
+      { id: "42161-3", commitmentId: null, amount: "7000000", token: TOKEN, executionKey: KEY },
+      { id: "42161-4", commitmentId: "99", amount: "999999", token: TOKEN, executionKey: KEY },
+    ];
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicCommitmentExclusions") return { data: { Commitment: rows } };
+      if (args[2] === "getPublicCommitmentImpactPools")
+        return {
+          data: {
+            CommitmentPool_aggregate: {
+              aggregate: {
+                sum: {
+                  commitmentsOffered: "21",
+                  commitmentsRequested: "7",
+                  commitmentsFulfilled: "13",
+                },
+              },
+            },
+          },
+        };
+      if (
+        ["getPublicCommitmentImpactSettlement", "getPublicCommitmentFundingReceipts"].includes(
+          args[2]
+        )
+      ) {
+        const eligible = receipts.filter(
+          (row) =>
+            row.commitmentId === null || !args[1].excludedCommitments.includes(row.commitmentId)
+        );
+        return args[2] === "getPublicCommitmentFundingReceipts"
+          ? { data: { Disbursement: eligible } }
+          : {
+              data: {
+                Disbursement_aggregate: {
+                  aggregate: {
+                    sum: {
+                      amount: String(eligible.reduce((sum, row) => sum + BigInt(row.amount), 0n)),
+                    },
+                  },
+                },
+              },
+            };
+      }
+      return normal?.(...args);
+    });
+    const result = await getPublicCommitmentImpact(42161);
+    expect(result).toMatchObject({
+      commitmentsMade: 22n,
+      commitmentsFulfilled: 10n,
+      confirmedDisbursementTotal: 7200000n,
+      partialData: false,
+    });
+    expect(
+      mocks.valueFunding.mock.calls[0][0].map((receipt: { amount: bigint }) => receipt.amount)
+    ).toEqual([200000n, 7000000n]);
+    for (const [document, variables, operation] of mocks.query.mock.calls) {
+      if (
+        !["getPublicCommitmentImpactSettlement", "getPublicCommitmentFundingReceipts"].includes(
+          operation
+        )
+      )
+        continue;
+      expect(document).toContain("commitmentId: { _is_null: true }");
+      expect(document).toContain("commitmentId: { _nin: $excludedCommitments }");
+      expect(variables.excludedCommitments).toContain("99");
+    }
+  });
+
+  it("does not subtract the Arbitrum rehearsals from another chain", async () => {
+    const result = await getPublicCommitmentImpact(11155111);
+    expect(result.commitmentsMade).toBe(27n);
+    expect(result.commitmentsFulfilled).toBe(12n);
+    expect(mocks.query.mock.calls.some((args) => args[2] === "getPublicCommitmentExclusions")).toBe(
+      false
+    );
+  });
+
+  it("withholds derived claims if rehearsal classification cannot be read", async () => {
+    const normal = mocks.query.getMockImplementation();
+    mocks.query.mockImplementation(async (...args) =>
+      args[2] === "getPublicCommitmentExclusions"
+        ? { error: new Error("indexer unavailable") }
+        : normal?.(...args)
+    );
+    const result = await getPublicCommitmentImpact(42161);
+    expect(result.commitmentsMade).toBeNull();
+    expect(result.commitmentsFulfilled).toBeNull();
+    expect(result.confirmedDisbursementTotal).toBeNull();
   });
 });

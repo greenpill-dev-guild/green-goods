@@ -13,6 +13,7 @@ import {
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { useCommitmentComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useCommitmentComposerController";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -36,6 +37,7 @@ const BLOCKED_REASON_IDS: Record<BlockedReason, string> = {
   action: "app.compose.blocked.action",
   rowCount: "app.compose.blocked.rowCount",
   closedAction: "app.compose.blocked.closedAction",
+  uncheckedAction: "app.compose.blocked.uncheckedAction",
   noteTooLong: "app.compose.blocked.noteTooLong",
 };
 
@@ -91,11 +93,21 @@ function ComposeCommitmentForm({
   const [beat, setBeat] = useState<ComposerBeat>("what");
   const [readToEnd, setReadToEnd] = useState(false);
   const reviewEndRef = useRef<HTMLDivElement>(null);
-  const back = () => navigate("..");
+  // Opened as the next page, by Home's + (DL-181) or a promise's Offer It Again or Ask Again,
+  // Back steps back there; from a garden's Promises tab or a link, it goes up to the garden.
+  const dashboardNavigation = useDashboardNavigation();
+  const back = () => {
+    if (!dashboardNavigation.back()) navigate("..");
+  };
 
   const beatIndex = COMPOSER_BEATS.indexOf(beat);
   const isReview = beat === "review";
-  const validity = selectBeatValidity(beat, controller.values, controller.closedActionUIDs);
+  const validity = selectBeatValidity(
+    beat,
+    controller.values,
+    controller.closedActionUIDs,
+    controller.uncheckedActionUIDs
+  );
   const blockingReasonId = validity.reason ? BLOCKED_REASON_IDS[validity.reason] : null;
   const blockingLimit = validity.reason ? BLOCKED_REASON_LIMITS[validity.reason] : undefined;
   const closedActionUID = controller.closedActionUIDs[0];
@@ -147,7 +159,10 @@ function ComposeCommitmentForm({
             )}
           </p>
           <Button type="button" size="lg" onClick={back} className="mt-2">
-            {formatMessage({ id: "app.compose.done.back" })}
+            {/* It names the Promises tab only when that is where it goes. */}
+            {formatMessage({
+              id: dashboardNavigation.canGoBack ? "app.common.done" : "app.compose.done.back",
+            })}
           </Button>
         </div>
       </ComposeShell>
@@ -168,7 +183,7 @@ function ComposeCommitmentForm({
         title={actTitle}
         progress={beatIndex + 1}
         bar={
-          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,var(--safe-area-bottom))]">
             {!validity.canAdvance && blockingReasonId ? (
               <p className="mb-2 text-xs text-text-sub-600" id="compose-blocked" role="status">
                 {formatMessage(
@@ -227,6 +242,7 @@ function ComposeCommitmentForm({
             actions={controller.actions}
             openActions={controller.openActions}
             closedActionUIDs={controller.closedActionUIDs}
+            uncheckedActionUIDs={controller.uncheckedActionUIDs}
           />
         ) : null}
         {beat === "details" ? <ComposeDetails form={controller.form} /> : null}

@@ -1,3 +1,5 @@
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   type GroupToAddTo,
   useAddToGroup,
@@ -6,15 +8,14 @@ import { MAX_COMMITMENT_SET_SIZE } from "@green-goods/shared/hooks/commitment-po
 import type { Address } from "@green-goods/shared/types/domain";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextField } from "@/components/AdminTextField";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
-import { SeedFlowNote } from "../Seed/SeedFlowFooter";
 import { formatUsd } from "../poolPresentation";
+import { SeedFlowNote } from "../Seed/SeedFlowFooter";
 import { addToGroupStatus } from "./addToGroupStatus";
 
 /** How many a steward usually adds at once, as the seeding flow suggests. */
@@ -23,22 +24,27 @@ const COUNT_CHOICES = [1, 5, 10, 20] as const;
 /** Why an Add sent nothing, in the words the dialog shows under it. */
 const REFUSAL = {
   expired: {
-    id: "cockpit.garden.pool.add.expired",
+    id: "hub.garden.pool.add.expired",
     defaultMessage:
       "This group's deadline has passed, so nothing can join it. Start a new group instead.",
   },
   full: {
-    id: "cockpit.garden.pool.add.full",
+    id: "hub.garden.pool.add.full",
     defaultMessage:
       "{room, plural, =0 {You already hold as many offers as this pool allows at once, so none can be added now.} one {You have room for one more offer under this pool's limit. Choose fewer.} other {You have room for # more offers under this pool's limit. Choose fewer.}}",
   },
   "not-creator": {
-    id: "cockpit.garden.pool.add.notCreator",
+    id: "hub.garden.pool.add.notCreator",
     defaultMessage:
       "Only the steward who created this group can add to it. Start a new group instead.",
   },
+  "no-settlement-account": {
+    id: "hub.garden.pool.reward.needsSettlement",
+    defaultMessage:
+      "A reward is paid through this garden's settlement account, which isn't active.",
+  },
   blocked: {
-    id: "cockpit.garden.pool.reward.blocked",
+    id: "hub.garden.pool.reward.blocked",
     defaultMessage: "Nothing could be sent from here. Check your wallet, then try again.",
   },
 } as const;
@@ -126,38 +132,38 @@ export function AddToGroupDialog({
   const sends = retrying ? adding.retryCount : count;
   const from = (value: number, to: number) =>
     formatMessage(
-      { id: "cockpit.garden.pool.add.fromTo", defaultMessage: "{from} → {to}" },
+      { id: "hub.garden.pool.add.fromTo", defaultMessage: "{from} → {to}" },
       { from: value, to: to }
     );
   const upTo = (copies: number) =>
     formatMessage(
-      { id: "cockpit.garden.pool.reward.upTo", defaultMessage: "up to {amount}" },
+      { id: "hub.garden.pool.reward.upTo", defaultMessage: "up to {amount}" },
       { amount: formatUsd((rewardCents ?? 0n) * BigInt(copies), locale) }
     );
   const added = validCount ? count : 0;
   const summary: Array<[string, string]> = [
     [
       formatMessage({
-        id: "cockpit.garden.pool.add.inGroup",
+        id: "hub.garden.pool.add.inGroup",
         defaultMessage: "Promises in the group",
       }),
       from(counts.published, counts.published + added),
     ],
     [
       formatMessage({
-        id: "cockpit.garden.pool.add.available",
+        id: "hub.garden.pool.add.available",
         defaultMessage: "Available to take up",
       }),
       from(counts.available, counts.available + added),
     ],
     [
       formatMessage({
-        id: "cockpit.garden.pool.add.others",
+        id: "hub.garden.pool.add.others",
         defaultMessage: "In progress, kept, ended",
       }),
       formatMessage(
         {
-          id: "cockpit.garden.pool.add.othersValue",
+          id: "hub.garden.pool.add.othersValue",
           defaultMessage: "{inProgress}, {kept}, {ended} · unchanged",
         },
         { inProgress: counts.inProgress, kept: counts.kept, ended: counts.ended }
@@ -167,11 +173,11 @@ export function AddToGroupDialog({
       ? ([
           [
             formatMessage({
-              id: "cockpit.garden.pool.reward.allKept",
+              id: "hub.garden.pool.reward.allKept",
               defaultMessage: "Reward if all are kept",
             }),
             formatMessage(
-              { id: "cockpit.garden.pool.reward.totalFromTo", defaultMessage: "{from} → {to}" },
+              { id: "hub.garden.pool.reward.totalFromTo", defaultMessage: "{from} → {to}" },
               { from: upTo(counts.published), to: upTo(counts.published + added) }
             ),
           ],
@@ -187,59 +193,43 @@ export function AddToGroupDialog({
       setError(formatMessage(REFUSAL[outcome], { room: offerRoom ?? 0 }));
   };
 
-  const footer = (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="add-prompt-count">
-        <SeedFlowNote
-          phase={status.phase}
-          busy={status.busy}
-          mode={adding.mode}
-          count={sends}
-          reason={error}
-        />
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
-          type="button"
-          variant="outlined"
-          onClick={onBack}
-          disabled={status.busy || adding.locked}
-          className="self-start sm:self-auto"
-        >
-          {formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
-        <AdminButton
-          type="button"
-          variant="filled"
-          onClick={() => void add()}
-          disabled={status.busy || !validCount}
-          loading={status.busy}
-          className="w-full sm:w-auto"
-        >
-          {retrying
-            ? status.phase === "partial"
-              ? formatMessage(
-                  {
-                    id: "cockpit.garden.pool.seed.tryAgainCount",
-                    defaultMessage: "Try Again ({count})",
-                  },
-                  { count: sends }
-                )
-              : formatMessage({
-                  id: "cockpit.garden.pool.setup.retry",
-                  defaultMessage: "Try Again",
-                })
-            : formatMessage(
-                {
-                  id: "cockpit.garden.pool.add.submit",
-                  defaultMessage: "{count, plural, one {Add Promise} other {Add # Promises}}",
-                },
-                { count: validCount ? count : 1 }
-              )}
-        </AdminButton>
-      </div>
-    </div>
-  );
+  const footer: SheetActionsProps = {
+    layout: "steps",
+    note: (
+      <SeedFlowNote
+        testId="add-prompt-count"
+        phase={status.phase}
+        busy={status.busy}
+        mode={adding.mode}
+        count={sends}
+        reason={error}
+      />
+    ),
+    primary: {
+      label: retrying
+        ? status.phase === "partial"
+          ? formatMessage(
+              { id: "hub.garden.pool.seed.tryAgainCount", defaultMessage: "Try Again ({count})" },
+              { count: sends }
+            )
+          : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
+        : formatMessage(
+            {
+              id: "hub.garden.pool.add.submit",
+              defaultMessage: "{count, plural, one {Add Promise} other {Add # Promises}}",
+            },
+            { count: validCount ? count : 1 }
+          ),
+      onClick: () => void add(),
+      disabled: status.busy || !validCount,
+      loading: status.busy,
+    },
+    secondary: {
+      label: formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+      onClick: onBack,
+      disabled: status.busy || adding.locked,
+    },
+  };
 
   return (
     <AdminDialog
@@ -251,7 +241,7 @@ export function AddToGroupDialog({
       tone="garden"
       preventClose={status.busy}
       title={formatMessage({
-        id: "cockpit.garden.pool.add.title",
+        id: "hub.garden.pool.add.title",
         defaultMessage: "Add to This Group",
       })}
       target={
@@ -281,7 +271,7 @@ export function AddToGroupDialog({
         >
           <AdminCardTitle as="h4" id={`${fieldsetId}-count`}>
             {formatMessage({
-              id: "cockpit.garden.pool.add.countTitle",
+              id: "hub.garden.pool.add.countTitle",
               defaultMessage: "Promises to add",
             })}
           </AdminCardTitle>
@@ -297,13 +287,13 @@ export function AddToGroupDialog({
           </div>
           <AdminTextField
             label={formatMessage({
-              id: "cockpit.garden.pool.seed.promisesField",
+              id: "hub.garden.pool.seed.promisesField",
               defaultMessage: "Promises",
             })}
             value={String(count)}
             onChange={(event) => setCount(Number(event.target.value))}
             helperText={formatMessage({
-              id: "cockpit.garden.pool.add.countHint",
+              id: "hub.garden.pool.add.countHint",
               defaultMessage:
                 "Each one is taken up and kept on its own, like the rest of the group.",
             })}
@@ -312,7 +302,7 @@ export function AddToGroupDialog({
                 ? undefined
                 : formatMessage(
                     {
-                      id: "cockpit.garden.pool.seed.error.countTooMany",
+                      id: "hub.garden.pool.seed.error.countTooMany",
                       defaultMessage: "Create {max, number} promises or fewer at once.",
                     },
                     { max: MAX_COMMITMENT_SET_SIZE }
@@ -325,18 +315,15 @@ export function AddToGroupDialog({
         <section className="space-y-2">
           <AdminCardTitle as="h4">
             {formatMessage({
-              id: "cockpit.garden.pool.add.sameAs",
+              id: "hub.garden.pool.add.sameAs",
               defaultMessage: "Same as the group",
             })}
           </AdminCardTitle>
-          <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
+          <FactList frame="inset">
             {terms.map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="body-sm text-text-soft">{label}</dt>
-                <dd className="body-sm text-text-strong">{value}</dd>
-              </div>
+              <FactRow key={label} label={label} value={value} />
             ))}
-          </dl>
+          </FactList>
         </section>
       </div>
     </AdminDialog>

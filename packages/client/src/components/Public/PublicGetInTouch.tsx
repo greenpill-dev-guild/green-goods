@@ -128,7 +128,7 @@ export function PublicGetInTouch() {
               {formatMessage({
                 id: "public.home.getInTouch.description",
                 defaultMessage:
-                  "Quiet dispatches from the Gardens: what's planted, what's tended, what's ready to be funded.",
+                  "Quiet dispatches from the gardens: what's planted, what's tended, what's ready to be funded.",
               })}
             </EditorialLede>
           </div>
@@ -233,7 +233,7 @@ export function PublicGetInTouch() {
                 {formatMessage({
                   id: "public.home.getInTouch.callBody",
                   defaultMessage:
-                    "Talk with Green Goods about a Garden’s work, funding needs, or a larger grant or partnership.",
+                    "Talk with Green Goods about a garden’s work, funding needs, or a larger grant or partnership.",
                 })}
               </p>
               {/* A secondary on the walnut section: linen ink and outline. */}

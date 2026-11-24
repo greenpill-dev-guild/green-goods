@@ -17,17 +17,17 @@ interface ControlledChromeContractProps {
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
-    label: "Hub",
-    labelId: "cockpit.nav.hub",
+    id: "review",
+    label: "Review",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     path: "/garden",
     visible: true,
@@ -35,7 +35,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     path: "/community",
     visible: true,
@@ -77,8 +77,8 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
     <div
       className="admin-m3 workspace-canvas workspace-canvas-grid h-full min-h-[680px]"
       data-theme={theme}
-      data-tone="hub"
-      data-workspace="hub"
+      data-tone="review"
+      data-workspace="review"
     >
       <div className="canvas-area-top">
         <AppBar
@@ -102,23 +102,23 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
           <section className="canvas-route-card surface-section p-5" data-testid="solid-content">
             <div className="flex flex-col gap-4">
               <div>
-                <p className="text-label-md text-text-soft">Dense route surface</p>
-                <h1 className="text-title-md font-semibold text-text-strong">
+                <p className="type-label-sm text-text-soft">Dense route surface</p>
+                <h1 className="type-title-md font-semibold text-text-strong">
                   Controlled Chrome Boundary
                 </h1>
-                <p className="mt-2 max-w-2xl text-body-md text-text-sub">
+                <p className="mt-2 max-w-2xl type-body text-text-sub">
                   Route cards, form panels, records, and tables stay solid while persistent chrome
                   carries the subtle liquid material.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="surface-card p-4">
-                  <p className="text-label-md text-text-soft">Record panel</p>
-                  <p className="mt-1 text-title-sm text-text-strong">Solid material</p>
+                  <p className="type-label-sm text-text-soft">Record panel</p>
+                  <p className="mt-1 type-title-sm text-text-strong">Solid material</p>
                 </div>
                 <div className="surface-card p-4">
-                  <p className="text-label-md text-text-soft">Form panel</p>
-                  <p className="mt-1 text-title-sm text-text-strong">No glass wash</p>
+                  <p className="type-label-sm text-text-soft">Form panel</p>
+                  <p className="mt-1 type-title-sm text-text-strong">No glass wash</p>
                 </div>
               </div>
             </div>
@@ -129,7 +129,7 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
       <div className="canvas-area-bottom">
         <NavigationBar
           slots={slots}
-          activePath="/hub"
+          activePath="/review"
           onNavigate={fn()}
           fab={{
             actions: [
@@ -137,13 +137,13 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
                 id: "edit-garden",
                 icon: RiSeedlingLine,
                 label: "Edit Garden",
-                labelId: "cockpit.garden.action.editGarden",
+                labelId: "hub.garden.action.editGarden",
               },
               {
                 id: "view-public",
                 icon: RiTeamLine,
                 label: "View Public",
-                labelId: "cockpit.garden.action.viewPublic",
+                labelId: "hub.garden.action.viewPublic",
               },
             ],
             onAction: fn(),
@@ -180,7 +180,7 @@ const meta = {
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[720px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
 } satisfies Meta<typeof ControlledChromeContract>;

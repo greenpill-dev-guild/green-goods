@@ -1,0 +1,6 @@
+{
+  "upgrade": "KarmaGAPModule",
+  "supersedesCreationCodeHash": "0x47c6ebff2b94fda8602196eb6fe2aba2495fea411ec23826164a419163c2ba69",
+  "expectedImplementationCreationCodeHash": "0xee821ecc3a0835bdbd50f19faff31060bb52db46fe388f7f54f88d65a989283f",
+  "reason": "The current full production input set reproduces this candidate hash on macOS and Linux with solc 0.8.28. Karma's 26 transitive sources and compiler settings are unchanged; via-IR whole-input code generation changed after Hats sync hardening. The unique Project Update titles and Work submission dates remain. The historical manifest and queued packets keep their original identities; this pin does not authorize a Karma upgrade."
+}

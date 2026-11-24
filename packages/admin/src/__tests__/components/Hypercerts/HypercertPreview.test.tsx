@@ -174,61 +174,26 @@ describe("components/Hypercerts/HypercertPreview", () => {
   });
 
   describe("preview rendering", () => {
-    it("renders hypercert title", () => {
+    it("renders metadata, scopes, dates, units and recipient distribution", () => {
       render(createElement(HypercertPreview, defaultProps));
-
       expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
-    });
-
-    it("renders hypercert description", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
       expect(
         screen.getByText("Documenting regenerative work across community gardens.")
       ).toBeInTheDocument();
-    });
-
-    it("renders hypercert image", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
-      const image = screen.getByTestId("hypercert-image");
-      expect(image).toHaveAttribute("src", "ipfs://QmTestImage123456");
-    });
-
-    it("renders garden name", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
+      expect(screen.getByTestId("hypercert-image")).toHaveAttribute(
+        "src",
+        "ipfs://QmTestImage123456"
+      );
       expect(screen.getByText("Test Community Garden")).toBeInTheDocument();
-    });
-
-    it("renders attestation count", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
       expect(screen.getByText(/5 attestations bundled/i)).toBeInTheDocument();
-    });
-
-    it("renders work scope", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
       expect(screen.getByText(/tree planting.*habitat restoration/i)).toBeInTheDocument();
-    });
-
-    it("renders impact scope", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
       expect(screen.getByText(/biodiversity.*carbon sequestration/i)).toBeInTheDocument();
-    });
-
-    it("renders work timeframe", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
       expect(screen.getByText(/Oct.*Dec/)).toBeInTheDocument();
-    });
-
-    it("renders total units", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
       expect(screen.getByText(/100,000,000|100000000/)).toBeInTheDocument();
+      expect(screen.getByTestId("distribution-chart")).toBeInTheDocument();
+      for (const label of ["Alice", "Bob", "Charlie", "50.00%", "30.00%", "20.00%"]) {
+        expect(screen.getByText(label)).toBeInTheDocument();
+      }
     });
   });
 
@@ -256,28 +221,6 @@ describe("components/Hypercerts/HypercertPreview", () => {
   });
 
   describe("distribution section", () => {
-    it("renders distribution chart", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
-      expect(screen.getByTestId("distribution-chart")).toBeInTheDocument();
-    });
-
-    it("renders allowlist table with recipients", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
-      expect(screen.getByText("Alice")).toBeInTheDocument();
-      expect(screen.getByText("Bob")).toBeInTheDocument();
-      expect(screen.getByText("Charlie")).toBeInTheDocument();
-    });
-
-    it("displays percentage for each recipient", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
-      expect(screen.getByText("50.00%")).toBeInTheDocument();
-      expect(screen.getByText("30.00%")).toBeInTheDocument();
-      expect(screen.getByText("20.00%")).toBeInTheDocument();
-    });
-
     it("does not render distribution section when allowlist is empty", () => {
       render(
         createElement(HypercertPreview, {
@@ -291,13 +234,6 @@ describe("components/Hypercerts/HypercertPreview", () => {
   });
 
   describe("edit navigation", () => {
-    it("shows Edit button for metadata section", () => {
-      render(createElement(HypercertPreview, defaultProps));
-
-      const editButtons = screen.getAllByText(/edit/i);
-      expect(editButtons.length).toBeGreaterThan(0);
-    });
-
     it("calls onEditMetadata when metadata Edit clicked", async () => {
       const onEditMetadata = vi.fn();
       const user = userEvent.setup();
@@ -336,119 +272,37 @@ describe("components/Hypercerts/HypercertPreview", () => {
   });
 
   describe("empty state", () => {
-    it("shows empty message when metadata is null", () => {
-      render(
-        createElement(HypercertPreview, {
-          ...defaultProps,
-          metadata: null,
-        })
-      );
-
-      // Should show empty state message
+    it("shows the empty message without a preview card when metadata is null", () => {
+      render(createElement(HypercertPreview, { ...defaultProps, metadata: null }));
       expect(
         screen.getByText(/preview will appear once attestations are selected/i)
       ).toBeInTheDocument();
-    });
-
-    it("does not show preview card when metadata is null", () => {
-      render(
-        createElement(HypercertPreview, {
-          ...defaultProps,
-          metadata: null,
-        })
-      );
-
       expect(screen.queryByText("Regenerative Impact Q4 2025")).not.toBeInTheDocument();
       expect(screen.queryByTestId("hypercert-image")).not.toBeInTheDocument();
     });
   });
 
   describe("minting state transitions", () => {
-    // The mint's progress shows in the Review's status row at the wizard level,
-    // not inside HypercertPreview. The preview remains visible but is dimmed
-    // when minting is in progress.
-
-    it("shows dimmed preview when status is uploading_metadata", () => {
-      const { container } = render(
-        createElement(HypercertPreview, {
-          ...defaultProps,
-          mintingState: createMockMintingState({ status: "uploading_metadata" }),
-        })
-      );
-
-      // Preview content remains visible
-      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
-      // Container has opacity class indicating dimming
-      expect(container.querySelector(".opacity-60")).toBeInTheDocument();
-    });
-
-    it("shows dimmed preview when status is uploading_allowlist", () => {
-      const { container } = render(
-        createElement(HypercertPreview, {
-          ...defaultProps,
-          mintingState: createMockMintingState({ status: "uploading_allowlist" }),
-        })
-      );
-
-      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
-      expect(container.querySelector(".opacity-60")).toBeInTheDocument();
-    });
-
-    it("shows dimmed preview when status is pending", () => {
-      const { container } = render(
-        createElement(HypercertPreview, {
-          ...defaultProps,
-          mintingState: createMockMintingState({ status: "pending" }),
-        })
-      );
-
-      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
-      expect(container.querySelector(".opacity-60")).toBeInTheDocument();
-    });
-
-    it("shows full preview when status is confirmed", () => {
+    it.each([
+      ["uploading_metadata", true],
+      ["uploading_allowlist", true],
+      ["pending", true],
+      ["confirmed", false],
+      ["failed", false],
+      ["idle", false],
+    ] as const)("keeps the preview visible for %s (dimmed=%s)", (status, dimmed) => {
       const { container } = render(
         createElement(HypercertPreview, {
           ...defaultProps,
           mintingState: createMockMintingState({
-            status: "confirmed",
-            hypercertId: "12345",
-            txHash: "0xabc123",
+            status,
+            ...(status === "confirmed" ? { hypercertId: "12345", txHash: "0xabc123" } : {}),
+            ...(status === "failed" ? { error: "Transaction reverted" } : {}),
           }),
         })
       );
-
       expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
-      // Not dimmed when confirmed
-      expect(container.querySelector(".opacity-60")).not.toBeInTheDocument();
-    });
-
-    it("shows full preview when status is failed", () => {
-      const { container } = render(
-        createElement(HypercertPreview, {
-          ...defaultProps,
-          mintingState: createMockMintingState({
-            status: "failed",
-            error: "Transaction reverted",
-          }),
-        })
-      );
-
-      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
-      // Not dimmed when failed (user needs to see and interact)
-      expect(container.querySelector(".opacity-60")).not.toBeInTheDocument();
-    });
-
-    it("shows full preview when status is idle", () => {
-      const { container } = render(
-        createElement(HypercertPreview, {
-          ...defaultProps,
-          mintingState: createMockMintingState({ status: "idle" }),
-        })
-      );
-
-      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
-      expect(container.querySelector(".opacity-60")).not.toBeInTheDocument();
+      expect(container.querySelector(".opacity-60") !== null).toBe(dimmed);
     });
   });
 

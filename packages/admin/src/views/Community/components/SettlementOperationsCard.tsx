@@ -1,15 +1,15 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import type { SettlementOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useSettlementOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/useSettlementOperationsController";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
-import { AdminSettingRow } from "@/components/AdminSettingRow";
 
 /** The protocol pool's mount point: reads through the shared controller, renders the card. */
 export function SettlementOperationsPanel({ chainId }: { chainId: number }) {
@@ -43,13 +43,13 @@ export function SettlementOperationsCard({
   const deliveryLabel =
     enabled === null
       ? formatMessage({
-          id: "cockpit.community.settlementOps.delivery.unread",
+          id: "hub.community.settlementOps.delivery.unread",
           defaultMessage: "Not read",
         })
       : enabled
-        ? formatMessage({ id: "cockpit.community.settlementOps.delivery.on", defaultMessage: "On" })
+        ? formatMessage({ id: "hub.community.settlementOps.delivery.on", defaultMessage: "On" })
         : formatMessage({
-            id: "cockpit.community.settlementOps.delivery.off",
+            id: "hub.community.settlementOps.delivery.off",
             defaultMessage: "Off",
           });
 
@@ -58,12 +58,12 @@ export function SettlementOperationsCard({
     // What happens next, not a hash fragment: the card reads the switch back.
     toastService.success({
       title: formatMessage({
-        id: "cockpit.community.settlementOps.status.submittedTitle",
+        id: "hub.community.settlementOps.status.submittedTitle",
         defaultMessage: "Transaction submitted",
       }),
       message: formatMessage({
-        id: "cockpit.community.settlementOps.status.submittedMessage",
-        defaultMessage: "The switch reads back from the chain once it confirms.",
+        id: "hub.community.settlementOps.status.submittedMessage",
+        defaultMessage: "The switch shows its new setting once the transaction confirms.",
       }),
     });
   };
@@ -78,15 +78,15 @@ export function SettlementOperationsCard({
       <div>
         <AdminCardTitle>
           {formatMessage({
-            id: "cockpit.community.settlementOps.title",
+            id: "hub.community.settlementOps.title",
             defaultMessage: "Settlement Operations",
           })}
         </AdminCardTitle>
-        <p className="mt-1 body-xs text-text-soft">
+        <p className="mt-1 type-body text-text-soft">
           {formatMessage({
-            id: "cockpit.community.settlementOps.description",
+            id: "hub.community.settlementOps.description",
             defaultMessage:
-              "Module-level switches for G$ settlement. Only the module owner can change them; deployers can see them.",
+              "Module-level switches for G$ settlement. Only the module owner can change them; the Green Goods team can see them.",
           })}
         </p>
       </div>
@@ -94,91 +94,92 @@ export function SettlementOperationsCard({
       {operations.isError ? (
         <Alert variant="error">
           {formatMessage({
-            id: "cockpit.community.settlementOps.readError",
+            id: "hub.community.settlementOps.readError",
             defaultMessage: "Couldn't read the settlement module",
           })}
         </Alert>
       ) : null}
 
-      <AdminSettingRow
-        label={formatMessage({
-          id: "cockpit.community.settlementOps.paused.label",
-          defaultMessage: "Settlement source",
-        })}
-      >
-        <StatusBadge variant={operations.sourcePaused ? "warning" : "success"} size="sm">
-          {operations.sourcePaused
-            ? formatMessage({
-                id: "cockpit.community.settlementOps.paused.on",
-                defaultMessage: "Paused",
-              })
-            : formatMessage({
-                id: "cockpit.community.settlementOps.paused.off",
-                defaultMessage: "Running",
-              })}
-        </StatusBadge>
-      </AdminSettingRow>
-
-      <AdminSettingRow
-        labelId="settlement-ops-delivery"
-        label={formatMessage({
-          id: "cockpit.community.settlementOps.delivery.label",
-          defaultMessage: "Gardener delivery",
-        })}
-      >
-        <div className="flex flex-col items-end gap-2">
-          <StatusBadge
-            variant={enabled ? "success" : "neutral"}
-            size="sm"
-            data-testid="gardener-delivery-state"
-          >
-            {deliveryLabel}
-          </StatusBadge>
-        </div>
-      </AdminSettingRow>
+      <FactList frame="inset">
+        <FactRow
+          label={formatMessage({
+            id: "hub.community.settlementOps.paused.label",
+            defaultMessage: "Settlement source",
+          })}
+          value={
+            <StatusBadge variant={operations.sourcePaused ? "warning" : "success"} size="sm">
+              {operations.sourcePaused
+                ? formatMessage({
+                    id: "hub.community.settlementOps.paused.on",
+                    defaultMessage: "Paused",
+                  })
+                : formatMessage({
+                    id: "hub.community.settlementOps.paused.off",
+                    defaultMessage: "Running",
+                  })}
+            </StatusBadge>
+          }
+        />
+        <FactRow
+          labelId="settlement-ops-delivery"
+          label={formatMessage({
+            id: "hub.community.settlementOps.delivery.label",
+            defaultMessage: "Gardener delivery",
+          })}
+          value={
+            <StatusBadge
+              variant={enabled ? "success" : "neutral"}
+              size="sm"
+              data-testid="gardener-delivery-state"
+            >
+              {deliveryLabel}
+            </StatusBadge>
+          }
+        />
+      </FactList>
 
       <details className="border-t border-stroke-soft pt-3">
-        <summary className="admin-hit-target relative rounded-[var(--m3-shape-sm)] py-1 body-sm font-medium text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]">
+        <summary className="admin-hit-target relative rounded-[var(--m3-shape-sm)] py-1 type-body font-medium text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]">
           {formatMessage({
-            id: "cockpit.community.settlementOps.delivery.settings",
+            id: "hub.community.settlementOps.delivery.settings",
             defaultMessage: "Delivery Settings",
           })}
         </summary>
         <div className="mt-3 space-y-3">
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({
-              id: "cockpit.community.settlementOps.delivery.description",
+              id: "hub.community.settlementOps.delivery.description",
               defaultMessage:
                 "When on, contributor payouts can be prepared and delivered to individual members on Celo. When off, only garden Safe payouts run.",
             })}
           </p>
           <div className="flex flex-col items-stretch">
             {operations.canConfigureDelivery && enabled !== null ? (
-              <AdminButton
+              <Button
                 type="button"
-                variant={enabled ? "outlined" : "filled"}
-                size="sm"
+                emphasis={enabled ? "secondary" : "primary"}
+                size="compact"
                 disabled={operations.isPending || operations.lastAct?.phase === "submitted"}
                 loading={operations.isPending}
                 onClick={() => setConfirming(!enabled)}
               >
                 {enabled
                   ? formatMessage({
-                      id: "cockpit.community.settlementOps.delivery.disable",
+                      id: "hub.community.settlementOps.delivery.disable",
                       defaultMessage: "Disable Gardener Delivery…",
                     })
                   : formatMessage({
-                      id: "cockpit.community.settlementOps.delivery.enable",
+                      id: "hub.community.settlementOps.delivery.enable",
                       defaultMessage: "Enable Gardener Delivery…",
                     })}
-              </AdminButton>
+              </Button>
             ) : null}
           </div>
           {!operations.canConfigureDelivery ? (
-            <p className="body-xs text-text-soft" data-testid="gardener-delivery-owner-only">
+            <p className="type-meta text-text-soft" data-testid="gardener-delivery-owner-only">
               {formatMessage(
                 {
-                  id: "cockpit.community.settlementOps.delivery.ownerOnly",
+                  id: "hub.community.settlementOps.delivery.ownerOnly",
                   defaultMessage: "Only the settlement module owner ({owner}) can change this.",
                 },
                 { owner: operations.owner ? shortAddress(operations.owner) : "—" }
@@ -192,8 +193,8 @@ export function SettlementOperationsCard({
         <p
           className={
             operations.lastAct.phase === "failed"
-              ? "body-xs text-error-dark"
-              : "body-xs text-text-soft"
+              ? "type-meta text-error-dark"
+              : "type-meta text-text-soft"
           }
           role="status"
           data-testid="gardener-delivery-status"
@@ -201,24 +202,24 @@ export function SettlementOperationsCard({
         >
           {operations.lastAct.phase === "signing"
             ? formatMessage({
-                id: "cockpit.community.settlementOps.status.signing",
+                id: "hub.community.settlementOps.status.signing",
                 defaultMessage: "Waiting for the wallet or Safe to accept the transaction…",
               })
             : operations.lastAct.phase === "submitted"
               ? formatMessage({
-                  id: "cockpit.community.settlementOps.status.submitted",
+                  id: "hub.community.settlementOps.status.submitted",
                   defaultMessage: "Submitted. Awaiting Safe execution and on-chain confirmation.",
                 })
               : operations.lastAct.phase === "confirmed"
                 ? formatMessage(
                     {
-                      id: "cockpit.community.settlementOps.status.confirmed",
+                      id: "hub.community.settlementOps.status.confirmed",
                       defaultMessage: "Confirmed on chain: gardener delivery is {state}.",
                     },
                     { state: deliveryLabel.toLowerCase() }
                   )
                 : formatMessage({
-                    id: "cockpit.community.settlementOps.status.failed",
+                    id: "hub.community.settlementOps.status.failed",
                     defaultMessage:
                       "The transaction failed or was rejected. The switch is unchanged.",
                   })}
@@ -226,17 +227,17 @@ export function SettlementOperationsCard({
       ) : null}
 
       {operations.lastAct?.phase === "submitted" ? (
-        <AdminButton
+        <Button
           type="button"
-          variant="outlined"
-          size="sm"
+          emphasis="secondary"
+          size="compact"
           onClick={() => void operations.checkDeliveryStatus()}
         >
           {formatMessage({
-            id: "cockpit.community.settlementOps.status.check",
+            id: "hub.community.settlementOps.status.check",
             defaultMessage: "Check on Chain",
           })}
-        </AdminButton>
+        </Button>
       ) : null}
 
       <AdminConfirmDialog
@@ -247,23 +248,23 @@ export function SettlementOperationsCard({
         title={
           confirming
             ? formatMessage({
-                id: "cockpit.community.settlementOps.delivery.confirmTitle",
+                id: "hub.community.settlementOps.delivery.confirmTitle",
                 defaultMessage: "Enable Gardener Delivery?",
               })
             : formatMessage({
-                id: "cockpit.community.settlementOps.delivery.confirmDisableTitle",
+                id: "hub.community.settlementOps.delivery.confirmDisableTitle",
                 defaultMessage: "Disable Gardener Delivery?",
               })
         }
         description={
           confirming
             ? formatMessage({
-                id: "cockpit.community.settlementOps.delivery.confirmBody",
+                id: "hub.community.settlementOps.delivery.confirmBody",
                 defaultMessage:
                   "Enabling lets stewards in every garden prepare and dispatch G$ payouts to individual members on Celo. It does not move funds by itself. The switch is read back from the chain after the transaction confirms.",
               })
             : formatMessage({
-                id: "cockpit.community.settlementOps.delivery.confirmDisableBody",
+                id: "hub.community.settlementOps.delivery.confirmDisableBody",
                 defaultMessage:
                   "Disabling blocks new contributor payout preparation and member delivery in every garden. Garden Safe payouts keep running.",
               })
@@ -271,11 +272,11 @@ export function SettlementOperationsCard({
         confirmLabel={
           confirming
             ? formatMessage({
-                id: "cockpit.community.settlementOps.delivery.confirmEnable",
+                id: "hub.community.settlementOps.delivery.confirmEnable",
                 defaultMessage: "Enable Gardener Delivery",
               })
             : formatMessage({
-                id: "cockpit.community.settlementOps.delivery.confirmDisable",
+                id: "hub.community.settlementOps.delivery.confirmDisable",
                 defaultMessage: "Disable Gardener Delivery",
               })
         }

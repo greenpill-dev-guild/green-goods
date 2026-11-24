@@ -1,8 +1,8 @@
 /**
  * Work media as files on the device, for stories that stage it before it
- * uploads. Three small drawings stand in for field photos: real JPEGs, since a
- * flow counts and previews only real photo types, each padded to a photo's
- * size so a tile's size line reads as it would for a real upload.
+ * uploads. Three small field photos (sources in `fixture-art/LICENSES.md`), each
+ * padded to a phone photo's size so a tile's size line reads as it would for a
+ * real upload.
  */
 import FENCE_LEANING_JPEG from "./fixture-art/fence-leaning.jpg?inline";
 import FENCE_UPRIGHT_JPEG from "./fixture-art/fence-upright.jpg?inline";
@@ -22,7 +22,7 @@ function bytesOf(dataUrl: string) {
 }
 
 /**
- * One drawing as a JPEG photo of the given size. The padding follows the
+ * One photo as a JPEG file of the given size. The padding follows the
  * picture's end marker, where a decoder stops reading, so it draws the same.
  */
 export function stagedWorkPhoto(

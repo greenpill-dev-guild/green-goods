@@ -1,5 +1,12 @@
 import type { Address } from "../../types/domain";
 import { useQuery } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
+import {
+  getGardenFenceFilters,
+  reconcileStewardHints,
+  getServerGardenFenceFilters,
+  subscribeToGardenFences,
+} from "../../modules/garden/garden-departures";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
@@ -9,6 +16,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 import { roleKeys } from "../../config/query-keys/identity";
+import { useProtocolRoles } from "../roles/useProtocolRoles";
 
 const GET_STEWARD_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetStewardGardens($steward: [String!]!, $chainId: Int!) {
@@ -33,7 +41,7 @@ interface StewardGarden {
  * Fetches gardens where the given address is a steward
  * (the indexer still spells the membership field `operators`)
  */
-async function fetchStewardGardens(address: string, chainId: number): Promise<StewardGarden[]> {
+async function fetchStewardGardens(address: Address, chainId: number): Promise<StewardGarden[]> {
   const { data, error } = await greenGoodsIndexer.query(
     GET_STEWARD_GARDENS,
     { steward: [address.toLowerCase()], chainId },
@@ -48,21 +56,39 @@ async function fetchStewardGardens(address: string, chainId: number): Promise<St
     throw error;
   }
 
-  return data?.Garden ?? [];
+  const gardens = data?.Garden ?? [];
+  await reconcileStewardHints(gardens, chainId, address);
+  return gardens;
 }
+
+// The allowlist behind `isDeployer`. Admin reaches the managing hook through this declared leaf.
+export { useGardenCreators, type GardenCreators } from "../blockchain/useDeploymentRegistry";
 
 export type UserRole = "deployer" | "steward" | "user";
 
 export interface RoleInfo {
   role: UserRole;
+  /** May create gardens: the deployment registry's owner or an account on its allowlist. */
   isDeployer: boolean;
+  /** Effective Team Hat membership. Other garden and protocol roles do not imply Team. */
+  isProtocolTeam: boolean;
+  isProductLead: boolean;
+  isAgent: boolean;
+  isTechnicalDeployer: boolean;
+  protocolRolesError: boolean;
+  /**
+   * The deployment registry has never answered, so `isDeployer` is unknown rather than false. A
+   * failed refresh over an earlier answer keeps that answer and does not set this.
+   */
+  deploymentPermissionsError: boolean;
   isSteward: boolean;
   stewardGardens: StewardGarden[];
   loading: boolean;
   /**
-   * True when the steward-gardens indexer query failed (network/indexer
-   * outage), as opposed to a successful query that genuinely returned none.
-   * Lets the admin distinguish a retryable error from real "no access".
+   * True when the steward-gardens indexer query or the protocol-role chain read
+   * failed, as opposed to reads that answered and genuinely found none. Lets the
+   * admin distinguish a retryable error from real "no access", so its message
+   * must not name either source.
    */
   gardensError: boolean;
   deploymentPermissions: {
@@ -87,10 +113,11 @@ export function useRole(): RoleInfo {
   const ready = auth.isReady;
 
   const deploymentRegistry = useDeploymentRegistry();
+  const protocolRoles = useProtocolRoles();
 
   // Use React Query for fetching steward gardens
   const {
-    data: stewardGardens = [],
+    data: indexedStewardGardens = [],
     isLoading: isFetching,
     isError: gardensError,
   } = useQuery({
@@ -100,10 +127,24 @@ export function useRole(): RoleInfo {
     staleTime: STALE_TIMES.baseLists,
     // Offline-first: prefer cached data
     networkMode: "offlineFirst",
+    // As with the deployment registry: a read with no answer, restarted by a mount or a window
+    // focus, reopens the Hub's access gate and loops it. Try Again and a reconnect read it again,
+    // and an answer, once there is one, still refreshes on focus.
+    retryOnMount: false,
+    refetchOnWindowFocus: (query) => query.state.data !== undefined,
   });
 
+  const fences = useSyncExternalStore(
+    subscribeToGardenFences,
+    getGardenFenceFilters,
+    getServerGardenFenceFilters
+  );
+  const stewardGardens = normalizedAddress
+    ? fences.stewardHints(indexedStewardGardens, chainId, normalizedAddress)
+    : [];
   const isSteward = stewardGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
+  const isProtocolTeam = protocolRoles.team;
 
   // Determine primary role based on capabilities
   let role: UserRole = "user";
@@ -116,10 +157,16 @@ export function useRole(): RoleInfo {
   return {
     role,
     isDeployer,
+    isProtocolTeam,
+    isProductLead: protocolRoles.productLead,
+    isAgent: protocolRoles.agents,
+    isTechnicalDeployer: protocolRoles.deployer,
+    protocolRolesError: protocolRoles.isError,
+    deploymentPermissionsError: deploymentRegistry.error !== undefined,
     isSteward,
     stewardGardens,
-    loading: !ready || isFetching || deploymentRegistry.loading,
-    gardensError,
+    loading: !ready || isFetching || deploymentRegistry.loading || protocolRoles.isLoading,
+    gardensError: gardensError || protocolRoles.isError,
     deploymentPermissions: {
       canDeploy: deploymentRegistry.canDeploy,
       isOwner: deploymentRegistry.isOwner,

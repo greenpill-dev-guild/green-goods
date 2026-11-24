@@ -66,11 +66,11 @@ export function buildStepConfigs(
         return {
           id,
           title: formatMessage({
-            id: "cockpit.garden.pool.setup.step.how",
+            id: "hub.garden.pool.setup.step.how",
             defaultMessage: "How It Works",
           }),
           description: formatMessage({
-            id: "cockpit.garden.pool.setup.step.howHint",
+            id: "hub.garden.pool.setup.step.howHint",
             defaultMessage: "The agreement and the limit",
           }),
         };
@@ -79,15 +79,15 @@ export function buildStepConfigs(
           id,
           title: isCampaign
             ? formatMessage({
-                id: "cockpit.garden.pool.setup.step.campaign",
+                id: "hub.garden.pool.setup.step.campaign",
                 defaultMessage: "The Campaign",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.setup.step.season",
+                id: "hub.garden.pool.setup.step.season",
                 defaultMessage: "The Season",
               }),
           description: formatMessage({
-            id: "cockpit.garden.pool.setup.step.cycleHint",
+            id: "hub.garden.pool.setup.step.cycleHint",
             defaultMessage: "Name and dates",
           }),
         };
@@ -95,11 +95,11 @@ export function buildStepConfigs(
         return {
           id,
           title: formatMessage({
-            id: "cockpit.garden.pool.setup.step.split",
+            id: "hub.garden.pool.setup.step.split",
             defaultMessage: "The Split",
           }),
           description: formatMessage({
-            id: "cockpit.garden.pool.setup.step.splitHint",
+            id: "hub.garden.pool.setup.step.splitHint",
             defaultMessage: "Six roles, one hundred percent",
           }),
         };
@@ -107,11 +107,11 @@ export function buildStepConfigs(
         return {
           id,
           title: formatMessage({
-            id: "cockpit.garden.pool.setup.step.open",
+            id: "hub.garden.pool.setup.step.open",
             defaultMessage: "Open",
           }),
           description: formatMessage({
-            id: "cockpit.garden.pool.setup.step.openHint",
+            id: "hub.garden.pool.setup.step.openHint",
             defaultMessage: "Check, then sign",
           }),
         };
@@ -127,16 +127,16 @@ export function setupFlowTitle(
 ): string {
   return intent === "first-run"
     ? formatMessage({
-        id: "cockpit.garden.pool.setup.title",
-        defaultMessage: "Set Up Commitments",
+        id: "hub.garden.pool.setup.title",
+        defaultMessage: "Set Up Promises",
       })
     : isCampaign
       ? formatMessage({
-          id: "cockpit.garden.pool.setup.campaignTitle",
+          id: "hub.garden.pool.setup.campaignTitle",
           defaultMessage: "Start a Campaign",
         })
       : formatMessage({
-          id: "cockpit.garden.pool.setup.seasonTitle",
+          id: "hub.garden.pool.setup.seasonTitle",
           defaultMessage: "Start a Season",
         });
 }
@@ -168,34 +168,34 @@ export function stepBlockedReason(id: StepId, input: StepValidity): StepBlockedR
     case "how":
       if (input.purpose.trim().length === 0)
         return {
-          id: "cockpit.garden.pool.setup.blocked.purpose",
+          id: "hub.garden.pool.setup.blocked.purpose",
           defaultMessage: "Say what this pool is for.",
         };
       // An agreement written before the limit can load longer than it, and
       // setup pins it again, so it has to fit before the flow moves on.
       if (input.purpose.length > POOL_PURPOSE_MAX_LENGTH)
         return {
-          id: "cockpit.garden.pool.setup.blocked.purposeTooLong",
+          id: "hub.garden.pool.setup.blocked.purposeTooLong",
           defaultMessage: "Shorten the agreement to {max, number} characters or fewer.",
           values: { max: POOL_PURPOSE_MAX_LENGTH },
         };
       if (input.capValue === null || input.capValue <= 0n)
         return {
-          id: "cockpit.garden.pool.setup.blocked.cap",
-          defaultMessage: "Say how many commitments one person can hold at once.",
+          id: "hub.garden.pool.setup.blocked.cap",
+          defaultMessage: "Say how many promises one person can hold at once.",
         };
       return null;
     case "cycle":
       if (input.name.trim().length === 0)
-        return { id: "cockpit.garden.pool.setup.blocked.name", defaultMessage: "Give it a name." };
+        return { id: "hub.garden.pool.setup.blocked.name", defaultMessage: "Give it a name." };
       if (!input.datesValid)
         return {
-          id: "cockpit.garden.pool.setup.blocked.dates",
+          id: "hub.garden.pool.setup.blocked.dates",
           defaultMessage: "Choose an end date after the start.",
         };
       if (input.secondSeasonBlocked)
         return {
-          id: "cockpit.garden.pool.setup.blocked.secondSeason",
+          id: "hub.garden.pool.setup.blocked.secondSeason",
           defaultMessage: "A season is already running here, so open a campaign instead.",
         };
       return null;
@@ -203,7 +203,7 @@ export function stepBlockedReason(id: StepId, input: StepValidity): StepBlockedR
       return input.splitValid
         ? null
         : {
-            id: "cockpit.garden.pool.setup.blocked.split",
+            id: "hub.garden.pool.setup.blocked.split",
             defaultMessage: "Make each split add up to 100%.",
           };
     case "open":

@@ -1,20 +1,27 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { isPasskeyServerEnabled } from "@green-goods/shared/config/passkeyServer";
 import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import type { Address } from "@green-goods/shared/types/domain";
-import { debugError } from "@green-goods/shared/utils/debug";
-import { RiKeyLine, RiLogoutBoxRLine, RiUserLine, RiWalletLine } from "@remixicon/react";
+import {
+  RiKeyLine,
+  RiLogoutBoxRLine,
+  RiMailLine,
+  RiUserLine,
+  RiWalletLine,
+} from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { APP_ROUTES } from "@/config/pwaRouting";
+import { signOutToLogin } from "@/components/Navigation/signOutToLogin";
 
 export const AccountInfo: React.FC = () => {
-  const { authMode, credential, walletAddress, embeddedAddress, userName } = useAuthState();
+  const { authMode, credential, walletAddress, embeddedAddress, smartAccountAddress, userName } =
+    useAuthState();
+  // Email accounts (Openfort) are named by the way the person signs in.
+  const codeAccount = authMode === "openfort";
   // The recovery line names a button the sign-in screen only renders with the
   // passkey server on; without it there is no username lookup to point at.
   const passkeyServerEnabled = isPasskeyServerEnabled();
@@ -23,41 +30,10 @@ export const AccountInfo: React.FC = () => {
   const navigate = useNavigate();
   const intl = useIntl();
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate(APP_ROUTES.login, {
-        replace: true,
-        state: { fromLogout: true },
-        viewTransition: true,
-      });
-      toastService.success({
-        title: intl.formatMessage({
-          id: "app.account.sessionClosed",
-          defaultMessage: "Signed out",
-        }),
-        context: "logout",
-        suppressLogging: true,
-      });
-    } catch (err) {
-      debugError("Logout failed", err);
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.account.logoutFailed",
-          defaultMessage: "Failed to log out",
-        }),
-        message: intl.formatMessage({
-          id: "app.account.logoutRetry",
-          defaultMessage: "Please try again.",
-        }),
-        context: "logout",
-        error: err,
-      });
-    }
-  };
+  const handleLogout = () => signOutToLogin({ signOut, navigate, intl });
 
   return (
-    <>
+    <section className="flex flex-col gap-2">
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.account",
@@ -71,6 +47,8 @@ export const AccountInfo: React.FC = () => {
             <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
               {authMode === "passkey" ? (
                 <RiKeyLine className="w-4" />
+              ) : codeAccount ? (
+                <RiMailLine className="w-4" />
               ) : (
                 <RiWalletLine className="w-4" />
               )}
@@ -83,13 +61,15 @@ export const AccountInfo: React.FC = () => {
                     id: "app.account.passkey",
                     defaultMessage: "Passkey",
                   })
-                : intl.formatMessage({
-                    id: "app.account.wallet",
-                    defaultMessage: "Wallet",
-                  })}
+                : codeAccount
+                  ? intl.formatMessage({ id: "app.account.email", defaultMessage: "Email" })
+                  : intl.formatMessage({
+                      id: "app.account.wallet",
+                      defaultMessage: "Wallet",
+                    })}
             </div>
             <div className="text-xs text-text-sub-600">
-              {authMode === "passkey" && credential
+              {(authMode === "passkey" && credential) || (codeAccount && smartAccountAddress)
                 ? intl.formatMessage({ id: "app.account.statusActive", defaultMessage: "Active" })
                 : (authMode === "wallet" && walletAddress) ||
                     (authMode === "embedded" && embeddedAddress)
@@ -142,14 +122,14 @@ export const AccountInfo: React.FC = () => {
                   {
                     id: "app.identity.passkeyRecovery.device",
                     defaultMessage:
-                      "To sign in on another device, choose “Already have an account?” and enter {name}.",
+                      "To sign in on another device, choose “Continue with Passkey” and enter {name}.",
                   },
                   { name: userName }
                 )
               : intl.formatMessage({
                   id: "app.identity.passkeyRecovery.deviceGeneric",
                   defaultMessage:
-                    "To sign in on another device, choose “Already have an account?” and enter your username.",
+                    "To sign in on another device, choose “Continue with Passkey” and enter your username.",
                 })}
           </p>
           <p>
@@ -160,6 +140,19 @@ export const AccountInfo: React.FC = () => {
             })}
           </p>
         </div>
+      )}
+
+      {codeAccount && (
+        <p className="px-1 text-xs leading-relaxed text-text-sub-600">
+          {intl.formatMessage(
+            {
+              id: "app.identity.codeRecovery",
+              defaultMessage:
+                "To open this account on another phone, sign in with a code sent to {email}.",
+            },
+            { email: userName ?? "" }
+          )}
+        </p>
       )}
 
       <Button
@@ -174,6 +167,6 @@ export const AccountInfo: React.FC = () => {
           defaultMessage: "Logout",
         })}
       </Button>
-    </>
+    </section>
   );
 };

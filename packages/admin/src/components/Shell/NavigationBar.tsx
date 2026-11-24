@@ -9,9 +9,9 @@ import { useIntl } from "react-intl";
 import { FabButton } from "./FabButton";
 
 // ----------------------------------------------------------------------------
-// Admin fork of the shared Canvas NavigationBar (Cockpit M3, finished — 1a).
+// Admin fork of the shared Canvas NavigationBar (Hub M3, finished — 1a).
 //
-// Forked so the cockpit's nav styling lives in admin's own JSX, ending the
+// Forked so the Hub's nav styling lives in admin's own JSX, ending the
 // descendant-selector overrides that previously restyled the shared component
 // from admin-m3-overrides.css.
 // Behavior (speed dial, keyboard navigation, breakpoints, role-based slots)
@@ -79,7 +79,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
       </span>
       <span
         className={cn(
-          "text-label-md leading-4",
+          "type-label-sm leading-4",
           mobile ? "max-w-full text-center break-words" : "tracking-[0.03125rem]",
           isActive
             ? "font-semibold text-[rgb(var(--m3-on-surface))]"
@@ -180,7 +180,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
     return null;
   }
 
-  const navLabel = formatMessage({ id: "cockpit.nav.mainNavigation" });
+  const navLabel = formatMessage({ id: "hub.nav.mainNavigation" });
   const desktopNavStyle = {
     position: "fixed",
     bottom: "var(--admin-nav-offset-desktop, 12px)",

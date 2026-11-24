@@ -1,5 +1,7 @@
-import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState, type EmptyStateTone } from "@green-goods/shared/components/ListPrimitives";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { RiCheckLine, RiErrorWarningLine, RiInformationLine } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { CanvasWorkspaceSelectionState } from "./CanvasWorkspaceSelectionState";
 
 export interface CanvasWorkspaceOption {
@@ -17,7 +19,7 @@ interface CanvasWorkspaceSelectionGateProps {
 interface CanvasRouteErrorStateProps {
   message: string;
   variant?: "error" | "warning" | "info" | "success";
-  /** Match the hosting route's content width (e.g. "max-w-6xl") so the alert
+  /** Match the hosting route's content width (e.g. "max-w-6xl") so the state
    * aligns with the header above it instead of stretching full-bleed. */
   maxWidthClassName?: string;
 }
@@ -49,14 +51,30 @@ export function CanvasWorkspaceLoadingState() {
   );
 }
 
+const ROUTE_STATE_TONE: Record<
+  NonNullable<CanvasRouteErrorStateProps["variant"]>,
+  { tone: EmptyStateTone; icon: ReactNode }
+> = {
+  error: { tone: "error", icon: <RiErrorWarningLine /> },
+  warning: { tone: "warning", icon: <RiErrorWarningLine /> },
+  info: { tone: "neutral", icon: <RiInformationLine /> },
+  success: { tone: "neutral", icon: <RiCheckLine /> },
+};
+
+/** A route whose workspace could not open, as the state block in the route's content width. */
 export function CanvasRouteErrorState({
   message,
   variant = "error",
   maxWidthClassName,
 }: CanvasRouteErrorStateProps) {
+  const { tone, icon } = ROUTE_STATE_TONE[variant];
   return (
-    <div className={cn("mt-6", maxWidthClassName && `mx-auto w-full ${maxWidthClassName}`)}>
-      <Alert variant={variant}>{message}</Alert>
+    <div
+      className={cn("mt-6", maxWidthClassName && `mx-auto w-full ${maxWidthClassName}`)}
+      // A failure announces itself; any other state is read out politely, as the alert box was.
+      role={tone === "error" ? undefined : "status"}
+    >
+      <EmptyState tone={tone} icon={icon} title={message} />
     </div>
   );
 }

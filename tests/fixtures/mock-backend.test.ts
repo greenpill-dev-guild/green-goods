@@ -44,6 +44,83 @@ const gardens = {
 };
 
 describe("browser backend contract", () => {
+  it("exposes an unconfigured protocol role binding without granting fixture accounts Team", async () => {
+    const mock = transport();
+    await mockSepoliaRpc(mock.page);
+    const abi = parseAbi([
+      "function protocolRoleHats() view returns (uint256,uint256,uint256,uint256)",
+      "function hats() view returns (address)",
+    ]);
+    for (const functionName of ["protocolRoleHats", "hats"] as const) {
+      const data = encodeFunctionData({ abi, functionName });
+      const response = await mock.request(
+        { method: "eth_call", params: [{ to: deployment.hatsModule, data }, "latest"] },
+        "rpc"
+      );
+      expect(
+        decodeAbiParameters(
+          functionName === "protocolRoleHats"
+            ? [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }, { type: "uint256" }]
+            : [{ type: "address" }],
+          response.result
+        )
+      ).toEqual(
+        functionName === "protocolRoleHats"
+          ? [0n, 0n, 0n, 0n]
+          : ["0x3333333333333333333333333333333333333333"]
+      );
+      await expect(
+        mock.request(
+          { method: "eth_call", params: [{ to: MOCK_CLIENT_GARDEN.id, data }, "latest"] },
+          "rpc"
+        )
+      ).rejects.toThrow(/Unsupported RPC/);
+    }
+  });
+
+  it("answers only explicitly declared module-code reads for leave preflight", async () => {
+    const mock = transport();
+    const module = "0x3333333333333333333333333333333333333333";
+    await mockSepoliaRpc(mock.page, { codes: { [module]: "0x6000" } });
+    expect(
+      (await mock.request({ method: "eth_getCode", params: [module, "latest"] }, "rpc")).result
+    ).toBe("0x6000");
+    await expect(
+      mock.request({ method: "eth_getCode", params: [MOCK_CLIENT_GARDEN.id, "latest"] }, "rpc")
+    ).rejects.toThrow(/declared RPC code read/);
+    await expect(
+      mock.request({ method: "eth_sendTransaction", params: [{}] }, "rpc")
+    ).rejects.toThrow(/Unsupported RPC/);
+  });
+  it.each([
+    ["isGardener", true],
+    ["isOwner", false],
+    ["isFunder", false],
+    ["isCommunity", false],
+  ])("answers %s for the leave confirmation's member", async (name, expected) => {
+    const mock = transport();
+    await mockSepoliaRpc(mock.page);
+    const response = await mock.request(
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_call",
+        params: [
+          {
+            to: MOCK_CLIENT_GARDEN.id,
+            data: encodeFunctionData({
+              abi: parseAbi([`function ${name}(address) view returns (bool)`]),
+              functionName: name,
+              args: [MOCK_CLIENT_GARDEN.gardeners[0]],
+            }),
+          },
+          "latest",
+        ],
+      },
+      "rpc"
+    );
+    expect(decodeAbiParameters([{ type: "bool" }], response.result)[0]).toBe(expected);
+  });
   it("rejects unknown operations, including names merely containing Action", async () => {
     const mock = transport();
     await mockClientBackend(mock.page);
@@ -74,6 +151,32 @@ describe("browser backend contract", () => {
         variables: { chainId: 11155111, limit: 200, offset: 0 },
       })
     ).toEqual({ data: { Gardener: [] } });
+  });
+  it.each([
+    { garden: { _eq: MOCK_CLIENT_GARDEN.id } },
+    { account: { _eq: MOCK_CLIENT_GARDEN.gardeners[0] } },
+  ])("declares an empty membership history for scope %j", async (scope) => {
+    const mock = transport();
+    await mockClientBackend(mock.page);
+    const query = "query GardenMemberHistory { GardenRoleEvent { id } }";
+    const variables = {
+      where: { chainId: { _eq: 11155111 }, ...scope },
+      limit: 200,
+      offset: 0,
+    };
+    expect(await mock.request({ query, variables })).toEqual({ data: { GardenRoleEvent: [] } });
+    for (const invalid of [
+      { ...variables, where: { ...variables.where, chainId: { _eq: 42161 } } },
+      { ...variables, where: { chainId: { _eq: 11155111 } } },
+      { ...variables, where: { ...variables.where, garden: { _eq: "0xwrong" } } },
+      { ...variables, where: { ...variables.where, account: { _eq: "0xwrong" } } },
+      { ...variables, limit: 0 },
+      { ...variables, offset: -1 },
+    ]) {
+      await expect(mock.request({ query, variables: invalid })).rejects.toThrow(
+        /GardenMemberHistory/
+      );
+    }
   });
   it("accepts the work-link confirmer filter only for the same fixture account", async () => {
     const mock = transport();

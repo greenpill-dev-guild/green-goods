@@ -1,3 +1,4 @@
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import type { Meta, StoryObj } from "@storybook/react";
 import { FlowSendFooter, type FlowSendFooterProps, SingleSendNote } from "./FlowSendFooter";
 
@@ -39,8 +40,11 @@ const meta = {
   render: (args) => <FooterAt {...args} />,
   decorators: [
     (Story) => (
-      <div className="max-w-2xl p-4" data-tone="hub">
-        <Story />
+      // The flow shell's footer bar, so the story shows the bar as a flow pins it.
+      <div className="max-w-2xl" data-tone="review">
+        <SheetFooter>
+          <Story />
+        </SheetFooter>
       </div>
     ),
   ],

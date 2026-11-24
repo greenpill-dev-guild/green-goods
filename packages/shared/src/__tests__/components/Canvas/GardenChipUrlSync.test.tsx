@@ -14,6 +14,9 @@ import { useGardenUrlSync } from "../../../hooks/navigation/useGardenUrlSync";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { createTestQueryClient } from "../../test-utils/query-client";
 
+/** The menu loads on the first press, which can take over a second on a busy machine. */
+const MENU_LOAD = { timeout: 5000 };
+
 const TEST_GARDENS: Garden[] = [
   {
     id: "0x1111111111111111111111111111111111111111",
@@ -98,8 +101,8 @@ function renderHarness(initialEntry: string) {
         <IntlProvider
           locale="en"
           messages={{
-            "cockpit.gardenChip.allGardens": "All Gardens",
-            "cockpit.gardenChip.createGarden": "Create Garden",
+            "hub.gardenChip.allGardens": "All Gardens",
+            "hub.gardenChip.createGarden": "Create Garden",
           }}
         >
           <LocationProbe />
@@ -128,13 +131,13 @@ describe("GardenChip + useGardenUrlSync integration", () => {
 
   it("renders an interactive chip for two eligible gardens and switches URL plus selected garden", async () => {
     const user = userEvent.setup();
-    renderHarness(`/hub/work?gardenId=${TEST_GARDENS[0].id}`);
+    renderHarness(`/review/work?gardenId=${TEST_GARDENS[0].id}`);
 
     const trigger = screen.getByRole("button", { name: /garden one/i });
     expect(trigger).toHaveAttribute("data-slot", "trigger");
 
     await user.click(trigger);
-    await user.click(screen.getByRole("button", { name: "Garden Two" }));
+    await user.click(await screen.findByRole("button", { name: "Garden Two" }, MENU_LOAD));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /garden two/i })).toBeInTheDocument();

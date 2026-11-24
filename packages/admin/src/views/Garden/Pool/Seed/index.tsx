@@ -1,3 +1,4 @@
+import { gardenRewardPayment, matchedUsdcLegs } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import {
@@ -89,6 +90,9 @@ export function SeedCommitmentDialog({
   const protocolContext = pool.pool?.poolType === "PROTOCOL";
   const protocolPool = useProtocolPool({ chainId });
   const settlement = useSettlementAccount({ chainId, garden });
+  // A USDC part is offered only where this garden can pay it: USDC on this chain, the payer
+  // recorded, and the garden's Safe recorded there to hold and pay the USDC.
+  const usdcMatchAvailable = gardenRewardPayment(chainId, garden) !== null;
   const { data: actions = [] } = useActions(chainId);
   const { data: gardens } = useGardens(chainId);
   const [windowNow, setWindowNow] = useState(() => Date.now());
@@ -158,6 +162,10 @@ export function SeedCommitmentDialog({
       dueDate: copy.dueDate,
       ...(copy.displayGroup ? { displayGroup: copy.displayGroup } : {}),
       allowGatedOffers: true,
+      allowRequestReward: true,
+      ...(createPrice.current ? { goodDollarPrice: createPrice.current } : {}),
+      // Declared only where this chain can pay it, whatever a saved answer carries.
+      rewardLegs: usdcMatchAvailable ? matchedUsdcLegs(row, chainId) : undefined,
     });
   };
   const tray = useSeedTray({ form, chainId, owner: jobs.viewer, buildCopy });
@@ -252,7 +260,7 @@ export function SeedCommitmentDialog({
   const currentStep = STEPS[stepIndex] ?? "review";
   const isLast = stepIndex === STEPS.length - 1;
   const title = formatMessage({
-    id: "cockpit.garden.pool.seed.promisesTitle",
+    id: "hub.garden.pool.seed.promisesTitle",
     defaultMessage: "Seed Promises",
   });
 
@@ -269,7 +277,7 @@ export function SeedCommitmentDialog({
     if (pool.poolId === undefined || !jobs.viewer) {
       setSubmitError(
         formatMessage({
-          id: "cockpit.garden.pool.seed.noPoolOrViewer",
+          id: "hub.garden.pool.seed.noPoolOrViewer",
           defaultMessage: "Sign in and choose a garden with a pool before seeding.",
         })
       );
@@ -290,7 +298,7 @@ export function SeedCommitmentDialog({
     if (outcome === "blocked") {
       setSubmitError(
         formatMessage({
-          id: "cockpit.garden.pool.seed.blocked.build",
+          id: "hub.garden.pool.seed.blocked.build",
           defaultMessage:
             "One of these couldn't be prepared, so nothing was sent. Check its answers, then try again.",
         })
@@ -352,6 +360,7 @@ export function SeedCommitmentDialog({
           members={members}
           protocolRegistered={protocolRegistered}
           settlementActive={settlementActive}
+          usdcMatchAvailable={usdcMatchAvailable}
           price={price.state}
         />
       );
@@ -372,6 +381,7 @@ export function SeedCommitmentDialog({
           cycleOptions={cycleOptions}
           protocolRegistered={protocolRegistered}
           price={price.state}
+          usdcMatchAvailable={usdcMatchAvailable}
           capacity={{ cap, room, full: capacity.full, over: capacity.over }}
           submitError={submitError}
           queueUnavailable={pool.queueUnavailable}
@@ -419,8 +429,8 @@ export function SeedCommitmentDialog({
         preventClose={busy}
         title={title}
         description={formatMessage({
-          id: "cockpit.garden.pool.seed.promisesDescription",
-          defaultMessage: "Offer or ask for one or many promises on the pool's behalf.",
+          id: "hub.garden.pool.seed.promisesDescription",
+          defaultMessage: "Offer or request one or many promises on the pool's behalf.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
       >
@@ -467,7 +477,7 @@ export function SeedCommitmentDialog({
             {pool.model.status !== "open" && pool.poolId !== undefined ? (
               <Alert variant="warning">
                 {formatMessage({
-                  id: "cockpit.garden.pool.seed.poolNotOpen",
+                  id: "hub.garden.pool.seed.poolNotOpen",
                   defaultMessage: "The pool is not open, so nothing can be seeded into it yet.",
                 })}
               </Alert>

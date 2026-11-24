@@ -52,7 +52,7 @@ We're still pilot focused. Here's what's new ↓
 
 ### 2/5
 
-A Garden is a community and its shared place: a tree-planting group, a neighbourhood
+A Garden is a community and its shared place: a tree-planting group, a neighborhood
 waste crew, a campus solar team.
 
 People make commitments and document what they've done. Stewards review the work and
@@ -69,7 +69,7 @@ The focus: helping Gardeners document work and Stewards see what needs attention
 
 We're building with pilot communities and learning from real use.
 
-If you organise regenerative work and want to explore a pilot, DM us. Tell us about
+If you organize regenerative work and want to explore a pilot, DM us. Tell us about
 your community and where coordinating or documenting the work gets difficult.
 
 ### 5/5

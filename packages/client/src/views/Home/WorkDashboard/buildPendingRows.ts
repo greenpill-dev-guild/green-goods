@@ -2,31 +2,39 @@ import type { PendingProof } from "@green-goods/shared/hooks/client-ui/commitmen
 import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import type { WorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import type { Work } from "@green-goods/shared/types/domain";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import type { IntlShape } from "react-intl";
 import { formatAgo, formatRowDay, formatSavedMeta } from "@/components/Cards/Work/pendingCopy";
-import type { PendingCardProps } from "@/components/Cards/Work/PendingCard";
+import type { PendingCardKind, PendingCardProps } from "@/components/Cards/Work/PendingCard";
 import {
   blockedShortReasonMessage,
+  type QueuedWorkState,
   readQueuedWorkState,
 } from "@/components/Cards/Work/queuedWorkCopy";
 import { canDiscardQueuedWork, workUploadGroup } from "@/components/Cards/Work/workUploadGroup";
 import { describeProofContents } from "@/components/Features/Commitments/proofContents";
-import type { PendingPlace } from "./pendingRows";
+import type { PendingKind, PendingPlace } from "./pendingRows";
 
-type RowCard = Pick<
+type RowCard<Kind extends PendingCardKind = PendingKind> = Pick<
   PendingCardProps,
-  "kind" | "pill" | "title" | "meta" | "marker" | "status" | "statusTone" | "locked"
->;
+  "pill" | "title" | "meta" | "marker" | "status" | "statusTone" | "locked"
+> & { kind: Kind };
 
 /** One row of Your Work › Pending, with what opening and discarding it act on. */
 export type PendingRow = PendingPlace & { id: string } & (
     | { type: "work"; work: Work; card: RowCard; discardable: boolean }
     | { type: "decision"; work: Work; card: RowCard }
-    | { type: "toReview"; work: Work; card: RowCard }
     | { type: "draft"; draft: DraftWithImages }
     | { type: "proof"; proof: PendingProof; card: RowCard }
   );
+
+/** One row of Your Work › To Review (DL-149): work this account's review waits on. */
+export interface ToReviewRow {
+  type: "toReview";
+  work: Work;
+  card: RowCard<"needsReview">;
+}
 
 export interface PendingRowContext {
   intl: IntlShape;
@@ -41,14 +49,24 @@ export interface PendingRowContext {
   actionTitle: (actionUID: number) => string | undefined;
   /** Work a promise counts: linked on the record, or by a queued link. */
   isLinked: (work: Work) => boolean;
+  /**
+   * Queued work for a promise the same tap took up waits for that take-up (decision 18):
+   * still on its way, or given up. Absent or null for any other work.
+   */
+  takeUpStage?: (work: Work) => "pending" | "failed" | null;
+  /** Sent work whose link to its promise gave up. */
+  linkFailed?: (work: Work) => boolean;
 }
+
+/** What naming a work's row reads, the one thing a To Review row needs. */
+type WorkRowContext = Pick<PendingRowContext, "intl" | "actionTitle" | "isLinked">;
 
 type QueuedDecision = NonNullable<ReturnType<WorkUploads["decisionFor"]>>;
 
 const message = (intl: IntlShape, id: string, values?: Record<string, string | number>) =>
   intl.formatMessage({ id }, values);
 
-function workTitle(work: Work, context: PendingRowContext): string {
+function workTitle(work: Work, context: WorkRowContext): string {
   return (
     toWorkDisplayTitle(work.title, "") ||
     context.actionTitle(work.actionUID) ||
@@ -56,7 +74,7 @@ function workTitle(work: Work, context: PendingRowContext): string {
   );
 }
 
-function linkedMarker(work: Work, context: PendingRowContext): RowCard["marker"] {
+function linkedMarker(work: Work, context: WorkRowContext): RowCard["marker"] {
   return context.isLinked(work)
     ? { kind: "linked", label: message(context.intl, "app.pending.marker.linked") }
     : undefined;
@@ -65,19 +83,45 @@ function linkedMarker(work: Work, context: PendingRowContext): RowCard["marker"]
 /** A row that is sent, or may be, and is being checked: nothing can be done to it meanwhile. */
 function checkingCard(
   base: Pick<RowCard, "title" | "meta" | "marker">,
-  context: PendingRowContext
+  context: PendingRowContext,
+  { awaiting }: Pick<QueuedWorkState, "awaiting"> = {}
 ) {
   return {
     ...base,
     kind: "checking",
     pill: message(context.intl, "app.uploads.chip.checking"),
-    status: message(
-      context.intl,
-      context.isOnline ? "app.pending.status.checking" : "app.pending.status.checksWhenConnected"
-    ),
+    // A Safe only proposed it: it waits for the Safe's signers, not the network (PRD-1564).
+    status: awaiting
+      ? context.intl.formatMessage(SEND_STAGE_WORDS[awaiting].label)
+      : message(
+          context.intl,
+          context.isOnline
+            ? "app.pending.status.checking"
+            : "app.pending.status.checksWhenConnected"
+        ),
     locked: true,
   } satisfies RowCard;
 }
+
+/**
+ * A send that gave up reads Didn't send (DL-177): one that used up its tries, one the chain
+ * reverted, and one Upload all flagged because the batch it rode in reverted. No single item
+ * explains that last revert, so saying the record refused it would contradict the check it passed.
+ */
+function didntSendCard(base: Pick<RowCard, "title" | "meta" | "marker">, intl: IntlShape) {
+  return {
+    ...base,
+    kind: "needs",
+    pill: message(intl, "app.pending.pill.didntUpload"),
+    status: message(intl, "app.pending.status.nothingWasSent"),
+  } satisfies RowCard;
+}
+
+/**
+ * Upload all's mark for an item whose batch reverted: blocked so it is not resent unchanged. A
+ * check that refuses one item alone records "reverted" instead, and reads as the record refusing it.
+ */
+const BATCH_REVERTED = "batch-reverted";
 
 /**
  * Your own work: on this phone it says where its upload stands, the way its
@@ -93,12 +137,16 @@ export function submissionRow(
   const base = { title: workTitle(work, context), marker: linkedMarker(work, context) };
   const row = { id: work.id, type: "work" as const, source: "work" as const, at, work };
   if (!onThisDevice) {
+    const linkFailed = context.linkFailed?.(work) === true;
     const card: RowCard = {
       ...base,
       kind: "review",
       pill: message(intl, "app.pending.pill.inReview"),
       meta: message(intl, "app.pending.meta.submitted", { date: formatRowDay(intl, at) }),
-      status: message(intl, "app.pending.status.waitingForReview"),
+      // The work went; the stage that stopped is its link to the promise.
+      ...(linkFailed
+        ? { status: message(intl, "app.pending.status.linkFailed"), statusTone: "error" as const }
+        : { status: message(intl, "app.pending.status.waitingForReview") }),
     };
     return { ...row, kind: "review", card, discardable: false };
   }
@@ -106,7 +154,7 @@ export function submissionRow(
   const state = readQueuedWorkState(work.metadata);
   const discardable = canDiscardQueuedWork(state.submissionState, {
     isOnline: context.isOnline,
-    pausedForDataSaver: context.pausedForDataSaver,
+    preparationWaiting: context.pausedForDataSaver,
   });
   const saved = { ...base, meta: formatSavedMeta(intl, at) };
   const toUpload = (status: string, locked = false): RowCard => ({
@@ -116,9 +164,30 @@ export function submissionRow(
     status,
     locked,
   });
+  const takeUp = context.takeUpStage?.(work) ?? null;
   const card = ((): RowCard => {
+    // A work for a promise the same tap took up goes after the take-up, which this names.
+    if (takeUp === "failed")
+      return {
+        ...saved,
+        kind: "needs",
+        pill: message(intl, "app.pending.pill.cantUpload"),
+        status: message(intl, "app.pending.status.takeUpFailed"),
+        statusTone: "error",
+      };
+    if (takeUp === "pending")
+      return toUpload(
+        message(
+          intl,
+          // A wallet reader's take-up goes from their own tap; any other goes on its own.
+          context.sendsFromTap
+            ? "app.pending.status.openToTakeUp"
+            : "app.pending.status.takeUpFirst"
+        )
+      );
     switch (workUploadGroup(state.submissionState)) {
       case "attention":
+        if (state.blockedReason === BATCH_REVERTED) return didntSendCard(saved, intl);
         return {
           ...saved,
           kind: "needs",
@@ -127,24 +196,11 @@ export function submissionRow(
           statusTone: "error",
         };
       case "failed":
-        return state.submissionState === "reverted"
-          ? {
-              ...saved,
-              kind: "needs",
-              pill: message(intl, "app.pending.pill.didntUpload"),
-              status: message(intl, "app.uploads.blocked.short.refused"),
-              statusTone: "error",
-            }
-          : {
-              ...saved,
-              kind: "needs",
-              pill: message(intl, "app.pending.pill.didntUpload"),
-              status: message(intl, "app.pending.status.nothingWasSent"),
-            };
+        return didntSendCard(saved, intl);
       case "sent":
         return state.submissionState === "sending" && context.isOnline
           ? toUpload(message(intl, "app.pending.status.uploadingNow"), true)
-          : checkingCard(saved, context);
+          : checkingCard(saved, context, state);
       case "preparing":
         // A photo still converting says so either way; plain preparation needs the connection.
         return toUpload(
@@ -190,9 +246,10 @@ export function decisionRow(
   const card = ((): RowCard => {
     switch (status?.state) {
       case "sent":
-        return checkingCard(base, context);
+        return checkingCard(base, context, status);
       case "blocked":
       case "photo-needs-attention":
+        if (status.reason === BATCH_REVERTED) return didntSendCard(base, intl);
         return {
           ...base,
           kind: "needs",
@@ -207,12 +264,7 @@ export function decisionRow(
         };
       case "failed":
       case "reverted":
-        return {
-          ...base,
-          kind: "needs",
-          pill: message(intl, "app.pending.pill.didntUpload"),
-          status: message(intl, "app.pending.status.nothingWasSent"),
-        };
+        return didntSendCard(base, intl);
       default:
         return {
           ...base,
@@ -238,27 +290,20 @@ export function decisionRow(
   };
 }
 
-/** Work in a garden you steward that waits for your review. */
-export function toReviewRow(work: Work, context: PendingRowContext): PendingRow {
+/** Work in a garden you may review that waits for your review. */
+export function toReviewRow(work: Work, context: WorkRowContext): ToReviewRow {
   const { intl } = context;
-  const at = work.createdAt * 1000;
-  const card: RowCard = {
+  const card: ToReviewRow["card"] = {
     kind: "needsReview",
     pill: message(intl, "app.pending.pill.toReview"),
     title: workTitle(work, context),
-    meta: message(intl, "app.pending.meta.submittedBy", { date: formatRowDay(intl, at) }),
+    meta: message(intl, "app.pending.meta.submittedBy", {
+      date: formatRowDay(intl, work.createdAt * 1000),
+    }),
     marker: linkedMarker(work, context),
     status: message(intl, "app.pending.status.waitingForYourReview"),
   };
-  return {
-    id: `review:${work.id}`,
-    type: "toReview",
-    kind: "needsReview",
-    source: "work",
-    at,
-    work,
-    card,
-  };
+  return { type: "toReview", work, card };
 }
 
 export function draftRow(draft: DraftWithImages): PendingRow {
@@ -317,8 +362,10 @@ export function proofRow(proof: PendingProof, context: PendingRowContext): Pendi
         status: message(intl, "app.pending.status.notAdded"),
       };
     if (proof.waitingReason === "awaiting-confirmation") {
-      const checking = checkingCard(saved, context);
+      const checking = checkingCard(saved, context, proof);
       if (!sendsFromTap) return checking;
+      // Opened, it offers Check Again; the row keeps saying who it waits for.
+      if (proof.awaiting) return { ...checking, locked: false };
       const status = context.isOnline
         ? "app.pending.status.openToCheck"
         : "app.pending.status.checkAgainWhenConnected";

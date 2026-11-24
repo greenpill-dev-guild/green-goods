@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
-import { AdminButton } from "../AdminButton";
 import { AdminConfirmDialog } from "../AdminDialog";
 
 // Coverage for the emergency-pause confirmation that `PositionCard` opens.
@@ -31,9 +31,15 @@ function EmergencyPauseFixture({ onConfirm = fn() }: { onConfirm?: () => void })
 
   return (
     <div className="mx-auto max-w-md p-4">
-      <AdminButton variant="danger" size="sm" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        emphasis="primary"
+        tone="danger"
+        size="compact"
+        onClick={() => setOpen(true)}
+      >
         {CONFIRM_LABEL}
-      </AdminButton>
+      </Button>
       <AdminConfirmDialog
         isOpen={open}
         onClose={() => setOpen(false)}

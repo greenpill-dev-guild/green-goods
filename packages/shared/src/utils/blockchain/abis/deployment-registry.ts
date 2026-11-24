@@ -29,6 +29,13 @@ export const DEPLOYMENT_REGISTRY_ABI = [
   },
   {
     inputs: [{ name: "account", type: "address" }],
+    name: "canManageAllowlist",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
     name: "addToAllowlist",
     outputs: [],
     stateMutability: "nonpayable",

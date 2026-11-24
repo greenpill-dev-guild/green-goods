@@ -46,8 +46,8 @@ describe("MediaConfigSection", () => {
     fireEvent.change(screen.getByLabelText("Description"), {
       target: { value: "Show the completed work" },
     });
-    fireEvent.change(screen.getByLabelText("Min images"), { target: { value: "" } });
-    fireEvent.change(screen.getByLabelText("Max images"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Min media items"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Max media items"), { target: { value: "" } });
     fireEvent.click(screen.getByLabelText("Media is required"));
 
     expect(currentConfig()).toMatchObject({

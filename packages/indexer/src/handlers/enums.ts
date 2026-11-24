@@ -4,13 +4,11 @@ import {
   CAPITAL_TYPE_MAP,
   DOMAIN_TYPE_MAP,
   ENS_NAME_TYPE_MAP,
-  POOL_TYPE_MAP,
   WEIGHT_SCHEME_MAP,
 } from "./constants";
 
 type Capital = Enum<"Capital">;
 type Domain = Enum<"Domain">;
-type PoolType = Enum<"PoolType">;
 type WeightScheme = Enum<"WeightScheme">;
 
 export function mapDomainType(value: bigint): Domain {
@@ -32,10 +30,6 @@ export function mapCapitalType(value: bigint): Capital {
 
 export function mapWeightScheme(value: bigint): WeightScheme {
   return WEIGHT_SCHEME_MAP[Number(value)] ?? "LINEAR";
-}
-
-export function mapPoolType(value: bigint): PoolType {
-  return POOL_TYPE_MAP[Number(value)] ?? "HYPERCERT";
 }
 
 export function mapENSNameType(value: bigint): string {

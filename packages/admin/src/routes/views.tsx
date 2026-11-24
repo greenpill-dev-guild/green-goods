@@ -9,12 +9,18 @@ import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainCo
 import type { UserRole } from "@green-goods/shared/hooks/gardener/useRole";
 import {
   adminRoutes,
+  CREATE_ASSESSMENT_ROUTE_ITEM,
+  CREATE_HYPERCERT_ROUTE_ITEM,
+  EDIT_GARDEN_ROUTE_ITEM,
   resolveCampaignCookieJarsRoute,
+  SUBMIT_WORK_ROUTE_ITEM,
 } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation, useParams } from "react-router-dom";
+import PersistentRedirect from "@/routes/PersistentRedirect";
 import RequireRole from "@/routes/RequireRole";
 import RequireCommunityAccess from "@/routes/RequireCommunityAccess";
+import RequireProtocolTeam from "@/routes/RequireProtocolTeam";
 
 type LazyRoute = NonNullable<RouteObject["lazy"]>;
 
@@ -22,15 +28,12 @@ function lazyView(loader: () => Promise<{ default: ComponentType }>): LazyRoute 
   return async () => ({ Component: (await loader()).default });
 }
 
-const hubView = lazyView(() => import("@/views/Hub"));
+const reviewView = lazyView(() => import("@/views/Review"));
 const gardenView = lazyView(() => import("@/views/Garden"));
 const communityView = lazyView(() => import("@/views/Community"));
 const actionsView = lazyView(() => import("@/views/Actions"));
 const profileView = lazyView(() => import("@/views/Profile"));
 const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
-const createAssessmentView = lazyView(() => import("@/views/Hub/CreateAssessment"));
-const createHypercertView = lazyView(() => import("@/views/Hub/CreateHypercert"));
-const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));
 
 function RoleGateSkeleton() {
   return (
@@ -48,21 +51,17 @@ function roleGatedRoute(allowedRoles: UserRole[], lazy: LazyRoute): RouteObject 
   };
 }
 
-function roleGatedBranch(allowedRoles: UserRole[], children: RouteObject[]): RouteObject {
-  return {
-    element: <RequireRole allowedRoles={allowedRoles} loadingFallback={<RoleGateSkeleton />} />,
-    children,
-  };
-}
-
 function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
   const location = useLocation();
   return <Navigate to={resolveAdminIndexRedirect(kind, location.search)} replace />;
 }
 
-function PreserveSearchRedirect({ pathname }: { pathname: string }) {
+/** Keeps the URL's search; `item` adds the route item of a dialog the old address opened. */
+function PreserveSearchRedirect({ pathname, item }: { pathname: string; item?: string }) {
   const location = useLocation();
-  return <Navigate to={{ pathname, search: location.search }} replace />;
+  const search = new URLSearchParams(location.search);
+  if (item) search.set("item", item);
+  return <Navigate to={{ pathname, search: search.toString() }} replace />;
 }
 
 /**
@@ -74,9 +73,25 @@ function AssessmentRecordRedirect() {
   const location = useLocation();
   return (
     <Navigate
-      to={{ pathname: adminRoutes.hubAssessDetail(assessmentId), search: location.search }}
+      to={{ pathname: adminRoutes.reviewAssessDetail(assessmentId), search: location.search }}
       replace
     />
+  );
+}
+
+/** Review's routes lived under /hub until 2026-11-14 (PRD-1485). */
+const LEGACY_REVIEW_ROOT = /^\/hub(?=\/|$)/;
+
+/**
+ * Sends every /hub address to the same place under /review, its path after /hub, search and hash
+ * kept, so bookmarks, notification links and links from the App, the bot and the docs keep
+ * working. Review's own redirects then take over (a retired History link lands on Work). It
+ * redirects persistently because the garden sync rewrites the address while Review loads.
+ */
+function LegacyReviewRedirect() {
+  const { pathname, search, hash } = useLocation();
+  return (
+    <PersistentRedirect to={`${pathname.replace(LEGACY_REVIEW_ROOT, "/review")}${search}${hash}`} />
   );
 }
 
@@ -88,7 +103,7 @@ function AssessmentRecordRedirect() {
 function CampaignCookieJarsRedirect({ create = false }: { create?: boolean }) {
   const chainId = useCurrentChain();
   const rootGarden = getNetworkConfig(chainId).rootGarden?.address;
-  return <Navigate to={resolveCampaignCookieJarsRoute(rootGarden, { create })} replace />;
+  return <PersistentRedirect to={resolveCampaignCookieJarsRoute(rootGarden, { create })} />;
 }
 
 const governanceRoute: Pick<RouteObject, "lazy" | "element"> = GOVERNANCE_ENABLED
@@ -97,53 +112,60 @@ const governanceRoute: Pick<RouteObject, "lazy" | "element"> = GOVERNANCE_ENABLE
 
 export const adminCanvasRoutes: RouteObject[] = [
   {
-    path: "hub",
+    path: "hub/*",
+    element: <LegacyReviewRedirect />,
+  },
+  {
+    path: "review",
     children: [
       {
         index: true,
-        element: <IndexRedirect kind="hub" />,
+        element: <IndexRedirect kind="review" />,
       },
       {
-        // Submit Work is a creation/commit flow — its own full surface
-        // (desktop full-screen dialog / mobile full-page route), not a Hub
-        // inspector sheet. Keep this flattened before /work/:workId so the
-        // static action route cannot be interpreted as a work id.
+        // The create flows are route items that open over the active stage now
+        // (DL-140); saved links open each over its own stage. Keep this flattened
+        // before /work/:workId so it cannot be interpreted as a work id.
         path: "work/submit",
-        lazy: submitWorkView,
+        element: <PreserveSearchRedirect pathname="/review/work" item={SUBMIT_WORK_ROUTE_ITEM} />,
       },
       {
         path: "work",
         children: [
           {
             index: true,
-            lazy: hubView,
+            lazy: reviewView,
           },
           {
             path: ":workId",
-            lazy: hubView,
+            lazy: reviewView,
           },
         ],
       },
       {
         path: "assess/create",
-        lazy: createAssessmentView,
+        element: (
+          <PreserveSearchRedirect pathname="/review/assess" item={CREATE_ASSESSMENT_ROUTE_ITEM} />
+        ),
       },
       {
         path: "assess",
         children: [
           {
             index: true,
-            lazy: hubView,
+            lazy: reviewView,
           },
           {
             path: ":assessmentId",
-            lazy: hubView,
+            lazy: reviewView,
           },
         ],
       },
       {
         path: "certify/create",
-        lazy: createHypercertView,
+        element: (
+          <PreserveSearchRedirect pathname="/review/certify" item={CREATE_HYPERCERT_ROUTE_ITEM} />
+        ),
       },
       {
         // Commitments waiting on a steward's confirmation (uiux-spec §6.9).
@@ -152,11 +174,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         children: [
           {
             index: true,
-            lazy: hubView,
+            lazy: reviewView,
           },
           {
             path: ":commitmentId",
-            lazy: hubView,
+            lazy: reviewView,
           },
         ],
       },
@@ -165,7 +187,7 @@ export const adminCanvasRoutes: RouteObject[] = [
         children: [
           {
             index: true,
-            lazy: hubView,
+            lazy: reviewView,
           },
           {
             path: ":assessmentId",
@@ -175,16 +197,16 @@ export const adminCanvasRoutes: RouteObject[] = [
       },
       {
         // The History stage is retired (2026-08-25 AD-3); saved deep links
-        // land on the Hub's default stage instead of a 404.
+        // land on Review's default stage instead of a 404.
         path: "history",
         children: [
           {
             index: true,
-            element: <PreserveSearchRedirect pathname="/hub" />,
+            element: <PreserveSearchRedirect pathname="/review" />,
           },
           {
             path: ":historyEventId",
-            element: <PreserveSearchRedirect pathname="/hub" />,
+            element: <PreserveSearchRedirect pathname="/review" />,
           },
         ],
       },
@@ -231,8 +253,9 @@ export const adminCanvasRoutes: RouteObject[] = [
         ],
       },
       {
+        // Edit Garden is a route item now (DL-140); saved links open it over Health.
         path: "settings",
-        lazy: gardenView,
+        element: <PreserveSearchRedirect pathname="/garden/health" item={EDIT_GARDEN_ROUTE_ITEM} />,
       },
       {
         // The steward's pool console (uiux-spec §6.2). The seeding console and
@@ -388,25 +411,21 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "cookies",
-    ...roleGatedBranch(
-      ["deployer"],
-      [
-        { index: true, element: <CampaignCookieJarsRedirect /> },
-        { path: "deploy", element: <CampaignCookieJarsRedirect create /> },
-      ]
-    ),
+    element: <RequireProtocolTeam loadingFallback={<RoleGateSkeleton />} />,
+    children: [
+      { index: true, element: <CampaignCookieJarsRedirect /> },
+      { path: "deploy", element: <CampaignCookieJarsRedirect create /> },
+    ],
   },
   {
     path: "actions",
-    ...roleGatedBranch(
-      ["deployer"],
-      [
-        { index: true, lazy: actionsView },
-        { path: "create", lazy: actionsView },
-        { path: ":id", lazy: actionsView },
-        { path: ":id/edit", lazy: actionsView },
-      ]
-    ),
+    element: <RequireProtocolTeam loadingFallback={<RoleGateSkeleton />} allowProductLead />,
+    children: [
+      { index: true, lazy: actionsView },
+      { path: "create", lazy: actionsView },
+      { path: ":id", lazy: actionsView },
+      { path: ":id/edit", lazy: actionsView },
+    ],
   },
   {
     path: "profile",

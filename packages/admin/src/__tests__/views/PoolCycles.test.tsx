@@ -26,6 +26,8 @@ import type { CycleDialog } from "@/views/Garden/Pool/poolDialogState";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const SEASON = 12n;
+/** The chain clock `poolConsoleControllerFixture` reads its model on (the demo builders' NOW). */
+const NOW = 1_771_800_000;
 const CAMPAIGN = 13n;
 
 function cycles(overrides: {
@@ -116,11 +118,34 @@ describe("ending a season or campaign", () => {
     );
     renderWithProviders(<Harness pool={pool} />);
 
-    expect(screen.getByText(/^3 commitments are still live\./)).toBeInTheDocument();
+    expect(screen.getByText(/^3 promises are still live\./)).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("pool-cycle-13")).getByText(/^1 commitment is still live\./)
+      within(screen.getByTestId("pool-cycle-13")).getByText(/^1 promise is still live\./)
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^end/i })).not.toBeInTheDocument();
+  });
+
+  // DL-162: an Open cycle past its end has ended until a steward ends it, on the app's clock.
+  it("reads a season past its end as Ended and says why it needs ending, beside End Season", () => {
+    const pool = controller(
+      cycles({
+        season: { liveCommitmentCount: 0n, endTime: BigInt(NOW - 86_400) },
+        campaign: { endTime: BigInt(NOW + 86_400) },
+      })
+    );
+    renderWithProviders(<Harness pool={pool} />);
+
+    const card = screen.getByTestId("pool-cycles-season");
+    expect(within(card).getByText("Ended")).toBeInTheDocument();
+    expect(within(card).queryByText("Open")).not.toBeInTheDocument();
+    expect(
+      within(card).getByText(/^Ended .+\. New promises can still land in it/)
+    ).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "End Season…" })).toBeInTheDocument();
+    // A campaign still inside its dates reads Open, with nothing more to say.
+    const campaign = screen.getByTestId("pool-cycle-13");
+    expect(within(campaign).getByText("Open")).toBeInTheDocument();
+    expect(within(campaign).queryByText(/New promises can still land/)).not.toBeInTheDocument();
   });
 
   it("ends a campaign in its own words", async () => {

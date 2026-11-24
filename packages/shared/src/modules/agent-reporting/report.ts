@@ -204,9 +204,18 @@ function assign(content: ReportContent, field: ReportField, value: unknown): Rep
   return { ...content, [field]: value };
 }
 
+/** `sources` followed by those in `added` it does not already name. */
+function joinSources(sources: readonly SourceRef[], added: readonly SourceRef[]): SourceRef[] {
+  return [
+    ...sources,
+    ...added.filter((source) => !sources.some((known) => sameValue(known, source))),
+  ];
+}
+
 /**
  * Applies proposed changes in order. `snapshot` is the Action definition the details are checked
- * against; details are rejected until an Action and its snapshot are established.
+ * against; details are rejected until an Action and its snapshot are established. A proposal that
+ * gives a value again keeps the sources that gave it before, so the value outlives any one of them.
  */
 export function applyReportChanges(
   content: ReportContent,
@@ -241,17 +250,25 @@ export function applyReportChanges(
       continue;
     }
     const existing = next.provenance[change.field];
-    if (
-      change.provenance.origin !== "gardener" &&
-      existing?.gardenerStated &&
-      !sameValue(currentValue(next, change.field), value)
-    ) {
-      conflicts.push({ field: change.field, proposed: value, provenance: change.provenance });
+    const proposed = change.provenance.origin !== "gardener";
+    const again = existing !== undefined && sameValue(currentValue(next, change.field), value);
+    if (proposed && existing?.gardenerStated) {
+      // The value stays the gardener's: a proposal that agrees changes nothing, and one that
+      // disagrees is recorded to ask about.
+      if (!again)
+        conflicts.push({ field: change.field, proposed: value, provenance: change.provenance });
       continue;
     }
     next = assign(next, change.field, value);
     if (value === null) delete next.provenance[change.field];
-    else next.provenance[change.field] = change.provenance;
+    else
+      next.provenance[change.field] =
+        existing && proposed && again
+          ? {
+              ...change.provenance,
+              sources: joinSources(existing.sources, change.provenance.sources),
+            }
+          : change.provenance;
     if (change.field === "garden") delete next.provenance.action;
     // A gardener's own statement settles any earlier recorded disagreement about the field.
     next.conflicts = next.conflicts.filter(

@@ -30,7 +30,7 @@ export function AppLaunchError({
   if (updating) {
     return (
       <div role="status" lang={language}>
-        <SplashScaffold pulse title={copy.launchUpdating} titleVoice="status" />
+        <SplashScaffold breathe title={copy.launchUpdating} titleVoice="status" />
       </div>
     );
   }

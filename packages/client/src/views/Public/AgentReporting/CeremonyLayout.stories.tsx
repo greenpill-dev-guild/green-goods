@@ -78,7 +78,7 @@ const meta: Meta = {
     ),
   ],
   parameters: {
-    surface: "app",
+    surface: "website",
     layout: "fullscreen",
     docs: {
       description: {

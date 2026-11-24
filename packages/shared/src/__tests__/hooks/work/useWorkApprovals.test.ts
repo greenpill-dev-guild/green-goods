@@ -223,11 +223,9 @@ describe("useWorkApprovals", () => {
 
       // Capture references from first render
       const firstApprovals = result.current.approvals;
-      const firstPending = result.current.pendingApprovals;
       const firstCompleted = result.current.completedApprovals;
       const firstApprovedCount = result.current.approvedCount;
       const firstRejectedCount = result.current.rejectedCount;
-      const firstPendingCount = result.current.pendingCount;
 
       // Re-render without changing data
       rerender();
@@ -235,11 +233,9 @@ describe("useWorkApprovals", () => {
       // After re-render, computed values should be structurally equal
       // (the hook recomputes arrays on each render; deep equality is sufficient)
       expect(result.current.approvals).toStrictEqual(firstApprovals);
-      expect(result.current.pendingApprovals).toStrictEqual(firstPending);
       expect(result.current.completedApprovals).toStrictEqual(firstCompleted);
       expect(result.current.approvedCount).toBe(firstApprovedCount);
       expect(result.current.rejectedCount).toBe(firstRejectedCount);
-      expect(result.current.pendingCount).toBe(firstPendingCount);
     });
 
     it("computes correct counts for mixed approval states", async () => {
@@ -297,9 +293,11 @@ describe("useWorkApprovals", () => {
 
       expect(result.current.approvedCount).toBe(2);
       expect(result.current.rejectedCount).toBe(1);
-      expect(result.current.pendingCount).toBe(0);
-      expect(result.current.completedApprovals.length).toBe(3);
-      expect(result.current.pendingApprovals.length).toBe(0);
+      expect(result.current.completedApprovals.map((approval) => approval.status)).toEqual([
+        "approved",
+        "approved",
+        "rejected",
+      ]);
     });
 
     it("sorts approvals by creation date newest first", async () => {

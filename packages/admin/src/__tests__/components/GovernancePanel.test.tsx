@@ -72,7 +72,7 @@ describe("GovernancePanel", () => {
               communityAddress: COMMUNITY,
               gardenAddress: GARDEN_ID,
               poolAddress: HYPERCERT_POOL,
-              poolType: PoolType.Hypercert,
+              poolType: PoolType.HypercertSignal,
             },
           ]}
         />

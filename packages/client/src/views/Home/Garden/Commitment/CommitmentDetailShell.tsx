@@ -2,9 +2,11 @@ import { Button } from "@green-goods/shared/components/Button";
 import { RiRefreshLine, RiSearchLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { FormProgress } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
 import { FixedBar } from "../FixedBar";
+import type { BookingTracker } from "./serviceBookingTypes";
 
 export interface CommitmentDetailShellProps {
   children: React.ReactNode;
@@ -13,6 +15,8 @@ export interface CommitmentDetailShellProps {
   /** A line under the title, drawn by the caller (it may have nothing to say yet). */
   subtitle?: React.ReactNode;
   bar?: React.ReactNode;
+  /** A booking's steps beside back, in the tracker the composer draws its own steps in. */
+  tracker?: BookingTracker | null;
 }
 
 /**
@@ -27,14 +31,23 @@ export function CommitmentDetailShell({
   title,
   subtitle,
   bar,
+  tracker,
 }: CommitmentDetailShellProps) {
-  // TopNav owns the back affordance only; it takes no title of its own, so the
-  // promise names itself in its own heading, whole: the title wraps rather than
+  // TopNav owns the back affordance and, for a booking, its tracker; it takes no title of its
+  // own, so the promise names itself in its own heading, whole: the title wraps rather than
   // cutting off.
   return (
     <div className="w-full">
-      <TopNav onBackClick={onBack} overlay />
-      <div className="space-y-4 p-4 pt-20">
+      <TopNav onBackClick={onBack} overlay>
+        {tracker ? (
+          <FormProgress
+            currentStep={tracker.at}
+            steps={tracker.markers}
+            waiting={tracker.waiting ?? undefined}
+          />
+        ) : null}
+      </TopNav>
+      <div className="space-y-4 p-4 pt-[var(--app-top-bar-height)]">
         {title ? (
           <h1 className="text-lg font-medium leading-7 text-text-strong-950">{title}</h1>
         ) : null}

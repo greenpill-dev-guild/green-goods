@@ -31,6 +31,7 @@ const ALLOWED_TOP_LEVEL_DIRECTORIES = {
   contracts: new Set([
     "accounts",
     "interfaces",
+    "lib",
     "libraries",
     "markets",
     "mocks",
@@ -40,6 +41,9 @@ const ALLOWED_TOP_LEVEL_DIRECTORIES = {
     "strategies",
     "tokens",
   ]),
+  // Grove G0 spike (.plans/ideas/grove, decision 17): execution (Pi Durable), graph (Sigma),
+  // model (the Gemma worker), webmcp (the content-script probe). Entrypoints live outside src/.
+  extension: new Set(["execution", "graph", "model", "webmcp"]),
   indexer: new Set(["handlers"]),
   shared: new Set([
     "__mocks__",
@@ -77,6 +81,7 @@ const ALLOWED_ROOT_SOURCE_FILES = {
     "webmcp.ts",
   ]),
   contracts: new Set(["CommonErrors.sol", "Schemas.sol"]),
+  extension: new Set([]),
   indexer: new Set(["EventHandlers.ts"]),
   shared: new Set(["index.ts"]),
 };
@@ -115,9 +120,8 @@ function isDeclarationOnlySolidityInterface(filePath) {
 export const FROZEN_ALLOWLIST = {
   "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
   "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 626,
-  "packages/agent/src/handlers/index.ts": 508,
-  "packages/agent/src/platforms/telegram.ts": 590,
-  "packages/agent/src/services/blockchain.ts": 627,
+  "packages/agent/src/platforms/telegram.ts": 552,
+  "packages/agent/src/services/blockchain.ts": 604,
   "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
   "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
@@ -131,27 +135,29 @@ export const FROZEN_ALLOWLIST = {
   "packages/client/src/views/Garden/Media.tsx": 720,
   "packages/client/src/views/Public/Fund.tsx": 775,
   "packages/client/src/views/Public/Impact.tsx": 627,
+  "packages/contracts/src/lib/Settlement/LifecycleLib.sol": 699,
+  "packages/contracts/src/lib/Settlement/PlanLib.sol": 908,
   "packages/contracts/src/modules/Gardens.sol": 914,
   "packages/contracts/src/modules/Hats.sol": 851,
   "packages/contracts/src/modules/Octant.sol": 769,
   "packages/contracts/src/resolvers/Yield.sol": 899,
   "packages/contracts/src/tokens/Garden.sol": 502,
-  "packages/shared/src/components/Toast/toast.service.tsx": 776,
+  "packages/shared/src/components/Toast/toast.service.tsx": 775,
   "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 568,
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
   "packages/shared/src/hooks/index.ts": 604,
-  "packages/shared/src/hooks/work/useWorkMutation.ts": 528,
+  "packages/shared/src/hooks/work/useWorkMutation.ts": 522,
   "packages/shared/src/index.ts": 1418,
-  "packages/shared/src/modules/app/analytics-events.ts": 520,
+  "packages/shared/src/modules/app/analytics-events.ts": 504,
   "packages/shared/src/modules/app/posthog.ts": 553,
   "packages/shared/src/modules/data/marketplace.ts": 550,
   "packages/shared/src/modules/job-queue/db.ts": 536,
-  "packages/shared/src/providers/Auth.tsx": 739,
+  "packages/shared/src/providers/Auth.tsx": 723,
   "packages/shared/src/public-contracts/index.ts": 582,
   "packages/shared/src/types/domain.ts": 614,
   "packages/shared/src/utils/action/translations.ts": 564,
   "packages/shared/src/utils/cookie-jar-campaign.ts": 501,
-  "packages/shared/src/utils/errors/contract-errors.ts": 823,
+  "packages/shared/src/utils/errors/contract-errors.ts": 817,
   "packages/shared/src/utils/time.ts": 536,
   "packages/shared/src/workflows/authMachine.ts": 724,
 };
@@ -249,8 +255,10 @@ function isPackageSourcePath(filePath) {
   return /^packages\/[^/]+\/src\//.test(filePath);
 }
 
+// Only generated and third-party code is out of scope; first-party `lib` folders (the contracts
+// libraries, Shared's lib) are ordinary source.
 function isGeneratedOrVendoredPath(filePath) {
-  return /(^|\/)(node_modules|generated|lib|vendor)(\/|$)/.test(filePath);
+  return /(^|\/)(node_modules|generated|vendor)(\/|$)/.test(filePath);
 }
 
 function isTestOrStoryPath(filePath) {
@@ -506,8 +514,10 @@ const SHARED_SPECIFIER =
 const MOCKED_SPECIFIER = /vi\.(?:mock|importActual)\s*\(\s*["']([^"']+)["']/g;
 const DEEP_RELATIVE_SHARED_SOURCE =
   /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
+// External SDKs own their public exports (for example permissionless/utils).
+// Only Shared's relative paths and its declared aliases name internal barrels.
 const SHARED_INTERNAL_BARREL =
-  /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|hooks|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
+  /from\s+["'](?:\.{1,2}\/|@shared\/|@green-goods\/shared\/)(?:[^"']*\/)?(?:config(?:\/query-keys)?|hooks|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
 const QUERY_KEY_REGISTRY = /from\s+["'][^"']*config\/query-keys\/registry["']/;
 const DEFAULT_CHAIN_FROM_BLOCKCHAIN = /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/;
 

@@ -11,6 +11,8 @@
   },
   "ensReceiver": "0x0000000000000000000000000000000000000000",
   "gardenAccountImpl": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692",
+  "gardenAccountProxy": "0xEA18280e5e97894b382D81970077950b234459c1",
+  "gardenAccountProxyImpl": "0xF054F26dF17110910FD861f92E566610b965341c",
   "gardenToken": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
   "gardenerAccountLogic": "0x0000000000000000000000000000000000000000",
   "gardenerRegistry": "0x0000000000000000000000000000000000000000",
@@ -28,6 +30,8 @@
   },
   "guardian": "0x05F486E3161F895Ad99f041065224F78bDf580a7",
   "hatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
+  "stewardSafeBootstrap": "0x2A891Ed2f4AEaB476E8B8DB687AcD24d4b90CDa0",
+  "stewardSafeFactoryGnosis": "0x2E00Bd83388aDA1e188FC6465F646B9C5e291acF",
   "hypercertsModule": "0x9CB6300cb0DD64dfe577944d7a8AF70799Fe3ef0",
   "hypercertExchange": "0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83",
   "hypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07",
@@ -154,43 +158,57 @@
   "testimonyResolver": "0x2897BcAE282D5d99DaeE535803F531B333Cc2329",
   "testimonyResolverImpl": "0xA8283A563244dd002dA814A0C4CF24c29c8F30A7",
   "poolingLibraries": {
-    "CommitmentPoolingClaimsLib": "0x6ab32927D709EA68b1B00aCAD31263F3B96b4D70",
-    "CommitmentPoolingConfirmLib": "0x9022375cB1cF383263872a1CE87ffEb6aEA502A5",
-    "CommitmentPoolingCreationLib": "0xe027C99791A1F1b840d2E41675ca98DC7b89756c",
-    "CommitmentPoolingCyclesLib": "0xfe079eD87f93E4eA6b91ca69bBEc7428Dc9fcA5D",
-    "CommitmentPoolingExchangeLib": "0xAB0DE52D60258098fdd3C4f91fE6BE07Ff2151fC",
-    "CommitmentPoolingPoolsLib": "0x715bD6b6713d32973D576471F75d9619BD4a541B",
-    "CommitmentPoolingProofLib": "0xdd6b42215F166b692568cE67921e6B961E59aFbb",
-    "CommitmentPoolingRecognitionLib": "0x4BeF099fAD5F25708aA449FeDCa5E69fAEEFAAA4",
-    "CommitmentPoolingRosterLib": "0x0B01c15e861449001b53eD7a58E082a7D4F0C1f2",
-    "CommitmentPoolingSeriesLib": "0xE5053DfE8701d29a98c95Ba703EFC199e2f9dafc",
-    "CommitmentPoolingSyncLib": "0x9954BfDAb752184e9f04e7c69c00f1CbeC79D8A9",
-    "CommitmentPoolingTerminalLib": "0x879Aa35D314924d6Ed426EfB9B7ACaf9C92a0a28",
-    "CommitmentPoolingTermsLib": "0xb24c7De88313ADd5e39e063427198f976d6BbA5c",
-    "CommitmentPoolingViewsLib": "0xEeb5fc5f3BDba63E3CDD235808a91d8997c95aB9"
+    "CommitmentPoolingClaimsLib": "0x60c3f607c06a17e8ad8444fd6a489d38ab479bb0",
+    "CommitmentPoolingConfirmLib": "0x3546fbf50382ae717202ba07ca59a5ba7bc0034f",
+    "CommitmentPoolingCreationLib": "0xfa074f0a1f1eebb710f7f33e8ddb3fe76a573480",
+    "CommitmentPoolingCyclesLib": "0xcf4ede1a91b4e5981092294646e6c894ac683480",
+    "CommitmentPoolingExchangeLib": "0x6da0919b2859ba98a02b720d9bf3af16b6f18107",
+    "CommitmentPoolingPoolsLib": "0xeb2e17370d0c0cc8e7d542e9f214c037e39ac726",
+    "CommitmentPoolingProofLib": "0x3aedca21f92aaed7efa6ca97fa3c3d61e5fcdb7f",
+    "CommitmentPoolingRecognitionLib": "0x96f810a37f2c7f069755a1750f823d74fb776a53",
+    "CommitmentPoolingRosterLib": "0xdecc8d6982a598e95b44e101af8fda840601d41e",
+    "CommitmentPoolingSeriesLib": "0x1958330c7d47e11af11b8529ed186e14ee7f8aa7",
+    "CommitmentPoolingSyncLib": "0xf9abd058df38c5939aa1c8cf5ca1413ed047cce1",
+    "CommitmentPoolingTerminalLib": "0x96d1e72637bd4ff431e63c875436f8e25a4f7dda",
+    "CommitmentPoolingTermsLib": "0x8b47a12a0c63a518cff5fac52569a1280796b808",
+    "CommitmentPoolingViewsLib": "0x2f521181f1b24a452f6be78747a1fca663a6a718"
   },
   "commitmentPoolingModule": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
-  "commitmentPoolingModuleImpl": "0x6268ec974bb217De39E7756d75c8D523b9A79218",
+  "commitmentPoolingModuleImpl": "0xc186ee4baa1094e73d33b8afb519df73fe4f6c4d",
   "commitmentPoolingModulePaused": false,
   "commitmentRegistry": "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959",
   "commitmentRegistryImpl": "0x97d2bc3ec0209a9b9d1e2e7EB9f021d3C4DD2970",
   "settlementLibraries": {
-    "SettlementAcknowledgmentLib": "0xE81212903382ed03c4D4E8d72d23a098d56DE645",
-    "SettlementCommandLib": "0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8",
-    "SettlementConfigurationLib": "0xa7042e327369beF53E01CCdC46E713Af7Ea9a687",
-    "SettlementFundingLib": "0x8cC05D2443AE960c4CB98F462D87D619774B2bfA",
-    "SettlementLifecycleLib": "0xA9901d5AbA09aFdC180900AAC423d0bF14633501",
-    "SettlementLoanLib": "0x44e0ADB51338dA96F2Aaa942924E47008e534122",
-    "SettlementPlanLib": "0xbDF2741aaEb9fa5F55bd8001579c5f7c13898622"
+    "SettlementAcknowledgmentLib": "0x33Bc77C79b73E68B10C47B9A6be99DB962e8c113",
+    "SettlementCommandLib": "0x163dEFA96dDe88498A5a797450a9E72745614855",
+    "SettlementConfigurationLib": "0xc9d206e1C9ad5a330FFf8cAD5087D35E3f795621",
+    "SettlementFundingLib": "0xa14EEB9652Afc302dC8b70FAc82bBD05182C090b",
+    "SettlementLifecycleLib": "0xe3725031a7900BDcB485bE9900cEe2bc06723c1c",
+    "SettlementLoanLib": "0x7d03F0E9E315c8F861E695a1b64d7761d8240612",
+    "SettlementPlanLib": "0x074d350935C3d0549cA59921f920710E1376Fa3C"
   },
   "settlementModule": "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D",
-  "settlementModuleImpl": "0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281",
+  "settlementModuleImpl": "0xfcDca0E8b6a420Cd06d8f93352c36dCb0343aDB9",
   "releaseReceipts": {
     "settlementModule": {
       "transactionHash": "0xe950f05b9b1a6906f86be3da8123f29ebcd5c0ed39a0e98ec9c4a2c9dbb47397",
       "blockNumber": 493971677
+    },
+    "gardenAccountProxyImpl": {
+      "transactionHash": "0x7ef8b7d30af060f9fb41c7c26b3f68e4b48e681339fcc9a1bac2cf4b51ce9c6d",
+      "blockNumber": 520502865
+    },
+    "gardenAccountProxy": {
+      "transactionHash": "0xdd552b6e346a386ed6ef9fe094eeb3b2e33b427fa7621af163bed781640fede1",
+      "blockNumber": 520502878
+    },
+    "stewardSafeBootstrap": {
+      "transactionHash": "0x73fff266a7925ea1234297765f532cbce6de68718ac4ad0ba5ac191139f27ad9",
+      "blockNumber": 520502899
     }
   },
   "creditRegistry": "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34",
-  "creditRegistryImpl": "0x2ccd72813f02136EF54683c63DBe0bB48Ca13826"
+  "creditRegistryImpl": "0x2ccd72813f02136EF54683c63DBe0bB48Ca13826",
+  "rewardPayer": "0xEd1244F2c65f5Ddd052912Dd3F6E52A7f22F2829",
+  "rewardPayerDeployBlock": 526958954
 }

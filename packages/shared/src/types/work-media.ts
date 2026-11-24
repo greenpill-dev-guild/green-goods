@@ -1,3 +1,17 @@
+import type { Address } from "viem";
+import type { Domain } from "./domain";
+
+/** The uploader's acceptance of the versioned terms and public-sharing rules. */
+export interface WorkUploadConsent {
+  policyVersion: string;
+  uploaderAddress: Address;
+  termsAcceptedAt: string;
+  /** Messaging also records when the participant confirmed the exact report. */
+  publicSharingAcceptedAt?: string;
+  locale: "en" | "es" | "pt";
+  permissionsConfirmed: true;
+}
+
 export interface ApproximateWorkLocation {
   lat: number;
   lng: number;
@@ -11,6 +25,7 @@ export interface WorkUploadCheckpoint {
     media: string[];
   };
   broadcast?: import("../modules/transactions/types").BroadcastReference;
+  batchReference?: import("../modules/transactions/batch-types").BatchReference;
   /** Durable signing intent. A missing hash after interruption must not authorize another send. */
   broadcastPending?: boolean;
   /** When the intent was recorded, so an intent that never reached the chain can be resolved. */
@@ -48,7 +63,47 @@ export interface WorkUploadCheckpoint {
    */
   transactionReplaced?: boolean;
   transactionHash?: `0x${string}`;
+  /**
+   * The wallet answered with a Safe proposal, so `transactionHash` is the Safe's own id and no
+   * receipt follows it: the send waits for the Safe's signers, and a screen says so (PRD-1564).
+   * It changes nothing about how the send is settled.
+   */
+  awaiting?: "safe-signers";
   submittedAt: string;
   files: Record<string, { attachmentId: string; contentHash: string; cid: string }>;
   metadata?: { contentHash: string; cid: string };
+}
+
+/**
+ * Work metadata v2 — generic, domain-aware.
+ * Stored as JSON on IPFS, CID referenced in EAS attestation.
+ */
+export interface WorkMetadata {
+  uploadConsent?: WorkUploadConsent;
+  /** The photos and videos, one per CID in the attestation's media list. */
+  attachments?: Array<{ cid: string; type: string }>;
+  /** The documents, published beside the media list; read with `readPublishedWorkDocuments`. */
+  documents?: Array<{ cid: string; type: string; name: string; size: number }>;
+  schemaVersion: "work_metadata_v2";
+  domain: Domain;
+  actionSlug: string;
+  timeSpentMinutes: number;
+  details: Record<string, unknown>;
+  tags?: string[];
+  audioNoteCids?: string[];
+  clientWorkId: string;
+  submittedAt: string;
+  /** Optional GPS location (coarse, user-triggered) */
+  location?: ApproximateWorkLocation | null;
+}
+
+/**
+ * Work metadata v1 — old shape for legacy works.
+ * Kept for backward compatibility with existing attestations.
+ */
+export interface WorkMetadataV1 {
+  clientWorkId?: string;
+  plantCount: number;
+  plantSelection: string[];
+  timeSpentMinutes?: number;
 }

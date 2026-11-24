@@ -1,4 +1,8 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -13,12 +17,12 @@ import {
   summarizeNetDepositsByAsset,
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { RiBankLine, RiErrorWarningLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { useReadContract } from "wagmi";
-import { AdminButton } from "@/components/AdminButton";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -118,7 +122,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   }, [formatMessage, routeState?.returnLabelId, routeState?.returnTo]);
   const treasuryBackLink = contextualBackLink ?? {
     to: adminRoutes.communityEndowment(gardenRouteContext),
-    label: formatMessage({ id: "cockpit.community.endowment" }),
+    label: formatMessage({ id: "hub.community.endowment" }),
   };
 
   if (gardensLoading) {
@@ -130,7 +134,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteFrame>
         <CanvasRouteHeader
           maxWidthClassName="max-w-6xl"
-          title={formatMessage({ id: "cockpit.community.endowment" })}
+          title={formatMessage({ id: "hub.community.endowment" })}
           description={formatMessage({ id: "app.treasury.loadingGarden" })}
           backLink={treasuryBackLink}
         />
@@ -147,7 +151,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteFrame>
         <CanvasRouteHeader
           maxWidthClassName="max-w-6xl"
-          title={formatMessage({ id: "cockpit.community.endowment" })}
+          title={formatMessage({ id: "hub.community.endowment" })}
           description={formatMessage({ id: "app.treasury.gardenNotFound" })}
           backLink={treasuryBackLink}
         />
@@ -167,24 +171,24 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       {!isEmbedded ? (
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="surface-inset">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({ id: "app.treasury.totalValueLocked" })}
             </p>
-            <p className="mt-1 text-title-md font-semibold text-text-strong">
+            <p className="mt-1 type-title-md font-semibold text-text-strong">
               {formatAssetAmounts(endowmentByAsset, locale)}
             </p>
           </div>
           <div className="surface-inset">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({ id: "app.treasury.totalHarvests" })}
             </p>
-            <p className="mt-1 text-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
+            <p className="mt-1 type-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
           </div>
           <div className="surface-inset">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({ id: "app.treasury.depositorCount" })}
             </p>
-            <p className="mt-1 text-title-md font-semibold text-text-strong">
+            <p className="mt-1 type-title-md font-semibold text-text-strong">
               {totalDepositorCount}
             </p>
           </div>
@@ -192,19 +196,25 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       ) : null}
 
       {vaultsLoading && (
-        <p className="body-sm text-text-soft">
-          {formatMessage({ id: "app.treasury.loadingVaults" })}
-        </p>
+        // The positions' own frames while they load, so the rows land where these stood.
+        <div className="flex flex-col gap-(--gg-list-gap)" role="status" aria-live="polite">
+          <span className="sr-only">{formatMessage({ id: "app.treasury.loadingVaults" })}</span>
+          {[0, 1].map((index) => (
+            <ItemRowSkeleton key={index} lead="icon" amount />
+          ))}
+        </div>
       )}
 
       {vaultsHasError && (
-        <Alert
-          variant="error"
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({ id: "app.treasury.errorLoading" })}
           action={
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => {
                 void refetchVaults();
               }}
@@ -213,28 +223,30 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
               {vaultsFetching
                 ? formatMessage({ id: "app.common.refreshing" })
                 : formatMessage({ id: "app.common.tryAgain" })}
-            </AdminButton>
+            </Button>
           }
-        >
-          {formatMessage({ id: "app.treasury.errorLoading" })}
-        </Alert>
+        />
       )}
 
       {!vaultsLoading && !vaultsHasError && vaults.length === 0 && (
-        <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 body-sm text-text-soft">
-          {formatMessage({ id: "app.treasury.noVault" })}
+        <EmptyState icon={<RiBankLine />} title={formatMessage({ id: "app.treasury.noVault" })} />
+      )}
+
+      {!ENDOWMENT_DEPOSITS_ENABLED && (
+        <p className="type-body text-text-sub">
+          {formatMessage({ id: "public.fund.endowmentPause.status" })}
         </p>
       )}
 
       {!vaultsLoading && vaults.length > 0 && (
         // Said once for every vault, not repeated on each card (D27).
-        <p className="body-sm text-text-sub">
+        <p className="type-body text-text-sub">
           {formatMessage({ id: "app.treasury.impactYieldHelper" })}
         </p>
       )}
 
       {!vaultsLoading && vaults.length > 0 && (
-        <section className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
+        <section className="flex flex-col gap-(--gg-list-gap)">
           {vaults.map((vault) => (
             <PositionCard
               key={vault.id}
@@ -284,8 +296,8 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     <CanvasRouteFrame>
       <CanvasRouteHeader
         maxWidthClassName="max-w-6xl"
-        title={formatMessage({ id: "cockpit.community.endowment" })}
-        description={formatMessage({ id: "cockpit.community.endowment.description" })}
+        title={formatMessage({ id: "hub.community.endowment" })}
+        description={formatMessage({ id: "hub.community.endowment.description" })}
         backLink={treasuryBackLink}
         sticky
       />

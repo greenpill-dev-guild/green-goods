@@ -1,6 +1,6 @@
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import type { PoolSetupIntent } from "./setupFlowModel";
 
@@ -51,88 +51,76 @@ export function SetupFlowFooter({
   onDone,
 }: SetupFlowFooterProps) {
   const { formatMessage } = useIntl();
+  // While it sends, the bar's note is the progress; otherwise why Next is held.
+  const note = submitting ? (
+    <AdminLinearProgress ariaLabel={title} value={progress} />
+  ) : !complete && !canContinue && blockedReason ? (
+    blockedReason
+  ) : null;
+
+  if (complete) {
+    return (
+      <SheetActions
+        note={note}
+        primary={{
+          label: formatMessage({ id: "hub.garden.pool.setup.done.close", defaultMessage: "Done" }),
+          onClick: onDone,
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <div className="min-w-0 sm:flex-1" aria-live="polite">
-        {submitting ? (
-          <AdminLinearProgress ariaLabel={title} value={progress} />
-        ) : !complete && !canContinue && blockedReason ? (
-          <p role="status" className="body-xs text-text-soft">
-            {blockedReason}
-          </p>
-        ) : null}
-      </div>
-      {complete ? (
-        <AdminButton type="button" variant="filled" onClick={onDone} className="w-full sm:w-auto">
-          {formatMessage({ id: "cockpit.garden.pool.setup.done.close", defaultMessage: "Done" })}
-        </AdminButton>
-      ) : (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <AdminButton
-            type="button"
-            variant={stepIndex === 0 ? "text" : "outlined"}
-            onClick={onBack}
-            disabled={submitting}
-            className="self-start sm:self-auto"
-          >
-            {stepIndex === 0
-              ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
-              : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-          </AdminButton>
-          {isLast ? (
-            retryable ? (
-              <AdminButton
-                type="button"
-                variant="filled"
-                leadingIcon={<RiRefreshLine className="h-4 w-4" />}
-                onClick={onRetry}
-                disabled={submitting || !isOnline}
-                loading={submitting}
-                className="w-full sm:w-auto"
-              >
-                {formatMessage({
-                  id: "cockpit.garden.pool.setup.retry",
+    <SheetActions
+      layout="steps"
+      note={note}
+      primary={
+        !isLast
+          ? {
+              label: formatMessage({ id: "app.common.next", defaultMessage: "Next" }),
+              onClick: onNext,
+              disabled: !canContinue,
+            }
+          : retryable
+            ? {
+                label: formatMessage({
+                  id: "hub.garden.pool.setup.retry",
                   defaultMessage: "Try Again",
-                })}
-              </AdminButton>
-            ) : (
-              <AdminButton
-                type="button"
-                variant="filled"
-                onClick={onSubmit}
-                disabled={!canContinue || (failed && !retryable)}
-                loading={submitting}
-                className="w-full sm:w-auto"
-              >
-                {intent === "first-run"
-                  ? formatMessage({
-                      id: "cockpit.garden.pool.setup.openAll",
-                      defaultMessage: "Set Up and Open",
-                    })
-                  : isCampaign
+                }),
+                icon: <RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+                onClick: onRetry,
+                disabled: submitting || !isOnline,
+                loading: submitting,
+              }
+            : {
+                label:
+                  intent === "first-run"
                     ? formatMessage({
-                        id: "cockpit.garden.pool.setup.openCampaign",
-                        defaultMessage: "Open Campaign",
+                        id: "hub.garden.pool.setup.openAll",
+                        defaultMessage: "Set Up and Open",
                       })
-                    : formatMessage({
-                        id: "cockpit.garden.pool.setup.openSeason",
-                        defaultMessage: "Open to the Garden",
-                      })}
-              </AdminButton>
-            )
-          ) : (
-            <AdminButton
-              type="button"
-              variant="filled"
-              onClick={onNext}
-              disabled={!canContinue}
-              className="w-full sm:w-auto"
-            >
-              {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-            </AdminButton>
-          )}
-        </div>
-      )}
-    </div>
+                    : isCampaign
+                      ? formatMessage({
+                          id: "hub.garden.pool.setup.openCampaign",
+                          defaultMessage: "Open Campaign",
+                        })
+                      : formatMessage({
+                          id: "hub.garden.pool.setup.openSeason",
+                          defaultMessage: "Open to the Garden",
+                        }),
+                onClick: onSubmit,
+                disabled: !canContinue || (failed && !retryable),
+                loading: submitting,
+              }
+      }
+      secondary={{
+        label:
+          stepIndex === 0
+            ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
+            : formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+        onClick: onBack,
+        disabled: submitting,
+      }}
+    />
   );
 }

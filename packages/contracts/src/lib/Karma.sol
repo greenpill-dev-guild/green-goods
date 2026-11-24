@@ -33,6 +33,13 @@ library KarmaLib {
     address internal constant GAP_CONTRACT_SEPOLIA = 0x9E5560f5b084c227Dc40672f48F59DA617eeFA28;
 
     // ============================================================================
+    // EAS CONTRACT ADDRESSES (where Green Goods Work is attested)
+    // ============================================================================
+    address internal constant EAS_ARBITRUM = 0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458;
+    address internal constant EAS_CELO = 0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92;
+    address internal constant EAS_SEPOLIA = 0xC2679fBD37d54388Ce493F1DB75320D236e1815e;
+
+    // ============================================================================
     // SCHEMA UIDs - OPTIMISM (Chain ID: 10)
     // ============================================================================
     bytes32 internal constant GAP_PROJECT_SCHEMA_OPTIMISM =
@@ -122,6 +129,17 @@ library KarmaLib {
         if (chainId == 42_161) return GAP_CONTRACT_ARBITRUM;
         if (chainId == 42_220) return GAP_CONTRACT_CELO;
         if (chainId == 11_155_111) return GAP_CONTRACT_SEPOLIA;
+
+        _revertUnsupported();
+    }
+
+    /// @notice Returns the EAS contract for current chain, which holds each Work's attestation
+    /// @return EAS contract address
+    function getEAS() internal view returns (address) {
+        uint256 chainId = block.chainid;
+        if (chainId == 42_161) return EAS_ARBITRUM;
+        if (chainId == 42_220) return EAS_CELO;
+        if (chainId == 11_155_111) return EAS_SEPOLIA;
 
         _revertUnsupported();
     }

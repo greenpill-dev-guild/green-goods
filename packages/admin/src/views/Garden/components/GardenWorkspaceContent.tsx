@@ -9,6 +9,9 @@ import {
 import { EditGardenDialog } from "./EditGardenDialog";
 import { OverviewTab } from "./OverviewTab";
 import { ImpactTab } from "./ImpactTab";
+import { ReviewHealthCard } from "./ReviewHealthCard";
+import { WorkCalendarCard } from "./WorkCalendarCard";
+import { WorkDayDialog } from "./WorkDayDialog";
 import { GardenPoolTab } from "../Pool";
 
 interface GardenWorkspaceContentProps {
@@ -20,7 +23,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
   if (!workspace.selectedGarden) {
     return (
       <CanvasWorkspaceSelectionGate
-        workspaceLabel={formatMessage({ id: "cockpit.nav.garden", defaultMessage: "Garden" })}
+        workspaceLabel={formatMessage({ id: "hub.nav.garden", defaultMessage: "Garden" })}
         gardens={workspace.gardenOptions}
         onSelectGarden={workspace.handleSelectGarden}
       />
@@ -37,7 +40,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         message={
           workspace.error?.message ??
           formatMessage({
-            id: "cockpit.garden.loadFailedDescription",
+            id: "hub.garden.loadFailedDescription",
             defaultMessage: "Try choosing a different garden or refreshing the page.",
           })
         }
@@ -47,9 +50,19 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
 
   return (
     <div className="mt-4 flex min-h-0 flex-1 flex-col gap-4">
+      {/* The month calendar leads the Activity tab at full width, above the feed and its rail:
+          seven columns need the room. A section link (alerts, metrics) shows that section alone. */}
+      {workspace.view === "activity" && workspace.section === undefined ? (
+        <>
+          <WorkCalendarCard calendar={workspace.workCalendar} />
+          <WorkDayDialog calendar={workspace.workCalendar} gardenId={workspace.garden.id} />
+        </>
+      ) : null}
       {workspace.view === "health" || workspace.view === "activity" ? (
         <OverviewTab
           chainId={workspace.garden.chainId}
+          gardenId={workspace.garden.id}
+          canManage={workspace.canManage}
           mode={workspace.view}
           section={workspace.section}
           selectedItem={workspace.selectedItem}
@@ -71,6 +84,17 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           gardenerCount={workspace.garden.gardeners.length}
           treasuryBalance={workspace.treasuryBalance}
           karmaIntegration={workspace.karmaIntegration}
+          reviewHealth={
+            <ReviewHealthCard
+              health={workspace.reviewHealth}
+              gardenId={workspace.garden.id}
+              waiting={{
+                pendingCount: workspace.derived.reviewQueue.pendingCount,
+                oldestPendingAt: workspace.derived.reviewQueue.oldestPendingAt,
+                complete: workspace.derived.reviewQueue.waitingByBandComplete,
+              }}
+            />
+          }
         />
       ) : null}
 
@@ -104,9 +128,9 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         />
       ) : null}
 
-      {/* Edit Garden opens from the workspace action over the Overview behind
-          it. Deep-linking to /garden/settings opens it directly; closing
-          returns to Health. */}
+      {/* Edit Garden opens from the workspace action over whichever tab the URL
+          is on, and closing returns there (DL-140). /garden/settings redirects
+          to it over Health. */}
       <EditGardenDialog
         open={workspace.settingsOpen}
         onClose={workspace.handleSettingsClose}

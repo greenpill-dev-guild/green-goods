@@ -1,6 +1,9 @@
+import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { FunderLeaderboardEntry } from "@green-goods/shared/types/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
+import { mocked } from "storybook/test";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { FunderRow } from "./FunderRow";
 
 function makeFunder(
@@ -32,8 +35,6 @@ const LOW = makeFunder(
 );
 const ZERO = makeFunder("0x4444444444444444444444444444444444444444" as Address, 0n, 1);
 
-const MAX_YIELD = HIGH.totalYieldGenerated;
-
 const meta: Meta<typeof FunderRow> = {
   title: "Admin/Workflows/Vault/FunderRow",
   component: FunderRow,
@@ -42,7 +43,7 @@ const meta: Meta<typeof FunderRow> = {
     docs: {
       description: {
         component:
-          "Single funder row for the ranked supporter view. Shows ENS name or truncated address, cumulative yield generated, gardens supported count, and a proportional yield bar keyed to the current maximum. ENS lookup uses wagmi and returns `null` in Storybook — the address fallback is exercised instead.",
+          "One funder in the ranked supporter view: a person row with the Funder chip and, as its one count, the yield the funder's deposits have generated. The name comes from the shared address display; these funders have published none, so each shows its short address and the avatar its glyph.",
       },
     },
   },
@@ -53,23 +54,30 @@ const meta: Meta<typeof FunderRow> = {
       </div>
     ),
   ],
+  beforeEach: () => {
+    mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: null,
+      isLoading: false,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+    return resetHookMocks(useResolvedProfileAvatar);
+  },
 };
 
 export default meta;
 type Story = StoryObj<typeof FunderRow>;
 
 export const TopFunder: Story = {
-  args: { funder: HIGH, maxYield: MAX_YIELD },
+  args: { funder: HIGH },
 };
 
 export const MidFunder: Story = {
-  args: { funder: MID, maxYield: MAX_YIELD },
+  args: { funder: MID },
 };
 
 export const LowFunder: Story = {
-  args: { funder: LOW, maxYield: MAX_YIELD },
+  args: { funder: LOW },
 };
 
 export const NoYield: Story = {
-  args: { funder: ZERO, maxYield: MAX_YIELD },
+  args: { funder: ZERO },
 };

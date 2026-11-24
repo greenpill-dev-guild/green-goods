@@ -42,7 +42,7 @@ contract ArbitrumYieldResolverCoreForkTest is AaveOctantForkBase {
         _deployFullStackOnFork();
 
         (address garden, address vault) = _createHarvestableGarden("Yield Core Garden");
-        address cookieJar = address(0xC001);
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         address treasury = address(0x7EA5);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, treasury);

@@ -1,0 +1,1 @@
+../docs/docs/reference/brand-voice.mdx

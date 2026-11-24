@@ -1,7 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { track } from "@green-goods/shared/modules/app/posthog";
-
-type AuthMode = "wallet" | "passkey" | "embedded" | null;
+import type { AuthMode } from "@green-goods/shared/hooks/auth/useAuth";
 
 type WorkMediaEventName =
   | "work_media_selected"
@@ -15,7 +14,7 @@ type WorkMediaEventName =
 
 type WorkMediaEventMetadata = {
   work_submission_journey_id?: string | null;
-  source?: "camera" | "gallery" | "media" | "review";
+  source?: "camera" | "gallery" | "documents" | "media" | "review";
   file_count?: number;
   mime_type?: string;
   mime_types?: string[];

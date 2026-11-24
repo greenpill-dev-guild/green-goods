@@ -7,14 +7,24 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import {
+  browserMinimumGatePlugin,
+  SUPPORTED_BROWSER_TARGETS,
+} from "../../scripts/lib/browser-support.mjs";
+import {
   assertEnvParity,
   assertSentryDsnResolvable,
+  clearAlphaAnalyticsKeys,
   dropVercelFrameworkVariables,
 } from "../../scripts/lib/env-parity.mjs";
+import { telemetryBuildDefines } from "../../scripts/lib/telemetry-build";
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
+import {
+  createHubInstallBranding,
+  type HubInstallBranding,
+  resolveHubFlavor,
+} from "./vite/hub-manifest";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/de3e5df/v1/graphql";
 const ADMIN_VERCEL_PROJECT_ID = "prj_t2gwwFBMLKM22eYKxtA0yGRBfigg";
 
 function envValue(key: string): string | undefined {
@@ -99,27 +109,48 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
   };
 }
 
-/**
- * Split large eager vendor dependencies into coarse, cacheable chunks so the
- * admin entry is not one multi-MB monolith (the un-split build emits a single
- * ~8.4 MB chunk and trips Vite's chunkSizeWarningLimit).
- *
- * Deliberately coarse:
- * - React core (react / react-dom / scheduler / react-is) stays in ONE chunk.
- *   Splitting it — or separating a hook-using lib from React — causes
- *   duplicate-React / "Invalid hook call" at runtime.
- * - The web3 stack (wagmi/viem/ox/...) is the heaviest cluster, so it gets its
- *   own chunk; observability (Sentry/PostHog) likewise.
- * - Everything else stays in a single `vendor` chunk to avoid a request
- *   waterfall from fine-grained per-package splits.
- *
- * Perf/caching only. This does NOT address the Bun-baseline `SIGILL` seen on
- * some Vercel build VMs — that is a Bun bundler/CPU issue tracked separately.
- */
+// Boot helpers and query persistence must not preload the wallet SDK. Keep the
+// existing coarse SDK groups: finer splits increase post-paint blocking in admin.
+const ADMIN_VITE_RUNTIME_MODULES = /\0vite\/(?:preload-helper|modulepreload-polyfill)\.js/;
+const ADMIN_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
+const ADMIN_QUERY_MODULES =
+  /[\\/]node_modules[\\/]@tanstack[\\/](?:query-core|react-query|query-persist-client-core|react-query-persist-client|query-sync-storage-persister)[\\/]/;
 const ADMIN_WEB3_MODULES =
   /[\\/]node_modules[\\/](?:wagmi|viem|permissionless|ox|abitype|@wagmi|@walletconnect|@reown|@web3modal|@coinbase)[\\/]/;
 const ADMIN_OBSERVABILITY_MODULES = /[\\/]node_modules[\\/](?:@sentry|posthog-js)[\\/]/;
-const ADMIN_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
+
+// The installed Hub's manifest and home-screen tags for the environment this build serves (PRD-1517).
+function hubInstallPlugin(branding: HubInstallBranding): Plugin {
+  const manifest = JSON.stringify(branding.manifest, null, 2);
+  const replacements = {
+    "%HUB_BROWSER_ICON%": branding.browserIcon,
+    "%HUB_APPLE_TOUCH_ICON%": branding.appleTouchIcon,
+    "%HUB_SHORT_NAME%": branding.manifest.short_name,
+  };
+  return {
+    name: "green-goods-hub-install",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.split("?")[0]?.endsWith("/manifest.webmanifest")) return next();
+        res.setHeader("Content-Type", "application/manifest+json");
+        res.end(manifest);
+      });
+    },
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "manifest.webmanifest", source: manifest });
+    },
+    transformIndexHtml: {
+      order: "pre",
+      handler(html) {
+        let transformed = html;
+        for (const [token, value] of Object.entries(replacements)) {
+          transformed = transformed.split(token).join(value);
+        }
+        return transformed;
+      },
+    },
+  };
+}
 
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
@@ -132,6 +163,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   for (const [key, value] of Object.entries(rootEnv)) {
     if (process.env[key] === undefined) process.env[key] = value;
   }
+  // Root local tooling defaults must not compile development React into a build.
+  if (command === "build") process.env.NODE_ENV = "production";
 
   // Use relative paths for IPFS builds
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
@@ -141,7 +174,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const isDevContainer = process.env.DEVCONTAINER === "true";
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
-  const indexerProxyTarget = process.env.VITE_ENVIO_INDEXER_URL ?? DEFAULT_INDEXER_URL;
+  const indexerProxyTarget =
+    process.env.VITE_ENVIO_INDEXER_URL || "http://localhost:3006/v1/graphql";
   const appVersion =
     process.env.VITE_APP_VERSION ||
     process.env.VERCEL_GIT_COMMIT_SHA ||
@@ -171,6 +205,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     });
     assertSentryDsnResolvable({ app: "admin", sentryDsn, env: process.env });
   }
+  // After the parity check, which would warn about the keys it empties: alpha sends no
+  // product analytics.
+  clearAlphaAnalyticsKeys(process.env);
   const sentryRelease = `green-goods-admin@${shortAppVersion}`;
 
   // Dev-only plugin: serves admin's tunnel URL at /__dev/tunnel for QR-code testing
@@ -205,6 +242,13 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
 
   const plugins = [
     devTunnelPlugin(),
+    hubInstallPlugin(createHubInstallBranding(resolveHubFlavor(process.env))),
+    // Below the browser minimum every Hub page shows an update screen.
+    browserMinimumGatePlugin({
+      surface: "hub",
+      logo: `${isIPFSBuild ? "./" : "/"}green-goods-logo.png`,
+      posthogKey: process.env.VITE_POSTHOG_ADMIN_KEY,
+    }),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -254,6 +298,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {
+      // The supported minimum, named so a Vite upgrade cannot move it; the CSS target follows it.
+      target: [...SUPPORTED_BROWSER_TARGETS],
       // 'hidden' emits .map files for server-side upload (PostHog / Sentry) but
       // omits the sourceMappingURL comment, so the maps are never referenced from
       // — or served to — browsers. The upload lane deletes them after upload.
@@ -267,7 +313,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           chunkFileNames: "assets/[hash].js",
           codeSplitting: {
             groups: [
-              { name: "vendor-react", test: ADMIN_REACT_MODULES, priority: 20 },
+              { name: "vite-runtime", test: ADMIN_VITE_RUNTIME_MODULES, priority: 50 },
+              { name: "vendor-react", test: ADMIN_REACT_MODULES, priority: 40 },
+              { name: "vendor-query", test: ADMIN_QUERY_MODULES, priority: 30 },
               { name: "vendor-web3", test: ADMIN_WEB3_MODULES, priority: 10 },
               {
                 name: "vendor-observability",
@@ -281,14 +329,25 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       },
     },
     define: {
+      ...(command === "build"
+        ? {
+            "process.env.NODE_ENV": JSON.stringify("production"),
+            "import.meta.env.DEV": "false",
+            "import.meta.env.PROD": "true",
+          }
+        : {}),
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_ADMIN_DSN": JSON.stringify(sentryDsn ?? ""),
       "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
+      ...telemetryBuildDefines({ surface: "admin", release: sentryRelease }),
+    },
+    oxc: {
+      jsx: { development: command !== "build" },
     },
     plugins,
-    // Deduplicate React, PostHog, and Sentry to prevent multiple instances
+    // Bun's peer variants otherwise bundle two identical copies of Viem.
     resolve: {
-      dedupe: ["react", "react-dom", "posthog-js", "@sentry/react"],
+      dedupe: ["react", "react-dom", "posthog-js", "@sentry/react", "viem"],
       conditions: ["import", "module", "browser", "default"],
       alias: {
         "@": resolve(__dirname, "./src"),
@@ -343,6 +402,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared > @hypercerts-org/contracts",
         "@green-goods/shared > @hypercerts-org/marketplace-sdk",
         "@green-goods/shared > @hypercerts-org/sdk",
+        "@green-goods/shared > @openfort/openfort-js",
         "@green-goods/shared > @radix-ui/react-popover",
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",
@@ -376,6 +436,24 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",
+        // ── @green-goods/shared imports the startup scan misses (checked by vite/prebundle.test.ts) ──
+        "@radix-ui/react-dialog",
+        "@remixicon/react",
+        "@tanstack/react-query",
+        "@green-goods/shared > @wagmi/core/query",
+        "@green-goods/shared > @zerodev/permissions",
+        "@green-goods/shared > @zerodev/permissions/policies",
+        "@green-goods/shared > @zerodev/permissions/signers",
+        "@green-goods/shared > @zerodev/sdk",
+        "@green-goods/shared > @zerodev/sdk/constants",
+        "@green-goods/shared > permissionless/actions/passkeyServer",
+        "@green-goods/shared > permissionless/utils",
+        "react-intl",
+        "react-router-dom",
+        "viem",
+        "viem/accounts",
+        "viem/actions",
+        "wagmi",
       ],
       exclude: ["@green-goods/shared"],
     },

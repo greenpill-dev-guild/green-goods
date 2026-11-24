@@ -77,6 +77,19 @@ export const cookieJarKeys = {
 
 export const yieldKeys = {
   all: ["greengoods", "yield"] as const,
+  publicVaultCatalog: (
+    chainId: number,
+    vaults: readonly { vaultAddress: string; asset: string }[]
+  ) =>
+    [
+      "greengoods",
+      "yield",
+      "publicVaultCatalog",
+      chainId,
+      vaults
+        .map((vault) => `${vault.vaultAddress.toLowerCase()}:${vault.asset.toLowerCase()}`)
+        .sort(),
+    ] as const,
   /** Base key for garden allocations - use for prefix-based invalidation */
   allocationsBase: (gardenAddress: string, chainId: number) =>
     ["greengoods", "yield", "allocations", gardenAddress, chainId] as const,

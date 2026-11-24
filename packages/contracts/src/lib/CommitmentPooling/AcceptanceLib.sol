@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { ICommitmentVoucherAcceptance as Voucher } from "../../interfaces/ICommitmentVoucherAcceptance.sol";
+import { CommitmentPoolingVoucherAcceptanceLib } from "./VoucherAcceptanceLib.sol";
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
@@ -24,9 +26,9 @@ library CommitmentPoolingAcceptanceLib {
         internal
         view
     {
+        if (commitment.consideration.amount == 0) return;
         bool priced = kind == ICommitmentPoolingModule.ClaimType.Individual && gardenContext != address(0)
-            && commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Offer
-            && commitment.consideration.amount != 0;
+            && commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Offer;
         if (!priced || commitment.claimMode == ICommitmentPoolingModule.ClaimMode.ApprovalGated) return;
         revert ICommitmentPoolingModule.PricedOfferClaimRequiresSteward(gardenContext, claimant);
     }
@@ -129,13 +131,7 @@ library CommitmentPoolingAcceptanceLib {
         // Keep the recipient invariant at the final acceptance mutation, too. This closes the
         // approval path for any pre-upgrade/backfilled pending claim that did not pass today's
         // creation or claim-request checks.
-        if (kind == ICommitmentPoolingModule.ClaimType.Garden && pool.poolType == ICommitmentPoolingModule.PoolType.Garden)
-        {
-            revert ICommitmentPoolingModule.GardenClaimRequiresProtocolPool(commitment.poolId);
-        }
-        if (kind == ICommitmentPoolingModule.ClaimType.Garden && gardenContext == pool.garden) {
-            revert ICommitmentPoolingModule.GardenClaimMustBeExternal(commitment.poolId, gardenContext);
-        }
+        requireValidAcceptanceRecipient(commitment.poolId, pool, kind, gardenContext);
         address leadProvider;
         address providerGarden;
         if (commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Offer) {
@@ -164,6 +160,14 @@ library CommitmentPoolingAcceptanceLib {
             );
         }
 
+        bool voucherTermsApply = CommitmentPoolingVoucherAcceptanceLib.applies(commitmentId);
+        // An empty typed container avoids allocating a service receipt for ordinary commitments.
+        Voucher.VoucherServiceAcceptance[] memory voucherReceipts;
+        if (voucherTermsApply) {
+            voucherReceipts = new Voucher.VoucherServiceAcceptance[](1);
+            voucherReceipts[0] = CommitmentPoolingVoucherAcceptanceLib.validate(commitmentId, commitment.creator, claimant);
+        }
+
         normalizeConfirmers(commitmentConfirmers, commitmentId, commitment, leadProvider);
         if (commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Request) {
             env.registry.commitUnits(commitmentId, leadProvider, commitment.targetUnits);
@@ -184,10 +188,31 @@ library CommitmentPoolingAcceptanceLib {
         lead.active = true;
         commitment.contributorCount = 1;
 
+        if (voucherTermsApply) {
+            CommitmentPoolingVoucherAcceptanceLib.record(commitmentId, commitment.creator, claimant, voucherReceipts[0]);
+        }
         emit ICommitmentPoolingModule.ContributorAdded(commitmentId, leadProvider, requestedBy);
         emit ICommitmentPoolingModule.CommitmentAccepted(
             commitmentId, claimant, claimant, kind, gardenContext, leadProvider, providerGarden, commitment.payerGarden
         );
+    }
+
+    function requireValidAcceptanceRecipient(
+        uint256 poolId,
+        ICommitmentPoolingModule.Pool storage pool,
+        ICommitmentPoolingModule.ClaimType kind,
+        address gardenContext
+    )
+        private
+        view
+    {
+        if (kind != ICommitmentPoolingModule.ClaimType.Garden) return;
+        if (pool.poolType == ICommitmentPoolingModule.PoolType.Garden) {
+            revert ICommitmentPoolingModule.GardenClaimRequiresProtocolPool(poolId);
+        }
+        if (gardenContext == pool.garden) {
+            revert ICommitmentPoolingModule.GardenClaimMustBeExternal(poolId, gardenContext);
+        }
     }
 
     function normalizeConfirmers(

@@ -1,10 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { IntlProvider } from "react-intl";
+import { fireEvent, renderWithProviders, screen } from "@/__tests__/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import type { StewardAccessRequestController } from "@green-goods/shared/hooks/admin-ui/layout/useStewardAccessRequestController";
 import type { Garden } from "@green-goods/shared/types/domain";
 import type { GardenJoinRequestSelfRecord } from "@green-goods/shared/public-contracts/join-requests";
-import messages from "@green-goods/shared/i18n/en.json";
 import { StewardAccessRequest } from "./StewardAccessRequest";
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
@@ -68,11 +66,7 @@ function controller(
   } as StewardAccessRequestController;
 }
 function renderRequest(c: StewardAccessRequestController) {
-  return render(
-    <IntlProvider locale="en" messages={messages}>
-      <StewardAccessRequest controller={c} showStatus />
-    </IntlProvider>
-  );
+  return renderWithProviders(<StewardAccessRequest controller={c} showStatus />);
 }
 
 describe("StewardAccessRequest", () => {
@@ -83,6 +77,14 @@ describe("StewardAccessRequest", () => {
     expect(c.selectGarden).toHaveBeenCalledWith(garden);
     expect(c.send).not.toHaveBeenCalled();
     expect(c.check).not.toHaveBeenCalled();
+  });
+
+  it("announces a garden list that failed to load and reloads it on Retry", () => {
+    const c = controller({ candidates: [], catalogError: true });
+    renderRequest(c);
+    expect(screen.getByRole("alert")).toHaveTextContent("Gardens could not be loaded");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(c.reloadGardens).toHaveBeenCalledTimes(1);
   });
   it("reviews the primary account and optional note before sending", () => {
     const c = controller({ selectedGarden: garden, step: "review" });
@@ -163,11 +165,7 @@ describe("StewardAccessRequest", () => {
     expect(c.withdraw).not.toHaveBeenCalled();
     expect(c.send).not.toHaveBeenCalled();
     c.step = "choose";
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <StewardAccessRequest controller={c} showStatus />
-      </IntlProvider>
-    );
+    rerender(<StewardAccessRequest controller={c} showStatus />);
     expect(screen.getByLabelText("Garden name or link")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Comunidad Verde/ }));
     expect(c.selectGarden).toHaveBeenCalledWith(garden);

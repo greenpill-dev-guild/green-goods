@@ -4,8 +4,8 @@ import pt from "@green-goods/shared/i18n/pt";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider, useIntl } from "react-intl";
 import { expect, fn, within } from "storybook/test";
-import { withAppPage } from "../../../../../shared/.storybook/decorators";
 import { TopNav } from "@/components/Navigation";
+import { withAppPage } from "../../../../../shared/.storybook/decorators";
 import { OfflineIndicator } from "../Offline/OfflineIndicator";
 import { FormProgress } from "./Progress";
 
@@ -40,8 +40,36 @@ export const SubmitWork: Story = {
   },
 };
 
+/**
+ * A booking's step that waits on someone else (DL-191): the current marker shows a clock on the
+ * neutral fill instead of its number, and a screen reader hears who it waits on after its name.
+ */
+export const WaitingOnSomeoneElse: Story = {
+  args: {
+    currentStep: 2,
+    steps: ["Book", "Deposit", "Service", "Done"],
+    waiting: "waiting on Tech and Sun",
+  },
+  play: async ({ canvasElement }) => {
+    const list = within(canvasElement).getByRole("list", { name: "Steps" });
+    const steps = within(list).getAllByRole("listitem");
+    await expect(steps[1]).toHaveAttribute("aria-current", "step");
+    await expect(steps[1]).toHaveTextContent("Deposit, waiting on Tech and Sun");
+    await expect(within(steps[1]).queryByText("2")).toBeNull();
+    await expect(within(steps[2]).getByText("3")).toBeVisible();
+  },
+};
+
+/** Adding proof: the same four markers, Start already checked as the path opens on Media (DL-153). */
 export const AddingProof: Story = {
-  args: { currentStep: 3, steps: ["Media", "Details", "Review"] },
+  args: { currentStep: 2, steps: ["Start", "Media", "Details", "Review"] },
+  play: async ({ canvasElement }) => {
+    const [start, media] = within(
+      within(canvasElement).getByRole("list", { name: "Steps" })
+    ).getAllByRole("listitem");
+    await expect(start).toHaveTextContent("Start, Done");
+    await expect(media).toHaveAttribute("aria-current", "step");
+  },
 };
 
 const MESSAGES = { en, es, pt } as const;
@@ -55,7 +83,12 @@ const FLOW_STEPS = {
     "app.work.step.details",
     "app.work.step.review",
   ],
-  proof: ["app.proof.beat.media", "app.proof.beat.details", "app.compose.beat.review"],
+  proof: [
+    "app.work.step.start",
+    "app.work.step.media",
+    "app.work.step.details",
+    "app.work.step.review",
+  ],
   compose: [
     "app.compose.beat.what",
     "app.compose.beat.howMuch",
@@ -72,6 +105,7 @@ interface FlowTopBarProps {
   offline?: boolean;
 }
 
+/** Every flow centres its markers in the bar (DL-132). */
 function FlowSteps({ flow, currentStep }: Pick<FlowTopBarProps, "flow" | "currentStep">) {
   const { formatMessage } = useIntl();
   return (
@@ -117,8 +151,9 @@ const markerOf = (step: HTMLElement, number: number) =>
     ?.parentElement as HTMLElement;
 
 /**
- * Where the tracker sits in the bar: every marker centres on Back, the step names
- * hang below it inside the bar, and nothing reaches into the bar's top padding.
+ * Where the tracker sits in the bar: every marker centres on Back's line, the step names hang
+ * below it inside the bar, and nothing reaches into the bar's top padding. Every flow centres
+ * its markers in the bar (DL-132).
  */
 const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement }) => {
   const canvas = within(canvasElement);
@@ -138,8 +173,9 @@ const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement
       box(steps[index].lastElementChild!).left
     );
   }
-  // Flow pages offset their content by the bar's 80px.
-  await expect(box(bar).height).toBe(80);
+  // Flow pages offset their content by the bar's 72px: 16px for the offline banner,
+  // the 32px controls, and 24px below them.
+  await expect(box(bar).height).toBe(72);
   for (const [index, step] of steps.entries()) {
     await expect(centreY(box(markerOf(step, index + 1)))).toBeCloseTo(centreY(box(back)), 0);
   }
@@ -154,7 +190,7 @@ const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement
 };
 
 /**
- * Submit Work's tracker beside Back in the fixed top bar. The controls switch
+ * Submit Work's tracker centred in the fixed top bar. The controls switch
  * the flow and the language; every flow keeps its markers on Back's centre line.
  */
 export const InTopBar: FlowStory = {

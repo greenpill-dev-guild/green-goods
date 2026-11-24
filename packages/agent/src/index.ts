@@ -33,13 +33,19 @@ import {
   initBlockchain,
   readVaultShareBalanceOnChain,
 } from "./services/blockchain";
-import { closeDB, initDB } from "./services/db";
+import { closeDB, getDB, initDB } from "./services/db";
+import { gnosis } from "viem/chains";
+import { createVoucherAwardService } from "./services/voucher-awards";
+import { createVoucherAwardChain } from "./services/voucher-awards-chain";
+import { createServiceIssuerDeskService } from "./services/service-issuer-desk";
+import { createServiceIssuerDeskAuthority } from "./services/service-issuer-desk-authority";
 import { resolveAgentRpc, resolveAgentRpcUrl, rpcHost } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
+import { createSqliteProfileAvatarStore } from "./services/profile-avatars";
 import {
-  createSqliteProfileAvatarStore,
-  createViemProfileAvatarSignatureVerifier,
-} from "./services/profile-avatars";
+  createViemAccountSignatureVerifier,
+  createViemAccountHashVerifier,
+} from "./services/account-signatures";
 import {
   createSavedOfferCipher,
   createSqliteSavedOfferStore,
@@ -55,18 +61,17 @@ import {
   createGardenJoinRequestCipher,
   createSqliteGardenJoinRequestStore,
 } from "./services/garden-join-requests";
+import { createGardenJoinRequestCountGrants } from "./services/garden-join-request-count-grants";
 import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
 import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
 import { createPasskeyDirectory } from "./services/passkey-directory";
+import { createOpenfortRecovery, readOpenfortRecoveryConfig } from "./services/openfort-recovery";
 import {
-  createHostedPasskeyNameCheck,
+  createHostedPasskeyLookup,
+  createSqlitePasskeyDisplayNames,
   createSqlitePasskeyDirectoryStore,
 } from "./services/passkey-directory-adapters";
 import { PASSKEY_RP_ID, PASSKEY_RP_NAME } from "@green-goods/shared/public-contracts";
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -81,6 +86,11 @@ async function main(): Promise<void> {
   initAgentAnalytics({
     apiKey: config.posthogApiKey,
     enabled: config.analyticsEnabled,
+    // The same environment and release the Sentry reports carry (PRD-1560).
+    environment: config.nodeEnv,
+    release: config.sentryRelease,
+    testAccounts: config.telemetryTestAccounts,
+    testGardens: config.telemetryTestGardens,
   });
 
   logger.info(
@@ -99,9 +109,25 @@ async function main(): Promise<void> {
     nodeEnv: config.nodeEnv,
   });
 
-  // Initialize services
   initDB(config.dbPath);
   const agentRpc = resolveAgentRpc(config.chainId);
+  const hostedPasskeys = config.passkeyHostedDirectoryUrl
+    ? createHostedPasskeyLookup({
+        rpcUrl: config.passkeyHostedDirectoryUrl,
+        origin: `https://${PASSKEY_RP_ID}`,
+      })
+    : undefined;
+  // Email sign-in recovery is on only with all four Openfort values; names, never values.
+  const openfortRecoveryConfig = readOpenfortRecoveryConfig();
+  if (!openfortRecoveryConfig.config && openfortRecoveryConfig.missing.length < 4) {
+    logger.warn(
+      { missing: openfortRecoveryConfig.missing },
+      "Openfort recovery is off: some of its settings are missing"
+    );
+  }
+  const openfortRecovery = openfortRecoveryConfig.config
+    ? createOpenfortRecovery(openfortRecoveryConfig.config)
+    : undefined;
   // Only the host is logged: a configured address can carry a provider key in its path.
   const rpcLog = {
     chainId: config.chainId,
@@ -176,20 +202,36 @@ async function main(): Promise<void> {
     });
   }
 
-  // ============================================================================
-  // LAUNCH
-  // ============================================================================
-
   // Start HTTP server in both modes (health + API endpoints always available)
   const server = createServer({
     isAIReady: isAIModelLoaded,
+    voucherAwards: createVoucherAwardService({
+      store: getDB().voucherAwardStore(),
+      chain: createVoucherAwardChain({ rpcUrl: resolveAgentRpcUrl(100) }),
+      verify: createViemAccountSignatureVerifier({
+        chain: gnosis,
+        rpcUrl: resolveAgentRpcUrl(100),
+      }),
+    }),
+    serviceIssuerDesk: createServiceIssuerDeskService({
+      store: getDB().serviceIssuerDeskStore(),
+      authority: createServiceIssuerDeskAuthority({ rpcUrl: resolveAgentRpcUrl(100) }),
+      verify: createViemAccountSignatureVerifier({
+        chain: gnosis,
+        rpcUrl: resolveAgentRpcUrl(100),
+      }),
+      verifyApproval: createViemAccountHashVerifier({
+        chain: gnosis,
+        rpcUrl: resolveAgentRpcUrl(100),
+      }),
+    }),
     botApiToken: config.botApiToken,
     telegramBot: bot,
     subscriptionClient,
     fundingIntents: createSqliteFundingIntentStore(),
     profileAvatarStore: createSqliteProfileAvatarStore(),
     profileAvatarChainId: config.chainId,
-    profileAvatarSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+    profileAvatarSignatureVerifier: createViemAccountSignatureVerifier({
       chain: config.chain,
       rpcUrl: resolveAgentRpcUrl(config.chainId),
     }),
@@ -197,7 +239,7 @@ async function main(): Promise<void> {
     savedOffersSessionStore: savedOfferCipher
       ? new MemorySavedOffersSessionStore({ tokenSecret: config.savedOffersEncryptionKey })
       : undefined,
-    savedOffersSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+    savedOffersSignatureVerifier: createViemAccountSignatureVerifier({
       chain: config.chain,
       rpcUrl: resolveAgentRpcUrl(config.chainId),
     }),
@@ -205,15 +247,14 @@ async function main(): Promise<void> {
     savedOffersChainIds: [config.chainId],
     passkeyDirectory: createPasskeyDirectory({
       store: createSqlitePasskeyDirectoryStore(),
+      displayNames: createSqlitePasskeyDisplayNames(config.chain, agentRpc.url),
       relyingParty: { id: PASSKEY_RP_ID, name: PASSKEY_RP_NAME },
-      hostedNameTaken: config.passkeyHostedDirectoryUrl
-        ? createHostedPasskeyNameCheck({
-            rpcUrl: config.passkeyHostedDirectoryUrl,
-            origin: `https://${PASSKEY_RP_ID}`,
-          })
+      hostedNameTaken: hostedPasskeys
+        ? async (name) => (await hostedPasskeys(name)).length > 0
         : undefined,
       allowLocalDevelopment: config.isDevelopment,
     }),
+    openfortRecovery,
     gardenJoinRequestsEnabled: config.joinRequestsEnabled,
     gardenJoinRequestStore,
     ...(config.joinRequestsEnabled
@@ -227,6 +268,11 @@ async function main(): Promise<void> {
             chain: config.chain,
             rpcUrl: agentRpcUrl,
           }),
+          ...(joinRequestCipher
+            ? {
+                gardenJoinRequestCountGrants: createGardenJoinRequestCountGrants(joinRequestCipher),
+              }
+            : {}),
         }
       : {}),
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
@@ -310,20 +356,19 @@ async function main(): Promise<void> {
     "✅ Agent running"
   );
 
-  // ============================================================================
-  // GRACEFUL SHUTDOWN
-  // ============================================================================
-
   const shutdown = createShutdownHandler({
     bot,
     botMode: config.telegramRuntimeDisabled ? "webhook" : config.mode,
+    // The reporting worker claims nothing new from the first moment of shutdown; it finishes its
+    // unit in hand first among the cleanups, while the services that unit may use are still up.
+    quiesce: reporting ? [() => reporting.quiesce()] : [],
     cleanupTasks: [
+      ...(reporting ? [() => reporting.stop()] : []),
       () => rateLimiter.destroy(),
       () => clearBlockchainCache(),
       closeDB,
       shutdownAgentAnalytics,
       shutdownAgentSentry,
-      ...(reporting ? [() => reporting.stop()] : []),
     ],
     exit: (code) => process.exit(code),
     logger,

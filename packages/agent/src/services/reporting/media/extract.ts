@@ -1,12 +1,14 @@
 import type { FactKind, ReportField } from "@green-goods/shared/modules/agent-reporting";
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import * as z from "zod";
+import type { ModelMeter } from "../model-spend";
 import {
   dataUrl,
   type InputPart,
   type OpenAIConfig,
   structuredResponse,
 } from "../openai-responses";
+import { MAX_IMAGE_EDGE } from "./image";
 import { sumRange, type TableExtract, tableText } from "./tables";
 
 /**
@@ -190,20 +192,25 @@ export async function extractFromMedia(
   config: OpenAIConfig,
   source: MediaSource,
   context: MediaContext,
-  signal: AbortSignal
+  signal: AbortSignal,
+  meter?: ModelMeter
 ): Promise<MediaExtraction> {
   const fields = fieldsFor(context, source);
   const { parts, complete } = contentFor(source, context, fields);
   const { model, output } = await structuredResponse(
     config,
     {
+      purpose: "media",
       instructions: INSTRUCTIONS,
       content: parts,
       schemaName: "media_fields",
       schema: schemaFor(fields),
       maxOutputTokens: 1_500,
+      // Every photo is sanitized to fit this edge before it is read.
+      imageEdge: MAX_IMAGE_EDGE,
     },
-    signal
+    signal,
+    meter
   );
   const parsed = outputSchema.safeParse(output);
   if (!parsed.success) throw new Error("Malformed media extraction");

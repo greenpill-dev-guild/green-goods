@@ -103,9 +103,9 @@ export const Small: Story = {
 };
 
 /**
- * `xs` is the 12px pill for dense rows and cards (a promise row, a season card),
- * 22px tall, where it sits beside 12px words; the status block of a page keeps
- * `sm` or `md`.
+ * One pill size on both surfaces: `xs` and `sm` are the 11px pill, 22px tall,
+ * `xs` for dense rows and cards (a promise row, a season card) and `sm` for the
+ * status block of a page; `md` is the 12px pill for headers.
  */
 export const Sizes: Story = {
   tags: ["storybook-ci"],
@@ -129,9 +129,9 @@ export const Sizes: Story = {
       height: badge.getBoundingClientRect().height,
     });
     await expect(badges.map(measure)).toEqual([
+      { fontSize: "11px", height: 22 },
+      { fontSize: "11px", height: 22 },
       { fontSize: "12px", height: 22 },
-      { fontSize: "14px", height: 26 },
-      { fontSize: "16px", height: 30 },
     ]);
   },
 };
