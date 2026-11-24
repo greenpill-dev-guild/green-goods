@@ -10,7 +10,7 @@ import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useC
 import { queryInvalidation } from "../config/query-keys/invalidation";
 import { refreshApprovalReads } from "../modules/work/approval-read-refresh";
 import { draftsKeys, queueKeys } from "../config/query-keys/misc";
-import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
+import { worksKeys } from "../config/query-keys/work";
 import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
 import { useUploadFailureToast } from "../hooks/work/useUploadFailureToast";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
@@ -229,25 +229,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;
-
-        // Invalidate work approvals to show the new approval
-        if (currentUserAddress) {
-          queryClient.invalidateQueries({
-            queryKey: workApprovalsKeys.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
-          });
-        }
-        queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
-        // A queued decision lands only now: reread what it changes, Gardeners readiness and the
-        // calendar's days included, with the indexer-lag follow-ups.
-        refreshApprovalReads(
-          queryClient,
-          (event.job.chainId as number) || DEFAULT_CHAIN_ID,
-          { gardenId: approvalPayload.gardenAddress, workUID: approvalPayload.workUID },
-          true
-        );
+        const { gardenAddress, workUID } = approvalPayload;
+        // A queued decision lands only now, so reread what it changes as an online one does:
+        // approvals, readiness and the calendar's days, with the indexer-lag follow-ups.
+        const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
+        refreshApprovalReads(queryClient, chainId, { gardenId: gardenAddress, workUID }, true);
 
         // Update work status in cache if available
-        const workUID = approvalPayload.workUID;
         queryClient.setQueriesData<Work[]>({ queryKey: worksKeys.all }, (oldWorks) => {
           // Defensive shape check: cached values can be undefined or
           // (rarely) a non-array if a hook stuffed something unexpected

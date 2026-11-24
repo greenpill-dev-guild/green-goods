@@ -651,9 +651,10 @@ describe("providers/JobQueueProvider", () => {
       });
 
       await waitFor(() => {
-        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith({
-          queryKey: queryKeys.approvals.all,
-        });
+        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(
+          { queryKey: queryKeys.approvals.all },
+          { cancelRefetch: false }
+        );
       });
       // The decision lands only now, so the Gardeners view's readiness is read again too.
       await waitFor(() => {
