@@ -357,6 +357,21 @@ describe("ReviewForm", () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 
+  it("does not close whatever inspector is open by the time a closed form's send lands", async () => {
+    let land = (_value?: unknown) => {};
+    mockApprovalMutation.mutateAsync.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    const onSuccess = vi.fn();
+    const { unmount } = renderReviewForm(TEST_WORK, onSuccess);
+    fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(mockApprovalMutation.mutateAsync).toHaveBeenCalledOnce());
+
+    unmount();
+    await act(async () => land());
+
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
   it("explains a disabled Approve quietly, without a warning before any choice", () => {
     renderReviewForm();
 

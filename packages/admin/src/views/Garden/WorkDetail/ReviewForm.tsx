@@ -138,7 +138,7 @@ export function ReviewForm({
   useLayoutEffect(
     () => () => {
       const last = decisionEpoch.current;
-      decisionEpoch.current = { ...last, epoch: last.epoch + 1, allowed: false };
+      decisionEpoch.current = { epoch: last.epoch + 1, workId: "", allowed: false };
     },
     []
   );
@@ -209,7 +209,8 @@ export function ReviewForm({
       if (toBatch) reviewBatch.stage(draft);
       else await approvalMutation.mutateAsync({ draft, work, stillDecidable });
 
-      onSuccess?.(approved);
+      // A decision that went out still counts as sent; only a form that still shows its work closes.
+      if (decisionEpoch.current.workId === work.id) onSuccess?.(approved);
       return true;
     } catch (error) {
       // Withdrawn because the work could no longer be decided: the form already says why.
