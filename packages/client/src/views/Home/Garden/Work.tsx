@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { SheetHeader } from "@green-goods/shared/components/Dialog/SheetHeader";
 import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
@@ -12,7 +13,13 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { isUserAddress } from "@green-goods/shared/utils/blockchain/address";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { RiCheckLine, RiCloseLine, RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
+import {
+  RiCheckLine,
+  RiCloseLine,
+  RiErrorWarningLine,
+  RiSearchLine,
+  RiUserAddLine,
+} from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -24,6 +31,7 @@ import { WorkFulfills } from "./WorkFulfills";
 import { WorkStatusNotice } from "./WorkStatusNotice";
 import { WorkUploadFooter } from "./WorkUploadFooter";
 import { WorkViewSection } from "./WorkViewSection";
+import { hasOtherWorkReviewer } from "./workReviewers";
 
 export const GardenWork: React.FC = () => {
   const intl = useIntl();
@@ -144,9 +152,34 @@ export const GardenWork: React.FC = () => {
     />
   ) : null;
 
+  // A garden's only reviewer can't decide their own work, and nobody else here may: the page says
+  // so and what to do, instead of offering acts the chain would refuse (PRD-1472).
+  const awaitsAnotherSteward =
+    viewingMode === "steward" &&
+    effectiveStatus === "pending" &&
+    !isOfflineWork &&
+    garden !== undefined &&
+    isUserAddress(work.gardenerAddress, user?.id) &&
+    !hasOtherWorkReviewer(garden, work.gardenerAddress);
+  const soleReviewerNotice = awaitsAnotherSteward ? (
+    <Alert
+      variant="info"
+      layout="stacked"
+      icon={<RiUserAddLine className="h-5 w-5 flex-shrink-0" aria-hidden="true" />}
+      title={intl.formatMessage({ id: "app.work.detail.soleReviewer.title" })}
+    >
+      <p data-component="SoleReviewerNotice">
+        {intl.formatMessage({ id: "app.work.detail.soleReviewer.body" })}
+      </p>
+    </Alert>
+  ) : null;
+
   const queuedDecision = uploads.decisionFor(work.id);
   const approvalFooter =
-    viewingMode === "steward" && effectiveStatus === "pending" && !queuedDecision ? (
+    viewingMode === "steward" &&
+    effectiveStatus === "pending" &&
+    !queuedDecision &&
+    !awaitsAnotherSteward ? (
       <>
         {/* Backdrop - Fades in over content */}
         <div
@@ -422,7 +455,7 @@ export const GardenWork: React.FC = () => {
           onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
           onShare={handleShare}
           onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-          notice={retryNotice}
+          notice={retryNotice ?? soleReviewerNotice}
           fulfills={<WorkFulfills chainId={chainId} workUID={onChainWorkId} gardenId={gardenId} />}
           footer={retryFooter || approvalFooter || decisionFooter || successFooter}
           reserveFooterSpace={Boolean(
