@@ -1,7 +1,13 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
+import { useIntl } from "react-intl";
+import { toastService } from "../../components/toast";
 import type { FailedInAnotherGarden } from "../../components/Toast/presets/queue";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { refreshApprovalReads } from "../../modules/work/approval-read-refresh";
+import { APPROVAL_ALREADY_DECIDED_REASON } from "../../modules/work/submit-approval-command";
 import { orientUploads, uploadGarden } from "../../modules/work/your-work-on-phone";
-import type { Job } from "../../types/job-queue";
+import type { ApprovalJobPayload, Job } from "../../types/job-queue";
 import { compareAddresses } from "../../utils/blockchain/address";
 import { useActiveGarden } from "../garden/useActiveGarden";
 
@@ -39,9 +45,27 @@ export function useUploadFailureToast(
   openYourWork?: () => void
 ): (failure: FailedUpload) => void {
   const { inScope, myGardens } = useActiveGarden();
+  const { formatMessage } = useIntl();
+  const queryClient = useQueryClient();
   const heldRef = useRef(new Map<FailedUpload["kind"], FailedUpload>());
   const toastRef = useRef<(failure: FailedUpload) => void>(() => undefined);
   toastRef.current = (failure) => {
+    // A kept decision on a work decided elsewhere since: nothing failed, and nothing to try again.
+    if (
+      failure.kind === "approval" &&
+      failure.detail === `unavailable:${APPROVAL_ALREADY_DECIDED_REASON}`
+    ) {
+      const { gardenAddress, workUID } = failure.job.payload as ApprovalJobPayload;
+      toastService.info({
+        id: "approval-submit",
+        title: formatMessage({ id: "app.work.detail.alreadyReviewed" }),
+        context: "approval queue",
+        suppressLogging: true,
+      });
+      const chainId = (failure.job.chainId as number) || DEFAULT_CHAIN_ID;
+      refreshApprovalReads(queryClient, chainId, { gardenId: gardenAddress, workUID }, false);
+      return;
+    }
     const orientation = openSwitcher
       ? orientUploads(
           inScope,

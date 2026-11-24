@@ -18,6 +18,7 @@ import {
   type DisplayGroupEntry,
   groupCommitmentsForDisplay,
 } from "../../../modules/commitment-pooling/display-groups";
+import type { DueClock } from "../../../modules/commitment-pooling/due-dates";
 import {
   findDisplayGroup,
   type GroupTakeUpBar,
@@ -66,6 +67,8 @@ export interface PromiseGroupController {
   metadata: CommitmentMetadataV1 | null;
   /** The counts its act reads (`groupTakeUpCounts`), so none says available what it won't take. */
   counts: GroupTakeUpCounts | null;
+  /** The chain's clock and cycle ends the counts read; null while the due dates are unread. */
+  dueClock: DueClock | null;
   /** False when the copies or the asks on them couldn't be read: counts may be stale. */
   availabilityKnown: boolean;
   /** The reader's own copies, each an ordinary row that opens its page. */
@@ -309,6 +312,7 @@ export function usePromiseGroupController(input: {
         ? groupTakeUpCounts(group, { clock: due.clock, askedFor })
         : { ...group.counts, requested: 0 }
       : null,
+    dueClock: due.known ? due.clock : null,
     availabilityKnown,
     yours,
     bar,

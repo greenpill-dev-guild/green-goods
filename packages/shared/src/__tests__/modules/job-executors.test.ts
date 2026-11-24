@@ -13,6 +13,7 @@ import {
   hashWorkLinkPayload,
 } from "../../modules/commitment-pooling/jobs";
 import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
+import { ApprovalAlreadyDecidedError } from "../../modules/work/submit-approval-command";
 import {
   type CommitmentChainReads,
   createCommitmentChainReads,
@@ -58,6 +59,11 @@ vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
 
 import { MOCK_TX_HASH } from "../test-utils/mock-factories";
 import { uploadConsent } from "../test-utils/upload-policy";
+
+// A kept decision is rechecked on chain before it sends; these tests send undecided works.
+vi.mock("../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: async () => false }),
+}));
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -352,6 +358,36 @@ describe("work and approval job executors", () => {
         easConfig: EAS_CONFIG,
       })
     ).rejects.toThrow("IPFS upload service is not configured");
+  });
+
+  it("never sends a kept decision on a work the chain has decided since", async () => {
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const approval = job<ApprovalJobPayload>("approval", {
+      actionUID: 7,
+      workUID: HASH,
+      gardenAddress: GARDEN,
+      gardenerAddress: USER,
+      approved: true,
+      confidence: 2,
+      verificationMethod: 1,
+    });
+
+    await expect(
+      executeApprovalJob(approval, 11155111, sender, {
+        encodeApproval: vi.fn().mockReturnValue(HASH),
+        easConfig: EAS_CONFIG,
+        isDecided: vi.fn().mockResolvedValue(true),
+      })
+    ).rejects.toBeInstanceOf(ApprovalAlreadyDecidedError);
+    // A read that cannot tell leaves the job to try again, and sends nothing either.
+    await expect(
+      executeApprovalJob(approval, 11155111, sender, {
+        encodeApproval: vi.fn().mockReturnValue(HASH),
+        easConfig: EAS_CONFIG,
+        isDecided: vi.fn().mockRejectedValue(new Error("rpc down")),
+      })
+    ).rejects.toThrow("rpc down");
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("keeps the production approval encoder and EAS config as defaults", async () => {
