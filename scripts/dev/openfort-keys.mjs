@@ -229,7 +229,15 @@ async function storeInVercel(token, values) {
         customEnvironmentIds: [staging.id],
       },
     ]);
-    await vercel(token, "POST", `/v10/projects/${project}/env?upsert=true`, entries);
+    const answer = await vercel(token, "POST", `/v10/projects/${project}/env?upsert=true`, entries);
+    // Vercel answers 200 even when some variables were refused, and lists those in `failed`.
+    const failed = Array.isArray(answer?.failed) ? answer.failed : [];
+    if (failed.length > 0) {
+      const which = failed
+        .map(({ error } = {}) => `${error?.key ?? error?.envVarKey ?? "a key"} (${error?.code ?? "refused"})`)
+        .join(", ");
+      throw new Error(`Vercel ${project} refused ${which}; nothing was reported as set.`);
+    }
     console.log(`  Vercel ${project}: production and ${VERCEL_CUSTOM_ENVIRONMENT} set.`);
   }
 }
