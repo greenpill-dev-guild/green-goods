@@ -251,6 +251,12 @@ function CommitmentRecord({
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
         sendPhase={dialog.sendPhase}
+        // Only while it waits on confirmations: once it reads Kept, or moves on, its state says so.
+        confirmPhase={
+          commitment.derivedState === "READY_FOR_CONFIRMATION"
+            ? dialog.confirmPhase
+            : { status: "idle" }
+        }
         onCancelUntaken={can.cancel && untaken ? () => setOpen("cancel") : undefined}
         onSeedAnother={
           onSeedAnother && dialog.isLocalSteward
