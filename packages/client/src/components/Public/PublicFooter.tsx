@@ -1,5 +1,5 @@
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import { type Locale, supportedLanguages, useApp } from "@green-goods/shared/providers/App";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -156,10 +156,13 @@ function ownName(locale: Locale): string {
   return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
 }
 
-/** The site's language, as the installed app's settings choose it. */
+/**
+ * The site's language, as the installed app's settings choose it. It shows the language on
+ * screen (`useIntl().locale`) and offers every language the product ships.
+ */
 function LanguageSelect() {
-  const { formatMessage } = useIntl();
-  const { locale, availableLocales, switchLanguage } = useApp();
+  const { formatMessage, locale } = useIntl();
+  const { switchLanguage } = useApp();
   return (
     <NativeSelect
       surface="editorial"
@@ -169,7 +172,7 @@ function LanguageSelect() {
       // 16px on touch widths, so tapping it never zooms the page (DL-030).
       className="w-auto self-start font-sans text-base tracking-[0.02em] sm:self-end sm:text-xs"
     >
-      {availableLocales.map((option) => (
+      {supportedLanguages.map((option) => (
         <option key={option} value={option} lang={option}>
           {ownName(option)}
         </option>

@@ -15,8 +15,9 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 const switchLanguage = vi.fn();
-vi.mock("@green-goods/shared/providers/App", () => ({
-  useApp: () => ({ locale: "en", availableLocales: ["en", "pt", "es"], switchLanguage }),
+vi.mock("@green-goods/shared/providers/App", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/providers/App")>()),
+  useApp: () => ({ switchLanguage }),
 }));
 
 import { PublicFooter } from "../../components/Public/PublicFooter";
