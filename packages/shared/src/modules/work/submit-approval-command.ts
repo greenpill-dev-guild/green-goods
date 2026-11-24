@@ -1,3 +1,4 @@
+import type { AuthMode } from "../../types/auth";
 import { connectivityStore } from "../../stores/connectivity";
 import type { Address, Work, WorkApprovalDraft } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
@@ -12,7 +13,7 @@ export interface SubmitApprovalCommand {
    * from (admin) leaves this off, so a decision never waits where nothing sends it.
    */
   queueWalletDecisions?: boolean;
-  authMode: "wallet" | "passkey" | "embedded" | null;
+  authMode: AuthMode;
   draft: WorkApprovalDraft;
   work: Work;
   chainId: number;

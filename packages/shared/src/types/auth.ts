@@ -14,9 +14,22 @@ export type SmartAccountClientResolver = (chainId: number) => Promise<SmartAccou
  * - 'wallet': Traditional EOA wallet authentication (admin package)
  * - 'passkey': WebAuthn passkey with smart account (client package)
  * - 'embedded': AppKit embedded wallet via email/social login (client package)
+ * - 'openfort': email code sign-in; the Openfort embedded wallet owns a Kernel smart
+ *   account sponsored like a passkey account, but has no WebAuthn credential
  * - null: Not authenticated
  */
-export type AuthMode = "wallet" | "passkey" | "embedded" | null;
+export type AuthMode = "wallet" | "passkey" | "embedded" | "openfort" | null;
+
+/** How an Openfort account proves who is signing in: a code sent to the person's email. */
+export type OpenfortSignInMethod = "email";
+
+/**
+ * Sessions that send through a sponsored Kernel smart account. Both send through the passkey
+ * sender, so `TransactionSender.authMode` is "passkey" for both: it names the transport.
+ */
+export function isSmartAccountAuthMode(mode: AuthMode | undefined): mode is "passkey" | "openfort" {
+  return mode === "passkey" || mode === "openfort";
+}
 
 /**
  * A wallet account whose wallet has not answered. The App opens on the

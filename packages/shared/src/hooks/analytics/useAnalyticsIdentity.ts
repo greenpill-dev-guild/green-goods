@@ -16,6 +16,7 @@
  * ```
  */
 
+import type { AuthMode } from "../../types/auth";
 import { useEffect, useRef } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { identifyWithProperties, reset, track } from "../../modules/app/posthog";
@@ -49,7 +50,7 @@ export function useAnalyticsIdentity(options: UseAnalyticsIdentityOptions) {
   const prevStateRef = useRef<{
     isAuthenticated: boolean;
     primaryAddress: string | null;
-    authMode: "wallet" | "passkey" | "embedded" | null;
+    authMode: AuthMode;
   }>({
     isAuthenticated: false,
     primaryAddress: null,

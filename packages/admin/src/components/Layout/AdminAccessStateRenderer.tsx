@@ -9,7 +9,10 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AdminSignInContainer } from "@/components/AdminSignIn";
-import { clearPasskeyRequestAtBoot } from "@/components/Boot/bootPasskeyRequest";
+import {
+  clearPasskeyRequestAtBoot,
+  isEmailSignInOfferedAtBoot,
+} from "@/components/Boot/bootPasskeyRequest";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
 import { AdminAccessHomeShell } from "./CanvasLayout";
@@ -84,11 +87,19 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
             id: "app.admin.auth.connectRequired",
             defaultMessage: "Connect to continue",
           })}
-          description={intl.formatMessage({
-            id: "app.admin.auth.connectPrompt",
-            defaultMessage:
-              "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
-          })}
+          description={intl.formatMessage(
+            isEmailSignInOfferedAtBoot()
+              ? {
+                  id: "app.admin.auth.connectPromptWithEmail",
+                  defaultMessage:
+                    "Sign in with a passkey, your email or a wallet to open the Green Goods Hub.",
+                }
+              : {
+                  id: "app.admin.auth.connectPrompt",
+                  defaultMessage:
+                    "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
+                }
+          )}
           action={<AdminSignInContainer />}
           testId="admin-sign-in-shell"
         />

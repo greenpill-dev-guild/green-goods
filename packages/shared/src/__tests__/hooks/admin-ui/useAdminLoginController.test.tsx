@@ -2,6 +2,7 @@
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAdminLoginController } from "../../../hooks/admin-ui/auth/useAdminLoginController";
+import { PasskeyNotFoundError } from "../../../workflows/auth-passkey-errors";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const mocks = vi.hoisted(() => ({
@@ -273,4 +274,72 @@ it("ignores stale actor failures on mount and while starting a new ceremony", as
   });
   rerender();
   expect(result.current.error).toBe("No passkey found for that username.");
+});
+
+describe("useAdminLoginController on a device that already has an account (PRD-1611)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.login.mockResolvedValue(undefined);
+    mocks.create.mockResolvedValue(undefined);
+    mocks.context.mockReturnValue({ supported: true });
+    // "qa-steward" is saved on this device (the session mock above).
+    mocks.auth.mockReturnValue({ hasStoredCredential: true, isAuthenticating: false });
+  });
+
+  it("asks before a name nobody holds becomes a second account, goes back on cancel, creates on yes", async () => {
+    mocks.serverEnabled.mockReturnValue(true);
+    const { result, rerender } = renderHookWithProviders(() =>
+      useAdminLoginController({ initialMode: "username" })
+    );
+    act(() => result.current.setUsername("qa-stewrad"));
+    await act(() => result.current.continueByName());
+    // Tried as a sign-in only: nothing is created yet.
+    expect(mocks.login).toHaveBeenCalledWith("qa-stewrad");
+    mocks.auth.mockReturnValue({ hasStoredCredential: true, isAuthenticating: true });
+    rerender();
+    mocks.auth.mockReturnValue({
+      hasStoredCredential: true,
+      isAuthenticating: false,
+      error: new PasskeyNotFoundError("name"),
+    });
+    rerender();
+    expect(result.current.mode).toBe("confirmNewAccount");
+    expect(result.current.error).toBeNull();
+    expect(result.current.savedAccountName).toBe("qa-steward");
+    expect(mocks.create).not.toHaveBeenCalled();
+
+    // Cancel: back to the name, which is kept to fix the typo.
+    act(() => result.current.changeMode("username"));
+    expect(result.current.mode).toBe("username");
+    expect(result.current.username).toBe("qa-stewrad");
+    expect(mocks.login).toHaveBeenCalledTimes(1);
+
+    // Confirm: only now may the account be created.
+    act(() => result.current.changeMode("confirmNewAccount"));
+    await act(() => result.current.createNamedAccount());
+    expect(mocks.login).toHaveBeenLastCalledWith("qa-stewrad", { createIfMissing: true });
+  });
+
+  it("asks before creating when names cannot be looked up, and signs the saved name straight in", async () => {
+    mocks.serverEnabled.mockReturnValue(false);
+    const { result } = renderHookWithProviders(() =>
+      useAdminLoginController({ initialMode: "username" })
+    );
+    act(() => result.current.setUsername("someone-new"));
+    await act(() => result.current.continueByName());
+    expect(result.current.mode).toBe("confirmNewAccount");
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.login).not.toHaveBeenCalled();
+    await act(() => result.current.createNamedAccount());
+    expect(mocks.create).toHaveBeenCalledWith("someone-new");
+
+    mocks.serverEnabled.mockReturnValue(true);
+    const saved = renderHookWithProviders(() =>
+      useAdminLoginController({ initialMode: "username" })
+    ).result;
+    act(() => saved.current.setUsername(" QA-Steward "));
+    await act(() => saved.current.continueByName());
+    expect(mocks.login).toHaveBeenLastCalledWith("qa-steward", { createIfMissing: true });
+    expect(saved.current.mode).toBe("username");
+  });
 });

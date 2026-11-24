@@ -4,8 +4,26 @@ import { expect, fn, within } from "storybook/test";
 import { withAdminIdentity } from "../../../shared/.storybook/decorators";
 import { AdminSignIn } from "./AdminSignIn";
 
+const codeSignIn: AdminLoginController["codeSignIn"] = {
+  enabled: false,
+  step: "email",
+  email: "",
+  setEmail: fn(),
+  code: "",
+  setCode: fn(),
+  emailValid: false,
+  sending: false,
+  signingIn: false,
+  error: null,
+  sendCode: fn(async () => {}),
+  signIn: fn(async () => {}),
+  changeEmail: fn(),
+  reset: fn(),
+};
 const controller: AdminLoginController = {
   mode: "entry",
+  codeSignIn,
+  walletReleaseStalled: false,
   changeMode: fn(),
   username: "storybook-steward",
   setUsername: fn(),
@@ -15,7 +33,9 @@ const controller: AdminLoginController = {
   canSignInByName: true,
   hasStoredCredential: false,
   storedUsername: null,
+  savedAccountName: undefined,
   continueByName: fn(async () => {}),
+  createNamedAccount: fn(async () => {}),
   signInWithStoredPasskey: fn(async () => {}),
   beginWalletSignIn: fn(),
 };
@@ -44,6 +64,22 @@ const meta: Meta<typeof AdminSignIn> = {
 export default meta;
 type Story = StoryObj<typeof AdminSignIn>;
 export const Default: Story = {};
+/** A typed name nobody holds, on a device that has an account: ask before creating (PRD-1611). */
+export const ConfirmNewAccount: Story = {
+  args: {
+    controller: {
+      ...controller,
+      mode: "confirmNewAccount",
+      username: "storybook-stewrad",
+      hasStoredCredential: true,
+      savedAccountName: "storybook-steward",
+    },
+  },
+};
+/** With email sign-in on, the entry's second button leads to email and a wallet (AdminCodeSignIn). */
+export const EmailOffered: Story = {
+  args: { controller: { ...controller, codeSignIn: { ...codeSignIn, enabled: true } } },
+};
 /** "Continue with Passkey" opens one name step that signs in or creates the account. */
 export const NameStep: Story = { args: { controller: { ...controller, mode: "username" } } };
 export const Remembered: Story = {

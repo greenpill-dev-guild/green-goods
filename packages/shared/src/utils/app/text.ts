@@ -80,3 +80,16 @@ export function chosenPasskeyUsername(
 ): string | null {
   return authMode === "passkey" ? displayablePasskeyName(userName) : null;
 }
+
+/**
+ * Whose account is open, for this phone's own screens (the top bar's account chip, Profile):
+ * a passkey's chosen name, or the email an email account signed in with.
+ * Never use it for a name other people see: an email is not a public name.
+ */
+export function signedInAccountLabel(
+  authMode: AuthMode,
+  userName: string | null | undefined
+): string | null {
+  if (authMode === "openfort") return userName?.trim() || null;
+  return chosenPasskeyUsername(authMode, userName);
+}

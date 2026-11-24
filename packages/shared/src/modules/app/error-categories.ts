@@ -8,6 +8,7 @@
  * @module modules/app/error-categories
  */
 
+import type { AuthMode } from "../../types/auth";
 import { type ParsedContractError, parseContractError } from "../../utils/errors/contract-errors";
 import { recordCrash } from "./crash-reports";
 import { logger } from "./logger";
@@ -99,7 +100,7 @@ export interface ErrorContext {
   /** Transaction hash if relevant */
   txHash?: string;
   /** Auth mode when error occurred */
-  authMode?: "passkey" | "wallet" | "embedded" | null;
+  authMode?: AuthMode;
   /** Whether user was offline when error occurred */
   isOffline?: boolean;
   /** Additional metadata */

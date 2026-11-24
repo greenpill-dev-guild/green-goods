@@ -7,8 +7,13 @@ import {
 import { RiKey2Line } from "@remixicon/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminCodeSignIn } from "./AdminCodeSignIn";
 import { AdminTextField } from "./AdminTextField";
-import { clearPasskeyRequestAtBoot, isPasskeyRequestedAtBoot } from "./Boot/bootPasskeyRequest";
+import {
+  clearPasskeyRequestAtBoot,
+  isOtherWaysRequestedAtBoot,
+  isPasskeyRequestedAtBoot,
+} from "./Boot/bootPasskeyRequest";
 import { ConnectButton } from "./ConnectButton";
 import { SignInSlots } from "./SignInSlots";
 
@@ -19,6 +24,92 @@ import { SignInSlots } from "./SignInSlots";
  * ceremony never moves a control.
  */
 export function AdminSignIn({ controller }: { controller: AdminLoginController }) {
+  if (
+    controller.codeSignIn.enabled &&
+    (controller.mode === "otherWays" || controller.mode === "code")
+  ) {
+    return <AdminCodeSignIn controller={controller} />;
+  }
+  if (controller.mode === "confirmNewAccount") {
+    return <AdminConfirmNewAccount controller={controller} />;
+  }
+  return <AdminPasskeySignIn controller={controller} />;
+}
+
+/**
+ * The typed name belongs to nobody, and this device already has an account: a typo must not
+ * quietly become a second account, so the steward says it is a new one (PRD-1611).
+ */
+function AdminConfirmNewAccount({ controller }: { controller: AdminLoginController }) {
+  const { formatMessage } = useIntl();
+  const questionRef = useRef<HTMLParagraphElement>(null);
+  // The pressed button unmounted: focus the question so a screen reader reads it first.
+  useEffect(() => questionRef.current?.focus(), []);
+  const name = controller.username.trim();
+  return (
+    <SignInSlots
+      onSubmit={() => void controller.createNamedAccount()}
+      slotOne={
+        <Button
+          className="w-full"
+          type="submit"
+          size="lg"
+          leadingIcon={<RiKey2Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+          loading={controller.isPasskeySigningIn}
+          disabled={controller.isSigningIn}
+        >
+          {formatMessage({
+            id: "app.login.newAccount.create",
+            defaultMessage: "Create New Account",
+          })}
+        </Button>
+      }
+      slotTwo={
+        <Button
+          className="w-full"
+          type="button"
+          size="lg"
+          emphasis="secondary"
+          disabled={controller.isSigningIn}
+          onClick={() => controller.changeMode("username")}
+        >
+          {formatMessage({
+            id: "app.login.newAccount.checkName",
+            defaultMessage: "Check the Name",
+          })}
+        </Button>
+      }
+      feedback={
+        <>
+          <p role="alert" className="type-body text-error-dark">
+            {controller.error && !controller.isSigningIn ? controller.error : null}
+          </p>
+          <p ref={questionRef} tabIndex={-1} className="type-body text-text-sub outline-none">
+            {controller.savedAccountName
+              ? formatMessage(
+                  {
+                    id: "app.admin.login.newAccount.infoSaved",
+                    defaultMessage:
+                      "No account is named {name}. This device has the account {saved}. Create a new account?",
+                  },
+                  { name, saved: controller.savedAccountName }
+                )
+              : formatMessage(
+                  {
+                    id: "app.admin.login.newAccount.info",
+                    defaultMessage:
+                      "No account is named {name}. Another account is saved on this device. Create a new account?",
+                  },
+                  { name }
+                )}
+          </p>
+        </>
+      }
+    />
+  );
+}
+
+function AdminPasskeySignIn({ controller }: { controller: AdminLoginController }) {
   const { formatMessage } = useIntl();
   const feedbackId = useId();
   const hintId = feedbackId + "-hint";
@@ -125,6 +216,21 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           >
             {nameStepLabel}
           </Button>
+        ) : controller.codeSignIn.enabled && !controller.walletReleaseStalled ? (
+          // With email sign-in on, the wallet moves one screen in, beside email.
+          <Button
+            className="w-full"
+            type="button"
+            size="lg"
+            emphasis="secondary"
+            disabled={controller.isSigningIn}
+            onClick={() => controller.changeMode("otherWays")}
+          >
+            {formatMessage({
+              id: "app.login.button.otherWays",
+              defaultMessage: "Other Ways to Sign In",
+            })}
+          </Button>
         ) : (
           <ConnectButton
             className="w-full"
@@ -197,9 +303,9 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
 }
 
 export function AdminSignInContainer() {
-  // A passkey chosen on the boot screen opens the name step; read once, then let go.
+  // A choice made on the boot screen opens its screen here; read once, then let go.
   const [initialMode] = useState<AdminLoginMode>(() =>
-    isPasskeyRequestedAtBoot() ? "username" : "entry"
+    isPasskeyRequestedAtBoot() ? "username" : isOtherWaysRequestedAtBoot() ? "otherWays" : "entry"
   );
   useEffect(() => clearPasskeyRequestAtBoot(), []);
   const controller = useAdminLoginController({ initialMode });

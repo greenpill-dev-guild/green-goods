@@ -11,6 +11,8 @@ import {
 import { getActorSignOutRevision, publishSignOut } from "../../modules/auth/sessionSignOut";
 import { createAuthActor } from "../../workflows/authActor";
 import type {
+  OpenfortOperationInput,
+  OpenfortSessionResult,
   PasskeyOperationInput,
   PasskeySessionResult,
   RestoreSessionInput,
@@ -27,6 +29,10 @@ const services = {
   authenticatePasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(
     () => new Promise(() => {})
   ),
+  authenticateOpenfort: fromPromise<OpenfortSessionResult, OpenfortOperationInput>(
+    () => new Promise(() => {})
+  ),
+  restoreOpenfort: fromPromise<OpenfortSessionResult | null, { chainId: number }>(async () => null),
 };
 beforeEach(() => localStorage.clear());
 afterEach(() => {

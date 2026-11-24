@@ -1,3 +1,4 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useCallback, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
@@ -45,8 +46,9 @@ export function useServiceIssuerDesk(selection?: ServiceIssuerDeskSelection | nu
             sign: async (message) => {
               assertCurrent();
               const auth = current.current.user;
-              const account =
-                auth.authMode === "passkey" ? await auth.resolveSmartAccountClient?.(100) : null;
+              const account = isSmartAccountAuthMode(auth.authMode)
+                ? await auth.resolveSmartAccountClient?.(100)
+                : null;
               assertCurrent();
               return createAccountMessageSigner({
                 authMode: auth.authMode,

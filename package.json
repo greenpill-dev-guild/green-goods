@@ -25,6 +25,7 @@
     "dev:clean": "node scripts/dev/clean.js",
     "env:sync": "node scripts/dev/env-sync.js",
     "env:check": "node scripts/dev/env-check.js",
+    "openfort:keys": "node scripts/dev/openfort-keys.mjs",
     "check": "node scripts/dev/ci-local.js",
     "test": "node scripts/dev/test.js",
     "build": "bun run --cwd packages/contracts build && bun run --cwd packages/shared build && bun run --cwd packages/indexer build && bun run --cwd packages/client build && bun run --cwd packages/admin build",

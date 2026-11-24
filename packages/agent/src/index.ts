@@ -65,6 +65,7 @@ import { createGardenJoinRequestCountGrants } from "./services/garden-join-reque
 import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
 import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
 import { createPasskeyDirectory } from "./services/passkey-directory";
+import { createOpenfortRecovery, readOpenfortRecoveryConfig } from "./services/openfort-recovery";
 import {
   createHostedPasskeyLookup,
   createSqlitePasskeyDisplayNames,
@@ -115,6 +116,17 @@ async function main(): Promise<void> {
         rpcUrl: config.passkeyHostedDirectoryUrl,
         origin: `https://${PASSKEY_RP_ID}`,
       })
+    : undefined;
+  // Email sign-in recovery is on only with all four Openfort values; names, never values.
+  const openfortRecoveryConfig = readOpenfortRecoveryConfig();
+  if (!openfortRecoveryConfig.config && openfortRecoveryConfig.missing.length < 4) {
+    logger.warn(
+      { missing: openfortRecoveryConfig.missing },
+      "Openfort recovery is off: some of its settings are missing"
+    );
+  }
+  const openfortRecovery = openfortRecoveryConfig.config
+    ? createOpenfortRecovery(openfortRecoveryConfig.config)
     : undefined;
   // Only the host is logged: a configured address can carry a provider key in its path.
   const rpcLog = {
@@ -242,6 +254,7 @@ async function main(): Promise<void> {
         : undefined,
       allowLocalDevelopment: config.isDevelopment,
     }),
+    openfortRecovery,
     gardenJoinRequestsEnabled: config.joinRequestsEnabled,
     gardenJoinRequestStore,
     ...(config.joinRequestsEnabled

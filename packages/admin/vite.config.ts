@@ -402,6 +402,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared > @hypercerts-org/contracts",
         "@green-goods/shared > @hypercerts-org/marketplace-sdk",
         "@green-goods/shared > @hypercerts-org/sdk",
+        "@green-goods/shared > @openfort/openfort-js",
         "@green-goods/shared > @radix-ui/react-popover",
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",

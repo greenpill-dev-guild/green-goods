@@ -1,3 +1,4 @@
+import type { AuthMode } from "../../types/auth";
 import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
 import type { Abi } from "viem";
 import type { Address } from "../../types/domain";
@@ -38,7 +39,7 @@ import type { ServiceIssuerRoute } from "./service-issuer-types";
 
 export interface ServiceLiveSession {
   address: Address | null;
-  authMode: "passkey" | "wallet" | "embedded" | null;
+  authMode: AuthMode;
   profile: string | null;
   generation: number;
   online: boolean;

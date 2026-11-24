@@ -12,13 +12,14 @@
  * @module modules/app/analytics-events
  */
 
+import type { AuthMode } from "../../types/auth";
 import type { Address } from "../../types/domain";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { track, type TrackOptions } from "./posthog";
 
 // TRACKER FACTORY
 
-export type AuthMode = "passkey" | "wallet" | "embedded" | null;
+export type { AuthMode } from "../../types/auth";
 type MemberType = GardenRole;
 export type AuthPasskeySource = "server" | "local_cache" | "restore" | "unknown";
 export type AuthPasskeyOutcome = "started" | "success" | "failed";

@@ -23,9 +23,11 @@ import { debugError } from "../../../utils/debug";
 import { PasskeyNotFoundError } from "../../../workflows/auth-passkey-errors";
 import { useInstallGuidance } from "../../app/useInstallGuidance";
 import { useAuth } from "../../auth/useAuth";
+import { useCodeSignIn } from "../../auth/useCodeSignIn";
 import { getBrowserGuidanceLabel, getFriendlyLoginErrorMessage } from "./login-screen-messages";
 
-export type LoginScreen = "entry" | "username" | "confirmNewAccount";
+/** `otherWays` offers email and a wallet; `code` is the email code flow. */
+export type LoginScreen = "entry" | "username" | "confirmNewAccount" | "otherWays" | "code";
 
 export function useLoginScreenController(routes: { login: string; home: string }) {
   const intl = useIntl();
@@ -46,6 +48,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const [loginError, setLoginError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [screen, setScreen] = useState<LoginScreen>("entry");
+  const codeSignIn = useCodeSignIn(auth);
   const pilotInvitation = new URLSearchParams(location.search).get("pilot") === "1";
   let originalAccountAddress: string | null = null;
   try {
@@ -170,6 +173,8 @@ export function useLoginScreenController(routes: { login: string; home: string }
   }, [auth.isAuthenticated, auth.userName, intl]);
 
   useEffect(() => {
+    // An email failure is worded by the code flow, never as a passkey failure.
+    if (auth.openfortMethod) return;
     if (auth.error && !auth.isAuthenticating) {
       if (auth.error === askedAboutErrorRef.current) return;
       setLoadingState(null);
@@ -195,7 +200,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
         getFriendlyLoginErrorMessage(auth.error, intl, { creating: creatingRef.current })
       );
     }
-  }, [auth.error, auth.isAuthenticating, intl]);
+  }, [auth.error, auth.isAuthenticating, auth.openfortMethod, intl]);
 
   // A failed wallet sign-in points the member to a passkey. Declared after the effect
   // above, so a passkey error the machine still holds does not cover the newer failure.
@@ -364,6 +369,8 @@ export function useLoginScreenController(routes: { login: string; home: string }
   };
   const goTo = (next: LoginScreen) => {
     setLoginError(null);
+    // Leaving the code flow forgets what was typed, so the next person starts from nothing.
+    if (next !== "code") codeSignIn.reset();
     setScreen(next);
   };
   const switchBrowser = useCallback(async () => {
@@ -416,6 +423,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
     confirmPilotAccount,
     reconcilePilotProof,
     keepOriginalAccount,
+    codeSignIn,
     browserGuidanceAction: unsupportedPasskeyContext
       ? { label: getBrowserGuidanceLabel(guidance, platform, intl), onClick: switchBrowser }
       : undefined,
