@@ -153,14 +153,9 @@ export function useRewardShares(
     enabled: paymentEnabled,
   });
 
-  /**
-   * The connected owner's step towards paying every share still owed in the part: their approval
-   * of the Safe's payment, or the payment itself when theirs completes the threshold. It reads
-   * again before any signature.
-   */
   // A payment read that finds a share paid since the shares were read: read the shares again, so
-  // the owed list, and the payment built from it, catch up.
-  // Keyed on what the shares read was asked, so it rereads once per stale list, never per render.
+  // the owed list, and the payment built from it, catch up. Keyed on what the shares read was
+  // asked, so it rereads once per stale list, never per render.
   const stale = payment.data?.status === "refused" && payment.data.refusal === "already-paid";
   const shareIds = states.map((share) => share.shareId).join(",");
   useEffect(() => {
@@ -170,6 +165,11 @@ export function useRewardShares(
     });
   }, [stale, owedIds, shareIds, chainId, commitmentId, queryClient]);
 
+  /**
+   * The connected owner's step towards paying every share still owed in the part: their approval
+   * of the Safe's payment, or the payment itself when theirs completes the threshold. It reads
+   * again before any signature.
+   */
   const payOwed = async (intent: "approve" | "pay"): Promise<RewardPayOutcome> => {
     if (!payer || !safe) return { status: "refused-before-asking", refusal: "no-shares" };
     if (!sender || !account) return { status: "refused-before-asking", refusal: "not-an-owner" };

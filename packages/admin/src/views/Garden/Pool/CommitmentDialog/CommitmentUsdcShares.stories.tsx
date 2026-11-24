@@ -176,7 +176,9 @@ export const ASharePaidSinceTheListRead: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
-      canvas.getByText("A share is already paid. Read again before paying.")
+      canvas.getByText(
+        "A share was paid since this list was read. The list is updating; if it doesn't, close and reopen the promise."
+      )
     ).toBeVisible();
     await expect(canvas.queryByRole("button")).toBeNull();
   },

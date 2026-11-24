@@ -174,15 +174,24 @@ function rewardSafesOf(chainId: number): ReadonlyMap<string, Address> {
     record?.schemaVersion === 1 && record.chainId === chainId && Array.isArray(record.safes)
       ? (record.safes as { garden?: unknown; safe?: unknown }[])
       : [];
-  const named = (value: unknown) => {
-    if (typeof value !== "string" || !isConfiguredAddress(value as Address)) return null;
+  // Every well-formed address counts towards a repeat, checksummed or not, so a mistyped copy of
+  // a garden or Safe still takes both entries out rather than leaving one to be picked.
+  const wellFormed = (value: unknown) =>
+    typeof value === "string" && isConfiguredAddress(value as Address)
+      ? (value.toLowerCase() as Address)
+      : null;
+  const checksummed = (value: unknown) => {
     try {
-      return getAddress(value) === value ? (value.toLowerCase() as Address) : null;
+      return typeof value === "string" && getAddress(value) === value;
     } catch {
-      return null;
+      return false;
     }
   };
-  const pairs = entries.map((entry) => ({ garden: named(entry.garden), safe: named(entry.safe) }));
+  const pairs = entries.map((entry) => ({
+    garden: wellFormed(entry.garden),
+    safe: wellFormed(entry.safe),
+    exact: checksummed(entry.garden) && checksummed(entry.safe),
+  }));
   const count = new Map<string, number>();
   for (const { garden, safe } of pairs) {
     for (const address of [garden, safe]) {
@@ -190,8 +199,8 @@ function rewardSafesOf(chainId: number): ReadonlyMap<string, Address> {
     }
   }
   const safes = new Map<string, Address>();
-  for (const { garden, safe } of pairs) {
-    if (!garden || !safe || garden === safe) continue;
+  for (const { garden, safe, exact } of pairs) {
+    if (!garden || !safe || !exact || garden === safe) continue;
     if (count.get(garden) !== 1 || count.get(safe) !== 1) continue;
     safes.set(garden, getAddress(safe));
   }

@@ -5661,6 +5661,7 @@
   "hub.garden.pool.safeShares.paymentReadError": "Não foi possível ler as aprovações do Safe para este pagamento. Nada pode ser aprovado até que sejam lidas.",
   "hub.garden.pool.safeShares.sharePaidByGarden": "{amount}, pago pelo jardim",
   "hub.garden.pool.safeShares.balanceShort": "O Safe do jardim tem menos de {amount}. Adicione {symbol} ao Safe antes de pagar.",
+  "hub.garden.pool.safeShares.paidSinceRead": "Uma parte foi paga desde que esta lista foi lida. A lista está sendo atualizada; se não for, feche e abra a promessa de novo.",
   "hub.garden.pool.safeShares.approvals": "{approvals} de {threshold} proprietários do Safe aprovaram este pagamento.",
   "hub.garden.pool.safeShares.notOwner": "Só um proprietário do Safe deste jardim pode aprovar este pagamento.",
   "hub.garden.pool.safeShares.viewerApproved": "Você já aprovou. O pagamento sai quando houver aprovações suficientes dos proprietários do Safe.",

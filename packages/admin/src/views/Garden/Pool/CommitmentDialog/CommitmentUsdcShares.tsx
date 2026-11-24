@@ -235,8 +235,9 @@ export function CommitmentUsdcShares({
           {paidSinceRead ? (
             <Alert variant="info">
               {formatMessage({
-                id: "hub.garden.pool.safeShares.toast.alreadyPaid",
-                defaultMessage: "A share is already paid. Read again before paying.",
+                id: "hub.garden.pool.safeShares.paidSinceRead",
+                defaultMessage:
+                  "A share was paid since this list was read. The list is updating; if it doesn't, close and reopen the promise.",
               })}
             </Alert>
           ) : null}

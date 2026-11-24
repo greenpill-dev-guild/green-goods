@@ -6,6 +6,8 @@ const G1 = "0x1111111111111111111111111111111111111111";
 const S1 = "0x1212121212121212121212121212121212121212";
 const SHARED_SAFE = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const TWICE = "0x6666666666666666666666666666666666666666";
+/** A garden address whose EIP-55 checksum mixes upper and lower case. */
+const CHECKSUMMED = "0xabCDeF0123456789AbcdEf0123456789aBCDEF01";
 
 vi.mock("@green-goods/contracts/deployments/42161-reward-safes.json", () => ({
   default: {
@@ -33,6 +35,13 @@ vi.mock("@green-goods/contracts/deployments/42161-reward-safes.json", () => ({
         garden: "0x8888888888888888888888888888888888888888",
         safe: "0xcccccccccccccccccccccccccccccccccccccccc",
       },
+      // A garden typed twice, once without its checksum: neither copy pays.
+      { tokenId: 9, garden: CHECKSUMMED, safe: "0x9999999999999999999999999999999999999999" },
+      {
+        tokenId: 9,
+        garden: CHECKSUMMED.toLowerCase(),
+        safe: "0x9090909090909090909090909090909090909090",
+      },
     ],
   },
 }));
@@ -58,6 +67,7 @@ describe("a garden's reward Safe, read from the chain's record", () => {
       TWICE,
       "0x7777777777777777777777777777777777777777",
       "0x8888888888888888888888888888888888888888",
+      CHECKSUMMED,
     ] as const) {
       expect(getGardenRewardSafe(42161, garden)).toBeNull();
     }
