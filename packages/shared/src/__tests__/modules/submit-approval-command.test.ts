@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  ApprovalAlreadyDecidedError,
   submitApproval,
   type SubmitApprovalCommand,
   type SubmitApprovalPorts,
@@ -34,6 +35,7 @@ function ports(overrides: Partial<SubmitApprovalPorts> = {}): SubmitApprovalPort
       process: vi.fn().mockResolvedValue({ success: true, txHash: MOCK_TX_HASH }),
     },
     sender: createMockTransactionSender(),
+    decisions: { isDecided: vi.fn().mockResolvedValue(false) },
     ...overrides,
   };
 }
@@ -49,6 +51,46 @@ describe("submitApproval", () => {
     });
     expect(dependencies.direct).toHaveBeenCalledOnce();
     expect(dependencies.queue.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("refuses a wallet decision on a work the chain already has decided, before the wallet is asked", async () => {
+    const dependencies = ports({ decisions: { isDecided: vi.fn().mockResolvedValue(true) } });
+
+    await expect(submitApproval(command(), dependencies)).rejects.toBeInstanceOf(
+      ApprovalAlreadyDecidedError
+    );
+    expect(dependencies.decisions.isDecided).toHaveBeenCalledWith(
+      expect.objectContaining({ chainId: 11155111 })
+    );
+    expect(dependencies.direct).not.toHaveBeenCalled();
+  });
+
+  it("refuses a sponsored decision sent now on a decided work, before it is queued", async () => {
+    const dependencies = ports({ decisions: { isDecided: vi.fn().mockResolvedValue(true) } });
+
+    await expect(
+      submitApproval(command({ authMode: "passkey" }), dependencies)
+    ).rejects.toBeInstanceOf(ApprovalAlreadyDecidedError);
+    expect(dependencies.queue.enqueue).not.toHaveBeenCalled();
+    expect(dependencies.queue.process).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when the chain cannot say whether the work is decided", async () => {
+    const dependencies = ports({
+      decisions: { isDecided: vi.fn().mockRejectedValue(new Error("rpc down")) },
+    });
+
+    await expect(submitApproval(command(), dependencies)).rejects.toThrow("rpc down");
+    expect(dependencies.direct).not.toHaveBeenCalled();
+  });
+
+  it("queues an offline decision without asking the chain, which it cannot reach", async () => {
+    const dependencies = ports({ connectivity: { confirm: async () => false } });
+
+    await submitApproval(command({ authMode: "passkey" }), dependencies);
+
+    expect(dependencies.decisions.isDecided).not.toHaveBeenCalled();
+    expect(dependencies.queue.enqueue).toHaveBeenCalledOnce();
   });
 
   it("queues and processes sponsored approval through injected ports", async () => {

@@ -27,6 +27,7 @@ import {
   overlayDeadline,
 } from "../../modules/work/local-status-overlay";
 import {
+  ApprovalAlreadyDecidedError,
   ApprovalConnectionUnconfirmedError,
   createDefaultSubmitApprovalPorts,
   submitApproval,
@@ -156,6 +157,17 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
 
   const reportApprovalError = useCallback(
     (error: unknown, completion: WorkApprovalCompletion) => {
+      // The chain already has this work decided: nothing was sent, and the reads catch up.
+      if (error instanceof ApprovalAlreadyDecidedError) {
+        toastService.info({
+          id: "approval-submit",
+          title: formatMessage({ id: "app.work.detail.alreadyReviewed" }),
+          context: "approval submission",
+          suppressLogging: true,
+        });
+        refreshApprovalReads(queryClient, chainId, completion, true);
+        return;
+      }
       // Refused before the wallet was asked: nothing was signed or sent.
       if (error instanceof ApprovalConnectionUnconfirmedError) {
         toastService.info({
@@ -211,7 +223,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         },
       });
     },
-    [authMode, chainId, formatMessage]
+    [authMode, chainId, formatMessage, queryClient]
   );
 
   const onLifecycleConfirmed = useCallback(
@@ -440,8 +452,9 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         gardenId: variables.work.gardenAddress,
         workUID: variables.draft.workUID,
       };
-      if (isCancelledTxError(error)) lifecycle.cancel();
-      else lifecycle.fail();
+      if (isCancelledTxError(error) || error instanceof ApprovalAlreadyDecidedError) {
+        lifecycle.cancel();
+      } else lifecycle.fail();
       decisionCacheRef.current = null;
       reportApprovalError(error, completion);
     },
