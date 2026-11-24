@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - it swaps the reward Safe record for a fixture with vi.mock, which would replace the real record that contracts.test.ts checks.
 import { getAddress } from "viem";
 import { describe, expect, it, vi } from "vitest";
 
