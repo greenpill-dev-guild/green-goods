@@ -98,26 +98,25 @@ export function createOpenfortRecovery(config: OpenfortRecoveryConfig): Openfort
           "x-project-key": config.publishableKey,
         },
       });
-      if (response.status >= 500) {
+      // Openfort answers a bad token with 200 and no session. Any other answer (this agent's key
+      // refused, a throttle, a timeout, an outage) says nothing about the person's session, so the
+      // app retries instead of signing them out.
+      if (!response.ok) {
         throw new OpenfortRecoveryError(
           "unavailable",
-          "Openfort session check failed",
+          response.status === 401 || response.status === 403
+            ? "Openfort refused this agent's key; check VITE_OPENFORT_PUBLISHABLE_KEY"
+            : "Openfort session check failed",
           response.status
         );
       }
-      // Openfort answers 200 with a null body for a missing, malformed or expired token.
       const body = (await response.json().catch(() => null)) as {
         session?: unknown;
         user?: { id?: unknown };
       } | null;
-      const userId = response.ok && body?.session ? body.user?.id : undefined;
+      const userId = body?.session ? body.user?.id : undefined;
       if (typeof userId !== "string" || userId.length === 0) {
-        // A refusal status (not the 200 a bad token gets) points at this agent's configuration.
-        throw new OpenfortRecoveryError(
-          "session_invalid",
-          "Openfort did not accept the session",
-          response.ok ? undefined : response.status
-        );
+        throw new OpenfortRecoveryError("session_invalid", "Openfort did not accept the session");
       }
       return { userId };
     },

@@ -105,15 +105,22 @@ describe("Openfort recovery sessions", () => {
 
     expect(calls.some((call) => new URL(call.url).hostname === "shield.openfort.io")).toBe(false);
 
-    // Openfort refusing the check itself points at this agent's key, so it is logged, token-free.
+    // Only Openfort's 200 with no session means the token is bad. Any other refusal (this agent's
+    // key, a throttle, a timeout) says nothing about the person's session: retry, never sign out.
     const warn = vi.spyOn(loggers.api, "warn").mockImplementation(() => undefined);
-    const misconfigured = fakeOpenfort({ sessionStatus: 401 });
-    const refused = await requestSession(createApp(misconfigured.recovery));
-    expect(refused.status).toBe(401);
-    expect(await refused.json()).toMatchObject({ ok: false, errorCode: "session_invalid" });
+    for (const status of [401, 408, 429]) {
+      const refusing = fakeOpenfort({ sessionStatus: status });
+      const answer = await requestSession(createApp(refusing.recovery));
+      expect(answer.status).toBe(503);
+      expect(await answer.json()).toMatchObject({ ok: false, errorCode: "provider_unavailable" });
+      expect(warn).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status }),
+        "Openfort recovery session unavailable"
+      );
+    }
     expect(warn).toHaveBeenCalledWith(
-      { status: 401 },
-      expect.stringContaining("VITE_OPENFORT_PUBLISHABLE_KEY")
+      expect.objectContaining({ reason: expect.stringContaining("VITE_OPENFORT_PUBLISHABLE_KEY") }),
+      "Openfort recovery session unavailable"
     );
     warn.mockRestore();
   });

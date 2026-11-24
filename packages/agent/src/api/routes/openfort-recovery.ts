@@ -71,12 +71,6 @@ export function registerOpenfortRecoveryRoutes(app: Hono, ctx: ApiRouteContext):
       return respond({ ok: true, session });
     } catch (error) {
       if (error instanceof OpenfortRecoveryError && error.code === "session_invalid") {
-        if (error.status !== undefined) {
-          log.warn(
-            { status: error.status },
-            "Openfort refused the session check; check VITE_OPENFORT_PUBLISHABLE_KEY"
-          );
-        }
         return respond(refusal("session_invalid", "Sign in again."), 401);
       }
       log.warn(
