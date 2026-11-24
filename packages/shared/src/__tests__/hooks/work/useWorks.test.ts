@@ -253,6 +253,42 @@ describe("hooks/work/useWorks", () => {
     await waitFor(() => expect(result.current.readThisSession).toBe(true));
   });
 
+  it("does not count a decision written into a restored list as reading the garden", async () => {
+    // A garden no other test reads: what this session has read is kept for the whole session.
+    const garden = "0x4444444444444444444444444444444444444444";
+    const key = ["works", "online", garden, TEST_CHAIN_ID];
+    const restored = [
+      {
+        id: "w1",
+        title: "W1",
+        actionUID: 1,
+        gardenerAddress: "0x1",
+        gardenAddress: garden,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        status: "pending" as const,
+      },
+    ];
+    let finishRead = (_rows: unknown) => {};
+    mockGetWorkListPage.mockReturnValue(new Promise((resolve) => (finishRead = resolve)));
+    queryClient.setQueryData(key, restored, { updatedAt: 1 });
+    const { result } = renderHookWithProviders(() => useWorks(garden), { queryClient });
+
+    // A decision this device just recorded is written into the list with the current time.
+    await act(async () => {
+      queryClient.setQueryData(key, [{ ...restored[0], status: "approved" as const }]);
+    });
+    // Once the visibility read is in, only the list's own read is missing.
+    await waitFor(() => expect(result.current.works[0]?.status).toBe("approved"));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(result.current.readThisSession).toBe(false);
+
+    await act(async () => finishRead(restored));
+    await waitFor(() => expect(result.current.readThisSession).toBe(true));
+  });
+
   it("reads one lookahead row, offers older work, and widens the shared window", async () => {
     const page = (count: number, offset = 0) =>
       Array.from({ length: count }, (_, index) => ({
@@ -477,6 +513,61 @@ describe("hooks/work/useWorks", () => {
     expect(result.current.works[0].status).toBe("pending");
     // That pending is a fallback, and the hook says so: queue health must not read it as settled.
     expect(result.current.hasUnknownStatuses).toBe(true);
+    // And names the work, so a review surface can hold its decision.
+    expect(result.current.unknownIds.has("w1")).toBe(true);
+  });
+
+  it("names a work whose approvals a later read could not read, though its status is cached", async () => {
+    const work = {
+      id: "w1",
+      title: "W1",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1000,
+      status: "pending" as const,
+    };
+    mockGetWorkListPage.mockResolvedValue([work]);
+    mockGetWorkApprovalsForWorks.mockResolvedValue([]);
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+    await waitFor(() => expect(result.current.works).toHaveLength(1));
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(false));
+    expect(result.current.unknownIds.has("w1")).toBe(false);
+
+    // The next read's approvals fail: the cached pending shows, but it is not a decision.
+    mockGetWorkApprovalsForWorks.mockRejectedValue(new Error("Network error"));
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(true));
+    expect(result.current.works[0].status).toBe("pending");
+    expect(result.current.unknownIds.has("w1")).toBe(true);
+  });
+
+  it("names a work a later read left out, though it still shows from the stored read", async () => {
+    const work = {
+      id: "w1",
+      title: "W1",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1000,
+      status: "pending" as const,
+    };
+    mockGetWorkListPage.mockResolvedValue([work]);
+    mockGetWorkApprovalsForWorks.mockResolvedValue([]);
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(false));
+
+    // The indexer briefly returns nothing: the stored work stays, but its status is not current.
+    mockGetWorkListPage.mockResolvedValue([]);
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.unknownIds.has("w1")).toBe(true));
+    expect(result.current.works.map((item) => item.id)).toContain("w1");
   });
 
   it("marks work as rejected when approval.approved is false", async () => {

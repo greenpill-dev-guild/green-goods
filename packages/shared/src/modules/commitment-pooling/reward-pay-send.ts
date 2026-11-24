@@ -263,6 +263,28 @@ function preApprovedSignatures(signers: readonly Address[]): Hex {
 
 export type RewardPayStep = "approving" | "paying" | "confirming";
 
+/**
+ * Whether the payer records every share as paid by the Safe. A confirmed receipt says the Safe's
+ * transaction ran, not that the shares moved: a Safe that sets safeTxGas or gasPrice confirms a
+ * batch that failed inside it. This payment sets both to 0, so Safe 1.4.1 reverts the whole
+ * transaction instead (GS013), and the payer's record is still read before anything reads as paid.
+ * A read that fails leaves the payment unconfirmed, never paid.
+ */
+async function recordedAsPaidBy(
+  chain: RewardPayChain,
+  payer: Address,
+  shareIds: readonly Hex[],
+  safe: Address
+): Promise<boolean> {
+  try {
+    const paidBy = await Promise.all(shareIds.map((shareId) => chain.paidBy(payer, shareId)));
+    return paidBy.every((by) => same(by, safe));
+  } catch (error) {
+    logger.warn("Reward payment confirmed but its shares could not be read back", { error });
+    return false;
+  }
+}
+
 export type RewardPayOutcome =
   | { status: "paid"; transactionHash: Hex; shareIds: Hex[] }
   /** It went out but nobody can confirm it ran yet: it may still pay, and never twice. */
@@ -395,9 +417,11 @@ export async function sendRewardSharePayment(input: {
       }
     );
     const transactionHash = payment.hash as Hex;
-    return payment.confirmation === "pending"
-      ? { status: "unconfirmed", transactionHash, shareIds }
-      : { status: "paid", transactionHash, shareIds };
+    if (payment.confirmation === "pending")
+      return { status: "unconfirmed", transactionHash, shareIds };
+    return (await recordedAsPaidBy(input.chain, input.payer, shareIds, safe))
+      ? { status: "paid", transactionHash, shareIds }
+      : { status: "unconfirmed", transactionHash, shareIds };
   } catch (error) {
     // A payment past its receipt wait went out and may still land: it reads as unconfirmed,
     // never as failed. The payer would refuse a second payment of the same shares anyway.

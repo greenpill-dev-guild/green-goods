@@ -1,3 +1,7 @@
+/**
+ * What the Hub tells a steward once their step towards paying a garden Safe's USDC shares ends:
+ * their approval or the payment itself, or the signer update that comes first.
+ */
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type {
   RewardPayOutcome,
@@ -5,10 +9,6 @@ import type {
 } from "@green-goods/shared/commitment-pooling";
 import type { IntlShape } from "react-intl";
 
-/**
- * What the Hub tells a steward once their step towards paying a garden Safe's USDC shares ends:
- * their approval or the payment itself, or the signer update that comes first.
- */
 type FormatMessage = IntlShape["formatMessage"];
 
 /** Tells the steward how their approval or payment ended. A declined signature needs no word. */
@@ -21,6 +21,17 @@ export function toastRewardPayOutcome(outcome: RewardPayOutcome, formatMessage: 
       }),
       message: `${outcome.transactionHash.slice(0, 10)}…`,
     });
+  } else if (outcome.status === "approved" && !outcome.confirmed) {
+    toastService.info({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.approvalUnconfirmed",
+        defaultMessage: "Approval sent, not confirmed yet",
+      }),
+      message: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.approvalUnconfirmedHint",
+        defaultMessage: "It counts towards the payment once it lands.",
+      }),
+    });
   } else if (outcome.status === "approved") {
     toastService.info({
       title: formatMessage({
@@ -31,7 +42,7 @@ export function toastRewardPayOutcome(outcome: RewardPayOutcome, formatMessage: 
         {
           id: "hub.garden.pool.safeShares.toast.approvedHint",
           defaultMessage:
-            "{approvals} of {threshold} Safe owners have approved. It pays once enough approve.",
+            "{approvals} of {threshold} Safe owners have approved. Once enough approve, any owner presses Pay.",
         },
         { approvals: outcome.approvals, threshold: outcome.threshold }
       ),

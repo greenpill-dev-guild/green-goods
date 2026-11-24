@@ -25,7 +25,11 @@ vi.mock("@green-goods/contracts/deployments/42161-reward-safes.json", () => {
       schemaVersion: 2,
       chainId: 42161,
       safes: [
+        // A row that isn't an object is skipped without hiding the gardens around it.
+        null,
         entry(1, digits("1"), twin("1", "2"), twin("1", "3")),
+        // A garden whose checksum mixes cases, so a lookup must ignore case to find it.
+        entry(12, "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", twin("1", "4"), twin("1", "5")),
         // A zero Safe, a malformed gate, an unchecksummed Safe.
         entry(2, digits("2"), "0x0000000000000000000000000000000000000000", twin("2", "3")),
         entry(3, digits("3"), twin("3", "2"), "0x1234"),
@@ -56,6 +60,14 @@ describe("a garden's reward Safe, read from the chain's record", () => {
       signerHat: BigInt(HAT),
     });
     expect(getGardenRewardSafe(42161, null)).toBeNull();
+    const lettered = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+    for (const garden of [lettered, lettered.toLowerCase()] as const) {
+      expect(getGardenRewardSafe(42161, garden as `0x${string}`)).toEqual({
+        safe: pair("1", "4"),
+        gate: pair("1", "5"),
+        signerHat: BigInt(HAT),
+      });
+    }
     expect(getGardenRewardSafe(42220, at("1"))).toBeNull();
   });
 

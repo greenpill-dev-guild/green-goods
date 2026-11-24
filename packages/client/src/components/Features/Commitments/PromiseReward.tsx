@@ -347,8 +347,15 @@ function RewardPartRow({
     chainId: leg.chainId,
     shareId: own?.paidBy ? own.shareId : null,
   });
+  // A promise that will never be kept names the amount alone, as its reward does (PRD-1370).
   const state =
-    payout === "afterKept" ? "afterKept" : unknown ? "unknown" : paid ? "paid" : "notPaidYet";
+    payout === "afterKept"
+      ? "afterKept"
+      : unknown || payout === "unstated"
+        ? "unknown"
+        : paid
+          ? "paid"
+          : "notPaidYet";
   const amount = formatMessage(
     { id: "app.commitment.reward.tokenAmount" },
     {
@@ -406,7 +413,8 @@ export function PromiseRewardParts({
     chainId,
     commitmentId,
     legs: others,
-    enabled: others.length > 0 && payout !== "afterKept",
+    // Shares are paid only once a promise is kept: one that ended unkept has none to read.
+    enabled: others.length > 0 && payout !== "afterKept" && payout !== "unstated",
   });
   if (others.length === 0) return null;
   const network = (id: number) => getChain(id)?.name ?? String(id);

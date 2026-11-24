@@ -203,6 +203,23 @@ contract ArbitrumRewardSafeForkTest is Test {
         }
     }
 
+    /// @dev The Hub sets safeTxGas and gasPrice to 0, so Safe 1.4.1 requires the batch to succeed:
+    ///      a payment the Safe can't cover reverts whole (GS013), never confirming as paid.
+    function testArbitrumRewardSafe_aBatchThatFailsInsideTheSafeRevertsTheWholePayment() public {
+        _seat(stewardA);
+        _fundSafe(10e6);
+        (bytes memory data, IRewardPayerLive.Share[] memory shares) = _payment(12e6, 8e6);
+        uint256 nonce = safe.nonce();
+        vm.prank(stewardA);
+        vm.expectRevert(bytes("GS013"));
+        _exec(data, _signatures(stewardA, address(0)));
+        assertEq(safe.nonce(), nonce);
+        assertEq(IUsdc(USDC).balanceOf(address(safe)), 10e6);
+        for (uint256 i; i < shares.length; ++i) {
+            assertEq(IRewardPayerLive(PAYER).paidBy(IRewardPayerLive(PAYER).shareIdOf(shares[i])), address(0));
+        }
+    }
+
     function testArbitrumRewardSafe_twoStewardsNeedBothAndTheSecondRunsItWithTheFirstsApproval() public {
         _seat(stewardA);
         _seat(stewardB);

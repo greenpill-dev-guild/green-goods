@@ -48,6 +48,8 @@ export interface CommitmentUsdcSharesProps {
   onPay: (intent: "approve" | "pay") => void;
   /** The steward brings the Safe's signers up to date before approving. */
   onSync: () => void;
+  /** Reads the Safe's balance and approvals again. */
+  onRecheck: () => void;
 }
 
 const same = (a: string | null | undefined, b: string | null | undefined) =>
@@ -79,6 +81,7 @@ export function CommitmentUsdcShares({
   isPaying,
   onPay,
   onSync,
+  onRecheck,
 }: CommitmentUsdcSharesProps) {
   const { formatMessage, locale } = useIntl();
   const amountText = (amount: bigint) =>
@@ -175,6 +178,20 @@ export function CommitmentUsdcShares({
     paymentReadFailed || (payment?.status === "refused" && payment.refusal === "unreadable");
   // A share was paid since the list was read; the shares read again, and the list catches up.
   const paidSinceRead = payment?.status === "refused" && payment.refusal === "already-paid";
+  const recheck = (
+    <Button
+      type="button"
+      emphasis="secondary"
+      size="compact"
+      disabled={!isOnline}
+      onClick={onRecheck}
+    >
+      {formatMessage({
+        id: "hub.garden.pool.safeShares.checkAgain",
+        defaultMessage: "Check Again",
+      })}
+    </Button>
+  );
 
   return (
     <section
@@ -231,7 +248,7 @@ export function CommitmentUsdcShares({
       {canOffer ? (
         <div className="space-y-2" data-payment={ready ? "ready" : (payment?.status ?? "reading")}>
           {approvalsUnreadable ? (
-            <Alert variant="error">
+            <Alert variant="error" action={recheck}>
               {formatMessage({
                 id: "hub.garden.pool.safeShares.paymentReadError",
                 defaultMessage:
@@ -249,7 +266,7 @@ export function CommitmentUsdcShares({
             </Alert>
           ) : null}
           {balanceShort ? (
-            <Alert variant="warning">
+            <Alert variant="warning" action={recheck}>
               {formatMessage(
                 {
                   id: "hub.garden.pool.safeShares.balanceShort",
@@ -287,7 +304,7 @@ export function CommitmentUsdcShares({
                 emphasis="primary"
                 size="sm"
                 loading={isPaying}
-                disabled={!isOnline || readFailed}
+                disabled={!isOnline || readFailed || approvalsUnreadable}
                 onClick={onSync}
               >
                 {formatMessage({
@@ -323,13 +340,16 @@ export function CommitmentUsdcShares({
             </>
           ) : null}
           {ready && viewerIsSteward && !needsSync && viewerApproved && !viewerCompletes ? (
-            <p className="type-meta text-text-soft">
-              {formatMessage({
-                id: "hub.garden.pool.safeShares.viewerApproved",
-                defaultMessage:
-                  "You've approved. It pays once enough of the Safe's owners approve.",
-              })}
-            </p>
+            <>
+              <p className="type-meta text-text-soft">
+                {formatMessage({
+                  id: "hub.garden.pool.safeShares.viewerApproved",
+                  defaultMessage:
+                    "You've approved. Once enough of the Safe's owners approve, any one of them presses Pay.",
+                })}
+              </p>
+              {recheck}
+            </>
           ) : null}
           {(payment === null && paymentReading) ||
           (ready && viewerIsSteward && !needsSync && (!viewerApproved || viewerCompletes)) ? (
@@ -339,7 +359,8 @@ export function CommitmentUsdcShares({
                 emphasis="primary"
                 size="sm"
                 loading={isPaying || paymentReading}
-                disabled={!isOnline || readFailed || !ready}
+                // A failed read can leave an earlier one cached: nothing is pressed on it.
+                disabled={!isOnline || readFailed || !ready || approvalsUnreadable}
                 onClick={() => onPay(viewerCompletes ? "pay" : "approve")}
               >
                 {formatMessage(
@@ -363,7 +384,7 @@ export function CommitmentUsdcShares({
                     : {
                         id: "hub.garden.pool.safeShares.approveNote",
                         defaultMessage:
-                          "One signature from your account. The payment runs once enough of the Safe's owners approve.",
+                          "One signature from your account. Once enough of the Safe's owners approve, any one of them presses Pay to send it.",
                       }
                 )}
               </p>
@@ -438,6 +459,7 @@ export function CommitmentUsdcSharesSection({
       isPaying={rewardShares.isPaying}
       onPay={(intent) => void pay(intent)}
       onSync={() => void sync()}
+      onRecheck={rewardShares.recheckPayment}
     />
   );
 }

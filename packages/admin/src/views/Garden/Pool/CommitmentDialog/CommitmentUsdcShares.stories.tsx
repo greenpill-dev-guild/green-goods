@@ -90,6 +90,7 @@ const meta: Meta<typeof CommitmentUsdcShares> = {
     isPaying: false,
     onPay: fn(),
     onSync: fn(),
+    onRecheck: fn(),
   },
 };
 
@@ -119,14 +120,37 @@ export const CompletesTheApprovals: Story = {
 };
 
 /** This owner approved; nothing more to ask of them until another owner approves. */
-export const ApprovedWaitingOnAnotherOwner: Story = {
-  args: { payment: payment([STEWARD]) },
-  play: async ({ canvasElement }) => {
+/**
+ * A refetch failed after a good read: the cached payment may show the wrong step, so nothing can
+ * be pressed until Check Again reads it afresh.
+ */
+export const ARefetchFailedAfterAGoodRead: Story = {
+  args: { payment: payment([CO_STEWARD]), paymentReadFailed: true },
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(
-      canvas.getByText("You've approved. It pays once enough of the Safe's owners approve.")
+      canvas.getByText(
+        "Couldn't read the Safe's approvals for this payment. Nothing can be approved until it reads."
+      )
     ).toBeVisible();
-    await expect(canvas.queryByRole("button")).toBeNull();
+    await expect(canvas.getByRole("button", { name: "Pay 20 USDC" })).toBeDisabled();
+    await userEvent.click(canvas.getByRole("button", { name: "Check Again" }));
+    await expect(args.onRecheck).toHaveBeenCalledTimes(1);
+  },
+};
+
+export const ApprovedWaitingOnAnotherOwner: Story = {
+  args: { payment: payment([STEWARD]) },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText(
+        "You've approved. Once enough of the Safe's owners approve, any one of them presses Pay."
+      )
+    ).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: /Approve|Pay/ })).toBeNull();
+    await userEvent.click(canvas.getByRole("button", { name: "Check Again" }));
+    await expect(args.onRecheck).toHaveBeenCalledTimes(1);
   },
 };
 
@@ -200,14 +224,16 @@ export const AllPaid: Story = {
 /** The Safe holds less than the owed total, so it asks for USDC before any signature. */
 export const SafeHoldsTooLittle: Story = {
   args: { payment: { status: "refused", refusal: "insufficient-balance" } },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByText(
         "The garden's Safe holds less than 20 USDC. Add USDC to the Safe before paying."
       )
     ).toBeVisible();
-    await expect(canvas.queryByRole("button")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /Approve|Pay/ })).toBeNull();
+    await userEvent.click(canvas.getByRole("button", { name: "Check Again" }));
+    await expect(args.onRecheck).toHaveBeenCalledTimes(1);
   },
 };
 

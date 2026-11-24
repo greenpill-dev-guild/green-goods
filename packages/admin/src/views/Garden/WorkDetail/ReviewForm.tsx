@@ -133,6 +133,15 @@ export function ReviewForm({
     };
     if (!allowed) setRejectDialogOpen(false);
   }, [work.id, statusUnread, isReviewed]);
+  // A form that closes drops the decision it was preparing: it never sends, nor closes whatever
+  // inspector is open by the time its note finishes uploading.
+  useLayoutEffect(
+    () => () => {
+      const last = decisionEpoch.current;
+      decisionEpoch.current = { epoch: last.epoch + 1, workId: "", allowed: false };
+    },
+    []
+  );
 
   /**
    * Sends the decision, or keeps it for the batch. A rejection always carries
@@ -157,6 +166,10 @@ export function ReviewForm({
     if (approved ? formData.confidence < Confidence.LOW : !formData.feedback) return false;
 
     const startedIn = decisionEpoch.current.epoch;
+    const stillDecidable = () => {
+      const now = decisionEpoch.current;
+      return now.epoch === startedIn && now.workId === work.id && now.allowed;
+    };
     setSubmittingAction(toBatch ? "batch" : approved ? "approve" : "reject");
     setIsSubmitting(true);
 
@@ -181,8 +194,7 @@ export function ReviewForm({
         }
       }
 
-      const now = decisionEpoch.current;
-      if (now.epoch !== startedIn || now.workId !== work.id || !now.allowed) return false;
+      if (!stillDecidable()) return false;
 
       const draft: WorkApprovalDraft = {
         actionUID: work.actionUID,
@@ -195,11 +207,14 @@ export function ReviewForm({
       };
 
       if (toBatch) reviewBatch.stage(draft);
-      else await approvalMutation.mutateAsync({ draft, work });
+      else await approvalMutation.mutateAsync({ draft, work, stillDecidable });
 
-      onSuccess?.(approved);
+      // A decision that went out still counts as sent; only a form that still shows its work closes.
+      if (decisionEpoch.current.workId === work.id) onSuccess?.(approved);
       return true;
     } catch (error) {
+      // Withdrawn because the work could no longer be decided: the form already says why.
+      if (!stillDecidable()) return false;
       const { message: formattedMessage, parsed } = parseAndFormatError(error);
 
       logger.error("Work approval submission failed", {

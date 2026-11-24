@@ -23,7 +23,10 @@ import {
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
 import { daysAgo } from "../../../../shared/.storybook/fixtures";
-import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
+import {
+  markGardenWorkReadThisSession,
+  resetHookMocks,
+} from "../../../../shared/.storybook/moduleMocks";
 import { AdminNotificationPanel } from "./AdminNotificationPanel";
 
 /**
@@ -139,7 +142,15 @@ const meta = {
   args: {
     onCloseSheet: () => undefined,
   },
-  beforeEach: () => mockHubChanges(),
+  beforeEach: () => {
+    const resetChanges = mockHubChanges();
+    // The seeded list stands for this session's read of the garden, which proves the stall.
+    const resetRead = markGardenWorkReadThisSession();
+    return () => {
+      resetChanges();
+      resetRead();
+    };
+  },
 } satisfies Meta<typeof AdminNotificationPanel>;
 
 export default meta;
