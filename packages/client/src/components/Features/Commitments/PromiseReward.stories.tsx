@@ -34,7 +34,7 @@ interface RewardLineProps {
   metadata: Pick<CommitmentMetadataV1, "reward" | "rewardLegs" | "rewardLegsUnreadable">;
   /** Whether the promise has a G$ part on chain. */
   goodDollars: boolean;
-  derivedState: "ACCEPTED" | "FULFILLED";
+  derivedState: "ACCEPTED" | "FULFILLED" | "CANCELLED" | "EXPIRED";
   /** Show each part on its own row, as the promise page does. */
   parts?: boolean;
 }
@@ -86,6 +86,15 @@ const meta: Meta<typeof RewardLine> = {
 
 export default meta;
 type Story = StoryObj<typeof RewardLine>;
+
+/** A promise that ended unkept shows its reward as the amount alone (PRD-1370). */
+export const EndedPromise: Story = {
+  args: { derivedState: "CANCELLED" },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("$20.00")).toBeVisible();
+    await expect(within(canvasElement).queryByText(/after it’s kept|after it's kept/)).toBeNull();
+  },
+};
 
 export const GoodDollarsOnly: Story = {
   play: async ({ canvasElement }) => {
