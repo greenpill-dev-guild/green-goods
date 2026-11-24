@@ -330,7 +330,8 @@ describe("ImpactPage", () => {
     const filters = screen.getByRole("navigation", {
       name: "Filter evidence by record kind, domain, and garden",
     });
-    const kindChip = (label: string) => within(filters).getAllByRole("button", { name: label })[0];
+    const kindChip = (label: string | RegExp) =>
+      within(filters).getAllByRole("button", { name: label })[0];
     expect(kindChip(/^All/)).toHaveTextContent("2");
     expect(kindChip(/^Assessment/)).toHaveTextContent("2");
 
