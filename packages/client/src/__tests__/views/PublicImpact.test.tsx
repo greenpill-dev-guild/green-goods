@@ -324,6 +324,21 @@ describe("ImpactPage", () => {
     }
   });
 
+  // PUB-047: a kind's count is what choosing it would show, under the domain and garden in force.
+  it("counts each record kind within the chosen domain", () => {
+    renderView();
+    const filters = screen.getByRole("navigation", {
+      name: "Filter evidence by record kind, domain, and garden",
+    });
+    const kindChip = (label: string) => within(filters).getAllByRole("button", { name: label })[0];
+    expect(kindChip(/^All/)).toHaveTextContent("2");
+    expect(kindChip(/^Assessment/)).toHaveTextContent("2");
+
+    fireEvent.click(within(filters).getByRole("button", { name: /^Waste/ }));
+    expect(kindChip(/^All/)).toHaveTextContent("1");
+    expect(kindChip(/^Assessment/)).toHaveTextContent("1");
+  });
+
   it("shows loading skeletons while evidence is loading", () => {
     mockUsePublicImpactEvidence.mockReturnValue({ data: undefined, isLoading: true });
     const { container } = renderView();

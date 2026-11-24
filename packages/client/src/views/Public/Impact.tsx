@@ -133,25 +133,27 @@ export default function ImpactPage() {
   // CLAUDE.md — never chain useMemos on the same source).
   const { counted, filteredRecords, pageRecords, totalPages } = useMemo(() => {
     const records = slice?.records ?? [];
+    const domainEntry = DOMAIN_FILTERS.find((d) => d.id === domainFilter);
+    const gardenFilterLower = gardenFilter === "all" ? null : gardenFilter.toLowerCase();
+    // The records the domain and garden filters leave. Each kind chip counts these, so it says
+    // how many choosing it would show (PUB-047); the kind filter then narrows them.
+    const inScope = records.filter((record) => {
+      if (domainEntry && domainEntry.filterId !== "all") {
+        if (!recordMatchesDomain(record, domainEntry.filterId)) return false;
+      }
+      return !gardenFilterLower || record.gardenId.toLowerCase() === gardenFilterLower;
+    });
     const byKind: Record<KindFilter, number> = {
-      all: records.length,
+      all: inScope.length,
       assessment: 0,
       work: 0,
       certificate: 0,
     };
-    for (const record of records) {
+    for (const record of inScope) {
       byKind[record.kind] += 1;
     }
-    const domainEntry = DOMAIN_FILTERS.find((d) => d.id === domainFilter);
-    const gardenFilterLower = gardenFilter === "all" ? null : gardenFilter.toLowerCase();
-    const filtered = records.filter((record) => {
-      if (kindFilter !== "all" && record.kind !== kindFilter) return false;
-      if (domainEntry && domainEntry.filterId !== "all") {
-        if (!recordMatchesDomain(record, domainEntry.filterId)) return false;
-      }
-      if (gardenFilterLower && record.gardenId.toLowerCase() !== gardenFilterLower) return false;
-      return true;
-    });
+    const filtered =
+      kindFilter === "all" ? inScope : inScope.filter((record) => record.kind === kindFilter);
     const pages = Math.max(1, Math.ceil(filtered.length / LEDGER_PAGE_SIZE));
     const safePage = Math.min(Math.max(1, page), pages);
     const start = (safePage - 1) * LEDGER_PAGE_SIZE;
