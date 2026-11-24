@@ -20,7 +20,7 @@ import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
@@ -118,6 +118,13 @@ export function ReviewForm({
    * keeps only its link. Resolves false when nothing was sent or kept, so the
    * reason dialog stays open for a retry.
    */
+  // A decision is sent after its note uploads. If a read says meanwhile that the work's status is
+  // unknown, or that it is decided, the decision started earlier is not sent.
+  const canStillDecide = useRef(!statusUnread && !isReviewed);
+  useEffect(() => {
+    canStillDecide.current = !statusUnread && !isReviewed;
+  }, [statusUnread, isReviewed]);
+
   const handleApprovalSubmit = async (
     approved: boolean,
     reason?: string,
@@ -156,6 +163,8 @@ export function ReviewForm({
           return false;
         }
       }
+
+      if (!canStillDecide.current) return false;
 
       const draft: WorkApprovalDraft = {
         actionUID: work.actionUID,

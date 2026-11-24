@@ -3,7 +3,7 @@
  */
 
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { reviewFormState } from "@/views/Garden/WorkDetail/helpers";
@@ -475,6 +475,35 @@ describe("ReviewForm", () => {
         );
       });
       expect(mockUploadFile).toHaveBeenCalledOnce();
+    });
+
+    it("sends nothing if the status turns unread while its note uploads", async () => {
+      let finishUpload = (_value: { cid: string }) => {};
+      mockUploadFile.mockReturnValue(new Promise((resolve) => (finishUpload = resolve)));
+      const form = (statusUnread: boolean) => (
+        <IntlProvider locale="en" messages={messages}>
+          <ReviewForm
+            work={TEST_WORK}
+            gardenName="Demo Garden"
+            canReview
+            canApproveOrReject
+            isReviewed={false}
+            statusUnread={statusUnread}
+          />
+        </IntlProvider>
+      );
+      const { rerender } = render(form(false));
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+      await waitFor(() => expect(mockUploadFile).toHaveBeenCalledOnce());
+
+      rerender(form(true));
+      await act(async () => finishUpload({ cid: "audio-cid" }));
+
+      await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
     });
 
     it("keeps nothing when the note can't upload, and says so", async () => {
