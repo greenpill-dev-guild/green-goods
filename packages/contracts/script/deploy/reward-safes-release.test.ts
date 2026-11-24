@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - no existing test covers the reward Safe release; its manifest rules, its factory call and its record merge are three separate subjects, and the fork rehearsal (test/fork/ArbitrumRewardSafe.t.sol) proves the deployed result.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { AbiCoder, Interface, ZeroAddress } from "ethers";
