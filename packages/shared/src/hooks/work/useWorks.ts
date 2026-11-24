@@ -303,6 +303,8 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       : "unavailable";
   return {
     works: visibleWorks,
+    /** Works whose decisions could not be read: their status is a fallback, never a decision. */
+    unknownIds,
     availability,
     lastSuccessfulRefresh: online.dataUpdatedAt || undefined,
     fetchStatus: online.fetchStatus,

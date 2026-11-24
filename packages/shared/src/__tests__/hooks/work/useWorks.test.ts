@@ -477,6 +477,8 @@ describe("hooks/work/useWorks", () => {
     expect(result.current.works[0].status).toBe("pending");
     // That pending is a fallback, and the hook says so: queue health must not read it as settled.
     expect(result.current.hasUnknownStatuses).toBe(true);
+    // And names the work, so a review surface can hold its decision.
+    expect(result.current.unknownIds.has("w1")).toBe(true);
   });
 
   it("marks work as rejected when approval.approved is false", async () => {

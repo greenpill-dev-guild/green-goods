@@ -101,7 +101,10 @@ function WorkDetailStatusBadge({
 
 export interface WorkDetailPanelProps {
   workId: string;
-  /** Opened from a Review day whose read could not say this work's status. */
+  /**
+   * Opened from a Review day whose read could not say this work's status, or has not yet. The
+   * garden's own read can say so too; either holds the decision.
+   */
   statusUnread?: boolean;
   /**
    * The work as a fresher read has it decided, such as the Review day it was opened from: it
@@ -114,7 +117,7 @@ export interface WorkDetailPanelProps {
 
 export function WorkDetailPanel({
   workId,
-  statusUnread = false,
+  statusUnread: openedUnread = false,
   decidedWork,
   layout = "page",
   onSuccess,
@@ -128,6 +131,8 @@ export function WorkDetailPanel({
       : undefined;
   const work = decided ?? resolved.work;
   const isReviewed = Boolean(decided) || resolved.isReviewed;
+  // Unread where it was opened (a day still being read), or in the garden's own read.
+  const statusUnread = openedUnread || resolved.statusUnread;
   // The voice notes and documents come from the metadata file, read after the work itself.
   // Offline, the read waits for the connection and a retry cannot run, so it is not a failure.
   const evidenceState =
@@ -392,7 +397,12 @@ export default function WorkDetail() {
           formatMessage({ id: "app.work.detail.loadingDescription" })
         }
         metadata={
-          resolved.work ? <WorkDetailStatusBadge status={resolved.work.status} /> : undefined
+          resolved.work ? (
+            <WorkDetailStatusBadge
+              status={resolved.work.status}
+              statusUnread={resolved.statusUnread}
+            />
+          ) : undefined
         }
         {...baseHeaderProps}
       />

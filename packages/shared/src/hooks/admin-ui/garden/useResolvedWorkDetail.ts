@@ -67,6 +67,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     isFetching: worksFetching,
     isLoading: worksLoading,
     works,
+    unknownIds,
   } = useWorks(gardenId ?? "");
   const candidateWork =
     works.find((candidateWork) => candidateWork.id === workId) ??
@@ -131,6 +132,8 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     ? gardenPermissions.isStewardOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
     : false;
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
+  // Its decisions could not be read, so its status is a fallback: no decision is offered on it.
+  const statusUnread = work ? (unknownIds?.has(work.id) ?? false) : false;
 
   useEffect(() => {
     if (matchedGarden && !compareAddresses(matchedGarden.id, activeGardenId)) {
@@ -155,6 +158,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     canReview,
     canApproveOrReject,
     isReviewed,
+    statusUnread,
     metadata,
     audioNoteCids: metadata?.audioNoteCids,
     documents,

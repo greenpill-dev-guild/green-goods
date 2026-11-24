@@ -225,6 +225,7 @@ const messages = {
   "app.work.status.pending": "Pending",
   "app.work.status.approved": "Approved",
   "app.work.status.rejected": "Rejected",
+  "hub.garden.calendar.status.unknown": "Status unread",
 } satisfies Record<string, string>;
 
 function renderWithIntl(
@@ -455,6 +456,19 @@ describe("WorkDetail view", () => {
       { replace: true }
     );
     expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
+  });
+
+  it("says a work's status is unread wherever it opens, when the garden's read could not say it", () => {
+    const read = mockUseWorks();
+    mockUseWorks.mockReturnValue({ ...read, unknownIds: new Set(["0xWork"]) });
+
+    renderWithIntl(
+      "en",
+      React.createElement(WorkDetailPanel, { workId: "0xWork", layout: "sheet" })
+    );
+
+    expect(screen.getByText("Status unread")).toBeInTheDocument();
+    expect(screen.queryByText("Pending")).not.toBeInTheDocument();
   });
 
   it("keeps the rendered inspector stable when the reviewed work leaves the pending collection", () => {

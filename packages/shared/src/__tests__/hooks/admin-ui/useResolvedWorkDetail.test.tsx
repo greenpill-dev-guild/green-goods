@@ -94,6 +94,19 @@ describe("useResolvedWorkDetail", () => {
     });
   });
 
+  it("says a work's status is unread when its decisions could not be read", () => {
+    mockUseWorks.mockReturnValue({
+      works: [work],
+      unknownIds: new Set([work.id]),
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    });
+    const { result } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.statusUnread).toBe(true);
+  });
+
   it("does not reopen excluded work from garden metadata or a retained detail", () => {
     const { result, rerender } = renderHook(() => useResolvedWorkDetail(work.id));
     expect(result.current.work?.id).toBe(work.id);
