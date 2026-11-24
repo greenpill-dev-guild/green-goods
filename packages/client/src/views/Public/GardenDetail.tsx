@@ -21,6 +21,9 @@ import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
 import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
+import { PublicPageHead } from "@/components/Public/PublicPageHead";
+import { resolveImageUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { PUBLIC_SOCIAL_PREVIEW_ORIGIN } from "@/content/publicSocialPreviews";
 import { getPublicHeroImage } from "@/content/publicCuration";
 import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 import { StatCell } from "./GardenDetailAtoms";
@@ -130,6 +133,15 @@ export default function GardenDetail() {
 
   return (
     <>
+      {/* The head names this garden, not the Gardens list the page is served as (PUB-032). */}
+      {identity ? (
+        <PublicPageHead
+          title={`${identity.name} | Green Goods`}
+          description={identity.description || undefined}
+          url={`${PUBLIC_SOCIAL_PREVIEW_ORIGIN}/gardens/${encodeURIComponent(identity.slug)}`}
+          image={identity.bannerImage ? resolveImageUrl(identity.bannerImage) : undefined}
+        />
+      ) : null}
       {/* Unlisted means unlisted to crawlers too. */}
       {unlisted ? (
         <Helmet>
