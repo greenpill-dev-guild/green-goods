@@ -82,7 +82,7 @@ The command refuses when:
 | `review changed Safe policy` | The Safe threshold is no longer 2. | Have the new signing policy reviewed first. |
 | `pool council must be the reviewed Safe`, `pool community mismatch`, `Hats strategies do not match garden signal pools` | A garden's wiring changed. | That garden needs its own review; plan the others with `--garden`. |
 | `exactly one account must be configured for garden token N` | Both or neither account kind is configured for a token. | Review that token before planning it. |
-| Any RPC error, such as `unsupported block number` | The node could not serve a read at the proof block. | Retry, or use another RPC. Discovery stops only on the garden token's own refusal of an unminted id, so a failed read never shortens the garden list. |
+| `missing revert data (action="call", data=null, …)`, or another RPC error | The node could not serve a read at the proof block. | Retry, or use another RPC. Discovery stops only on the garden token's own refusal of an unminted id, so a failed read never shortens the garden list. |
 
 ## 3. Rehearse on a fork
 
