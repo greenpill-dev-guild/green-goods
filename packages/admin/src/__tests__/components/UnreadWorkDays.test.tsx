@@ -53,6 +53,49 @@ describe("a day whose statuses could not be read", () => {
     expect(onShowWholeDay).toHaveBeenCalledOnce();
   });
 
+  it("still says all caught up when every status of the day was read", () => {
+    renderWithProviders(
+      <ReviewWorkQueue
+        items={[]}
+        scope="pending"
+        unknownIds={new Set()}
+        onShowWholeDay={vi.fn()}
+        worksLoading={false}
+        hasDataError={false}
+        normalizedSearch=""
+        debouncedSearch=""
+        actionsMap={new Map()}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("All caught up")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show Whole Day" })).not.toBeInTheDocument();
+  });
+
+  it("offers no whole day off a day, where nothing is left out as unread", () => {
+    renderWithProviders(
+      <ReviewWorkQueue
+        items={[]}
+        scope="approved"
+        unknownIds={new Set(["0xunread"])}
+        worksLoading={false}
+        hasDataError={false}
+        normalizedSearch=""
+        debouncedSearch=""
+        actionsMap={new Map()}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("No approved work yet")).toBeInTheDocument();
+    expect(screen.queryByText("Some statuses could not be read")).not.toBeInTheDocument();
+  });
+
   it("opens from the phone's list of days, as a grid day does", () => {
     const handleOpenDay = vi.fn();
     const calendar = {
