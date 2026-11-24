@@ -40,7 +40,7 @@ export function PoolCyclesCard({
   onArchiveCycle,
 }: PoolCyclesCardProps) {
   const { formatMessage, locale } = useIntl();
-  const { model, cycleNames, isOnline, isActing } = pool;
+  const { model, now, cycleNames, isOnline, isActing } = pool;
   const season = model.season;
   const actDisabled = !isOnline || isActing;
   const canOpenCycle = model.status === "open" || model.status === "ready";
@@ -82,7 +82,7 @@ export function PoolCyclesCard({
   // DL-162: an Open cycle past its end has ended, but the chain still takes new promises into it,
   // each past due as it is made, until a steward ends it. Said beside the act that ends it.
   const endedNote = (cycle: CommitmentCycleRecord) =>
-    cycleStanding(cycle, model.now) === "ended" ? (
+    cycleStanding(cycle, now) === "ended" ? (
       <p className="type-meta text-warning-dark">
         {formatMessage(
           {
@@ -123,7 +123,7 @@ export function PoolCyclesCard({
     ) : null;
 
   const cycleRow = (cycle: CommitmentCycleRecord) => {
-    const chip = cycleStateChip(cycle, model.isPaused, model.now, formatMessage);
+    const chip = cycleStateChip(cycle, model.isPaused, now, formatMessage);
     const name = cycleName(cycle, cycleNames, formatMessage);
     const canCancel =
       (cycle.state === "SEEDED" || cycle.state === "OPEN") && cycle.liveCommitmentCount === 0n;
@@ -213,10 +213,10 @@ export function PoolCyclesCard({
                 })}
               </StatusBadge>
               <StatusBadge
-                variant={cycleStateChip(season, model.isPaused, model.now, formatMessage).variant}
+                variant={cycleStateChip(season, model.isPaused, now, formatMessage).variant}
                 size="sm"
               >
-                {cycleStateChip(season, model.isPaused, model.now, formatMessage).label}
+                {cycleStateChip(season, model.isPaused, now, formatMessage).label}
               </StatusBadge>
             </div>
             <p className="mt-1 type-meta text-text-soft">
@@ -334,7 +334,7 @@ export function PoolCyclesCard({
                     defaultMessage: "Campaigns · {open} open · {waiting} waiting to open",
                   },
                   {
-                    open: model.campaigns.filter((row) => cycleStanding(row, model.now) === "open")
+                    open: model.campaigns.filter((row) => cycleStanding(row, now) === "open")
                       .length,
                     waiting: model.campaigns.filter((row) => row.state === "SEEDED").length,
                   }
@@ -376,7 +376,7 @@ export function PoolCyclesCard({
           </p>
           <ul className="mt-1 divide-y divide-stroke-soft">
             {model.finishedCycles.map((cycle) => {
-              const chip = cycleStateChip(cycle, false, model.now, formatMessage);
+              const chip = cycleStateChip(cycle, false, now, formatMessage);
               const name = cycleName(cycle, cycleNames, formatMessage);
               return (
                 <li

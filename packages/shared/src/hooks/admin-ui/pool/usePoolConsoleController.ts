@@ -431,6 +431,7 @@ export function usePoolConsoleController(input: {
     pool,
     poolId,
     model,
+    now,
     cycles: hasPool ? cyclesQuery.cycles : [],
     cycleNames: cycleNames.byCycleId,
     commitments: commitmentsQuery.commitments,

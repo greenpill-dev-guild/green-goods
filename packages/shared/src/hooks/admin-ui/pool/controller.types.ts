@@ -134,6 +134,11 @@ export interface PoolConsoleController {
     | null;
   poolId?: bigint;
   model: ReturnType<typeof selectPoolConsoleModel>;
+  /**
+   * The chain's clock the model was read on (Unix seconds). A season or campaign reads on it
+   * (`cycleStanding`, DL-162), so the Hub calls an Open cycle past its end Ended, as the app does.
+   */
+  now: bigint;
   cycles: CommitmentCycleRecord[];
   cycleNames: CommitmentCycleNameMap["byCycleId"];
   commitments: CommitmentReadModel[];

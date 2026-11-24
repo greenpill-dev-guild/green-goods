@@ -291,6 +291,7 @@ export function poolConsoleControllerFixture(
         pendingClaimCount: claims.length,
         now: BigInt(NOW),
       }),
+    now: BigInt(NOW),
     cycles,
     cycleNames: new Map(),
     commitments,

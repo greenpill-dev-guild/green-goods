@@ -139,6 +139,7 @@ export function storyPoolConsole(
       pendingClaimCount: claims.length,
       now: STORY_NOW,
     }),
+    now: STORY_NOW,
     cycles,
     cycleNames: STORY_CYCLE_NAMES,
     commitments,
