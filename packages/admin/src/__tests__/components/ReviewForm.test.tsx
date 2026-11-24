@@ -370,6 +370,29 @@ describe("ReviewForm", () => {
     expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
   });
 
+  it("does not reopen the reason dialog by itself once a work's status is known again", async () => {
+    const form = (statusUnread: boolean) => (
+      <IntlProvider locale="en" messages={messages}>
+        <ReviewForm
+          work={TEST_WORK}
+          gardenName="Demo Garden"
+          canReview
+          canApproveOrReject
+          isReviewed={false}
+          statusUnread={statusUnread}
+        />
+      </IntlProvider>
+    );
+    const { rerender } = render(form(false));
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    await screen.findByRole("dialog", { name: "Reject Work" });
+
+    rerender(form(true));
+    rerender(form(false));
+
+    expect(screen.queryByRole("dialog", { name: "Reject Work" })).not.toBeInTheDocument();
+  });
+
   it("asks why before rejecting, starting from the feedback, and sends the reason as feedback", async () => {
     renderReviewForm();
     fireEvent.change(screen.getByRole("textbox", { name: /Feedback/ }), {
