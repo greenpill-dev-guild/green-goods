@@ -6552,6 +6552,8 @@
   "public.home.proof.worksNote": "Work reviewed by a garden's stewards.",
   "public.impact.description": "Explore documented community work and the assessments supporting its claims",
   "public.impact.dialog.cite": "Cite this record",
+  "public.impact.dialog.citeFailed": "Couldn’t copy. Try again",
+  "public.impact.dialog.citeCopied": "Citation copied",
   "public.impact.dialog.close": "Close · Esc",
   "public.impact.dialog.meta.garden": "Garden",
   "public.impact.dialog.meta.location": "Location",

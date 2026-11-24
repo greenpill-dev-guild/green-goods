@@ -6552,6 +6552,8 @@
   "public.home.proof.worksNote": "Trabajo revisado por los responsables del jardín.",
   "public.impact.description": "Explora el trabajo comunitario documentado y las evaluaciones que respaldan sus afirmaciones",
   "public.impact.dialog.cite": "Citar este registro",
+  "public.impact.dialog.citeFailed": "No se pudo copiar. Inténtalo de nuevo",
+  "public.impact.dialog.citeCopied": "Cita copiada",
   "public.impact.dialog.close": "Cerrar · Esc",
   "public.impact.dialog.meta.garden": "Jardín",
   "public.impact.dialog.meta.location": "Ubicación",

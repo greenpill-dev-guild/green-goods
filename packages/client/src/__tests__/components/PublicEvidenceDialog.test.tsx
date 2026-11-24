@@ -38,6 +38,8 @@ function renderDialog(value = record) {
 describe("Public evidence explorer links", () => {
   beforeEach(() => {
     defaultChain.id = 42161;
+    // The site is served over HTTPS, where the Clipboard API is available.
+    Object.defineProperty(window, "isSecureContext", { value: true, configurable: true });
   });
   afterEach(() => {
     cleanup();
@@ -67,6 +69,31 @@ describe("Public evidence explorer links", () => {
     renderDialog();
     await user.click(screen.getByRole("button", { name: "Cite this record" }));
     expect(write).toHaveBeenCalledWith(`https://arbitrum.easscan.org/attestation/view/${UID}`);
+    // PUB-048: the reader sees that the citation is on the clipboard.
+    expect(await screen.findByRole("button", { name: "Citation copied" })).toBeInTheDocument();
+  });
+
+  it("says when a citation could not be copied", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("denied"));
+    renderDialog();
+    await user.click(screen.getByRole("button", { name: "Cite this record" }));
+    expect(
+      await screen.findByRole("button", { name: "Couldn’t copy. Try again" })
+    ).toBeInTheDocument();
+  });
+
+  // PUB-048: View Source opens the record it names, or says its source is still to come.
+  it("links View Source to the record's attestation, and says so when it has none yet", () => {
+    renderDialog();
+    expect(screen.getByRole("link", { name: /View Source/ })).toHaveAttribute(
+      "href",
+      `https://arbitrum.easscan.org/attestation/view/${UID}`
+    );
+    cleanup();
+    renderDialog({ ...record, easUid: undefined, sourceAvailable: true });
+    expect(screen.queryByRole("link", { name: /View Source/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Source pending")).toBeInTheDocument();
   });
 
   it("does not invent an explorer link or citation when the attestation is absent", () => {
