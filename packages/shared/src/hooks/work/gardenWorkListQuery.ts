@@ -7,6 +7,16 @@ import { reportConnectivityFailure } from "../app/useOnlineStatus";
 import { workVisibilityQuery } from "./useWorkVisibility";
 
 let sessionStartedAt: number | undefined;
+/** Gardens whose work list this session has read, as only the read itself records. */
+const readThisSession = new Set<string>();
+
+/**
+ * Whether this session has read the garden's work list. Only a successful read counts: a status
+ * this device writes into the cached list, such as a decision it just made, never does.
+ */
+export function gardenReadThisSession(gardenId: string, chainId: number): boolean {
+  return readThisSession.has(JSON.stringify(worksKeys.online(gardenId, chainId)));
+}
 
 /**
  * When this app session first read garden work: rows read before it were
@@ -34,7 +44,7 @@ export function gardenWorkListQuery(queryClient: QueryClient, gardenId: string, 
         const requested =
           queryClient.getQueryData<number>(worksKeys.window(gardenId, chainId)) ??
           WORK_LIST_PAGE_SIZE;
-        return await readWorkList({
+        const rows = await readWorkList({
           garden: gardenId,
           chainId,
           visibility: await queryClient.fetchQuery(workVisibilityQuery(chainId)),
@@ -42,6 +52,8 @@ export function gardenWorkListQuery(queryClient: QueryClient, gardenId: string, 
           // read when a background refresh arrives after its window query GC'd.
           take: Math.max(requested + 1, cached?.length ?? 0),
         });
+        readThisSession.add(JSON.stringify(queryKey));
+        return rows;
       } catch (error) {
         void reportConnectivityFailure();
         throw error;
