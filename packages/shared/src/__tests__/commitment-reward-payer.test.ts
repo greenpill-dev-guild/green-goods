@@ -192,11 +192,19 @@ describe("paying reward shares from the garden's Safe", () => {
       owners?: Address[];
       threshold?: bigint;
       approvedBy?: Address[];
+      /** Who the payer records as paying each share once the Safe's transaction has run. */
+      paidAfter?: (shareIndex: number) => Address;
     } = {}
   ) {
+    let executed = false;
+    const shareIds = shares.map(rewardPayerShareId);
     const chain = {
       balance: vi.fn(async () => read.balance ?? 100_000_000n),
-      paidBy: vi.fn(async () => read.paidBy ?? ZERO),
+      paidBy: vi.fn(async (_payer: Address, shareId: Hex) =>
+        executed
+          ? (read.paidAfter ?? (() => SAFE))(shareIds.indexOf(shareId))
+          : (read.paidBy ?? ZERO)
+      ),
       safeState: vi.fn(async () => ({
         owners: read.owners ?? [OWNER, CO_OWNER],
         threshold: read.threshold ?? 2n,
@@ -221,7 +229,10 @@ describe("paying reward shares from the garden's Safe", () => {
           args: readonly unknown[];
         },
         _options?: { onBeforeBroadcast?: () => Promise<void> }
-      ) => ({ hash: "0xabc" as Hex })
+      ) => {
+        if (_call.functionName === "execTransaction") executed = true;
+        return { hash: "0xabc" as Hex };
+      }
     );
     const sender = { sendContractCall } as unknown as TransactionSender;
     const pay = (intent: "approve" | "pay", account: Address = OWNER) =>
@@ -387,6 +398,28 @@ describe("paying reward shares from the garden's Safe", () => {
     for (const run of [paid, short, stranger, unreadable]) {
       expect(run.sendContractCall).not.toHaveBeenCalled();
     }
+  });
+
+  it("reads a confirmed payment as paid only once the payer records every share as the Safe's", async () => {
+    // The receipt says the Safe's transaction ran; only the payer's record says the shares moved.
+    const shareIds = shares.map(rewardPayerShareId);
+    const unpaid = setup({ approvedBy: [CO_OWNER], paidAfter: () => ZERO });
+    await expect(unpaid.pay("pay")).resolves.toEqual({
+      status: "unconfirmed",
+      transactionHash: "0xabc",
+      shareIds,
+    });
+    const partly = setup({
+      approvedBy: [CO_OWNER],
+      paidAfter: (index) => (index === 0 ? SAFE : ZERO),
+    });
+    await expect(partly.pay("pay")).resolves.toMatchObject({ status: "unconfirmed" });
+    const unread = setup({ approvedBy: [CO_OWNER] });
+    unread.chain.paidBy.mockImplementation(async () => {
+      throw new Error("RPC unavailable");
+    });
+    unread.chain.paidBy.mockResolvedValueOnce(ZERO).mockResolvedValueOnce(ZERO);
+    await expect(unread.pay("pay")).resolves.toMatchObject({ status: "unconfirmed" });
   });
 
   it("stops at a declined signature, and says when a payment can't be confirmed yet", async () => {
