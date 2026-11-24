@@ -240,10 +240,35 @@ describe("email sign-in", () => {
   });
 
   it("ends that session as soon as someone signs in another way on this phone", async () => {
-    startSignIn(); // the page closed; the next person picks a passkey within two minutes
     const nextPerson = fakeWallet();
-    services(nextPerson).endUnfinishedSignIn();
+    const { endUnfinishedSignIn } = services(nextPerson);
+    // No email sign-in started here: a passkey or wallet session touches nothing at Openfort.
+    endUnfinishedSignIn();
+    expect(nextPerson.signOut).not.toHaveBeenCalled();
+
+    startSignIn(); // the page closed; the next person picks a passkey within two minutes
+    endUnfinishedSignIn();
     expect(nextPerson.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("renews its mark as a slow sign-in moves on, so another tab never takes it as abandoned", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    let acceptCode = () => {};
+    const slow = fakeWallet({
+      verifyCode: vi.fn(() => new Promise<void>((resolve) => (acceptCode = resolve))),
+      configureWallet: vi.fn(() => new Promise<Hex>(() => {})), // the network stalls here
+    });
+    void run(services(slow).authenticateOpenfort, signIn);
+    setAuthMode("openfort");
+    vi.setSystemTime(Date.now() + 90_000);
+    acceptCode();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    vi.setSystemTime(Date.now() + 90_000); // three minutes in, 90 seconds after its last step
+    const otherTab = fakeWallet();
+    await run(services(otherTab).restoreOpenfort, { chainId: CHAIN_ID });
+    expect(otherTab.signOut).not.toHaveBeenCalled();
+    expect(getAuthMode()).toBe("openfort");
   });
 
   it("keeps no mark of a sign-in that failed, so the next load cleans up at once", async () => {
