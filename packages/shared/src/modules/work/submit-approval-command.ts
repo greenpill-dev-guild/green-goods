@@ -32,8 +32,8 @@ export interface SubmitApprovalPorts {
   };
   sender: TransactionSender | null;
   /**
-   * Whether the chain already holds a decision for the work, read just before a send. Throws when
-   * it cannot tell, and nothing is sent: unknown is not "no".
+   * Whether the chain already holds a decision for the work, read just before a wallet send.
+   * Throws when it cannot tell, and nothing is sent: unknown is not "no".
    */
   decisions: { isDecided(input: SubmitApprovalCommand): Promise<boolean> };
 }
@@ -48,7 +48,7 @@ function validateApproval(command: SubmitApprovalCommand): void {
   if (!command.draft.workUID) throw new Error("Work UID is required for approval");
   if (!command.work.gardenAddress) throw new Error("Garden address is missing from work data");
   if (command.work.status === "approved" || command.work.status === "rejected") {
-    throw new Error(`This work has already been ${command.work.status}`);
+    throw new ApprovalAlreadyDecidedError();
   }
 }
 
@@ -68,9 +68,23 @@ export class ApprovalAlreadyDecidedError extends Error {
   }
 }
 
-/** Read right before a send, since a list read earlier may be old by now. */
+/** The chain could not say whether the work is decided, so nothing was sent: unknown is not "no". */
+export class ApprovalDecisionUnreadError extends Error {
+  constructor(cause: unknown) {
+    super("We couldn't check whether this work is still waiting, so nothing was sent.", { cause });
+    this.name = "ApprovalDecisionUnreadError";
+  }
+}
+
+/** Read right before a wallet send, since a list read earlier may be old by now. */
 async function refuseIfDecided(command: SubmitApprovalCommand, ports: SubmitApprovalPorts) {
-  if (await ports.decisions.isDecided(command)) throw new ApprovalAlreadyDecidedError();
+  let decided: boolean;
+  try {
+    decided = await ports.decisions.isDecided(command);
+  } catch (error) {
+    throw new ApprovalDecisionUnreadError(error);
+  }
+  if (decided) throw new ApprovalAlreadyDecidedError();
 }
 
 export async function submitApproval(
@@ -94,17 +108,13 @@ export async function submitApproval(
     throw new Error("User address is required for approval submission");
   }
 
+  // Kept first, so the decision outlives anything that follows; the queue rereads the work's
+  // decision on chain right before it sends.
+  const queued = await ports.queue.enqueue({ ...command, userAddress: command.userAddress });
   // A queued wallet decision waits for Upload all: sending it from here would
   // open the wallet on a connection that was just found unsteady.
-  const sender = !wallet ? ports.sender : null;
-  const sendsNow = sender !== null && (await ports.connectivity.confirm());
-  // Sent now, it is checked first, so a decided work never leaves a job behind. Kept for later
-  // offline, the chain cannot be read; the queue sends it once it can.
-  if (sendsNow) await refuseIfDecided(command, ports);
-
-  const queued = await ports.queue.enqueue({ ...command, userAddress: command.userAddress });
-  if (sender && sendsNow) {
-    const processed = await ports.queue.process(queued.jobId, sender);
+  if (!wallet && ports.sender && (await ports.connectivity.confirm())) {
+    const processed = await ports.queue.process(queued.jobId, ports.sender);
     if (processed.success && processed.txHash) {
       return { hash: processed.txHash as `0x${string}`, kind: "processed" };
     }

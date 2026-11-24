@@ -1046,9 +1046,13 @@ describe("hooks/work/useWorkApproval", () => {
 
       expect(submitApprovalDirectly).not.toHaveBeenCalled();
       expect(toastService.info).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "approval-submit" })
+        expect.objectContaining({
+          id: "approval-submit",
+          title: "This work has already been reviewed.",
+        })
       );
       expect(mockErrorHandler).not.toHaveBeenCalled();
+      expect(result.current.approvalLifecycleStage).not.toBe("failed");
     });
 
     it("shows error toast on failure", async () => {

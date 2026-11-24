@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   ApprovalAlreadyDecidedError,
+  ApprovalDecisionUnreadError,
   submitApproval,
   type SubmitApprovalCommand,
   type SubmitApprovalPorts,
@@ -65,14 +66,13 @@ describe("submitApproval", () => {
     expect(dependencies.direct).not.toHaveBeenCalled();
   });
 
-  it("refuses a sponsored decision sent now on a decided work, before it is queued", async () => {
+  it("keeps a sponsored decision before anything else, leaving the recheck to the queue's send", async () => {
     const dependencies = ports({ decisions: { isDecided: vi.fn().mockResolvedValue(true) } });
 
-    await expect(
-      submitApproval(command({ authMode: "passkey" }), dependencies)
-    ).rejects.toBeInstanceOf(ApprovalAlreadyDecidedError);
-    expect(dependencies.queue.enqueue).not.toHaveBeenCalled();
-    expect(dependencies.queue.process).not.toHaveBeenCalled();
+    await submitApproval(command({ authMode: "passkey" }), dependencies);
+
+    expect(dependencies.queue.enqueue).toHaveBeenCalledOnce();
+    expect(dependencies.decisions.isDecided).not.toHaveBeenCalled();
   });
 
   it("sends nothing when the chain cannot say whether the work is decided", async () => {
@@ -80,7 +80,9 @@ describe("submitApproval", () => {
       decisions: { isDecided: vi.fn().mockRejectedValue(new Error("rpc down")) },
     });
 
-    await expect(submitApproval(command(), dependencies)).rejects.toThrow("rpc down");
+    await expect(submitApproval(command(), dependencies)).rejects.toBeInstanceOf(
+      ApprovalDecisionUnreadError
+    );
     expect(dependencies.direct).not.toHaveBeenCalled();
   });
 
@@ -160,7 +162,7 @@ describe("submitApproval", () => {
 
     await expect(
       submitApproval(command({ work: createMockWork({ status: "approved" }) }), dependencies)
-    ).rejects.toThrow("already been approved");
+    ).rejects.toBeInstanceOf(ApprovalAlreadyDecidedError);
     expect(dependencies.direct).not.toHaveBeenCalled();
   });
 });

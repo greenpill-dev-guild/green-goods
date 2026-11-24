@@ -41,6 +41,7 @@ import {
   trackStorageWarning,
 } from "./job-analytics";
 import { executeApprovalJob } from "./approval-executor";
+import { ApprovalAlreadyDecidedError } from "../work/submit-approval-command";
 import { executeCommitmentQueueJob } from "./job-executors";
 import { executeWorkJob } from "./work-executor";
 import { createBrowserJobQueueLifecycle } from "./lifecycle";
@@ -103,6 +104,9 @@ function createDefaultExecutorRegistry() {
       } catch (error) {
         const waiting = waitingAfterFailedSend(error);
         if (waiting) return waiting;
+        // Decided elsewhere since it was kept: settled without a second decision.
+        if (error instanceof ApprovalAlreadyDecidedError)
+          return { status: "unavailable", reason: "work-already-decided" };
         throw error;
       }
     },

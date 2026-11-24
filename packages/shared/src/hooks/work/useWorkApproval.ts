@@ -29,6 +29,7 @@ import {
 import {
   ApprovalAlreadyDecidedError,
   ApprovalConnectionUnconfirmedError,
+  ApprovalDecisionUnreadError,
   createDefaultSubmitApprovalPorts,
   submitApproval,
   type SubmitApprovalOutcome,
@@ -166,6 +167,18 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
           suppressLogging: true,
         });
         refreshApprovalReads(queryClient, chainId, completion, true);
+        return;
+      }
+      // The chain could not say whether the work is still waiting: nothing was signed or sent.
+      if (error instanceof ApprovalDecisionUnreadError) {
+        toastService.error({
+          id: "approval-submit",
+          title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
+          message: formatMessage({ id: "app.approval.decisionUnread" }),
+          context: "approval submission",
+          error,
+          suppressLogging: true,
+        });
         return;
       }
       // Refused before the wallet was asked: nothing was signed or sent.
@@ -452,7 +465,11 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         gardenId: variables.work.gardenAddress,
         workUID: variables.draft.workUID,
       };
-      if (isCancelledTxError(error) || error instanceof ApprovalAlreadyDecidedError) {
+      if (
+        isCancelledTxError(error) ||
+        error instanceof ApprovalAlreadyDecidedError ||
+        error instanceof ApprovalDecisionUnreadError
+      ) {
         lifecycle.cancel();
       } else lifecycle.fail();
       decisionCacheRef.current = null;

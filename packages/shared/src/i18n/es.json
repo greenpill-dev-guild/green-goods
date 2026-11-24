@@ -7369,6 +7369,7 @@
   "app.garden.workFor.needs": "Necesita",
   "app.garden.workFor.unlink": "No es para esta promesa",
   "app.approval.connectionUnconfirmed": "Tu decisión no se envió. Inténtalo de nuevo cuando la conexión sea estable.",
+  "app.approval.decisionUnread": "No pudimos comprobar si este trabajo sigue pendiente, así que no se envió nada. Inténtalo de nuevo en un momento.",
   "app.work.connectionUnconfirmed": "Tu trabajo no se envió. Inténtalo de nuevo cuando la conexión sea estable.",
   "app.work.notice.waiting.title": "Guardado en este teléfono, sin enviar",
   "app.work.notice.blocked.actionEnded.body": "La acción cerró antes del envío. Reinténtalo o descártalo.",
