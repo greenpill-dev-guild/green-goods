@@ -55,6 +55,12 @@ vi.mock("../../components/Toast/toast.service", () => ({
   },
 }));
 
+// The chain recheck before a send reads the work's decision; these tests decide fresh works.
+const mockIsDecided = vi.hoisted(() => vi.fn(async (_workUID: string) => false));
+vi.mock("../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: mockIsDecided }),
+}));
+
 vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
@@ -1023,6 +1029,30 @@ describe("hooks/work/useWorkApproval", () => {
       expect(toastService.loading).not.toHaveBeenCalledWith(
         expect.objectContaining({ title: en["app.sendStage.wallet"] })
       );
+    });
+
+    it("sends no second decision on a work the chain already has decided, and says so", async () => {
+      mockIsDecided.mockResolvedValueOnce(true);
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current
+          .mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+          })
+          .catch(() => undefined);
+      });
+
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "approval-submit",
+          title: "This work has already been reviewed.",
+        })
+      );
+      expect(mockErrorHandler).not.toHaveBeenCalled();
+      expect(result.current.approvalLifecycleStage).not.toBe("failed");
     });
 
     it("shows error toast on failure", async () => {

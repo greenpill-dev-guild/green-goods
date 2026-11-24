@@ -81,6 +81,11 @@ import { encodeWorkData } from "../../utils/eas/encoders";
 import { track } from "../../modules/app/posthog";
 import { ReceiptWaitLimitError } from "../../modules/transactions/types";
 
+// A kept decision is rechecked on chain before it sends; these tests send undecided works.
+vi.mock("../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: async () => false }),
+}));
+
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
 
