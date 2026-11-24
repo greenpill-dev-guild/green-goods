@@ -2,13 +2,14 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useResolvedWorkDetail } from "@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail";
 import { trackWorkApprovalPresentationFailed } from "@green-goods/shared/modules/app/analytics-events";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
+import type { Work, WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import {
   RiCheckboxCircleLine,
   RiCloseLine,
   RiErrorWarningLine,
+  RiQuestionLine,
   RiSearchLine,
   RiTimeLine,
 } from "@remixicon/react";
@@ -43,7 +44,18 @@ function parseReviewContext(search: string) {
   } as const;
 }
 
-function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
+function isDecided(work: Work) {
+  return work.status === "approved" || work.status === "rejected";
+}
+
+function WorkDetailStatusBadge({
+  status,
+  statusUnread = false,
+}: {
+  status: WorkDisplayStatus;
+  /** Its decisions could not be read: it says so, never Pending. */
+  statusUnread?: boolean;
+}) {
   const { formatMessage } = useIntl();
 
   const statusConfig = {
@@ -62,9 +74,18 @@ function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
       color: "bg-error-lighter text-error-dark",
       icon: RiCloseLine,
     },
+    unread: {
+      label: formatMessage({
+        id: "hub.garden.calendar.status.unknown",
+        defaultMessage: "Status unread",
+      }),
+      color: "bg-bg-weak text-text-sub",
+      icon: RiQuestionLine,
+    },
   } as const;
 
-  const displayStatus = status === "approved" || status === "rejected" ? status : "pending";
+  const displayStatus =
+    status === "approved" || status === "rejected" ? status : statusUnread ? "unread" : "pending";
   const config = statusConfig[displayStatus];
   const StatusIcon = config.icon;
 
@@ -80,14 +101,33 @@ function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
 
 export interface WorkDetailPanelProps {
   workId: string;
+  /** Opened from a Review day whose read could not say this work's status. */
+  statusUnread?: boolean;
+  /**
+   * The work as a fresher read has it decided, such as the Review day it was opened from: it
+   * outranks a garden copy that still says pending, so a decided work is never offered again.
+   */
+  decidedWork?: Work;
   layout?: WorkDetailLayout;
   onSuccess?: () => void;
 }
 
-export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDetailPanelProps) {
+export function WorkDetailPanel({
+  workId,
+  statusUnread = false,
+  decidedWork,
+  layout = "page",
+  onSuccess,
+}: WorkDetailPanelProps) {
   const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
-  const { garden, work, action, canReview, canApproveOrReject, isReviewed, metadata } = resolved;
+  const { garden, action, canReview, canApproveOrReject, metadata } = resolved;
+  const decided =
+    decidedWork && decidedWork.id === resolved.work?.id && isDecided(decidedWork)
+      ? decidedWork
+      : undefined;
+  const work = decided ?? resolved.work;
+  const isReviewed = Boolean(decided) || resolved.isReviewed;
   // The voice notes and documents come from the metadata file, read after the work itself.
   // Offline, the read waits for the connection and a retry cannot run, so it is not a failure.
   const evidenceState =
@@ -205,7 +245,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
   // The dialog title already names the work, so the topline carries only its status.
   const sheetTopline = (
     <div className="flex flex-wrap items-center gap-2 px-1">
-      <WorkDetailStatusBadge status={work.status} />
+      <WorkDetailStatusBadge status={work.status} statusUnread={statusUnread} />
     </div>
   );
 
@@ -246,6 +286,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
               canReview={canReview}
               canApproveOrReject={canApproveOrReject}
               isReviewed={isReviewed}
+              statusUnread={statusUnread}
               layout="sheet"
               onSuccess={handleReviewSuccess}
             />
@@ -287,6 +328,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
           canReview={canReview}
           canApproveOrReject={canApproveOrReject}
           isReviewed={isReviewed}
+          statusUnread={statusUnread}
           layout="page"
           onSuccess={handleReviewSuccess}
         />
