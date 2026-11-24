@@ -177,38 +177,16 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       if (error instanceof DecisionWithdrawnError) return;
       // The chain already has this work decided: nothing was sent, and the reads catch up.
       if (error instanceof ApprovalAlreadyDecidedError) {
-        toastService.info({
-          id: "approval-submit",
-          title: formatMessage({ id: "app.work.detail.alreadyReviewed" }),
-          context: "approval submission",
-          suppressLogging: true,
-        });
+        approvalToasts.alreadyReviewed();
         refreshApprovalReads(queryClient, chainId, completion, true);
         return;
       }
       // The chain could not say whether the work is still waiting: nothing was signed or sent.
-      if (error instanceof ApprovalDecisionUnreadError) {
-        toastService.error({
-          id: "approval-submit",
-          title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
-          message: formatMessage({ id: "app.approval.decisionUnread" }),
-          context: "approval submission",
-          error,
-          suppressLogging: true,
-        });
-        return;
-      }
+      if (error instanceof ApprovalDecisionUnreadError)
+        return void approvalToasts.decisionUnread(error);
       // Refused before the wallet was asked: nothing was signed or sent.
-      if (error instanceof ApprovalConnectionUnconfirmedError) {
-        toastService.info({
-          id: "approval-submit",
-          title: formatMessage({ id: "app.offline.degraded" }),
-          message: formatMessage({ id: "app.approval.connectionUnconfirmed" }),
-          context: "approval submission",
-          suppressLogging: true,
-        });
-        return;
-      }
+      if (error instanceof ApprovalConnectionUnconfirmedError)
+        return void approvalToasts.connectionUnconfirmed();
       if (isCancelledTxError(error)) {
         toastService.error({
           id: "approval-submit",
@@ -253,7 +231,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         },
       });
     },
-    [authMode, chainId, formatMessage, queryClient]
+    [approvalToasts, authMode, chainId, formatMessage, queryClient]
   );
 
   const onLifecycleConfirmed = useCallback(
