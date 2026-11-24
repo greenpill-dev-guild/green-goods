@@ -164,8 +164,8 @@ export function CommitmentUsdcShares({
   // Only a steward counts on the Safe; a steward first brings its signers up to date: owners who no
   // longer wear the steward hat leave, and the steward takes a seat if they have none.
   const viewerIsSteward = ready?.viewerWearsHat === true;
-  const needsSync =
-    Boolean(ready) && viewerIsSteward && ((ready?.staleSigners.length ?? 0) > 0 || !viewerIsOwner);
+  const staleCount = ready?.staleSigners.length ?? 0;
+  const needsSync = Boolean(ready) && viewerIsSteward && (staleCount > 0 || !viewerIsOwner);
   const viewerApproved = Boolean(ready?.approvedBy.some((owner) => same(owner, viewer)));
   const othersApproved = ready
     ? ready.approvedBy.filter((owner) => !same(owner, viewer)).length
@@ -298,11 +298,29 @@ export function CommitmentUsdcShares({
                 })}
               </Button>
               <p className="type-meta text-text-soft">
-                {formatMessage({
-                  id: "hub.garden.pool.safeShares.syncNote",
-                  defaultMessage:
-                    "One signature from your account: it removes signers who are no longer stewards and adds you.",
-                })}
+                {staleCount === 0
+                  ? formatMessage({
+                      id: "hub.garden.pool.safeShares.syncNoteSeat",
+                      defaultMessage:
+                        "One signature from your account adds you as a signer of the garden's Safe.",
+                    })
+                  : viewerIsOwner
+                    ? formatMessage(
+                        {
+                          id: "hub.garden.pool.safeShares.syncNoteRemove",
+                          defaultMessage:
+                            "{count, plural, one {One signature from your account removes the signer who is no longer a steward.} other {# signatures from your account, one for each signer who is no longer a steward.}}",
+                        },
+                        { count: staleCount }
+                      )
+                    : formatMessage(
+                        {
+                          id: "hub.garden.pool.safeShares.syncNoteBoth",
+                          defaultMessage:
+                            "{count, plural, other {# signatures from your account: one for each signer who is no longer a steward, then one to add you.}}",
+                        },
+                        { count: staleCount + 1 }
+                      )}
               </p>
             </>
           ) : null}
@@ -526,11 +544,17 @@ export function CommitmentUsdcSharesSection({
           id: "hub.garden.pool.safeShares.toast.unsponsored",
           defaultMessage: "Green Goods couldn't cover the network fee for this step",
         }),
-        message: formatMessage({
-          id: "hub.garden.pool.safeShares.toast.unsponsoredHint",
-          defaultMessage:
-            "Nothing was sent. Try again later, and tell the Green Goods team if it keeps happening.",
-        }),
+        message: outcome.partly
+          ? formatMessage({
+              id: "hub.garden.pool.safeShares.toast.unsponsoredPartlyHint",
+              defaultMessage:
+                "Part of the update went out and the rest wasn't sent. Try again later, and tell the Green Goods team if it keeps happening.",
+            })
+          : formatMessage({
+              id: "hub.garden.pool.safeShares.toast.unsponsoredHint",
+              defaultMessage:
+                "Nothing was sent. Try again later, and tell the Green Goods team if it keeps happening.",
+            }),
       });
     } else if (outcome.status !== "not-synced" || outcome.miss !== "declined") {
       toastService.error({

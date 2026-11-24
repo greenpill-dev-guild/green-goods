@@ -153,6 +153,9 @@ export const StewardWithoutASeat: Story = {
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("One signature from your account adds you as a signer of the garden's Safe.")
+    ).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Update the Safe's Signers" }));
     await expect(args.onSync).toHaveBeenCalledTimes(1);
     await expect(canvas.queryByRole("button", { name: /Approve|Pay/ })).toBeNull();
@@ -166,7 +169,7 @@ export const ASignerLeftTheStewardHat: Story = {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByText(
-        "One signature from your account: it removes signers who are no longer stewards and adds you."
+        "One signature from your account removes the signer who is no longer a steward."
       )
     ).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Update the Safe's Signers" })).toBeVisible();

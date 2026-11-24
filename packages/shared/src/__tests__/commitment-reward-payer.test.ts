@@ -6,7 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { usePromiseRewardShares } from "../hooks/commitment-pooling/useRewardShares";
 import type { RewardLeg } from "../modules/commitment-pooling/reward-legs";
-import { decodeFunctionData, type Hex, parseAbi, slice, sliceHex } from "viem";
+import { decodeFunctionData, type Hex, parseAbi, RpcRequestError, slice, sliceHex } from "viem";
+import { UserOperationExecutionError } from "viem/account-abstraction";
 import {
   REWARD_SAFE_ABI,
   REWARD_SAFE_MULTI_SEND,
@@ -504,7 +505,11 @@ describe("paying reward shares from the garden's Safe", () => {
 
   it("says a passkey's gas sponsor refused, when nothing went out", async () => {
     const refusal = () =>
-      new Error("pm_getPaymasterData: UserOperation was rejected by sponsorship policy");
+      new RpcRequestError({
+        body: { jsonrpc: "2.0", id: 1, method: "pm_getPaymasterData", params: [] },
+        error: { code: -32500, message: "UserOperation rejected by the sponsorship policy" },
+        url: "https://paymaster.example/rpc",
+      });
     const paying = setup({ approvedBy: [CO_OWNER], sponsored: true });
     paying.sendContractCall.mockRejectedValueOnce(refusal());
     await expect(paying.pay("pay")).resolves.toEqual({ status: "unsponsored" });
@@ -520,7 +525,31 @@ describe("paying reward shares from the garden's Safe", () => {
       return { hash: "0xabc" as Hex };
     });
     syncing.sendContractCall.mockRejectedValueOnce(refusal());
-    await expect(syncing.sync()).resolves.toEqual({ status: "unsponsored" });
+    await expect(syncing.sync()).resolves.toEqual({ status: "unsponsored", partly: true });
+
+    const seating = setup({ owners: [CO_OWNER, GATE], sponsored: true });
+    seating.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(seating.sync()).resolves.toEqual({ status: "unsponsored", partly: false });
+
+    // A revert met while estimating names the paymaster among its arguments: still a refusal.
+    const reverting = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    reverting.sendContractCall.mockRejectedValueOnce(
+      new UserOperationExecutionError(
+        new RpcRequestError({
+          body: { jsonrpc: "2.0", id: 2, method: "eth_estimateUserOperationGas", params: [] },
+          error: { code: -32521, message: "execution reverted: GS026" },
+          url: "https://bundler.example/rpc",
+        }),
+        {
+          callData: "0x",
+          nonce: 0n,
+          sender: OWNER,
+          signature: "0x",
+          paymaster: "0x7777777777777777777777777777777777777777",
+        } as never
+      )
+    );
+    await expect(reverting.pay("pay")).resolves.toEqual({ status: "not-paid", miss: "refused" });
 
     // A wallet pays its own gas: the same words don't make its failure a sponsor's refusal.
     const wallet = setup({ approvedBy: [CO_OWNER] });

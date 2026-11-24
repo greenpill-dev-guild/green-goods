@@ -68,7 +68,7 @@ describe("garden reward Safe release", () => {
       tokenId,
       garden: `0x${digit.repeat(40)}`,
       safe: `0x${`${digit}1`.repeat(20)}`,
-      gate: `0x${`${digit}2`.repeat(20)}`,
+      gate: `0x${`${digit}3`.repeat(20)}`,
       signerHat: "7",
     });
     const record = { schemaVersion: 2, chainId: 42161, description: "kept", safes: [entry(5, "5")] };
@@ -77,6 +77,7 @@ describe("garden reward Safe release", () => {
     expect((merged.safes as RewardSafeEntry[]).map((row) => row.tokenId)).toEqual([2, 5]);
     expect(() => mergeRewardSafeRecord(record, [{ ...entry(5, "5"), signerHat: "8" }])).toThrow(/different/);
     expect(() => mergeRewardSafeRecord(record, [{ ...entry(2, "2"), safe: entry(5, "5").safe }])).toThrow(/share/);
+    expect(() => mergeRewardSafeRecord(record, [{ ...entry(2, "2"), garden: entry(5, "5").gate }])).toThrow(/share/);
     expect(() => mergeRewardSafeRecord({ ...record, schemaVersion: 1 }, [])).toThrow(/Unexpected/);
   });
 });

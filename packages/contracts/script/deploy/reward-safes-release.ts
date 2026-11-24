@@ -187,15 +187,22 @@ export function mergeRewardSafeRecord(
   if (record.schemaVersion !== 2 || record.chainId !== REWARD_SAFE_CHAIN_ID || !Array.isArray(record.safes))
     throw new Error("Unexpected reward Safe record");
   const safes = [...(record.safes as RewardSafeEntry[])];
+  const lower = (entry: RewardSafeEntry) => [entry.garden, entry.safe, entry.gate].map((a) => a.toLowerCase());
+  const sameEntry = (a: RewardSafeEntry, b: RewardSafeEntry) =>
+    a.tokenId === b.tokenId &&
+    a.garden === b.garden &&
+    a.safe === b.safe &&
+    a.gate === b.gate &&
+    a.signerHat === b.signerHat;
   for (const entry of entries) {
     const existing = safes.find((row) => row.garden.toLowerCase() === entry.garden.toLowerCase());
     if (existing) {
-      if (JSON.stringify(existing) !== JSON.stringify(entry))
+      if (!sameEntry(existing, entry))
         throw new Error(`Garden ${entry.garden} already has a different reward Safe recorded`);
       continue;
     }
-    const used = safes.flatMap((row) => [row.garden, row.safe, row.gate].map((a) => a.toLowerCase()));
-    if ([entry.safe, entry.gate].some((address) => used.includes(address.toLowerCase())))
+    const used = safes.flatMap(lower);
+    if (new Set(lower(entry)).size !== 3 || lower(entry).some((address) => used.includes(address)))
       throw new Error(`Garden ${entry.garden} would share a Safe or gate`);
     safes.push(entry);
   }

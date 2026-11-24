@@ -541,15 +541,18 @@ export type RewardSafeSyncOutcome =
   /** The signers are current, or the update went out (`confirmed` says whether it landed). */
   | { status: "synced"; confirmed: boolean }
   | { status: "refused-before-asking"; refusal: "not-a-steward" | "unreadable" }
-  /** The gas sponsor turned the passkey's next update down before it went out. */
-  | { status: "unsponsored" }
+  /**
+   * The gas sponsor turned the passkey's next change down before it went out. `partly` says an
+   * earlier change already went out.
+   */
+  | { status: "unsponsored"; partly: boolean }
   | { status: "not-synced"; miss: SeedCopyMiss };
 
 /**
  * Brings a garden Safe's signers up to date from a steward's own account before they approve: the
  * gate removes each owner who no longer wears the steward hat, then the steward claims a seat if
- * they have none. One batch where the account can send one atomically, otherwise one call after
- * another. Asks for nothing when the signers are already current.
+ * they have none. One call, and one signature, per change, so the Hub can say how many up front.
+ * Asks for nothing when the signers are already current.
  */
 export async function sendRewardSafeSync(input: {
   sender: TransactionSender;
@@ -597,14 +600,6 @@ export async function sendRewardSafeSync(input: {
   let current = false;
   const options = { onBeforeBroadcast: async () => void (crossed = current = true) };
   try {
-    if (
-      calls.length > 1 &&
-      sender.sendAtomicBatch &&
-      (await sender.canSendAtomicBatch?.(chainId))
-    ) {
-      const batch = await sender.sendAtomicBatch(calls, options);
-      return { status: "synced", confirmed: batch.confirmation !== "pending" };
-    }
     let confirmed = true;
     for (const call of calls) {
       current = false;
@@ -614,7 +609,7 @@ export async function sendRewardSafeSync(input: {
     return { status: "synced", confirmed };
   } catch (error) {
     if (current && mayStillLand(error)) return { status: "synced", confirmed: false };
-    if (unsponsored(sender, error, current)) return { status: "unsponsored" };
+    if (unsponsored(sender, error, current)) return { status: "unsponsored", partly: crossed };
     return { status: "not-synced", miss: missOfSend(error, !crossed) };
   }
 }
