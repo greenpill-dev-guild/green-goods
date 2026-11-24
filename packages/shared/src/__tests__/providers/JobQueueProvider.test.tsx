@@ -493,7 +493,10 @@ describe("providers/JobQueueProvider", () => {
       const decided = failed("approval", "0xgardenb");
       await emit({
         ...decided,
-        job: { ...decided.job, payload: { ...decided.job!.payload, workUID: "0xwork" } } as Job,
+        job: {
+          ...decided.job,
+          payload: { ...(decided.job!.payload as object), workUID: "0xwork" },
+        } as Job,
         error: "unavailable:work-already-decided",
       });
 
