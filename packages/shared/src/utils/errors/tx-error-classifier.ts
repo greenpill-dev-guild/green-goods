@@ -129,6 +129,15 @@ export function isPasskeyCredentialUnavailableError(error: unknown): boolean {
   return hasMessageInErrorChain(error, PASSKEY_UNAVAILABLE_PATTERNS);
 }
 
+/**
+ * Whether the gas sponsor (the paymaster and its sponsorship policy) turned an operation down.
+ * Only a send that is known not to have gone out may be read this way: a paymaster error after
+ * broadcast says nothing about whether the operation landed.
+ */
+export function isSponsorshipRefusedError(error: unknown): boolean {
+  return hasMessageInErrorChain(error, ["sponsor", "paymaster"]);
+}
+
 function extractErrorCode(error: unknown): number | string | undefined {
   if (!error || typeof error !== "object") return undefined;
 

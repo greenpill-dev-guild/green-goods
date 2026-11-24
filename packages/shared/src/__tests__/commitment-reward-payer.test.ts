@@ -206,6 +206,8 @@ describe("paying reward shares from the garden's Safe", () => {
       /** Accounts that don't wear the steward hat. */
       notWearing?: Address[];
       gateSafe?: Address;
+      /** A passkey account, whose gas a sponsor pays. */
+      sponsored?: boolean;
     } = {}
   ) {
     const chain = {
@@ -247,7 +249,10 @@ describe("paying reward shares from the garden's Safe", () => {
         _options?: { onBeforeBroadcast?: () => Promise<void> }
       ) => ({ hash: "0xabc" as Hex })
     );
-    const sender = { sendContractCall } as unknown as TransactionSender;
+    const sender = {
+      sendContractCall,
+      supportsSponsorship: read.sponsored ?? false,
+    } as unknown as TransactionSender;
     const pay = (intent: "approve" | "pay", account: Address = OWNER) =>
       sendRewardSharePayment({
         sender,
@@ -495,6 +500,32 @@ describe("paying reward shares from the garden's Safe", () => {
       status: "unconfirmed",
       transactionHash: `0x${"ab".repeat(32)}`,
     });
+  });
+
+  it("says a passkey's gas sponsor refused, when nothing went out", async () => {
+    const refusal = () =>
+      new Error("pm_getPaymasterData: UserOperation was rejected by sponsorship policy");
+    const paying = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    paying.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(paying.pay("pay")).resolves.toEqual({ status: "unsponsored" });
+
+    const approving = setup({ sponsored: true });
+    approving.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(approving.pay("approve")).resolves.toEqual({ status: "unsponsored" });
+
+    // The first update went out; the sponsor refused the second before it did.
+    const syncing = setup({ owners: [CO_OWNER, GATE], invalid: [CO_OWNER], sponsored: true });
+    syncing.sendContractCall.mockImplementationOnce(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      return { hash: "0xabc" as Hex };
+    });
+    syncing.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(syncing.sync()).resolves.toEqual({ status: "unsponsored" });
+
+    // A wallet pays its own gas: the same words don't make its failure a sponsor's refusal.
+    const wallet = setup({ approvedBy: [CO_OWNER] });
+    wallet.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(wallet.pay("pay")).resolves.toEqual({ status: "not-paid", miss: "refused" });
   });
 });
 

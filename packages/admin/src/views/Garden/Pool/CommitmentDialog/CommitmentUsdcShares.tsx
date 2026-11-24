@@ -478,6 +478,18 @@ export function CommitmentUsdcSharesSection({
           defaultMessage: "Only a steward of this garden can pay from its Safe",
         }),
       });
+    } else if (outcome.status === "unsponsored") {
+      toastService.error({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.unsponsored",
+          defaultMessage: "Green Goods couldn't cover the network fee for this step",
+        }),
+        message: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.unsponsoredHint",
+          defaultMessage:
+            "Nothing was sent. Try again later, and tell the Green Goods team if it keeps happening.",
+        }),
+      });
     } else if (outcome.status !== "not-paid" || outcome.miss !== "declined") {
       toastService.error({
         title: formatMessage({
@@ -506,6 +518,18 @@ export function CommitmentUsdcSharesSection({
         title: formatMessage({
           id: "hub.garden.pool.safeShares.toast.notSteward",
           defaultMessage: "Only a steward of this garden can pay from its Safe",
+        }),
+      });
+    } else if (outcome.status === "unsponsored") {
+      toastService.error({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.unsponsored",
+          defaultMessage: "Green Goods couldn't cover the network fee for this step",
+        }),
+        message: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.unsponsoredHint",
+          defaultMessage:
+            "Nothing was sent. Try again later, and tell the Green Goods team if it keeps happening.",
         }),
       });
     } else if (outcome.status !== "not-synced" || outcome.miss !== "declined") {

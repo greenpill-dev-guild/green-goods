@@ -5698,6 +5698,8 @@
   "hub.garden.pool.safeShares.toast.unconfirmedHint": "Las partes aparecen como pagadas cuando el pago llegue.",
   "hub.garden.pool.safeShares.toast.alreadyPaid": "Una parte ya está pagada. Vuelve a leer antes de pagar.",
   "hub.garden.pool.safeShares.toast.failed": "Las partes no se pagaron",
+  "hub.garden.pool.safeShares.toast.unsponsored": "Green Goods no pudo cubrir la comisión de red de este paso",
+  "hub.garden.pool.safeShares.toast.unsponsoredHint": "No se envió nada. Vuelve a intentarlo más tarde y avisa al equipo de Green Goods si sigue pasando.",
   "hub.garden.pool.settlement.description": "Se paga desde el Safe de Celo del jardín pagador en el orden que acepta el módulo de liquidación: plan, finalizar, preparar, despachar, confirmación.",
   "hub.garden.pool.settlement.complete": "Pago completado",
   "hub.garden.pool.settlement.kind.beneficiary": "Pago al jardín beneficiario",

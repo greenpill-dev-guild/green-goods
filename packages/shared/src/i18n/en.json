@@ -5698,6 +5698,8 @@
   "hub.garden.pool.safeShares.toast.unconfirmedHint": "The shares show as paid once the payment lands.",
   "hub.garden.pool.safeShares.toast.alreadyPaid": "A share is already paid. Read again before paying.",
   "hub.garden.pool.safeShares.toast.failed": "The shares weren't paid",
+  "hub.garden.pool.safeShares.toast.unsponsored": "Green Goods couldn't cover the network fee for this step",
+  "hub.garden.pool.safeShares.toast.unsponsoredHint": "Nothing was sent. Try again later, and tell the Green Goods team if it keeps happening.",
   "hub.garden.pool.settlement.description": "Paid from the paying garden's Celo Safe in the order the settlement module accepts: plan, finalize, prepare, dispatch, acknowledgment.",
   "hub.garden.pool.settlement.complete": "Payout complete",
   "hub.garden.pool.settlement.kind.beneficiary": "Garden beneficiary payout",

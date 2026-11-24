@@ -50,7 +50,7 @@ import type { Address } from "../../types/domain";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import type { ContractCall, TransactionSender } from "../transactions/types";
-import { mayStillLand } from "../../utils/errors/tx-error-classifier";
+import { isSponsorshipRefusedError, mayStillLand } from "../../utils/errors/tx-error-classifier";
 import { missOfSend } from "./creation-send";
 import {
   REWARD_PAYER_ABI,
@@ -395,8 +395,15 @@ export type RewardPayOutcome =
   /** This owner had already approved; the payment waits for the Safe's other owners. */
   | { status: "awaiting-owners"; approvals: number; threshold: number }
   | { status: "refused-before-asking"; refusal: RewardPayRefusal }
+  /** The gas sponsor turned the passkey's approval or payment down: nothing went out. */
+  | { status: "unsponsored" }
   /** The approval or the payment didn't go through. */
   | { status: "not-paid"; miss: SeedCopyMiss };
+
+/** A passkey's send that its gas sponsor refused before anything went out. */
+function unsponsored(sender: TransactionSender, error: unknown, crossed: boolean): boolean {
+  return !crossed && sender.supportsSponsorship === true && isSponsorshipRefusedError(error);
+}
 
 /**
  * One owner's step towards paying the shown shares from the garden's Safe: their approval of the
@@ -476,6 +483,7 @@ export async function sendRewardSharePayment(input: {
       if (crossed && mayStillLand(error)) {
         return { status: "approved", approvals: others.length + 1, threshold, confirmed: false };
       }
+      if (unsponsored(sender, error, crossed)) return { status: "unsponsored" };
       return { status: "not-paid", miss: missOfSend(error, !crossed) };
     }
   }
@@ -524,6 +532,7 @@ export async function sendRewardSharePayment(input: {
         shareIds,
       };
     }
+    if (unsponsored(sender, error, crossed)) return { status: "unsponsored" };
     return { status: "not-paid", miss: missOfSend(error, !crossed) };
   }
 }
@@ -532,6 +541,8 @@ export type RewardSafeSyncOutcome =
   /** The signers are current, or the update went out (`confirmed` says whether it landed). */
   | { status: "synced"; confirmed: boolean }
   | { status: "refused-before-asking"; refusal: "not-a-steward" | "unreadable" }
+  /** The gas sponsor turned the passkey's next update down before it went out. */
+  | { status: "unsponsored" }
   | { status: "not-synced"; miss: SeedCopyMiss };
 
 /**
@@ -581,8 +592,10 @@ export async function sendRewardSafeSync(input: {
     return { status: "refused-before-asking", refusal: "unreadable" };
   }
   if (calls.length === 0) return { status: "synced", confirmed: true };
+  // `crossed` says whether any update went out; `current` whether the one being sent did.
   let crossed = false;
-  const options = { onBeforeBroadcast: async () => void (crossed = true) };
+  let current = false;
+  const options = { onBeforeBroadcast: async () => void (crossed = current = true) };
   try {
     if (
       calls.length > 1 &&
@@ -594,12 +607,14 @@ export async function sendRewardSafeSync(input: {
     }
     let confirmed = true;
     for (const call of calls) {
+      current = false;
       const sent = await sender.sendContractCall(call, options);
       if (sent.confirmation === "pending") confirmed = false;
     }
     return { status: "synced", confirmed };
   } catch (error) {
-    if (crossed && mayStillLand(error)) return { status: "synced", confirmed: false };
+    if (current && mayStillLand(error)) return { status: "synced", confirmed: false };
+    if (unsponsored(sender, error, current)) return { status: "unsponsored" };
     return { status: "not-synced", miss: missOfSend(error, !crossed) };
   }
 }
