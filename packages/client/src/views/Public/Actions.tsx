@@ -1,6 +1,7 @@
 import { getDomainStyle } from "@green-goods/shared/config/domain";
 import { DOMAIN_TOKEN_SLUG, type Action } from "@green-goods/shared/types/domain";
 import { ALL_DOMAINS, DOMAIN_LABELS } from "@green-goods/shared/utils/domain";
+import { parseIPFSReference, resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -165,6 +166,12 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
   },
 ] as const;
 
+/** The gateway link to an action's published instructions; none for a fallback or no reference. */
+function actionSourceHref(action: Action | null): string | undefined {
+  if (!action?.instructions || action.instructionsFallback) return undefined;
+  return parseIPFSReference(action.instructions) ? resolveIPFSUrl(action.instructions) : undefined;
+}
+
 /**
  * Actions — readable public Action library.
  *
@@ -182,6 +189,8 @@ export default function ActionsGallery() {
   const [activeAction, setActiveAction] = useState<Action | null>(null);
   // The open template reads in the visitor's language, as its card does.
   const displayAction = activeAction ? localizeAction(activeAction, locale) : null;
+  // Its source is the instructions it was published with, when the record names them (PUB-055).
+  const sourceHref = actionSourceHref(activeAction);
   const { ref: domainsRef, revealed: domainsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: capitalsRef, revealed: capitalsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: guideRef, revealed: guideRevealed } = useInViewReveal<HTMLElement>();
@@ -419,6 +428,7 @@ export default function ActionsGallery() {
           open
           onClose={() => setActiveAction(null)}
           title={displayAction.title}
+          sourceHref={sourceHref}
           subtitle={formatMessage({
             id: getDomainStyle(displayAction.domain)?.labelId ?? "app.domain.tab.unknown",
             defaultMessage: getDomainStyle(displayAction.domain)?.defaultLabel ?? "unknown",

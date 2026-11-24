@@ -19,7 +19,7 @@ import { GardenWork } from "./Work";
 
 /** Render the real phone review page; all write callbacks are inert story mocks. */
 const onReview =
-  (feedbackMode: "approve" | "reject" | null, ownWork = false) =>
+  (feedbackMode: "approve" | "reject" | null, ownWork: false | "sole" | "shared" = false) =>
   () => {
     const workMetadata = {
       schemaVersion: "work_metadata_v2" as const,
@@ -38,10 +38,11 @@ const onReview =
       confidence: Confidence.MEDIUM,
       effectiveStatus: "pending",
       feedbackMode,
-      // The steward's own work, in a garden where they are the only one who may review it.
-      garden: ownWork
-        ? { ...JOURNEY_GARDEN_RECORD, stewards: [JOURNEY_NEIGHBOUR], owners: [] }
-        : JOURNEY_GARDEN_RECORD,
+      // The steward's own work: alone in reviewing it, or beside an owner who decides it.
+      garden:
+        ownWork === "shared"
+          ? { ...JOURNEY_GARDEN_RECORD, stewards: [JOURNEY_NEIGHBOUR], owners: [JOURNEY_VIEWER] }
+          : { ...JOURNEY_GARDEN_RECORD, stewards: [JOURNEY_NEIGHBOUR], owners: [] },
       gardenId: JOURNEY_GARDEN,
       gardensLoading: false,
       handleApprovePress: fn(),
@@ -117,4 +118,6 @@ export const FeedbackExample: Story = { beforeEach: onReview("approve") };
 /** Declining asks what the gardener should change, where approving asks for anything to say. */
 export const DeclineExample: Story = { beforeEach: onReview("reject") };
 /** A garden's only steward on their own work: nobody else may review it (PRD-1472). */
-export const OwnWorkSoleSteward: Story = { beforeEach: onReview(null, true) };
+export const OwnWorkSoleSteward: Story = { beforeEach: onReview(null, "sole") };
+/** A steward's own work where another steward or an owner decides it: no acts (PRD-1617). */
+export const OwnWorkAnotherReviewer: Story = { beforeEach: onReview(null, "shared") };

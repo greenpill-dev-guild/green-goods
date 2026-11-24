@@ -102,7 +102,7 @@ export const Default: Story = {
     await expect(canvas.getByRole("link", { name: /Documentation/ })).toBeVisible();
     await expect(canvas.getByRole("link", { name: "Support" })).toHaveAttribute(
       "href",
-      "https://discord.gg/greenpill"
+      "https://greengoods.app/contact"
     );
     await expect(canvas.queryByText("Disconnect")).not.toBeInTheDocument();
     // A browser tab has its own reload, so Refresh shows only in the installed Hub.
