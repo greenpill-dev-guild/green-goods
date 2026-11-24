@@ -40,6 +40,7 @@ import {
 } from "../transactions/types";
 import { sendWithCheckpoint } from "./send-with-checkpoint";
 import { SimulationRejected } from "./simulation-rejected";
+import { UploadItemAlreadyDone, UploadItemUnchecked } from "./upload-item-refusals";
 import { isUploadJob, queuedUploadStatus, type UploadPreparation } from "./upload-state";
 import { UnpublishablePhotoError } from "./work-attachments";
 import { forgetWorkBroadcast } from "./work-confirmation";
@@ -56,8 +57,12 @@ const MAX_ITEMS_PER_WALLET_CALL = 10;
 export type UploadOutcome =
   | { status: "connection-unconfirmed" }
   | { status: "nothing-ready" }
-  /** The tap ended without a send: every ready item was refused, or is held elsewhere. */
-  | { status: "nothing-sent"; flagged: number }
+  /**
+   * The tap ended without a send: every ready item was refused, is held elsewhere, or was already
+   * done elsewhere. `settled` is there only when every ready item was already done, cleared by
+   * the queue and named in its own notice, so nothing is left on the device to send.
+   */
+  | { status: "nothing-sent"; flagged: number; settled?: number }
   /** Sent; items whose receipt has not arrived are confirmed by the queue. */
   | { status: "uploaded"; sent: number; flagged: number }
   | { status: "declined" | "reverted" | "send-unconfirmed"; sent: number; flagged: number }
@@ -129,6 +134,9 @@ export async function uploadQueuedWork(
   const resumePreparation = await ports.suspendPreparation();
   let sent = 0;
   let flagged = 0;
+  let settled = 0;
+  /** How many items were ready to go when the tap began. */
+  let readyCount = 0;
   const { chainId, sender } = input;
   const explicitSend: ProcessJobContext = { transactionSender: sender, explicit: true };
   /** Tells each item's screen where the send carrying it stands (PRD-1552); null lets it go. */
@@ -236,6 +244,8 @@ export async function uploadQueuedWork(
     const claims = await ports.acquire(ids);
     const stopHolding = ports.hold([...claims.values()]);
     let confirmedItems: ChunkItem[] = [];
+    /** Items already done elsewhere, left out of the call for the queue to clear. */
+    const alreadyDone: string[] = [];
     try {
       // Each item's send is held from here until its answer. One another tab
       // holds is mid-send there, perhaps frozen with its prompt open, so it is
@@ -244,6 +254,19 @@ export async function uploadQueuedWork(
     } finally {
       stopHolding();
       await Promise.allSettled([...claims.values()].map((claim) => claim.release()));
+      // The queue reads each one again and clears it, saying why; one it cannot read waits.
+      for (const id of alreadyDone) {
+        const result = await ports.processJob(id, explicitSend).catch((error: unknown) => {
+          logger.warn("[UploadAll] An item already done is left for the queue", {
+            jobId: id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return undefined;
+        });
+        if (result?.alreadyDone) settled += 1;
+        // The queue's own read found it still waiting, and sent it.
+        else if (result?.success && !result.skipped) sent += 1;
+      }
       // The queue confirms each sent item and finishes it the way every send finishes.
       // One it cannot finish now keeps its recorded send for the next confirmation pass.
       for (const { job } of confirmedItems) {
@@ -277,6 +300,17 @@ export async function uploadQueuedWork(
           });
           items.push({ job, claim, attestation });
         } catch (error) {
+          if (error instanceof UploadItemAlreadyDone) {
+            alreadyDone.push(id);
+            continue;
+          }
+          // Not known to be still wanted, so not sent: it stays ready for the next tap.
+          if (error instanceof UploadItemUnchecked) {
+            logger.warn("[UploadAll] Queued item could not be checked before sending", {
+              jobId: id,
+            });
+            continue;
+          }
           if (error instanceof UploadPolicyRequiredError) {
             await flagItem(claim, id, {
               status: "blocked",
@@ -384,7 +418,9 @@ export async function uploadQueuedWork(
 
   /** A tap that ended without a send says so, instead of reporting an upload of nothing. */
   const finished = (): UploadOutcome =>
-    sent === 0 ? { status: "nothing-sent", flagged } : { status: "uploaded", sent, flagged };
+    sent > 0
+      ? { status: "uploaded", sent, flagged }
+      : { status: "nothing-sent", flagged, ...(settled === readyCount ? { settled } : {}) };
 
   try {
     const selected = input.jobIds ? new Set(input.jobIds) : undefined;
@@ -398,6 +434,7 @@ export async function uploadQueuedWork(
         queuedUploadStatus(job, { takeUp: takeUpOf(job, listed) }).state === "ready"
     );
     if (ready.length === 0) return { status: "nothing-ready" };
+    readyCount = ready.length;
 
     // An embedded wallet has no batching: the queue sends its items one at a time.
     if (sender.authMode === "embedded") {
@@ -405,7 +442,9 @@ export async function uploadQueuedWork(
         const result = await ports.processJob(job.id, explicitSend);
         if (result.success && !result.skipped) sent += 1;
         if (result.error === "send-cancelled") return { status: "declined", sent, flagged };
-        if (result.success || result.skipped) continue;
+        // Already done elsewhere: the queue cleared it, so nothing is left to attend to.
+        if (result.alreadyDone) settled += 1;
+        if (result.success || result.skipped || result.alreadyDone) continue;
         // One item the queue retired is that item's answer: it is counted for
         // the person and the rest still go. A send that failed outright ends
         // the run, since carrying on would report the remainder as uploaded.

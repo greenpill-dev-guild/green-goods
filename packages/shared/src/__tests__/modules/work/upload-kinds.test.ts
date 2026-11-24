@@ -11,6 +11,10 @@ import {
   type UploadKindContext,
   uploadKindOf,
 } from "../../../modules/work/upload-kinds";
+import {
+  UploadItemAlreadyDone,
+  UploadItemUnchecked,
+} from "../../../modules/work/upload-item-refusals";
 import { isUploadJob } from "../../../modules/work/upload-state";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../../types/job-queue";
 import { uploadConsent } from "../../test-utils/upload-policy";
@@ -73,6 +77,7 @@ function context(overrides: Partial<UploadKindContext["dependencies"]> = {}) {
         easConfig: () => EAS_CONFIG,
         encodeWork: vi.fn(async () => "0xabcdef" as const),
         encodeApproval: vi.fn(() => "0x123456" as const),
+        isDecided: vi.fn(async () => false),
         ...overrides,
       },
     } satisfies UploadKindContext,
@@ -194,5 +199,32 @@ describe("what each kind of queued job brings to Upload all", () => {
       expect.objectContaining({ approved: false, feedback: "Photo is of another bed" }),
       42161
     );
+    expect(ctx.dependencies.isDecided).toHaveBeenCalledWith(42161, `0x${"44".repeat(32)}`);
+  });
+
+  it("never turns a decision on a work decided elsewhere into an attestation, nor one it cannot check", async () => {
+    const decision = job<ApprovalJobPayload>("approval", {
+      actionUID: 7,
+      workUID: `0x${"44".repeat(32)}`,
+      gardenAddress: GARDEN,
+      gardenerAddress: GARDEN,
+      approved: true,
+      confidence: 2,
+      verificationMethod: 1,
+    });
+    // The resolver accepts a second decision, so the chain is read right before it goes.
+    const decided = context({ isDecided: vi.fn(async () => true) }).context;
+    await expect(
+      UPLOAD_KINDS.approval.attestation(decision as never, decided)
+    ).rejects.toBeInstanceOf(UploadItemAlreadyDone);
+    const unread = context({
+      isDecided: vi.fn(async () => {
+        throw new Error("EAS GraphQL timed out");
+      }),
+    }).context;
+    await expect(
+      UPLOAD_KINDS.approval.attestation(decision as never, unread)
+    ).rejects.toBeInstanceOf(UploadItemUnchecked);
+    expect(decided.dependencies.encodeApproval).not.toHaveBeenCalled();
   });
 });

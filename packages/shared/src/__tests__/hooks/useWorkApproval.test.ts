@@ -52,6 +52,7 @@ vi.mock("../../components/Toast/toast.service", () => ({
     success: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    dismiss: vi.fn(),
   },
 }));
 
@@ -238,6 +239,50 @@ describe("hooks/work/useWorkApproval", () => {
         finishRead([]);
         unsubscribe();
       }
+    });
+
+    it("sends nothing, and says nothing, when the work can no longer be decided by send time", async () => {
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await result.current
+          .mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+            stillDecidable: () => false,
+          })
+          .catch(() => undefined);
+      });
+
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(submitApprovalToQueue).not.toHaveBeenCalled();
+      expect(toastService.error).not.toHaveBeenCalled();
+      // It raised no toast of its own, and the shared one may still be another decision's.
+      expect(toastService.dismiss).not.toHaveBeenCalled();
+    });
+
+    it("leaves the approval lifecycle, and any earlier decision it holds, alone on a withdrawal", async () => {
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
+      const before = result.current.approvalLifecycleStage;
+
+      await act(async () => {
+        await result.current
+          .mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+            stillDecidable: () => false,
+          })
+          .catch(() => undefined);
+      });
+
+      // Cancelling or failing would clear the one pending record the device keeps.
+      expect(result.current.approvalLifecycleStage).toBe(before);
     });
 
     it("calls submitApprovalDirectly for wallet users", async () => {

@@ -121,7 +121,12 @@ export function ReviewSheetDescriptor({
         content: (
           <WorkDetailPanel
             workId={sheetSelection.id}
-            statusUnread={dayStatusUnread || (unknownWorkIds?.has(sheetSelection.id) ?? false)}
+            statusUnread={
+              dayStatusUnread ||
+              (unknownWorkIds?.has(sheetSelection.id) ?? false) ||
+              // On a day, a work the day's latest read no longer lists is not vouched for.
+              (unknownWorkIds !== undefined && selectedWork?.id !== sheetSelection.id)
+            }
             // On a day, the day's own read of the work, which can be fresher than the garden's.
             decidedWork={
               unknownWorkIds && selectedWork?.id === sheetSelection.id ? selectedWork : undefined

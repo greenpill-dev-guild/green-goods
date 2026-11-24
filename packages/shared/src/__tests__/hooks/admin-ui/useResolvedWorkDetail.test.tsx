@@ -94,6 +94,53 @@ describe("useResolvedWorkDetail", () => {
     });
   });
 
+  it("says a work's status is unread when its decisions could not be read", () => {
+    mockUseWorks.mockReturnValue({
+      works: [work],
+      unknownIds: new Set([work.id]),
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    });
+    const { result } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.statusUnread).toBe(true);
+  });
+
+  it("offers no decision while the garden's read is not current, or the work is only retained", () => {
+    const read = {
+      works: [work],
+      unknownIds: new Set<string>(),
+      readThisSession: true,
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    };
+    mockUseWorks.mockReturnValue(read);
+    const { result, rerender } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.statusUnread).toBe(false);
+
+    // The garden's read failed, and the copy on screen may be old.
+    mockUseWorks.mockReturnValue({ ...read, isError: true });
+    rerender();
+    expect(result.current.statusUnread).toBe(true);
+
+    // This session's first read has not landed over a restored copy, online or offline.
+    mockUseWorks.mockReturnValue({ ...read, readThisSession: false, isFetching: true });
+    rerender();
+    expect(result.current.statusUnread).toBe(true);
+    mockUseWorks.mockReturnValue({ ...read, readThisSession: false, isFetching: false });
+    rerender();
+    expect(result.current.statusUnread).toBe(true);
+
+    // The work left the read and shows only from the snapshot kept of it.
+    mockUseWorks.mockReturnValue({ ...read, works: [] });
+    rerender();
+    expect(result.current.work).toBe(work);
+    expect(result.current.statusUnread).toBe(true);
+  });
+
   it("does not reopen excluded work from garden metadata or a retained detail", () => {
     const { result, rerender } = renderHook(() => useResolvedWorkDetail(work.id));
     expect(result.current.work?.id).toBe(work.id);
