@@ -139,7 +139,10 @@ describe("auth machine: email sessions", () => {
     expect(actor.getSnapshot().matches({ authenticated: "openfort" })).toBe(true);
   });
 
-  it("forgets a refused email attempt once the person signs in another way", async () => {
+  it.each([
+    ["a wallet", "wallet"],
+    ["an embedded wallet", "embedded"],
+  ] as const)("forgets a refused email attempt once the person signs in with %s", async (_, kind) => {
     const { actor } = start({
       authenticateOpenfort: async () => {
         throw new Error("Invalid code");
@@ -151,9 +154,15 @@ describe("auth machine: email sessions", () => {
     await flushPromises();
     expect(actor.getSnapshot().context.openfortMethod).toBe("email");
 
-    actor.send({ type: "LOGIN_EMBEDDED", address: MOCK_ADDRESSES.user as `0x${string}` });
-    expect(actor.getSnapshot().matches({ authenticated: "embedded" })).toBe(true);
-    // An embedded session is not an email one: its sign-out must not reach for Openfort.
+    const address = MOCK_ADDRESSES.user as `0x${string}`;
+    if (kind === "wallet") {
+      actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address });
+      actor.send({ type: "LOGIN_WALLET" });
+    } else {
+      actor.send({ type: "LOGIN_EMBEDDED", address });
+    }
+    expect(actor.getSnapshot().matches({ authenticated: kind })).toBe(true);
+    // This session is not an email one: its sign-out must not reach for Openfort.
     expect(actor.getSnapshot().context.openfortMethod).toBeNull();
   });
 

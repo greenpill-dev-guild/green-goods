@@ -2,6 +2,7 @@ import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { InMemoryPublicRateLimiter, PUBLIC_RATE_LIMIT_POLICIES } from "../api/public-protection";
 import { createServer } from "../api/server";
+import { loggers } from "../services/logger";
 import {
   createOpenfortRecovery,
   type OpenfortRecovery,
@@ -19,13 +20,16 @@ const CONFIG = {
 type Call = { url: string; init: RequestInit };
 
 /** Openfort's session check and Shield's session mint, answering like the live services. */
-function fakeOpenfort(options: { liveToken?: string; shieldStatus?: number } = {}) {
+function fakeOpenfort(
+  options: { liveToken?: string; sessionStatus?: number; shieldStatus?: number } = {}
+) {
   const calls: Call[] = [];
   const fetchImpl = vi.fn(async (input: string | URL | Request, init: RequestInit = {}) => {
     const url = String(input);
     calls.push({ url, init });
     const headers = new Headers(init.headers);
     if (url === "https://api.openfort.io/iam/v2/auth/get-session") {
+      if (options.sessionStatus) return new Response("refused", { status: options.sessionStatus });
       const live =
         headers.get("authorization") === `Bearer ${options.liveToken ?? "live-token"}` &&
         headers.get("x-project-key") === CONFIG.publishableKey;
@@ -100,6 +104,18 @@ describe("Openfort recovery sessions", () => {
     expect(await stale.json()).toMatchObject({ ok: false, errorCode: "session_invalid" });
 
     expect(calls.some((call) => new URL(call.url).hostname === "shield.openfort.io")).toBe(false);
+
+    // Openfort refusing the check itself points at this agent's key, so it is logged, token-free.
+    const warn = vi.spyOn(loggers.api, "warn").mockImplementation(() => undefined);
+    const misconfigured = fakeOpenfort({ sessionStatus: 401 });
+    const refused = await requestSession(createApp(misconfigured.recovery));
+    expect(refused.status).toBe(401);
+    expect(await refused.json()).toMatchObject({ ok: false, errorCode: "session_invalid" });
+    expect(warn).toHaveBeenCalledWith(
+      { status: 401 },
+      expect.stringContaining("VITE_OPENFORT_PUBLISHABLE_KEY")
+    );
+    warn.mockRestore();
   });
 
   it("refuses an origin it does not serve before asking Openfort", async () => {

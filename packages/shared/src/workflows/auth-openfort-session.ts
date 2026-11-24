@@ -20,7 +20,12 @@ import {
   setStoredOpenfortAccount,
 } from "../modules/auth/openfort-account";
 import { defaultOpenfortWallet, type OpenfortWallet } from "../modules/auth/openfort-wallet";
-import { clearAuthMode, getAuthMode, type SessionStorage } from "../modules/auth/session";
+import {
+  clearAuthMode,
+  getAuthMode,
+  type SessionStorage,
+  setSignedOutSentinel,
+} from "../modules/auth/session";
 import { guardSessionCommit } from "../modules/auth/sessionSignOut";
 import { createSmartAccountClientResolver } from "../modules/auth/smartAccountClientResolver";
 import { createSponsoredSmartAccountClient } from "../modules/auth/sponsored-smart-account-client";
@@ -44,6 +49,8 @@ export interface OpenfortOperationInput {
 export interface OpenfortSessionDeps {
   wallet?: OpenfortWallet;
   storage?: SessionStorage;
+  /** Web Locks shared by this device's tabs; null where the browser has none. */
+  locks?: Pick<LockManager, "request"> | null;
   /** Builds the sponsored client for one chain; the default uses Pimlico like passkeys. */
   buildSmartAccount?: (
     owner: Hex,
@@ -51,6 +58,9 @@ export interface OpenfortSessionDeps {
     knownAddress?: Hex
   ) => Promise<{ client: SmartAccountClient; address: Hex }>;
 }
+
+/** Held by the tab that is signing in, from the code until the account record is saved. */
+const SIGN_IN_LOCK = "greengoods-openfort-sign-in";
 
 /** Emails compare trimmed and in lower case, so the same person reaches the same account. */
 export function normalizeEmail(value: string): string {
@@ -60,6 +70,19 @@ export function normalizeEmail(value: string): string {
 export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
   const wallet = deps.wallet ?? defaultOpenfortWallet;
   const storage = deps.storage;
+  const locks =
+    deps.locks !== undefined
+      ? deps.locks
+      : typeof navigator !== "undefined"
+        ? (navigator.locks ?? null)
+        : null;
+  const holdingSignIn = <T>(signIn: () => Promise<T>): Promise<T> =>
+    locks ? locks.request(SIGN_IN_LOCK, signIn) : signIn();
+  /** Whether some tab is signing in now. Without Web Locks nothing can tell, so assume one is. */
+  const signInInFlight = (): Promise<boolean> =>
+    locks
+      ? locks.request(SIGN_IN_LOCK, { ifAvailable: true }, async (lock) => lock === null)
+      : Promise.resolve(true);
 
   const buildSmartAccount: NonNullable<OpenfortSessionDeps["buildSmartAccount"]> =
     deps.buildSmartAccount ??
@@ -102,36 +125,37 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
   const requestCode = (email: string) => wallet.requestCode(normalizeEmail(email));
 
   const authenticateOpenfort = fromPromise<OpenfortSessionResult, OpenfortOperationInput>(
-    async ({ input, signal }) => {
-      const assertActive = guardSessionCommit(signal);
-      const email = normalizeEmail(input.email);
-      await wallet.verifyCode(email, input.code.trim());
-      try {
-        assertActive();
-        const owner = await wallet.configureWallet(input.chainId);
-        assertActive();
-        const session = await openSession(owner, input.chainId, email);
-        assertActive();
-        setStoredOpenfortAccount(
-          {
-            ownerAddress: owner,
-            smartAccountAddress: session.smartAccountAddress,
-            method: "email",
-            email,
-          },
-          storage
-        );
-        return session;
-      } catch (error) {
-        // A verified code must not leave a half-open Openfort session on a shared phone.
-        await wallet
-          .signOut()
-          .catch((signOutError: unknown) =>
-            logger.warn("[Auth] Openfort sign-out after a failed sign-in failed", { signOutError })
+    ({ input, signal }) =>
+      holdingSignIn(async () => {
+        const assertActive = guardSessionCommit(signal);
+        const email = normalizeEmail(input.email);
+        await wallet.verifyCode(email, input.code.trim());
+        try {
+          assertActive();
+          const owner = await wallet.configureWallet(input.chainId);
+          assertActive();
+          const session = await openSession(owner, input.chainId, email);
+          assertActive();
+          setStoredOpenfortAccount(
+            {
+              ownerAddress: owner,
+              smartAccountAddress: session.smartAccountAddress,
+              method: "email",
+              email,
+            },
+            storage
           );
-        throw error;
-      }
-    }
+          return session;
+        } catch (error) {
+          // A verified code must not leave a half-open Openfort session on a shared phone.
+          await wallet.signOut().catch((signOutError: unknown) =>
+            logger.warn("[Auth] Openfort sign-out after a failed sign-in failed", {
+              signOutError,
+            })
+          );
+          throw error;
+        }
+      })
   );
 
   const restoreOpenfort = fromPromise<OpenfortSessionResult | null, { chainId: number }>(
@@ -140,10 +164,14 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
       if (getAuthMode(storage) !== "openfort") return null;
       const record = getStoredOpenfortAccount(storage);
       if (!record) {
+        // A tab signing in has saved the mode but not yet the record: leave it alone.
+        if (await signInInFlight()) return null;
         // The page closed after the code was accepted and before the account opened: end the
         // Openfort session that sign-in left, so the next person on this phone starts clean.
+        // The device stays signed out, and startup does not wait on Openfort's network.
         clearAuthMode(storage);
-        await wallet
+        setSignedOutSentinel(storage);
+        void wallet
           .signOut()
           .catch((error: unknown) =>
             logger.warn("[Auth] Openfort sign-out after an unfinished sign-in failed", { error })
@@ -159,7 +187,6 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
       });
       if (!stored) {
         clearStoredOpenfortAccount(storage);
-        clearAuthMode(storage);
         return null;
       }
       try {

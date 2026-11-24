@@ -52,9 +52,10 @@ import {
   OpenfortRecoveryUnavailableError,
   type OpenfortWallet,
 } from "../../modules/auth/openfort-wallet";
-import { getAuthMode, setAuthMode } from "../../modules/auth/session";
+import { getAuthMode, hasSignedOutSentinel, setAuthMode } from "../../modules/auth/session";
 import { publishSignOut } from "../../modules/auth/sessionSignOut";
 import {
+  type OpenfortSessionDeps,
   createOpenfortSessionServices,
   normalizeEmail,
 } from "../../workflows/auth-openfort-session";
@@ -86,9 +87,34 @@ function fakeWallet(overrides: Partial<OpenfortWallet> = {}): OpenfortWallet & {
   };
 }
 
-function services(wallet: OpenfortWallet) {
+type SignInLocks = NonNullable<OpenfortSessionDeps["locks"]>;
+
+/** Web Locks shared by the "tabs" of one test: a held lock is a sign-in in flight. */
+function fakeLocks(): SignInLocks {
+  const held = new Set<string>();
+  const request = async (name: string, ...rest: unknown[]) => {
+    const [options, callback] = (rest.length === 2 ? rest : [{}, rest[0]]) as [
+      { ifAvailable?: boolean },
+      (lock: { name: string } | null) => Promise<unknown>,
+    ];
+    if (held.has(name)) {
+      if (options.ifAvailable) return callback(null);
+      throw new Error("a test lock is already held");
+    }
+    held.add(name);
+    try {
+      return await callback({ name });
+    } finally {
+      held.delete(name);
+    }
+  };
+  return { request } as unknown as SignInLocks;
+}
+
+function services(wallet: OpenfortWallet, locks: SignInLocks | null = null) {
   return createOpenfortSessionServices({
     wallet,
+    locks,
     buildSmartAccount: async () => ({
       client: { account: { address: ACCOUNT } } as any,
       address: ACCOUNT,
@@ -197,9 +223,37 @@ describe("email sign-in", () => {
   it("ends the Openfort session a sign-in left when the page closed before the account opened", async () => {
     setAuthMode("openfort");
     const wallet = fakeWallet();
-    await expect(run(services(wallet).restoreOpenfort, { chainId: CHAIN_ID })).resolves.toBeNull();
+    await expect(
+      run(services(wallet, fakeLocks()).restoreOpenfort, { chainId: CHAIN_ID })
+    ).resolves.toBeNull();
     expect(wallet.signOut).toHaveBeenCalledTimes(1);
+    // The device stays signed out: nothing else reopens on the next load either.
     expect(getAuthMode()).toBeNull();
+    expect(hasSignedOutSentinel()).toBe(true);
+  });
+
+  it("leaves alone a sign-in that another tab has in flight", async () => {
+    const locks = fakeLocks();
+    let acceptCode = () => {};
+    const signingIn = fakeWallet({
+      verifyCode: vi.fn(() => new Promise<void>((resolve) => (acceptCode = resolve))),
+    });
+    const signIn$ = run<{ smartAccountAddress: Hex }>(
+      services(signingIn, locks).authenticateOpenfort,
+      signIn
+    );
+    setAuthMode("openfort"); // saved when the code is sent, before the account record exists
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const otherTab = fakeWallet();
+    await expect(
+      run(services(otherTab, locks).restoreOpenfort, { chainId: CHAIN_ID })
+    ).resolves.toBeNull();
+    expect(otherTab.signOut).not.toHaveBeenCalled();
+    expect(getAuthMode()).toBe("openfort");
+
+    acceptCode();
+    await expect(signIn$).resolves.toMatchObject({ smartAccountAddress: ACCOUNT });
   });
 
   it("normalizes what was typed so the same person always reaches the same account", () => {

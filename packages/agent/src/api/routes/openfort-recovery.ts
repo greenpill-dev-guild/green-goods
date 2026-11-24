@@ -55,7 +55,7 @@ export function registerOpenfortRecoveryRoutes(app: Hono, ctx: ApiRouteContext):
     const recovery = deps.openfortRecovery;
     if (!recovery) {
       return respond(
-        refusal("provider_unavailable", "Email and phone sign-in is not available right now."),
+        refusal("provider_unavailable", "Email sign-in is not available right now."),
         503
       );
     }
