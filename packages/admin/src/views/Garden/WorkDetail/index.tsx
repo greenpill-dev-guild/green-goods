@@ -2,7 +2,7 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useResolvedWorkDetail } from "@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail";
 import { trackWorkApprovalPresentationFailed } from "@green-goods/shared/modules/app/analytics-events";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
+import type { Work, WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import {
@@ -42,6 +42,10 @@ function parseReviewContext(search: string) {
     view: view === "work" || view === "assess" || view === "certify" ? view : undefined,
     sort: sort === "newest" || sort === "oldest" ? sort : undefined,
   } as const;
+}
+
+function isDecided(work: Work) {
+  return work.status === "approved" || work.status === "rejected";
 }
 
 function WorkDetailStatusBadge({
@@ -99,6 +103,11 @@ export interface WorkDetailPanelProps {
   workId: string;
   /** Opened from a Review day whose read could not say this work's status. */
   statusUnread?: boolean;
+  /**
+   * The work as a fresher read has it decided, such as the Review day it was opened from: it
+   * outranks a garden copy that still says pending, so a decided work is never offered again.
+   */
+  decidedWork?: Work;
   layout?: WorkDetailLayout;
   onSuccess?: () => void;
 }
@@ -106,12 +115,19 @@ export interface WorkDetailPanelProps {
 export function WorkDetailPanel({
   workId,
   statusUnread = false,
+  decidedWork,
   layout = "page",
   onSuccess,
 }: WorkDetailPanelProps) {
   const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
-  const { garden, work, action, canReview, canApproveOrReject, isReviewed, metadata } = resolved;
+  const { garden, action, canReview, canApproveOrReject, metadata } = resolved;
+  const decided =
+    decidedWork && decidedWork.id === resolved.work?.id && isDecided(decidedWork)
+      ? decidedWork
+      : undefined;
+  const work = decided ?? resolved.work;
+  const isReviewed = Boolean(decided) || resolved.isReviewed;
   // The voice notes and documents come from the metadata file, read after the work itself.
   // Offline, the read waits for the connection and a retry cannot run, so it is not a failure.
   const evidenceState =

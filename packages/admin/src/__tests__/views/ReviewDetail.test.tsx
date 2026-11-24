@@ -583,6 +583,31 @@ describe("WorkDetail view", () => {
     expect(statusUnread()).toBe(true);
     rerenderWith({ dayStatusUnread: false, unknownWorkIds: new Set(["0xWork"]) });
     expect(statusUnread()).toBe(true);
+
+    // On a day, the day's own read of the work goes to the inspector, which may be fresher.
+    const dayWork = { ...base.selectedWork, status: "approved" as const };
+    rerenderWith({ unknownWorkIds: new Set(), selectedWork: dayWork });
+    expect(
+      (
+        mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0] as {
+          content: React.ReactElement<{ decidedWork?: unknown }>;
+        }
+      ).content.props.decidedWork
+    ).toBe(dayWork);
+  });
+
+  it("takes a decision a fresher read knows over a garden copy that still says pending", () => {
+    const [pending] = mockUseWorks().works;
+    renderWithIntl(
+      "en",
+      React.createElement(WorkDetailPanel, {
+        workId: "0xWork",
+        layout: "sheet",
+        decidedWork: { ...pending, status: "approved" },
+      })
+    );
+    expect(screen.getByText("Approved")).toBeInTheDocument();
+    expect(screen.queryByText("Pending")).not.toBeInTheDocument();
   });
 
   it("clears the inspector descriptor when the route closes with retained work", () => {

@@ -124,9 +124,11 @@ export function reviewFormState(form: {
   canApproveOrReject: boolean;
 }) {
   if (form.isReviewed) return "reviewed";
-  if (form.isStatusUnread) return "status-unread";
+  // A held or staged decision is this steward's own and keeps its controls (check again, move on,
+  // take it out), whatever a read can say of the work's status.
   if (form.isHeld) return "held";
   if (form.isStaged) return "staged";
+  if (form.isStatusUnread) return "status-unread";
   if (form.isOwnSubmission) return "self-review";
   if (form.isActionExpired) return "expired";
   if (!form.canReview) return "no-permission";

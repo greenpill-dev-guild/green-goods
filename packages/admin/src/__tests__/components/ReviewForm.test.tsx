@@ -646,6 +646,8 @@ describe("ReviewForm", () => {
     };
     expect(reviewFormState(decided)).toBe("reviewed");
     expect(reviewFormState({ ...decided, isReviewed: false })).toBe("status-unread");
+    // A held send keeps its own controls (check again, move on) ahead of the unread notice.
+    expect(reviewFormState({ ...decided, isReviewed: false, isHeld: true })).toBe("held");
   });
 
   it("shows the named submitter’s full account address in both decision surfaces", () => {

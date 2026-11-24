@@ -122,6 +122,10 @@ export function ReviewSheetDescriptor({
           <WorkDetailPanel
             workId={sheetSelection.id}
             statusUnread={dayStatusUnread || (unknownWorkIds?.has(sheetSelection.id) ?? false)}
+            // On a day, the day's own read of the work, which can be fresher than the garden's.
+            decidedWork={
+              unknownWorkIds && selectedWork?.id === sheetSelection.id ? selectedWork : undefined
+            }
             layout="sheet"
             onSuccess={handlePanelClose}
           />
