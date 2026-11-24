@@ -25,14 +25,16 @@ import {
   rewardSharesOwed,
 } from "../../modules/commitment-pooling/reward-payer";
 import {
-  createRewardPayChain,
   type RewardPayOutcome,
   type RewardPayStep,
   readRewardSafePayment,
-  type RewardSafeSyncOutcome,
-  sendRewardSafeSync,
   sendRewardSharePayment,
 } from "../../modules/commitment-pooling/reward-pay-send";
+import { createRewardPayChain } from "../../modules/commitment-pooling/reward-safe-chain";
+import {
+  type RewardSafeSyncOutcome,
+  sendRewardSafeSync,
+} from "../../modules/commitment-pooling/reward-safe-sync";
 import type { RewardLeg } from "../../modules/commitment-pooling/reward-legs";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";

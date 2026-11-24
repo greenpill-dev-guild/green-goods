@@ -31,7 +31,7 @@ import { releaseJsonPath, releaseRevision } from "../utils/release-inputs";
  * an owned fork, and after the deployer broadcasts them, verifies each gate and records it in
  * `deployments/42161-reward-safes.json`, which is what switches a garden's USDC part on.
  */
-export const REWARD_SAFE_CHAIN_ID = 42_161;
+const REWARD_SAFE_CHAIN_ID = 42_161;
 export const HSG = {
   hats: "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
   hatsModule: "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
@@ -63,14 +63,14 @@ const FACTORY = new Interface([
   "function deployModule(address masterCopy, bytes initializer, uint256 saltNonce) returns (address)",
 ]);
 
-export interface RewardSafeManifest {
+interface RewardSafeManifest {
   schemaVersion: 1;
   releaseId: string;
   chainId: 42161;
   deployer: string;
   gardens: Array<{ tokenId: number; garden: string }>;
 }
-export interface RewardSafeCall {
+interface RewardSafeCall {
   tokenId: number;
   garden: string;
   ownerHat: string;
@@ -81,7 +81,7 @@ export interface RewardSafeCall {
   value: "0";
   data: string;
 }
-export interface RewardSafePlan {
+interface RewardSafePlan {
   schemaVersion: 1;
   releaseId: string;
   sourceCommit: string;
@@ -135,7 +135,7 @@ export function inspectRewardSafeManifest(value: unknown): RewardSafeManifest {
 }
 
 /** Each garden's own salt, so the gate's address follows from the garden and the exact setup. */
-export function rewardSafeSaltNonce(garden: string): bigint {
+function rewardSafeSaltNonce(garden: string): bigint {
   return BigInt(
     keccak256(
       AbiCoder.defaultAbiCoder().encode(["string", "uint256", "address"], [SALT_DOMAIN, REWARD_SAFE_CHAIN_ID, garden]),
@@ -171,7 +171,7 @@ export function rewardSafeCall(tokenId: number, garden: string, ownerHat: bigint
 }
 
 /** The EIP-1167 runtime the factory leaves at a gate; with CREATE2 it binds the exact setup. */
-export function gateProxyRuntime(): string {
+function gateProxyRuntime(): string {
   return `0x363d3d373d3d3d363d73${HSG.implementation.slice(2)}5af43d82803e903d91602b57fd5bf3`.toLowerCase();
 }
 
@@ -258,7 +258,7 @@ async function buildPlan(
 }
 
 /** Reads one gate and its Safe and checks every setting the plan promised. Returns the Safe. */
-export async function inspectRewardSafe(provider: JsonRpcProvider, call: RewardSafeCall) {
+async function inspectRewardSafe(provider: JsonRpcProvider, call: RewardSafeCall) {
   equal(await provider.getCode(call.gate), gateProxyRuntime(), `${call.garden} gate runtime`);
   const gate = new Contract(
     call.gate,

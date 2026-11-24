@@ -17,11 +17,9 @@
  * changes the transaction, and its approvals start again.
  *
  * The Safe's signers are the garden's stewards, kept so by its Hats Signer Gate:
- * only an owner who wears the garden's steward hat counts. So before approving, a
- * steward first brings the signers up to date from their own account: the gate
- * removes owners who no longer wear the hat, and the steward claims a seat if
- * they have none. Otherwise a stale owner's approval, or a threshold raised by a
- * stale owner, could stop the payment.
+ * only an owner who wears the garden's steward hat counts, and a steward brings
+ * the signers up to date first (`reward-safe-sync`). The chain reads live in
+ * `reward-safe-chain`.
  *
  * Before anything is asked, a fresh read has to show that the part still owes
  * exactly the shares the steward was shown, that the Safe holds their total and
@@ -32,7 +30,6 @@
  * @module modules/commitment-pooling/reward-pay-send
  */
 
-import { readContract } from "@wagmi/core";
 import {
   type Abi,
   concat,
@@ -44,12 +41,11 @@ import {
   size,
   zeroAddress,
 } from "viem";
-import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../app/logger";
 import type { Address } from "../../types/domain";
-import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
+import { ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { isZeroAddress } from "../../utils/blockchain/address";
-import type { ContractCall, TransactionSender } from "../transactions/types";
+import type { TransactionSender } from "../transactions/types";
 import { isSponsorshipRefusedError, mayStillLand } from "../../utils/errors/tx-error-classifier";
 import { missOfSend } from "./creation-send";
 import {
@@ -58,6 +54,7 @@ import {
   rewardPayerShareId,
   rewardSharesOwed,
 } from "./reward-payer";
+import { REWARD_SAFE_ABI, type RewardPayChain } from "./reward-safe-chain";
 import type { SeedCopyMiss } from "./seed-sets";
 
 /**
@@ -66,130 +63,10 @@ import type { SeedCopyMiss } from "./seed-sets";
  */
 export const REWARD_SAFE_MULTI_SEND = "0x9641d764fc13c8B624c04430C7356C1C7C8102e2" as Address;
 
-export const REWARD_SAFE_ABI = parseAbi([
-  "function nonce() view returns (uint256)",
-  "function getThreshold() view returns (uint256)",
-  "function getOwners() view returns (address[])",
-  "function approvedHashes(address owner, bytes32 hash) view returns (uint256)",
-  "function getTransactionHash(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, uint256 _nonce) view returns (bytes32)",
-  "function approveHash(bytes32 hashToApprove)",
-  "function execTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signatures) payable returns (bool success)",
-]);
-
 const MULTI_SEND_ABI = parseAbi(["function multiSend(bytes transactions) payable"]);
-
-/** The Hats Signer Gate v2 calls a garden Safe's signer upkeep uses. */
-export const REWARD_SAFE_GATE_ABI = parseAbi([
-  "function safe() view returns (address)",
-  "function HATS() view returns (address)",
-  "function isValidSigner(address account) view returns (bool)",
-  "function claimSigner(uint256 hatId)",
-  "function removeSigner(address signer)",
-]);
-
-const HATS_WEARER_ABI = parseAbi([
-  "function isWearerOfHat(address wearer, uint256 hatId) view returns (bool)",
-]);
 
 /** A Safe operation that runs its target's code as the Safe: here, only MultiSendCallOnly. */
 const DELEGATECALL = 1;
-
-/** What a payment reads from the payout chain. */
-export interface RewardPayChain {
-  balance(token: Address, owner: Address): Promise<bigint>;
-  /** Who paid a share; the zero address while it is unpaid. */
-  paidBy(payer: Address, shareId: Hex): Promise<Address>;
-  /** A Safe's owners, how many of them must approve, and the nonce its next transaction takes. */
-  safeState(safe: Address): Promise<{ owners: Address[]; threshold: bigint; nonce: bigint }>;
-  /** The hash the Safe records approvals of a transaction under. */
-  safeTransactionHash(
-    safe: Address,
-    transaction: { to: Address; data: Hex; operation: number; nonce: bigint }
-  ): Promise<Hex>;
-  /** Whether an owner has approved a transaction hash on chain. */
-  approvedHash(safe: Address, owner: Address, hash: Hex): Promise<boolean>;
-  /** The Safe a gate guards, and which of the given accounts it counts as signers now. */
-  gateState(
-    gate: Address,
-    accounts: readonly Address[]
-  ): Promise<{ safe: Address; valid: boolean[] }>;
-  /** Whether an account wears a hat now, as the gate's Hats Protocol instance says. */
-  wearsHat(gate: Address, account: Address, hat: bigint): Promise<boolean>;
-}
-
-/** The payout chain as the app's wallet configuration reads it. */
-export function createRewardPayChain(chainId: number): RewardPayChain {
-  const read = <T>(request: {
-    address: Address;
-    abi: Abi;
-    functionName: string;
-    args: unknown[];
-  }) => readContract(getWagmiConfig(), { ...request, chainId }) as Promise<T>;
-  const safeRead = <T>(safe: Address, functionName: string, args: unknown[] = []) =>
-    read<T>({ address: safe, abi: REWARD_SAFE_ABI as unknown as Abi, functionName, args });
-  return {
-    balance: (token, owner) =>
-      read<bigint>({
-        address: token,
-        abi: ERC20_BALANCE_ABI as unknown as Abi,
-        functionName: "balanceOf",
-        args: [owner],
-      }),
-    paidBy: (payer, shareId) =>
-      read<Address>({
-        address: payer,
-        abi: REWARD_PAYER_ABI as unknown as Abi,
-        functionName: "paidBy",
-        args: [shareId],
-      }),
-    safeState: async (safe) => {
-      const [owners, threshold, nonce] = await Promise.all([
-        safeRead<readonly Address[]>(safe, "getOwners"),
-        safeRead<bigint>(safe, "getThreshold"),
-        safeRead<bigint>(safe, "nonce"),
-      ]);
-      return { owners: [...owners], threshold, nonce };
-    },
-    safeTransactionHash: (safe, transaction) =>
-      safeRead<Hex>(safe, "getTransactionHash", [
-        transaction.to,
-        0n,
-        transaction.data,
-        transaction.operation,
-        0n,
-        0n,
-        0n,
-        zeroAddress,
-        zeroAddress,
-        transaction.nonce,
-      ]),
-    approvedHash: async (safe, owner, hash) =>
-      (await safeRead<bigint>(safe, "approvedHashes", [owner, hash])) !== 0n,
-    gateState: async (gate, accounts) => {
-      const gateRead = <T>(functionName: string, args: unknown[] = []) =>
-        read<T>({ address: gate, abi: REWARD_SAFE_GATE_ABI as unknown as Abi, functionName, args });
-      const [safe, valid] = await Promise.all([
-        gateRead<Address>("safe"),
-        Promise.all(accounts.map((account) => gateRead<boolean>("isValidSigner", [account]))),
-      ]);
-      return { safe, valid };
-    },
-    wearsHat: async (gate, account, hat) => {
-      const hats = await read<Address>({
-        address: gate,
-        abi: REWARD_SAFE_GATE_ABI as unknown as Abi,
-        functionName: "HATS",
-        args: [],
-      });
-      return read<boolean>({
-        address: hats,
-        abi: HATS_WEARER_ABI as unknown as Abi,
-        functionName: "isWearerOfHat",
-        args: [account, hat],
-      });
-    },
-  };
-}
 
 /** Why a payment wasn't asked for, read before any signature. */
 type RewardPayRefusal =
@@ -401,7 +278,7 @@ export type RewardPayOutcome =
   | { status: "not-paid"; miss: SeedCopyMiss };
 
 /** A passkey's send that its gas sponsor refused before anything went out. */
-function unsponsored(sender: TransactionSender, error: unknown, crossed: boolean): boolean {
+export function unsponsored(sender: TransactionSender, error: unknown, crossed: boolean): boolean {
   return !crossed && sender.supportsSponsorship === true && isSponsorshipRefusedError(error);
 }
 
@@ -534,90 +411,5 @@ export async function sendRewardSharePayment(input: {
     }
     if (unsponsored(sender, error, crossed)) return { status: "unsponsored" };
     return { status: "not-paid", miss: missOfSend(error, !crossed) };
-  }
-}
-
-export type RewardSafeSyncOutcome =
-  /** The signers are current, or every change went out (`confirmed` says whether all landed). */
-  | { status: "synced"; confirmed: boolean }
-  | { status: "refused-before-asking"; refusal: "not-a-steward" | "unreadable" }
-  /**
-   * The gas sponsor turned the passkey's next change down before it went out. `partly` says an
-   * earlier change already went out.
-   */
-  | { status: "unsponsored"; partly: boolean }
-  /** A change didn't go through. `partly` says an earlier change already went out. */
-  | { status: "not-synced"; miss: SeedCopyMiss; partly: boolean };
-
-/**
- * Brings a garden Safe's signers up to date from a steward's own account before they approve: the
- * gate removes each owner who no longer wears the steward hat, then the steward claims a seat if
- * they have none. One call, and one signature, per change, so the Hub can say how many up front.
- * Asks for nothing when the signers are already current.
- */
-export async function sendRewardSafeSync(input: {
-  sender: TransactionSender;
-  chain: RewardPayChain;
-  chainId: number;
-  safe: Address;
-  gate: Address;
-  signerHat: bigint;
-  account: Address;
-}): Promise<RewardSafeSyncOutcome> {
-  const { sender, chain, chainId, safe, gate, signerHat, account } = input;
-  let calls: ContractCall[];
-  try {
-    const [state, wears] = await Promise.all([
-      chain.safeState(safe),
-      chain.wearsHat(gate, account, signerHat),
-    ]);
-    if (!wears) return { status: "refused-before-asking", refusal: "not-a-steward" };
-    const gated = await chain.gateState(gate, state.owners);
-    if (!same(gated.safe, safe)) return { status: "refused-before-asking", refusal: "unreadable" };
-    const gateCall = (functionName: "removeSigner" | "claimSigner", args: readonly unknown[]) =>
-      ({
-        address: gate,
-        account,
-        abi: REWARD_SAFE_GATE_ABI as unknown as Abi,
-        functionName,
-        args: [...args],
-        chainId,
-      }) satisfies ContractCall;
-    calls = [
-      ...state.owners
-        .filter((owner, index) => gated.valid[index] !== true && !same(owner, gate))
-        .map((owner) => gateCall("removeSigner", [owner])),
-      ...(state.owners.some((owner) => same(owner, account))
-        ? []
-        : [gateCall("claimSigner", [signerHat])]),
-    ];
-  } catch (error) {
-    logger.warn("Reward Safe signer reads failed before asking", { error, chainId });
-    return { status: "refused-before-asking", refusal: "unreadable" };
-  }
-  if (calls.length === 0) return { status: "synced", confirmed: true };
-  // `current` says whether the change being sent went out; `done` counts the changes that did.
-  let current = false;
-  let done = 0;
-  const options = { onBeforeBroadcast: async () => void (current = true) };
-  try {
-    let confirmed = true;
-    for (const call of calls) {
-      current = false;
-      const sent = await sender.sendContractCall(call, options);
-      done += 1;
-      if (sent.confirmation === "pending") confirmed = false;
-    }
-    return { status: "synced", confirmed };
-  } catch (error) {
-    const partly = done > 0;
-    // The change may still land, but any after it never went out.
-    if (current && mayStillLand(error)) {
-      return done === calls.length - 1
-        ? { status: "synced", confirmed: false }
-        : { status: "not-synced", miss: "failed", partly: true };
-    }
-    if (unsponsored(sender, error, current)) return { status: "unsponsored", partly };
-    return { status: "not-synced", miss: missOfSend(error, !current && !partly), partly };
   }
 }

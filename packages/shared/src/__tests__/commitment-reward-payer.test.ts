@@ -17,12 +17,14 @@ import {
 } from "viem";
 import { UserOperationExecutionError } from "viem/account-abstraction";
 import {
-  REWARD_SAFE_ABI,
   REWARD_SAFE_MULTI_SEND,
-  type RewardPayChain,
-  sendRewardSafeSync,
   sendRewardSharePayment,
 } from "../modules/commitment-pooling/reward-pay-send";
+import {
+  REWARD_SAFE_ABI,
+  type RewardPayChain,
+} from "../modules/commitment-pooling/reward-safe-chain";
+import { sendRewardSafeSync } from "../modules/commitment-pooling/reward-safe-sync";
 import { ReceiptWaitLimitError, type TransactionSender } from "../modules/transactions/types";
 
 import {
