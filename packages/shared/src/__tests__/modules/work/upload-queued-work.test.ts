@@ -764,6 +764,27 @@ describe("Upload all", () => {
     });
   });
 
+  it("still says items are on the device when one was already decided and another stays", async () => {
+    const [decided, unchecked] = [decision(), decision()];
+    const { ports } = harness([decided, unchecked]);
+    vi.mocked(ports.attestation).mockImplementation(async (job) => {
+      throw job.id === decided.id
+        ? new UploadItemAlreadyDone("work-already-decided")
+        : new UploadItemUnchecked(new Error("timed out"));
+    });
+    vi.mocked(ports.processJob).mockResolvedValue({
+      success: false,
+      error: "unavailable:work-already-decided",
+      alreadyDone: true,
+    });
+
+    // Only when every ready item was settled is the queue's notice the whole answer.
+    await expect(upload(ports, createMockTransactionSender())).resolves.toEqual({
+      status: "nothing-sent",
+      flagged: 0,
+    });
+  });
+
   it("holds back, unsent and ready, a decision whose work could not be checked", async () => {
     const [kept, unchecked] = [work(), decision()];
     const { ports, store } = harness([kept, unchecked]);

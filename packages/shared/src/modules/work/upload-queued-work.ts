@@ -57,10 +57,10 @@ const MAX_ITEMS_PER_WALLET_CALL = 10;
 export type UploadOutcome =
   | { status: "connection-unconfirmed" }
   | { status: "nothing-ready" }
-  /** The tap ended without a send: every ready item was refused, or is held elsewhere. */
   /**
-   * `settled` counts items already done elsewhere, which the queue cleared and named; when they
-   * are all there was, the queue's notice is the whole answer.
+   * The tap ended without a send: every ready item was refused, is held elsewhere, or was already
+   * done elsewhere. `settled` is there only when every ready item was already done, cleared by
+   * the queue and named in its own notice, so nothing is left on the device to send.
    */
   | { status: "nothing-sent"; flagged: number; settled?: number }
   /** Sent; items whose receipt has not arrived are confirmed by the queue. */
@@ -135,6 +135,8 @@ export async function uploadQueuedWork(
   let sent = 0;
   let flagged = 0;
   let settled = 0;
+  /** How many items were ready to go when the tap began. */
+  let readyCount = 0;
   const { chainId, sender } = input;
   const explicitSend: ProcessJobContext = { transactionSender: sender, explicit: true };
   /** Tells each item's screen where the send carrying it stands (PRD-1552); null lets it go. */
@@ -262,6 +264,8 @@ export async function uploadQueuedWork(
           return undefined;
         });
         if (result?.alreadyDone) settled += 1;
+        // The queue's own read found it still waiting, and sent it.
+        else if (result?.success && !result.skipped) sent += 1;
       }
       // The queue confirms each sent item and finishes it the way every send finishes.
       // One it cannot finish now keeps its recorded send for the next confirmation pass.
@@ -416,7 +420,7 @@ export async function uploadQueuedWork(
   const finished = (): UploadOutcome =>
     sent > 0
       ? { status: "uploaded", sent, flagged }
-      : { status: "nothing-sent", flagged, ...(settled > 0 ? { settled } : {}) };
+      : { status: "nothing-sent", flagged, ...(settled === readyCount ? { settled } : {}) };
 
   try {
     const selected = input.jobIds ? new Set(input.jobIds) : undefined;
@@ -430,6 +434,7 @@ export async function uploadQueuedWork(
         queuedUploadStatus(job, { takeUp: takeUpOf(job, listed) }).state === "ready"
     );
     if (ready.length === 0) return { status: "nothing-ready" };
+    readyCount = ready.length;
 
     // An embedded wallet has no batching: the queue sends its items one at a time.
     if (sender.authMode === "embedded") {
