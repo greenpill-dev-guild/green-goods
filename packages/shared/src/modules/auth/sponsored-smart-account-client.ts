@@ -10,8 +10,8 @@ import {
 
 /**
  * The one way a Green Goods smart account sends: Pimlico's bundler, Pimlico's paymaster under
- * the chain's sponsorship policy, and Pimlico's fast gas price. Passkey accounts and email or
- * SMS accounts differ only in the owner that signs; the account builds the same client.
+ * the chain's sponsorship policy, and Pimlico's fast gas price. Passkey and email accounts
+ * differ only in the owner that signs; the account builds the same client.
  */
 export function createSponsoredSmartAccountClient(
   account: SmartAccount,

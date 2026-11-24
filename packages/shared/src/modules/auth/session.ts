@@ -192,7 +192,7 @@ export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 export const WALLET_ADDRESS_STORAGE_KEY = "greengoods_wallet_address";
 
 /**
- * The open email or SMS account (owner, smart account, method, the email or number). Kept
+ * The open email account (owner, smart account, method and email). Kept
  * here, not beside its reader in `openfort-account`, so sign-out clears it without loading the
  * Kernel library.
  */
@@ -402,7 +402,7 @@ export function hasSessionRestoreEvidence(storage?: Pick<SessionStorage, "getIte
 /**
  * The storage a local sign-out clears.
  *
- * Auth mode and the addresses a restore would read back go, the email or SMS
+ * Auth mode and the addresses a restore would read back go, the email
  * account's record with them. Passkey recovery
  * metadata stays: the username, credential and expected address are the
  * same-device fallback that powers one-tap re-login. The signed-out sentinel

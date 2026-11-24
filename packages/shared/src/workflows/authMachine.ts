@@ -1,5 +1,5 @@
 /**
- * XState auth transitions keep passkey, email or SMS, and wallet identities mutually exclusive.
+ * XState auth transitions keep passkey, email and wallet identities mutually exclusive.
  * External wallet events are always received; switching the primary identity is explicit.
  * Session replacement and sign-out revoke chain-client resolvers before clearing credentials.
  * Stored recovery metadata supports restoring wallet/embedded connectors and passkey sessions.
@@ -137,9 +137,10 @@ const authSetup = setup({
       };
     }),
 
-    /** Store wallet address as primary auth */
+    /** Store wallet address as primary auth; a wallet session is not an email one. */
     storeWalletAuth: assign({
       walletAddress: ({ context }) => context.externalWalletAddress,
+      openfortMethod: null,
       error: null,
     }),
 
@@ -148,6 +149,7 @@ const authSetup = setup({
       const e = event as { type: "LOGIN_EMBEDDED"; address: Hex };
       return {
         embeddedAddress: e.address,
+        openfortMethod: null,
         error: null,
       };
     }),
@@ -165,7 +167,7 @@ const authSetup = setup({
 
     /** Store userName for registration/login */
     storeUserName: assign({
-      // A passkey attempt is not an email or SMS one, whatever came before it.
+      // A passkey attempt is not an email one, whatever came before it.
       openfortMethod: null,
       originalAccount: ({ event }) => "originalAccount" in event && event.originalAccount === true,
       createIfMissing: ({ event }) => "createIfMissing" in event && event.createIfMissing === true,

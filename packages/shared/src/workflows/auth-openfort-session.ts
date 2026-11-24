@@ -20,7 +20,7 @@ import {
   setStoredOpenfortAccount,
 } from "../modules/auth/openfort-account";
 import { defaultOpenfortWallet, type OpenfortWallet } from "../modules/auth/openfort-wallet";
-import { getAuthMode, type SessionStorage } from "../modules/auth/session";
+import { clearAuthMode, getAuthMode, type SessionStorage } from "../modules/auth/session";
 import { guardSessionCommit } from "../modules/auth/sessionSignOut";
 import { createSmartAccountClientResolver } from "../modules/auth/smartAccountClientResolver";
 import { createSponsoredSmartAccountClient } from "../modules/auth/sponsored-smart-account-client";
@@ -139,7 +139,17 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
       const assertActive = guardSessionCommit(signal);
       if (getAuthMode(storage) !== "openfort") return null;
       const record = getStoredOpenfortAccount(storage);
-      if (!record) return null;
+      if (!record) {
+        // The page closed after the code was accepted and before the account opened: end the
+        // Openfort session that sign-in left, so the next person on this phone starts clean.
+        clearAuthMode(storage);
+        await wallet
+          .signOut()
+          .catch((error: unknown) =>
+            logger.warn("[Auth] Openfort sign-out after an unfinished sign-in failed", { error })
+          );
+        return null;
+      }
       // Openfort signed out elsewhere (another tab, an expired session): this device is too.
       // If the wallet cannot even load, offline, the record still opens the account to read and
       // queue work; the first signature reconnects or asks to sign in again.
@@ -149,6 +159,7 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
       });
       if (!stored) {
         clearStoredOpenfortAccount(storage);
+        clearAuthMode(storage);
         return null;
       }
       try {

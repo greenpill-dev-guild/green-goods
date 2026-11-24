@@ -82,7 +82,7 @@ function isAppKitEmbeddedConnector(connector?: { id?: string } | null): boolean 
 export interface AuthProviderProps {
   children: React.ReactNode;
   adapters?: PasskeyAdapters;
-  /** Email and SMS sessions; tests and stories pass their own. */
+  /** Email sessions; tests and stories pass their own. */
   openfort?: OpenfortSessionServices;
 }
 

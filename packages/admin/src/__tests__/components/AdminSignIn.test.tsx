@@ -199,7 +199,7 @@ describe("AdminSignIn", () => {
     unmount();
 
     const ways = controller({ mode: "otherWays", codeSignIn: codeSignIn({ enabled: true }) });
-    render(<AdminSignIn controller={ways} />);
+    const second = render(<AdminSignIn controller={ways} />);
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Sign in with Email",
       "Sign in with a Wallet",
@@ -207,6 +207,12 @@ describe("AdminSignIn", () => {
     ]);
     await userEvent.click(screen.getByRole("button", { name: "Sign in with Email" }));
     expect(ways.changeMode).toHaveBeenCalledWith("code");
+    second.unmount();
+
+    // A wallet that did not open says so here too, as on the entry.
+    const failed = "Your wallet app didn't open. Try again, or sign in with a passkey.";
+    render(<AdminSignIn controller={{ ...ways, error: failed }} />);
+    expect(screen.getByRole("alert")).toHaveTextContent(failed);
   });
 
   it("sends a code to the typed email, then signs in with the code", async () => {

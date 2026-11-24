@@ -112,7 +112,12 @@ export function createOpenfortRecovery(config: OpenfortRecoveryConfig): Openfort
       } | null;
       const userId = response.ok && body?.session ? body.user?.id : undefined;
       if (typeof userId !== "string" || userId.length === 0) {
-        throw new OpenfortRecoveryError("session_invalid", "Openfort did not accept the session");
+        // A refusal status (not the 200 a bad token gets) points at this agent's configuration.
+        throw new OpenfortRecoveryError(
+          "session_invalid",
+          "Openfort did not accept the session",
+          response.ok ? undefined : response.status
+        );
       }
       return { userId };
     },

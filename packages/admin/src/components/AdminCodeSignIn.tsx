@@ -48,12 +48,17 @@ export function AdminCodeSignIn({ controller }: { controller: AdminLoginControll
           </ConnectButton>
         }
         feedback={
-          <p className="type-body text-text-sub">
-            {formatMessage({
-              id: "app.login.otherWays.info",
-              defaultMessage: "Sharing this phone? Each person signs in with their own email.",
-            })}
-          </p>
+          <>
+            <p role="alert" className="type-body text-error-dark">
+              {controller.error && !controller.isSigningIn ? controller.error : null}
+            </p>
+            <p className="type-body text-text-sub">
+              {formatMessage({
+                id: "app.login.otherWays.info",
+                defaultMessage: "Sharing this phone? Each person signs in with their own email.",
+              })}
+            </p>
+          </>
         }
         navigation={
           <Button

@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 /**
- * Email and SMS sessions: what a code sign-in stores, what a reload reopens, how the wallet is
+ * Email sessions: what a code sign-in stores, what a reload reopens, how the wallet is
  * recovered through the agent, and that nothing signs as the wrong person on a shared phone.
  */
 
@@ -52,7 +52,7 @@ import {
   OpenfortRecoveryUnavailableError,
   type OpenfortWallet,
 } from "../../modules/auth/openfort-wallet";
-import { setAuthMode } from "../../modules/auth/session";
+import { getAuthMode, setAuthMode } from "../../modules/auth/session";
 import { publishSignOut } from "../../modules/auth/sessionSignOut";
 import {
   createOpenfortSessionServices,
@@ -121,7 +121,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-describe("email and SMS sign-in", () => {
+describe("email sign-in", () => {
   it("verifies the code, recovers the wallet and keeps a record of whose account opened", async () => {
     const wallet = fakeWallet();
     const session = await run<any>(services(wallet).authenticateOpenfort, signIn);
@@ -192,6 +192,14 @@ describe("email and SMS sign-in", () => {
     ).resolves.toBeNull();
     expect(getStoredOpenfortAccount()).toBeNull();
     await expect(run(restoreOpenfort, { chainId: CHAIN_ID })).resolves.toBeNull();
+  });
+
+  it("ends the Openfort session a sign-in left when the page closed before the account opened", async () => {
+    setAuthMode("openfort");
+    const wallet = fakeWallet();
+    await expect(run(services(wallet).restoreOpenfort, { chainId: CHAIN_ID })).resolves.toBeNull();
+    expect(wallet.signOut).toHaveBeenCalledTimes(1);
+    expect(getAuthMode()).toBeNull();
   });
 
   it("normalizes what was typed so the same person always reaches the same account", () => {

@@ -64,7 +64,7 @@ describe("createTransactionSender", () => {
       expect(sender.supportsSponsorship).toBe(true);
     });
 
-    it("sends an email or SMS account through the same sponsored smart-account sender", () => {
+    it("sends an email account through the same sponsored smart-account sender", () => {
       const sender = createTransactionSender({
         authMode: "openfort",
         smartAccountClient: mockSmartAccountClient,

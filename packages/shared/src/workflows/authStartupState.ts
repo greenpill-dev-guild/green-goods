@@ -87,7 +87,7 @@ export const authStartupStates = {
           },
         },
       },
-      // An email or SMS session reopens from this device's record, without the network.
+      // An email session reopens from this device's record, without the network.
       openfort: {
         invoke: {
           src: "restoreOpenfort",

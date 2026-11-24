@@ -19,7 +19,7 @@ import { WalletSender } from "./wallet-sender";
 import { withBatchRecovery } from "./batch-service";
 
 export interface TransactionSenderOptions {
-  /** The session's mode. Email and SMS accounts ("openfort") send like passkeys. */
+  /** The session's mode. Email accounts ("openfort") send like passkeys. */
   authMode: "passkey" | "openfort" | "embedded" | "wallet";
   smartAccountClient?: SmartAccountClient | null;
   resolveSmartAccountClient?: SmartAccountClientResolver | null;
