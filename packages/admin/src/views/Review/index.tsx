@@ -62,6 +62,7 @@ export default function ReviewView() {
         selectedWork={review.selectedWork}
         // A day opened from the calendar knows which works' statuses it could not read.
         unknownWorkIds={review.workDay ? review.workDayUnknownIds : undefined}
+        dayStatusUnread={!review.workDayStatusKnown}
         selectedCertification={review.selectedCertification}
         isResolvingSelection={
           review.worksLoading ||

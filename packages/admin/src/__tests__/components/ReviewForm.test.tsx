@@ -6,6 +6,7 @@ import type { Address, Work } from "@green-goods/shared/types/domain";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { reviewFormState } from "@/views/Garden/WorkDetail/helpers";
 import { ReviewForm } from "@/views/Garden/WorkDetail/ReviewForm";
 import { renderWithProviders as render } from "../test-utils";
 
@@ -627,10 +628,24 @@ describe("ReviewForm", () => {
   it("offers no decision on a work whose status could not be read, since it may be decided", () => {
     renderReviewForm(TEST_WORK, undefined, true);
 
-    expect(screen.getByText("Status could not be read")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Status not known");
     expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
-    expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("keeps a decided work's summary even when the day could not read its status", () => {
+    const decided = {
+      isReviewed: true,
+      isStatusUnread: true,
+      isHeld: false,
+      isStaged: false,
+      isOwnSubmission: false,
+      isActionExpired: false,
+      canReview: true,
+      canApproveOrReject: true,
+    };
+    expect(reviewFormState(decided)).toBe("reviewed");
+    expect(reviewFormState({ ...decided, isReviewed: false })).toBe("status-unread");
   });
 
   it("shows the named submitter’s full account address in both decision surfaces", () => {

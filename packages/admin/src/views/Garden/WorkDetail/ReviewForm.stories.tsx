@@ -204,7 +204,7 @@ export const StatusUnread: Story = {
   args: { statusUnread: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Status could not be read")).toBeVisible();
+    await expect(canvas.getByText("Status not known")).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Approve" })).toBeNull();
     await expect(canvas.queryByRole("button", { name: "Reject" })).toBeNull();
   },

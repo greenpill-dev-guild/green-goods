@@ -26,6 +26,8 @@ interface ReviewSheetDescriptorProps {
   selectedWork: Work | undefined;
   /** On a Review day: works whose decisions could not be read, so none can be decided yet. */
   unknownWorkIds?: ReadonlySet<string>;
+  /** On a Review day whose statuses are not read yet, or could not be read: none is known. */
+  dayStatusUnread?: boolean;
   selectedCertification: ReviewAssessmentRecord | undefined;
   isResolvingSelection: boolean;
   canManage: boolean;
@@ -75,6 +77,7 @@ export function ReviewSheetDescriptor({
   activeWorkDetailId,
   selectedWork,
   unknownWorkIds,
+  dayStatusUnread = false,
   selectedCertification,
   isResolvingSelection,
   canManage,
@@ -118,7 +121,7 @@ export function ReviewSheetDescriptor({
         content: (
           <WorkDetailPanel
             workId={sheetSelection.id}
-            statusUnread={unknownWorkIds?.has(sheetSelection.id) ?? false}
+            statusUnread={dayStatusUnread || (unknownWorkIds?.has(sheetSelection.id) ?? false)}
             layout="sheet"
             onSuccess={handlePanelClose}
           />
@@ -170,6 +173,7 @@ export function ReviewSheetDescriptor({
     selectedCertification,
     selectedWork,
     unknownWorkIds,
+    dayStatusUnread,
   ]);
 
   const routeBackedSheetConfig = useMemo(

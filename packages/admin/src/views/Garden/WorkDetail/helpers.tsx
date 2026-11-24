@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import {
@@ -40,14 +41,16 @@ const BLOCKED_NOTICES = {
   // Its decisions could not be read, so it may be decided already.
   "status-unread": {
     tone: "warning",
+    // It can appear after the form, once a day's read lands, so it is announced.
+    alert: true,
     title: {
       id: "app.work.detail.reviewBlocked.statusUnreadTitle",
-      defaultMessage: "Status could not be read",
+      defaultMessage: "Status not known",
     },
     message: {
       id: "app.work.detail.reviewBlocked.statusUnreadMessage",
       defaultMessage:
-        "This work's decisions could not be read, so it may already be decided. Approve and Reject come back once its status is read.",
+        "This work's decisions are not read yet, or could not be read, so it may already be decided. Approve and Reject come back once its status is read. Refresh to read it again.",
     },
   },
   "self-review": {
@@ -85,7 +88,7 @@ const BLOCKED_NOTICES = {
 type BlockedNoticeState = keyof typeof BLOCKED_NOTICES;
 
 export function isBlockedNoticeState(state: string): state is BlockedNoticeState {
-  return state in BLOCKED_NOTICES;
+  return Object.hasOwn(BLOCKED_NOTICES, state);
 }
 
 /** The notice the review form shows in place of a decision it cannot offer. */
@@ -93,6 +96,13 @@ export function ReviewBlockedNotice({ state }: { state: BlockedNoticeState }) {
   const { formatMessage } = useIntl();
   const notice = BLOCKED_NOTICES[state];
   const tone = NOTICE_TONE[notice.tone];
+  if ("alert" in notice) {
+    return (
+      <Alert variant={notice.tone} title={formatMessage(notice.title)} className="mt-4">
+        {formatMessage(notice.message)}
+      </Alert>
+    );
+  }
   return (
     <div className={`mt-4 rounded-xl border p-4 ${tone.box}`}>
       <p className={`type-body font-medium ${tone.ink}`}>{formatMessage(notice.title)}</p>

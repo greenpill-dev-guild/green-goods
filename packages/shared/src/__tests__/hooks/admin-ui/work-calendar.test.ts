@@ -279,6 +279,20 @@ describe("Show Whole Day on a Review day", () => {
     expect(parseWorkScope(undefined, true)).toBe("all");
   });
 
+  it("knows no status of the day until its read lands, so nothing can be decided from it", () => {
+    rangeRead.current = { ...rangeRead.current, hasRead: false, isPaused: true };
+    const { result } = renderHook(() =>
+      useReviewWorkDay({
+        gardenId: "0xgarden",
+        day: "2026-11-20",
+        workScope: "all",
+        updateSearch: vi.fn(),
+      })
+    );
+    expect(result.current.workDayStatusKnown).toBe(false);
+    rangeRead.current = { ...rangeRead.current, hasRead: true, isPaused: false };
+  });
+
   it("is not offered off a day", () => {
     const { result } = renderHook(() =>
       useReviewWorkDay({
