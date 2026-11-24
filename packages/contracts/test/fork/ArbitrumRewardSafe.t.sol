@@ -110,6 +110,9 @@ contract ArbitrumRewardSafeForkTest is Test {
     address private immutable stewardB = vm.addr(0xB0B);
     address private constant RECIPIENT_ONE = address(0x7001);
     address private constant RECIPIENT_TWO = address(0x7002);
+    /// @dev The scenarios deploy under their own salt, so they keep working once the planned gate is live.
+    uint256 private constant REHEARSAL_SALT = uint256(keccak256("GG_GARDEN_REWARD_SAFE_REHEARSAL"));
+    bytes private initializer;
 
     function setUp() public {
         string memory rpc = "https://arb1.arbitrum.io/rpc";
@@ -139,14 +142,18 @@ contract ArbitrumRewardSafeForkTest is Test {
             hsgGuard: address(0),
             hsgModules: new address[](0)
         });
-        uint256 saltNonce = uint256(keccak256(abi.encode("GG_GARDEN_REWARD_SAFE_V1", uint256(42_161), TECH_AND_SUN)));
+        initializer = abi.encodeWithSignature("setUp(bytes)", abi.encode(params));
         vm.prank(DEPLOYER);
         gate = IRewardSafeGate(
-            IModuleProxyFactory(MODULE_FACTORY)
-                .deployModule(HSG_IMPLEMENTATION, abi.encodeWithSignature("setUp(bytes)", abi.encode(params)), saltNonce)
+            IModuleProxyFactory(MODULE_FACTORY).deployModule(HSG_IMPLEMENTATION, initializer, REHEARSAL_SALT)
         );
-        assertEq(address(gate), PLANNED_GATE, "the release plan's predicted gate");
+        assertEq(address(gate), _create2Gate(REHEARSAL_SALT), "the factory deploys where CREATE2 says");
         safe = IRewardSafe(gate.safe());
+    }
+
+    function testArbitrumRewardSafe_thePlannedGateIsWhereTheFactoryPutsTechAndSunsSetup() public {
+        uint256 releaseSalt = uint256(keccak256(abi.encode("GG_GARDEN_REWARD_SAFE_V1", uint256(42_161), TECH_AND_SUN)));
+        assertEq(_create2Gate(releaseSalt), PLANNED_GATE, "the release plan's predicted gate");
     }
 
     function testArbitrumRewardSafe_createsALockedHatGatedSafeThatBatchesOnlyThroughCallOnlyMultisend() public {
@@ -230,6 +237,15 @@ contract ArbitrumRewardSafeForkTest is Test {
         vm.prank(stewardA);
         assertTrue(_exec(data, _signatures(stewardA, address(0))));
         assertEq(IUsdc(USDC).balanceOf(RECIPIENT_ONE), 12e6);
+    }
+
+    /// @dev The Zodiac factory's CREATE2: its minimal proxy to the gate, salted by the setup and the nonce.
+    function _create2Gate(uint256 saltNonce) private view returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(keccak256(initializer), saltNonce));
+        bytes memory proxy = abi.encodePacked(
+            hex"602d8060093d393df3363d3d373d3d3d363d73", HSG_IMPLEMENTATION, hex"5af43d82803e903d91602b57fd5bf3"
+        );
+        return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), MODULE_FACTORY, salt, keccak256(proxy))))));
     }
 
     function _seat(address steward) private {

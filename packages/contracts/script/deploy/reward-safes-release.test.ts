@@ -56,7 +56,7 @@ describe("garden reward Safe release", () => {
       ZeroAddress,
       [],
     ]);
-    // test/fork/ArbitrumRewardSafe.t.sol deploys this setup through the live factory and finds its gate here.
+    // test/fork/ArbitrumRewardSafe.t.sol computes the same address and deploys by the same formula through the live factory.
     expect(call.gate).toBe("0x0BF6DB5F18962B54b6EAF13bAc1aaFCCF7FDD431");
     expect(
       rewardSafeCall(5, "0xbcCE994513615988690aBCA373B1368218E4957C", OWNER_HAT + 1n, STEWARD_HAT + 1n).gate,
