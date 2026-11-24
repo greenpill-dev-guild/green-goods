@@ -508,6 +508,29 @@ describe("useBatchWorkApproval", () => {
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: worksKeys.merged(other, chainId) });
   });
 
+  it("keeps rereading the garden a send landed in after another garden opens", async () => {
+    const { decide, garden, landed, listWorks, queryClient } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    landed(decision);
+    const readiness = gardensKeys.memberReadinessForGarden(garden, chainId);
+    const { result, rerender } = renderHookWithProviders(
+      ({ open }: { open: Address }) => useBatchWorkApproval(open),
+      { queryClient, initialProps: { open: garden } }
+    );
+
+    await act(() => result.current.send([decision]));
+    rerender({ open: random(20) as Address });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+
+    // The first indexer follow-up fires after the switch and still rereads the send's garden.
+    await waitFor(
+      () =>
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: readiness }, { cancelRefetch: false }),
+      { timeout: 4_000 }
+    );
+  });
+
   it("lets go of a decision whose held send turned out to revert", async () => {
     const { decide, listWorks, workOf, sender, render } = setup({});
     const decision = decide();

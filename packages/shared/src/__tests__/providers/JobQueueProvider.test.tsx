@@ -655,6 +655,13 @@ describe("providers/JobQueueProvider", () => {
           queryKey: queryKeys.approvals.all,
         });
       });
+      // The decision lands only now, so the Gardeners view's readiness is read again too.
+      await waitFor(() => {
+        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(
+          { queryKey: queryKeys.gardens.memberReadinessForGarden("0xgarden", 11155111) },
+          { cancelRefetch: false }
+        );
+      });
     });
 
     it("re-reads the commitment data when a background commitment act lands", async () => {

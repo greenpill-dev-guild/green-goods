@@ -6,6 +6,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { batchKeys, gardensKeys } from "../../config/query-keys/garden";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
+import { refreshApprovalReads } from "../../modules/work/approval-read-refresh";
 import { track } from "../../modules/app/posthog";
 import { isBatchEnabled } from "../../modules/transactions/batch-enablement";
 import type { OverlayWork } from "../../modules/work/local-status-overlay";
@@ -176,7 +177,7 @@ export function useBatchWorkApproval(
       );
       // TanStack hands a running mutation each later render's callbacks, so what a send has to
       // finish in comes from here: the garden and account it started in.
-      return { clearOverlay, refreshWorks, holdKey, rail, gardenAddress };
+      return { clearOverlay, refreshWorks, holdKey, rail, gardenAddress, chainId };
     },
     mutationFn: async ({ decisions, perSignature }: ReviewSend): Promise<ReviewBatchOutcome> => {
       let started = false;
@@ -229,6 +230,16 @@ export function useBatchWorkApproval(
           tx_hash: sent[0].transactionHash,
         });
         scheduleFollowUp();
+        // The follow-ups above reread whichever garden is open when they fire. These stay with
+        // the garden the send started in, so its readiness and days catch up with the indexer.
+        for (const { workUID } of sent) {
+          refreshApprovalReads(
+            queryClient,
+            started.chainId,
+            { gardenId: started.gardenAddress, workUID },
+            true
+          );
+        }
       }
       const reconnectRefused = failure instanceof WalletReconnectRequiredError;
       if (unknown.length > 0 || refused.length > 0 || (failure && !reconnectRefused)) {

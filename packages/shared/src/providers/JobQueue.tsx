@@ -8,6 +8,7 @@ import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
 import { queryInvalidation } from "../config/query-keys/invalidation";
+import { refreshApprovalReads } from "../modules/work/approval-read-refresh";
 import { draftsKeys, queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
 import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
@@ -236,6 +237,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
           });
         }
         queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
+        // A queued decision lands only now: reread what it changes, Gardeners readiness and the
+        // calendar's days included, with the indexer-lag follow-ups.
+        refreshApprovalReads(
+          queryClient,
+          (event.job.chainId as number) || DEFAULT_CHAIN_ID,
+          { gardenId: approvalPayload.gardenAddress, workUID: approvalPayload.workUID },
+          true
+        );
 
         // Update work status in cache if available
         const workUID = approvalPayload.workUID;
