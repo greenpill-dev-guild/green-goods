@@ -15,6 +15,7 @@ import {
 } from "viem";
 import SourceABI from "@green-goods/contracts/abis/VoucherRedemptionModule.json";
 import { createServiceIssuerOperations } from "../modules/commitment-pooling/service-issuer-operations";
+import { serviceActorAccountSupported } from "../modules/commitment-pooling/service-actor-session";
 import {
   issuerDeserialize,
   issuerSerialize,
@@ -951,6 +952,18 @@ describe("member-owned service operations", () => {
     expect(review.call.functionName).toBe("approve");
     expect(review.call.args).toEqual([f.route.adapter.address, 0n]);
   });
+  it("admits only the pilot's accounts: a member wallet or a pilot passkey, not yet an email account", () => {
+    expect(serviceActorAccountSupported({ authMode: "wallet", profile: null })).toBe(true);
+    expect(
+      serviceActorAccountSupported({ authMode: "passkey", profile: "kernel-0.3.3-pilot" })
+    ).toBe(true);
+    expect(
+      serviceActorAccountSupported({ authMode: "passkey", profile: "kernel-0.3.1-legacy" })
+    ).toBe(false);
+    // Email accounts sign with an ECDSA owner the service pilot has not proven onchain yet.
+    expect(serviceActorAccountSupported({ authMode: "openfort", profile: null })).toBe(false);
+  });
+
   it("retains wallet fallback checks when mutable auth mode is temporarily changed during ownership", async () => {
     const f = fixture();
     const original = f.sender.assertOwnership!;
