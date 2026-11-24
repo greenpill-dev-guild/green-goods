@@ -430,7 +430,8 @@ export function CeremonyView(props: CeremonyViewProps) {
           flow={
             joinScreen
               ? // A chat that is linked already has no code to send after joining.
-                `${stage === "linked" ? "joined" : "join"}${props.accountKind === "passkey" ? "Free" : "Paid"}`
+                // Passkey and email accounts are sponsored; only a wallet pays its own fee.
+                `${stage === "linked" ? "joined" : "join"}${props.accountKind === "passkey" || props.accountKind === "openfort" ? "Free" : "Paid"}`
               : screen.isLink
                 ? "link"
                 : "any"

@@ -48,7 +48,10 @@ import {
   serviceIssuerDelistingRecord,
   serviceIssuerGovernanceDrafts,
 } from "../modules/commitment-pooling/service-issuer-governance";
-import { assertServiceActor } from "../modules/commitment-pooling/service-actor-session";
+import {
+  assertServiceActor,
+  serviceActorAccountSupported,
+} from "../modules/commitment-pooling/service-actor-session";
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import { discoverIssuerVoucherSetups } from "../modules/commitment-pooling/data-voucher-service";
 
@@ -951,6 +954,18 @@ describe("member-owned service operations", () => {
     expect(review.call.functionName).toBe("approve");
     expect(review.call.args).toEqual([f.route.adapter.address, 0n]);
   });
+  it("admits only the pilot's accounts: a member wallet or a pilot passkey, not yet an email account", () => {
+    expect(serviceActorAccountSupported({ authMode: "wallet", profile: null })).toBe(true);
+    expect(
+      serviceActorAccountSupported({ authMode: "passkey", profile: "kernel-0.3.3-pilot" })
+    ).toBe(true);
+    expect(
+      serviceActorAccountSupported({ authMode: "passkey", profile: "kernel-0.3.1-legacy" })
+    ).toBe(false);
+    // Email accounts sign with an ECDSA owner the service pilot has not proven onchain yet.
+    expect(serviceActorAccountSupported({ authMode: "openfort", profile: null })).toBe(false);
+  });
+
   it("retains wallet fallback checks when mutable auth mode is temporarily changed during ownership", async () => {
     const f = fixture();
     const original = f.sender.assertOwnership!;

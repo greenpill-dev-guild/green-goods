@@ -718,6 +718,7 @@
         "packages/agent/package.json",
         "packages/agent/src/api/funding/routes.ts",
         "packages/agent/src/api/routes/garden-join-requests.ts",
+        "packages/agent/src/api/routes/openfort-recovery.ts",
         "packages/agent/src/api/routes/passkey-directory.ts",
         "packages/agent/src/api/routes/profile-avatars.ts",
         "packages/agent/src/api/routes/public-commitment-impact.ts",

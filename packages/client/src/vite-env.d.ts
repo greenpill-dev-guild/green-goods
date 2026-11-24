@@ -15,6 +15,9 @@ interface ImportMetaEnv {
   readonly VITE_PIMLICO_API_KEY?: string;
   readonly VITE_PASSKEY_RP_ID?: string;
   readonly VITE_PASSKEY_SERVER_ENABLED?: string;
+  readonly VITE_OPENFORT_SIGN_IN_ENABLED?: string;
+  readonly VITE_OPENFORT_PUBLISHABLE_KEY?: string;
+  readonly VITE_OPENFORT_SHIELD_PUBLISHABLE_KEY?: string;
   readonly VITE_ALCHEMY_API_KEY?: string;
   readonly VITE_ENVIO_INDEXER_URL: string;
   readonly VITE_ENABLE_SW_DEV?: string;

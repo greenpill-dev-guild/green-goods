@@ -1,3 +1,4 @@
+import type { AuthMode } from "../../types/auth";
 import { queuedOutcome, submitAdmittedWork, uncheckedOutcome } from "./admitted-submission";
 import { connectivityStore } from "../../stores/connectivity";
 import { jobQueueDB } from "../job-queue/db";
@@ -34,7 +35,7 @@ export interface SubmitWorkCommand {
   onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
   /** Supplied by a resumed journey; otherwise generated once before choosing a transport. */
   clientWorkId?: string;
-  authMode: "wallet" | "passkey" | "embedded" | null;
+  authMode: AuthMode;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];

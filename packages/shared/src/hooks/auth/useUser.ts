@@ -30,7 +30,7 @@
  * ```
  */
 
-import type { SmartAccountClientResolver, WalletRestoreState } from "../../types/auth";
+import type { AuthMode, SmartAccountClientResolver, WalletRestoreState } from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import { useAuth } from "./useAuth";
 import type { Address } from "../../types/domain";
@@ -59,7 +59,7 @@ export interface UseUserReturn {
   smartAccountClient: SmartAccountClient | null;
   resolveSmartAccountClient: SmartAccountClientResolver | null;
   /** Current authentication mode */
-  authMode: "wallet" | "passkey" | "embedded" | null;
+  authMode: AuthMode;
   /** Passkey username (only set when authMode === "passkey") */
   userName: string | null;
   /** ENS name for the primary address - REMOVED to fix QueryClient error */

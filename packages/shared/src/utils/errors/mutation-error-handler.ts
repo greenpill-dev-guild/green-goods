@@ -7,6 +7,7 @@
  * @module utils/errors/mutation-error-handler
  */
 
+import type { AuthMode } from "../../types/auth";
 import { type FormatMessageFn, toastService, walletProgressToasts } from "../../components/toast";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { DEBUG_ENABLED, debugError } from "../../utils/debug";
@@ -26,11 +27,11 @@ export interface MutationErrorHandlerConfig {
   /** Analytics tracking function */
   trackError?: (error: string, metadata?: Record<string, unknown>) => void;
   /** Get fallback message based on auth mode */
-  getFallbackMessage?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
+  getFallbackMessage?: (authMode: AuthMode) => string;
   /** Get fallback description based on auth mode */
-  getFallbackDescription?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
+  getFallbackDescription?: (authMode: AuthMode) => string;
   /** Get fallback toast title (e.g. localized); defaults to "<toastContext> failed" */
-  getFallbackTitle?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
+  getFallbackTitle?: (authMode: AuthMode) => string;
   /** Use wallet progress toast style for wallet mode */
   useWalletProgressToast?: boolean;
   /**
@@ -46,7 +47,7 @@ export interface MutationErrorHandlerConfig {
  */
 export interface MutationErrorContext {
   /** Current authentication mode */
-  authMode?: "wallet" | "passkey" | "embedded" | null;
+  authMode?: AuthMode;
   /** Garden address for tracking */
   gardenAddress?: string | null;
   /** Additional metadata for tracking */

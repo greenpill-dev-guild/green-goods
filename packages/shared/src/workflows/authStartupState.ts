@@ -17,6 +17,7 @@ export const authStartupStates = {
         },
         { guard: "hasRestoringWallet", target: "restoring.wallet" },
         { guard: "hasRestoringEmbedded", target: "restoring.embedded" },
+        { guard: "hasRestoringOpenfort", target: "restoring.openfort" },
         { target: "unauthenticated" },
       ],
       onError: [
@@ -28,6 +29,11 @@ export const authStartupStates = {
         {
           guard: "hasRestoringEmbedded",
           target: "restoring.embedded",
+          actions: "clearError",
+        },
+        {
+          guard: "hasRestoringOpenfort",
+          target: "restoring.openfort",
           actions: "clearError",
         },
         { target: "unauthenticated", actions: "clearError" },
@@ -75,6 +81,28 @@ export const authStartupStates = {
             target: "#auth.unauthenticated",
             actions: "clearEmbeddedAuth",
           },
+          SIGN_OUT: {
+            target: "#auth.unauthenticated",
+            actions: "clearAllAuthState",
+          },
+        },
+      },
+      // An email session reopens from this device's record, without the network.
+      openfort: {
+        invoke: {
+          src: "restoreOpenfort",
+          input: ({ context }: { context: { chainId: number } }) => ({ chainId: context.chainId }),
+          onDone: [
+            {
+              guard: "openfortRestored",
+              target: "#auth.authenticated.openfort",
+              actions: "storeOpenfortSession",
+            },
+            { target: "#auth.unauthenticated" },
+          ],
+          onError: { target: "#auth.unauthenticated", actions: "clearError" },
+        },
+        on: {
           SIGN_OUT: {
             target: "#auth.unauthenticated",
             actions: "clearAllAuthState",

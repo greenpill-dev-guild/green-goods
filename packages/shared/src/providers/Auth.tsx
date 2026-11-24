@@ -22,7 +22,6 @@ import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
 import { useJoinRequestCountGrantStore } from "../stores/useJoinRequestCountGrantStore";
 import {
-  type AuthMode,
   clearSessionForSignOut,
   clearStoredWalletAddress,
   clearStoredCredential,
@@ -34,10 +33,15 @@ import {
   setEmbeddedAddress,
   setStoredWalletAddress,
 } from "../modules/auth/session";
+import {
+  openfortSessionServices,
+  type OpenfortSessionServices,
+} from "../workflows/auth-openfort-session";
 import { defaultPasskeyAdapters, type PasskeyAdapters } from "../workflows/auth-passkey-adapters";
 import type { AuthActor } from "../workflows/authActor";
 import type { WalletConnectionType } from "../workflows/authMachine";
 import { createPilotAccountEnrollment } from "../modules/auth/pilot-account-enrollment";
+import { deriveAuthSnapshotState } from "./authSnapshotState";
 import {
   AuthStateContext,
   AuthActionsContext,
@@ -78,9 +82,12 @@ function isAppKitEmbeddedConnector(connector?: { id?: string } | null): boolean 
 export interface AuthProviderProps {
   children: React.ReactNode;
   adapters?: PasskeyAdapters;
+  /** Email sessions; tests and stories pass their own. */
+  openfort?: OpenfortSessionServices;
 }
 
-export function AuthProvider({ children, adapters }: AuthProviderProps) {
+export function AuthProvider({ children, adapters, openfort }: AuthProviderProps) {
+  const openfortServices = openfort ?? openfortSessionServices;
   const wagmiConfig = useConfig();
   const {
     address: wagmiWalletAddress,
@@ -93,7 +100,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const walletAnswered =
     isConnected && wagmiConfig.connectors.some((c) => c.uid === connector?.uid);
 
-  const actor = useAuthActor(adapters);
+  const actor = useAuthActor(adapters, openfort);
   const pilotEnrollment = useMemo(
     () =>
       createPilotAccountEnrollment({
@@ -335,6 +342,15 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     // Sign out locally at once; a wallet session also lets go of its wallet,
     // without waiting, so the next wallet login asks for a wallet again.
     releaseWallet(session);
+    // An email session also ends at Openfort and flushes this device's signer, so the
+    // next person on a shared phone starts from nothing. It completes locally even offline.
+    if (session.openfortMethod) {
+      void openfortServices
+        .signOutOpenfort()
+        .catch((error: unknown) =>
+          logger.warn("[AuthProvider] Openfort sign-out did not complete", { error })
+        );
+    }
     if (manualWalletLoginPendingRef.current || isConnecting) void getAppKit()?.close();
     walletRestore.clear();
     // The one join-request credential a browser keeps ends with the session.
@@ -354,7 +370,15 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         (group === "workApprovals" && source === "offline"),
     });
     queryClient.getMutationCache().clear();
-  }, [actor, walletRestore, releaseWallet, cancelDeferredLogin, isConnecting, pilotEnrollment]);
+  }, [
+    actor,
+    walletRestore,
+    releaseWallet,
+    cancelDeferredLogin,
+    isConnecting,
+    pilotEnrollment,
+    openfortServices,
+  ]);
 
   const { syncSignOut, notifySignOut } = useCrossTabSignOut(
     endSession,
@@ -501,6 +525,29 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     getAppKit()?.open();
   }, [actor, walletAnswered, wagmiWalletAddress, connector, afterWalletRelease, syncSignOut]);
 
+  const requestSignInCode = useCallback(
+    async (email: string) => {
+      syncSignOut();
+      await openfortServices.requestCode(email);
+    },
+    [openfortServices, syncSignOut]
+  );
+
+  const loginWithCode = useCallback(
+    async (email: string, code: string) => {
+      if (!actor) return;
+      syncSignOut();
+      const generation = loginGenerationRef.current;
+      cancelDeferredLogin(); // A code sign-in drops any wallet login still waiting.
+      if (isConnected) await disconnectWallet();
+      syncSignOut();
+      if (generation !== loginGenerationRef.current) return;
+      actor.send({ type: "LOGIN_OPENFORT", email, code });
+      saveAuthModeToStorage("openfort");
+    },
+    [actor, isConnected, disconnectWallet, cancelDeferredLogin, syncSignOut]
+  );
+
   const switchToWallet = useCallback(() => {
     if (!actor) return;
     pilotEnrollment.cancel();
@@ -561,83 +608,23 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     manualWalletLoginPendingRef.current = false;
   }, [actor]);
 
-  const computedValues = useMemo(() => {
-    if (!snapshot) {
-      return {
-        authMode: null as AuthMode,
-        isReady: false,
-        isAuthenticated: false,
-        isAuthenticating: false,
-        error: null,
-        credential: null,
-        smartAccountAddress: null,
-        passkeyAccountProfile: null,
-        smartAccountClient: null,
-        resolveSmartAccountClient: null,
-        userName: null,
-        hasStoredCredential: false,
-        walletAddress: null,
-        embeddedAddress: null,
-        externalWalletConnected: false,
-        externalWalletAddress: null,
-      };
-    }
+  const computedValues = useMemo(
+    () =>
+      deriveAuthSnapshotState(snapshot, {
+        walletRestore: walletRestore.state,
+        isConnecting,
+        walletModalOpen,
+        hasStoredCredential: storedCredential,
+      }),
+    [snapshot, walletRestore.state, isConnecting, walletModalOpen, storedCredential]
+  );
 
-    // Determine auth mode from state
-    let authMode: AuthMode = null;
-    if (snapshot.matches({ authenticated: "passkey" })) {
-      authMode = "passkey";
-    } else if (snapshot.matches({ authenticated: "embedded" })) {
-      authMode = "embedded";
-    } else if (snapshot.matches({ authenticated: "wallet" }) || walletRestore.state !== null) {
-      authMode = "wallet";
-    } else if (snapshot.matches({ restoring: "embedded" }) && snapshot.context.embeddedAddress) {
-      authMode = "embedded";
-    }
-
-    // Check if authenticating
-    const isAuthenticating =
-      snapshot.matches("registering") ||
-      snapshot.matches("authenticating") ||
-      snapshot.matches("wallet_connecting") ||
-      snapshot.matches("restoring") ||
-      // Wagmi's `isConnecting` only blocks the UI while the wallet modal is
-      // actually open. Once the user dismisses it (or a WalletConnect QR
-      // expires), the login UI must come back even if wagmi hasn't cleared
-      // isConnecting yet — otherwise the input stays disabled and the wallet
-      // button stays hidden with no way to recover.
-      (isConnecting && walletModalOpen);
-
-    // A remembered wallet account is usable while its wallet is still asked (PRD-1499).
-    const waitsOnWallet = snapshot.matches("restoring") && walletRestore.state !== "restoring";
-    const authenticatedSession =
-      snapshot.matches("authenticated") ||
-      walletRestore.state !== null ||
-      (snapshot.matches({ restoring: "embedded" }) && Boolean(snapshot.context.embeddedAddress));
-
-    return {
-      authMode,
-      isReady: !snapshot.matches("initializing") && !waitsOnWallet,
-      isAuthenticated: authenticatedSession,
-      isAuthenticating,
-      error: snapshot.context.error,
-      credential: snapshot.context.credential,
-      smartAccountAddress: snapshot.context.smartAccountAddress,
-      passkeyAccountProfile: snapshot.context.passkeyAccountProfile ?? null,
-      smartAccountClient: snapshot.context.smartAccountClient,
-      resolveSmartAccountClient: snapshot.context.resolveSmartAccountClient,
-      userName: snapshot.context.userName,
-      // A stored credential indicates an existing account in localStorage.
-      hasStoredCredential: storedCredential,
-      // Wallet address is only set when wallet is the PRIMARY auth
-      walletAddress: snapshot.context.walletAddress,
-      // Embedded wallet address (AppKit email/social auth)
-      embeddedAddress: snapshot.context.embeddedAddress,
-      // External wallet state (always available)
-      externalWalletConnected: snapshot.context.externalWalletConnected,
-      externalWalletAddress: snapshot.context.externalWalletAddress,
-    };
-  }, [snapshot, walletRestore.state, isConnecting, walletModalOpen, storedCredential]);
+  // A passkey or wallet session on this phone ends an email sign-in a closed page left.
+  const signedInOtherwise =
+    computedValues.isAuthenticated && computedValues.authMode !== "openfort";
+  useEffect(() => {
+    if (signedInOtherwise) openfortServices.endUnfinishedSignIn();
+  }, [signedInOtherwise, openfortServices]);
 
   // State value — changes on auth events
   const stateValue: AuthStateValue = useMemo(
@@ -660,6 +647,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       walletAddress: computedValues.walletAddress,
       eoaAddress: computedValues.walletAddress ?? undefined,
       embeddedAddress: computedValues.embeddedAddress,
+      openfortMethod: computedValues.openfortMethod,
       externalWalletConnected: computedValues.externalWalletConnected,
       externalWalletAddress: computedValues.externalWalletAddress,
     }),
@@ -680,6 +668,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       loginWithOriginalPasskey,
       loginWithWallet,
       loginWithEmbedded,
+      requestSignInCode,
+      loginWithCode,
       signOut,
       switchToWallet,
       switchToPasskey,
@@ -697,6 +687,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       loginWithOriginalPasskey,
       loginWithWallet,
       loginWithEmbedded,
+      requestSignInCode,
+      loginWithCode,
       signOut,
       switchToWallet,
       switchToPasskey,

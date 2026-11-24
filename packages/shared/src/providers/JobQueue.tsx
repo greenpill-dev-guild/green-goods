@@ -31,6 +31,7 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
+import { isSmartAccountAuthMode } from "../types/auth";
 import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
 import { WALLET_RECONNECT_REQUIRED } from "../utils/errors/unsent-failures";
 
@@ -399,7 +400,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
     // Auto-flush only once the origin has confirmed the connection: "online"
     // is also the boot state and the state while a probe is still pending, and
     // an unstable connection never sends.
-    const autoSends = authMode === "passkey" || authMode === "embedded";
+    const autoSends = isSmartAccountAuthMode(authMode) || authMode === "embedded";
     if (autoSends && connectivityStore.isConfirmedOnline()) {
       void attemptFlush();
     }

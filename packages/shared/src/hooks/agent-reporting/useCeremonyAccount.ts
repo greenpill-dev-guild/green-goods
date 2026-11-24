@@ -1,3 +1,4 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSignMessage } from "wagmi";
@@ -27,7 +28,8 @@ import { type AccountFailure, accountFailureReason } from "./account-failure";
  */
 export interface CeremonyAccount {
   account: Address | null;
-  accountKind: "wallet" | "passkey" | null;
+  /** Passkey and email accounts are sponsored; a wallet pays its own gas. */
+  accountKind: "wallet" | "passkey" | "openfort" | null;
   connecting: boolean;
   /** Why the last attempt to connect or create an account failed, until the next attempt. */
   failure: AccountFailure | null;
@@ -151,9 +153,10 @@ export function useCeremonyAccount(): CeremonyAccount {
       // Fresh fields every time: the Agent rebuilds this exact message to verify it.
       const current = await client.challenge(challengeId);
       const signature = await signer(buildReportingProofMessage(current.proof, account));
-      // An undeployed passkey account proves through its factory (ERC-6492).
-      const factoryArgs =
-        auth.authMode === "passkey" ? await resolveAccountFactoryArgs(smartAccount) : undefined;
+      // An undeployed smart account proves through its factory (ERC-6492).
+      const factoryArgs = isSmartAccountAuthMode(auth.authMode)
+        ? await resolveAccountFactoryArgs(smartAccount)
+        : undefined;
       return client.submitProof(challengeId, {
         account,
         signature,
@@ -167,7 +170,11 @@ export function useCeremonyAccount(): CeremonyAccount {
 
   return {
     account,
-    accountKind: auth.authMode === "passkey" ? "passkey" : auth.authMode === null ? null : "wallet",
+    accountKind: isSmartAccountAuthMode(auth.authMode)
+      ? auth.authMode
+      : auth.authMode === null
+        ? null
+        : "wallet",
     connecting: auth.isAuthenticating,
     failure,
     savedPasskey: auth.hasStoredCredential,

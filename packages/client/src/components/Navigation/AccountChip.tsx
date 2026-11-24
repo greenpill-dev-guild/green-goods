@@ -1,7 +1,7 @@
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useOptionalAuthContext } from "@green-goods/shared/providers/Auth";
-import { chosenPasskeyUsername, formatAddress } from "@green-goods/shared/utils/app/text";
+import { formatAddress, signedInAccountLabel } from "@green-goods/shared/utils/app/text";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiLogoutBoxRLine, RiUserLine } from "@remixicon/react";
 import { useState } from "react";
@@ -39,7 +39,7 @@ function SignedInAccount({
   signOut,
   besideTracker,
 }: {
-  authMode: Parameters<typeof chosenPasskeyUsername>[0];
+  authMode: Parameters<typeof signedInAccountLabel>[0];
   userName: string | null;
   signOut: () => Promise<void>;
   besideTracker: boolean;
@@ -51,7 +51,7 @@ function SignedInAccount({
   const [signingOut, setSigningOut] = useState(false);
 
   const name =
-    chosenPasskeyUsername(authMode, userName) ??
+    signedInAccountLabel(authMode, userName) ??
     (primaryAddress ? formatAddress(primaryAddress, { variant: "card" }) : null);
   if (!name) return null;
 

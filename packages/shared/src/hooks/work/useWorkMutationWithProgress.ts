@@ -7,6 +7,7 @@
  * @module hooks/work/useWorkMutationWithProgress
  */
 
+import type { AuthMode } from "../../types/auth";
 import { useCallback, useMemo } from "react";
 import type { WalletSubmissionStage } from "../../modules/work/wallet-submission/types";
 import type { Action, Address, WorkDraft } from "../../types/domain";
@@ -14,7 +15,7 @@ import { type SubmissionStage, useSubmissionProgress } from "./useSubmissionProg
 import { useWorkMutation } from "./useWorkMutation";
 
 interface UseWorkMutationWithProgressOptions {
-  authMode: "wallet" | "passkey" | "embedded" | null;
+  authMode: AuthMode;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];

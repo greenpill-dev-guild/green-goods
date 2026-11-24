@@ -5,6 +5,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { formatUnits } from "viem";
 
 import { Splash } from "@/components/Layout";
+import { CodeScreen, OtherWaysScreen } from "./CodeSignInScreens";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
 export function Login() {
@@ -24,6 +25,7 @@ export function Login() {
     reconcilePilotProof,
     keepOriginalAccount,
     browserGuidanceAction,
+    codeSignIn,
     continueWithUsername,
     createNamedAccount,
     goTo,
@@ -51,6 +53,7 @@ export function Login() {
   } = auth;
   const goToEntry = () => goTo("entry");
   const goToUsername = () => goTo("username");
+  const goToOtherWays = () => goTo("otherWays");
 
   if (isNestedRoute) return <Outlet />;
   // The pre-React PWA surface stays mounted until auth restoration resolves.
@@ -192,6 +195,17 @@ export function Login() {
     </Helmet>
   );
 
+  const codeScreenProps = {
+    helmet,
+    intl,
+    codeSignIn,
+    goTo,
+    walletLogin,
+    loginError,
+    isAuthenticating,
+    backTertiaryAction,
+  };
+
   // The typed name belongs to nobody, and this phone already has an account: a typo must not
   // quietly become a second account, so the person says it is a new one.
   if (screen === "confirmNewAccount") {
@@ -239,6 +253,13 @@ export function Login() {
         />
       </>
     );
+  }
+
+  if (screen === "otherWays" && codeSignIn.enabled) {
+    return <OtherWaysScreen {...codeScreenProps} />;
+  }
+  if (screen === "code" && codeSignIn.enabled) {
+    return <CodeScreen {...codeScreenProps} />;
   }
 
   if (screen === "username") {
@@ -340,18 +361,29 @@ export function Login() {
                 )
               : undefined
         }
-        secondaryAction={{
-          label: auth.walletReleaseStalled
-            ? intl.formatMessage({
-                id: "app.login.walletReload",
-                defaultMessage: "Reload to retry wallet",
-              })
-            : intl.formatMessage({
-                id: "app.login.button.connectWallet",
-                defaultMessage: "Sign in with a Wallet",
-              }),
-          onSelect: walletLogin,
-        }}
+        secondaryAction={
+          // With email sign-in on, the wallet moves one screen in, beside email.
+          codeSignIn.enabled && !auth.walletReleaseStalled
+            ? {
+                label: intl.formatMessage({
+                  id: "app.login.button.otherWays",
+                  defaultMessage: "Other Ways to Sign In",
+                }),
+                onSelect: goToOtherWays,
+              }
+            : {
+                label: auth.walletReleaseStalled
+                  ? intl.formatMessage({
+                      id: "app.login.walletReload",
+                      defaultMessage: "Reload to retry wallet",
+                    })
+                  : intl.formatMessage({
+                      id: "app.login.button.connectWallet",
+                      defaultMessage: "Sign in with a Wallet",
+                    }),
+                onSelect: walletLogin,
+              }
+        }
         tertiaryAction={
           browserGuidanceAction ||
           (originalAccountAddress

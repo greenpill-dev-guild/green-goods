@@ -95,7 +95,7 @@ export interface EncodeWorkDataOptions {
   /** Garden address for tracking context */
   gardenAddress?: string;
   /** Auth mode for tracking context */
-  authMode?: "passkey" | "wallet" | "embedded" | null;
+  authMode?: import("../../types/auth").AuthMode;
   /** Per-file upload progress callback */
   onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
   /** Batch ID for correlating upload events with submission errors */

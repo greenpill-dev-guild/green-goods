@@ -4,6 +4,7 @@ import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDial
 import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { isCeloGoodDollar, isSendableTokenAvailable } from "@green-goods/shared/config/tokens";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { isSmartAccountAuthMode } from "@green-goods/shared/hooks/auth/useAuth";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
@@ -67,7 +68,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
     const available = tokens.filter(
       (token) =>
         isSendableTokenAvailable(token) &&
-        (authMode !== "passkey" || token.chainId !== 42220 || isCeloGoodDollar(token))
+        (!isSmartAccountAuthMode(authMode) || token.chainId !== 42220 || isCeloGoodDollar(token))
     );
     const celoToken = celoWallet.token;
     return isSendableTokenAvailable(celoToken) &&
@@ -329,7 +330,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                   error={Boolean(feeError)}
                   insufficient={feeInsufficient}
                   changed={feeChanged}
-                  sponsored={authMode === "passkey"}
+                  sponsored={isSmartAccountAuthMode(authMode)}
                   onRetry={retryFee}
                   isOnline={isOnline}
                 />

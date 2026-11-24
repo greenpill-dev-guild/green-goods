@@ -488,6 +488,11 @@ describe("linking an account", () => {
     expect(screen.queryByText(/send the code/)).not.toBeInTheDocument();
     fireEvent.click(within(bar()).getByRole("button", { name: "Join Garden" }));
     expect(joining.joinCommunity).toHaveBeenCalledTimes(1);
+    // An email account is sponsored like a passkey, so joining costs it nothing either.
+    expect(screen.getByText("It costs nothing.")).toBeInTheDocument();
+    rerender(view({ ...joining, account: ACCOUNT, accountKind: "openfort" }));
+    expect(screen.getByText("It costs nothing.")).toBeInTheDocument();
+    expect(screen.queryByText(/network fee/)).not.toBeInTheDocument();
   });
 });
 
