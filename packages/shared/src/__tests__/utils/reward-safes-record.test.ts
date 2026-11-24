@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const G1 = "0x1111111111111111111111111111111111111111";
 const S1 = "0x1212121212121212121212121212121212121212";
-const SHARED_SAFE = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const SHARED_SAFE = "0x2323232323232323232323232323232323232323";
 const TWICE = "0x6666666666666666666666666666666666666666";
 /** A garden address whose EIP-55 checksum mixes upper and lower case. */
 const CHECKSUMMED = "0xabCDeF0123456789AbcdEf0123456789aBCDEF01";
@@ -23,8 +23,8 @@ vi.mock("@green-goods/contracts/deployments/42161-reward-safes.json", () => ({
       { tokenId: 3, garden: "0x3333333333333333333333333333333333333333", safe: "0x1234" },
       { tokenId: 4, garden: "0x4444444444444444444444444444444444444444", safe: SHARED_SAFE },
       { tokenId: 5, garden: "0x5555555555555555555555555555555555555555", safe: SHARED_SAFE },
-      { tokenId: 6, garden: TWICE, safe: "0xcccccccccccccccccccccccccccccccccccccccc" },
-      { tokenId: 6, garden: TWICE, safe: "0xdddddddddddddddddddddddddddddddddddddddd" },
+      { tokenId: 6, garden: TWICE, safe: "0x3434343434343434343434343434343434343434" },
+      { tokenId: 6, garden: TWICE, safe: "0x4545454545454545454545454545454545454545" },
       {
         tokenId: 7,
         garden: "0x7777777777777777777777777777777777777777",
