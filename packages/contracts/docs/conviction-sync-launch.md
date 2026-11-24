@@ -97,10 +97,9 @@ HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION="$IMPLEMENTATION" \
 upgrades. It authorizes each still-unauthorized pool by pranking its council, then checks
 that a grant and a revocation sync both pools on every live garden, and that revoking a
 member's last role on the newest garden clears six stale support positions from both
-pools. Expect two passing tests and these logs: `live gardens` (N),
-`pool authorizations still missing on chain` (K), `pools their community has not enabled`,
-and the gas of the cold six-proposal revocation. The fork RPC must serve the proof block;
-a `setUp` failure about pruned or missing state is the node, not the code.
+pools. It prints `2 passed; 0 failed` and takes several minutes. `setUp` fails if `N` is not
+the exact garden count at the proof block. The fork RPC must serve the proof block; a
+`setUp` failure about pruned or missing state is the node, not the code.
 
 ## 4. Sign the authorizations
 
