@@ -8,11 +8,17 @@
  * @vitest-environment happy-dom
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const switchLanguage = vi.fn();
+vi.mock("@green-goods/shared/providers/App", () => ({
+  useApp: () => ({ locale: "en", availableLocales: ["en", "pt", "es"], switchLanguage }),
+}));
+
 import { PublicFooter } from "../../components/Public/PublicFooter";
 
 const messages: Record<string, string> = {
@@ -21,6 +27,7 @@ const messages: Record<string, string> = {
   "public.footer.terms": "Terms of Use",
   "public.footer.contact": "Contact",
   "public.footer.github": "GitHub",
+  "public.footer.language": "Language",
   "public.footer.legal":
     "© {year} Green Goods. A living public record, rooted in regenerative work.",
   "public.footer.linkedin": "LinkedIn",
@@ -73,6 +80,21 @@ describe("PublicFooter", () => {
         ["Terms of Use", "/terms", null],
       ],
     ]);
+  });
+
+  it("lets a visitor change the site's language, each one named in its own words", () => {
+    renderFooter();
+
+    const language = screen.getByRole("combobox", { name: "Language" });
+    expect(language).toHaveValue("en");
+    expect(
+      within(language)
+        .getAllByRole("option")
+        .map((option) => option.textContent)
+    ).toEqual(["English", "Português", "Español"]);
+    // The App provider keeps the choice, so it stays on every public page and the next visit.
+    fireEvent.change(language, { target: { value: "es" } });
+    expect(switchLanguage).toHaveBeenCalledWith("es");
   });
 
   it("keeps footer links neutral until hover or focus", () => {

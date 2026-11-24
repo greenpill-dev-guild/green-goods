@@ -6158,6 +6158,7 @@
   "public.cookies.walletBalance": "Balance de wallet: {amount}",
   "public.footer.docs": "Docs",
   "public.footer.github": "GitHub",
+  "public.footer.language": "Idioma",
   "public.footer.legal": "© {year} Green Goods. Un registro público vivo, arraigado en trabajo regenerativo.",
   "public.footer.linkedin": "LinkedIn",
   "public.footer.navLabel": "Enlaces del footer",

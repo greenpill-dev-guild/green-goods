@@ -1,6 +1,8 @@
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 
 interface FooterLink {
   href: string;
@@ -48,7 +50,9 @@ interface PublicFooterProps {
  * PublicFooter — compact utility footer for every public-browser page.
  *
  * A small wordmark, the provenance line, and two right-aligned rows of links:
- * Twitter, LinkedIn, GitHub and Docs, then Privacy, Contact and Terms of Use.
+ * Twitter, LinkedIn, GitHub and Docs, then Privacy, Contact and Terms of Use,
+ * with the site's language beside them (PRD-1041). The App provider keeps the
+ * choice, so it holds on every public page and the next visit.
  * On a phone everything stacks, and the provenance line comes last so it
  * always ends the page. Schedule-a-Call lives in `PublicGetInTouch` above the
  * footer; the footer stays quiet.
@@ -121,6 +125,7 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
         >
           <ul className={LINK_ROW_CLASS_NAME}>{OUTSIDE_LINKS.map(renderLink)}</ul>
           <ul className={LINK_ROW_CLASS_NAME}>{SITE_LINKS.map(renderLink)}</ul>
+          <LanguageSelect />
         </nav>
 
         {/* Last in the page order, so on a phone the provenance line ends the footer. Wider
@@ -142,5 +147,32 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
         </p>
       </div>
     </footer>
+  );
+}
+
+/** Language names in their own words, so a visitor finds theirs whatever is on screen. */
+function ownName(locale: Locale): string {
+  const name = new Intl.DisplayNames([locale], { type: "language" }).of(locale) ?? locale;
+  return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
+}
+
+/** The site's language, as the installed app's settings choose it. */
+function LanguageSelect() {
+  const { formatMessage } = useIntl();
+  const { locale, availableLocales, switchLanguage } = useApp();
+  return (
+    <NativeSelect
+      surface="editorial"
+      aria-label={formatMessage({ id: "public.footer.language", defaultMessage: "Language" })}
+      value={locale}
+      onChange={(event) => switchLanguage(event.target.value as Locale)}
+      className="w-auto self-start font-sans text-xs tracking-[0.02em] sm:self-end"
+    >
+      {availableLocales.map((option) => (
+        <option key={option} value={option} lang={option}>
+          {ownName(option)}
+        </option>
+      ))}
+    </NativeSelect>
   );
 }

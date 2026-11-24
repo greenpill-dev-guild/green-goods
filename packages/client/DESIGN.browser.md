@@ -109,9 +109,10 @@ Every public-browser page ends with `PublicFooter`, a quiet footer containing:
 
 - Small wordmark (`Green Goods`, regular Fraunces, base size, **not** the oversized italic display treatment).
 - Two right-aligned rows of links (Afo, 2026-11-07). The first holds Twitter, LinkedIn, GitHub, and Docs, each opening in a new tab. The second holds the site's own Privacy, Contact, and Terms of Use pages. No other site routes, Glossary, or Admin (Afo, 2026-10-12; LinkedIn added 2026-10-13; `PublicFooter.test.tsx` pins both rows).
+- The site's language under the links (PRD-1041): an underline select naming each language in its own words (English, Español, Português). It sets the same language as the installed app's settings, and the choice holds on every public page and the next visit.
 - Copyright/provenance (`© <year> Green Goods. A living public record, rooted in regenerative work.`).
 
-On mobile everything stacks: wordmark, the outside links, the site's pages, and the copyright line last, so it always ends the page (Afo, 2026-11-07). Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
+On mobile everything stacks: wordmark, the outside links, the site's pages, the language, and the copyright line last, so it always ends the page (Afo, 2026-11-07). Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
 
 ## Banner Hero
 
