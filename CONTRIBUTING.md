@@ -82,5 +82,4 @@ Formatting changes use `bun run format`; `bun run format --check` is read-only.
 
 ## Stay in touch
 
-- [Discord](https://discord.gg/greenpill), where the conversation happens and where a maintainer will point you at a first task.
 - The [Code of Conduct](./CODE_OF_CONDUCT.md) applies everywhere. Report security issues through the [Security Policy](./SECURITY.md), not public issues.
