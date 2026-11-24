@@ -53,7 +53,6 @@ export function deriveAuthSnapshotState(
     authMode = "embedded";
   }
 
-  // Check if authenticating
   const isAuthenticating =
     snapshot.matches("registering") ||
     snapshot.matches("authenticating") ||

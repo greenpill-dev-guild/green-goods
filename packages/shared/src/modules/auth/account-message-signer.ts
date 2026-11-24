@@ -24,7 +24,11 @@ export function createAccountMessageSigner(input: {
     // A smart account signs through its own account (ERC-1271), never as its owner key.
     if (!isSmartAccountAuthMode(input.authMode)) return input.signMessage({ message });
     if (!input.account?.signMessage)
-      throw new Error("Sign in to your account again before continuing.");
+      throw new Error(
+        input.authMode === "openfort"
+          ? "Sign in with your email again before continuing."
+          : "Reconnect your passkey account before continuing."
+      );
     return input.account.signMessage({ message });
   };
 }

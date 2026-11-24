@@ -87,10 +87,6 @@ export function createOpenfortKernelAccount({
   });
 }
 
-// ============================================================================
-// SESSION RECORD
-// ============================================================================
-
 /** What a reload needs to reopen the account without asking Openfort; cleared at sign-out. */
 export interface OpenfortAccountRecord {
   ownerAddress: Hex;

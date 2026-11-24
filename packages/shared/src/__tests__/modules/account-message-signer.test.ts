@@ -9,11 +9,14 @@ import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures
 const address = "0x1234567890abcdef1234567890abcdef12345678" as Address;
 
 describe("account message signing", () => {
-  it("fails without falling back to another wallet when the passkey signer is missing", async () => {
+  it("fails without falling back to another wallet when the smart account signer is missing", async () => {
     const signMessage = vi.fn();
     await expect(
       createAccountMessageSigner({ authMode: "passkey", signMessage })("message")
     ).rejects.toThrow("Reconnect your passkey account");
+    await expect(
+      createAccountMessageSigner({ authMode: "openfort", signMessage })("message")
+    ).rejects.toThrow("Sign in with your email again");
     expect(signMessage).not.toHaveBeenCalled();
   });
 

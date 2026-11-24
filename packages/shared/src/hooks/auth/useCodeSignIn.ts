@@ -15,7 +15,7 @@ import { OpenfortOwnerMismatchError } from "../../modules/auth/openfort-account"
 import { OpenfortRecoveryUnavailableError } from "../../modules/auth/openfort-wallet";
 import type { AuthActionsValue, AuthStateValue } from "../../providers/authContext";
 
-export type CodeSignInStep = "email" | "code";
+type CodeSignInStep = "email" | "code";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

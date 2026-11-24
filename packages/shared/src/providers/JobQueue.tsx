@@ -3,7 +3,7 @@ import { useIntl } from "react-intl";
 import { createQueueToasts } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
-import { isSmartAccountAuthMode, useAuth } from "../hooks/auth/useAuth";
+import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
@@ -31,6 +31,7 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
+import { isSmartAccountAuthMode } from "../types/auth";
 import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
 import { WALLET_RECONNECT_REQUIRED } from "../utils/errors/unsent-failures";
 

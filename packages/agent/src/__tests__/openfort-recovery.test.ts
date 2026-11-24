@@ -99,7 +99,7 @@ describe("Openfort recovery sessions", () => {
     expect(stale.status).toBe(401);
     expect(await stale.json()).toMatchObject({ ok: false, errorCode: "session_invalid" });
 
-    expect(calls.some((call) => call.url.includes("shield.openfort.io"))).toBe(false);
+    expect(calls.some((call) => new URL(call.url).hostname === "shield.openfort.io")).toBe(false);
   });
 
   it("refuses an origin it does not serve before asking Openfort", async () => {
