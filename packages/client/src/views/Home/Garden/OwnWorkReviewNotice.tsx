@@ -20,20 +20,30 @@ export function hasOtherWorkReviewer(
 }
 
 /**
- * A garden's only reviewer on their own pending work: nobody else may decide it, so the page
- * says so and what to do, instead of offering acts the chain would refuse (PRD-1472).
+ * A steward's own pending work: the chain never takes their decision on it (`SelfAttestation`),
+ * so the page offers no Approve or Reject and says who decides it instead. With another steward
+ * or an owner, it reads as the Hub's notice does (PRD-1617); where nobody else may review, it says
+ * what to do (PRD-1472).
  */
-export function SoleReviewerNotice() {
+export function OwnWorkReviewNotice({ soleReviewer }: { soleReviewer: boolean }) {
   const { formatMessage } = useIntl();
   return (
     <Alert
       variant="info"
       layout="stacked"
       icon={<RiUserAddLine className="h-5 w-5 flex-shrink-0" aria-hidden="true" />}
-      title={formatMessage({ id: "app.work.detail.soleReviewer.title" })}
+      title={formatMessage({
+        id: soleReviewer
+          ? "app.work.detail.soleReviewer.title"
+          : "app.work.detail.reviewBlocked.selfReviewTitle",
+      })}
     >
-      <p data-component="SoleReviewerNotice">
-        {formatMessage({ id: "app.work.detail.soleReviewer.body" })}
+      <p data-component="OwnWorkReviewNotice" data-sole-reviewer={soleReviewer || undefined}>
+        {formatMessage({
+          id: soleReviewer
+            ? "app.work.detail.soleReviewer.body"
+            : "app.work.detail.reviewBlocked.selfReviewMessage",
+        })}
       </p>
     </Alert>
   );
