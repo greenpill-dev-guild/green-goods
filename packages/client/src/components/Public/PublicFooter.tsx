@@ -166,7 +166,8 @@ function LanguageSelect() {
       aria-label={formatMessage({ id: "public.footer.language", defaultMessage: "Language" })}
       value={locale}
       onChange={(event) => switchLanguage(event.target.value as Locale)}
-      className="w-auto self-start font-sans text-xs tracking-[0.02em] sm:self-end"
+      // 16px on touch widths, so tapping it never zooms the page (DL-030).
+      className="w-auto self-start font-sans text-base tracking-[0.02em] sm:self-end sm:text-xs"
     >
       {availableLocales.map((option) => (
         <option key={option} value={option} lang={option}>

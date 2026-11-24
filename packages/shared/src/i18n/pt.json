@@ -4350,7 +4350,7 @@
   "app.work.detail.reviewBlocked.stewardTitle": "Acesso de dono ou responsável necessário",
   "app.work.detail.reviewBlocked.selfReviewMessage": "Você enviou este trabalho. Outro responsável do jardim deve aprová-lo ou rejeitá-lo.",
   "app.work.detail.reviewBlocked.selfReviewTitle": "Revisão independente necessária",
-  "app.work.detail.soleReviewer.body": "Ninguém pode aprovar o próprio trabalho, e ninguém mais neste jardim pode revisá-lo ainda. Peça a um proprietário do jardim que adicione outro responsável.",
+  "app.work.detail.soleReviewer.body": "Ninguém pode aprovar o próprio trabalho, e ninguém mais neste jardim pode revisá-lo ainda. Adicione outro responsável no Green Goods Hub para que possa fazer isso.",
   "app.work.detail.soleReviewer.title": "Precisa de outro responsável",
   "app.work.detail.reviewSummary": "Resumo da revisão",
   "app.work.detail.reviewTitle": "Revisar trabalho",

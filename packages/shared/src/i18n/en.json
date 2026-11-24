@@ -4350,7 +4350,7 @@
   "app.work.detail.reviewBlocked.stewardTitle": "Owner or steward access required",
   "app.work.detail.reviewBlocked.selfReviewMessage": "You submitted this work. Another garden steward must approve or reject it.",
   "app.work.detail.reviewBlocked.selfReviewTitle": "Independent review required",
-  "app.work.detail.soleReviewer.body": "Nobody can approve their own work, and no one else in this garden can review it yet. Ask a garden owner to add another steward.",
+  "app.work.detail.soleReviewer.body": "Nobody can approve their own work, and no one else in this garden can review it yet. Add another steward in the Green Goods Hub so they can.",
   "app.work.detail.soleReviewer.title": "Needs another steward",
   "app.work.detail.reviewSummary": "Review Summary",
   "app.work.detail.reviewTitle": "Review Work",
