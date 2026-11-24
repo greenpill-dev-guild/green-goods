@@ -1,5 +1,5 @@
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatEnsNameForDisplay, chosenPasskeyUsername } from "@green-goods/shared/utils/app/text";
+import { formatEnsNameForDisplay, signedInAccountLabel } from "@green-goods/shared/utils/app/text";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
@@ -71,8 +71,8 @@ const Profile: React.FC = () => {
     defaultMessage: "Your profile",
   });
 
-  // Only a name the active passkey account chose counts as user-set.
-  const userSetName = chosenPasskeyUsername(authMode, userName);
+  // A name the active passkey account chose, or the email an email account signed in with: both are the person's own, shown only on their own Profile.
+  const userSetName = signedInAccountLabel(authMode, userName);
 
   // Display name priority: profile name > ENS > user-set passkey name > friendly fallback.
   // Raw addresses are intentionally not part of the gardener-default identity surface;

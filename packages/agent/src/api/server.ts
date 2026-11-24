@@ -39,6 +39,7 @@ import { registerMessagingRoutes } from "./routes/messaging";
 import { registerReportingOpsRoutes } from "./routes/reporting-ops";
 import { registerPublicCommitmentImpactRoutes } from "./routes/public-commitment-impact";
 import { registerPasskeyDirectoryRoutes } from "./routes/passkey-directory";
+import { registerOpenfortRecoveryRoutes } from "./routes/openfort-recovery";
 import { registerVoucherAwardRoutes } from "./routes/voucher-awards";
 import { registerServiceIssuerDeskRoutes } from "./routes/service-issuer-desk";
 
@@ -210,6 +211,8 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       store: deps.gardenJoinRequestStore,
     });
   }
+
+  registerOpenfortRecoveryRoutes(app, routeContext);
 
   if (deps.passkeyDirectory) {
     registerPasskeyDirectoryRoutes(app, {

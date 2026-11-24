@@ -11,6 +11,7 @@ generated_from:
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
   - packages/agent/src/api/routes/garden-join-requests.ts
+  - packages/agent/src/api/routes/openfort-recovery.ts
   - packages/agent/src/api/routes/passkey-directory.ts
   - packages/agent/src/api/routes/profile-avatars.ts
   - packages/agent/src/api/routes/public-commitment-impact.ts
@@ -31,12 +32,13 @@ generated_from:
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
   - packages/shared/src/public-contracts/voucher-awards.ts
-source_digest: "sha256:574a06c9a5f5d057629cf86df4012eca0456b9841d6fdb5d4e6f6b8e0c38149a"
+source_digest: "sha256:b593bab2ae309cd09e3f30f9f1fcddfc90dc5bea5793b0309018eb2392f61c24"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
   - packages/agent/src/api/routes/garden-join-requests.ts
+  - packages/agent/src/api/routes/openfort-recovery.ts
   - packages/agent/src/api/routes/passkey-directory.ts
   - packages/agent/src/api/routes/profile-avatars.ts
   - packages/agent/src/api/routes/public-commitment-impact.ts
@@ -73,6 +75,7 @@ Every route the agent registers under `/public/`, and every route a shared route
 | Path | Registered methods | Shared constant | Registered in |
 |---|---|---|---|
 | `/api/uploads/sign` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.uploadSign` | `routes/upload-sign.ts` |
+| `/public/auth/openfort/recovery-session` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.openfortRecoverySession` | `routes/openfort-recovery.ts` |
 | `/public/commitments/:chainId/impact` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.commitmentImpact` | `routes/public-commitment-impact.ts` |
 | `/public/features/garden-join-requests` | `GET`, `OPTIONS` | none | `server.ts` |
 | `/public/funding-intents` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.fundingIntents` | `funding/routes.ts` |

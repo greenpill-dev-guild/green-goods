@@ -3,7 +3,7 @@ import { useIntl } from "react-intl";
 import { createQueueToasts } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
-import { useAuth } from "../hooks/auth/useAuth";
+import { isSmartAccountAuthMode, useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
@@ -402,7 +402,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
     // Auto-flush only once the origin has confirmed the connection: "online"
     // is also the boot state and the state while a probe is still pending, and
     // an unstable connection never sends.
-    const autoSends = authMode === "passkey" || authMode === "embedded";
+    const autoSends = isSmartAccountAuthMode(authMode) || authMode === "embedded";
     if (autoSends && connectivityStore.isConfirmedOnline()) {
       void attemptFlush();
     }

@@ -31,6 +31,9 @@ interface UsernameInputConfig {
   onCancel?: () => void;
   minLength?: number;
   autoComplete?: string;
+  /** The keyboard a phone shows: an email address, a number, or a code. Defaults to text. */
+  type?: "text" | "email";
+  inputMode?: "text" | "email" | "numeric";
 }
 
 interface SplashProps {
@@ -135,7 +138,8 @@ export const Splash: FC<SplashProps> = ({
       </label>
       <TextInput
         id={usernameInputId}
-        type="text"
+        type={usernameInput.type ?? "text"}
+        inputMode={usernameInput.inputMode}
         value={usernameInput.value ?? ""}
         onChange={usernameInput.onChange ?? (() => {})}
         placeholder={usernameInput.placeholder || "Choose a username"}

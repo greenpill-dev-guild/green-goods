@@ -1,5 +1,5 @@
 /**
- * XState auth transitions keep passkey and wallet identities mutually exclusive.
+ * XState auth transitions keep passkey, email or SMS, and wallet identities mutually exclusive.
  * External wallet events are always received; switching the primary identity is explicit.
  * Session replacement and sign-out revoke chain-client resolvers before clearing credentials.
  * Stored recovery metadata supports restoring wallet/embedded connectors and passkey sessions.
@@ -10,11 +10,14 @@ import { assign, fromPromise, setup } from "xstate";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { logger } from "../modules/app/logger";
 import { invalidateSmartAccountClientResolver } from "../modules/auth/smartAccountClientResolver";
+import { authOpenfortSessionStates, authOpenfortSignInStates } from "./authOpenfortStates";
 import { authGlobalWalletEvents, authStartupStates } from "./authStartupState";
 import type {
   AuthContext,
   AuthEvent,
   AuthInput,
+  OpenfortOperationInput,
+  OpenfortSessionResult,
   PasskeyOperationInput,
   PasskeySessionResult,
   RestoreSessionInput,
@@ -27,6 +30,8 @@ export type {
   AuthContext,
   AuthEvent,
   AuthInput,
+  OpenfortOperationInput,
+  OpenfortSessionResult,
   PasskeyOperationInput,
   PasskeySessionResult,
   RestoreSessionInput,
@@ -64,6 +69,7 @@ const authSetup = setup({
       createIfMissing: false,
       walletAddress: null,
       embeddedAddress: null,
+      openfortMethod: null,
       error: null,
       retryCount: 0,
       // Note: Keep externalWallet* - that's tracked independently
@@ -111,6 +117,26 @@ const authSetup = setup({
       };
     }),
 
+    /** Mark an email attempt, so its failure is not retried as a passkey. */
+    storeOpenfortIntent: assign({ openfortMethod: "email" as const }),
+
+    /** Store an email session: the smart account its wallet owns, and no passkey. */
+    storeOpenfortSession: assign(({ context, event }) => {
+      invalidateSmartAccountClientResolver(context.resolveSmartAccountClient);
+      const { output } = event as { output: OpenfortSessionResult };
+      return {
+        credential: null,
+        smartAccountClient: output.smartAccountClient,
+        resolveSmartAccountClient: output.resolveSmartAccountClient,
+        smartAccountAddress: output.smartAccountAddress,
+        passkeyAccountProfile: null,
+        userName: output.userName,
+        openfortMethod: output.method,
+        error: null,
+        retryCount: 0,
+      };
+    }),
+
     /** Store wallet address as primary auth */
     storeWalletAuth: assign({
       walletAddress: ({ context }) => context.externalWalletAddress,
@@ -139,6 +165,8 @@ const authSetup = setup({
 
     /** Store userName for registration/login */
     storeUserName: assign({
+      // A passkey attempt is not an email or SMS one, whatever came before it.
+      openfortMethod: null,
       originalAccount: ({ event }) => "originalAccount" in event && event.originalAccount === true,
       createIfMissing: ({ event }) => "createIfMissing" in event && event.createIfMissing === true,
       userName: ({ event }) => {
@@ -225,6 +253,14 @@ const authSetup = setup({
 
     hasRestoringEmbedded: ({ context }) => context.restoreAuthMode === "embedded",
 
+    hasRestoringOpenfort: ({ context }) => context.restoreAuthMode === "openfort",
+
+    /** The failed attempt was an email code, which cannot be sent again. */
+    wasOpenfortAttempt: ({ context }) => context.openfortMethod !== null,
+
+    openfortRestored: ({ event }) =>
+      (event as { output: OpenfortSessionResult | null }).output !== null,
+
     /** A wallet identity is known while its connector is away (remembered or in session). */
     hasRememberedWallet: ({ context }) => context.walletAddress !== null,
 
@@ -254,6 +290,12 @@ const authSetup = setup({
     authenticatePasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(async () => {
       throw new Error("authenticatePasskey actor not provided");
     }),
+    authenticateOpenfort: fromPromise<OpenfortSessionResult, OpenfortOperationInput>(async () => {
+      throw new Error("authenticateOpenfort actor not provided");
+    }),
+    restoreOpenfort: fromPromise<OpenfortSessionResult | null, RestoreSessionInput>(async () => {
+      throw new Error("restoreOpenfort actor not provided");
+    }),
   },
 });
 
@@ -273,6 +315,7 @@ export const authMachine = authSetup.createMachine({
     passkeyAccountProfile: null,
     walletAddress: input?.restoreAuthMode === "wallet" ? (input.restoreAddress ?? null) : null,
     embeddedAddress: input?.restoreAuthMode === "embedded" ? (input.restoreAddress ?? null) : null,
+    openfortMethod: null,
     externalWalletConnected: false,
     externalWalletAddress: null,
     externalWalletConnectionType: null,
@@ -325,6 +368,10 @@ export const authMachine = authSetup.createMachine({
         LOGIN_EMBEDDED: {
           target: "authenticated.embedded",
           actions: "storeEmbeddedAuth",
+        },
+        LOGIN_OPENFORT: {
+          target: "authenticating_openfort",
+          actions: "storeOpenfortIntent",
         },
 
         // External events
@@ -403,6 +450,8 @@ export const authMachine = authSetup.createMachine({
         // EXTERNAL_WALLET_CONNECTED handled by global handler
       },
     },
+
+    ...authOpenfortSignInStates,
 
     // ═══════════════════════════════════════════════════════════════════════════
     // WALLET_CONNECTING
@@ -490,6 +539,8 @@ export const authMachine = authSetup.createMachine({
             },
           },
         },
+
+        ...authOpenfortSessionStates,
 
         // ─────────────────────────────────────────────────────────────────────────
         // EMBEDDED WALLET AUTHENTICATED
@@ -587,6 +638,11 @@ export const authMachine = authSetup.createMachine({
         // Retry authentication
         RETRY: [
           {
+            // A spent code cannot be sent again: go back to choose or ask for a new one.
+            guard: "wasOpenfortAttempt",
+            target: "unauthenticated",
+          },
+          {
             guard: "canRetry",
             target: "authenticating",
           },
@@ -619,6 +675,10 @@ export const authMachine = authSetup.createMachine({
         LOGIN_EMBEDDED: {
           target: "authenticated.embedded",
           actions: ["clearError", "storeEmbeddedAuth"],
+        },
+        LOGIN_OPENFORT: {
+          target: "authenticating_openfort",
+          actions: ["clearError", "storeOpenfortIntent"],
         },
 
         // Dismiss error and go back to unauthenticated

@@ -7,6 +7,8 @@
  * Address Resolution Rules:
  * - authMode === "wallet": Returns walletAddress (the connected wallet EOA)
  * - authMode === "passkey": Returns smartAccountAddress (the passkey smart account)
+ * - authMode === "openfort": Returns smartAccountAddress (the Kernel account an email wallet
+ *   owns; never the owner key's own address)
  * - authMode === "embedded": Returns embeddedAddress (AppKit embedded wallet)
  * - authMode === null: Returns null (not authenticated)
  *
@@ -24,6 +26,7 @@
  * ```
  */
 
+import { type AuthMode, isSmartAccountAuthMode } from "../../types/auth";
 import type { Hex } from "viem";
 import { useAccount } from "wagmi";
 import { useOptionalAuthContext } from "../../providers/Auth";
@@ -46,16 +49,7 @@ export function usePrimaryAddress(): Hex | null {
 
   const { authMode, smartAccountAddress, walletAddress, embeddedAddress } = auth;
 
-  if (authMode === "passkey" && smartAccountAddress) {
-    return smartAccountAddress;
-  }
-  if (authMode === "embedded" && embeddedAddress) {
-    return embeddedAddress;
-  }
-  if (authMode === "wallet" && walletAddress) {
-    return walletAddress;
-  }
-  return null;
+  return getPrimaryAddress(authMode, walletAddress, smartAccountAddress, embeddedAddress);
 }
 
 /**
@@ -63,12 +57,12 @@ export function usePrimaryAddress(): Hex | null {
  * Useful in callbacks, event handlers, or non-React code.
  */
 export function getPrimaryAddress(
-  authMode: "wallet" | "passkey" | "embedded" | null,
+  authMode: AuthMode,
   walletAddress: Hex | null | undefined,
   smartAccountAddress: Hex | null | undefined,
   embeddedAddress?: Hex | null | undefined
 ): Hex | null {
-  if (authMode === "passkey" && smartAccountAddress) {
+  if (isSmartAccountAuthMode(authMode) && smartAccountAddress) {
     return smartAccountAddress;
   }
   if (authMode === "embedded" && embeddedAddress) {

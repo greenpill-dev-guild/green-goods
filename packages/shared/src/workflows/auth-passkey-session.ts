@@ -116,7 +116,14 @@ export function createPasskeySessionServices(adapters: PasskeyAdapters) {
     async ({ input, signal }) => {
       const assertActive = guardSessionCommit(signal);
       const authMode = session.getAuthMode();
-      if (session.hasSignedOutSentinel() || authMode === "wallet" || authMode === "embedded") {
+      // A saved wallet, embedded or email session is restored by its own path, never as a
+      // passkey that happens to be cached on the same phone.
+      if (
+        session.hasSignedOutSentinel() ||
+        authMode === "wallet" ||
+        authMode === "embedded" ||
+        authMode === "openfort"
+      ) {
         return null;
       }
       const credential = session.getStoredCredential();

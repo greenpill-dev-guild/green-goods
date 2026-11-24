@@ -37,6 +37,7 @@ import {
 } from "../../modules/transactions/factory";
 import type { TransactionSender } from "../../modules/transactions/types";
 import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useUser } from "../auth/useUser";
 
 /**
@@ -105,7 +106,7 @@ function noteUnconfirmedSends(sender: TransactionSender): void {
 /**
  * Returns a TransactionSender instance that matches the current auth mode.
  *
- * - passkey mode -> PasskeySender (gas-sponsored via bundler)
+ * - passkey and openfort (email) modes -> PasskeySender (gas-sponsored via bundler)
  * - embedded mode -> EmbeddedSender (plain writeContract until EIP-5792 paymaster is available)
  * - wallet mode -> WalletSender (user pays gas, fallback from EIP-5792)
  *
@@ -170,7 +171,7 @@ export function useTransactionSender(): TransactionSender | null {
           generation !== session.current.generation
         )
           throw new Error("submission-ownership-changed");
-        if (authMode === "passkey") {
+        if (isSmartAccountAuthMode(authMode)) {
           const client =
             smartAccountClient?.chain?.id === chainId
               ? smartAccountClient

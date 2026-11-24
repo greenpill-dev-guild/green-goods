@@ -1,7 +1,6 @@
-import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
-import { type Hex, http } from "viem";
+import type { SmartAccountClient } from "permissionless";
+import type { Hex } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
-import { getChain } from "../config/chains";
 import {
   buildPasskeyRecoveryContext,
   createPasskey,
@@ -10,12 +9,7 @@ import {
   getPasskeyRpId,
   isPasskeyServerEnabled,
 } from "../config/passkeyServer";
-import {
-  createPimlicoClientForChain,
-  createPublicClientForChain,
-  getPimlicoBundlerUrl,
-  getPimlicoSponsorshipPolicyId,
-} from "../config/pimlico";
+import { createPublicClientForChain } from "../config/pimlico";
 import {
   trackAuthPasskeyLoginFailed,
   trackAuthPasskeyLoginStarted,
@@ -25,6 +19,7 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
+import { createSponsoredSmartAccountClient } from "../modules/auth/sponsored-smart-account-client";
 import {
   type PasskeyAssertionCheck,
   verifyPasskeyAssertion,
@@ -138,25 +133,7 @@ async function buildSmartAccount(
     knownAddress,
     profile,
   });
-  const sponsorshipPolicyId = getPimlicoSponsorshipPolicyId(chainId);
-  const chain = getChain(chainId);
-  const pimlicoClient = createPimlicoClientForChain(chainId);
-  const client = createSmartAccountClient({
-    account,
-    chain,
-    bundlerTransport: http(getPimlicoBundlerUrl(chainId)),
-    paymaster: pimlicoClient,
-    paymasterContext: { sponsorshipPolicyId },
-    userOperation: {
-      estimateFeesPerGas: async () => {
-        const { fast } = await pimlicoClient.getUserOperationGasPrice();
-        return {
-          maxFeePerGas: fast.maxFeePerGas,
-          maxPriorityFeePerGas: fast.maxPriorityFeePerGas,
-        };
-      },
-    },
-  });
+  const client = createSponsoredSmartAccountClient(account, chainId);
   return { client, address: account.address as Hex };
 }
 

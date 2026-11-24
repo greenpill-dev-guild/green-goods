@@ -1,3 +1,4 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSignMessage } from "wagmi";
 import {
@@ -92,7 +93,7 @@ export function useGardenJoinRequests(
         throw new Error("Connect your account before continuing.");
       }
       let account = smartAccountClient?.account;
-      if (authMode === "passkey") {
+      if (isSmartAccountAuthMode(authMode)) {
         assertSmartAccountClientResolverActive(resolveSmartAccountClient);
         const client =
           smartAccountClient?.chain?.id === chainId
@@ -131,8 +132,9 @@ export function useGardenJoinRequests(
         account,
       });
       const signature = await signer(buildGardenJoinProofMessage(unsigned, content));
-      const factoryArgs =
-        authMode === "passkey" ? await resolveAccountFactoryArgs(account) : undefined;
+      const factoryArgs = isSmartAccountAuthMode(authMode)
+        ? await resolveAccountFactoryArgs(account)
+        : undefined;
       if (unsigned.expiresAt <= Math.floor(Date.now() / 1000)) {
         throw new GardenJoinRequestTransportError(
           "Authorization expired while signing. Please sign again.",

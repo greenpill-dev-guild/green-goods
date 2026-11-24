@@ -28,6 +28,7 @@ const AUTH_METHOD_MESSAGES: Record<
     id: "hub.account.authMethod.embedded",
     defaultMessage: "Embedded wallet",
   },
+  openfort: { id: "hub.account.authMethod.email", defaultMessage: "Email" },
 };
 
 function getInitials(value: string | null | undefined): string {

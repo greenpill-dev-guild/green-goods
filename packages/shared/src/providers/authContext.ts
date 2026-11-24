@@ -4,6 +4,7 @@ import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import type {
   AuthMode,
+  OpenfortSignInMethod,
   SmartAccountClientResolver,
   WalletConnectFailure,
   WalletRestoreState,
@@ -38,6 +39,8 @@ export interface AuthStateValue {
   walletAddress: Hex | null;
   eoaAddress: Hex | undefined;
   embeddedAddress: Hex | null;
+  /** "email" for an email session (Openfort); null for every other session. */
+  openfortMethod?: OpenfortSignInMethod | null;
   externalWalletConnected: boolean;
   externalWalletAddress: Hex | null;
 }
@@ -55,6 +58,10 @@ export interface AuthActionsValue {
   loginWithOriginalPasskey?: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
   loginWithEmbedded: () => void;
+  /** Email a one-time code. Ends any Openfort session left on this device first. */
+  requestSignInCode?: (email: string) => Promise<void>;
+  /** Sign in with the emailed code; the machine reports progress and errors like a passkey's. */
+  loginWithCode?: (email: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   switchToWallet: () => void;
   switchToPasskey: (userName?: string) => void;

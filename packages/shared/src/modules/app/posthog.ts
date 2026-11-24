@@ -9,6 +9,7 @@
  *
  */
 
+import type { AuthMode } from "../../types/auth";
 import type { CaptureResult } from "posthog-js";
 
 import { logger } from "./logger";
@@ -309,7 +310,7 @@ export function identify(distinctId: string) {
 export function identifyWithProperties(
   distinctId: string,
   properties: {
-    auth_mode?: "wallet" | "passkey" | "embedded" | null;
+    auth_mode?: AuthMode;
     app?: "client" | "admin";
     chain_id?: number;
     is_pwa?: boolean;

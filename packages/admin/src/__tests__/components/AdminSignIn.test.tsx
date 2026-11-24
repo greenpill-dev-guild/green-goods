@@ -29,9 +29,33 @@ vi.mock("@green-goods/shared/providers/Auth", () => ({
   useAuthState: () => ({ hasStoredCredential: false, isAuthenticating: false }),
 }));
 
+function codeSignIn(
+  overrides: Partial<AdminLoginController["codeSignIn"]> = {}
+): AdminLoginController["codeSignIn"] {
+  return {
+    enabled: false,
+    step: "email",
+    email: "",
+    setEmail: vi.fn(),
+    code: "",
+    setCode: vi.fn(),
+    emailValid: false,
+    sending: false,
+    signingIn: false,
+    error: null,
+    sendCode: vi.fn(async () => {}),
+    signIn: vi.fn(async () => {}),
+    changeEmail: vi.fn(),
+    reset: vi.fn(),
+    ...overrides,
+  };
+}
+
 function controller(overrides: Partial<AdminLoginController> = {}): AdminLoginController {
   return {
     mode: "entry",
+    codeSignIn: codeSignIn(),
+    walletReleaseStalled: false,
     changeMode: vi.fn(),
     username: "qa-steward",
     setUsername: vi.fn(),
@@ -41,7 +65,9 @@ function controller(overrides: Partial<AdminLoginController> = {}): AdminLoginCo
     canSignInByName: true,
     hasStoredCredential: false,
     storedUsername: null,
+    savedAccountName: undefined,
     continueByName: vi.fn(async () => {}),
+    createNamedAccount: vi.fn(async () => {}),
     signInWithStoredPasskey: vi.fn(async () => {}),
     beginWalletSignIn: vi.fn(),
     ...overrides,
@@ -140,6 +166,77 @@ describe("AdminSignIn", () => {
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Sign in was canceled.");
     expect(screen.getByLabelText("Username or ENS handle")).toHaveValue("qa-steward");
+  });
+
+  it("asks before a name nobody holds becomes a second account on this device (PRD-1611)", async () => {
+    const state = controller({
+      mode: "confirmNewAccount",
+      username: "qa-stewrad ",
+      hasStoredCredential: true,
+      savedAccountName: "qa-steward",
+    });
+    render(<AdminSignIn controller={state} />);
+    const question = screen.getByText(
+      "No account is named qa-stewrad. This device has the account qa-steward. Create a new account?"
+    );
+    expect(question).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Check the Name" }));
+    expect(state.changeMode).toHaveBeenCalledWith("username");
+    expect(state.createNamedAccount).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Create New Account" }));
+    expect(state.createNamedAccount).toHaveBeenCalledOnce();
+  });
+
+  it("moves the wallet one screen in, beside email, when email sign-in is on", async () => {
+    const entry = controller({ codeSignIn: codeSignIn({ enabled: true }) });
+    const { unmount } = render(<AdminSignIn controller={entry} />);
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Continue with Passkey",
+      "Other Ways to Sign In",
+    ]);
+    await userEvent.click(screen.getByRole("button", { name: "Other Ways to Sign In" }));
+    expect(entry.changeMode).toHaveBeenCalledWith("otherWays");
+    unmount();
+
+    const ways = controller({ mode: "otherWays", codeSignIn: codeSignIn({ enabled: true }) });
+    render(<AdminSignIn controller={ways} />);
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Sign in with Email",
+      "Sign in with a Wallet",
+      "Back",
+    ]);
+    await userEvent.click(screen.getByRole("button", { name: "Sign in with Email" }));
+    expect(ways.changeMode).toHaveBeenCalledWith("code");
+  });
+
+  it("sends a code to the typed email, then signs in with the code", async () => {
+    const send = controller({
+      mode: "code",
+      codeSignIn: codeSignIn({ enabled: true, email: "ada@example.com", emailValid: true }),
+    });
+    const { unmount } = render(<AdminSignIn controller={send} />);
+    expect(screen.getByLabelText("Email")).toHaveValue("ada@example.com");
+    await userEvent.click(screen.getByRole("button", { name: "Send Code" }));
+    expect(send.codeSignIn.sendCode).toHaveBeenCalledOnce();
+    unmount();
+
+    const verify = controller({
+      mode: "code",
+      codeSignIn: codeSignIn({
+        enabled: true,
+        step: "code",
+        email: "ada@example.com",
+        emailValid: true,
+        code: "12345",
+        error: "That code didn't work. Check it, or send a new one.",
+      }),
+    });
+    render(<AdminSignIn controller={verify} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("That code didn't work.");
+    await userEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    expect(verify.codeSignIn.signIn).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(verify.codeSignIn.changeEmail).toHaveBeenCalledOnce();
   });
 
   it("creates from the name step when names cannot be looked up", async () => {

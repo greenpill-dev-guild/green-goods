@@ -329,6 +329,9 @@ vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () =>
     storedUsername: null,
     continueByName: vi.fn(),
     signInWithStoredPasskey: vi.fn(),
+    // Email sign-in off: the entry keeps a wallet second.
+    codeSignIn: { enabled: false },
+    walletReleaseStalled: false,
   }),
 }));
 

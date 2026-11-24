@@ -25,6 +25,7 @@ import { registerServerPasskey, signInWithDirectory } from "./auth-passkey-direc
 import { matchesBrowserId, verifiedCredential } from "./auth-passkey-ids";
 import type { PasskeyOperationInput, PasskeySessionResult } from "./authMachine.types";
 import { createPasskeySessionServices } from "./auth-passkey-session";
+import { type OpenfortSessionServices, openfortSessionServices } from "./auth-openfort-session";
 
 type PasskeyServerCredential = { id: string; publicKey: Hex };
 type PasskeyServerAuthenticationOptions = {
@@ -53,7 +54,13 @@ function decodeChallenge(challenge: Hex | Uint8Array | ArrayBuffer): Uint8Array 
   return challenge instanceof Uint8Array ? challenge : new Uint8Array(challenge);
 }
 
-export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAdapters) {
+export function createAuthServices(
+  adapters: PasskeyAdapters = defaultPasskeyAdapters,
+  openfort: Pick<
+    OpenfortSessionServices,
+    "authenticateOpenfort" | "restoreOpenfort"
+  > = openfortSessionServices
+) {
   const { session, telemetry } = adapters;
 
   const { buildSession, cachedPasskeyRpId, restoreSession } =
@@ -413,7 +420,13 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     }
   );
 
-  return { restoreSession, registerPasskey, authenticatePasskey };
+  return {
+    restoreSession,
+    registerPasskey,
+    authenticatePasskey,
+    authenticateOpenfort: openfort.authenticateOpenfort,
+    restoreOpenfort: openfort.restoreOpenfort,
+  };
 }
 
 export const authServices = createAuthServices();

@@ -270,7 +270,8 @@ describe("AuthProvider wallet login bridge", () => {
   it("composes injected passkey adapters into a provider-owned auth actor", () => {
     const view = renderAuth(defaultPasskeyAdapters);
 
-    expect(mocks.mockCreateAuthServices).toHaveBeenCalledWith(defaultPasskeyAdapters);
+    // No Openfort services injected: the provider uses the default email sessions.
+    expect(mocks.mockCreateAuthServices).toHaveBeenCalledWith(defaultPasskeyAdapters, undefined);
     expect(mocks.mockCreateAuthActor).toHaveBeenCalledWith({ source: "test-auth-services" });
     expect(mocks.mockGetAuthActor).not.toHaveBeenCalled();
 

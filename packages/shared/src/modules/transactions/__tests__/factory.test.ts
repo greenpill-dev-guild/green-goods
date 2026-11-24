@@ -64,6 +64,20 @@ describe("createTransactionSender", () => {
       expect(sender.supportsSponsorship).toBe(true);
     });
 
+    it("sends an email or SMS account through the same sponsored smart-account sender", () => {
+      const sender = createTransactionSender({
+        authMode: "openfort",
+        smartAccountClient: mockSmartAccountClient,
+      });
+
+      expect(sender).toBeInstanceOf(PasskeySender);
+      expect(sender.authMode).toBe("passkey");
+      expect(sender.supportsSponsorship).toBe(true);
+      expect(() =>
+        createTransactionSender({ authMode: "openfort", wagmiConfig: mockWagmiConfig })
+      ).toThrow("smartAccountClient is required");
+    });
+
     it("fails closed when smartAccountClient is missing even with wallet dependencies", () => {
       expect(() =>
         createTransactionSender({
