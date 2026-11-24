@@ -735,6 +735,35 @@ describe("Upload all", () => {
     );
   });
 
+  it("says nothing went, and that nothing is left, when the only decision was already decided", async () => {
+    const decided = decision();
+    const { ports } = harness([decided]);
+    vi.mocked(ports.attestation).mockRejectedValue(
+      new UploadItemAlreadyDone("work-already-decided")
+    );
+    vi.mocked(ports.processJob).mockResolvedValue({
+      success: false,
+      error: "unavailable:work-already-decided",
+      alreadyDone: true,
+    });
+    const sender = createMockTransactionSender();
+
+    // The queue cleared it, so "your items are still on this device" would be false.
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "nothing-sent",
+      flagged: 0,
+      settled: 1,
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+    const embedded = createMockTransactionSender({ authMode: "embedded" });
+    await expect(upload(ports, embedded)).resolves.toEqual({
+      status: "nothing-sent",
+      flagged: 0,
+      settled: 1,
+    });
+  });
+
   it("holds back, unsent and ready, a decision whose work could not be checked", async () => {
     const [kept, unchecked] = [work(), decision()];
     const { ports, store } = harness([kept, unchecked]);

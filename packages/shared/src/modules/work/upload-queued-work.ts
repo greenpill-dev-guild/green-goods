@@ -58,7 +58,11 @@ export type UploadOutcome =
   | { status: "connection-unconfirmed" }
   | { status: "nothing-ready" }
   /** The tap ended without a send: every ready item was refused, or is held elsewhere. */
-  | { status: "nothing-sent"; flagged: number }
+  /**
+   * `settled` counts items already done elsewhere, which the queue cleared and named; when they
+   * are all there was, the queue's notice is the whole answer.
+   */
+  | { status: "nothing-sent"; flagged: number; settled?: number }
   /** Sent; items whose receipt has not arrived are confirmed by the queue. */
   | { status: "uploaded"; sent: number; flagged: number }
   | { status: "declined" | "reverted" | "send-unconfirmed"; sent: number; flagged: number }
@@ -130,6 +134,7 @@ export async function uploadQueuedWork(
   const resumePreparation = await ports.suspendPreparation();
   let sent = 0;
   let flagged = 0;
+  let settled = 0;
   const { chainId, sender } = input;
   const explicitSend: ProcessJobContext = { transactionSender: sender, explicit: true };
   /** Tells each item's screen where the send carrying it stands (PRD-1552); null lets it go. */
@@ -249,12 +254,14 @@ export async function uploadQueuedWork(
       await Promise.allSettled([...claims.values()].map((claim) => claim.release()));
       // The queue reads each one again and clears it, saying why; one it cannot read waits.
       for (const id of alreadyDone) {
-        await ports.processJob(id, explicitSend).catch((error: unknown) => {
+        const result = await ports.processJob(id, explicitSend).catch((error: unknown) => {
           logger.warn("[UploadAll] An item already done is left for the queue", {
             jobId: id,
             error: error instanceof Error ? error.message : String(error),
           });
+          return undefined;
         });
+        if (result?.alreadyDone) settled += 1;
       }
       // The queue confirms each sent item and finishes it the way every send finishes.
       // One it cannot finish now keeps its recorded send for the next confirmation pass.
@@ -407,7 +414,9 @@ export async function uploadQueuedWork(
 
   /** A tap that ended without a send says so, instead of reporting an upload of nothing. */
   const finished = (): UploadOutcome =>
-    sent === 0 ? { status: "nothing-sent", flagged } : { status: "uploaded", sent, flagged };
+    sent > 0
+      ? { status: "uploaded", sent, flagged }
+      : { status: "nothing-sent", flagged, ...(settled > 0 ? { settled } : {}) };
 
   try {
     const selected = input.jobIds ? new Set(input.jobIds) : undefined;
@@ -429,6 +438,7 @@ export async function uploadQueuedWork(
         if (result.success && !result.skipped) sent += 1;
         if (result.error === "send-cancelled") return { status: "declined", sent, flagged };
         // Already done elsewhere: the queue cleared it, so nothing is left to attend to.
+        if (result.alreadyDone) settled += 1;
         if (result.success || result.skipped || result.alreadyDone) continue;
         // One item the queue retired is that item's answer: it is counted for
         // the person and the rest still go. A send that failed outright ends
