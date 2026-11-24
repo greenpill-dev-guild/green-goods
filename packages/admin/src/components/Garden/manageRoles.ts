@@ -125,6 +125,31 @@ export function blockedRoles(
   return blocked;
 }
 
+/**
+ * The roster as this viewer may act on it: each person once, the roles each one's row blocks
+ * from removal, and the people whose rows may add or restore roles (`canAddRolesTo`), keyed by
+ * lower-cased address.
+ */
+export function rosterForViewer(
+  roleMembers: Record<GardenRole, Address[]>,
+  viewer: ManageRolesViewer
+): {
+  people: MemberPerson[];
+  blocked: Map<string, Map<GardenRole, GardenRoleRemovalBlock>>;
+  addable: ReadonlySet<string>;
+} {
+  const people = peopleFromRoster(roleMembers);
+  const ownerCount = roleMembers.owner?.length ?? 0;
+  const key = (person: MemberPerson) => person.address.toLowerCase();
+  return {
+    people,
+    blocked: new Map(
+      people.map((person) => [key(person), blockedRoles(person, viewer, ownerCount)])
+    ),
+    addable: new Set(people.filter((person) => canAddRolesTo(person, viewer)).map(key)),
+  };
+}
+
 /** The roles a person keeps once the selected ones go, in role order. */
 export function rolesKept(person: MemberPerson, removing: readonly GardenRole[]): GardenRole[] {
   return person.roles.filter((role) => !removing.includes(role));

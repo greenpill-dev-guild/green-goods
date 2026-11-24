@@ -42,21 +42,16 @@ import { selectWorkDecisionReadback } from "../../../modules/commitment-pooling/
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useGardenAssessments } from "../../assessment/useGardenAssessments";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
-import { toActPhaseReport, useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
-import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import {
   claimantStanding,
   pendingAskAt,
 } from "../../../modules/commitment-pooling/waiting-for-approval";
 import { useClaimDecisions } from "./useClaimDecisions";
+import { useCommitmentQueuedSends } from "./useCommitmentQueuedSends";
 import { useEditsTermsFromGroup } from "./useEditsTermsFromGroup";
-import {
-  actPhaseFor,
-  claimActKey,
-  sendForConfirmationActKey,
-} from "../../../modules/transactions/act-phase";
+import { claimActKey } from "../../../modules/transactions/act-phase";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
 import {
   useCommitment,
@@ -80,11 +75,6 @@ const DISPUTE_RESOLUTION_CODE = {
   CANCELLED: 2,
   EXPIRED: 3,
 } as const;
-
-/** The act-phase key for this reader's Confirm Kept on one commitment. */
-function confirmKeptActKey(commitmentId: bigint): string {
-  return `confirm-kept:${commitmentId.toString()}`;
-}
 
 export function useCommitmentDialogController(input: {
   chainId: number;
@@ -138,10 +128,6 @@ export function useCommitmentDialogController(input: {
   // The same line and decisions as the Pool tab's Waiting for approval card.
   const claimDecisions = useClaimDecisions();
   const { approve: approveClaim, decline: declineClaim } = claimDecisions;
-  // Send for Confirmation goes through the queue, which says whether it landed
-  // or stays queued on this device.
-  const sendAct = useTxActPhase();
-  const trackSend = sendAct.trackReported;
   const [submittedDecisions, setSubmittedDecisions] = useState<
     readonly { workUID: string; decisionUID: string }[]
   >([]);
@@ -152,7 +138,6 @@ export function useCommitmentDialogController(input: {
     attributions: detail?.workAttributions ?? [],
     enabled: Boolean(detail),
   });
-  const jobs = useCommitmentJobs({ chainId, execution: "foreground" });
   // What this reader already signed: `confirmFulfillment` reverts
   // `AlreadyConfirmed` on a repeat, and a threshold above one keeps the record
   // ready in between. Same key as the Review queue's read, so both share one answer.
@@ -315,6 +300,15 @@ export function useCommitmentDialogController(input: {
     setSubmittedDecisions([]);
     cancelReconciliationReadback();
   }, [cancelReconciliationReadback, commitmentId]);
+  // Its sends through the queue, each followed to where it stands; a Confirm Kept on its way
+  // rereads the record until it shows Kept (PRD-1205).
+  const queued = useCommitmentQueuedSends({
+    chainId,
+    commitmentId,
+    garden,
+    membershipNotRequired,
+    onConfirmSent: scheduleReconciliationReadback,
+  });
 
   const acts = useMemo(
     () => ({
@@ -327,15 +321,7 @@ export function useCommitmentDialogController(input: {
         }),
       markReady: (reason: string) =>
         mutation.mutateAsync({ action: "markReadyForConfirmation", commitmentId, reason }),
-      sendForConfirmation: () =>
-        trackSend(sendForConfirmationActKey(commitmentId), (report) =>
-          jobs.enqueue({
-            act: "sendForConfirmation",
-            commitmentId,
-            gardenAddress: garden,
-            report: toActPhaseReport(report),
-          })
-        ),
+      sendForConfirmation: queued.sendForConfirmation,
       attachAssessment: (assessmentUID: `0x${string}`) =>
         mutation.mutateAsync({ action: "attachAssessment", commitmentId, assessmentUID }),
       raiseDispute: (reason: string) =>
@@ -354,21 +340,7 @@ export function useCommitmentDialogController(input: {
           gardenAddress: garden,
         }),
       expire: () => mutation.mutateAsync({ action: "expireCommitment", commitmentId }),
-      // Followed like Send for Confirmation, so once the review closes the record says where the
-      // confirmation stands, and rereads itself as it lands until it shows Kept (PRD-1205).
-      confirmOrdinary: () =>
-        trackSend(confirmKeptActKey(commitmentId), (report) =>
-          jobs.enqueue({
-            act: "confirm",
-            commitmentId,
-            gardenAddress: garden,
-            membershipNotRequired,
-            report: toActPhaseReport(report),
-          })
-        ).then((jobId) => {
-          scheduleReconciliationReadback();
-          return jobId;
-        }),
+      confirmOrdinary: queued.confirmOrdinary,
       /** The reason goes on chain as plain text: the contract stores it itself. */
       confirmFallback: (reason: string) =>
         mutation.mutateAsync({ action: "confirmFulfillmentAsFallback", commitmentId, reason }),
@@ -417,11 +389,9 @@ export function useCommitmentDialogController(input: {
       mutation,
       approveClaim,
       declineClaim,
-      trackSend,
-      jobs,
+      queued,
       commitmentId,
       garden,
-      membershipNotRequired,
       reconciliationDecisionUIDs,
       detailQuery,
       activity,
@@ -500,9 +470,9 @@ export function useCommitmentDialogController(input: {
       pool && poolCommitments.data
         ? claimantStanding(poolCommitments.commitments, claimant, pool.providerOpenCommitmentCap)
         : null,
-    sendPhase: actPhaseFor(sendAct.phase, sendForConfirmationActKey(commitmentId)),
-    confirmPhase: actPhaseFor(sendAct.phase, confirmKeptActKey(commitmentId)),
-    isActing: mutation.isPending || jobs.isPending,
+    sendPhase: queued.sendPhase,
+    confirmPhase: queued.confirmPhase,
+    isActing: mutation.isPending || queued.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
     // Decision reads have their own bounded recovery row. They must not hide
     // the otherwise-readable commitment behind the panel's Not Found state.

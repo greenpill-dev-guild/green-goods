@@ -251,11 +251,11 @@ function CommitmentRecord({
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
         sendPhase={dialog.sendPhase}
-        // Once the record reads Kept, its own state says so.
+        // Only while it waits on confirmations: once it reads Kept, or moves on, its state says so.
         confirmPhase={
-          commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED"
-            ? { status: "idle" }
-            : dialog.confirmPhase
+          commitment.derivedState === "READY_FOR_CONFIRMATION"
+            ? dialog.confirmPhase
+            : { status: "idle" }
         }
         onCancelUntaken={can.cancel && untaken ? () => setOpen("cancel") : undefined}
         onSeedAnother={

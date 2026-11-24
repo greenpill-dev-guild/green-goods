@@ -23,13 +23,11 @@ import { ManageRolesPersonRow } from "./ManageRolesPersonRow";
 import { RestoreRolesNotice, type RestoreRolesNoticeProps } from "./RestoreRolesNotice";
 import { MemberNameReaders, withMemberName } from "./MemberNames";
 import {
-  blockedRoles,
-  canAddRolesTo,
   chooseView,
   type MemberPerson,
-  peopleFromRoster,
   type RoleFilter,
   type RolePair,
+  rosterForViewer,
   withPicks,
 } from "./manageRoles";
 import {
@@ -168,26 +166,17 @@ export function ManageMembersDialog({
     []
   );
 
-  const { people, blocked } = useMemo(() => {
-    const roster = peopleFromRoster(roleMembers);
-    const viewer = {
-      address: viewerAddress,
-      isOwner: viewerIsOwner,
-      canManage,
-      canManageStewards: viewerCanManageStewards,
-      allowedRoles,
-    };
-    const ownerCount = roleMembers.owner?.length ?? 0;
-    return {
-      people: roster,
-      blocked: new Map(
-        roster.map((person) => [
-          person.address.toLowerCase(),
-          blockedRoles(person, viewer, ownerCount),
-        ])
-      ),
-    };
-  }, [canManage, roleMembers, viewerAddress, viewerIsOwner, viewerCanManageStewards, allowedRoles]);
+  const { people, blocked, addable } = useMemo(
+    () =>
+      rosterForViewer(roleMembers, {
+        address: viewerAddress,
+        isOwner: viewerIsOwner,
+        canManage,
+        canManageStewards: viewerCanManageStewards,
+        allowedRoles,
+      }),
+    [canManage, roleMembers, viewerAddress, viewerIsOwner, viewerCanManageStewards, allowedRoles]
+  );
   const view = chooseView({
     people,
     blocked,
@@ -462,18 +451,12 @@ export function ManageMembersDialog({
                         contributions.canView ? contributions.byAccount[key] : undefined
                       }
                       onAddRole={
-                        onAddRole &&
-                        canAddRolesTo(person, {
-                          isOwner: viewerIsOwner,
-                          canManageStewards: viewerCanManageStewards,
-                        })
-                          ? () => onAddRole(person.address)
-                          : undefined
+                        onAddRole && addable.has(key) ? () => onAddRole(person.address) : undefined
                       }
                       addRoleDisabled={picks.length > 0}
                       disabled={busy}
                       restoreNotice={
-                        restoreRoles ? (
+                        restoreRoles && addable.has(key) ? (
                           <RestoreRolesNotice
                             address={person.address}
                             roles={person.roles}
