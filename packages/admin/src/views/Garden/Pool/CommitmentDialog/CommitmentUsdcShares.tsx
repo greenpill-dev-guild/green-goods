@@ -45,7 +45,8 @@ export interface CommitmentUsdcSharesProps {
   isOnline: boolean;
   readFailed: boolean;
   isPaying: boolean;
-  onPay: () => void;
+  /** The owner pressed Approve, or Pay when their call completes the approvals. */
+  onPay: (intent: "approve" | "pay") => void;
 }
 
 const same = (a: string | null | undefined, b: string | null | undefined) =>
@@ -279,7 +280,7 @@ export function CommitmentUsdcShares({
                 size="sm"
                 loading={isPaying || paymentReading}
                 disabled={!isOnline || readFailed || !ready}
-                onClick={onPay}
+                onClick={() => onPay(viewerCompletes ? "pay" : "approve")}
               >
                 {formatMessage(
                   viewerCompletes
@@ -349,8 +350,8 @@ export function CommitmentUsdcSharesSection({
     (share) => share.token.toLowerCase() === leg.token.toLowerCase()
   );
 
-  const pay = async () => {
-    const outcome: RewardPayOutcome = await rewardShares.payOwed();
+  const pay = async (intent: "approve" | "pay") => {
+    const outcome: RewardPayOutcome = await rewardShares.payOwed(intent);
     if (outcome.status === "paid") {
       toastService.success({
         title: formatMessage({
@@ -409,6 +410,16 @@ export function CommitmentUsdcSharesSection({
           defaultMessage: "A share is already paid. Read again before paying.",
         }),
       });
+    } else if (
+      outcome.status === "refused-before-asking" &&
+      outcome.refusal === "approvals-changed"
+    ) {
+      toastService.info({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.approvalsChanged",
+          defaultMessage: "The Safe's approvals changed. Check the payment again.",
+        }),
+      });
     } else if (outcome.status === "refused-before-asking" && outcome.refusal === "not-an-owner") {
       toastService.error({
         title: formatMessage({
@@ -447,7 +458,7 @@ export function CommitmentUsdcSharesSection({
       isOnline={settlement.isOnline}
       readFailed={rewardShares.readFailed}
       isPaying={rewardShares.isPaying}
-      onPay={() => void pay()}
+      onPay={(intent) => void pay(intent)}
     />
   );
 }

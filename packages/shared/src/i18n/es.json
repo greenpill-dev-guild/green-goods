@@ -5671,6 +5671,7 @@
   "hub.garden.pool.safeShares.toast.approved": "Aprobación enviada",
   "hub.garden.pool.safeShares.toast.approvedHint": "{approvals} de {threshold} propietarios del Safe lo han aprobado. Se paga cuando lo aprueben suficientes.",
   "hub.garden.pool.safeShares.toast.alreadyApproved": "Ya aprobaste este pago",
+  "hub.garden.pool.safeShares.toast.approvalsChanged": "Las aprobaciones del Safe cambiaron. Revisa el pago de nuevo.",
   "hub.garden.pool.safeShares.toast.balance": "El Safe del jardín no tiene suficiente para pagar todas las partes",
   "hub.garden.pool.safeShares.toast.notOwner": "Solo un propietario del Safe de este jardín puede aprobar este pago",
   "hub.garden.pool.safeShares.payerUnavailable": "Pagar esta parte desde la app aún no está disponible en esta red.",

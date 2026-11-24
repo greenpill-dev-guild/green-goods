@@ -3,7 +3,7 @@ import { getAddress } from "viem";
 import { describe, expect, it, vi } from "vitest";
 
 const G1 = "0x1111111111111111111111111111111111111111";
-const S1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const S1 = "0x1212121212121212121212121212121212121212";
 const SHARED_SAFE = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const TWICE = "0x6666666666666666666666666666666666666666";
 
@@ -28,6 +28,11 @@ vi.mock("@green-goods/contracts/deployments/42161-reward-safes.json", () => ({
         garden: "0x7777777777777777777777777777777777777777",
         safe: "0x7777777777777777777777777777777777777777",
       },
+      {
+        tokenId: 8,
+        garden: "0x8888888888888888888888888888888888888888",
+        safe: "0xcccccccccccccccccccccccccccccccccccccccc",
+      },
     ],
   },
 }));
@@ -43,7 +48,8 @@ describe("a garden's reward Safe, read from the chain's record", () => {
   });
 
   it("pays from nowhere when an entry can't be read exactly", () => {
-    // A zero or malformed Safe, a Safe two gardens share, a garden named twice, or a garden as its own Safe.
+    // A zero, malformed or unchecksummed Safe, a Safe two gardens share, a garden named twice, or a
+    // garden as its own Safe.
     for (const garden of [
       "0x2222222222222222222222222222222222222222",
       "0x3333333333333333333333333333333333333333",
@@ -51,6 +57,7 @@ describe("a garden's reward Safe, read from the chain's record", () => {
       "0x5555555555555555555555555555555555555555",
       TWICE,
       "0x7777777777777777777777777777777777777777",
+      "0x8888888888888888888888888888888888888888",
     ] as const) {
       expect(getGardenRewardSafe(42161, garden)).toBeNull();
     }

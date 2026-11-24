@@ -224,7 +224,7 @@ describe("paying reward shares from the garden's Safe", () => {
       ) => ({ hash: "0xabc" as Hex })
     );
     const sender = { sendContractCall } as unknown as TransactionSender;
-    const pay = (account: Address = OWNER) =>
+    const pay = (intent: "approve" | "pay", account: Address = OWNER) =>
       sendRewardSharePayment({
         sender,
         chain,
@@ -232,6 +232,7 @@ describe("paying reward shares from the garden's Safe", () => {
         payer: PAYER,
         safe: SAFE,
         account,
+        intent,
         partShares: shares,
         shown: shares,
       });
@@ -260,7 +261,7 @@ describe("paying reward shares from the garden's Safe", () => {
 
   it("builds one Safe transaction: approve exactly the total, then pay every share", async () => {
     const { chain, pay } = setup();
-    await pay();
+    await pay("approve");
     const [, transaction] = chain.safeTransactionHash.mock.calls[0]!;
     if (!transaction) throw new Error("no Safe transaction was built");
     expect(transaction).toMatchObject({ to: REWARD_SAFE_MULTI_SEND, operation: 1, nonce: 7n });
@@ -273,6 +274,7 @@ describe("paying reward shares from the garden's Safe", () => {
         data: approve!.data,
       }).args
     ).toEqual([PAYER, 20_000_000n]);
+    expect(payAll!.operation).toBe(0);
     expect(payAll!.to.toLowerCase()).toBe(PAYER.toLowerCase());
     const decoded = decodeFunctionData({ abi: REWARD_PAYER_ABI, data: payAll!.data });
     expect(decoded.functionName).toBe("payAll");
@@ -282,7 +284,7 @@ describe("paying reward shares from the garden's Safe", () => {
 
   it("an owner short of the threshold approves that exact transaction from their own account", async () => {
     const { sendContractCall, pay } = setup();
-    await expect(pay()).resolves.toEqual({
+    await expect(pay("approve")).resolves.toEqual({
       status: "approved",
       approvals: 1,
       threshold: 2,
@@ -297,7 +299,7 @@ describe("paying reward shares from the garden's Safe", () => {
     });
     // An owner who already approved isn't asked again while the payment waits for the rest.
     const waiting = setup({ approvedBy: [OWNER] });
-    await expect(waiting.pay()).resolves.toEqual({
+    await expect(waiting.pay("approve")).resolves.toEqual({
       status: "awaiting-owners",
       approvals: 1,
       threshold: 2,
@@ -307,7 +309,7 @@ describe("paying reward shares from the garden's Safe", () => {
 
   it("the owner who completes the threshold runs it, with every approval in address order", async () => {
     const { sendContractCall, pay } = setup({ approvedBy: [CO_OWNER] });
-    await expect(pay()).resolves.toEqual({
+    await expect(pay("pay")).resolves.toEqual({
       status: "paid",
       transactionHash: "0xabc",
       shareIds: shares.map(rewardPayerShareId),
@@ -326,33 +328,59 @@ describe("paying reward shares from the garden's Safe", () => {
     // Two pre-approved signatures of 65 bytes, the lower address first: the owner as r, v of 1.
     expect((signatures.length - 2) / 2).toBe(130);
     expect(sliceHex(signatures, 12, 32).toLowerCase()).toBe(CO_OWNER.toLowerCase());
-    expect(sliceHex(signatures, 64, 65)).toBe("0x01");
+    for (const at of [0, 65]) {
+      expect(BigInt(sliceHex(signatures, at + 32, at + 64))).toBe(0n);
+      expect(sliceHex(signatures, at + 64, at + 65)).toBe("0x01");
+    }
     expect(sliceHex(signatures, 77, 97).toLowerCase()).toBe(OWNER.toLowerCase());
     // With a threshold of one, the owner pays at once.
     const alone = setup({ owners: [OWNER], threshold: 1n });
-    await expect(alone.pay()).resolves.toMatchObject({ status: "paid" });
+    await expect(alone.pay("pay")).resolves.toMatchObject({ status: "paid" });
     expect(alone.sendContractCall.mock.calls[0]![0].functionName).toBe("execTransaction");
+    // More owners approved than it needs: still exactly as many signatures as the threshold.
+    const THIRD = "0x0777777777777777777777777777777777777777" as Address;
+    const crowded = setup({ owners: [OWNER, CO_OWNER, THIRD], approvedBy: [CO_OWNER, THIRD] });
+    await crowded.pay("pay");
+    const crowdedArgs = crowded.sendContractCall.mock.calls[0]![0].args as readonly unknown[];
+    expect(((crowdedArgs[9] as Hex).length - 2) / 2).toBe(130);
+  });
+
+  it("keeps to the step the owner pressed when the approvals moved under them", async () => {
+    // Pressed Approve, but another owner approved since: their signature would run the payment.
+    const ranAhead = setup({ approvedBy: [CO_OWNER] });
+    await expect(ranAhead.pay("approve")).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "approvals-changed",
+    });
+    // Pressed Pay, but the Safe moved on and its approvals start again: it would only approve.
+    const movedOn = setup();
+    await expect(movedOn.pay("pay")).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "approvals-changed",
+    });
+    expect(ranAhead.sendContractCall).not.toHaveBeenCalled();
+    expect(movedOn.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("asks for nothing when a share is paid, the Safe can't cover the total, or the account isn't an owner", async () => {
     const paid = setup({ paidBy: B });
-    await expect(paid.pay()).resolves.toEqual({
+    await expect(paid.pay("approve")).resolves.toEqual({
       status: "refused-before-asking",
       refusal: "already-paid",
     });
     const short = setup({ balance: 19_999_999n });
-    await expect(short.pay()).resolves.toEqual({
+    await expect(short.pay("approve")).resolves.toEqual({
       status: "refused-before-asking",
       refusal: "insufficient-balance",
     });
     const stranger = setup();
-    await expect(stranger.pay(C)).resolves.toEqual({
+    await expect(stranger.pay("approve", C)).resolves.toEqual({
       status: "refused-before-asking",
       refusal: "not-an-owner",
     });
     const unreadable = setup();
     unreadable.chain.safeState.mockRejectedValueOnce(new Error("rpc down"));
-    await expect(unreadable.pay()).resolves.toEqual({
+    await expect(unreadable.pay("approve")).resolves.toEqual({
       status: "refused-before-asking",
       refusal: "unreadable",
     });
@@ -366,7 +394,7 @@ describe("paying reward shares from the garden's Safe", () => {
     declined.sendContractCall.mockRejectedValueOnce(
       Object.assign(new Error("User rejected the request."), { code: 4001 })
     );
-    await expect(declined.pay()).resolves.toEqual({ status: "not-paid", miss: "declined" });
+    await expect(declined.pay("pay")).resolves.toEqual({ status: "not-paid", miss: "declined" });
 
     // A payment past its receipt wait went out and may still land: never "not paid".
     const waited = setup({ approvedBy: [CO_OWNER] });
@@ -374,7 +402,7 @@ describe("paying reward shares from the garden's Safe", () => {
       await options?.onBeforeBroadcast?.();
       throw new ReceiptWaitLimitError(120_000, { hash: `0x${"ab".repeat(32)}` });
     });
-    await expect(waited.pay()).resolves.toMatchObject({
+    await expect(waited.pay("pay")).resolves.toMatchObject({
       status: "unconfirmed",
       transactionHash: `0x${"ab".repeat(32)}`,
     });

@@ -7,8 +7,8 @@
  * its G$. A garden's own account never holds it. The payer knows nothing about
  * promises: a share names the promise, the token, the gardener and the exact
  * amount, and the payer moves exactly that amount once. So the share has to be
- * computed the same way everywhere, here, in the indexer and by anyone checking
- * a receipt: this module owns that computation.
+ * computed the same way everywhere, by the Hub, the app and anyone checking a
+ * receipt: this module owns that computation.
  *
  * A part is split among the people the promise's G$ payout plan pays, by the
  * payment weights that plan fixed. Someone the plan gives nothing (weight zero)

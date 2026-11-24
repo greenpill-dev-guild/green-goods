@@ -78,12 +78,12 @@ function goodDollarLegOf(commitment: RewardRecord, metadata: RewardMetadata): Re
 }
 
 /**
- * The token a steward may pay a part in: USDC, as the registry lists it on that
- * chain. The pilot pays only USDC. The registry's other payout assets include
+ * The token a garden's Safe may pay a part in: USDC, as the registry lists it on
+ * that chain. The pilot pays only USDC. The registry's other payout assets include
  * WETH, whose units aren't dollars, so a part declared in one could ask for an
  * amount its dollars don't describe.
  */
-function stewardWalletRewardToken(chainId: number, token: string) {
+function gardenSafeRewardToken(chainId: number, token: string) {
   const usdc = rewardUsdcToken(chainId);
   return usdc && usdc.address.toLowerCase() === token.toLowerCase() ? usdc : null;
 }
@@ -96,7 +96,7 @@ function stewardWalletRewardToken(chainId: number, token: string) {
 export function rewardLegAmountMatchesDollars(
   leg: Pick<CommitmentRewardLegRecord, "chainId" | "token" | "amount" | "usdCents">
 ): boolean {
-  const token = stewardWalletRewardToken(leg.chainId, leg.token);
+  const token = gardenSafeRewardToken(leg.chainId, leg.token);
   if (!token || token.decimals < 2) return false;
   return BigInt(leg.amount) === BigInt(leg.usdCents) * 10n ** BigInt(token.decimals - 2);
 }
@@ -117,7 +117,7 @@ export function promiseRewardLegsOf(
   if (goodDollar) legs.push(goodDollar);
   let incomplete = metadata?.rewardLegsUnreadable === true;
   for (const declared of metadata?.rewardLegs ?? []) {
-    const token = stewardWalletRewardToken(declared.chainId, declared.token);
+    const token = gardenSafeRewardToken(declared.chainId, declared.token);
     if (
       !token ||
       !rewardLegAmountMatchesDollars(declared) ||

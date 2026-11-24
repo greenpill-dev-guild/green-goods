@@ -151,6 +151,11 @@ export type RewardPayRefusal =
   | "insufficient-balance"
   /** The account asking is not one of the Safe's owners. */
   | "not-an-owner"
+  /**
+   * The Safe's approvals moved since the owner read them, so the step they pressed (approve, or
+   * run the payment) is no longer the one their signature would take.
+   */
+  | "approvals-changed"
   /** A read before asking failed, so nothing was asked for. */
   | "unreadable";
 
@@ -331,6 +336,8 @@ export async function sendRewardSharePayment(input: {
   safe: Address;
   /** The owner asking, from their own account. */
   account: Address;
+  /** The step the owner pressed: their approval, or running the payment their call completes. */
+  intent: "approve" | "pay";
   /** Every share of the part being paid, so a fresh read can tell which are still owed. */
   partShares: readonly RewardPayerShare[];
   /** The shares the steward was shown as owed and asked to pay. */
@@ -352,6 +359,10 @@ export async function sendRewardSharePayment(input: {
   }
   const { transaction, threshold, shareIds } = read;
   const others = read.approvedBy.filter((owner) => !same(owner, account));
+  const completes = others.length + 1 >= threshold;
+  if (completes !== (input.intent === "pay")) {
+    return { status: "refused-before-asking", refusal: "approvals-changed" };
+  }
   const step = (next: RewardPayStep) => {
     try {
       input.onStep?.(next);
@@ -360,7 +371,7 @@ export async function sendRewardSharePayment(input: {
     }
   };
 
-  if (others.length + 1 < threshold) {
+  if (!completes) {
     if (read.approvedBy.some((owner) => same(owner, account))) {
       return { status: "awaiting-owners", approvals: read.approvedBy.length, threshold };
     }

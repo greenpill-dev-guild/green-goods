@@ -13,7 +13,7 @@
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import {
   gardenRewardPayment,
@@ -158,10 +158,16 @@ export function useRewardShares(
    * of the Safe's payment, or the payment itself when theirs completes the threshold. It reads
    * again before any signature.
    */
-  const payOwed = async (): Promise<RewardPayOutcome> => {
-    if (!payer || !safe || !sender || !account) {
-      return { status: "refused-before-asking", refusal: "no-shares" };
-    }
+  // A payment read that finds a share paid since the shares were read: read the shares again, so
+  // the owed list, and the payment built from it, catch up.
+  const stale = payment.data?.status === "refused" && payment.data.refusal === "already-paid";
+  useEffect(() => {
+    if (stale) void queryClient.invalidateQueries({ queryKey });
+  }, [stale, queryClient, queryKey]);
+
+  const payOwed = async (intent: "approve" | "pay"): Promise<RewardPayOutcome> => {
+    if (!payer || !safe) return { status: "refused-before-asking", refusal: "no-shares" };
+    if (!sender || !account) return { status: "refused-before-asking", refusal: "not-an-owner" };
     setIsPaying(true);
     try {
       return await sendRewardSharePayment({
@@ -171,6 +177,7 @@ export function useRewardShares(
         payer,
         safe,
         account,
+        intent,
         partShares: part,
         shown: owed,
         onStep: setStep,
@@ -197,7 +204,7 @@ export function useRewardShares(
     readFailed,
     /** Where the Safe's payment of the owed shares stands, read afresh. */
     payment: payment.data ?? null,
-    paymentReading: unanswered(paymentEnabled, payment),
+    paymentReading: unanswered(paymentEnabled, payment) && !payment.isError,
     paymentReadFailed: payment.isError,
     /** The connected account, which pays only as one of the Safe's owners. */
     account: account ?? null,

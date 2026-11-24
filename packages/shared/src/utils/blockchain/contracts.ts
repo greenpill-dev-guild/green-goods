@@ -160,8 +160,9 @@ const rewardSafesByChain = new Map<number, ReadonlyMap<string, Address>>();
 
 /**
  * The gardens a chain's record names, each with its Safe. An entry is left out when either address
- * is malformed or zero, when it names the garden as its own Safe, or when its garden or Safe
- * appears in another entry too: a record the app can't read exactly pays from nowhere.
+ * is malformed, zero or not EIP-55 checksummed, when it names the garden as its own Safe, or when
+ * its garden or Safe appears in another entry too: a record the app can't read exactly pays from
+ * nowhere.
  */
 function rewardSafesOf(chainId: number): ReadonlyMap<string, Address> {
   const cached = rewardSafesByChain.get(chainId);
@@ -173,10 +174,14 @@ function rewardSafesOf(chainId: number): ReadonlyMap<string, Address> {
     record?.schemaVersion === 1 && record.chainId === chainId && Array.isArray(record.safes)
       ? (record.safes as { garden?: unknown; safe?: unknown }[])
       : [];
-  const named = (value: unknown) =>
-    typeof value === "string" && isConfiguredAddress(value as Address)
-      ? (value.toLowerCase() as Address)
-      : null;
+  const named = (value: unknown) => {
+    if (typeof value !== "string" || !isConfiguredAddress(value as Address)) return null;
+    try {
+      return getAddress(value) === value ? (value.toLowerCase() as Address) : null;
+    } catch {
+      return null;
+    }
+  };
   const pairs = entries.map((entry) => ({ garden: named(entry.garden), safe: named(entry.safe) }));
   const count = new Map<string, number>();
   for (const { garden, safe } of pairs) {

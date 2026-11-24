@@ -5671,6 +5671,7 @@
   "hub.garden.pool.safeShares.toast.approved": "Approval sent",
   "hub.garden.pool.safeShares.toast.approvedHint": "{approvals} of {threshold} Safe owners have approved. It pays once enough approve.",
   "hub.garden.pool.safeShares.toast.alreadyApproved": "You've already approved this payment",
+  "hub.garden.pool.safeShares.toast.approvalsChanged": "The Safe's approvals changed. Check the payment again.",
   "hub.garden.pool.safeShares.toast.balance": "The garden's Safe doesn't hold enough to pay every share",
   "hub.garden.pool.safeShares.toast.notOwner": "Only an owner of this garden's Safe can approve this payment",
   "hub.garden.pool.safeShares.payerUnavailable": "Paying this part from the app isn't available on this network yet.",

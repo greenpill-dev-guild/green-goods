@@ -96,7 +96,7 @@ export const Owed: Story = {
     await expect(canvas.getByText("12 USDC, not paid yet")).toBeVisible();
     await expect(canvas.getByText("0 of 2 Safe owners have approved this payment.")).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Approve Payment of 20 USDC" }));
-    await expect(args.onPay).toHaveBeenCalledTimes(1);
+    await expect(args.onPay).toHaveBeenCalledWith("approve");
   },
 };
 
@@ -107,7 +107,7 @@ export const CompletesTheApprovals: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("1 of 2 Safe owners have approved this payment.")).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Pay 20 USDC" }));
-    await expect(args.onPay).toHaveBeenCalledTimes(1);
+    await expect(args.onPay).toHaveBeenCalledWith("pay");
   },
 };
 
