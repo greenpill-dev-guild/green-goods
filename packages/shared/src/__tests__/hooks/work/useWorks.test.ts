@@ -481,6 +481,34 @@ describe("hooks/work/useWorks", () => {
     expect(result.current.unknownIds.has("w1")).toBe(true);
   });
 
+  it("names a work whose approvals a later read could not read, though its status is cached", async () => {
+    const work = {
+      id: "w1",
+      title: "W1",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1000,
+      status: "pending" as const,
+    };
+    mockGetWorkListPage.mockResolvedValue([work]);
+    mockGetWorkApprovalsForWorks.mockResolvedValue([]);
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+    await waitFor(() => expect(result.current.works).toHaveLength(1));
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(false));
+    expect(result.current.unknownIds.has("w1")).toBe(false);
+
+    // The next read's approvals fail: the cached pending shows, but it is not a decision.
+    mockGetWorkApprovalsForWorks.mockRejectedValue(new Error("Network error"));
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(true));
+    expect(result.current.works[0].status).toBe("pending");
+    expect(result.current.unknownIds.has("w1")).toBe(true);
+  });
+
   it("marks work as rejected when approval.approved is false", async () => {
     const works = [
       {

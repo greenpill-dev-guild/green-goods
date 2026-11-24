@@ -120,7 +120,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     combine: (results) =>
       results.map((result) => result.data as { clientWorkId?: string } | undefined),
   });
-  const { remoteData, works, unknownIds, retainedIds } = useMemo(() => {
+  const { remoteData, works, unknownIds, statusUnknownIds, retainedIds } = useMemo(() => {
     // Offline, the restored screen read is the downloaded copy: background
     // preparation fills this same query, so there is no second source to consult.
     // The window is cut here, inside the memo, so it and every row keep one
@@ -191,10 +191,17 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
         queuedPreviews.has(job.id) ? { ...work, media: queuedPreviews.get(job.id)! } : work
       );
     }
+    // Every work whose decisions this read could not say: those with no status at all, and those
+    // showing a status cached from an earlier read because this read's approvals failed.
+    const statusUnknownIds = new Set(resolved.unknownIds);
+    for (const row of remoteData ?? []) {
+      if (isVisible(row.id) && row.approval === undefined) statusUnknownIds.add(row.id);
+    }
     return {
       remoteData,
       works: sortByCreatedAt(rows),
       unknownIds: resolved.unknownIds,
+      statusUnknownIds,
       retainedIds: resolved.retainedIds,
     };
   }, [
@@ -303,8 +310,11 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       : "unavailable";
   return {
     works: visibleWorks,
-    /** Works whose decisions could not be read: their status is a fallback, never a decision. */
-    unknownIds,
+    /**
+     * Works whose decisions this read could not say, whether their status is a fallback or a copy
+     * cached from an earlier read: neither is a decision to act on.
+     */
+    unknownIds: statusUnknownIds,
     availability,
     lastSuccessfulRefresh: online.dataUpdatedAt || undefined,
     fetchStatus: online.fetchStatus,

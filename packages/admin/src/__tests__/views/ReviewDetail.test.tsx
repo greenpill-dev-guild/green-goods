@@ -16,6 +16,7 @@ let mockSearch = "";
 const mockUseRouteBackedLeftSheetConfig = vi.fn();
 const mockTrackWorkApprovalPresentationFailed = vi.fn();
 let capturedReviewSuccess: ((approved: boolean) => void) | undefined;
+let capturedStatusUnread: boolean | undefined;
 let mockAdminGardenContextError = false;
 let mockSelectedGarden: { id: string; name: string } | null = {
   id: "0xGarden",
@@ -154,13 +155,16 @@ vi.mock("@/views/Garden/WorkDetail/ReviewForm", () => ({
   ReviewForm: ({
     canReview,
     actionSlug,
+    statusUnread,
     onSuccess,
   }: {
     canReview: boolean;
     actionSlug?: string;
+    statusUnread?: boolean;
     onSuccess?: (approved: boolean) => void;
   }) => {
     capturedReviewSuccess = onSuccess;
+    capturedStatusUnread = statusUnread;
     const actions = mockUseActions.mock.results.at(-1)?.value?.data ?? [];
     const permissions = mockUseGardenPermissions.mock.results.at(-1)?.value;
     const matchedAction = actions.find((action: { slug?: string }) => action.slug === actionSlug);
@@ -469,6 +473,8 @@ describe("WorkDetail view", () => {
 
     expect(screen.getByText("Status unread")).toBeInTheDocument();
     expect(screen.queryByText("Pending")).not.toBeInTheDocument();
+    // And the form is told, so it holds Approve and Reject.
+    expect(capturedStatusUnread).toBe(true);
   });
 
   it("keeps the rendered inspector stable when the reviewed work leaves the pending collection", () => {
