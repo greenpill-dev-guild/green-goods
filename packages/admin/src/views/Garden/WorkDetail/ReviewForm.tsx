@@ -1,5 +1,4 @@
 import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
-import { Alert } from "@green-goods/shared/components/Alert";
 import { AudioRecorder } from "@green-goods/shared/components/Audio/AudioRecorder";
 import { Button } from "@green-goods/shared/components/Button";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
@@ -27,6 +26,8 @@ import { useIntl } from "react-intl";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import {
+  isBlockedNoticeState,
+  ReviewBlockedNotice,
   ReviewDecisionSubject,
   ReviewSummary,
   reviewFormState,
@@ -242,21 +243,8 @@ export function ReviewForm({
 
             {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
-            ) : blockedState === "status-unread" ? (
-              <Alert
-                variant="warning"
-                className="mt-4"
-                title={formatMessage({
-                  id: "app.work.detail.reviewBlocked.statusUnreadTitle",
-                  defaultMessage: "Status could not be read",
-                })}
-              >
-                {formatMessage({
-                  id: "app.work.detail.reviewBlocked.statusUnreadMessage",
-                  defaultMessage:
-                    "This work's decisions could not be read, so it may already be decided. Approve and Reject come back once its status is read.",
-                })}
-              </Alert>
+            ) : isBlockedNoticeState(blockedState) ? (
+              <ReviewBlockedNotice state={blockedState} />
             ) : blockedState === "held" ? (
               reviewBatch.holdFeedback && (
                 <TxHoldFeedback {...reviewBatch.holdFeedback} className="mt-4" />
@@ -267,54 +255,6 @@ export function ReviewForm({
                 disabled={reviewBatch.isSending}
                 onRemove={handleRemoveFromBatch}
               />
-            ) : blockedState === "self-review" ? (
-              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
-                <p className="type-body font-medium text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.selfReviewTitle",
-                    defaultMessage: "Independent review required",
-                  })}
-                </p>
-                <p className="mt-1 type-body text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.selfReviewMessage",
-                    defaultMessage:
-                      "You submitted this work. Another garden steward must approve or reject it.",
-                  })}
-                </p>
-              </div>
-            ) : blockedState === "expired" ? (
-              <div className="mt-4 rounded-xl border border-warning-light bg-warning-lighter/70 p-4">
-                <p className="type-body font-medium text-warning-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.expiredTitle",
-                    defaultMessage: "Action expired",
-                  })}
-                </p>
-                <p className="mt-1 type-body text-warning-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.expiredMessage",
-                    defaultMessage:
-                      "This action is no longer active, so new approval decisions are blocked.",
-                  })}
-                </p>
-              </div>
-            ) : blockedState === "role-blocked" ? (
-              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
-                <p className="type-body font-medium text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.stewardTitle",
-                    defaultMessage: "Owner or steward access required",
-                  })}
-                </p>
-                <p className="mt-1 type-body text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.stewardMessage",
-                    defaultMessage:
-                      "Only garden owners or stewards can approve or reject work for this garden.",
-                  })}
-                </p>
-              </div>
             ) : blockedState === "actionable" ? (
               <form onSubmit={(e) => e.preventDefault()} className="mt-4 space-y-5">
                 {/* Confidence Selector */}
