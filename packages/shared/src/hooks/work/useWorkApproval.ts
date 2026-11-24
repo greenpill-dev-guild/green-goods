@@ -172,11 +172,9 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
 
   const reportApprovalError = useCallback(
     (error: unknown, completion: WorkApprovalCompletion) => {
-      // Withdrawn before anything was signed: the review form already says why.
-      if (error instanceof DecisionWithdrawnError) {
-        toastService.dismiss("approval-submit");
-        return;
-      }
+      // Withdrawn before anything was signed or shown: the review form already says why, and the
+      // shared toast may still belong to another decision, so it is left alone.
+      if (error instanceof DecisionWithdrawnError) return;
       // The chain already has this work decided: nothing was sent, and the reads catch up.
       if (error instanceof ApprovalAlreadyDecidedError) {
         toastService.info({

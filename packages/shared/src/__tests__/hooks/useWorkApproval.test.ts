@@ -260,7 +260,8 @@ describe("hooks/work/useWorkApproval", () => {
       expect(submitApprovalDirectly).not.toHaveBeenCalled();
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
       expect(toastService.error).not.toHaveBeenCalled();
-      expect(toastService.dismiss).toHaveBeenCalledWith("approval-submit");
+      // It raised no toast of its own, and the shared one may still be another decision's.
+      expect(toastService.dismiss).not.toHaveBeenCalled();
     });
 
     it("leaves the approval lifecycle, and any earlier decision it holds, alone on a withdrawal", async () => {
