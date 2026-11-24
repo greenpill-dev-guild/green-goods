@@ -2,5 +2,20 @@
   "schemaVersion": 2,
   "chainId": 42161,
   "description": "Each garden's Safe on Arbitrum One that holds the USDC for its promise rewards and pays them through RewardPayer (PRD-1556), with the Hats Signer Gate v2 that keeps the Safe's signers to the garden's stewards. A garden's own account never holds USDC. A garden missing here has no USDC part: the Hub offers none at Create and pays none. An entry names the garden's token id, its garden account, the Safe, its gate, and the garden's steward hat as a decimal string: { \"tokenId\": 2, \"garden\": \"0x...\", \"safe\": \"0x...\", \"gate\": \"0x...\", \"signerHat\": \"2480...\" }.",
-  "safes": []
+  "safes": [
+    {
+      "tokenId": 2,
+      "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "safe": "0x6877f57988DA56D64C85d3B14D0a4425e1532Cc8",
+      "gate": "0x0BF6DB5F18962B54b6EAF13bAc1aaFCCF7FDD431",
+      "signerHat": "2480315916136414910793610061883055838099552405006172335048825126256640"
+    },
+    {
+      "tokenId": 5,
+      "garden": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "safe": "0x0296136f05cb8cd0c601A6Fea6E6d257E0219240",
+      "gate": "0xD06DE0D04EE7038a9D46E2CC5863Abcbd0f0fAA5",
+      "signerHat": "2480315916136415198136523974237216780289619995689144263562410535682048"
+    }
+  ]
 }
