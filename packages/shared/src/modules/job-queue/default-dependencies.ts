@@ -109,7 +109,7 @@ function createDefaultExecutorRegistry() {
         if (waiting) return waiting;
         // Decided elsewhere since it was kept: settled without a second decision.
         if (error instanceof ApprovalAlreadyDecidedError)
-          return { status: "unavailable", reason: APPROVAL_ALREADY_DECIDED_REASON };
+          return { status: "already-done", reason: APPROVAL_ALREADY_DECIDED_REASON };
         throw error;
       }
     },

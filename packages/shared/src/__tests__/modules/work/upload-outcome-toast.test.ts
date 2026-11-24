@@ -48,6 +48,16 @@ const CASES: Array<[string, UploadOutcome, Toast | undefined]> = [
     toast("info", m("notUploadedTitle"), m("nothingSentMessage")),
   ],
   [
+    "leaves it to the queue's notice when every ready item was already done elsewhere",
+    { status: "nothing-sent", flagged: 0, settled: 1 },
+    undefined,
+  ],
+  [
+    "still names what needs attention when others were already done elsewhere",
+    { status: "nothing-sent", flagged: 1, settled: 1 },
+    toast("info", m("notUploadedTitle"), m("flaggedMessage", 1)),
+  ],
+  [
     "confirms what already went when a later prompt in a long queue is declined",
     { status: "declined", sent: 5, flagged: 0 },
     toast("success", m("uploadedTitle", 5), m("restWaitingMessage")),

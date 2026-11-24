@@ -96,6 +96,20 @@ async function completeJob(
 }
 
 /**
+ * Takes away a job with nothing left to do. It is marked synced first, so a delete that fails
+ * leaves it settled, never waiting to be sent, until maintenance deletes it.
+ */
+async function clearSettledJob(jobId: string, deps: ProcessJobDependencies): Promise<void> {
+  await deps.store.markJobSynced(jobId);
+  try {
+    await deps.store.deleteJob(jobId);
+  } catch (error) {
+    deps.logger.warn("[JobQueue] Failed to delete settled job", { jobId, error });
+    await deps.maintenance.trackFailedDelete(jobId);
+  }
+}
+
+/**
  * Reports where a send of this job stands: on the queue's events, for any screen that shows the
  * job (PRD-1552), and to the caller's `onPhase` when it asked. Report-only: a report that throws
  * is logged, and the send goes on.
@@ -294,6 +308,19 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         )
           return processJob(jobId, context, true);
         return waiting;
+      }
+      if (execution.status === "already-done") {
+        // Nothing is left to send or retry, so the job goes rather than waiting as failed: Your
+        // Work neither lists nor counts it. The screens still hear why, as for a job that cannot go.
+        const errorMessage = `unavailable:${execution.reason}`;
+        await clearSettledJob(jobId, deps);
+        deps.events.emit("job:failed", { jobId, job, error: errorMessage });
+        // The try that started ends here, sending nothing; nothing failed.
+        deps.analytics.jobSkipped(job.kind, execution.reason, {
+          explicit: Boolean(context.explicit),
+          started: true,
+        });
+        return { success: false, error: errorMessage, alreadyDone: true };
       }
       if (execution.status === "identity-conflict" || execution.status === "unavailable") {
         const prefix = execution.status === "unavailable" ? "unavailable" : "identity_conflict";

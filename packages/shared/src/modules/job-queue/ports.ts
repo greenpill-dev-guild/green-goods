@@ -37,6 +37,8 @@ export interface ProcessJobResult {
   txHash?: string;
   error?: string;
   skipped?: boolean;
+  /** What the job would do was already done elsewhere, so the queue cleared it unsent. */
+  alreadyDone?: boolean;
 }
 
 export interface FlushContext extends ProcessJobContext {
@@ -207,7 +209,12 @@ export type JobExecution =
   | { status: "submitted"; txHash: string }
   | { status: "waiting"; reason: string }
   | { status: "identity-conflict"; reason: string }
-  | { status: "unavailable"; reason: string };
+  | { status: "unavailable"; reason: string }
+  /**
+   * What the job would do is already done elsewhere, so nothing is left to send or retry: the
+   * queue clears the job instead of keeping it as failed, and still says why.
+   */
+  | { status: "already-done"; reason: string };
 
 export interface JobExecutorRegistry {
   execute(

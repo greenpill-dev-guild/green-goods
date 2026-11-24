@@ -28,7 +28,7 @@ describe("AccountSettingsPanel", () => {
 
     expect(screen.getByRole("link", { name: "Support" })).toHaveAttribute(
       "href",
-      "https://discord.gg/greenpill"
+      "https://greengoods.app/contact"
     );
     expect(screen.getByRole("link", { name: "Documentation" })).toHaveAttribute(
       "href",

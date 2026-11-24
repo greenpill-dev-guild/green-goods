@@ -50,6 +50,7 @@ vi.mock("../../../components/toast", () => ({
   toastService: { error: vi.fn(), success: vi.fn() },
 }));
 
+import { toastService } from "../../../components/toast";
 import { useWorkApprovalActions } from "../../../hooks/work/useWorkApprovalActions";
 
 describe("hooks/work/useWorkApprovalActions", () => {
@@ -116,6 +117,35 @@ describe("hooks/work/useWorkApprovalActions", () => {
     expect(queued.result.current.optimisticStatus).toBe("approved");
     act(() => mocks.timeoutCallbacks.shift()?.());
     expect(mocks.onApprovalComplete).toHaveBeenCalledWith("garden-1");
+  });
+
+  it("leaves a decision on already-reviewed work to the queue's notice, not a failure", async () => {
+    const work = createMockWork({ id: "work-1", status: "pending" });
+    renderHookWithQueryClient(
+      () =>
+        useWorkApprovalActions({
+          chainId: 11155111,
+          gardenId: "garden-1",
+          onApprovalComplete: mocks.onApprovalComplete,
+          viewingMode: "steward",
+          work,
+        }),
+      { queryClient }
+    );
+    const failed = (error: string) =>
+      act(async () => {
+        mocks.jobListener?.("job:failed", {
+          job: { kind: "approval", payload: { approved: true, workUID: "work-1" } },
+          error,
+        });
+      });
+
+    // The queue says this one was already reviewed; an "Action failed" here would replace that.
+    await failed("unavailable:work-already-decided");
+    expect(toastService.error).not.toHaveBeenCalled();
+
+    await failed("network");
+    expect(toastService.error).toHaveBeenCalledOnce();
   });
 
   it("keeps rejected feedback available after wallet cancellation so it can be retried", () => {

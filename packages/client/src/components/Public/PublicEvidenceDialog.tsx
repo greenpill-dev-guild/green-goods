@@ -5,7 +5,8 @@ import { Button } from "@green-goods/shared/components/Button";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
-import { useId } from "react";
+import { useCopyToClipboard } from "@green-goods/shared/hooks/utils/useCopyToClipboard";
+import { useId, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
 import { evidenceRecordTitle } from "./evidenceTitle";
@@ -76,6 +77,9 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
   const intl = useIntl();
   const { formatMessage } = intl;
   const titleId = useId();
+  // Cite This Record says whether the citation reached the clipboard (PUB-048).
+  const [citeFailed, setCiteFailed] = useState(false);
+  const { copied, copy } = useCopyToClipboard({ onError: () => setCiteFailed(true) });
 
   if (!open) return null;
 
@@ -130,9 +134,8 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
 
   const handleCite = () => {
     if (!citationHref) return;
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(citationHref).catch(() => undefined);
-    }
+    setCiteFailed(false);
+    void copy(citationHref);
   };
 
   return (
@@ -274,31 +277,39 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
       ) : null}
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-stroke-soft-200 pt-6">
-        <span
-          className={cn(
-            "inline-flex items-center gap-2 border-b pb-0.5 font-mono text-[11px] font-medium tracking-[0.04em]",
-            record.sourceAvailable
-              ? "border-domain-agro/40 text-domain-agro"
-              : "border-domain-solar/40 text-domain-solar"
-          )}
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              record.sourceAvailable ? "bg-domain-agro" : "bg-domain-solar"
-            )}
-          />
-          {record.sourceAvailable
-            ? formatMessage({
-                id: "public.impact.evidence.viewSource",
-                defaultMessage: "View Source",
-              })
-            : formatMessage({
-                id: "public.impact.evidence.noSource",
-                defaultMessage: "Source pending",
-              })}
-        </span>
+        {/* View Source opens the record it names; without one, its source is still to come (PUB-048). */}
+        {citationHref ? (
+          <a
+            href={citationHref}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex items-center gap-2 border-b border-domain-agro/40 pb-0.5 font-mono text-[11px] font-medium tracking-[0.04em] text-domain-agro hover:border-domain-agro focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+          >
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-domain-agro" />
+            {formatMessage({
+              id: "public.impact.evidence.viewSource",
+              defaultMessage: "View Source",
+            })}
+            <span aria-hidden="true">↗</span>
+          </a>
+        ) : record.sourceAvailable ? (
+          // A source exists but has no page to open, as with a minted certificate.
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] font-medium tracking-[0.04em] text-domain-agro">
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-domain-agro" />
+            {formatMessage({
+              id: "public.impact.evidence.sourceRecorded",
+              defaultMessage: "Source recorded",
+            })}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-2 border-b border-domain-solar/40 pb-0.5 font-mono text-[11px] font-medium tracking-[0.04em] text-domain-solar">
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-domain-solar" />
+            {formatMessage({
+              id: "public.impact.evidence.noSource",
+              defaultMessage: "Source pending",
+            })}
+          </span>
+        )}
         {citationHref ? (
           <Button
             type="button"
@@ -307,10 +318,20 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
             trailingIcon={<span aria-hidden="true">→</span>}
             className="text-domain-agro hover:text-domain-agro"
           >
-            {formatMessage({
-              id: "public.impact.dialog.cite",
-              defaultMessage: "Cite this record",
-            })}
+            {copied
+              ? formatMessage({
+                  id: "public.impact.dialog.citeCopied",
+                  defaultMessage: "Citation copied",
+                })
+              : citeFailed
+                ? formatMessage({
+                    id: "public.impact.dialog.citeFailed",
+                    defaultMessage: "Couldn’t copy. Try again",
+                  })
+                : formatMessage({
+                    id: "public.impact.dialog.cite",
+                    defaultMessage: "Cite this record",
+                  })}
           </Button>
         ) : null}
       </div>

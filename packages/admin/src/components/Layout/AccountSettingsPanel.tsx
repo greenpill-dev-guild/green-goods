@@ -34,7 +34,8 @@ const LOCALE_LABELS: Record<string, string> = {
 };
 
 const DOCS_URL = "https://docs.greengoods.app";
-const SUPPORT_URL = "https://discord.gg/greenpill";
+/** The website's Contact page: the support route since the Discord invite was retired (PRD-1614). */
+const SUPPORT_URL = "https://greengoods.app/contact";
 
 interface AccountSettingsPanelProps {
   /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
