@@ -131,12 +131,14 @@ function run(command, args, { input, quiet = false } = {}) {
  * through `cat` into a real pipe. Either way it never reaches the command line.
  */
 function runPiped(command, args, input) {
-  return run("sh", ["-c", 'cat | "$@"', "sh", command, ...args], { input, quiet: true });
+  return run("/bin/sh", ["-c", 'cat | "$@"', "sh", command, ...args], { input, quiet: true });
 }
 
-/** What a failed command said; op and flyctl name the problem, never the value sent. */
-function failure(result) {
-  const said = (result.stderr ?? "").trim().slice(0, 300);
+/** What a failed command said, with any value it was given blanked out. */
+function failure(result, values = []) {
+  let said = (result.stderr ?? "").trim();
+  for (const value of values) if (value) said = said.split(value).join("[redacted]");
+  said = said.slice(0, 300);
   return said ? `: ${said}` : ` (exit ${result.status})`;
 }
 
@@ -152,8 +154,15 @@ function storeInOnePassword(name, value) {
     if (!field) throw new Error(`1Password item ${name} has no "credential" field to replace.`);
     field.value = value;
     const edited = runPiped("op", ["item", "edit", name, "--vault", VAULT], JSON.stringify(item));
-    if (edited.status !== 0) throw new Error(`1Password refused to update ${name}${failure(edited)}`);
+    if (edited.status !== 0) {
+      throw new Error(`1Password refused to update ${name}${failure(edited, [value])}`);
+    }
     return "updated";
+  }
+  // Create only when the item is missing. Any other failure (a locked app, no network, two items
+  // with one name) could make a duplicate, which would leave env.schema's reference ambiguous.
+  if (!/isn't an item/i.test(existing.stderr ?? "")) {
+    throw new Error(`1Password could not look up ${name}${failure(existing)}`);
   }
   const created = runPiped(
     "op",
@@ -164,7 +173,9 @@ function storeInOnePassword(name, value) {
       fields: [{ id: "credential", label: "credential", type: "CONCEALED", value }],
     })
   );
-  if (created.status !== 0) throw new Error(`1Password refused to create ${name}${failure(created)}`);
+  if (created.status !== 0) {
+    throw new Error(`1Password refused to create ${name}${failure(created, [value])}`);
+  }
   return "created";
 }
 
@@ -228,7 +239,9 @@ function storeInFly(values) {
     .map((key) => `${key.name}=${values[key.name]}`)
     .join("\n");
   const result = runPiped("fly", ["secrets", "import", "--app", FLY_APP, "--stage"], `${input}\n`);
-  if (result.status !== 0) throw new Error(`fly secrets import failed${failure(result)}`);
+  if (result.status !== 0) {
+    throw new Error(`fly secrets import failed${failure(result, Object.values(values))}`);
+  }
   console.log(`  Fly ${FLY_APP}: staged; they apply at the agent's next deploy.`);
 }
 
