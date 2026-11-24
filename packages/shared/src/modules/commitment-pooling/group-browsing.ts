@@ -32,7 +32,7 @@ import {
   type DisplayGroupEntry,
   displayBucketOf,
 } from "./display-groups";
-import { type DueClock, isPastDue } from "./due-dates";
+import { type DueClock, isOpenToTakeUp, isPastDue } from "./due-dates";
 import { selectSeedTrayRoom } from "./seed-tray";
 import { isCommitmentCreator, isSameAccount } from "./selectors";
 import type { CommitmentProviderExposureRecord, CommitmentReadModel } from "./types-core";
@@ -51,19 +51,6 @@ export type GroupCopy = Pick<
   | "direction"
   | "claimMode"
 >;
-
-const OPEN = new Set<string>(["OFFERED", "REQUESTED"]);
-
-/**
- * Whether anyone could take this copy up now: published, untaken, not ended, and not past due
- * (`isPastDue`), so a promise the chain would let anyone expire is offered for take-up nowhere.
- */
-export function isOpenToTakeUp(
-  copy: Pick<GroupCopy, "onchainState" | "derivedState" | "dueDate" | "cycleId">,
-  clock: DueClock
-): boolean {
-  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState) && !isPastDue(copy, clock);
-}
 
 /** A group's counts as someone taking one up reads them (`groupTakeUpCounts`). */
 export interface GroupTakeUpCounts extends DisplayGroupCounts {

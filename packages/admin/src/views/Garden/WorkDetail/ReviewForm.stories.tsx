@@ -195,6 +195,21 @@ export const ActionExpired: Story = {
   },
 };
 
+/**
+ * Opened from a Review day whose read could not say this work's status: it may be decided
+ * already, so Approve and Reject wait until its status is read.
+ */
+export const StatusUnread: Story = {
+  tags: ["storybook-ci"],
+  args: { statusUnread: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Status not known")).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Approve" })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: "Reject" })).toBeNull();
+  },
+};
+
 export const AlreadyReviewed: Story = {
   args: {
     work: APPROVED_WORK,
