@@ -390,6 +390,15 @@ describe("GardenDetail", () => {
     canonical.remove();
   });
 
+  it("still renders the Garden when its banner is not a readable URL", () => {
+    const result = detailResult();
+    result.data.garden.bannerImage = "http://[not a url";
+    mockUsePublicGardenDetail.mockReturnValue(result);
+    renderView("/gardens/solar-community-garden");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Solar Community Garden");
+    expect(document.title).toBe("Solar Community Garden | Green Goods");
+  });
+
   it("resolves the Garden by raw id/address", () => {
     renderView(`/gardens/${GARDEN_ID}`);
     expect(screen.getAllByText(/solar-powered community garden/i).length).toBeGreaterThanOrEqual(1);

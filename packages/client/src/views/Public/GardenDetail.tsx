@@ -32,6 +32,16 @@ import { FieldNotesSection } from "./GardenDetailFieldNotes";
 import { CertificatesSection, StewardsSection } from "./GardenDetailSections";
 import { rememberGardenReturn } from "./gardenReturnFocus";
 
+/** A banner as an absolute URL for sharing; none when it is missing or not a readable URL. */
+function sharingImageUrl(banner: string | undefined | null): string | undefined {
+  if (!banner) return undefined;
+  try {
+    return new URL(resolveImageUrl(banner), PUBLIC_SOCIAL_PREVIEW_ORIGIN).href;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * GardenDetail — the public Garden page at `/gardens/:id`.
  *
@@ -139,11 +149,7 @@ export default function GardenDetail() {
           title={`${identity.name} | Green Goods`}
           description={identity.description || undefined}
           url={`${PUBLIC_SOCIAL_PREVIEW_ORIGIN}/gardens/${encodeURIComponent(identity.slug)}`}
-          image={
-            identity.bannerImage
-              ? new URL(resolveImageUrl(identity.bannerImage), PUBLIC_SOCIAL_PREVIEW_ORIGIN).href
-              : undefined
-          }
+          image={sharingImageUrl(identity.bannerImage)}
         />
       ) : null}
       {/* Unlisted means unlisted to crawlers too. */}
