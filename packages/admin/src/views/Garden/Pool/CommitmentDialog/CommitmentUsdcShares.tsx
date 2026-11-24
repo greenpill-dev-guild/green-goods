@@ -7,6 +7,7 @@ import {
   promiseRewardLegsOf,
   rewardBeneficiarySafeMissing,
   type RewardPayOutcome,
+  type RewardSafeSyncOutcome,
   type RewardSafePaymentRead,
   rewardShareRecipientsOf,
   type RewardShareState,
@@ -47,6 +48,8 @@ export interface CommitmentUsdcSharesProps {
   isPaying: boolean;
   /** The owner pressed Approve, or Pay when their call completes the approvals. */
   onPay: (intent: "approve" | "pay") => void;
+  /** The steward brings the Safe's signers up to date before approving. */
+  onSync: () => void;
 }
 
 const same = (a: string | null | undefined, b: string | null | undefined) =>
@@ -77,6 +80,7 @@ export function CommitmentUsdcShares({
   readFailed,
   isPaying,
   onPay,
+  onSync,
 }: CommitmentUsdcSharesProps) {
   const { formatMessage, locale } = useIntl();
   const amountText = (amount: bigint) =>
@@ -157,6 +161,11 @@ export function CommitmentUsdcShares({
   const canOffer = payerAvailable && safe !== null && splitFixed === true && owed.length > 0;
   const ready = payment?.status === "ready" ? payment : null;
   const viewerIsOwner = Boolean(ready?.owners.some((owner) => same(owner, viewer)));
+  // Only a steward counts on the Safe; a steward first brings its signers up to date: owners who no
+  // longer wear the steward hat leave, and the steward takes a seat if they have none.
+  const viewerIsSteward = ready?.viewerWearsHat === true;
+  const needsSync =
+    Boolean(ready) && viewerIsSteward && ((ready?.staleSigners.length ?? 0) > 0 || !viewerIsOwner);
   const viewerApproved = Boolean(ready?.approvedBy.some((owner) => same(owner, viewer)));
   const othersApproved = ready
     ? ready.approvedBy.filter((owner) => !same(owner, viewer)).length
@@ -265,15 +274,39 @@ export function CommitmentUsdcShares({
               )}
             </p>
           ) : null}
-          {ready && !viewerIsOwner ? (
+          {ready && !viewerIsSteward ? (
             <Alert variant="info">
               {formatMessage({
-                id: "hub.garden.pool.safeShares.notOwner",
-                defaultMessage: "Only an owner of this garden's Safe can approve this payment.",
+                id: "hub.garden.pool.safeShares.notSteward",
+                defaultMessage: "Only a steward of this garden can pay from its Safe.",
               })}
             </Alert>
           ) : null}
-          {ready && viewerIsOwner && viewerApproved && !viewerCompletes ? (
+          {needsSync ? (
+            <>
+              <Button
+                type="button"
+                emphasis="primary"
+                size="sm"
+                loading={isPaying}
+                disabled={!isOnline || readFailed}
+                onClick={onSync}
+              >
+                {formatMessage({
+                  id: "hub.garden.pool.safeShares.sync",
+                  defaultMessage: "Update the Safe's Signers",
+                })}
+              </Button>
+              <p className="type-meta text-text-soft">
+                {formatMessage({
+                  id: "hub.garden.pool.safeShares.syncNote",
+                  defaultMessage:
+                    "One signature from your account: it removes signers who are no longer stewards and adds you.",
+                })}
+              </p>
+            </>
+          ) : null}
+          {ready && viewerIsSteward && !needsSync && viewerApproved && !viewerCompletes ? (
             <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "hub.garden.pool.safeShares.viewerApproved",
@@ -283,7 +316,7 @@ export function CommitmentUsdcShares({
             </p>
           ) : null}
           {(payment === null && paymentReading) ||
-          (ready && viewerIsOwner && (!viewerApproved || viewerCompletes)) ? (
+          (ready && viewerIsSteward && !needsSync && (!viewerApproved || viewerCompletes)) ? (
             <>
               <Button
                 type="button"
@@ -431,11 +464,18 @@ export function CommitmentUsdcSharesSection({
           defaultMessage: "The Safe's approvals changed. Check the payment again.",
         }),
       });
-    } else if (outcome.status === "refused-before-asking" && outcome.refusal === "not-an-owner") {
+    } else if (outcome.status === "refused-before-asking" && outcome.refusal === "needs-sync") {
+      toastService.info({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.needsSync",
+          defaultMessage: "Update the Safe's signers first",
+        }),
+      });
+    } else if (outcome.status === "refused-before-asking" && outcome.refusal === "not-a-steward") {
       toastService.error({
         title: formatMessage({
-          id: "hub.garden.pool.safeShares.toast.notOwner",
-          defaultMessage: "Only an owner of this garden's Safe can approve this payment",
+          id: "hub.garden.pool.safeShares.toast.notSteward",
+          defaultMessage: "Only a steward of this garden can pay from its Safe",
         }),
       });
     } else if (outcome.status !== "not-paid" || outcome.miss !== "declined") {
@@ -443,6 +483,36 @@ export function CommitmentUsdcSharesSection({
         title: formatMessage({
           id: "hub.garden.pool.safeShares.toast.failed",
           defaultMessage: "The shares weren't paid",
+        }),
+      });
+    }
+  };
+
+  const sync = async () => {
+    const outcome: RewardSafeSyncOutcome = await rewardShares.syncSigners();
+    if (outcome.status === "synced") {
+      toastService.success({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.synced",
+          defaultMessage: "Safe signers updated",
+        }),
+        message: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.syncedHint",
+          defaultMessage: "Approve the payment next.",
+        }),
+      });
+    } else if (outcome.status === "refused-before-asking" && outcome.refusal === "not-a-steward") {
+      toastService.error({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.notSteward",
+          defaultMessage: "Only a steward of this garden can pay from its Safe",
+        }),
+      });
+    } else if (outcome.status !== "not-synced" || outcome.miss !== "declined") {
+      toastService.error({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.syncFailed",
+          defaultMessage: "The Safe's signers weren't updated",
         }),
       });
     }
@@ -470,6 +540,7 @@ export function CommitmentUsdcSharesSection({
       readFailed={rewardShares.readFailed}
       isPaying={rewardShares.isPaying}
       onPay={(intent) => void pay(intent)}
+      onSync={() => void sync()}
     />
   );
 }

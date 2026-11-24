@@ -168,7 +168,7 @@ export function rewardShareRecipientsOf(
 ): RewardShareRecipient[] {
   if (plan.payoutKind === "GARDEN_BENEFICIARY") {
     // The garden's Safe on the promise's chain, never the garden's own account.
-    const safe = getGardenRewardSafe(chainId, plan.beneficiaryGarden);
+    const safe = getGardenRewardSafe(chainId, plan.beneficiaryGarden)?.safe;
     return safe ? [{ recipient: safe, weightBps: 10_000 }] : [];
   }
   return rows.map((row) => ({ recipient: row.contributor, weightBps: row.paymentWeightBps }));
@@ -201,17 +201,18 @@ export function rewardSharesOwed<
 
 /**
  * How a garden pays the Safe-paid USDC part of its promises' rewards on a chain: from its
- * recorded Safe, through the reward payer. Null unless the chain lists USDC, the payer is
- * recorded, and the garden's Safe is recorded; with no Safe a garden offers and pays no USDC.
+ * recorded Safe, whose gate keeps its signers to the garden's stewards, through the reward payer.
+ * Null unless the chain lists USDC, the payer is recorded, and the garden's Safe is recorded; with
+ * no Safe a garden offers and pays no USDC.
  */
 export function gardenRewardPayment(
   chainId: number,
   garden: Address | null | undefined
-): { payer: Address; safe: Address; token: Address } | null {
+): { payer: Address; safe: Address; gate: Address; signerHat: bigint; token: Address } | null {
   const token = rewardUsdcToken(chainId);
   const payer = getRewardPayerDeployment(chainId)?.address ?? null;
-  const safe = getGardenRewardSafe(chainId, garden);
-  return token && payer && safe ? { payer, safe, token: token.address as Address } : null;
+  const reward = getGardenRewardSafe(chainId, garden);
+  return token && payer && reward ? { payer, ...reward, token: token.address as Address } : null;
 }
 
 /** How many blocks one log query spans at first; public Arbitrum RPCs refuse much wider ranges. */

@@ -154,28 +154,43 @@ export function getRewardPayerDeployment(
   return { address, deployBlock: BigInt(block) };
 }
 
+/**
+ * A garden's reward Safe on a chain: the Safe that holds its USDC, the Hats Signer Gate that keeps
+ * the Safe's signers to the garden's stewards, and the steward hat the gate counts.
+ */
+export interface GardenRewardSafe {
+  safe: Address;
+  gate: Address;
+  signerHat: bigint;
+}
+
 /** Each chain's garden reward Safes, as `deployments/<chainId>-reward-safes.json` records them. */
 const REWARD_SAFE_RECORDS: Readonly<Record<number, unknown>> = { 42161: rewardSafes42161 };
-const rewardSafesByChain = new Map<number, ReadonlyMap<string, Address>>();
+const rewardSafesByChain = new Map<number, ReadonlyMap<string, GardenRewardSafe>>();
 
 /**
- * The gardens a chain's record names, each with its Safe. An entry is left out when either address
- * is malformed, zero or not EIP-55 checksummed, when it names the garden as its own Safe, or when
- * its garden or Safe appears in another entry too: a record the app can't read exactly pays from
- * nowhere.
+ * The gardens a chain's record names, each with its Safe and gate. An entry is left out when any
+ * address is malformed, zero or not EIP-55 checksummed, when its signer hat isn't a positive whole
+ * number, when two of its addresses are the same, or when any of its addresses appears in another
+ * entry too: a record the app can't read exactly pays from nowhere.
  */
-function rewardSafesOf(chainId: number): ReadonlyMap<string, Address> {
+function rewardSafesOf(chainId: number): ReadonlyMap<string, GardenRewardSafe> {
   const cached = rewardSafesByChain.get(chainId);
   if (cached) return cached;
   const record = REWARD_SAFE_RECORDS[chainId] as
     | { schemaVersion?: unknown; chainId?: unknown; safes?: unknown }
     | undefined;
   const entries =
-    record?.schemaVersion === 1 && record.chainId === chainId && Array.isArray(record.safes)
-      ? (record.safes as { garden?: unknown; safe?: unknown }[])
+    record?.schemaVersion === 2 && record.chainId === chainId && Array.isArray(record.safes)
+      ? (record.safes as {
+          garden?: unknown;
+          safe?: unknown;
+          gate?: unknown;
+          signerHat?: unknown;
+        }[])
       : [];
   // Every well-formed address counts towards a repeat, checksummed or not, so a mistyped copy of
-  // a garden or Safe still takes both entries out rather than leaving one to be picked.
+  // a garden, Safe or gate still takes both entries out rather than leaving one to be picked.
   const wellFormed = (value: unknown) =>
     typeof value === "string" && isConfiguredAddress(value as Address)
       ? (value.toLowerCase() as Address)
@@ -187,36 +202,41 @@ function rewardSafesOf(chainId: number): ReadonlyMap<string, Address> {
       return false;
     }
   };
-  const pairs = entries.map((entry) => ({
+  const hatOf = (value: unknown) =>
+    typeof value === "string" && /^[1-9][0-9]*$/.test(value) ? BigInt(value) : null;
+  const rows = entries.map((entry) => ({
     garden: wellFormed(entry.garden),
     safe: wellFormed(entry.safe),
-    exact: checksummed(entry.garden) && checksummed(entry.safe),
+    gate: wellFormed(entry.gate),
+    signerHat: hatOf(entry.signerHat),
+    exact: checksummed(entry.garden) && checksummed(entry.safe) && checksummed(entry.gate),
   }));
   const count = new Map<string, number>();
-  for (const { garden, safe } of pairs) {
-    for (const address of [garden, safe]) {
+  for (const { garden, safe, gate } of rows) {
+    for (const address of [garden, safe, gate]) {
       if (address) count.set(address, (count.get(address) ?? 0) + 1);
     }
   }
-  const safes = new Map<string, Address>();
-  for (const { garden, safe, exact } of pairs) {
-    if (!garden || !safe || !exact || garden === safe) continue;
-    if (count.get(garden) !== 1 || count.get(safe) !== 1) continue;
-    safes.set(garden, getAddress(safe));
+  const safes = new Map<string, GardenRewardSafe>();
+  for (const { garden, safe, gate, signerHat, exact } of rows) {
+    if (!garden || !safe || !gate || signerHat === null || !exact) continue;
+    if ([garden, safe, gate].some((address) => count.get(address) !== 1)) continue;
+    safes.set(garden, { safe: getAddress(safe), gate: getAddress(gate), signerHat });
   }
   rewardSafesByChain.set(chainId, safes);
   return safes;
 }
 
 /**
- * The Safe a garden holds its reward USDC in and pays promise rewards from on a chain
- * (PRD-1556); null when the chain's record names none. A garden's own account never holds USDC,
- * so a garden without a recorded Safe has no USDC part to offer or pay.
+ * The Safe a garden holds its reward USDC in and pays promise rewards from on a chain, with the
+ * gate that keeps its signers to the garden's stewards (PRD-1556); null when the chain's record
+ * names none. A garden's own account never holds USDC, so a garden without a recorded Safe has no
+ * USDC part to offer or pay.
  */
 export function getGardenRewardSafe(
   chainId: number,
   garden: Address | null | undefined
-): Address | null {
+): GardenRewardSafe | null {
   if (!garden) return null;
   return rewardSafesOf(chainId).get(garden.toLowerCase()) ?? null;
 }

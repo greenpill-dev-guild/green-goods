@@ -30,7 +30,11 @@ const owed = [
 ];
 
 /** The Safe's payment of the owed shares, as the Hub reads it: two owners must approve. */
-const payment = (approvedBy: `0x${string}`[], threshold = 2): RewardSafePaymentRead => ({
+const payment = (
+  approvedBy: `0x${string}`[],
+  threshold = 2,
+  signers: { stale?: `0x${string}`[]; viewerWearsHat?: boolean; owners?: `0x${string}`[] } = {}
+): RewardSafePaymentRead => ({
   status: "ready",
   transaction: {
     safe: SAFE,
@@ -40,9 +44,11 @@ const payment = (approvedBy: `0x${string}`[], threshold = 2): RewardSafePaymentR
     nonce: 0n,
     hash: `0x${"ab".repeat(32)}`,
   },
-  owners: [STEWARD, CO_STEWARD],
+  owners: signers.owners ?? [STEWARD, CO_STEWARD],
   threshold,
   approvedBy,
+  staleSigners: signers.stale ?? [],
+  viewerWearsHat: signers.viewerWearsHat ?? true,
   total: 20_000_000n,
   shareIds: owed.map((entry) => entry.shareId),
 });
@@ -55,7 +61,7 @@ const meta: Meta<typeof CommitmentUsdcShares> = {
     docs: {
       description: {
         component:
-          "The USDC part of a kept promise's reward, split like the G$ payout and paid once per share from the garden's Safe (PRD-1556). The Safe's owners approve the one payment from their own accounts, and the owner whose approval completes the threshold runs it.",
+          "The USDC part of a kept promise's reward, split like the G$ payout and paid once per share from the garden's Safe (PRD-1556). The Safe's signers are the garden's stewards, kept so by its Hats Signer Gate. A steward first brings the signers up to date, then the owners approve the one payment from their own accounts, and the owner whose approval completes the threshold runs it.",
       },
     },
   },
@@ -83,6 +89,7 @@ const meta: Meta<typeof CommitmentUsdcShares> = {
     readFailed: false,
     isPaying: false,
     onPay: fn(),
+    onSync: fn(),
   },
 };
 
@@ -123,15 +130,46 @@ export const ApprovedWaitingOnAnotherOwner: Story = {
   },
 };
 
-/** A steward who is not one of the Safe's owners sees the shares and nothing to press. */
-export const NotAnOwnerOfTheSafe: Story = {
-  args: { viewer: "0x4444444444444444444444444444444444444444" },
+/** Someone who doesn't wear the garden's steward hat sees the shares and nothing to press. */
+export const NotAStewardOfTheGarden: Story = {
+  args: {
+    viewer: "0x4444444444444444444444444444444444444444",
+    payment: payment([], 2, { viewerWearsHat: false }),
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
-      canvas.getByText("Only an owner of this garden's Safe can approve this payment.")
+      canvas.getByText("Only a steward of this garden can pay from its Safe.")
     ).toBeVisible();
     await expect(canvas.queryByRole("button")).toBeNull();
+  },
+};
+
+/** A steward with no seat on the Safe yet takes one before approving. */
+export const StewardWithoutASeat: Story = {
+  args: {
+    viewer: "0x4444444444444444444444444444444444444444",
+    payment: payment([], 2),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Update the Safe's Signers" }));
+    await expect(args.onSync).toHaveBeenCalledTimes(1);
+    await expect(canvas.queryByRole("button", { name: /Approve|Pay/ })).toBeNull();
+  },
+};
+
+/** An owner who no longer wears the steward hat is removed before anyone approves. */
+export const ASignerLeftTheStewardHat: Story = {
+  args: { payment: payment([], 2, { stale: [CO_STEWARD] }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText(
+        "One signature from your account: it removes signers who are no longer stewards and adds you."
+      )
+    ).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Update the Safe's Signers" })).toBeVisible();
   },
 };
 

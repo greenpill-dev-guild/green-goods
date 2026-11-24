@@ -11,6 +11,7 @@ import {
   REWARD_SAFE_ABI,
   REWARD_SAFE_MULTI_SEND,
   type RewardPayChain,
+  sendRewardSafeSync,
   sendRewardSharePayment,
 } from "../modules/commitment-pooling/reward-pay-send";
 import { ReceiptWaitLimitError, type TransactionSender } from "../modules/transactions/types";
@@ -40,7 +41,11 @@ vi.mock("../utils/blockchain/contracts", async (importOriginal) => ({
   }),
   getGardenRewardSafe: (_chainId: number, garden: string | null | undefined) =>
     garden?.toLowerCase() === "0x3333333333333333333333333333333333333333"
-      ? "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe"
+      ? {
+          safe: "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe",
+          gate: "0x6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e",
+          signerHat: 7n,
+        }
       : null,
 }));
 vi.mock("../modules/commitment-pooling/data-settlement-chain", async (importOriginal) => ({
@@ -133,6 +138,8 @@ describe("reward payer shares", () => {
     expect(gardenRewardPayment(42161, C)).toEqual({
       payer: "0x4444444444444444444444444444444444444444",
       safe: "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe",
+      gate: "0x6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e",
+      signerHat: 7n,
       token: USDC,
     });
     expect(gardenRewardPayment(42161, A)).toBeNull();
@@ -174,6 +181,8 @@ describe("paying reward shares from the garden's Safe", () => {
   const SAFE = "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe" as Address;
   const OWNER = "0x5555555555555555555555555555555555555555" as Address;
   const CO_OWNER = "0x0666666666666666666666666666666666666666" as Address;
+  const GATE = "0x6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e" as Address;
+  const HAT = 7n;
   const ZERO = "0x0000000000000000000000000000000000000000" as Address;
   const HASH = `0x${"cd".repeat(32)}` as Hex;
   const shares = rewardLegShares({
@@ -192,6 +201,11 @@ describe("paying reward shares from the garden's Safe", () => {
       owners?: Address[];
       threshold?: bigint;
       approvedBy?: Address[];
+      /** Accounts the gate no longer counts: they no longer wear the steward hat. */
+      invalid?: Address[];
+      /** Accounts that don't wear the steward hat. */
+      notWearing?: Address[];
+      gateSafe?: Address;
     } = {}
   ) {
     const chain = {
@@ -210,6 +224,16 @@ describe("paying reward shares from the garden's Safe", () => {
       ),
       approvedHash: vi.fn(async (_safe: Address, owner: Address) =>
         (read.approvedBy ?? []).includes(owner)
+      ),
+      gateState: vi.fn(async (_gate: Address, accounts: readonly Address[]) => ({
+        safe: read.gateSafe ?? SAFE,
+        valid: accounts.map(
+          (account) => account !== GATE && !(read.invalid ?? []).includes(account)
+        ),
+      })),
+      wearsHat: vi.fn(
+        async (_gate: Address, account: Address, _hat: bigint) =>
+          !(read.notWearing ?? []).includes(account) && !(read.invalid ?? []).includes(account)
       ),
     } satisfies RewardPayChain;
     const sendContractCall = vi.fn(
@@ -231,12 +255,24 @@ describe("paying reward shares from the garden's Safe", () => {
         chainId: 42161,
         payer: PAYER,
         safe: SAFE,
+        gate: GATE,
+        signerHat: HAT,
         account,
         intent,
         partShares: shares,
         shown: shares,
       });
-    return { chain, sendContractCall, pay };
+    const sync = (account: Address = OWNER) =>
+      sendRewardSafeSync({
+        sender,
+        chain,
+        chainId: 42161,
+        safe: SAFE,
+        gate: GATE,
+        signerHat: HAT,
+        account,
+      });
+    return { chain, sendContractCall, pay, sync };
   }
 
   /** The two calls MultiSendCallOnly runs, read back from its packed bytes. */
@@ -362,7 +398,7 @@ describe("paying reward shares from the garden's Safe", () => {
     expect(movedOn.sendContractCall).not.toHaveBeenCalled();
   });
 
-  it("asks for nothing when a share is paid, the Safe can't cover the total, or the account isn't an owner", async () => {
+  it("asks for nothing when a share is paid, the Safe can't cover the total, or the account isn't a steward", async () => {
     const paid = setup({ paidBy: B });
     await expect(paid.pay("approve")).resolves.toEqual({
       status: "refused-before-asking",
@@ -373,10 +409,10 @@ describe("paying reward shares from the garden's Safe", () => {
       status: "refused-before-asking",
       refusal: "insufficient-balance",
     });
-    const stranger = setup();
+    const stranger = setup({ notWearing: [C] });
     await expect(stranger.pay("approve", C)).resolves.toEqual({
       status: "refused-before-asking",
-      refusal: "not-an-owner",
+      refusal: "not-a-steward",
     });
     const unreadable = setup();
     unreadable.chain.safeState.mockRejectedValueOnce(new Error("rpc down"));
@@ -387,6 +423,59 @@ describe("paying reward shares from the garden's Safe", () => {
     for (const run of [paid, short, stranger, unreadable]) {
       expect(run.sendContractCall).not.toHaveBeenCalled();
     }
+  });
+
+  it("asks a steward to bring the signers up to date before approving", async () => {
+    // An owner who no longer wears the steward hat: nothing is approved until they're removed.
+    const stale = setup({ invalid: [CO_OWNER] });
+    await expect(stale.pay("approve")).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "needs-sync",
+    });
+    // A steward with no seat yet takes one first.
+    const seatless = setup({ owners: [CO_OWNER], threshold: 1n });
+    await expect(seatless.pay("pay")).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "needs-sync",
+    });
+    // The record must name the gate that guards this Safe.
+    const mismatched = setup({ gateSafe: C });
+    await expect(mismatched.pay("approve")).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "unreadable",
+    });
+    for (const run of [stale, seatless, mismatched]) {
+      expect(run.sendContractCall).not.toHaveBeenCalled();
+    }
+  });
+
+  it("removes signers who left the steward hat, then seats the steward, and asks nothing when current", async () => {
+    const THIRD = "0x0777777777777777777777777777777777777777" as Address;
+    const run = setup({ owners: [CO_OWNER, THIRD], invalid: [THIRD] });
+    await expect(run.sync()).resolves.toEqual({ status: "synced", confirmed: true });
+    expect(run.sendContractCall.mock.calls.map(([call]) => [call.functionName, call.args])).toEqual(
+      [
+        ["removeSigner", [THIRD]],
+        ["claimSigner", [HAT]],
+      ]
+    );
+    expect(run.sendContractCall.mock.calls.every(([call]) => call.address === GATE)).toBe(true);
+    // A new Safe holds only its gate until the first steward claims a seat: the gate stays.
+    const fresh = setup({ owners: [GATE], threshold: 1n });
+    await fresh.sync();
+    expect(fresh.sendContractCall.mock.calls.map(([call]) => call.functionName)).toEqual([
+      "claimSigner",
+    ]);
+    // Signers already current: nothing to sign.
+    const current = setup();
+    await expect(current.sync()).resolves.toEqual({ status: "synced", confirmed: true });
+    expect(current.sendContractCall).not.toHaveBeenCalled();
+    // Someone not wearing the steward hat can't update the signers.
+    const outsider = setup({ notWearing: [C] });
+    await expect(outsider.sync(C)).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "not-a-steward",
+    });
   });
 
   it("stops at a declined signature, and says when a payment can't be confirmed yet", async () => {

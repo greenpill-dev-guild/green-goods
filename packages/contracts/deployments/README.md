@@ -31,14 +31,16 @@ the zero-address sentinel:
 ## Garden reward Safes
 
 `42161-reward-safes.json` names each garden's Safe on Arbitrum One that holds the USDC for its
-promise rewards and pays them through `RewardPayer` (PRD-1556). A garden's own account never holds
-USDC. The app offers a USDC part at Create, and pays one, only for a garden listed here, and a
+promise rewards and pays them through `RewardPayer` (PRD-1556). Each Safe is guarded by a Hats Signer
+Gate v2 whose signers are the garden's stewards: whoever wears the garden's steward hat can claim a
+signer seat, and anyone can remove a signer who no longer wears it. A garden's own account never
+holds USDC. The app offers a USDC part at Create, and pays one, only for a garden listed here, and a
 Request a garden takes up pays its USDC to that garden's Safe. Each entry is
-`{ "tokenId": <garden token id>, "garden": "<garden account>", "safe": "<Safe address>" }`, both
-addresses EIP-55 checksummed. An entry with a zero, malformed or unchecksummed address, a garden
-named twice, a Safe two gardens share, or a garden as its own Safe is ignored, so that garden pays
-no USDC. Add an entry by pull request once the Safe exists on Arbitrum with the garden's stewards
-as owners.
+`{ "tokenId": <garden token id>, "garden": "<garden account>", "safe": "<Safe>", "gate": "<Hats
+Signer Gate>", "signerHat": "<steward hat id, decimal>" }`, every address EIP-55 checksummed. An
+entry with a zero, malformed or unchecksummed address, a signer hat that isn't a positive whole
+number, or an address that appears twice is ignored, so that garden pays no USDC. Add an entry by
+pull request once the gate and its Safe exist on Arbitrum.
 
 An entry never changes once its Safe has paid or received a share, and `rewardPayer` is never
 replaced without carrying its paid shares over. The payer records a share as paid under an id that

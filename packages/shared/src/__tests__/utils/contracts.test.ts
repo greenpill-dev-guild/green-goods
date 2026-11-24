@@ -10,8 +10,18 @@ import {
 
 describe("utils/blockchain/contracts garden reward Safes", () => {
   it("reads every entry the Arbitrum record names, so none is dropped without anyone seeing", () => {
-    for (const entry of rewardSafes.safes as { garden: `0x${string}`; safe: string }[]) {
-      expect(getGardenRewardSafe(42161, entry.garden)).toBe(getAddress(entry.safe));
+    const entries = rewardSafes.safes as {
+      garden: `0x${string}`;
+      safe: string;
+      gate: string;
+      signerHat: string;
+    }[];
+    for (const entry of entries) {
+      expect(getGardenRewardSafe(42161, entry.garden)).toEqual({
+        safe: getAddress(entry.safe),
+        gate: getAddress(entry.gate),
+        signerHat: BigInt(entry.signerHat),
+      });
     }
   });
 });
