@@ -76,44 +76,9 @@ export const ConfirmNewAccount: Story = {
     },
   },
 };
-/** With email sign-in on, the wallet moves one screen in, beside email. */
-export const OtherWays: Story = {
-  args: {
-    controller: { ...controller, mode: "otherWays", codeSignIn: { ...codeSignIn, enabled: true } },
-  },
-};
-/** The email step: a code goes to the typed address. */
-export const EmailStep: Story = {
-  args: {
-    controller: {
-      ...controller,
-      mode: "code",
-      codeSignIn: {
-        ...codeSignIn,
-        enabled: true,
-        email: "steward@example.com",
-        emailValid: true,
-      },
-    },
-  },
-};
-/** The code step after a wrong code: the field keeps the code and the screen says what to do. */
-export const CodeRefused: Story = {
-  args: {
-    controller: {
-      ...controller,
-      mode: "code",
-      codeSignIn: {
-        ...codeSignIn,
-        enabled: true,
-        step: "code",
-        email: "steward@example.com",
-        emailValid: true,
-        code: "123456",
-        error: "That code didn't work. Check it, or send a new one.",
-      },
-    },
-  },
+/** With email sign-in on, the entry's second button leads to email and a wallet (AdminCodeSignIn). */
+export const EmailOffered: Story = {
+  args: { controller: { ...controller, codeSignIn: { ...codeSignIn, enabled: true } } },
 };
 /** "Continue with Passkey" opens one name step that signs in or creates the account. */
 export const NameStep: Story = { args: { controller: { ...controller, mode: "username" } } };
