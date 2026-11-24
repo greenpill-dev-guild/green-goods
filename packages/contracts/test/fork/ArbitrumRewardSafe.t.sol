@@ -74,6 +74,18 @@ interface IRewardPayerLive {
     function shareIdOf(Share calldata share) external pure returns (bytes32);
 }
 
+interface IStewardHats {
+    function mintHat(uint256 hatId, address wearer) external returns (bool);
+    function renounceHat(uint256 hatId) external;
+    function isWearerOfHat(address wearer, uint256 hatId) external view returns (bool);
+}
+
+interface IFiatTokenMinting {
+    function masterMinter() external view returns (address);
+    function configureMinter(address minter, uint256 minterAllowedAmount) external returns (bool);
+    function mint(address to, uint256 amount) external returns (bool);
+}
+
 interface IUsdc {
     function balanceOf(address account) external view returns (uint256);
     function allowance(address owner, address spender) external view returns (uint256);
@@ -99,8 +111,8 @@ contract ArbitrumRewardSafeForkTest is Test {
     /// @dev Where `release reward-safes` predicts Tech and Sun's gate: the factory's CREATE2 over this setup.
     address private constant PLANNED_GATE = 0x0BF6DB5F18962B54b6EAF13bAc1aaFCCF7FDD431;
     address private constant DELEGATING_MULTISEND = 0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526;
-    /// @dev FiatToken v2.2 keeps each balance in the low bits of `balanceAndBlacklistStates`.
-    uint256 private constant USDC_BALANCE_SLOT = 9;
+    /// @dev Safe 1.4.1 reverts this when the signatures are fewer than its threshold.
+    bytes private constant TOO_FEW_SIGNATURES = "GS020";
 
     IRewardSafeGate private gate;
     IRewardSafe private safe;
@@ -171,7 +183,7 @@ contract ArbitrumRewardSafeForkTest is Test {
     }
 
     function testArbitrumRewardSafe_aLoneStewardPaysEveryShareExactlyAndLeavesNothingApproved() public {
-        _wearStewardHat(stewardA, true);
+        _wearStewardHat(stewardA);
         vm.prank(stewardA);
         gate.claimSigner(stewardHat);
         assertEq(safe.getOwners()[0], stewardA);
@@ -200,7 +212,7 @@ contract ArbitrumRewardSafeForkTest is Test {
 
         // One steward alone can't pay once there are two.
         vm.prank(stewardA);
-        vm.expectRevert();
+        vm.expectRevert(TOO_FEW_SIGNATURES);
         _exec(data, _signatures(stewardA, address(0)));
 
         bytes32 hash = _hash(data);
@@ -217,17 +229,17 @@ contract ArbitrumRewardSafeForkTest is Test {
         _seat(stewardB);
         _fundSafe(20e6);
         (bytes memory data,) = _payment(12e6, 8e6);
-        _wearStewardHat(stewardB, false);
+        _leaveStewardHat(stewardB);
 
         // The stale signer still counts towards the threshold, and their approval no longer counts.
         bytes32 hash = _hash(data);
         vm.prank(stewardB);
         safe.approveHash(hash);
         vm.prank(stewardA);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSignature("InsufficientValidSignatures()"));
         _exec(data, _signatures(stewardA, stewardB));
         vm.prank(stewardA);
-        vm.expectRevert();
+        vm.expectRevert(TOO_FEW_SIGNATURES);
         _exec(data, _signatures(stewardA, address(0)));
 
         // Anyone removes them, and the remaining steward pays alone.
@@ -249,20 +261,32 @@ contract ArbitrumRewardSafeForkTest is Test {
     }
 
     function _seat(address steward) private {
-        _wearStewardHat(steward, true);
+        _wearStewardHat(steward);
         vm.prank(steward);
         gate.claimSigner(stewardHat);
     }
 
-    function _wearStewardHat(address account, bool wearing) private {
-        vm.mockCall(
-            HATS, abi.encodeWithSignature("isWearerOfHat(address,uint256)", account, stewardHat), abi.encode(wearing)
-        );
+    /// @dev HatsModule administers the garden's hat tree, as when the Hub grants the steward role.
+    function _wearStewardHat(address account) private {
+        vm.prank(HATS_MODULE);
+        IStewardHats(HATS).mintHat(stewardHat, account);
+        assertTrue(IStewardHats(HATS).isWearerOfHat(account, stewardHat), "steward hat minted");
     }
 
+    function _leaveStewardHat(address account) private {
+        vm.prank(account);
+        IStewardHats(HATS).renounceHat(stewardHat);
+        assertFalse(IStewardHats(HATS).isWearerOfHat(account, stewardHat), "steward hat renounced");
+    }
+
+    /// @dev USDC minted to the Safe through FiatToken's own minter role, as Circle mints it.
     function _fundSafe(uint256 amount) private {
-        vm.store(USDC, keccak256(abi.encode(address(safe), USDC_BALANCE_SLOT)), bytes32(amount));
-        assertEq(IUsdc(USDC).balanceOf(address(safe)), amount, "USDC balance slot");
+        address minter = address(0x5AFE0001);
+        vm.prank(IFiatTokenMinting(USDC).masterMinter());
+        IFiatTokenMinting(USDC).configureMinter(minter, amount);
+        vm.prank(minter);
+        IFiatTokenMinting(USDC).mint(address(safe), amount);
+        assertEq(IUsdc(USDC).balanceOf(address(safe)), amount);
     }
 
     /// @dev The Hub's payment: MultiSendCallOnly runs approve(payer, total), then payAll(shares).
