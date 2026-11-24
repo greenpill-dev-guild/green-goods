@@ -1,4 +1,5 @@
 import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
+import { Alert } from "@green-goods/shared/components/Alert";
 import { AudioRecorder } from "@green-goods/shared/components/Audio/AudioRecorder";
 import { Button } from "@green-goods/shared/components/Button";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
@@ -49,6 +50,8 @@ interface ReviewFormProps {
   canReview: boolean;
   canApproveOrReject: boolean;
   isReviewed: boolean;
+  /** Its decisions could not be read: Approve and Reject wait until its status is known. */
+  statusUnread?: boolean;
   layout?: "page" | "sheet";
   onSuccess?: (approved: boolean) => void;
 }
@@ -60,6 +63,7 @@ export function ReviewForm({
   canReview,
   canApproveOrReject,
   isReviewed,
+  statusUnread = false,
   layout = "page",
   onSuccess,
 }: ReviewFormProps) {
@@ -216,6 +220,7 @@ export function ReviewForm({
 
   const blockedState = reviewFormState({
     isReviewed,
+    isStatusUnread: statusUnread,
     isHeld,
     isStaged: Boolean(stagedReview),
     isOwnSubmission,
@@ -237,6 +242,21 @@ export function ReviewForm({
 
             {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
+            ) : blockedState === "status-unread" ? (
+              <Alert
+                variant="warning"
+                className="mt-4"
+                title={formatMessage({
+                  id: "app.work.detail.reviewBlocked.statusUnreadTitle",
+                  defaultMessage: "Status could not be read",
+                })}
+              >
+                {formatMessage({
+                  id: "app.work.detail.reviewBlocked.statusUnreadMessage",
+                  defaultMessage:
+                    "This work's decisions could not be read, so it may already be decided. Approve and Reject come back once its status is read.",
+                })}
+              </Alert>
             ) : blockedState === "held" ? (
               reviewBatch.holdFeedback && (
                 <TxHoldFeedback {...reviewBatch.holdFeedback} className="mt-4" />

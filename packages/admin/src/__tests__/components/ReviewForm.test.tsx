@@ -221,7 +221,7 @@ const TEST_WORK: Work = {
   status: "pending",
 };
 
-function renderReviewForm(work = TEST_WORK, onSuccess?: () => void) {
+function renderReviewForm(work = TEST_WORK, onSuccess?: () => void, statusUnread = false) {
   return render(
     <IntlProvider locale="en" messages={messages}>
       <ReviewForm
@@ -230,6 +230,7 @@ function renderReviewForm(work = TEST_WORK, onSuccess?: () => void) {
         canReview
         canApproveOrReject
         isReviewed={false}
+        statusUnread={statusUnread}
         onSuccess={onSuccess}
       />
     </IntlProvider>
@@ -618,6 +619,15 @@ describe("ReviewForm", () => {
     renderReviewForm();
 
     expect(screen.getByText("Independent review required")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+    expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("offers no decision on a work whose status could not be read, since it may be decided", () => {
+    renderReviewForm(TEST_WORK, undefined, true);
+
+    expect(screen.getByText("Status could not be read")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
     expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();

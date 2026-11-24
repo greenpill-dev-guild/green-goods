@@ -4347,6 +4347,8 @@
   "app.work.detail.reviewBlocked.expiredMessage": "This action is no longer active, so new approval decisions are blocked.",
   "app.work.detail.reviewBlocked.expiredTitle": "Action expired",
   "app.work.detail.reviewBlocked.stewardMessage": "Only garden owners or stewards can approve or reject work for this garden.",
+  "app.work.detail.reviewBlocked.statusUnreadMessage": "This work's decisions could not be read, so it may already be decided. Approve and Reject come back once its status is read.",
+  "app.work.detail.reviewBlocked.statusUnreadTitle": "Status could not be read",
   "app.work.detail.reviewBlocked.stewardTitle": "Owner or steward access required",
   "app.work.detail.reviewBlocked.selfReviewMessage": "You submitted this work. Another garden steward must approve or reject it.",
   "app.work.detail.reviewBlocked.selfReviewTitle": "Independent review required",

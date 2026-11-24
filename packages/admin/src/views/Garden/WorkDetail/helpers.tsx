@@ -30,6 +30,8 @@ export type WorkApprovalFormData = z.infer<typeof workApprovalSchema>;
 /** What the review form shows. A decision already made, or waiting, outranks who may make one. */
 export function reviewFormState(form: {
   isReviewed: boolean;
+  /** Its decisions could not be read, so it may be decided already: no new decision yet. */
+  isStatusUnread?: boolean;
   isHeld: boolean;
   isStaged: boolean;
   isOwnSubmission: boolean;
@@ -38,6 +40,7 @@ export function reviewFormState(form: {
   canApproveOrReject: boolean;
 }) {
   if (form.isReviewed) return "reviewed";
+  if (form.isStatusUnread) return "status-unread";
   if (form.isHeld) return "held";
   if (form.isStaged) return "staged";
   if (form.isOwnSubmission) return "self-review";
