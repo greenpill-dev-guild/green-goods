@@ -6,13 +6,26 @@ import { describe, expect, it, vi } from "vitest";
 
 import { usePromiseRewardShares } from "../hooks/commitment-pooling/useRewardShares";
 import type { RewardLeg } from "../modules/commitment-pooling/reward-legs";
-import { decodeFunctionData, type Hex, parseAbi, slice, sliceHex } from "viem";
 import {
-  REWARD_SAFE_ABI,
+  decodeFunctionData,
+  type Hex,
+  HttpRequestError,
+  parseAbi,
+  RpcRequestError,
+  slice,
+  sliceHex,
+  TimeoutError,
+} from "viem";
+import { UserOperationExecutionError } from "viem/account-abstraction";
+import {
   REWARD_SAFE_MULTI_SEND,
-  type RewardPayChain,
   sendRewardSharePayment,
 } from "../modules/commitment-pooling/reward-pay-send";
+import {
+  REWARD_SAFE_ABI,
+  type RewardPayChain,
+} from "../modules/commitment-pooling/reward-safe-chain";
+import { sendRewardSafeSync } from "../modules/commitment-pooling/reward-safe-sync";
 import { ReceiptWaitLimitError, type TransactionSender } from "../modules/transactions/types";
 
 import {
@@ -40,7 +53,11 @@ vi.mock("../utils/blockchain/contracts", async (importOriginal) => ({
   }),
   getGardenRewardSafe: (_chainId: number, garden: string | null | undefined) =>
     garden?.toLowerCase() === "0x3333333333333333333333333333333333333333"
-      ? "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe"
+      ? {
+          safe: "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe",
+          gate: "0x6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e",
+          signerHat: 7n,
+        }
       : null,
 }));
 vi.mock("../modules/commitment-pooling/data-settlement-chain", async (importOriginal) => ({
@@ -133,6 +150,8 @@ describe("reward payer shares", () => {
     expect(gardenRewardPayment(42161, C)).toEqual({
       payer: "0x4444444444444444444444444444444444444444",
       safe: "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe",
+      gate: "0x6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e",
+      signerHat: 7n,
       token: USDC,
     });
     expect(gardenRewardPayment(42161, A)).toBeNull();
@@ -174,6 +193,8 @@ describe("paying reward shares from the garden's Safe", () => {
   const SAFE = "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe" as Address;
   const OWNER = "0x5555555555555555555555555555555555555555" as Address;
   const CO_OWNER = "0x0666666666666666666666666666666666666666" as Address;
+  const GATE = "0x6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e6a7e" as Address;
+  const HAT = 7n;
   const ZERO = "0x0000000000000000000000000000000000000000" as Address;
   const HASH = `0x${"cd".repeat(32)}` as Hex;
   const shares = rewardLegShares({
@@ -192,6 +213,13 @@ describe("paying reward shares from the garden's Safe", () => {
       owners?: Address[];
       threshold?: bigint;
       approvedBy?: Address[];
+      /** Accounts the gate no longer counts: they no longer wear the steward hat. */
+      invalid?: Address[];
+      /** Accounts that don't wear the steward hat. */
+      notWearing?: Address[];
+      gateSafe?: Address;
+      /** A passkey account, whose gas a sponsor pays. */
+      sponsored?: boolean;
       /** Who the payer records as paying each share once the Safe's transaction has run. */
       paidAfter?: (shareIndex: number) => Address;
     } = {}
@@ -219,6 +247,16 @@ describe("paying reward shares from the garden's Safe", () => {
       approvedHash: vi.fn(async (_safe: Address, owner: Address) =>
         (read.approvedBy ?? []).includes(owner)
       ),
+      gateState: vi.fn(async (_gate: Address, accounts: readonly Address[]) => ({
+        safe: read.gateSafe ?? SAFE,
+        valid: accounts.map(
+          (account) => account !== GATE && !(read.invalid ?? []).includes(account)
+        ),
+      })),
+      wearsHat: vi.fn(
+        async (_gate: Address, account: Address, _hat: bigint) =>
+          !(read.notWearing ?? []).includes(account) && !(read.invalid ?? []).includes(account)
+      ),
     } satisfies RewardPayChain;
     const sendContractCall = vi.fn(
       async (
@@ -234,7 +272,10 @@ describe("paying reward shares from the garden's Safe", () => {
         return { hash: "0xabc" as Hex };
       }
     );
-    const sender = { sendContractCall } as unknown as TransactionSender;
+    const sender = {
+      sendContractCall,
+      supportsSponsorship: read.sponsored ?? false,
+    } as unknown as TransactionSender;
     const pay = (intent: "approve" | "pay", account: Address = OWNER) =>
       sendRewardSharePayment({
         sender,
@@ -242,12 +283,24 @@ describe("paying reward shares from the garden's Safe", () => {
         chainId: 42161,
         payer: PAYER,
         safe: SAFE,
+        gate: GATE,
+        signerHat: HAT,
         account,
         intent,
         partShares: shares,
         shown: shares,
       });
-    return { chain, sendContractCall, pay };
+    const sync = (account: Address = OWNER) =>
+      sendRewardSafeSync({
+        sender,
+        chain,
+        chainId: 42161,
+        safe: SAFE,
+        gate: GATE,
+        signerHat: HAT,
+        account,
+      });
+    return { chain, sendContractCall, pay, sync };
   }
 
   /** The two calls MultiSendCallOnly runs, read back from its packed bytes. */
@@ -373,7 +426,7 @@ describe("paying reward shares from the garden's Safe", () => {
     expect(movedOn.sendContractCall).not.toHaveBeenCalled();
   });
 
-  it("asks for nothing when a share is paid, the Safe can't cover the total, or the account isn't an owner", async () => {
+  it("asks for nothing when a share is paid, the Safe can't cover the total, or the account isn't a steward", async () => {
     const paid = setup({ paidBy: B });
     await expect(paid.pay("approve")).resolves.toEqual({
       status: "refused-before-asking",
@@ -384,10 +437,10 @@ describe("paying reward shares from the garden's Safe", () => {
       status: "refused-before-asking",
       refusal: "insufficient-balance",
     });
-    const stranger = setup();
+    const stranger = setup({ notWearing: [C] });
     await expect(stranger.pay("approve", C)).resolves.toEqual({
       status: "refused-before-asking",
-      refusal: "not-an-owner",
+      refusal: "not-a-steward",
     });
     const unreadable = setup();
     unreadable.chain.safeState.mockRejectedValueOnce(new Error("rpc down"));
@@ -398,6 +451,59 @@ describe("paying reward shares from the garden's Safe", () => {
     for (const run of [paid, short, stranger, unreadable]) {
       expect(run.sendContractCall).not.toHaveBeenCalled();
     }
+  });
+
+  it("asks a steward to bring the signers up to date before approving", async () => {
+    // An owner who no longer wears the steward hat: nothing is approved until they're removed.
+    const stale = setup({ invalid: [CO_OWNER] });
+    await expect(stale.pay("approve")).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "needs-sync",
+    });
+    // A steward with no seat yet takes one first.
+    const seatless = setup({ owners: [CO_OWNER], threshold: 1n });
+    await expect(seatless.pay("pay")).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "needs-sync",
+    });
+    // The record must name the gate that guards this Safe.
+    const mismatched = setup({ gateSafe: C });
+    await expect(mismatched.pay("approve")).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "unreadable",
+    });
+    for (const run of [stale, seatless, mismatched]) {
+      expect(run.sendContractCall).not.toHaveBeenCalled();
+    }
+  });
+
+  it("removes signers who left the steward hat, then seats the steward, and asks nothing when current", async () => {
+    const THIRD = "0x0777777777777777777777777777777777777777" as Address;
+    const run = setup({ owners: [CO_OWNER, THIRD], invalid: [THIRD] });
+    await expect(run.sync()).resolves.toEqual({ status: "synced", confirmed: true });
+    expect(run.sendContractCall.mock.calls.map(([call]) => [call.functionName, call.args])).toEqual(
+      [
+        ["removeSigner", [THIRD]],
+        ["claimSigner", [HAT]],
+      ]
+    );
+    expect(run.sendContractCall.mock.calls.every(([call]) => call.address === GATE)).toBe(true);
+    // A new Safe holds only its gate until the first steward claims a seat: the gate stays.
+    const fresh = setup({ owners: [GATE], threshold: 1n });
+    await fresh.sync();
+    expect(fresh.sendContractCall.mock.calls.map(([call]) => call.functionName)).toEqual([
+      "claimSigner",
+    ]);
+    // Signers already current: nothing to sign.
+    const current = setup();
+    await expect(current.sync()).resolves.toEqual({ status: "synced", confirmed: true });
+    expect(current.sendContractCall).not.toHaveBeenCalled();
+    // Someone not wearing the steward hat can't update the signers.
+    const outsider = setup({ notWearing: [C] });
+    await expect(outsider.sync(C)).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "not-a-steward",
+    });
   });
 
   it("reads a confirmed payment as paid only once the payer records every share as the Safe's", async () => {
@@ -439,6 +545,103 @@ describe("paying reward shares from the garden's Safe", () => {
       status: "unconfirmed",
       transactionHash: `0x${"ab".repeat(32)}`,
     });
+  });
+
+  it("says a passkey's gas sponsor refused, when nothing went out", async () => {
+    const refusal = () =>
+      new RpcRequestError({
+        body: { jsonrpc: "2.0", id: 1, method: "pm_getPaymasterData", params: [] },
+        error: { code: -32500, message: "UserOperation rejected by the sponsorship policy" },
+        url: "https://paymaster.example/rpc",
+      });
+    const paying = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    paying.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(paying.pay("pay")).resolves.toEqual({ status: "unsponsored" });
+
+    const approving = setup({ sponsored: true });
+    approving.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(approving.pay("approve")).resolves.toEqual({ status: "unsponsored" });
+
+    // The first update went out; the sponsor refused the second before it did.
+    const syncing = setup({ owners: [CO_OWNER, GATE], invalid: [CO_OWNER], sponsored: true });
+    syncing.sendContractCall.mockImplementationOnce(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      return { hash: "0xabc" as Hex };
+    });
+    syncing.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(syncing.sync()).resolves.toEqual({ status: "unsponsored", partly: true });
+
+    const seating = setup({ owners: [CO_OWNER, GATE], sponsored: true });
+    seating.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(seating.sync()).resolves.toEqual({ status: "unsponsored", partly: false });
+
+    // A removal went out, then the steward declined to sign their seat.
+    const halfway = setup({ owners: [CO_OWNER, GATE], invalid: [CO_OWNER] });
+    halfway.sendContractCall.mockImplementationOnce(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      return { hash: "0xabc" as Hex };
+    });
+    halfway.sendContractCall.mockRejectedValueOnce(
+      Object.assign(new Error("User rejected the request."), { code: 4001 })
+    );
+    await expect(halfway.sync()).resolves.toEqual({
+      status: "not-synced",
+      miss: "declined",
+      partly: true,
+    });
+
+    // A revert met while estimating names the paymaster among its arguments: still a refusal.
+    const reverting = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    reverting.sendContractCall.mockRejectedValueOnce(
+      new UserOperationExecutionError(
+        new RpcRequestError({
+          body: { jsonrpc: "2.0", id: 2, method: "eth_estimateUserOperationGas", params: [] },
+          error: { code: -32521, message: "execution reverted: GS026" },
+          url: "https://bundler.example/rpc",
+        }),
+        {
+          callData: "0x",
+          nonce: 0n,
+          sender: OWNER,
+          signature: "0x",
+          paymaster: "0x7777777777777777777777777777777777777777",
+        } as never
+      )
+    );
+    await expect(reverting.pay("pay")).resolves.toEqual({ status: "not-paid", miss: "refused" });
+
+    // A bundler's refusal isn't the sponsor's, and a paymaster that never answered refused nothing.
+    const bundled = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    bundled.sendContractCall.mockRejectedValueOnce(
+      new RpcRequestError({
+        body: { jsonrpc: "2.0", id: 3, method: "eth_estimateUserOperationGas", params: [] },
+        error: { code: -32500, message: "AA21 didn't pay prefund" },
+        url: "https://bundler.example/rpc",
+      })
+    );
+    await expect(bundled.pay("pay")).resolves.toMatchObject({ status: "not-paid" });
+    const silent = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    silent.sendContractCall.mockRejectedValueOnce(
+      new TimeoutError({
+        body: { jsonrpc: "2.0", id: 4, method: "pm_getPaymasterData", params: [] },
+        url: "https://paymaster.example/rpc",
+      })
+    );
+    await expect(silent.pay("pay")).resolves.toMatchObject({ status: "not-paid" });
+    const gateway = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    gateway.sendContractCall.mockRejectedValueOnce(
+      new HttpRequestError({
+        body: { jsonrpc: "2.0", id: 5, method: "pm_getPaymasterData", params: [] },
+        status: 504,
+        url: "https://paymaster.example/rpc",
+      })
+    );
+    await expect(gateway.pay("pay")).resolves.toMatchObject({ status: "not-paid" });
+
+    // A wallet pays its own gas: the same words don't make its failure a sponsor's refusal.
+    const wallet = setup({ approvedBy: [CO_OWNER] });
+    wallet.sendContractCall.mockRejectedValueOnce(refusal());
+    await expect(wallet.pay("pay")).resolves.toEqual({ status: "not-paid", miss: "refused" });
   });
 });
 

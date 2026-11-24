@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "arbitrum-garden-reward-safes",
+  "chainId": 42161,
+  "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "gardens": [
+    { "tokenId": 2, "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3" },
+    { "tokenId": 5, "garden": "0xbcCE994513615988690aBCA373B1368218E4957C" }
+  ]
+}

@@ -37,6 +37,7 @@ export {
   type RewardShareRecipient,
 } from "./reward-payer";
 export type { RewardPayOutcome, RewardSafePaymentRead } from "./reward-pay-send";
+export type { RewardSafeSyncOutcome } from "./reward-safe-sync";
 export * from "./selectors";
 export * from "./service-access";
 export { liveVoucherIssuerName } from "./service-access-live-config";

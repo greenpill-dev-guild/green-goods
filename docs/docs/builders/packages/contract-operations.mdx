@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:51f200e91140a207e29e369901fffccdde89487b4c5cbae1e107a151986c21d8"
+source_digest: "sha256:c7c9289c26a9021e910a3ead2affed329facdf4228e32f07d8465b03035b1eb2"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -18,7 +18,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # Contract operations
 
-Generated from the package-owned CLI definitions: 102 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
+Generated from the package-owned CLI definitions: 103 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
 
 `--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.
 
@@ -137,7 +137,7 @@ No options beyond the command itself.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
-### Release (14)
+### Release (15)
 
 Run a release session step by step with its transaction boundaries.
 
@@ -157,6 +157,7 @@ Options: `--manifest <value>`, `--plan <value>`, `--output <value>`.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release vouchers --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 | <CopyCommand command="bun run contracts -- release steward-safe --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
+| <CopyCommand command="bun run contracts -- release reward-safes --mode &lt;mode&gt;" /> | not network-scoped | plan, simulate, broadcast, verify |
 
 Options: `--manifest <value>`, `--members <value>`, `--receipts <value>`, `--plan <value>`, `--output <value>`.
 

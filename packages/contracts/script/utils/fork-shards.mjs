@@ -54,7 +54,7 @@ export const SHARDS = {
     chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
-      "test/fork/{ArbitrumActionRegistry,ArbitrumAssessmentReleaseSequence,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRewardPayer,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+      "test/fork/{ArbitrumActionRegistry,ArbitrumAssessmentReleaseSequence,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRewardPayer,ArbitrumRewardSafe,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
     testEnv: {
       HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "488774048",
       HATS_MODULE_UPGRADE_GARDEN_COUNT: "18",

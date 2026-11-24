@@ -25,12 +25,16 @@ import {
   rewardSharesOwed,
 } from "../../modules/commitment-pooling/reward-payer";
 import {
-  createRewardPayChain,
   type RewardPayOutcome,
   type RewardPayStep,
   readRewardSafePayment,
   sendRewardSharePayment,
 } from "../../modules/commitment-pooling/reward-pay-send";
+import { createRewardPayChain } from "../../modules/commitment-pooling/reward-safe-chain";
+import {
+  type RewardSafeSyncOutcome,
+  sendRewardSafeSync,
+} from "../../modules/commitment-pooling/reward-safe-sync";
 import type { RewardLeg } from "../../modules/commitment-pooling/reward-legs";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
@@ -124,7 +128,8 @@ export function useRewardShares(
   const account = usePrimaryAddress();
   const [step, setStep] = useState<RewardPayStep | null>(null);
   const [isPaying, setIsPaying] = useState(false);
-  const safe = gardenRewardPayment(chainId, input.garden)?.safe ?? null;
+  const reward = gardenRewardPayment(chainId, input.garden);
+  const safe = reward?.safe ?? null;
   const token = input.token;
   const part = token
     ? states.filter((share) => share.token.toLowerCase() === token.toLowerCase())
@@ -133,11 +138,12 @@ export function useRewardShares(
   const answered = part.length > 0 && part.every((share) => share.paidBy !== undefined);
   const owed = answered ? rewardSharesOwed(part, safe) : [];
   const owedIds = owed.map((share) => share.shareId).join(",");
+  // Keyed on the reader too: the read says whether they wear the garden's steward hat.
   const paymentKey = commitmentPoolingKeys.rewardSafePayment(
     chainId,
     commitmentId,
     safe ?? "",
-    owedIds
+    `${owedIds}|${account ?? ""}`
   );
   const paymentEnabled = Boolean(payer && safe) && owed.length > 0;
   const payment = useQuery({
@@ -147,6 +153,9 @@ export function useRewardShares(
         chain: createRewardPayChain(chainId),
         payer: payer as Address,
         safe: safe as Address,
+        gate: reward?.gate as Address,
+        signerHat: reward?.signerHat as bigint,
+        viewer: account ?? null,
         partShares: part,
         shown: owed,
       }),
@@ -175,8 +184,8 @@ export function useRewardShares(
    * again before any signature.
    */
   const payOwed = async (intent: "approve" | "pay"): Promise<RewardPayOutcome> => {
-    if (!payer || !safe) return { status: "refused-before-asking", refusal: "no-shares" };
-    if (!sender || !account) return { status: "refused-before-asking", refusal: "not-an-owner" };
+    if (!payer || !reward) return { status: "refused-before-asking", refusal: "no-shares" };
+    if (!sender || !account) return { status: "refused-before-asking", refusal: "not-a-steward" };
     setIsPaying(true);
     try {
       return await sendRewardSharePayment({
@@ -184,7 +193,9 @@ export function useRewardShares(
         chain: createRewardPayChain(chainId),
         chainId,
         payer,
-        safe,
+        safe: reward.safe,
+        gate: reward.gate,
+        signerHat: reward.signerHat,
         account,
         intent,
         partShares: part,
@@ -198,6 +209,30 @@ export function useRewardShares(
         queryClient.invalidateQueries({ queryKey }),
         queryClient.invalidateQueries({ queryKey: paymentKey }),
       ]);
+    }
+  };
+
+  /**
+   * The connected steward brings the Safe's signers up to date before approving: the gate removes
+   * owners who no longer wear the steward hat, and the steward claims a seat if they have none.
+   */
+  const syncSigners = async (): Promise<RewardSafeSyncOutcome> => {
+    if (!reward) return { status: "refused-before-asking", refusal: "unreadable" };
+    if (!sender || !account) return { status: "refused-before-asking", refusal: "not-a-steward" };
+    setIsPaying(true);
+    try {
+      return await sendRewardSafeSync({
+        sender,
+        chain: createRewardPayChain(chainId),
+        chainId,
+        safe: reward.safe,
+        gate: reward.gate,
+        signerHat: reward.signerHat,
+        account,
+      });
+    } finally {
+      setIsPaying(false);
+      await queryClient.invalidateQueries({ queryKey: paymentKey });
     }
   };
 
@@ -215,9 +250,10 @@ export function useRewardShares(
     payment: payment.data ?? null,
     paymentReading: unanswered(paymentEnabled, payment) && !payment.isError,
     paymentReadFailed: payment.isError,
-    /** The connected account, which pays only as one of the Safe's owners. */
+    /** The connected account, which pays only as a steward with a seat on the Safe. */
     account: account ?? null,
     payOwed,
+    syncSigners,
     /** Reads the Safe's balance and approvals again, as after funding it or another owner's approval. */
     recheckPayment: () => void payment.refetch(),
     isPaying,
@@ -250,7 +286,8 @@ export function usePromiseRewardShares(input: {
     chainId: input.chainId,
     commitmentId: input.commitmentId,
     legs: input.legs,
-    recipients: plan?.finalized ? plan.recipients : [],
+    // A caller that turned the reads off gets none, even from a plan read earlier.
+    recipients: recipientsEnabled && plan?.finalized ? plan.recipients : [],
   });
   return {
     ...read,

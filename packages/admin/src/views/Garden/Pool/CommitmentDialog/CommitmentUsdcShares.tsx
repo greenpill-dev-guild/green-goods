@@ -18,7 +18,7 @@ import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { shortAddress } from "../poolFundingPresentation";
-import { toastRewardPayOutcome } from "./usdcShareToasts";
+import { toastRewardPayOutcome, toastRewardSyncOutcome } from "./usdcShareToasts";
 
 export interface CommitmentUsdcSharesProps {
   /** Each gardener's share of the USDC part, with whether the payer has recorded it as paid. */
@@ -46,6 +46,8 @@ export interface CommitmentUsdcSharesProps {
   isPaying: boolean;
   /** The owner pressed Approve, or Pay when their call completes the approvals. */
   onPay: (intent: "approve" | "pay") => void;
+  /** The steward brings the Safe's signers up to date before approving. */
+  onSync: () => void;
   /** Reads the Safe's balance and approvals again. */
   onRecheck: () => void;
 }
@@ -78,6 +80,7 @@ export function CommitmentUsdcShares({
   readFailed,
   isPaying,
   onPay,
+  onSync,
   onRecheck,
 }: CommitmentUsdcSharesProps) {
   const { formatMessage, locale } = useIntl();
@@ -159,6 +162,11 @@ export function CommitmentUsdcShares({
   const canOffer = payerAvailable && safe !== null && splitFixed === true && owed.length > 0;
   const ready = payment?.status === "ready" ? payment : null;
   const viewerIsOwner = Boolean(ready?.owners.some((owner) => same(owner, viewer)));
+  // Only a steward counts on the Safe; a steward first brings its signers up to date: owners who no
+  // longer wear the steward hat leave, and the steward takes a seat if they have none.
+  const viewerIsSteward = ready?.viewerWearsHat === true;
+  const staleCount = ready?.staleSigners.length ?? 0;
+  const needsSync = Boolean(ready) && viewerIsSteward && (staleCount > 0 || !viewerIsOwner);
   const viewerApproved = Boolean(ready?.approvedBy.some((owner) => same(owner, viewer)));
   const othersApproved = ready
     ? ready.approvedBy.filter((owner) => !same(owner, viewer)).length
@@ -240,7 +248,7 @@ export function CommitmentUsdcShares({
       {canOffer ? (
         <div className="space-y-2" data-payment={ready ? "ready" : (payment?.status ?? "reading")}>
           {approvalsUnreadable ? (
-            <Alert variant="error">
+            <Alert variant="error" action={recheck}>
               {formatMessage({
                 id: "hub.garden.pool.safeShares.paymentReadError",
                 defaultMessage:
@@ -281,15 +289,58 @@ export function CommitmentUsdcShares({
               )}
             </p>
           ) : null}
-          {ready && !viewerIsOwner ? (
+          {ready && !viewerIsSteward ? (
             <Alert variant="info">
               {formatMessage({
-                id: "hub.garden.pool.safeShares.notOwner",
-                defaultMessage: "Only an owner of this garden's Safe can approve this payment.",
+                id: "hub.garden.pool.safeShares.notSteward",
+                defaultMessage: "Only a steward of this garden can pay from its Safe.",
               })}
             </Alert>
           ) : null}
-          {ready && viewerIsOwner && viewerApproved && !viewerCompletes ? (
+          {needsSync ? (
+            <>
+              <Button
+                type="button"
+                emphasis="primary"
+                size="sm"
+                loading={isPaying}
+                disabled={!isOnline || readFailed || approvalsUnreadable}
+                onClick={onSync}
+              >
+                {formatMessage({
+                  id: "hub.garden.pool.safeShares.sync",
+                  defaultMessage: "Update the Safe's Signers",
+                })}
+              </Button>
+              <p className="type-meta text-text-soft">
+                {staleCount === 0
+                  ? formatMessage({
+                      id: "hub.garden.pool.safeShares.syncNoteSeat",
+                      defaultMessage:
+                        "One signature from your account adds you as a signer of the garden's Safe.",
+                    })
+                  : viewerIsOwner
+                    ? formatMessage(
+                        {
+                          id: "hub.garden.pool.safeShares.syncNoteRemove",
+                          defaultMessage:
+                            "{count, plural, one {One signature from your account removes the signer who is no longer a steward.} other {# signatures from your account, one for each signer who is no longer a steward.}}",
+                        },
+                        { count: staleCount }
+                      )
+                    : formatMessage(
+                        {
+                          id: "hub.garden.pool.safeShares.syncNoteBoth",
+                          defaultMessage:
+                            "{count, plural, other {# signatures from your account: one for each signer who is no longer a steward, then one to add you.}}",
+                        },
+                        { count: staleCount + 1 }
+                      )}
+              </p>
+              {recheck}
+            </>
+          ) : null}
+          {ready && viewerIsSteward && !needsSync && viewerApproved && !viewerCompletes ? (
             <>
               <p className="type-meta text-text-soft">
                 {formatMessage({
@@ -302,14 +353,15 @@ export function CommitmentUsdcShares({
             </>
           ) : null}
           {(payment === null && paymentReading) ||
-          (ready && viewerIsOwner && (!viewerApproved || viewerCompletes)) ? (
+          (ready && viewerIsSteward && !needsSync && (!viewerApproved || viewerCompletes)) ? (
             <>
               <Button
                 type="button"
                 emphasis="primary"
                 size="sm"
                 loading={isPaying || paymentReading}
-                disabled={!isOnline || readFailed || !ready}
+                // A failed read can leave an earlier one cached: nothing is pressed on it.
+                disabled={!isOnline || readFailed || !ready || approvalsUnreadable}
                 onClick={() => onPay(viewerCompletes ? "pay" : "approve")}
               >
                 {formatMessage(
@@ -383,6 +435,8 @@ export function CommitmentUsdcSharesSection({
   const pay = async (intent: "approve" | "pay") =>
     toastRewardPayOutcome(await rewardShares.payOwed(intent), formatMessage);
 
+  const sync = async () => toastRewardSyncOutcome(await rewardShares.syncSigners(), formatMessage);
+
   return (
     <CommitmentUsdcShares
       shares={legShares}
@@ -405,6 +459,7 @@ export function CommitmentUsdcSharesSection({
       readFailed={rewardShares.readFailed}
       isPaying={rewardShares.isPaying}
       onPay={(intent) => void pay(intent)}
+      onSync={() => void sync()}
       onRecheck={rewardShares.recheckPayment}
     />
   );

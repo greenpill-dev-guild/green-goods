@@ -12,15 +12,15 @@ import { renderWithProviders, screen } from "../test-utils";
 const mocks = vi.hoisted(() => ({
   shares: [] as RewardShareState[],
   isReading: false,
+  enabled: undefined as boolean | undefined,
 }));
 
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
-  usePromiseRewardShares: () => ({
-    shares: mocks.shares,
-    isReading: mocks.isReading,
-    readFailed: false,
-  }),
+  usePromiseRewardShares: (input: { enabled?: boolean }) => {
+    mocks.enabled = input.enabled;
+    return { shares: mocks.shares, isReading: mocks.isReading, readFailed: false };
+  },
   useRewardShareTransaction: () => ({ data: undefined }),
 }));
 
@@ -95,6 +95,25 @@ describe("PromiseRewardParts", () => {
       />
     );
     expect(screen.getByText(text)).toBeInTheDocument();
+  });
+
+  // A promise that ended unkept, or one past its due date, will never pay, so its USDC part names
+  // the amount alone, as the G$ reward does (PRD-1370), and its shares aren't read.
+  it("names the USDC part's amount alone on a promise that will never be kept", () => {
+    mocks.shares = [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, null)];
+    mocks.isReading = false;
+    renderWithProviders(
+      <PromiseRewardParts
+        reward={{ wei: 0n, centsAsSet: null, others: [LEG] }}
+        chainId={42161}
+        commitmentId={19n}
+        viewer={null}
+        payout="unstated"
+      />
+    );
+    expect(screen.getByText("20 USDC on Arbitrum One")).toBeInTheDocument();
+    expect(screen.queryByText(/not paid yet/)).toBeNull();
+    expect(mocks.enabled).toBe(false);
   });
 
   // The promise never records a Celo settlement as paid, so once kept the G$ row claims no state:

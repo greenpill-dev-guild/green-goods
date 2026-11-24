@@ -1,11 +1,17 @@
+/**
+ * What the Hub tells a steward once their step towards paying a garden Safe's USDC shares ends:
+ * their approval or the payment itself, or the signer update that comes first.
+ */
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import type { RewardPayOutcome } from "@green-goods/shared/commitment-pooling";
+import type {
+  RewardPayOutcome,
+  RewardSafeSyncOutcome,
+} from "@green-goods/shared/commitment-pooling";
 import type { IntlShape } from "react-intl";
 
-/** What the Hub tells an owner once their approval of, or run of, a garden Safe's payment ends. */
 type FormatMessage = IntlShape["formatMessage"];
 
-/** Tells the owner how their approval or payment ended. A declined signature needs no word. */
+/** Tells the steward how their approval or payment ended. A declined signature needs no word. */
 export function toastRewardPayOutcome(outcome: RewardPayOutcome, formatMessage: FormatMessage) {
   if (outcome.status === "paid") {
     toastService.success({
@@ -86,11 +92,30 @@ export function toastRewardPayOutcome(outcome: RewardPayOutcome, formatMessage: 
         defaultMessage: "The Safe's approvals changed. Check the payment again.",
       }),
     });
-  } else if (outcome.status === "refused-before-asking" && outcome.refusal === "not-an-owner") {
+  } else if (outcome.status === "refused-before-asking" && outcome.refusal === "needs-sync") {
+    toastService.info({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.needsSync",
+        defaultMessage: "Update the Safe's signers first",
+      }),
+    });
+  } else if (outcome.status === "refused-before-asking" && outcome.refusal === "not-a-steward") {
     toastService.error({
       title: formatMessage({
-        id: "hub.garden.pool.safeShares.toast.notOwner",
-        defaultMessage: "Only an owner of this garden's Safe can approve this payment",
+        id: "hub.garden.pool.safeShares.toast.notSteward",
+        defaultMessage: "Only a steward of this garden can pay from its Safe",
+      }),
+    });
+  } else if (outcome.status === "unsponsored") {
+    toastService.error({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.unsponsored",
+        defaultMessage: "Green Goods couldn't cover the network fee for this step",
+      }),
+      message: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.unsponsoredHint",
+        defaultMessage:
+          "Nothing was sent. Try again later, and tell the Green Goods team if it keeps happening.",
       }),
     });
   } else if (outcome.status !== "not-paid" || outcome.miss !== "declined") {
@@ -98,6 +123,79 @@ export function toastRewardPayOutcome(outcome: RewardPayOutcome, formatMessage: 
       title: formatMessage({
         id: "hub.garden.pool.safeShares.toast.failed",
         defaultMessage: "The shares weren't paid",
+      }),
+    });
+  }
+}
+
+/** Tells the steward how their signer update ended. A declined first signature needs no word. */
+export function toastRewardSyncOutcome(
+  outcome: RewardSafeSyncOutcome,
+  formatMessage: FormatMessage
+) {
+  if (outcome.status === "synced" && !outcome.confirmed) {
+    toastService.info({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.syncUnconfirmed",
+        defaultMessage: "Update sent, not confirmed yet",
+      }),
+      message: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.syncUnconfirmedHint",
+        defaultMessage: "The signers show as updated once it lands.",
+      }),
+    });
+  } else if (outcome.status === "synced") {
+    toastService.success({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.synced",
+        defaultMessage: "Safe signers updated",
+      }),
+      message: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.syncedHint",
+        defaultMessage: "Approve the payment next.",
+      }),
+    });
+  } else if (outcome.status === "refused-before-asking" && outcome.refusal === "not-a-steward") {
+    toastService.error({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.notSteward",
+        defaultMessage: "Only a steward of this garden can pay from its Safe",
+      }),
+    });
+  } else if (outcome.status === "unsponsored") {
+    toastService.error({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.unsponsored",
+        defaultMessage: "Green Goods couldn't cover the network fee for this step",
+      }),
+      message: outcome.partly
+        ? formatMessage({
+            id: "hub.garden.pool.safeShares.toast.unsponsoredPartlyHint",
+            defaultMessage:
+              "Part of the update went out and the rest wasn't sent. Try again later, and tell the Green Goods team if it keeps happening.",
+          })
+        : formatMessage({
+            id: "hub.garden.pool.safeShares.toast.unsponsoredHint",
+            defaultMessage:
+              "Nothing was sent. Try again later, and tell the Green Goods team if it keeps happening.",
+          }),
+    });
+  } else if (outcome.status === "not-synced" && outcome.partly) {
+    toastService.info({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.syncPartly",
+        defaultMessage: "Part of the update went out",
+      }),
+      message: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.syncPartlyHint",
+        defaultMessage: "Check the Safe's signers, then update what's left.",
+      }),
+    });
+  } else if (outcome.status !== "not-synced" || outcome.miss !== "declined") {
+    toastService.error({
+      title: formatMessage({
+        id: "hub.garden.pool.safeShares.toast.syncFailed",
+        defaultMessage: "The Safe's signers weren't updated",
       }),
     });
   }
