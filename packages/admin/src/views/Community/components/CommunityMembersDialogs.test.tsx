@@ -17,6 +17,7 @@ import {
   within,
 } from "@/__tests__/test-utils";
 import { AdminViewActions } from "@/components/AdminViewActions";
+import { grantableRoles, rosterForViewer } from "@/components/Garden/manageRoles";
 import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { storyGarden, storyRoleMembers } from "./communityStoryFixtures";
 
@@ -650,5 +651,54 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
     });
 
     expect(addGardener).not.toHaveBeenCalled();
+  });
+});
+
+// PRD-1391: the rank rule itself, as the garden's role rule on chain ranks role changes
+// (`Hats._requireRoleManager`): an Owner grants any role to anyone, a Steward any role below
+// Owner and never changes an Owner, and the protocol team grants Steward.
+const RANK_OWNER = "0x1111111111111111111111111111111111111111" as Address;
+const RANK_STEWARD = "0x2222222222222222222222222222222222222222" as Address;
+const RANK_GARDENER = "0x3333333333333333333333333333333333333333" as Address;
+
+const RANK_ROSTER: Record<GardenRole, Address[]> = {
+  owner: [RANK_OWNER],
+  steward: [RANK_OWNER, RANK_STEWARD],
+  evaluator: [],
+  gardener: [RANK_GARDENER],
+  funder: [],
+  community: [],
+};
+
+const asOwner = { address: RANK_OWNER, isOwner: true, canManage: true };
+const asSteward = { address: RANK_STEWARD, isOwner: false, canManage: true };
+const asTeam = { address: null, isOwner: false, canManage: false, canManageStewards: true };
+
+describe("the Hub's rank rule for role changes", () => {
+  it("grants an Owner every role, a Steward every role below Owner, and the team only Steward", () => {
+    expect(grantableRoles(asOwner)).toContain("owner");
+    expect(grantableRoles(asSteward)).not.toContain("owner");
+    expect(grantableRoles(asSteward)).toEqual(
+      expect.arrayContaining(["steward", "evaluator", "gardener", "funder", "community"])
+    );
+    expect(grantableRoles(asTeam)).toEqual(["steward"]);
+  });
+
+  it("leaves a Steward no row on which to add or restore an Owner's roles", () => {
+    const keys = (viewer: Parameters<typeof rosterForViewer>[1]) =>
+      [...rosterForViewer(RANK_ROSTER, viewer).addable].sort();
+    const all = [RANK_OWNER, RANK_STEWARD, RANK_GARDENER]
+      .map((address) => address.toLowerCase())
+      .sort();
+
+    expect(keys(asSteward)).toEqual(
+      [RANK_STEWARD, RANK_GARDENER].map((a) => a.toLowerCase()).sort()
+    );
+    expect(keys(asOwner)).toEqual(all);
+    expect(keys(asTeam)).toEqual(all);
+    // Removal stays ranked as before: a Steward can take none of an Owner's roles.
+    expect(
+      rosterForViewer(RANK_ROSTER, asSteward).blocked.get(RANK_OWNER.toLowerCase())?.get("steward")
+    ).toBe("owner-only");
   });
 });
