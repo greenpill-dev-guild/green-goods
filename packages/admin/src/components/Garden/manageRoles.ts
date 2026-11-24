@@ -71,6 +71,33 @@ export interface ManageRolesViewer {
   allowedRoles?: readonly GardenRole[];
 }
 
+/**
+ * The roles this viewer may grant (PRD-1391), ranked as the garden's role rule on chain is: an
+ * Owner grants any role, a Steward any role below Owner, and the protocol team only Steward.
+ */
+export function grantableRoles(
+  viewer: Pick<ManageRolesViewer, "isOwner" | "canManage" | "canManageStewards">
+): GardenRole[] {
+  return GARDEN_ROLE_ORDER.filter(
+    (role) =>
+      viewer.isOwner ||
+      (viewer.canManage && role !== "owner") ||
+      (Boolean(viewer.canManageStewards) && role === "steward")
+  );
+}
+
+/**
+ * Whether this viewer may add roles to this person. A Steward never changes an Owner (PRD-1391),
+ * so an Owner's row offers a Steward nothing; an Owner, or the protocol team granting Steward,
+ * may add to anyone.
+ */
+export function canAddRolesTo(
+  person: Pick<MemberPerson, "roles">,
+  viewer: Pick<ManageRolesViewer, "isOwner" | "canManageStewards">
+): boolean {
+  return viewer.isOwner || Boolean(viewer.canManageStewards) || !person.roles.includes("owner");
+}
+
 /** Why each of a person's roles cannot be removed by this viewer, for the roles that cannot. */
 export function blockedRoles(
   person: MemberPerson,

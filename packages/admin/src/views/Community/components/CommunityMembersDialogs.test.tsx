@@ -87,9 +87,11 @@ const NEW_MEMBER = "0x7777777777777777777777777777777777777777";
 function CommunityRoute({
   canManage,
   canManageStewards,
+  isOwner,
 }: {
   canManage: boolean;
   canManageStewards: boolean;
+  isOwner: boolean;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -108,7 +110,7 @@ function CommunityRoute({
         garden={storyGarden}
         canManage={canManage}
         canManageStewards={canManageStewards}
-        isOwner={false}
+        isOwner={isOwner}
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
         roleMembers={storyRoleMembers}
         scheduleBackgroundRefetch={scheduleBackgroundRefetch}
@@ -122,14 +124,20 @@ function CommunityRoute({
 
 function renderAt(
   path: string,
-  { before, canManage = true, canManageStewards = false }: RenderOptions = {}
+  { before, canManage = true, canManageStewards = false, isOwner = false }: RenderOptions = {}
 ) {
   // The dialog's close guard uses useBlocker, which needs a data router.
   const router = createMemoryRouter(
     [
       {
         path: "*",
-        element: <CommunityRoute canManage={canManage} canManageStewards={canManageStewards} />,
+        element: (
+          <CommunityRoute
+            canManage={canManage}
+            canManageStewards={canManageStewards}
+            isOwner={isOwner}
+          />
+        ),
       },
     ],
     {
@@ -144,6 +152,7 @@ interface RenderOptions {
   before?: string;
   canManage?: boolean;
   canManageStewards?: boolean;
+  isOwner?: boolean;
 }
 
 const addButton = () => screen.getByRole("button", { name: "Add Member" });
@@ -166,6 +175,33 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
     const dialog = await screen.findByRole("dialog", { name: "Add Members" });
     expect(within(dialog).getAllByRole("option")).toHaveLength(1);
     expect(within(dialog).getByRole("option", { name: "Steward" })).toBeInTheDocument();
+  });
+
+  // PRD-1391: a Steward never changes an Owner, so an Owner's row offers a Steward nothing.
+  it("offers a Steward no role to add on an Owner's row, and an Owner every row", async () => {
+    const rowOf = (manage: HTMLElement, address: string) =>
+      within(manage)
+        .getByText(address, { exact: true })
+        .closest<HTMLElement>("[data-component=ManageRolesPersonRow]")!;
+    const owner = storyRoleMembers.owner[0];
+    const member = storyRoleMembers.steward[0];
+    const url = `/community/members?gardenId=${storyGarden.id}&item=manage-members`;
+
+    const steward = renderAt(url, { canManage: true, isOwner: false });
+    let manage = await screen.findByRole("dialog", { name: "Manage Roles" });
+    expect(
+      within(rowOf(manage, owner)).queryByRole("button", { name: /Add role for/ })
+    ).not.toBeInTheDocument();
+    expect(
+      within(rowOf(manage, member)).getByRole("button", { name: /Add role for/ })
+    ).toBeInTheDocument();
+    steward.unmount();
+
+    renderAt(url, { canManage: true, isOwner: true });
+    manage = await screen.findByRole("dialog", { name: "Manage Roles" });
+    expect(
+      within(rowOf(manage, owner)).getByRole("button", { name: /Add role for/ })
+    ).toBeInTheDocument();
   });
 
   it("lets Team add only Steward to an existing member through the new role picker", async () => {
@@ -197,7 +233,7 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
       })
     );
     const path = `/community/members?gardenId=${storyGarden.id}&item=manage-members`;
-    renderAt(path, { before: TAB_URL });
+    renderAt(path, { before: TAB_URL, isOwner: true });
     await user.click(screen.getAllByRole("button", { name: /Add role for/ })[0]);
     await user.click(screen.getByRole("radio", { name: "Steward" }));
     await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
@@ -214,7 +250,7 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
   it("protects an unsaved role choice from browser Back", async () => {
     const user = userEvent.setup();
     const path = `/community/members?gardenId=${storyGarden.id}&item=manage-members`;
-    renderAt(path, { before: TAB_URL });
+    renderAt(path, { before: TAB_URL, isOwner: true });
     await user.click(screen.getAllByRole("button", { name: /Add role for/ })[0]);
     await user.click(screen.getByRole("radio", { name: "Steward" }));
     pressBrowserBack();
@@ -229,7 +265,9 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
 
   it("adds a role to the selected member and returns to the roster", async () => {
     const user = userEvent.setup();
-    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members`);
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members`, {
+      isOwner: true,
+    });
     const manage = await screen.findByRole("dialog", { name: "Manage Roles" });
     const person = storyRoleMembers.owner[0];
     const row = within(manage)

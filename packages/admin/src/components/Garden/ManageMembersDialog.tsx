@@ -24,6 +24,7 @@ import { RestoreRolesNotice, type RestoreRolesNoticeProps } from "./RestoreRoles
 import { MemberNameReaders, withMemberName } from "./MemberNames";
 import {
   blockedRoles,
+  canAddRolesTo,
   chooseView,
   type MemberPerson,
   peopleFromRoster,
@@ -460,7 +461,15 @@ export function ManageMembersDialog({
                       contribution={
                         contributions.canView ? contributions.byAccount[key] : undefined
                       }
-                      onAddRole={onAddRole ? () => onAddRole(person.address) : undefined}
+                      onAddRole={
+                        onAddRole &&
+                        canAddRolesTo(person, {
+                          isOwner: viewerIsOwner,
+                          canManageStewards: viewerCanManageStewards,
+                        })
+                          ? () => onAddRole(person.address)
+                          : undefined
+                      }
                       addRoleDisabled={picks.length > 0}
                       disabled={busy}
                       restoreNotice={
