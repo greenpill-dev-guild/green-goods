@@ -619,6 +619,13 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
     [snapshot, walletRestore.state, isConnecting, walletModalOpen, storedCredential]
   );
 
+  // A passkey or wallet session on this phone ends an email sign-in a closed page left.
+  const signedInOtherwise =
+    computedValues.isAuthenticated && computedValues.authMode !== "openfort";
+  useEffect(() => {
+    if (signedInOtherwise) openfortServices.endUnfinishedSignIn();
+  }, [signedInOtherwise, openfortServices]);
+
   // State value — changes on auth events
   const stateValue: AuthStateValue = useMemo(
     () => ({

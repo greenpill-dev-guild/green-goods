@@ -239,6 +239,42 @@ describe("email sign-in", () => {
     expect(hasSignedOutSentinel()).toBe(true);
   });
 
+  it("ends that session as soon as someone signs in another way on this phone", async () => {
+    startSignIn(); // the page closed; the next person picks a passkey within two minutes
+    const nextPerson = fakeWallet();
+    services(nextPerson).endUnfinishedSignIn();
+    expect(nextPerson.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps no mark of a sign-in that failed, so the next load cleans up at once", async () => {
+    const refused = fakeWallet({
+      verifyCode: vi.fn(async () => Promise.reject(new Error("Invalid code"))),
+    });
+    await expect(run(services(refused).authenticateOpenfort, signIn)).rejects.toThrow(
+      "Invalid code"
+    );
+    setAuthMode("openfort");
+    const nextLoad = fakeWallet();
+    await run(services(nextLoad).restoreOpenfort, { chainId: CHAIN_ID });
+    expect(nextLoad.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks for a new code only after a cleanup sign-out has finished", async () => {
+    let finishSignOut = () => {};
+    const wallet = fakeWallet({
+      signOut: vi.fn(() => new Promise<void>((resolve) => (finishSignOut = resolve))),
+    });
+    const { requestCode, endUnfinishedSignIn } = services(wallet);
+    startSignIn();
+    endUnfinishedSignIn();
+    const asked = requestCode("next@example.com");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(wallet.requestCode).not.toHaveBeenCalled();
+    finishSignOut();
+    await asked;
+    expect(wallet.requestCode).toHaveBeenCalledWith("next@example.com");
+  });
+
   it("normalizes what was typed so the same person always reaches the same account", () => {
     expect(normalizeEmail("  Ada@Example.COM ")).toBe("ada@example.com");
   });

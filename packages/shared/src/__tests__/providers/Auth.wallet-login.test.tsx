@@ -26,6 +26,10 @@ import { queryClient } from "../../config/react-query";
 import { AuthProvider, useAuthContext } from "../../providers/Auth";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import {
+  type OpenfortSessionServices,
+  openfortSessionServices,
+} from "../../workflows/auth-openfort-session";
+import {
   authMachine,
   type PasskeyOperationInput,
   type PasskeySessionResult,
@@ -158,9 +162,13 @@ function setAccount(next: Partial<AccountState>) {
   accountState = { ...disconnectedAccount, ...next };
 }
 
-function renderAuth(adapters?: typeof defaultPasskeyAdapters) {
+function renderAuth(adapters?: typeof defaultPasskeyAdapters, openfort?: OpenfortSessionServices) {
   function wrapper({ children }: { children: ReactNode }) {
-    return <AuthProvider adapters={adapters}>{children}</AuthProvider>;
+    return (
+      <AuthProvider adapters={adapters} openfort={openfort}>
+        {children}
+      </AuthProvider>
+    );
   }
 
   return renderHook(() => useAuthContext(), { wrapper });
@@ -763,8 +771,10 @@ describe("AuthProvider wallet login bridge", () => {
       isConnecting: false,
       connector: rabbyConnector,
     });
-    const view = renderAuth();
+    const openfort = { ...openfortSessionServices, endUnfinishedSignIn: vi.fn() };
+    const view = renderAuth(undefined, openfort);
     await waitForReady();
+    expect(openfort.endUnfinishedSignIn).not.toHaveBeenCalled();
 
     act(() => {
       view.result.current.loginWithWallet();
@@ -775,6 +785,8 @@ describe("AuthProvider wallet login bridge", () => {
     });
     expect(view.result.current.walletAddress).toBe(TEST_WALLET);
     expect(mocks.mockOpenAppKit).not.toHaveBeenCalled();
+    // A wallet session ends an email sign-in that a closed page left on this phone.
+    expect(openfort.endUnfinishedSignIn).toHaveBeenCalledTimes(1);
   });
 
   it("does not authenticate an AppKit embedded connector through wallet intent", async () => {

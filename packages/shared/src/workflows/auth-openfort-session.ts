@@ -109,20 +109,54 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
     };
   };
 
-  /** A code request never leaves the previous person's Openfort session behind (see wallet). */
-  const requestCode = (email: string) => wallet.requestCode(normalizeEmail(email));
+  /** The sign-out ending a session an unfinished sign-in left, while it is still running. */
+  let leftoverSignOut: Promise<void> | null = null;
+  const endLeftoverSession = () => {
+    store().removeItem(SIGN_IN_STARTED_KEY);
+    leftoverSignOut = wallet
+      .signOut()
+      .catch((error: unknown) =>
+        logger.warn("[Auth] Openfort sign-out after an unfinished sign-in failed", { error })
+      )
+      .finally(() => {
+        leftoverSignOut = null;
+      });
+  };
+
+  /**
+   * A code request never leaves the previous person's Openfort session behind (see wallet), and
+   * waits for a leftover session's sign-out so that one cannot clear the new person's login.
+   */
+  const requestCode = async (email: string) => {
+    await leftoverSignOut;
+    return wallet.requestCode(normalizeEmail(email));
+  };
+
+  /** Another kind of session opened here: end an email sign-in that a closed page left. */
+  const endUnfinishedSignIn = () => {
+    if (store().getItem(SIGN_IN_STARTED_KEY) === null) return;
+    if (getStoredOpenfortAccount(storage)) return;
+    endLeftoverSession();
+  };
 
   const authenticateOpenfort = fromPromise<OpenfortSessionResult, OpenfortOperationInput>(
     async ({ input, signal }) => {
       const assertActive = guardSessionCommit(signal);
       const email = normalizeEmail(input.email);
-      const started = String(Date.now());
-      store().setItem(SIGN_IN_STARTED_KEY, started);
+      // Renewed after each step, so a slow but live sign-in never looks abandoned.
+      let started = "";
+      const markProgress = () => {
+        started = String(Date.now());
+        store().setItem(SIGN_IN_STARTED_KEY, started);
+      };
+      markProgress();
       try {
         await wallet.verifyCode(email, input.code.trim());
+        markProgress();
         try {
           assertActive();
           const owner = await wallet.configureWallet(input.chainId);
+          markProgress();
           assertActive();
           const session = await openSession(owner, input.chainId, email);
           assertActive();
@@ -163,16 +197,11 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
         // tab: leave it alone. One older than that had its page closed after the code was
         // accepted: end the Openfort session it left, so the next person on this phone starts
         // clean. The device stays signed out, and startup does not wait on Openfort's network.
-        const started = Number(store().getItem(SIGN_IN_STARTED_KEY));
-        if (started > 0 && Date.now() - started < UNFINISHED_SIGN_IN_MS) return null;
-        store().removeItem(SIGN_IN_STARTED_KEY);
+        const age = Date.now() - Number(store().getItem(SIGN_IN_STARTED_KEY));
+        if (age >= 0 && age < UNFINISHED_SIGN_IN_MS) return null;
         clearAuthMode(storage);
         setSignedOutSentinel(storage);
-        void wallet
-          .signOut()
-          .catch((error: unknown) =>
-            logger.warn("[Auth] Openfort sign-out after an unfinished sign-in failed", { error })
-          );
+        endLeftoverSession();
         return null;
       }
       // Openfort signed out elsewhere (another tab, an expired session): this device is too.
@@ -208,7 +237,13 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
     await wallet.signOut();
   };
 
-  return { requestCode, authenticateOpenfort, restoreOpenfort, signOutOpenfort };
+  return {
+    requestCode,
+    authenticateOpenfort,
+    restoreOpenfort,
+    signOutOpenfort,
+    endUnfinishedSignIn,
+  };
 }
 
 export type OpenfortSessionServices = ReturnType<typeof createOpenfortSessionServices>;
