@@ -64,10 +64,10 @@ export function useReviewWorkDay({
     /** The day's works whose status could not be read: status unread, never Pending. */
     workDayUnknownIds: read.unknownIds,
     /**
-     * Whether the day's statuses have been read. Until then (loading, offline or failed) no work
-     * of the day has a known status, so none can be decided from the day.
+     * Whether the day's statuses are current: read, and the latest read neither failed nor waits
+     * offline over an earlier copy. Until then no work of the day can be decided from the day.
      */
-    workDayStatusKnown: day === null || read.hasRead,
+    workDayStatusKnown: day === null || (read.hasRead && !read.isError && !read.isPaused),
     workDayLoading: day !== null && read.isLoading,
     /** The day could not be read, so its list is unknown, not empty. */
     workDayUnread: day !== null && !read.hasRead && (read.isError || read.isPaused),

@@ -16,6 +16,7 @@ let mockSearch = "";
 const mockUseRouteBackedLeftSheetConfig = vi.fn();
 const mockTrackWorkApprovalPresentationFailed = vi.fn();
 let capturedReviewSuccess: ((approved: boolean) => void) | undefined;
+let capturedStatusUnread: boolean | undefined;
 let mockAdminGardenContextError = false;
 let mockSelectedGarden: { id: string; name: string } | null = {
   id: "0xGarden",
@@ -154,13 +155,16 @@ vi.mock("@/views/Garden/WorkDetail/ReviewForm", () => ({
   ReviewForm: ({
     canReview,
     actionSlug,
+    statusUnread,
     onSuccess,
   }: {
     canReview: boolean;
     actionSlug?: string;
+    statusUnread?: boolean;
     onSuccess?: (approved: boolean) => void;
   }) => {
     capturedReviewSuccess = onSuccess;
+    capturedStatusUnread = statusUnread;
     const actions = mockUseActions.mock.results.at(-1)?.value?.data ?? [];
     const permissions = mockUseGardenPermissions.mock.results.at(-1)?.value;
     const matchedAction = actions.find((action: { slug?: string }) => action.slug === actionSlug);
@@ -225,6 +229,7 @@ const messages = {
   "app.work.status.pending": "Pending",
   "app.work.status.approved": "Approved",
   "app.work.status.rejected": "Rejected",
+  "hub.garden.calendar.status.unknown": "Status unread",
 } satisfies Record<string, string>;
 
 function renderWithIntl(
@@ -457,6 +462,21 @@ describe("WorkDetail view", () => {
     expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
   });
 
+  it("says a work's status is unread wherever it opens, when the garden's read could not say it", () => {
+    const read = mockUseWorks();
+    mockUseWorks.mockReturnValue({ ...read, unknownIds: new Set(["0xWork"]) });
+
+    renderWithIntl(
+      "en",
+      React.createElement(WorkDetailPanel, { workId: "0xWork", layout: "sheet" })
+    );
+
+    expect(screen.getByText("Status unread")).toBeInTheDocument();
+    expect(screen.queryByText("Pending")).not.toBeInTheDocument();
+    // And the form is told, so it holds Approve and Reject.
+    expect(capturedStatusUnread).toBe(true);
+  });
+
   it("keeps the rendered inspector stable when the reviewed work leaves the pending collection", () => {
     const panel = React.createElement(WorkDetailPanel, {
       workId: "0xWork",
@@ -582,6 +602,9 @@ describe("WorkDetail view", () => {
     rerenderWith({ dayStatusUnread: true, unknownWorkIds: new Set() });
     expect(statusUnread()).toBe(true);
     rerenderWith({ dayStatusUnread: false, unknownWorkIds: new Set(["0xWork"]) });
+    expect(statusUnread()).toBe(true);
+    // A work the day's latest read no longer lists is not vouched for either.
+    rerenderWith({ dayStatusUnread: false, unknownWorkIds: new Set(), selectedWork: undefined });
     expect(statusUnread()).toBe(true);
 
     // On a day, the day's own read of the work goes to the inspector, which may be fresher.

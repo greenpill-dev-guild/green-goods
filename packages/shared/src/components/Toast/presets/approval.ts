@@ -111,6 +111,36 @@ export function createApprovalToasts(formatMessage: FormatMessageFn) {
         suppressLogging: true,
       }),
 
+    /** Nothing was sent: the chain already has this work decided. */
+    alreadyReviewed: () =>
+      toastService.info({
+        id: "approval-submit",
+        title: formatMessage({ id: "app.work.detail.alreadyReviewed" }),
+        context: "approval submission",
+        suppressLogging: true,
+      }),
+
+    /** Nothing was signed or sent: whether the work still waits could not be read. */
+    decisionUnread: (error: unknown) =>
+      toastService.error({
+        id: "approval-submit",
+        title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
+        message: formatMessage({ id: "app.approval.decisionUnread" }),
+        context: "approval submission",
+        error,
+        suppressLogging: true,
+      }),
+
+    /** Nothing was signed or sent: the connection was not confirmed before the wallet was asked. */
+    connectionUnconfirmed: () =>
+      toastService.info({
+        id: "approval-submit",
+        title: formatMessage({ id: "app.offline.degraded" }),
+        message: formatMessage({ id: "app.approval.connectionUnconfirmed" }),
+        context: "approval submission",
+        suppressLogging: true,
+      }),
+
     dismiss: () => toastService.dismiss("approval-submit"),
   };
 }
