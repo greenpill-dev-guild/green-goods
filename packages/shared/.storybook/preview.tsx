@@ -111,6 +111,7 @@ sb.mock(import("../src/hooks/vault/useVaultPreview.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useVaultWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useDrafts.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useMyWorks.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/gardenWorkListQuery.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useWorks.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useYourWorkCount.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useYourWorkOnPhone.ts"), { spy: true });
