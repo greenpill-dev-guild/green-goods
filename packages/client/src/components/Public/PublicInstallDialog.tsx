@@ -4,9 +4,10 @@ import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentS
 import * as Dialog from "@radix-ui/react-dialog";
 import type { InstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCloseLine } from "@remixicon/react";
+import { useCopyToClipboard } from "@green-goods/shared/hooks/utils/useCopyToClipboard";
+import { RiCloseLine, RiFileCopyLine } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
-import type { MouseEventHandler } from "react";
+import { type MouseEventHandler, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 
 export type PublicInstallDialogMode = "desktopQr" | "mobileSteps" | "braveInstall";
@@ -95,6 +96,9 @@ export function PublicInstallDialog({
   onCloseAutoFocus,
 }: PublicInstallDialogProps) {
   const { formatMessage } = useIntl();
+  // The desktop sheet also hands the link over by copy, for a phone that can't scan (PUB-049).
+  const [copyFailed, setCopyFailed] = useState(false);
+  const { copied, copy: copyLink } = useCopyToClipboard({ onError: () => setCopyFailed(true) });
   const isDesktopQr = mode === "desktopQr";
   const isBraveInstall = mode === "braveInstall";
   const copy = MODE_COPY[mode];
@@ -208,6 +212,27 @@ export function PublicInstallDialog({
                       </li>
                     ))}
                   </ol>
+
+                  <Button
+                    type="button"
+                    emphasis="secondary"
+                    leadingIcon={<RiFileCopyLine aria-hidden="true" />}
+                    onClick={() => {
+                      setCopyFailed(false);
+                      void copyLink(launchUrl);
+                    }}
+                  >
+                    {formatMessage(
+                      copied
+                        ? { id: "public.installDialog.linkCopied", defaultMessage: "Link copied" }
+                        : copyFailed
+                          ? {
+                              id: "public.installDialog.copyFailed",
+                              defaultMessage: "Couldn’t copy. Try again",
+                            }
+                          : { id: "public.installDialog.copyLink", defaultMessage: "Copy Link" }
+                    )}
+                  </Button>
                 </div>
               </div>
             ) : isBraveInstall ? (
