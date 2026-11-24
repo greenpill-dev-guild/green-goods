@@ -7383,6 +7383,7 @@
   "app.garden.workFor.needs": "Needs",
   "app.garden.workFor.unlink": "Not for This Promise",
   "app.approval.connectionUnconfirmed": "Your decision wasn't sent. Try again when the connection is steady.",
+  "app.approval.decisionUnread": "We couldn't check whether this work is still waiting, so nothing was sent. Try again in a moment.",
   "app.work.connectionUnconfirmed": "Your work wasn't sent. Try again when the connection is steady.",
   "app.work.notice.waiting.title": "Saved on this phone, not sent",
   "app.work.notice.blocked.actionEnded.body": "The action closed before this was sent. Try again, or discard it.",
