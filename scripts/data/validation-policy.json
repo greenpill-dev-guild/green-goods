@@ -1925,6 +1925,7 @@
         "packages/shared/src/modules/commitment-pooling/proof-and-send.ts",
         "packages/shared/src/modules/commitment-pooling/reward-edit.ts",
         "packages/shared/src/modules/commitment-pooling/reward-pay-send.ts",
+        "packages/shared/src/modules/commitment-pooling/reward-safe-sync.ts",
         "packages/shared/src/modules/commitment-pooling/service-access-live-submission.ts",
         "packages/shared/src/modules/commitment-pooling/service-access-live.ts",
         "packages/shared/src/modules/commitment-pooling/service-issuer-approval.ts",
