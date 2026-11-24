@@ -462,8 +462,12 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         gardenId: variables.work.gardenAddress,
         workUID: variables.draft.workUID,
       };
-      if (isCancelledTxError(error) || error instanceof DecisionWithdrawnError) lifecycle.cancel();
-      else lifecycle.fail();
+      // A withdrawn decision began nothing, so it leaves the lifecycle, and any earlier
+      // decision it still holds, as it was.
+      if (!(error instanceof DecisionWithdrawnError)) {
+        if (isCancelledTxError(error)) lifecycle.cancel();
+        else lifecycle.fail();
+      }
       decisionCacheRef.current = null;
       reportApprovalError(error, completion);
     },

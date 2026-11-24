@@ -257,6 +257,27 @@ describe("hooks/work/useWorkApproval", () => {
       expect(toastService.dismiss).toHaveBeenCalledWith("approval-submit");
     });
 
+    it("leaves the approval lifecycle, and any earlier decision it holds, alone on a withdrawal", async () => {
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
+      const before = result.current.approvalLifecycleStage;
+
+      await act(async () => {
+        await result.current
+          .mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+            stillDecidable: () => false,
+          })
+          .catch(() => undefined);
+      });
+
+      // Cancelling or failing would clear the one pending record the device keeps.
+      expect(result.current.approvalLifecycleStage).toBe(before);
+    });
+
     it("calls submitApprovalDirectly for wallet users", async () => {
       (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
