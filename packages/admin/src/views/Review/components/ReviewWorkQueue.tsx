@@ -82,6 +82,8 @@ interface ReviewWorkQueueProps {
   scope: ReviewWorkScope;
   /** Works whose status could not be read: each says status unread, never Pending. */
   unknownIds?: ReadonlySet<string>;
+  /** On one day's list: shows every status, where works whose status is unread are listed. */
+  onShowWholeDay?: () => void;
   worksLoading: boolean;
   hasDataError: boolean;
   normalizedSearch: string;
@@ -245,6 +247,7 @@ function ReviewWorkQueueList({
   older,
   onClearWaitingBand,
   unknownIds,
+  onShowWholeDay,
 }: ReviewWorkQueueProps) {
   const { formatMessage } = useIntl();
   const isPhone = useMediaQuery(PHONE_QUERY);
@@ -352,6 +355,32 @@ function ReviewWorkQueueList({
                 id: "hub.review.work.waiting.clear",
                 defaultMessage: "Clear Waiting Time",
               })}
+            </Button>
+          }
+        />
+      </EmptyStateShell>
+    );
+  }
+
+  // A day whose decisions could not all be read leaves those works out of Pending and Approved,
+  // so an empty scope there is not known to be empty. The day's whole list holds them.
+  if (items.length === 0 && scope !== "all" && onShowWholeDay && (unknownIds?.size ?? 0) > 0) {
+    return (
+      <EmptyStateShell>
+        <EmptyState
+          icon={<RiErrorWarningLine className="h-6 w-6" />}
+          title={formatMessage({
+            id: "hub.work.statusUnread.title",
+            defaultMessage: "Some statuses could not be read",
+          })}
+          description={formatMessage({
+            id: "hub.work.statusUnread.description",
+            defaultMessage:
+              "This day holds work whose decisions could not be read, so it is not listed here. The day's whole list shows it.",
+          })}
+          action={
+            <Button type="button" size="sm" emphasis="secondary" onClick={onShowWholeDay}>
+              {formatMessage({ id: "hub.work.showWholeDay", defaultMessage: "Show Whole Day" })}
             </Button>
           }
         />

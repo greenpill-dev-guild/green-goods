@@ -2,7 +2,8 @@
  * A month of days, each a button that opens its work. The grid takes one tab stop and the
  * arrow keys move by day and week (seven fixed columns, so date steps are the layout); Home
  * and End go to the week's ends. Below a 34rem container the month becomes a list of days,
- * newest first, so nothing depends on a grid too narrow to read.
+ * newest first, so nothing depends on a grid too narrow to read. A day the read never reached
+ * is a row of its own there too, so it opens its dialog and View in Work at every width.
  */
 import {
   dateOfDay,
@@ -51,19 +52,18 @@ function dayAriaLabel(cell: WorkCalendarDay, intl: IntlShape) {
 }
 
 /**
- * Runs of days with no work, and runs a cut read never reached, are said once in the phone
- * list, not once a day.
+ * Runs of days with no work are said once in the phone list, not once a day. A day a cut read
+ * never reached stays a row of its own: only its own read can say what it holds.
  */
 function agendaItems(weeks: WorkCalendarDay[][]) {
   const items: Array<
-    { kind: "day"; cell: WorkCalendarDay } | { kind: "gap" | "unread"; from: string; to: string }
+    { kind: "day"; cell: WorkCalendarDay } | { kind: "gap"; from: string; to: string }
   > = [];
   for (const cell of weeks.flat().filter(opens).reverse()) {
     const last = items[items.length - 1];
-    const kind = cell.coverage === "unread" ? "unread" : "gap";
-    if (cell.works.length > 0) items.push({ kind: "day", cell });
-    else if (last?.kind === kind) last.from = cell.day;
-    else items.push({ kind, from: cell.day, to: cell.day });
+    if (cell.works.length > 0 || cell.coverage === "unread") items.push({ kind: "day", cell });
+    else if (last?.kind === "gap") last.from = cell.day;
+    else items.push({ kind: "gap", from: cell.day, to: cell.day });
   }
   return items;
 }
@@ -227,12 +227,10 @@ export function WorkCalendarGrid({
         className="flex flex-col gap-(--gg-list-gap) @[34rem]:hidden"
       >
         {agendaItems(weeks).map((item) =>
-          item.kind !== "day" ? (
-            <li key={`${item.kind}-${item.to}`} className="px-3 type-meta text-text-soft">
+          item.kind === "gap" ? (
+            <li key={`gap-${item.to}`} className="px-3 type-meta text-text-soft">
               {intl.formatMessage(
-                item.kind === "unread"
-                  ? { id: "hub.garden.calendar.unreadRun", defaultMessage: "{range}: not read" }
-                  : { id: "hub.garden.calendar.gap", defaultMessage: "{range}: nothing submitted" },
+                { id: "hub.garden.calendar.gap", defaultMessage: "{range}: nothing submitted" },
                 {
                   range:
                     item.from === item.to
@@ -264,14 +262,24 @@ export function WorkCalendarGrid({
                     })}
                     {item.cell.isToday ? ` (${todayLabel})` : ""}
                   </span>
-                  <span className="type-title-sm font-semibold tabular-nums text-text-strong">
-                    {dayTotal(item.cell, intl)}
+                  {/* A day a cut read never reached is not read, never a 0. */}
+                  {item.cell.coverage === "unread" ? (
+                    <span className="type-meta text-text-soft">{notReadLabel}</span>
+                  ) : (
+                    <span className="type-title-sm font-semibold tabular-nums text-text-strong">
+                      {dayTotal(item.cell, intl)}
+                    </span>
+                  )}
+                </span>
+                {item.cell.coverage === "unread" ? null : (
+                  <span aria-hidden className="flex flex-col gap-1">
+                    <StatusMarks counts={item.cell.counts} className="type-meta" />
+                    <StatusBar
+                      counts={item.cell.counts}
+                      scale={item.cell.counts.total / maxTotal}
+                    />
                   </span>
-                </span>
-                <span aria-hidden className="flex flex-col gap-1">
-                  <StatusMarks counts={item.cell.counts} className="type-meta" />
-                  <StatusBar counts={item.cell.counts} scale={item.cell.counts.total / maxTotal} />
-                </span>
+                )}
               </AdminListRow>
             </li>
           )
