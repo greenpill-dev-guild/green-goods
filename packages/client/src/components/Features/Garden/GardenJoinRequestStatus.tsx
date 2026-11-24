@@ -17,7 +17,10 @@ type Props = {
   hasCheckedStatus: boolean;
 };
 
-/** One stable region: progress and outcomes never move the form below it (DL-072). */
+/**
+ * One stable region: progress and outcomes never move the form below it (DL-072). It holds at
+ * least the height its usual lines need and grows for a longer one, never scrolling or clipping.
+ */
 export function GardenJoinRequestStatus({
   activity,
   request,
@@ -121,7 +124,7 @@ export function GardenJoinRequestStatus({
       aria-live="polite"
       aria-atomic="true"
       aria-busy={busy}
-      className={`flex h-28 gap-3 sm:h-24 overflow-y-auto rounded-[var(--radius-lg)] border p-3 ${problem ? "border-warning-light bg-warning-lighter text-warning-dark" : positive ? "border-success-light bg-success-lighter text-success-dark" : "border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950"}`}
+      className={`flex min-h-28 gap-3 sm:min-h-24 rounded-[var(--radius-lg)] border p-3 [overflow-wrap:anywhere] ${problem ? "border-warning-light bg-warning-lighter text-warning-dark" : positive ? "border-success-light bg-success-lighter text-success-dark" : "border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950"}`}
     >
       <Icon
         aria-hidden="true"

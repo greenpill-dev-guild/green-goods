@@ -1,5 +1,7 @@
 import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
+  type DueClock,
+  isOpenToTakeUp,
   promiseRewardLegsOf,
   type RewardLeg,
   type RewardShareState,
@@ -79,14 +81,22 @@ function rewardKey(reward: PromiseReward): string {
   );
 }
 
-/** Where one promise's payout stands: settlement can pay it only once it is kept. */
+/**
+ * Where one promise's payout stands: settlement can pay it only once it is kept. A promise
+ * that ended unkept, cancelled or expired, or an untaken one past its due date, which anyone
+ * may expire, will never be kept, so its reward reads as the amount alone.
+ */
 export function promisePayoutOf(
-  commitment: Pick<CommitmentReadModel, "derivedState" | "considerationPaid">
+  commitment: Pick<CommitmentReadModel, "derivedState" | "considerationPaid">,
+  options: { pastDue?: boolean } = {}
 ): RewardPayout {
   if (commitment.considerationPaid === true) return "paid";
-  return commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED"
-    ? "notPaidYet"
-    : "afterKept";
+  const { derivedState } = commitment;
+  if (derivedState === "FULFILLED" || derivedState === "RECONCILED") return "notPaidYet";
+  if (derivedState === "CANCELLED" || derivedState === "EXPIRED" || options.pastDue) {
+    return "unstated";
+  }
+  return "afterKept";
 }
 
 interface GroupRewards {
@@ -98,13 +108,19 @@ interface GroupRewards {
 /**
  * The rewards on the copies of a group a member could still take up: one
  * amount, unless an Edit Reward stopped part way. With none left to take up,
- * every copy's, for what each one carried.
+ * every copy's, for what each one carried. On the chain's clock a copy past
+ * due is not one to take up (`isOpenToTakeUp`, as `pickCopyToTakeUp` reads it);
+ * while the due dates are unread (`clock` null), the chain's state stands.
  */
 export function groupRewardsOf(
-  copies: readonly (RewardRecord & Pick<CommitmentReadModel, "onchainState">)[],
-  metadata: RewardMetadata
+  copies: readonly (RewardRecord &
+    Pick<CommitmentReadModel, "onchainState" | "derivedState" | "dueDate" | "cycleId">)[],
+  metadata: RewardMetadata,
+  clock: DueClock | null
 ): GroupRewards {
-  const available = copies.filter((copy) => displayBucketOf(copy.onchainState) === "available");
+  const available = copies.filter((copy) =>
+    clock ? isOpenToTakeUp(copy, clock) : displayBucketOf(copy.onchainState) === "available"
+  );
   const byKey = new Map<string, PromiseReward>();
   for (const copy of available.length > 0 ? available : copies) {
     const reward = promiseRewardOf(copy, metadata);
