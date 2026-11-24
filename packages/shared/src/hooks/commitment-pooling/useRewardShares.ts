@@ -286,7 +286,8 @@ export function usePromiseRewardShares(input: {
     chainId: input.chainId,
     commitmentId: input.commitmentId,
     legs: input.legs,
-    recipients: plan?.finalized ? plan.recipients : [],
+    // A caller that turned the reads off gets none, even from a plan read earlier.
+    recipients: recipientsEnabled && plan?.finalized ? plan.recipients : [],
   });
   return {
     ...read,

@@ -9,6 +9,7 @@ import type { RewardLeg } from "../modules/commitment-pooling/reward-legs";
 import {
   decodeFunctionData,
   type Hex,
+  HttpRequestError,
   parseAbi,
   RpcRequestError,
   slice,
@@ -627,6 +628,15 @@ describe("paying reward shares from the garden's Safe", () => {
       })
     );
     await expect(silent.pay("pay")).resolves.toMatchObject({ status: "not-paid" });
+    const gateway = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    gateway.sendContractCall.mockRejectedValueOnce(
+      new HttpRequestError({
+        body: { jsonrpc: "2.0", id: 5, method: "pm_getPaymasterData", params: [] },
+        status: 504,
+        url: "https://paymaster.example/rpc",
+      })
+    );
+    await expect(gateway.pay("pay")).resolves.toMatchObject({ status: "not-paid" });
 
     // A wallet pays its own gas: the same words don't make its failure a sponsor's refusal.
     const wallet = setup({ approvedBy: [CO_OWNER] });

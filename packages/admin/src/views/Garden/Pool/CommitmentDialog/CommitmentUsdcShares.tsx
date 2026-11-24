@@ -337,6 +337,7 @@ export function CommitmentUsdcShares({
                         { count: staleCount + 1 }
                       )}
               </p>
+              {recheck}
             </>
           ) : null}
           {ready && viewerIsSteward && !needsSync && viewerApproved && !viewerCompletes ? (

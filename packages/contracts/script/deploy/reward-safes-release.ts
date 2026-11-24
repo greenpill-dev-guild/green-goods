@@ -320,7 +320,12 @@ async function simulate(plan: RewardSafePlan, upstream: string) {
     await provider.send("anvil_setBalance", [plan.deployer, toQuantity(10n ** 18n)]);
     const rows = [];
     for (const call of plan.calls) {
-      equal(await provider.getCode(call.gate), "0x", `${call.garden} unused gate address`);
+      // A gate the broadcast already created is checked as it stands, not deployed again.
+      if ((await provider.getCode(call.gate)) !== "0x") {
+        const safe = await inspectRewardSafe(provider, call);
+        rows.push({ tokenId: call.tokenId, garden: call.garden, gate: call.gate, safe, gasUsed: "already live" });
+        continue;
+      }
       const hash = await provider.send("eth_sendTransaction", [
         { from: plan.deployer, to: call.to, data: call.data, value: "0x0" },
       ]);
@@ -444,6 +449,13 @@ async function main() {
       // A broadcast gate is checked against what its garden's hats give now, not against a commit:
       // its CREATE2 address already binds the exact setup it was created with.
       const input = JSON.parse(readFileSync(releaseJsonPath(OUTPUT_DIRECTORY, values.plan!), "utf8")) as RewardSafePlan;
+      if (
+        input?.schemaVersion !== 1 ||
+        input.chainId !== REWARD_SAFE_CHAIN_ID ||
+        !Array.isArray(input.calls) ||
+        input.calls.length === 0
+      )
+        throw new Error("Verify needs an Arbitrum reward Safe plan with at least one call");
       assertPlanInManifest(input, inspectRewardSafeManifest(JSON.parse(readFileSync(manifestPath, "utf8"))));
       const calls = await readGardens(
         provider,
@@ -456,7 +468,7 @@ async function main() {
         const safe = await inspectRewardSafe(provider, call);
         entries.push({
           tokenId: call.tokenId,
-          garden: call.garden,
+          garden: getAddress(call.garden),
           safe,
           gate: getAddress(call.gate),
           signerHat: call.signerHat,

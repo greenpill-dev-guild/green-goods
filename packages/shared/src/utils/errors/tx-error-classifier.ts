@@ -149,11 +149,14 @@ function someInErrorChain(
   );
 }
 
-/** The paymaster never answered: a timeout, or a request that got no HTTP response at all. */
+/** The paymaster never answered: a timeout, no HTTP response, or a gateway that failed. */
 function unanswered(node: unknown): boolean {
   if (!(node instanceof Error)) return false;
   if (node.name === "TimeoutError") return true;
-  return node.name === "HttpRequestError" && (node as { status?: unknown }).status === undefined;
+  if (node.name !== "HttpRequestError") return false;
+  // No response, a timeout, rate limiting or a server failure: the paymaster refused nothing.
+  const status = (node as { status?: unknown }).status;
+  return typeof status !== "number" || status === 408 || status === 429 || status >= 500;
 }
 
 /**
