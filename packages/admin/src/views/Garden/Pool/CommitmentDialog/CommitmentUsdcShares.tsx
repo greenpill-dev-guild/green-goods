@@ -3,14 +3,22 @@ import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
+  promiseRewardLegsOf,
+  rewardBeneficiarySafeMissing,
   type RewardSafePaymentRead,
+  rewardShareRecipientsOf,
   type RewardShareState,
+  useCommitmentMetadataFor,
+  useRewardShares,
 } from "@green-goods/shared/commitment-pooling";
+import type { CommitmentSettlementController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { shortAddress } from "../poolFundingPresentation";
+import { toastRewardPayOutcome, toastRewardSyncOutcome } from "./usdcShareToasts";
 
 export interface CommitmentUsdcSharesProps {
   /** Each gardener's share of the USDC part, with whether the payer has recorded it as paid. */
@@ -364,5 +372,72 @@ export function CommitmentUsdcShares({
         </div>
       ) : null}
     </section>
+  );
+}
+
+/** Reads the promise's USDC part and its shares, and pays what is owed when an owner asks. */
+export function CommitmentUsdcSharesSection({
+  commitment,
+  settlement,
+}: {
+  commitment: CommitmentReadModel;
+  settlement: CommitmentSettlementController;
+}) {
+  const { formatMessage } = useIntl();
+  const metadata = useCommitmentMetadataFor(commitment);
+  const legs = (promiseRewardLegsOf(commitment, metadata)?.legs ?? []).filter(
+    (leg) => leg.rail === "garden-safe"
+  );
+  // One section per payable part; the pilot declares only USDC.
+  const [leg] = legs;
+  // Until the settlement read answers, nobody can tell whether the plan is finalized.
+  const splitFixed = settlement.chainRead === "ready" ? settlement.plan?.finalized === true : null;
+  const rewardShares = useRewardShares({
+    chainId: settlement.chainId,
+    commitmentId: commitment.commitmentId,
+    legs,
+    // Split as the G$ plan pays: a garden that took up a Request, through its own Safe, or each
+    // contributor by weight.
+    recipients:
+      splitFixed === true && settlement.plan
+        ? rewardShareRecipientsOf(settlement.plan, settlement.rows, settlement.chainId)
+        : [],
+    garden: settlement.payerGarden,
+    token: leg?.token ?? null,
+  });
+  if (!leg) return null;
+  const legShares = rewardShares.shares.filter(
+    (share) => share.token.toLowerCase() === leg.token.toLowerCase()
+  );
+
+  const pay = async (intent: "approve" | "pay") =>
+    toastRewardPayOutcome(await rewardShares.payOwed(intent), formatMessage);
+
+  const sync = async () => toastRewardSyncOutcome(await rewardShares.syncSigners(), formatMessage);
+
+  return (
+    <CommitmentUsdcShares
+      shares={legShares}
+      owed={rewardShares.owed}
+      symbol={leg.symbol}
+      decimals={leg.decimals}
+      payerAvailable={rewardShares.payer !== null}
+      safe={rewardShares.safe}
+      beneficiarySafeMissing={
+        splitFixed === true && settlement.plan
+          ? rewardBeneficiarySafeMissing(settlement.plan, settlement.chainId)
+          : false
+      }
+      splitFixed={splitFixed}
+      payment={rewardShares.payment}
+      paymentReading={rewardShares.paymentReading}
+      paymentReadFailed={rewardShares.paymentReadFailed}
+      viewer={rewardShares.account}
+      isOnline={settlement.isOnline}
+      readFailed={rewardShares.readFailed}
+      isPaying={rewardShares.isPaying}
+      onPay={(intent) => void pay(intent)}
+      onSync={() => void sync()}
+    />
   );
 }

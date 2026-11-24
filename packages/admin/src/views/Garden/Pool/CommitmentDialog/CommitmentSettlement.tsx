@@ -19,7 +19,7 @@ import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { formatGdollar, shortAddress } from "../poolFundingPresentation";
 import { CommitmentSettlementDisbursements } from "./CommitmentSettlementDisbursements";
 import { CommitmentSettlementFacts } from "./CommitmentSettlementFacts";
-import { CommitmentUsdcSharesSection } from "./CommitmentUsdcSharesSection";
+import { CommitmentUsdcSharesSection } from "./CommitmentUsdcShares";
 import {
   actionLabel,
   actionStep,
