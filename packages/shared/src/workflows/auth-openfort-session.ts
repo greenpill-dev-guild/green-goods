@@ -49,8 +49,6 @@ export interface OpenfortOperationInput {
 export interface OpenfortSessionDeps {
   wallet?: OpenfortWallet;
   storage?: SessionStorage;
-  /** Web Locks shared by this device's tabs; null where the browser has none. */
-  locks?: Pick<LockManager, "request"> | null;
   /** Builds the sponsored client for one chain; the default uses Pimlico like passkeys. */
   buildSmartAccount?: (
     owner: Hex,
@@ -59,8 +57,10 @@ export interface OpenfortSessionDeps {
   ) => Promise<{ client: SmartAccountClient; address: Hex }>;
 }
 
-/** Held by the tab that is signing in, from the code until the account record is saved. */
-const SIGN_IN_LOCK = "greengoods-openfort-sign-in";
+/** When this device's email sign-in started; removed once that sign-in ends either way. */
+const SIGN_IN_STARTED_KEY = "greengoods_openfort_sign_in_started";
+/** A sign-in started longer ago than this is one whose page closed, not one still running. */
+const UNFINISHED_SIGN_IN_MS = 2 * 60_000;
 
 /** Emails compare trimmed and in lower case, so the same person reaches the same account. */
 export function normalizeEmail(value: string): string {
@@ -70,19 +70,7 @@ export function normalizeEmail(value: string): string {
 export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
   const wallet = deps.wallet ?? defaultOpenfortWallet;
   const storage = deps.storage;
-  const locks =
-    deps.locks !== undefined
-      ? deps.locks
-      : typeof navigator !== "undefined"
-        ? (navigator.locks ?? null)
-        : null;
-  const holdingSignIn = <T>(signIn: () => Promise<T>): Promise<T> =>
-    locks ? locks.request(SIGN_IN_LOCK, signIn) : signIn();
-  /** Whether some tab is signing in now. Without Web Locks nothing can tell, so assume one is. */
-  const signInInFlight = (): Promise<boolean> =>
-    locks
-      ? locks.request(SIGN_IN_LOCK, { ifAvailable: true }, async (lock) => lock === null)
-      : Promise.resolve(true);
+  const store = (): SessionStorage => storage ?? localStorage;
 
   const buildSmartAccount: NonNullable<OpenfortSessionDeps["buildSmartAccount"]> =
     deps.buildSmartAccount ??
@@ -125,10 +113,12 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
   const requestCode = (email: string) => wallet.requestCode(normalizeEmail(email));
 
   const authenticateOpenfort = fromPromise<OpenfortSessionResult, OpenfortOperationInput>(
-    ({ input, signal }) =>
-      holdingSignIn(async () => {
-        const assertActive = guardSessionCommit(signal);
-        const email = normalizeEmail(input.email);
+    async ({ input, signal }) => {
+      const assertActive = guardSessionCommit(signal);
+      const email = normalizeEmail(input.email);
+      const started = String(Date.now());
+      store().setItem(SIGN_IN_STARTED_KEY, started);
+      try {
         await wallet.verifyCode(email, input.code.trim());
         try {
           assertActive();
@@ -155,7 +145,12 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
           );
           throw error;
         }
-      })
+      } finally {
+        if (store().getItem(SIGN_IN_STARTED_KEY) === started) {
+          store().removeItem(SIGN_IN_STARTED_KEY);
+        }
+      }
+    }
   );
 
   const restoreOpenfort = fromPromise<OpenfortSessionResult | null, { chainId: number }>(
@@ -164,11 +159,13 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
       if (getAuthMode(storage) !== "openfort") return null;
       const record = getStoredOpenfortAccount(storage);
       if (!record) {
-        // A tab signing in has saved the mode but not yet the record: leave it alone.
-        if (await signInInFlight()) return null;
-        // The page closed after the code was accepted and before the account opened: end the
-        // Openfort session that sign-in left, so the next person on this phone starts clean.
-        // The device stays signed out, and startup does not wait on Openfort's network.
+        // A sign-in that saved the mode but not yet the record may still be running in another
+        // tab: leave it alone. One older than that had its page closed after the code was
+        // accepted: end the Openfort session it left, so the next person on this phone starts
+        // clean. The device stays signed out, and startup does not wait on Openfort's network.
+        const started = Number(store().getItem(SIGN_IN_STARTED_KEY));
+        if (started > 0 && Date.now() - started < UNFINISHED_SIGN_IN_MS) return null;
+        store().removeItem(SIGN_IN_STARTED_KEY);
         clearAuthMode(storage);
         setSignedOutSentinel(storage);
         void wallet
