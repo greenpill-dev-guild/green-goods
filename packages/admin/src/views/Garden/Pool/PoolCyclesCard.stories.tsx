@@ -2,6 +2,7 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, within } from "storybook/test";
 import { PoolCyclesCard } from "./PoolCyclesCard";
+import { STORY_NOW } from "./poolStoryActors";
 import { storyCycle, storyPool, storyPoolConsole } from "./poolStoryFixtures";
 
 const noop = () => undefined;
@@ -69,6 +70,24 @@ export const ReadyToEnd: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("button", { name: "End Season…" })).toBeInTheDocument();
     await expect(canvas.getByRole("button", { name: "End…" })).toBeInTheDocument();
+  },
+};
+
+/**
+ * The season is past its end date and nobody has ended it: it reads Ended, as the app reads it
+ * (DL-162), and says beside End Season why it needs ending (PRD-1397).
+ */
+export const EndedSeasonNeedsEnding: Story = {
+  args: {
+    console: storyPoolConsole({
+      cycles: [storyCycle({ liveCommitmentCount: 0n, endTime: STORY_NOW - 3n * 86_400n })],
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Ended")).toBeInTheDocument();
+    await expect(canvas.getByText(/New promises can still land in it/)).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "End Season…" })).toBeInTheDocument();
   },
 };
 

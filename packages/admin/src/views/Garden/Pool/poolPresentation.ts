@@ -4,6 +4,7 @@ import type {
   ConfirmQueueEligibility,
   TxActPhase,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { cycleStanding } from "@green-goods/shared/commitment-pooling";
 import type { CycleMetadataNameResolution } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
 import type { PoolConsoleStatus } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type {
@@ -112,8 +113,16 @@ export function cycleName(
 export function cycleStateChip(
   cycle: CommitmentCycleRecord,
   poolPaused: boolean,
+  /** The chain's clock the pool's model was read on: an Open cycle past its end has ended. */
+  now: bigint,
   formatMessage: FormatMessage
 ): { label: string; variant: ChipVariant } {
+  if (cycleStanding(cycle, now) === "ended") {
+    return {
+      label: formatMessage({ id: "hub.garden.pool.cycle.state.ended", defaultMessage: "Ended" }),
+      variant: "warning",
+    };
+  }
   switch (cycle.state) {
     case "SEEDED":
       return {

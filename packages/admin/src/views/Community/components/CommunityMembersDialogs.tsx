@@ -7,10 +7,7 @@ import {
 } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import type { Address } from "@green-goods/shared/types/domain";
-import {
-  GARDEN_ROLE_ORDER,
-  type GardenRole,
-} from "@green-goods/shared/utils/blockchain/garden-roles";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { ADD_MEMBER_ROUTE_ITEM } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -18,6 +15,7 @@ import { isAddress } from "viem";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
 import { runAddMembers } from "@/components/Garden/addMembersRun";
 import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
+import { grantableRoles } from "@/components/Garden/manageRoles";
 
 export type CommunityMembersDialogsProps = Pick<
   CommunityWorkspace,
@@ -77,10 +75,7 @@ export function CommunityMembersDialogs({
     garden.chainId
   );
   const canManageMembers = canManage || canManageStewards;
-  const allowedRoles = GARDEN_ROLE_ORDER.filter(
-    (role) =>
-      isOwner || (canManage && role !== "owner") || (canManageStewards && role === "steward")
-  );
+  const allowedRoles = grantableRoles({ isOwner, canManage, canManageStewards });
 
   const addByRole = useMemo<
     Record<GardenRole, (address: Address) => Promise<{ success: boolean }>>
