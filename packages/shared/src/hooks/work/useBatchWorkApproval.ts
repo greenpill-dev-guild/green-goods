@@ -3,7 +3,6 @@ import { useIntl } from "react-intl";
 import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { batchKeys, gardensKeys } from "../../config/query-keys/garden";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 import { refreshApprovalReads } from "../../modules/work/approval-read-refresh";
@@ -34,7 +33,6 @@ import { useHeldBatches } from "../garden/useHeldBatches";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
-import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 type OverlayPatch = Partial<OverlayWork>;
 type ReviewSend = { decisions: readonly ReviewDecision[]; perSignature?: number };
@@ -95,10 +93,20 @@ export function useBatchWorkApproval(
     void queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
     void queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
   };
-  const { start: scheduleFollowUp } = useProgressiveInvalidation(
-    refreshWorks,
-    INDEXER_LAG_SCHEDULE_MS
-  );
+  /**
+   * The indexer lags a landed decision, so each work's reads are read again until it catches up.
+   * The rereads stay with the garden a send landed in, whichever garden is open by then, and wait
+   * for a slow read rather than restart it.
+   */
+  const followUpLanded = (
+    works: readonly { workUID: string }[],
+    garden: Address,
+    chain: number
+  ) => {
+    for (const { workUID } of works) {
+      refreshApprovalReads(queryClient, chain, { gardenId: garden, workUID }, true);
+    }
+  };
 
   const patchWorks = (patchFor: (workId: string) => OverlayPatch | undefined) => {
     const patched = (old: OverlayWork[] = []) =>
@@ -229,17 +237,7 @@ export function useBatchWorkApproval(
           auth_mode: started.rail,
           tx_hash: sent[0].transactionHash,
         });
-        scheduleFollowUp();
-        // The follow-ups above reread whichever garden is open when they fire. These stay with
-        // the garden the send started in, so its readiness and days catch up with the indexer.
-        for (const { workUID } of sent) {
-          refreshApprovalReads(
-            queryClient,
-            started.chainId,
-            { gardenId: started.gardenAddress, workUID },
-            true
-          );
-        }
+        followUpLanded(sent, started.gardenAddress, started.chainId);
       }
       const reconnectRefused = failure instanceof WalletReconnectRequiredError;
       if (unknown.length > 0 || refused.length > 0 || (failure && !reconnectRefused)) {
@@ -278,7 +276,7 @@ export function useBatchWorkApproval(
       markLanded(saved);
       announceSent(saved.length);
       refreshWorks();
-      scheduleFollowUp();
+      followUpLanded(saved, gardenAddress, chainId);
     },
     onError: (error) => handleError(error, { authMode: rail, gardenAddress }),
   });
