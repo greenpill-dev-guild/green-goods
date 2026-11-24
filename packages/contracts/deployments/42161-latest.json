@@ -208,5 +208,7 @@
     }
   },
   "creditRegistry": "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34",
-  "creditRegistryImpl": "0x2ccd72813f02136EF54683c63DBe0bB48Ca13826"
+  "creditRegistryImpl": "0x2ccd72813f02136EF54683c63DBe0bB48Ca13826",
+  "rewardPayer": "0xEd1244F2c65f5Ddd052912Dd3F6E52A7f22F2829",
+  "rewardPayerDeployBlock": 526958954
 }
