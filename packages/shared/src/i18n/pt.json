@@ -5937,7 +5937,7 @@
   "hub.work.noRecentApproved": "Nada aprovado no trabalho recente",
   "hub.work.noRecentPending": "Nada pendente no trabalho recente",
   "hub.work.showWholeDay": "Mostrar o dia inteiro",
-  "hub.work.statusUnread.description": "Este dia tem trabalho cujas decisões não foi possível ler, por isso não aparece aqui. A lista completa do dia mostra-o.",
+  "hub.work.statusUnread.description": "Este dia tem trabalho cujas decisões não foi possível ler, por isso não aparece aqui. A lista completa do dia mostra esse trabalho.",
   "hub.work.statusUnread.title": "Não foi possível ler alguns estados",
   "hub.work.createGarden": "Criar jardim",
   "hub.work.crossGardenCount": "Mostrando itens de {count, plural, one {# jardim} other {# jardins}}",
