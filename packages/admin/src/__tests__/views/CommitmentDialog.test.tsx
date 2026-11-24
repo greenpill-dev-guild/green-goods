@@ -562,6 +562,25 @@ describe("CommitmentDialogPanel (W10)", () => {
     await waitFor(() => expect(acts.confirmOrdinary).toHaveBeenCalledTimes(1));
   });
 
+  // PRD-1205: once Confirm Kept is on its way the review has closed, and the record says where its
+  // confirmation stands instead of offering Confirm Kept again.
+  it("holds Confirm Kept once sent and says the record reads Kept when its last confirmation lands", () => {
+    mocks.controller = controller({
+      commitment: {
+        onchainState: "READY_FOR_CONFIRMATION",
+        state: "READY_FOR_CONFIRMATION",
+        derivedState: "READY_FOR_CONFIRMATION",
+      },
+      can: can({ confirmOrdinary: true }),
+      confirmPhase: { status: "confirmed", key: "confirm-kept:9", hash: null },
+    });
+    renderPanel();
+    expect(screen.getByRole("button", { name: /^confirm kept…$/i })).toBeDisabled();
+    expect(
+      screen.getByText("Confirmed. It reads Kept once its last confirmation is recorded.")
+    ).toBeInTheDocument();
+  });
+
   it("opens at who asked once the ask is read, even when the record came from the cache first", () => {
     const scrolled = vi.fn();
     const original = Element.prototype.scrollIntoView;

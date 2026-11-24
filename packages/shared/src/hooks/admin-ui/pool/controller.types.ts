@@ -323,6 +323,8 @@ export interface CommitmentDialogController {
   claimantStanding: (claimant: Address) => ClaimantStanding | null;
   /** Where Send for Confirmation stands. */
   sendPhase: TxActPhase;
+  /** Where this reader's Confirm Kept stands, once the review has sent it (PRD-1205). */
+  confirmPhase: TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;

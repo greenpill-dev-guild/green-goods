@@ -5032,6 +5032,7 @@
   "hub.garden.pool.commitment.act.attachAssessment": "Adjuntar evaluación…",
   "hub.garden.pool.commitment.act.cancel": "Cancelar promesa…",
   "hub.garden.pool.commitment.act.confirm": "Confirmar cumplido…",
+  "hub.garden.pool.commitment.act.confirmed": "Confirmada. Aparecerá como Cumplido cuando se registre su última confirmación.",
   "hub.garden.pool.commitment.act.confirmGarden": "Confirmar como respaldo del jardín…",
   "hub.garden.pool.commitment.act.confirmGardenConfirm": "Confirmar como respaldo del jardín",
   "hub.garden.pool.commitment.act.confirmProtocol": "Confirmar por el equipo de Green Goods…",

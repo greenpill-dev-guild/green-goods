@@ -347,6 +347,7 @@ export function storyCommitmentDialog(
     claimantStanding: () => null,
     metadata: null,
     sendPhase: { status: "idle" },
+    confirmPhase: { status: "idle" },
     isActing: false,
     isLoading: false,
     isError: false,

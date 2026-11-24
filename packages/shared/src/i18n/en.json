@@ -5032,6 +5032,7 @@
   "hub.garden.pool.commitment.act.attachAssessment": "Attach Assessment…",
   "hub.garden.pool.commitment.act.cancel": "Cancel Promise…",
   "hub.garden.pool.commitment.act.confirm": "Confirm Kept…",
+  "hub.garden.pool.commitment.act.confirmed": "Confirmed. It reads Kept once its last confirmation is recorded.",
   "hub.garden.pool.commitment.act.confirmGarden": "Confirm as Garden Fallback…",
   "hub.garden.pool.commitment.act.confirmGardenConfirm": "Confirm as Garden Fallback",
   "hub.garden.pool.commitment.act.confirmProtocol": "Confirm for Green Goods Team…",

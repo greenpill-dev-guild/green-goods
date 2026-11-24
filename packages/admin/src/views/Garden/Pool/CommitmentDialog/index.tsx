@@ -251,6 +251,12 @@ function CommitmentRecord({
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
         sendPhase={dialog.sendPhase}
+        // Once the record reads Kept, its own state says so.
+        confirmPhase={
+          commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED"
+            ? { status: "idle" }
+            : dialog.confirmPhase
+        }
         onCancelUntaken={can.cancel && untaken ? () => setOpen("cancel") : undefined}
         onSeedAnother={
           onSeedAnother && dialog.isLocalSteward

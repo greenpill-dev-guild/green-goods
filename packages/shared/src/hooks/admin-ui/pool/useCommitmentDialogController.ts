@@ -81,6 +81,11 @@ const DISPUTE_RESOLUTION_CODE = {
   EXPIRED: 3,
 } as const;
 
+/** The act-phase key for this reader's Confirm Kept on one commitment. */
+function confirmKeptActKey(commitmentId: bigint): string {
+  return `confirm-kept:${commitmentId.toString()}`;
+}
+
 export function useCommitmentDialogController(input: {
   chainId: number;
   /** The pool's garden: the authority a garden fallback uses. */
@@ -349,12 +354,20 @@ export function useCommitmentDialogController(input: {
           gardenAddress: garden,
         }),
       expire: () => mutation.mutateAsync({ action: "expireCommitment", commitmentId }),
+      // Followed like Send for Confirmation, so once the review closes the record says where the
+      // confirmation stands, and rereads itself as it lands until it shows Kept (PRD-1205).
       confirmOrdinary: () =>
-        jobs.enqueue({
-          act: "confirm",
-          commitmentId,
-          gardenAddress: garden,
-          membershipNotRequired,
+        trackSend(confirmKeptActKey(commitmentId), (report) =>
+          jobs.enqueue({
+            act: "confirm",
+            commitmentId,
+            gardenAddress: garden,
+            membershipNotRequired,
+            report: toActPhaseReport(report),
+          })
+        ).then((jobId) => {
+          scheduleReconciliationReadback();
+          return jobId;
         }),
       /** The reason goes on chain as plain text: the contract stores it itself. */
       confirmFallback: (reason: string) =>
@@ -488,6 +501,7 @@ export function useCommitmentDialogController(input: {
         ? claimantStanding(poolCommitments.commitments, claimant, pool.providerOpenCommitmentCap)
         : null,
     sendPhase: actPhaseFor(sendAct.phase, sendForConfirmationActKey(commitmentId)),
+    confirmPhase: actPhaseFor(sendAct.phase, confirmKeptActKey(commitmentId)),
     isActing: mutation.isPending || jobs.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
     // Decision reads have their own bounded recovery row. They must not hide

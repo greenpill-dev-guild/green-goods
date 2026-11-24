@@ -543,6 +543,7 @@ export function commitmentDialogControllerFixture(
     metadata: null,
     editsTermsFromGroup: false,
     sendPhase: { status: "idle" },
+    confirmPhase: { status: "idle" },
     isActing: false,
     isLoading: false,
     isError: false,
