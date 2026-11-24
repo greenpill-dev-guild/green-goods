@@ -292,6 +292,18 @@ describe("Show Whole Day on a Review day", () => {
         })
       );
       expect(result.current.workDayStatusKnown).toBe(false);
+
+      // A good read whose refresh then failed is not current either.
+      rangeRead.current = { ...settled, hasRead: true, isError: true };
+      const failed = renderHook(() =>
+        useReviewWorkDay({
+          gardenId: "0xgarden",
+          day: "2026-11-20",
+          workScope: "all",
+          updateSearch: vi.fn(),
+        })
+      );
+      expect(failed.result.current.workDayStatusKnown).toBe(false);
     } finally {
       rangeRead.current = settled;
     }

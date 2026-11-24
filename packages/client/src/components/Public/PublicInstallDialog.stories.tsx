@@ -63,3 +63,5 @@ export default meta;
 type Story = StoryObj<typeof PublicInstallDialog>;
 export const IPhone: Story = {};
 export const Android: Story = { args: { guidance: guidance(false) } };
+/** A desktop visitor scans the code, or copies the same link to their phone (PUB-049). */
+export const DesktopQr: Story = { args: { mode: "desktopQr" } };

@@ -67,6 +67,8 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     isFetching: worksFetching,
     isLoading: worksLoading,
     works,
+    unknownIds,
+    readThisSession,
   } = useWorks(gardenId ?? "");
   const candidateWork =
     works.find((candidateWork) => candidateWork.id === workId) ??
@@ -131,6 +133,17 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     ? gardenPermissions.isStewardOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
     : false;
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
+  // No decision is offered on a work whose status is not current: its decisions could not be read,
+  // the garden's read failed or this session has not read the garden yet (a restored copy may be
+  // old, online or off), or the work is not in the current read at all (the garden list's copy, or the
+  // snapshot kept after it left the read).
+  const statusUnread = Boolean(
+    work &&
+      (unknownIds?.has(work.id) ||
+        worksQueryError ||
+        readThisSession === false ||
+        !works.some((candidate) => candidate.id === work.id))
+  );
 
   useEffect(() => {
     if (matchedGarden && !compareAddresses(matchedGarden.id, activeGardenId)) {
@@ -155,6 +168,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     canReview,
     canApproveOrReject,
     isReviewed,
+    statusUnread,
     metadata,
     audioNoteCids: metadata?.audioNoteCids,
     documents,

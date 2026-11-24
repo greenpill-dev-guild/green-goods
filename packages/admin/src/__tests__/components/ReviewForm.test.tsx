@@ -357,6 +357,21 @@ describe("ReviewForm", () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 
+  it("does not close whatever inspector is open by the time a closed form's send lands", async () => {
+    let land = (_value?: unknown) => {};
+    mockApprovalMutation.mutateAsync.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    const onSuccess = vi.fn();
+    const { unmount } = renderReviewForm(TEST_WORK, onSuccess);
+    fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(mockApprovalMutation.mutateAsync).toHaveBeenCalledOnce());
+
+    unmount();
+    await act(async () => land());
+
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
   it("explains a disabled Approve quietly, without a warning before any choice", () => {
     renderReviewForm();
 
@@ -588,6 +603,24 @@ describe("ReviewForm", () => {
       await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
       expect(mockReviewBatch.stage).not.toHaveBeenCalled();
       expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("drops the decision of a form that closes while its note uploads", async () => {
+      let finishUpload = (_value: { cid: string }) => {};
+      mockUploadFile.mockReturnValue(new Promise((resolve) => (finishUpload = resolve)));
+      const onSuccess = vi.fn();
+      const { unmount } = renderReviewForm(TEST_WORK, onSuccess);
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+      await waitFor(() => expect(mockUploadFile).toHaveBeenCalledOnce());
+
+      unmount();
+      await act(async () => finishUpload({ cid: "audio-cid" }));
+
+      await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(onSuccess).not.toHaveBeenCalled();
     });
 
     it("keeps nothing when the note can't upload, and says so", async () => {
