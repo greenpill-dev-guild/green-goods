@@ -125,6 +125,21 @@ function run(command, args, { input, quiet = false } = {}) {
   return result;
 }
 
+/**
+ * Run a command that reads a value on stdin. Node gives a child a socket for stdin, which op does
+ * not take as piped input ("provide the item category with '--category' flag"), so the value goes
+ * through `cat` into a real pipe. Either way it never reaches the command line.
+ */
+function runPiped(command, args, input) {
+  return run("sh", ["-c", 'cat | "$@"', "sh", command, ...args], { input, quiet: true });
+}
+
+/** What a failed command said; op and flyctl name the problem, never the value sent. */
+function failure(result) {
+  const said = (result.stderr ?? "").trim().slice(0, 300);
+  return said ? `: ${said}` : ` (exit ${result.status})`;
+}
+
 /** Create the item env.schema names, or replace its credential, with the value piped in. */
 function storeInOnePassword(name, value) {
   const existing = run("op", ["item", "get", name, "--vault", VAULT, "--format", "json"], {
@@ -136,22 +151,20 @@ function storeInOnePassword(name, value) {
     const field = (item.fields ?? []).find((f) => f.id === "credential" || f.label === "credential");
     if (!field) throw new Error(`1Password item ${name} has no "credential" field to replace.`);
     field.value = value;
-    const edited = run("op", ["item", "edit", name, "--vault", VAULT], {
-      quiet: true,
-      input: JSON.stringify(item),
-    });
-    if (edited.status !== 0) throw new Error(`1Password refused to update ${name}.`);
+    const edited = runPiped("op", ["item", "edit", name, "--vault", VAULT], JSON.stringify(item));
+    if (edited.status !== 0) throw new Error(`1Password refused to update ${name}${failure(edited)}`);
     return "updated";
   }
-  const created = run("op", ["item", "create", "--vault", VAULT, "-"], {
-    quiet: true,
-    input: JSON.stringify({
+  const created = runPiped(
+    "op",
+    ["item", "create", "--vault", VAULT, "-"],
+    JSON.stringify({
       title: name,
       category: "API_CREDENTIAL",
       fields: [{ id: "credential", label: "credential", type: "CONCEALED", value }],
-    }),
-  });
-  if (created.status !== 0) throw new Error(`1Password refused to create ${name}.`);
+    })
+  );
+  if (created.status !== 0) throw new Error(`1Password refused to create ${name}${failure(created)}`);
   return "created";
 }
 
@@ -214,13 +227,8 @@ function storeInFly(values) {
   const input = OPENFORT_KEYS.filter((key) => key.fly)
     .map((key) => `${key.name}=${values[key.name]}`)
     .join("\n");
-  const result = run("fly", ["secrets", "import", "--app", FLY_APP, "--stage"], {
-    input: `${input}\n`,
-    quiet: true,
-  });
-  if (result.status !== 0) {
-    throw new Error(`fly secrets import failed: ${(result.stderr ?? "").slice(0, 300)}`);
-  }
+  const result = runPiped("fly", ["secrets", "import", "--app", FLY_APP, "--stage"], `${input}\n`);
+  if (result.status !== 0) throw new Error(`fly secrets import failed${failure(result)}`);
   console.log(`  Fly ${FLY_APP}: staged; they apply at the agent's next deploy.`);
 }
 
