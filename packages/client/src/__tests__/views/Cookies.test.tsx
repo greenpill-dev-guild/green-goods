@@ -21,6 +21,7 @@ const TEST_WALLET = "0x3333333333333333333333333333333333333333" as const;
 
 const mockOpenWallet = vi.fn();
 const mockLoginWithWallet = vi.fn();
+const mockSignOut = vi.fn();
 const mockClaimMutate = vi.fn();
 const mockDepositMutate = vi.fn();
 const mockClaimReset = vi.fn();
@@ -145,7 +146,7 @@ vi.mock("@green-goods/shared/providers/AppKitProvider", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
-  useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+  useAuth: () => ({ loginWithWallet: mockLoginWithWallet, signOut: mockSignOut }),
 }));
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar", () => ({
@@ -276,6 +277,15 @@ describe("CookiesPage", () => {
     expect(await screen.findByText(/This cookie jar could not be loaded/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Check claim access" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Add funds" })).toBeNull();
+  });
+
+  // PUB-041: Disconnect ends the wallet session it names, instead of opening wallet management.
+  it("disconnects the connected wallet from its status line", async () => {
+    const user = userEvent.setup();
+    renderPage("/cookies");
+    await user.click(await screen.findByRole("button", { name: "Disconnect" }));
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
   it("shows public cookie jars without requiring an explore action", async () => {

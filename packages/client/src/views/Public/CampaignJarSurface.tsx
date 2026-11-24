@@ -3,11 +3,11 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
 import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
-import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
 import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import { useCampaignCookieJarCampaigns } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { usePublicGardens } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -159,7 +159,8 @@ function CookiesCampaignSurface() {
   const [searchParams] = useSearchParams();
   const { ref: ledgerRef, revealed: ledgerRevealed } = useInViewReveal<HTMLElement>();
   const { primaryAddress } = useUser();
-  const { open: openWalletModal } = useAppKit();
+  // Disconnect ends this page's wallet session and lets go of the wallet (PUB-041).
+  const { signOut } = useAuth();
   const isConnected = Boolean(primaryAddress);
 
   const {
@@ -322,7 +323,7 @@ function CookiesCampaignSurface() {
               <div className="mt-5">
                 <ConnectionStatusLine
                   primaryAddress={primaryAddress as Address}
-                  onAction={() => openWalletModal()}
+                  onAction={() => void signOut()}
                 />
               </div>
             ) : null}
