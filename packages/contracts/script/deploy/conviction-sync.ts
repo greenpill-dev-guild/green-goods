@@ -6,6 +6,7 @@ import { Contract, getAddress, JsonRpcProvider, keccak256 } from "ethers";
 import {
   configuredGardenAccount,
   convictionSyncCalls,
+  isUnmintedGardenToken,
   requireConvictionSyncReady,
   type GardenSyncState,
 } from "../utils/conviction-sync-readiness";
@@ -50,8 +51,8 @@ async function discoverGardens(provider: JsonRpcProvider, blockTag: number): Pro
     try {
       await token.ownerOf(tokenId, { blockTag });
     } catch (error) {
-      // The token ends where ownerOf reverts; any other failure (RPC, rate limit) must stop the plan.
-      if ((error as { code?: string }).code === "CALL_EXCEPTION") return gardens;
+      // Only the token's refusal of an unminted id ends the range; an RPC failure must stop the plan.
+      if (isUnmintedGardenToken(error)) return gardens;
       throw error;
     }
     const candidates = await Promise.all(

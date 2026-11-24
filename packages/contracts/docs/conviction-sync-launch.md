@@ -22,8 +22,9 @@ signing stays with the Green Goods Safe's owners.
 - **A pool's sync authorization.** Only the pool's council or owner can call
   `setAuthorizedSyncCaller`. The Green Goods Safe is the council of every garden
   community the planner accepts.
-- **A garden's sync hooks.** The module's owner, or the garden's Owner or Steward, can call
-  `setConvictionStrategies(garden, strategies)` directly, with no delay. See
+- **A garden's sync hooks.** The garden's Owner or Steward can call
+  `setConvictionStrategies(garden, strategies)` directly, with no delay. The module's owner
+  can too, but only through the AccessManager and the Safe's 24-hour delay. See
   [If role changes start to revert](#if-role-changes-start-to-revert).
 
 ## 1. Read the live state
@@ -68,8 +69,9 @@ named gardens only. The command prints one line:
 It writes `readback.json` (every garden's community, registry, council, pools and their
 authorization at the proof block) and, when `K` is above zero, `authorize-sync.safe.json`:
 one `setAuthorizedSyncCaller(<Hats module>, true)` call per unauthorized pool, in Safe
-Transaction Builder format. The output directory must not exist yet; keep it outside Git.
-If `K` is 0, go to step 5.
+Transaction Builder format. Use a fresh directory outside Git: the command refuses to
+overwrite an earlier plan's files. If `K` is 0, nothing needs signing: still run step 3,
+whose exact garden count checks this plan's `N`, then go to step 5.
 
 The command refuses when:
 
@@ -80,17 +82,17 @@ The command refuses when:
 | `review changed Safe policy` | The Safe threshold is no longer 2. | Have the new signing policy reviewed first. |
 | `pool council must be the reviewed Safe`, `pool community mismatch`, `Hats strategies do not match garden signal pools` | A garden's wiring changed. | That garden needs its own review; plan the others with `--garden`. |
 | `exactly one account must be configured for garden token N` | Both or neither account kind is configured for a token. | Review that token before planning it. |
+| Any RPC error, such as `unsupported block number` | The node could not serve a read at the proof block. | Retry, or use another RPC. Discovery stops only on the garden token's own refusal of an unminted id, so a failed read never shortens the garden list. |
 
 ## 3. Rehearse on a fork
 
 Run this before anyone signs. It is a heavy job: run it alone on the machine.
 
 ```sh
-cd packages/contracts
 HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER="$PROOF_BLOCK" ARBITRUM_FORK_BLOCK_NUMBER="$PROOF_BLOCK" \
 HATS_MODULE_UPGRADE_GARDEN_COUNT="$N" \
 HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION="$IMPLEMENTATION" \
-  bun run test:shard run conviction-sync-activation-arbitrum
+  bun run --cwd packages/contracts test:shard run conviction-sync-activation-arbitrum
 ```
 
 `N` is the `gardens` value from step 2. The shard runs the deployed implementation; it never
@@ -126,7 +128,8 @@ bun run contracts -- release conviction-sync --network arbitrum --mode verify --
   --expected-implementation "$IMPLEMENTATION" --expected-runtime-hash "$RUNTIME_HASH"
 ```
 
-It prints `{"status":"sync-ready",…,"pendingAuthorizations":0,…}`. It exits 1 with
+It prints `{"status":"sync-ready",…,"gardens":N,"pendingAuthorizations":0,…}`; check that
+`gardens` still equals step 2's `N`, or plan the new garden first. It exits 1 with
 `pool sync authorization is pending` while any pool is unauthorized, and with the messages
 above if any binding differs. Keep the receipt and the output with the garden's launch
 evidence.
@@ -140,9 +143,10 @@ someone authorized removes a member's role, set `GARDEN` to that garden's accoun
 ```sh
 TRIGGERED=$(cast keccak "ConvictionSyncTriggered(address,address,address)")
 FAILED=$(cast keccak "ConvictionSyncFailed(address,address,address,string)")
+GARDEN_TOPIC=$(cast abi-encode "f(address)" "$GARDEN")
 cast receipt "$ROLE_CHANGE_TX" --rpc-url "$ARBITRUM_RPC_URL" --json \
-  | jq --arg t "$TRIGGERED" --arg f "$FAILED" \
-    '{triggered: [.logs[] | select(.topics[0] == $t) | .topics[3]], failed: [.logs[] | select(.topics[0] == $f) | .topics[3]]}'
+  | jq --arg t "$TRIGGERED" --arg f "$FAILED" --arg g "$GARDEN_TOPIC" \
+    '[.logs[] | select(.topics[1] == $g)] | {triggered: [.[] | select(.topics[0] == $t) | .topics[3]], failed: [.[] | select(.topics[0] == $f) | .topics[3]]}'
 cast call "$(jq -r .gardensModule "$DEPLOYMENT")" "getGardenSignalPools(address)(address[])" "$GARDEN" \
   --rpc-url "$ARBITRUM_RPC_URL"
 ```
@@ -201,7 +205,7 @@ cast call "$AM" "expiration()(uint32)" --rpc-url "$ARBITRUM_RPC_URL"
 at that time plus `expiration()` (one week when this was written). A result of 0 means the
 operation was never scheduled, was cancelled, has expired or has already executed. To tell
 which, look for `OperationExecuted` or `OperationCanceled` logs on the AccessManager with the
-operation id as the first topic.
+operation id as the first indexed topic (`topics[1]`; `topics[0]` is the event signature).
 
 `execute(target, data)` from the Safe reverts with:
 
@@ -219,9 +223,10 @@ upgrade's own batch did not authorize.
 Sync does not need it, but a member can only activate points in a pool that its
 community has enabled. Some communities have not enabled their gardens' pools, and
 `activatePoints` then reverts `StrategyDisabled()`. Only the community council can call
-`addStrategy(pool)`, so each such pool needs its own reviewed Safe call. The rehearsal
-logs how many live pools are not enabled and enables the newest garden's pools on the
-fork only. Authorizing the Hats module as sync caller does not enable a pool.
+`addStrategy(pool)`, so each such pool needs its own reviewed Safe call. Read
+`enabledStrategies(pool)` on each pool's community (from `readback.json`) to find them. The
+rehearsal enables the newest garden's pools on the fork only. Authorizing the Hats module
+as sync caller does not enable a pool.
 
 ## Before governance returns
 
