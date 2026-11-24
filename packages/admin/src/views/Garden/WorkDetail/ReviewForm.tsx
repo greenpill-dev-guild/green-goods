@@ -115,11 +115,13 @@ export function ReviewForm({
   // unknown, or that it is decided, the decision started earlier is not sent. The layout effect
   // runs within the commit that changes them, so no later task reads the old answer. The reason
   // dialog closes too, so it cannot reopen by itself when the form comes back.
-  const canStillDecide = useRef(!statusUnread && !isReviewed);
+  // It speaks for the work the form shows now, so a decision started on another work is dropped.
+  const canStillDecide = useRef({ workId: work.id, allowed: !statusUnread && !isReviewed });
   useLayoutEffect(() => {
-    canStillDecide.current = !statusUnread && !isReviewed;
-    if (!canStillDecide.current) setRejectDialogOpen(false);
-  }, [statusUnread, isReviewed]);
+    const allowed = !statusUnread && !isReviewed;
+    canStillDecide.current = { workId: work.id, allowed };
+    if (!allowed) setRejectDialogOpen(false);
+  }, [work.id, statusUnread, isReviewed]);
 
   /**
    * Sends the decision, or keeps it for the batch. A rejection always carries
@@ -167,7 +169,8 @@ export function ReviewForm({
         }
       }
 
-      if (!canStillDecide.current) return false;
+      const now = canStillDecide.current;
+      if (now.workId !== work.id || !now.allowed) return false;
 
       const draft: WorkApprovalDraft = {
         actionUID: work.actionUID,

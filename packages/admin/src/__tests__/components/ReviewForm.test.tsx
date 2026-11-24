@@ -529,6 +529,35 @@ describe("ReviewForm", () => {
       expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
     });
 
+    it("sends nothing for a work the form has moved on from while its note uploaded", async () => {
+      let finishUpload = (_value: { cid: string }) => {};
+      mockUploadFile.mockReturnValue(new Promise((resolve) => (finishUpload = resolve)));
+      const form = (work: Work) => (
+        <IntlProvider locale="en" messages={messages}>
+          <ReviewForm
+            work={work}
+            gardenName="Demo Garden"
+            canReview
+            canApproveOrReject
+            isReviewed={false}
+          />
+        </IntlProvider>
+      );
+      const { rerender } = render(form(TEST_WORK));
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+      await waitFor(() => expect(mockUploadFile).toHaveBeenCalledOnce());
+
+      // The inspector now shows another work, whose status is known.
+      rerender(form({ ...TEST_WORK, id: "0xOtherWork" }));
+      await act(async () => finishUpload({ cid: "audio-cid" }));
+
+      await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+    });
+
     it("keeps nothing when the note can't upload, and says so", async () => {
       mockUploadFile.mockRejectedValue(new Error("offline"));
       const onSuccess = vi.fn();
