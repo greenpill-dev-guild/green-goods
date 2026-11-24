@@ -14,6 +14,8 @@ vi.mock("@green-goods/contracts/deployments/42161-reward-safes.json", () => ({
     schemaVersion: 1,
     chainId: 42161,
     safes: [
+      // A row that isn't an object is skipped without hiding the gardens around it.
+      null,
       { tokenId: 1, garden: G1, safe: S1 },
       {
         tokenId: 2,

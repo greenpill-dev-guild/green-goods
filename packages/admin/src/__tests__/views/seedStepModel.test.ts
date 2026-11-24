@@ -251,7 +251,7 @@ describe("a G$ reward matched in USDC (PRD-1556)", () => {
     expect(rows).toEqual(
       expect.arrayContaining([
         ["Each", "$5.00 in G$ and $5.00 in USDC, paid once it's kept"],
-        ["In USDC", "5.00 USDC each, paid from your wallet once it's kept"],
+        ["In USDC", "5.00 USDC each, paid from the garden's Safe once it's kept"],
         ["If all 10 are kept", "Up to $100.00"],
       ])
     );

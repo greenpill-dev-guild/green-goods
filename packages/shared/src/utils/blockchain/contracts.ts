@@ -170,10 +170,14 @@ function rewardSafesOf(chainId: number): ReadonlyMap<string, Address> {
   const record = REWARD_SAFE_RECORDS[chainId] as
     | { schemaVersion?: unknown; chainId?: unknown; safes?: unknown }
     | undefined;
-  const entries =
+  const rows =
     record?.schemaVersion === 1 && record.chainId === chainId && Array.isArray(record.safes)
-      ? (record.safes as { garden?: unknown; safe?: unknown }[])
+      ? (record.safes as unknown[])
       : [];
+  // A row that isn't an object names nothing: it is skipped, and the other gardens still read.
+  const entries = rows.map((row) =>
+    row !== null && typeof row === "object" ? (row as { garden?: unknown; safe?: unknown }) : {}
+  );
   // Every well-formed address counts towards a repeat, checksummed or not, so a mistyped copy of
   // a garden or Safe still takes both entries out rather than leaving one to be picked.
   const wellFormed = (value: unknown) =>

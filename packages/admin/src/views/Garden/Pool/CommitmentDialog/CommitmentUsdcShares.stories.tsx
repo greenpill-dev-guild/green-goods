@@ -83,6 +83,7 @@ const meta: Meta<typeof CommitmentUsdcShares> = {
     readFailed: false,
     isPaying: false,
     onPay: fn(),
+    onRecheck: fn(),
   },
 };
 
@@ -114,12 +115,16 @@ export const CompletesTheApprovals: Story = {
 /** This owner approved; nothing more to ask of them until another owner approves. */
 export const ApprovedWaitingOnAnotherOwner: Story = {
   args: { payment: payment([STEWARD]) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(
-      canvas.getByText("You've approved. It pays once enough of the Safe's owners approve.")
+      canvas.getByText(
+        "You've approved. Once enough of the Safe's owners approve, any one of them presses Pay."
+      )
     ).toBeVisible();
-    await expect(canvas.queryByRole("button")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /Approve|Pay/ })).toBeNull();
+    await userEvent.click(canvas.getByRole("button", { name: "Check Again" }));
+    await expect(args.onRecheck).toHaveBeenCalledTimes(1);
   },
 };
 
@@ -159,14 +164,16 @@ export const AllPaid: Story = {
 /** The Safe holds less than the owed total, so it asks for USDC before any signature. */
 export const SafeHoldsTooLittle: Story = {
   args: { payment: { status: "refused", refusal: "insufficient-balance" } },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByText(
         "The garden's Safe holds less than 20 USDC. Add USDC to the Safe before paying."
       )
     ).toBeVisible();
-    await expect(canvas.queryByRole("button")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /Approve|Pay/ })).toBeNull();
+    await userEvent.click(canvas.getByRole("button", { name: "Check Again" }));
+    await expect(args.onRecheck).toHaveBeenCalledTimes(1);
   },
 };
 

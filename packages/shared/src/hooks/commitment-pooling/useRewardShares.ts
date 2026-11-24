@@ -151,6 +151,10 @@ export function useRewardShares(
         shown: owed,
       }),
     enabled: paymentEnabled,
+    // Approvals, the nonce and the balance change on chain without this app, so the section reads
+    // them afresh whenever it opens rather than from a read made minutes ago.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   // A payment read that finds a share paid since the shares were read: read the shares again, so
@@ -214,6 +218,8 @@ export function useRewardShares(
     /** The connected account, which pays only as one of the Safe's owners. */
     account: account ?? null,
     payOwed,
+    /** Reads the Safe's balance and approvals again, as after funding it or another owner's approval. */
+    recheckPayment: () => void payment.refetch(),
     isPaying,
     step,
   };
