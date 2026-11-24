@@ -24,6 +24,7 @@ import { WorkFulfills } from "./WorkFulfills";
 import { WorkStatusNotice } from "./WorkStatusNotice";
 import { WorkUploadFooter } from "./WorkUploadFooter";
 import { WorkViewSection } from "./WorkViewSection";
+import { hasOtherWorkReviewer, SoleReviewerNotice } from "./SoleReviewerNotice";
 
 export const GardenWork: React.FC = () => {
   const intl = useIntl();
@@ -144,9 +145,21 @@ export const GardenWork: React.FC = () => {
     />
   ) : null;
 
+  // A sole reviewer's own pending work can never be decided here (PRD-1472).
+  const awaitsAnotherSteward =
+    viewingMode === "steward" &&
+    effectiveStatus === "pending" &&
+    !isOfflineWork &&
+    garden !== undefined &&
+    isUserAddress(work.gardenerAddress, user?.id) &&
+    !hasOtherWorkReviewer(garden, work.gardenerAddress);
+
   const queuedDecision = uploads.decisionFor(work.id);
   const approvalFooter =
-    viewingMode === "steward" && effectiveStatus === "pending" && !queuedDecision ? (
+    viewingMode === "steward" &&
+    effectiveStatus === "pending" &&
+    !queuedDecision &&
+    !awaitsAnotherSteward ? (
       <>
         {/* Backdrop - Fades in over content */}
         <div
@@ -422,7 +435,7 @@ export const GardenWork: React.FC = () => {
           onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
           onShare={handleShare}
           onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-          notice={retryNotice}
+          notice={retryNotice ?? (awaitsAnotherSteward ? <SoleReviewerNotice /> : null)}
           fulfills={<WorkFulfills chainId={chainId} workUID={onChainWorkId} gardenId={gardenId} />}
           footer={retryFooter || approvalFooter || decisionFooter || successFooter}
           reserveFooterSpace={Boolean(
