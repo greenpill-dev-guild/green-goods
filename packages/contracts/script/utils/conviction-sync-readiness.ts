@@ -54,3 +54,16 @@ export function convictionSyncCalls(state: GardenSyncState, hatsModule: string, 
 export function requireConvictionSyncReady(state: GardenSyncState, hatsModule: string, safe: string) {
   assert.equal(convictionSyncCalls(state, hatsModule, safe).length, 0, "pool sync authorization is pending");
 }
+
+/**
+ * A garden token can have an account of each kind (anyone can deploy the other one), so the garden is the
+ * account the Hats module configured, and exactly one must be.
+ */
+export function configuredGardenAccount(
+  tokenId: number,
+  candidates: readonly { account: string; configured: boolean }[],
+): string {
+  const configured = candidates.filter((candidate) => candidate.configured);
+  assert.equal(configured.length, 1, `exactly one account must be configured for garden token ${tokenId}`);
+  return address(configured[0].account);
+}

@@ -6,7 +6,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { Metadata, ArbitrableConfig, CVParams } from "../../src/interfaces/IGardensV2.sol";
 import { ICVStrategy } from "../../src/interfaces/ICVStrategy.sol";
-import { ICVSyncPowerFacet } from "../../src/interfaces/ICVSyncPowerFacet.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { HatsModule } from "../../src/modules/Hats.sol";
@@ -47,8 +46,6 @@ interface IActivationAllo {
 /// @dev Cheatcodes the pinned forge-std interface predates.
 interface IActivationVm {
     function cool(address target) external;
-    function snapshotState() external returns (uint256 snapshotId);
-    function revertToState(uint256 snapshotId) external returns (bool success);
 }
 
 struct ActivationProposal {
@@ -65,16 +62,16 @@ struct ActivationSupport {
 }
 
 /// @title ArbitrumConvictionSyncActivationForkTest
-/// @notice Rehearses the remaining PRD-1377 sequence against every live garden: the HatsModule upgrade,
-///         then each pool's council authorizing the module, then real role changes.
-/// @dev Councils are pranked, not signed. The private Safe packet rehearsal proves the exact signed calls;
-///      this proof discovers the gardens on chain so a garden minted after that packet cannot be missed.
+/// @notice Proves PRD-1377's activation against current Arbitrum state once the upgraded HatsModule is live:
+///         every live garden's pools authorize the module, and real role changes sync both of them.
+/// @dev Runs the deployed implementation that setUp binds; it never upgrades. Pools still unauthorized on
+///      chain are authorized by a pranked council, the step their reviewed Safe batch takes. Councils are
+///      pranked, not signed, and the gardens are discovered on chain, so a newly minted garden cannot be missed.
 contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarness {
     /// @dev The Green Goods Safe is the council of every live garden community.
     address private constant COUNCIL = 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19;
     /// @dev The existing Gardens SafeArbitrator. Live signal pools have none, so proposals need a fork-only one.
     address private constant FIXTURE_ARBITRATOR = 0x1c62F449058BbeeD546823A1a581D28233f7A69c;
-    bytes4 private constant NOT_AUTHORIZED_SYNC_CALLER = bytes4(keccak256("NotAuthorizedSyncCaller(address)"));
     bytes32 private constant SYNC_TRIGGERED = keccak256("ConvictionSyncTriggered(address,address,address)");
     bytes32 private constant SYNC_FAILED = keccak256("ConvictionSyncFailed(address,address,address,string)");
 
@@ -82,32 +79,8 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         _setUpHatsModuleUpgrade("ARBITRUM_RPC_URL", 42_161);
     }
 
-    /// @notice The 18 November fork walk saw a failed sync on every grant. Both missing steps cause it, and
-    ///         neither alone repairs it, so the upgrade must execute before the councils authorize the module.
-    function testForkArbitrum_convictionSyncFailsUntilUpgradedAndAuthorized() public {
-        address garden = _liveGardens()[0];
-        address[2] memory pools = _signalPools(garden);
-        address module = _hatsModule();
-
-        _assertGrantSyncFailsOnBothPools(garden, pools, "live-module-unauthorized");
-        vm.prank(module);
-        vm.expectRevert(abi.encodeWithSelector(NOT_AUTHORIZED_SYNC_CALLER, module));
-        ICVSyncPowerFacet(pools[0]).syncPower(makeAddr("live-module-unauthorized"));
-
-        uint256 beforeAuthorization = IActivationVm(address(vm)).snapshotState();
-        _authorize(pools);
-        _coolSyncPath(garden, pools);
-        _assertGrantSyncFailsOnBothPools(garden, pools, "live-module-authorized");
-        assertTrue(IActivationVm(address(vm)).revertToState(beforeAuthorization));
-
-        _upgradeToRehearsedImplementation();
-        _assertGrantSyncFailsOnBothPools(garden, pools, "upgraded-module-unauthorized");
-    }
-
-    /// @notice After the upgrade, one authorization per pool lets every live garden's role changes reach
-    ///         both of its pools.
-    function testForkArbitrum_convictionSyncActivatesOnEveryLiveGarden() public {
-        _upgradeToRehearsedImplementation();
+    /// @notice Once each pool authorizes the live module, every live garden's role changes reach both pools.
+    function testForkArbitrum_convictionSyncReachesBothPoolsOnEveryLiveGarden() public {
         address[] memory gardens = _liveGardens();
         HatsModule module = HatsModule(_hatsModule());
         address owner = module.owner();
@@ -116,13 +89,13 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         uint256 notEnabled;
         for (uint256 g = 0; g < gardens.length; g++) {
             address[2] memory pools = _signalPools(gardens[g]);
-            authorizations += _authorize(pools);
+            authorizations += _authorizeMissing(pools);
             for (uint256 i = 0; i < 2; i++) {
                 if (!_enabledInCommunity(pools[i])) notEnabled++;
             }
         }
         emit log_named_uint("live gardens", gardens.length);
-        emit log_named_uint("pool authorizations", authorizations);
+        emit log_named_uint("pool authorizations still missing on chain", authorizations);
         // Sync does not need it, but members cannot activate points in a pool their community has not enabled.
         emit log_named_uint("pools their community has not enabled", notEnabled);
 
@@ -144,11 +117,9 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         }
     }
 
-    /// @notice The newest garden was minted after the reviewed authorization packet. Once its council
-    ///         authorizes the module, losing the last role still clears six stale support positions on
-    ///         both deployed pools.
+    /// @notice On the newest garden, support recorded while sync was off is cleared from both deployed pools
+    ///         when the member loses their last role with the module authorized.
     function testForkArbitrum_revokingLastRoleClearsSupportOnNewestGarden() public {
-        _upgradeToRehearsedImplementation();
         address[] memory gardens = _liveGardens();
         address garden = gardens[gardens.length - 1];
         address[2] memory pools = _signalPools(garden);
@@ -156,7 +127,8 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         address owner = module.owner();
         address subject = makeAddr("activation-six-proposal-stale-member");
 
-        // Roles are granted with sync off so the stake below models support recorded before a missed hook.
+        // Roles change with sync off so the stake below models support recorded before a missed hook.
+        _revokeAuthorization(pools);
         vm.startPrank(owner);
         module.grantRole(garden, subject, IHatsModule.GardenRole.Gardener);
         module.grantRole(garden, subject, IHatsModule.GardenRole.Steward);
@@ -181,7 +153,7 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         vm.stopPrank();
         vm.roll(block.number + 1_000_000);
 
-        _authorize(pools);
+        _authorizeMissing(pools);
         _coolSyncPath(garden, pools);
         vm.recordLogs();
         uint256 gasBefore = gasleft();
@@ -232,14 +204,26 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         assertTrue(_enabledInCommunity(pool));
     }
 
-    function _authorize(address[2] memory pools) private returns (uint256 authorized) {
+    /// @dev The council call each still-unauthorized pool's reviewed Safe batch makes.
+    function _authorizeMissing(address[2] memory pools) private returns (uint256 authorized) {
         address module = _hatsModule();
         for (uint256 i = 0; i < 2; i++) {
-            assertFalse(IActivationPool(pools[i]).isAuthorizedSyncCaller(module), "live pool already authorized");
+            if (IActivationPool(pools[i]).isAuthorizedSyncCaller(module)) continue;
             vm.prank(COUNCIL);
             IActivationPool(pools[i]).setAuthorizedSyncCaller(module, true);
             assertTrue(IActivationPool(pools[i]).isAuthorizedSyncCaller(module));
             authorized++;
+        }
+    }
+
+    /// @dev Fork-only: turns sync off so a fixture can record support that a later revocation must clear.
+    function _revokeAuthorization(address[2] memory pools) private {
+        address module = _hatsModule();
+        for (uint256 i = 0; i < 2; i++) {
+            if (!IActivationPool(pools[i]).isAuthorizedSyncCaller(module)) continue;
+            vm.prank(COUNCIL);
+            IActivationPool(pools[i]).setAuthorizedSyncCaller(module, false);
+            assertFalse(IActivationPool(pools[i]).isAuthorizedSyncCaller(module));
         }
     }
 
@@ -256,25 +240,10 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         }
     }
 
-    function _assertGrantSyncFailsOnBothPools(address garden, address[2] memory pools, string memory label) private {
-        HatsModule module = HatsModule(_hatsModule());
-        address member = makeAddr(label);
-        vm.recordLogs();
-        vm.prank(module.owner());
-        module.grantRole(garden, member, IHatsModule.GardenRole.Gardener);
-        assertTrue(module.isGardenerOf(garden, member), "the role grant itself must succeed");
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        for (uint256 i = 0; i < 2; i++) {
-            (uint256 triggered, uint256 failed) = _syncOutcomes(logs, garden, member, pools[i]);
-            assertEq(triggered, 0, string.concat(label, ": sync must not reach the pool"));
-            assertEq(failed, 1, string.concat(label, ": the module logs one failed sync per pool"));
-        }
-    }
-
     function _assertSyncedBothPools(Vm.Log[] memory logs, address garden, address member, address[2] memory pools) private {
         for (uint256 i = 0; i < 2; i++) {
             (uint256 triggered, uint256 failed) = _syncOutcomes(logs, garden, member, pools[i]);
-            assertEq(failed, 0, "no failed sync once upgraded and authorized");
+            assertEq(failed, 0, "no failed sync once the live module is authorized");
             assertEq(triggered, 1, "each role change syncs each pool once");
         }
     }

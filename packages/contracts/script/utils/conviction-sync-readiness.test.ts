@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { convictionSyncCalls, requireConvictionSyncReady, type GardenSyncState } from "./conviction-sync-readiness";
+import {
+  configuredGardenAccount,
+  convictionSyncCalls,
+  requireConvictionSyncReady,
+  type GardenSyncState,
+} from "./conviction-sync-readiness";
 
 const addr = (n: number) => `0x${n.toString(16).padStart(40, "0")}`;
 const hats = addr(7);
@@ -60,5 +65,13 @@ describe("conviction sync launch readiness", () => {
       state[field] = addr(0);
       expect(() => convictionSyncCalls(state, hats, safe)).toThrow("missing");
     }
+  });
+
+  it("takes the one garden account the Hats module configured", () => {
+    const legacy = { account: addr(10), configured: false };
+    const upgradeable = { account: addr(11), configured: true };
+    expect(configuredGardenAccount(18, [legacy, upgradeable]).toLowerCase()).toBe(addr(11));
+    expect(() => configuredGardenAccount(18, [legacy])).toThrow("garden token 18");
+    expect(() => configuredGardenAccount(18, [{ ...legacy, configured: true }, upgradeable])).toThrow("exactly one");
   });
 });
