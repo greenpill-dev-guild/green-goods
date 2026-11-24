@@ -105,7 +105,7 @@ export function CommitmentIdentity({
   const rewards = rewardsBelow ? [] : [promised].filter((reward) => reward !== null);
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
-  const payout = promisePayoutOf(commitment);
+  const payout = promisePayoutOf(commitment, { pastDue: band?.pastDue });
   const [onlyReward] = rewards;
   const reward = promiseRewardText({
     intl,

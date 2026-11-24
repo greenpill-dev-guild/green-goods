@@ -255,6 +255,58 @@ describe("GardenJoinRequestDialog", () => {
     expect(scrollFeedbackIntoView).toHaveBeenCalled();
   });
 
+  it("fits the phone sheet to a sent request and lets its status grow with its words", async () => {
+    const originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      configurable: true,
+      value: vi.fn((query: string) => ({
+        matches: query.includes("max-width: 639px"),
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    try {
+      const user = userEvent.setup();
+      const view = render(
+        <MemoryRouter>
+          <IntlProvider locale="en" messages={enMessages}>
+            <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+          </IntlProvider>
+        </MemoryRouter>
+      );
+      await user.click(screen.getByRole("button", { name: "Ask to Join" }));
+      // The introduction form takes the room it needs.
+      expect(screen.getByRole("dialog")).toHaveAttribute("data-sheet-size", "full");
+
+      // Once sent, only the status is left, so the sheet is only as tall as it.
+      hookState.request = { id: "pending-1", state: "pending" };
+      view.rerender(
+        <MemoryRouter>
+          <IntlProvider locale="en" messages={enMessages}>
+            <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+          </IntlProvider>
+        </MemoryRouter>
+      );
+      expect(screen.getByRole("dialog")).toHaveAttribute("data-sheet-size", "compact");
+      // A longer line wraps inside the card instead of running past a fixed height.
+      const status = screen.getByRole("status", { name: "" });
+      expect(status.className).not.toMatch(/(^|\s)(sm:)?h-\d+/);
+      expect(status.className).not.toMatch(/overflow-y-auto/);
+    } finally {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        configurable: true,
+        value: originalMatchMedia,
+      });
+    }
+  });
+
   it("does not present an earlier check as a fresh result when reopened", async () => {
     const user = userEvent.setup();
     render(
