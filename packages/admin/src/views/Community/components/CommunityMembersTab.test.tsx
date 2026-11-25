@@ -173,7 +173,7 @@ describe("CommunityMembersTab", () => {
     renderMembers();
     expect(screen.queryByRole("button", { name: "Readiness" })).not.toBeInTheDocument();
   });
-  it("shows contribution instead of membership in a manager's compact row", () => {
+  it("keeps contribution first and appends garden membership for roomier rows", () => {
     vi.mocked(useGardenMemberContributions).mockReturnValue({
       canView: true,
       byAccount: {
@@ -185,7 +185,9 @@ describe("CommunityMembersTab", () => {
     });
     renderMembers();
     expect(screen.getByText("Contributed Nov 15, 2026")).toBeInTheDocument();
-    expect(screen.queryByText("Joined Jun 12, 2026")).not.toBeInTheDocument();
+    expect(screen.getByText("Joined Jun 12, 2026")).toBeInTheDocument();
+    const facts = screen.getByText("Contributed Nov 15, 2026").closest(".gg-item-row-detail-list");
+    expect(facts?.textContent).toMatch(/^Contributed Nov 15, 2026.*Joined Jun 12, 2026$/);
     expect(useGardenMemberContributions).toHaveBeenCalledWith({
       garden: storyGarden,
       accounts: storyDirectory.map((entry) => entry.address),

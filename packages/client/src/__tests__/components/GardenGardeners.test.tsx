@@ -136,12 +136,28 @@ describe("GardenGardeners", () => {
       },
     };
     vi.mocked(useGardenMemberContributions).mockReturnValue(state);
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [
+        {
+          garden: garden.id,
+          account: members[0].account,
+          joinedAt: Date.UTC(2026, 5, 12, 12),
+          memberSince: Date.UTC(2026, 5, 12, 12),
+          roleSince: {},
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
     const view = renderWithProviders(
       <TestIntl>
         <GardenGardeners members={members.slice(0, 2)} garden={garden} />
       </TestIntl>
     );
     expect(screen.getByText("Contributed Nov 15, 2026")).toBeInTheDocument();
+    const facts = screen.getByText("Contributed Nov 15, 2026").closest(".gg-item-row-detail-list");
+    expect(facts?.textContent).toBe("Contributed Nov 15, 2026Joined Jun 12, 2026");
     await user.click(screen.getAllByRole("button", { name: /Member 0/ })[0]);
     expect(
       within(screen.getByRole("dialog")).getByText("Last recorded contribution")

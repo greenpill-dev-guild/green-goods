@@ -10,7 +10,8 @@
  * 15px in the app and 13px in the Hub), so the component takes no density prop.
  *
  * The detail line follows the agreed rules: each card type passes at most two details,
- * most important first; the line never wraps, and a detail that does not fit drops whole,
+ * most important first. Member rows may append their garden join date after contribution and
+ * role count (DL-206). The line never wraps, and a detail that does not fit drops whole,
  * last first. Ages take their short forms and are always a number ("2 hr. ago").
  *
  * A row with `onOpen` opens its item: the whole row is the button, or, beside an action,
@@ -103,8 +104,11 @@ export interface ItemRowProps
    * the pill wins when a caller passes both.
    */
   subtitle?: string;
-  /** At most two details, most important first. */
-  details?: readonly [ItemRowDetail] | readonly [ItemRowDetail, ItemRowDetail];
+  /** Priority order, with an optional third join-date fact for roomy member rows. */
+  details?:
+    | readonly [ItemRowDetail]
+    | readonly [ItemRowDetail, ItemRowDetail]
+    | readonly [ItemRowDetail, ItemRowDetail, ItemRowDetail];
   /** The 2px status edge, for work rows. */
   edge?: ItemRowTone;
   /** The row's one action, in the right slot. Only a row that needs the reader has one. */
