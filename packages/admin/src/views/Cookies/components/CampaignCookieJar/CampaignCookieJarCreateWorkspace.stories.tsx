@@ -41,7 +41,15 @@ export const CampaignStep: Story = {
   },
 };
 
-export const PayoutStep: Story = { args: { initialStep: 1 } };
+export const PayoutStep: Story = {
+  args: { initialStep: 1 },
+  play: async () => {
+    const schedule = await screen.findByRole("combobox", { name: "Claim schedule" });
+    await expect(schedule).toHaveValue("one-time");
+    await userEvent.selectOptions(schedule, "recurring");
+    await expect(screen.getByLabelText("Maximum claim per steward")).toBeVisible();
+  },
+};
 
 export const GardensStep: Story = { args: { initialStep: 2 } };
 

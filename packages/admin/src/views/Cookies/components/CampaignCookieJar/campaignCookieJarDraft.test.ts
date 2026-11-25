@@ -14,7 +14,7 @@ const PRISTINE: CampaignCookieJarDraft = {
   selectedAssetId: "usdc",
   customTokenAddress: "",
   claimAmount: "",
-  withdrawalIntervalDays: "0",
+  claimSchedule: "one-time",
   jarOwner: OWNER,
   selectedGardenIds: [],
   extraAddresses: "",
@@ -35,18 +35,17 @@ describe("isCampaignCookieJarDraftDirty", () => {
     ["an extra address", { extraAddresses: "0x3333333333333333333333333333333333333333" }],
     ["a custom token", { customTokenAddress: "0x4444444444444444444444444444444444444444" }],
     ["another payout asset", { selectedAssetId: "dai" }],
-    ["a withdrawal interval", { withdrawalIntervalDays: "7" }],
+    ["a recurring schedule", { claimSchedule: "recurring" }],
     ["another jar owner", { jarOwner: "0x5555555555555555555555555555555555555555" }],
   ])("counts %s as an edit to discard", (_label, edit) => {
     expect(isCampaignCookieJarDraftDirty({ ...PRISTINE, ...edit }, DEFAULTS)).toBe(true);
   });
 
-  it("does not count a cleared interval or the owner in another case as an edit", () => {
+  it("does not count the owner in another case as an edit", () => {
     expect(
       isCampaignCookieJarDraftDirty(
         {
           ...PRISTINE,
-          withdrawalIntervalDays: " ",
           jarOwner: OWNER.toUpperCase().replace("0X", "0x"),
         },
         DEFAULTS

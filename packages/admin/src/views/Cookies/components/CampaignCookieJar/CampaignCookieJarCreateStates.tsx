@@ -18,6 +18,7 @@ import { publicJarLink } from "./helpers";
 export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Address }) {
   const { formatMessage } = useIntl();
   const { jar, isLoading, hasDetailReadFailure } = useCampaignCookieJar(jarAddress);
+  const isVariableClaim = jar?.withdrawalType === "variable";
   const publicUrl = publicJarLink(jarAddress);
 
   return (
@@ -76,11 +77,22 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
               value={`${formatTokenAmount(jar.balance, jar.decimals, 4)} ${jar.symbol}`}
             />
             <FactRow
-              label={formatMessage({
-                id: "hub.community.cookies.claimAmountPerSteward",
-                defaultMessage: "Claim amount per steward",
-              })}
-              value={`${formatTokenAmount(jar.fixedAmount, jar.decimals, 4)} ${jar.symbol}`}
+              label={formatMessage(
+                isVariableClaim
+                  ? {
+                      id: "hub.community.cookies.maximumClaimPerSteward",
+                      defaultMessage: "Maximum claim per steward",
+                    }
+                  : {
+                      id: "hub.community.cookies.claimAmountPerSteward",
+                      defaultMessage: "Claim amount per steward",
+                    }
+              )}
+              value={`${formatTokenAmount(
+                isVariableClaim ? jar.maxWithdrawal : jar.fixedAmount,
+                jar.decimals,
+                jar.decimals
+              )} ${jar.symbol}`}
             />
             <FactRow
               label={formatMessage({
