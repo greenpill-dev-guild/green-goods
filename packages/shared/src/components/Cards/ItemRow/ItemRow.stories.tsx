@@ -48,7 +48,7 @@ const meta: Meta<typeof ItemRow> = {
     docs: {
       description: {
         component:
-          "One item in a list on both surfaces (F7): 88px in every state and language, the item's photo or a 56px icon tile, a one-line title, the one status pill under it, at most two details on one line, and the row's one action in its right slot. The Hub's density comes from its tokens, so the same row draws 13px titles there.",
+          "One item in a list on both surfaces (F7): 88px in every state and language, the item's photo or a 56px icon tile, a one-line title, the one status pill under it, up to two details on one line, and the row's one action in its right slot. Member rows may append a third garden join date after contribution and role count (DL-206); secondary facts drop whole when space runs out. The Hub's density comes from its tokens, so the same row draws 13px titles there.",
       },
     },
   },
@@ -396,6 +396,39 @@ export const DetailLineDropsWhole: Story = {
       await expect(second.getBoundingClientRect().top).toBeGreaterThanOrEqual(
         (line as HTMLElement).getBoundingClientRect().bottom - 1
       );
+    }
+  },
+};
+
+/** Member rows keep contribution, role count and garden join date in that priority order. */
+export const MemberDatePriorities: Story = {
+  render: () => (
+    <div className="flex flex-col gap-6" data-surface-scope="admin">
+      {[264, 358, 720].map((width) => (
+        <Column key={width} width={width}>
+          <ItemRow
+            lead={{ kind: "avatar", src: null }}
+            title="maria.eth"
+            status={{ label: "Steward", tone: "neutral" }}
+            details={[
+              { text: "Contributed Nov 15, 2026", dateTime: "2026-11-15T12:00:00.000Z" },
+              "2 roles",
+              { text: "Joined Jun 12, 2026", dateTime: "2026-06-12T12:00:00.000Z" },
+            ]}
+          />
+        </Column>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+    const rows = [...canvasElement.querySelectorAll<HTMLElement>(".gg-item-row")];
+    for (const [index, row] of rows.entries()) {
+      const line = row.querySelector<HTMLElement>(".gg-item-row-details")!;
+      const visible = [...row.querySelectorAll<HTMLElement>(".gg-item-row-detail")].filter(
+        (detail) => detail.getBoundingClientRect().top < line.getBoundingClientRect().bottom - 1
+      );
+      await expect(visible).toHaveLength(index + 1);
     }
   },
 };
