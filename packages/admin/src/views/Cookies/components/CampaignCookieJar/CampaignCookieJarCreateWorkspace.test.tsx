@@ -78,6 +78,48 @@ beforeEach(() => {
 });
 
 describe("CampaignCookieJarCreateWorkspace", () => {
+  it("creates a recurring USDC jar for an explicit steward roster and Safe owner", async () => {
+    const safe = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19";
+    const steward = "0x2222222222222222222222222222222222222222";
+    renderWithProviders(<CampaignCookieJarCreateWorkspace onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/Campaign name/), {
+      target: { value: "Pilot steward work" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.change(screen.getByLabelText("Claim schedule"), { target: { value: "recurring" } });
+    fireEvent.change(screen.getByLabelText("Maximum claim per steward"), {
+      target: { value: "120" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByText("Advanced", { selector: "summary" }));
+    fireEvent.change(await screen.findByLabelText("Jar owner"), { target: { value: safe } });
+    fireEvent.change(screen.getByLabelText("Extra allowlist addresses"), {
+      target: { value: steward },
+    });
+
+    expect(screen.getByText("Up to 120 USDC every 30 days")).toBeInTheDocument();
+    expect(screen.getByText(safe)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Create Cookie Jar" }));
+
+    expect(createJar.mutate).toHaveBeenCalledTimes(1);
+    expect(createJar.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        jarOwner: safe,
+        allowlist: [steward],
+        sourceGardens: [],
+        fixedAmount: 0n,
+        maxWithdrawal: 120_000_000n,
+        withdrawalInterval: 2_592_000n,
+        withdrawalType: "variable",
+        oneTimeWithdrawal: false,
+      }),
+      expect.anything()
+    );
+  });
+
   it("shows the submitted transaction until the steward supplies the created jar's address", () => {
     renderWithProviders(
       <CampaignCookieJarCreateWorkspace onClose={vi.fn()} initialSubmittedHash={SUBMITTED_HASH} />

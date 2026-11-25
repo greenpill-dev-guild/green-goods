@@ -19,7 +19,25 @@ export interface CampaignCreateReviewProps extends CampaignCookieJarCreateFormPr
  * Done once the jar exists.
  */
 export function CampaignCreateReview({ status, outcome, ...props }: CampaignCreateReviewProps) {
-  const { formatMessage, payoutLabel, aggregation, publicCampaignUrl } = props;
+  const {
+    formatMessage,
+    claimSchedule,
+    payoutLabel,
+    tokenSymbol,
+    aggregation,
+    publicCampaignUrl,
+    normalizedJarOwner,
+  } = props;
+  const payout =
+    payoutLabel && claimSchedule === "recurring"
+      ? formatMessage(
+          {
+            id: "hub.community.cookies.recurringPayout",
+            defaultMessage: "Up to {amount} every 30 days",
+          },
+          { amount: payoutLabel }
+        )
+      : (payoutLabel ?? (tokenSymbol || "--"));
   return (
     <div className="space-y-4">
       <FlowStatusRow
@@ -36,8 +54,17 @@ export function CampaignCreateReview({ status, outcome, ...props }: CampaignCrea
               id: "hub.community.cookies.reviewPayout",
               defaultMessage: "Payout",
             })}
-            value={payoutLabel}
+            value={payout}
           />
+          {normalizedJarOwner ? (
+            <FactRow
+              label={formatMessage({
+                id: "hub.community.cookies.owner",
+                defaultMessage: "Jar owner",
+              })}
+              value={normalizedJarOwner}
+            />
+          ) : null}
           <FactRow
             label={formatMessage({
               id: "hub.community.cookies.selectedGardens",

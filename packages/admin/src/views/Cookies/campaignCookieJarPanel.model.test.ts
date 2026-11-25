@@ -208,8 +208,8 @@ describe("campaign cookie jar admin model", () => {
       allowlist: [GARDEN_B],
       sourceGardens: [GARDEN_A],
       extraAllowlist: [],
-      fixedAmount: 10n,
-      withdrawalInterval: 0n,
+      claimAmount: 10n,
+      claimSchedule: "one-time",
     });
 
     expect(payload).toMatchObject({
@@ -221,6 +221,7 @@ describe("campaign cookie jar admin model", () => {
       withdrawalType: "fixed",
       fixedAmount: 10n,
       maxWithdrawal: 10n,
+      withdrawalInterval: 0n,
       minDeposit: 0n,
     });
   });

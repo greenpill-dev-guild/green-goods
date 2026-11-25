@@ -25,6 +25,7 @@ import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
 import {
   buildCampaignCookieJarCreatePayload,
+  type CampaignCookieJarClaimSchedule,
   canCreateCampaignCookieJar,
   getCampaignCookieJarPublicUrl,
   isUsableCampaignCookieJarTokenDecimals,
@@ -96,7 +97,7 @@ export function CampaignCookieJarCreateWorkspace({
   );
   const [customTokenAddress, setCustomTokenAddress] = useState("");
   const [claimAmount, setClaimAmount] = useState("");
-  const [withdrawalIntervalDays, setWithdrawalIntervalDays] = useState("0");
+  const [claimSchedule, setClaimSchedule] = useState<CampaignCookieJarClaimSchedule>("one-time");
   const [jarOwner, setJarOwner] = useState("");
   const [selectedGardenIds, setSelectedGardenIds] = useState<string[]>([]);
   const [gardenSearch, setGardenSearch] = useState("");
@@ -196,7 +197,7 @@ export function CampaignCookieJarCreateWorkspace({
     tokenDecimalsConfirmed,
     jarOwner: normalizedJarOwner,
     campaignTitle,
-    hasValidClaimConfig: Boolean(parsedClaimAmount),
+    hasValidClaimConfig: parsedClaimAmount !== null && parsedClaimAmount > 0n,
     allowlistCount: aggregation.allowlist.length,
     invalidAddressCount: aggregation.invalidAddresses.length,
     metadataUrlsValid,
@@ -204,8 +205,8 @@ export function CampaignCookieJarCreateWorkspace({
   });
   const payoutLabel =
     parsedClaimAmount && tokenSymbol
-      ? `${formatTokenAmount(parsedClaimAmount, tokenDecimals, 4)} ${tokenSymbol}`
-      : tokenSymbol || "--";
+      ? `${formatTokenAmount(parsedClaimAmount, tokenDecimals, tokenDecimals)} ${tokenSymbol}`
+      : null;
   const toggleGarden = (gardenId: string) => {
     setSelectedGardenIds((current) =>
       current.some((id) => id.toLowerCase() === gardenId.toLowerCase())
@@ -239,7 +240,7 @@ export function CampaignCookieJarCreateWorkspace({
     setSelectedAssetId(defaultPayoutAsset?.id ?? "usdc");
     setCustomTokenAddress("");
     setClaimAmount("");
-    setWithdrawalIntervalDays("0");
+    setClaimSchedule("one-time");
     setJarOwner(primaryAddress || "");
     setSelectedGardenIds([]);
     setGardenSearch("");
@@ -264,7 +265,6 @@ export function CampaignCookieJarCreateWorkspace({
     ) {
       return;
     }
-    const intervalDays = Number(withdrawalIntervalDays);
     createJar.mutate(
       buildCampaignCookieJarCreatePayload({
         factoryAddress,
@@ -277,11 +277,8 @@ export function CampaignCookieJarCreateWorkspace({
         allowlist: aggregation.allowlist,
         sourceGardens: aggregation.sources.map((source) => source.gardenAddress),
         extraAllowlist: aggregation.extraAllowlist,
-        fixedAmount: parsedClaimAmount,
-        withdrawalInterval:
-          Number.isFinite(intervalDays) && intervalDays > 0
-            ? BigInt(Math.floor(intervalDays * 86400))
-            : 0n,
+        claimAmount: parsedClaimAmount,
+        claimSchedule,
       }),
       {
         onSuccess: (result) => {
@@ -332,7 +329,7 @@ export function CampaignCookieJarCreateWorkspace({
         selectedAssetId,
         customTokenAddress,
         claimAmount,
-        withdrawalIntervalDays,
+        claimSchedule,
         jarOwner,
         selectedGardenIds,
         extraAddresses,
@@ -374,6 +371,8 @@ export function CampaignCookieJarCreateWorkspace({
     publicCampaignUrl,
     claimAmount,
     setClaimAmount,
+    claimSchedule,
+    setClaimSchedule,
     tokenSymbol,
     gardens,
     selectedGardenIds,
@@ -394,8 +393,6 @@ export function CampaignCookieJarCreateWorkspace({
     jarOwner,
     setJarOwner,
     normalizedJarOwner,
-    withdrawalIntervalDays,
-    setWithdrawalIntervalDays,
     extraAddresses,
     setExtraAddresses,
     payoutLabel,
