@@ -10,6 +10,7 @@ import type {
   WalletRestoreState,
 } from "../types/auth";
 import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
+import type { OpenfortEmailSession } from "../modules/auth/openfort-wallet";
 import type {
   PilotAccountPreview,
   PilotAccountQuote,
@@ -57,11 +58,13 @@ export interface AuthActionsValue {
   loginWithPasskey: (userName?: string, options?: { createIfMissing?: boolean }) => Promise<void>;
   loginWithOriginalPasskey?: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
+  loginWithConnectedWallet?: (expectedAddress: Hex) => boolean;
   loginWithEmbedded: () => void;
   /** Email a one-time code. Ends any Openfort session left on this device first. */
   requestSignInCode?: (email: string) => Promise<void>;
   /** Sign in with the emailed code; the machine reports progress and errors like a passkey's. */
   loginWithCode?: (email: string, code: string) => Promise<void>;
+  loginWithOpenfortSession?: (session: OpenfortEmailSession) => Promise<void>;
   signOut: () => Promise<void>;
   switchToWallet: () => void;
   switchToPasskey: (userName?: string) => void;

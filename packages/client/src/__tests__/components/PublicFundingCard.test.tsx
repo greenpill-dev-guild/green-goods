@@ -100,8 +100,8 @@ vi.mock("@green-goods/shared/utils/blockchain/address", () => ({
   truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
 }));
 
-vi.mock("@green-goods/shared/providers/AppKitProvider", () => ({
-  useAppKit: () => ({ open: vi.fn() }),
+vi.mock("@green-goods/shared/hooks/auth/useWalletModalOpen", () => ({
+  useWalletModal: () => ({ openProfile: vi.fn() }),
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({

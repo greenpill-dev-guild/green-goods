@@ -35,8 +35,13 @@ const meta: Meta<typeof ConnectPrompt> = {
 export default meta;
 type Story = StoryObj<typeof ConnectPrompt>;
 export const Default: Story = {
+  tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await expect(canvas.getByTestId("hub-connect-logo")).toHaveAttribute(
+      "src",
+      expect.stringContaining("green-goods-logo.png")
+    );
     await expect(canvas.getByRole("heading", { name: "Connect to continue" })).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Connect Wallet" }));
     await expect(connect).toHaveBeenCalledTimes(1);

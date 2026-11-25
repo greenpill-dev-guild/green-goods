@@ -1,5 +1,5 @@
 import { useAgentReportingPermissions } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingPermissions";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import PublicWalletRuntimeProviders from "@/components/Public/PublicWalletRuntimeProviders";
 import { PermissionsView } from "./PermissionsView";
 
 function Permissions() {
@@ -9,8 +9,8 @@ function Permissions() {
 /** Owner permission management remains available without a chat link or Agent session. */
 export default function () {
   return (
-    <WalletRuntimeProviders analyticsIdentity={false}>
+    <PublicWalletRuntimeProviders analyticsIdentity={false}>
       <Permissions />
-    </WalletRuntimeProviders>
+    </PublicWalletRuntimeProviders>
   );
 }

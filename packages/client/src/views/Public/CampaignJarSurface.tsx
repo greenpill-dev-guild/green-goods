@@ -24,7 +24,7 @@ import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Publ
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import PublicWalletRuntimeProviders from "@/components/Public/PublicWalletRuntimeProviders";
 
 function normalizeCampaignSlug(value: string): string {
   return value.trim().toLowerCase();
@@ -424,9 +424,9 @@ export default function CampaignJarSurface() {
       />
 
       <div className="bg-bg-weak-50 pt-32 pb-16 sm:pt-36 sm:pb-20 md:pt-40">
-        <WalletRuntimeProviders>
+        <PublicWalletRuntimeProviders>
           <CookiesCampaignSurface />
-        </WalletRuntimeProviders>
+        </PublicWalletRuntimeProviders>
       </div>
 
       <PublicFooter variant="soil" />

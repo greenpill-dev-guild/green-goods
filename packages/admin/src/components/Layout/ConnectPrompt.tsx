@@ -1,16 +1,6 @@
 import type { ReactNode } from "react";
 
 /**
- * The tab icon the build chose for this environment (production, beta or alpha): index.html
- * links it and marks the link. Where that link is absent (Storybook, which links its own logo,
- * and tests) the production Hub icon stands in.
- */
-function hubIconUrl(): string {
-  const link = document.querySelector<HTMLLinkElement>("link[data-hub-icon]");
-  return link?.href || `${import.meta.env.BASE_URL}hub-icon-192.png`;
-}
-
-/**
  * The one connect surface, before and after the auth providers are available: the boot
  * screen, the signed-out Hub and the wallet-required state all draw it, so a steward sees
  * the same screen whichever way they arrive. It scrolls on a screen too short for it, and
@@ -45,15 +35,12 @@ export function ConnectPrompt({
               {icon}
             </div>
           ) : (
-            // The Hub's own app icon for this environment, the picture its install shows on a
-            // home screen, so the sign-in reads as the Hub and not the App (PRD-1491).
             <img
-              src={hubIconUrl()}
-              // The heading and line below name the Hub; the icon only shows it.
+              src={`${import.meta.env.BASE_URL}green-goods-logo.png`}
               alt=""
-              width={64}
-              height={64}
-              className="h-16 w-16 shrink-0 rounded-2xl"
+              width={819}
+              height={464}
+              className="h-24 w-auto shrink-0 sm:h-28"
               data-testid="hub-connect-logo"
             />
           )}

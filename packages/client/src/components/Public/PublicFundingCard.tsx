@@ -13,7 +13,7 @@ import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults
 import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
 import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
-import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
+import { useWalletModal } from "@green-goods/shared/hooks/auth/useWalletModalOpen";
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import type { Address } from "@green-goods/shared/types/domain";
 import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
@@ -577,7 +577,7 @@ function IdleBody(props: IdleBodyProps) {
     onSubmit,
   } = props;
   const { formatMessage } = useIntl();
-  const { open: openWalletModal } = useAppKit();
+  const { openProfile } = useWalletModal();
   const isWeth = selected?.symbol === WETH_SYMBOL;
   const isWethDenomination = denomination === "weth";
 
@@ -753,7 +753,7 @@ function IdleBody(props: IdleBodyProps) {
                   type="button"
                   emphasis="tertiary"
                   size="compact"
-                  onClick={() => openWalletModal()}
+                  onClick={openProfile}
                   className="-my-2 px-1.5 text-[11px] underline"
                 >
                   {formatMessage({ id: "public.fund.card.disconnect", defaultMessage: "Manage" })}

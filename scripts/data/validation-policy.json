@@ -1955,6 +1955,8 @@
         "packages/shared/src/modules/transactions/wallet-atomic-batch.ts",
         "packages/shared/src/modules/transactions/wallet-sender.ts",
         "packages/shared/src/providers/AuthGate.tsx",
+        "packages/shared/src/providers/OpenfortSignIn.tsx",
+        "packages/shared/src/providers/OpenfortWalletProvider.tsx",
         "packages/shared/src/hooks/commitment-pooling/useServiceIssuerDesk.ts",
         "packages/shared/src/hooks/commitment-pooling/useVoucherAwards.ts",
         "packages/shared/src/modules/commitment-pooling/voucher-award-send.ts"

@@ -25,7 +25,7 @@ import { RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import PublicWalletRuntimeProviders from "@/components/Public/PublicWalletRuntimeProviders";
 import { EditorialGhostButton } from "../atoms";
 import {
   CheckoutTransactionDetails,
@@ -86,14 +86,14 @@ export function VaultManagePositionsPanel({
   onEndow,
 }: VaultManagePositionsPanelProps) {
   return (
-    <WalletRuntimeProviders>
+    <PublicWalletRuntimeProviders>
       <VaultManagePositionsContent
         open={open}
         onExitComplete={onExitComplete}
         onOpenChange={onOpenChange}
         onEndow={onEndow}
       />
-    </WalletRuntimeProviders>
+    </PublicWalletRuntimeProviders>
   );
 }
 

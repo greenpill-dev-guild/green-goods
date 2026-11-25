@@ -33,6 +33,10 @@ export interface OpenfortKeys {
   shieldPublishableKey: string;
 }
 
+export function getOpenfortWalletKey(): string | undefined {
+  return readOpenfortEnv().VITE_OPENFORT_PUBLISHABLE_KEY?.trim() || undefined;
+}
+
 export function getOpenfortKeys(env: OpenfortEnv = readOpenfortEnv()): OpenfortKeys | null {
   const publishableKey = env.VITE_OPENFORT_PUBLISHABLE_KEY?.trim();
   const shieldPublishableKey = env.VITE_OPENFORT_SHIELD_PUBLISHABLE_KEY?.trim();

@@ -1,21 +1,27 @@
 /** @vitest-environment happy-dom */
 import type { AdminLoginController } from "@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController";
-import { fireEvent } from "@testing-library/react";
+import { act, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AdminSignIn } from "@/components/AdminSignIn";
-import { requestPasskeyAtBoot } from "@/components/Boot/bootPasskeyRequest";
+import { AdminSignIn, AdminSignInContainer } from "@/components/AdminSignIn";
+import { requestOtherWaysAtBoot, requestPasskeyAtBoot } from "@/components/Boot/bootPasskeyRequest";
 import { AdminAccessStateRenderer } from "@/components/Layout/AdminAccessStateRenderer";
 import { render, screen } from "../test-utils";
 
-const mocks = vi.hoisted(() => ({ wallet: vi.fn(), passkey: vi.fn(), create: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  wallet: vi.fn(),
+  passkey: vi.fn(),
+  create: vi.fn(),
+  openProviders: vi.fn(),
+}));
 vi.mock("wagmi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("wagmi")>()),
   useAccount: () => ({ isConnecting: false }),
 }));
 vi.mock("@green-goods/shared/hooks/auth/useWalletModalOpen", () => ({
   useWalletModalOpen: () => false,
+  useWalletModal: () => ({ openProviders: mocks.openProviders }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => 11155111,
@@ -25,6 +31,8 @@ vi.mock("@green-goods/shared/providers/Auth", () => ({
     loginWithWallet: mocks.wallet,
     loginWithPasskey: mocks.passkey,
     createAccount: mocks.create,
+    requestSignInCode: vi.fn(),
+    loginWithCode: vi.fn(),
   }),
   useAuthState: () => ({ hasStoredCredential: false, isAuthenticating: false }),
 }));
@@ -82,6 +90,29 @@ describe("AdminSignIn", () => {
   });
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    false,
+    true,
+  ])("opens the Openfort chooser from the Hub entry, boot request %s", async (atBoot) => {
+    vi.stubEnv("VITE_OPENFORT_SIGN_IN_ENABLED", "true");
+    vi.stubEnv("VITE_PASSKEY_SERVER_ENABLED", "true");
+    vi.stubEnv("VITE_OPENFORT_PUBLISHABLE_KEY", "pk_test");
+    vi.stubEnv("VITE_OPENFORT_SHIELD_PUBLISHABLE_KEY", "shield_test");
+    if (atBoot) requestOtherWaysAtBoot();
+
+    await act(async () => {
+      render(<AdminSignInContainer />);
+    });
+    expect(screen.getAllByRole("button")[0]).toHaveTextContent("Continue with Passkey");
+    if (!atBoot)
+      await userEvent.click(screen.getByRole("button", { name: "Other Ways to Sign In" }));
+
+    expect(mocks.openProviders).toHaveBeenCalledOnce();
+    expect(mocks.wallet).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Other Ways to Sign In" })).toBeVisible();
   });
 
   it("offers a passkey first and a wallet second, as the App does", async () => {

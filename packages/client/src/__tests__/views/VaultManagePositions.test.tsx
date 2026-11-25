@@ -236,7 +236,7 @@ function makeStableCampaign(): OctantVaultCampaignManifest {
   };
 }
 
-vi.mock("@/routes/WalletRuntimeProviders", async () => {
+vi.mock("@/components/Public/PublicWalletRuntimeProviders", async () => {
   const { createElement: ce } = await import("react");
   return {
     default: ({ children }: { children: React.ReactNode }) => {

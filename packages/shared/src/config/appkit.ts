@@ -250,12 +250,15 @@ export function peekAppKit() {
   return appKitInstance;
 }
 
-/**
- * Get the singleton Wagmi config (lazily initialized).
- * Throws in SSR — all call sites are inside WagmiProvider (browser-only).
- */
+let mountedWagmiConfig: Config | undefined;
+
+/** Keep Wagmi actions called outside React on the same config as the wallet provider. */
+export function setMountedWagmiConfig(config: Config) {
+  mountedWagmiConfig = config;
+}
+
 export function getWagmiConfig(): Config {
-  const config = getAppKitSingleton().wagmiConfig;
+  const config = mountedWagmiConfig ?? getAppKitSingleton().wagmiConfig;
   if (!config) {
     throw new Error("getWagmiConfig() called before AppKit initialization or in SSR context");
   }

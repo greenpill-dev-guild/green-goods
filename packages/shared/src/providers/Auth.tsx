@@ -6,10 +6,9 @@
 
 import { useSelector } from "@xstate/react";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import type { Hex } from "viem";
+import { isAddressEqual, type Hex } from "viem";
 import { useAccount, useConfig } from "wagmi";
 
-import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
 import { useCrossTabSignOut } from "../hooks/auth/useCrossTabSignOut";
 import { getActorSignOutRevision } from "../modules/auth/sessionSignOut";
@@ -18,8 +17,13 @@ import { useHasStoredCredential } from "../hooks/auth/useHasStoredCredential";
 import { useWalletConnectLifecycle } from "../hooks/auth/useWalletConnectLifecycle";
 import { useWalletDisconnect } from "../hooks/auth/useWalletDisconnect";
 import { useWalletRestoreLifecycle } from "../hooks/auth/useWalletRestoreLifecycle";
-import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
+import { useWalletModal, useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
+import {
+  isAppKitEmbeddedConnector,
+  useWalletSignInActions,
+} from "../hooks/auth/useWalletSignInActions";
 import { logger } from "../modules/app/logger";
+import type { OpenfortEmailSession } from "../modules/auth/openfort-wallet";
 import { useJoinRequestCountGrantStore } from "../stores/useJoinRequestCountGrantStore";
 import {
   clearSessionForSignOut,
@@ -29,12 +33,14 @@ import {
   clearStoredUsername,
   getAuthMode,
   getStoredUsername,
+  getStoredWalletAddress,
   setAuthMode as saveAuthModeToStorage,
   setEmbeddedAddress,
   setStoredWalletAddress,
 } from "../modules/auth/session";
 import {
   openfortSessionServices,
+  type OpenfortSignIn,
   type OpenfortSessionServices,
 } from "../workflows/auth-openfort-session";
 import { defaultPasskeyAdapters, type PasskeyAdapters } from "../workflows/auth-passkey-adapters";
@@ -66,25 +72,14 @@ export {
   useOptionalAuthContext,
 } from "../hooks/auth/useAuthContext";
 
-// Pinned to @reown/appkit ^1.8.14 (see packages/{client,admin,shared}/
-// package.json). The auth connector exposes its ID as "ID_AUTH" via
-// ConstantsUtil.CONNECTOR_ID.AUTH; older AppKit builds used "w3mAuth"
-// and "AUTH". Use exact equality on a known set instead of substring
-// matching to avoid false positives if a wallet's name happens to contain
-// "embedded".
-const APPKIT_EMBEDDED_CONNECTOR_IDS = ["ID_AUTH", "w3mAuth", "AUTH"] as const;
-function isAppKitEmbeddedConnector(connector?: { id?: string } | null): boolean {
-  return Boolean(
-    connector?.id && (APPKIT_EMBEDDED_CONNECTOR_IDS as readonly string[]).includes(connector.id)
-  );
-}
-
 export interface AuthProviderProps {
   children: React.ReactNode;
   adapters?: PasskeyAdapters;
   /** Email sessions; tests and stories pass their own. */
   openfort?: OpenfortSessionServices;
 }
+
+const disconnectedWallet = { isConnected: false, address: undefined, connectionType: null };
 
 export function AuthProvider({ children, adapters, openfort }: AuthProviderProps) {
   const openfortServices = openfort ?? openfortSessionServices;
@@ -136,17 +131,13 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
     isConnected: boolean;
     address: Hex | undefined;
     connectionType: WalletConnectionType | null;
-  }>({
-    isConnected: false,
-    address: undefined,
-    connectionType: null,
-  });
+  }>(disconnectedWallet);
 
   // Guard to prevent duplicate LOGIN_WALLET events during session restore
   const walletRestoreAttemptedRef = useRef(false);
   const manualWalletLoginPendingRef = useRef(false);
   const loginGenerationRef = useRef(0);
-  // Reflects the Reown AppKit wallet modal open state.
+  const walletModal = useWalletModal();
   const walletModalOpen = useWalletModalOpen();
   const walletRestore = useWalletRestoreLifecycle(actor as AuthActor, snapshot, wagmiConfig);
   const {
@@ -168,13 +159,38 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
     if (!actor) return;
 
     if (isConnectionQuarantined()) {
-      prevWalletState.current = { isConnected: false, address: undefined, connectionType: null };
+      prevWalletState.current = disconnectedWallet;
       return;
     }
 
     const prev = prevWalletState.current;
     const currentAddress = wagmiWalletAddress as Hex | undefined;
     const connectionType = isAppKitEmbeddedConnector(connector) ? "embedded" : "wallet";
+    const rememberedWallet = walletModal.openProviders
+      ? (actor.getSnapshot().context.walletAddress ?? getStoredWalletAddress())
+      : null;
+    // An Openfort connection may only answer for the wallet this session already trusts.
+    // Newly connected wallets are adopted by the verified signature handler.
+    if (walletModal.openProviders && walletAnswered) {
+      const isRememberedWallet =
+        getAuthMode() === "wallet" &&
+        connectionType === "wallet" &&
+        currentAddress &&
+        rememberedWallet &&
+        isAddressEqual(rememberedWallet, currentAddress);
+      if (!isRememberedWallet) {
+        if (prev.isConnected) {
+          prevWalletState.current = disconnectedWallet;
+          actor.send({
+            type: "EXTERNAL_WALLET_DISCONNECTED",
+            connectionType: prev.connectionType ?? undefined,
+          });
+        }
+        if (!walletModal.isOpen()) void disconnectWallet();
+        return;
+      }
+      if (walletModal.isOpen()) return;
+    }
     // Record this state before any early return below, so the next change compares with it.
     prevWalletState.current = {
       isConnected: walletAnswered,
@@ -194,7 +210,11 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
           address: currentAddress,
         });
         actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress, connectionType });
-        if (connectionType === "wallet") setStoredWalletAddress(currentAddress);
+        if (
+          connectionType === "wallet" &&
+          (!walletModal.openProviders || actor.getSnapshot().matches({ authenticated: "wallet" }))
+        )
+          setStoredWalletAddress(currentAddress);
 
         const currentState = actor.getSnapshot();
 
@@ -231,7 +251,12 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
             });
             actor.send({ type: "LOGIN_EMBEDDED", address: currentAddress });
             setEmbeddedAddress(currentAddress);
-          } else if (storedAuthMode === "wallet" && connectionType === "wallet") {
+          } else if (
+            storedAuthMode === "wallet" &&
+            connectionType === "wallet" &&
+            (!walletModal.openProviders ||
+              (rememberedWallet && isAddressEqual(rememberedWallet, currentAddress)))
+          ) {
             walletRestoreAttemptedRef.current = true;
             logger.debug(
               "[AuthProvider] Wallet connected in unauthenticated state with wallet intent, triggering LOGIN_WALLET"
@@ -250,7 +275,17 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
         connectionType: prev.connectionType ?? undefined,
       });
     }
-  }, [actor, walletAnswered, isConnecting, wagmiWalletAddress, connector, isConnectionQuarantined]);
+  }, [
+    actor,
+    walletAnswered,
+    isConnecting,
+    wagmiWalletAddress,
+    connector,
+    disconnectWallet,
+    isConnectionQuarantined,
+    walletModal,
+    walletModalOpen,
+  ]);
 
   // WALLET SESSION RESTORE
   // Handle race condition: wallet may connect during 'initializing' state,
@@ -260,6 +295,16 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
     if (!actor || !snapshot || isConnectionQuarantined()) return;
 
     const storedAuthMode = getAuthMode();
+    if (walletModal.openProviders) {
+      const address = getStoredWalletAddress();
+      if (
+        walletModal.isOpen() ||
+        !address ||
+        !wagmiWalletAddress ||
+        !isAddressEqual(address, wagmiWalletAddress)
+      )
+        return;
+    }
 
     // Only act when machine just entered unauthenticated state
     // Use snapshot from dependency array instead of actor.getSnapshot()
@@ -304,7 +349,15 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
         }
       }
     }
-  }, [actor, snapshot, walletAnswered, wagmiWalletAddress, connector, isConnectionQuarantined]);
+  }, [
+    actor,
+    snapshot,
+    walletAnswered,
+    wagmiWalletAddress,
+    connector,
+    isConnectionQuarantined,
+    walletModal,
+  ]);
 
   // WALLET_CONNECTING SAFETY NET
   // If the machine enters wallet_connecting but the wallet is not connected
@@ -351,7 +404,8 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
           logger.warn("[AuthProvider] Openfort sign-out did not complete", { error })
         );
     }
-    if (manualWalletLoginPendingRef.current || isConnecting) void getAppKit()?.close();
+    if (walletModal.isOpen() || manualWalletLoginPendingRef.current || isConnecting)
+      walletModal.close();
     walletRestore.clear();
     // The one join-request credential a browser keeps ends with the session.
     useJoinRequestCountGrantStore.getState().clearAll();
@@ -376,6 +430,7 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
     releaseWallet,
     cancelDeferredLogin,
     isConnecting,
+    walletModal,
     pilotEnrollment,
     openfortServices,
   ]);
@@ -449,81 +504,18 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
     [loginWithPasskey]
   );
 
-  const loginWithWallet = useCallback(() => {
-    if (!actor) return;
-    syncSignOut();
-    walletRestoreAttemptedRef.current = false;
-    const askForWallet = () => {
-      if (syncSignOut()) return;
-      saveAuthModeToStorage("wallet");
-      manualWalletLoginPendingRef.current = true;
-      getAppKit()?.open();
-    };
-    if (afterWalletRelease(askForWallet)) return;
-
-    // Save wallet intent FIRST — this signals to the WALLET EVENT SYNC effect
-    // that any subsequent wallet connection should trigger auto-login.
-    // Without this, wallet auto-reconnect after passkey sign-out would
-    // incorrectly log the user in with wallet (the guard checks this value).
-    saveAuthModeToStorage("wallet");
-    manualWalletLoginPendingRef.current = true;
-
-    if (walletAnswered && wagmiWalletAddress) {
-      if (isAppKitEmbeddedConnector(connector)) {
-        manualWalletLoginPendingRef.current = false;
-        logger.warn(
-          "[AuthProvider] Connected AppKit account is embedded, opening wallet selector",
-          {
-            connectorId: connector?.id,
-          }
-        );
-        getAppKit()?.open();
-        return;
-      }
-
-      const walletAddress = wagmiWalletAddress as Hex;
-      const currentState = actor.getSnapshot();
-      if (
-        !currentState.context.externalWalletConnected ||
-        currentState.context.externalWalletAddress !== walletAddress
-      ) {
-        actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: walletAddress });
-      }
-
-      // Wallet already connected, proceed with login immediately
-      manualWalletLoginPendingRef.current = false;
-      actor.send({ type: "LOGIN_WALLET" });
-    } else {
-      // Open modal - when wallet connects, WALLET EVENT SYNC will
-      // detect the connection + stored "wallet" intent and send LOGIN_WALLET
-      getAppKit()?.open();
-    }
-  }, [actor, walletAnswered, wagmiWalletAddress, connector, afterWalletRelease, syncSignOut]);
-
-  const loginWithEmbedded = useCallback(() => {
-    if (!actor) return;
-    syncSignOut();
-    walletRestoreAttemptedRef.current = false;
-
-    if (
-      afterWalletRelease(() => {
-        if (!syncSignOut()) {
-          saveAuthModeToStorage("embedded");
-          getAppKit()?.open();
-        }
-      })
-    )
-      return;
-    saveAuthModeToStorage("embedded");
-    if (walletAnswered && wagmiWalletAddress && isAppKitEmbeddedConnector(connector)) {
-      const address = wagmiWalletAddress as Hex;
-      actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address, connectionType: "embedded" });
-      actor.send({ type: "LOGIN_EMBEDDED", address });
-      setEmbeddedAddress(address);
-      return;
-    }
-    getAppKit()?.open();
-  }, [actor, walletAnswered, wagmiWalletAddress, connector, afterWalletRelease, syncSignOut]);
+  const { loginWithWallet, loginWithConnectedWallet, loginWithEmbedded } = useWalletSignInActions({
+    actor,
+    wagmiConfig,
+    walletAnswered,
+    wagmiWalletAddress,
+    connector,
+    walletRestoreAttemptedRef,
+    manualWalletLoginPendingRef,
+    syncSignOut,
+    afterWalletRelease,
+    isConnectionQuarantined,
+  });
 
   const requestSignInCode = useCallback(
     async (email: string) => {
@@ -533,8 +525,8 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
     [openfortServices, syncSignOut]
   );
 
-  const loginWithCode = useCallback(
-    async (email: string, code: string) => {
+  const startOpenfortSignIn = useCallback(
+    async (signIn: OpenfortSignIn) => {
       if (!actor) return;
       syncSignOut();
       const generation = loginGenerationRef.current;
@@ -542,10 +534,22 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
       if (isConnected) await disconnectWallet();
       syncSignOut();
       if (generation !== loginGenerationRef.current) return;
-      actor.send({ type: "LOGIN_OPENFORT", email, code });
+      const event = { type: "LOGIN_OPENFORT" as const, ...signIn };
+      if (!actor.getSnapshot().can(event)) return;
+      actor.send(event);
       saveAuthModeToStorage("openfort");
     },
     [actor, isConnected, disconnectWallet, cancelDeferredLogin, syncSignOut]
+  );
+
+  const loginWithCode = useCallback(
+    (email: string, code: string) => startOpenfortSignIn({ email, code }),
+    [startOpenfortSignIn]
+  );
+
+  const loginWithOpenfortSession = useCallback(
+    (session: OpenfortEmailSession) => startOpenfortSignIn({ session }),
+    [startOpenfortSignIn]
   );
 
   const switchToWallet = useCallback(() => {
@@ -667,9 +671,11 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
       loginWithPasskey,
       loginWithOriginalPasskey,
       loginWithWallet,
+      loginWithConnectedWallet,
       loginWithEmbedded,
       requestSignInCode,
       loginWithCode,
+      loginWithOpenfortSession,
       signOut,
       switchToWallet,
       switchToPasskey,
@@ -686,9 +692,11 @@ export function AuthProvider({ children, adapters, openfort }: AuthProviderProps
       loginWithPasskey,
       loginWithOriginalPasskey,
       loginWithWallet,
+      loginWithConnectedWallet,
       loginWithEmbedded,
       requestSignInCode,
       loginWithCode,
+      loginWithOpenfortSession,
       signOut,
       switchToWallet,
       switchToPasskey,

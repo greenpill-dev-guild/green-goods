@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import { getAppKit } from "../../config/appkit";
+import { useTimeout } from "../utils/useTimeout";
 
 function subscribeWalletModalState(onStoreChange: () => void): () => void {
   const appKit = getAppKit();
@@ -8,26 +16,41 @@ function subscribeWalletModalState(onStoreChange: () => void): () => void {
 }
 
 /** Whether the wallet modal is open right now, for code that acts on events outside a render. */
-export function isWalletModalOpen(): boolean {
+function isAppKitModalOpen(): boolean {
   return getAppKit()?.getState().open ?? false;
 }
 
-function getWalletModalOpenServerSnapshot(): boolean {
-  return false;
+export type WalletModalResult = "dismissed" | "wallet-error" | "email" | "email-error";
+
+interface WalletModal {
+  openProviders?: (onFinish?: (result: WalletModalResult) => void) => void;
+  openWallets: () => void;
+  openProfile: () => void;
+  close: () => void;
+  isOpen: () => boolean;
+  subscribe: (listener: () => void) => () => void;
 }
 
-/**
- * Reflects whether the Reown AppKit wallet modal is currently open.
- *
- * Backed by AppKit's state subscription. Returns `false` in SSR/tests where
- * AppKit is not initialized (`getAppKit()` is null).
- */
+// The installed app still uses AppKit. Websites supply their own modal above AuthGate.
+export const WalletModalContext = createContext<WalletModal | null>(null);
+
+const appKitModal: WalletModal = {
+  openWallets: () => void getAppKit()?.open(),
+  openProfile: () => void getAppKit()?.open(),
+  close: () => void getAppKit()?.close(),
+  isOpen: isAppKitModalOpen,
+  subscribe: subscribeWalletModalState,
+};
+
+export function useWalletModal() {
+  return useContext(WalletModalContext) ?? appKitModal;
+}
+
+const closedOnServer = () => false;
+
 export function useWalletModalOpen(): boolean {
-  return useSyncExternalStore(
-    subscribeWalletModalState,
-    isWalletModalOpen,
-    getWalletModalOpenServerSnapshot
-  );
+  const modal = useWalletModal();
+  return useSyncExternalStore(modal.subscribe, modal.isOpen, closedOnServer);
 }
 
 export interface WalletConnectDismissGuard {
@@ -49,8 +72,8 @@ export interface WalletConnectDismissGuard {
  * Keeps a Radix Dialog (or similar dismissable surface) open while the wallet
  * modal is opening or open.
  *
- * The AppKit wallet modal renders in a separate portal as an in-DOM web
- * component; its open-autofocus / pointer interaction would otherwise trip the
+ * Wallet pickers render above the parent dialog. Their focus and pointer
+ * interaction would otherwise trip the
  * dialog's outside-dismiss and close the surface beneath it. The connecting ref
  * covers the open edge; the modal-open state covers the rest of the lifetime.
  */
@@ -58,16 +81,18 @@ export function useWalletConnectDismissGuard(): WalletConnectDismissGuard {
   const walletModalOpen = useWalletModalOpen();
   const connectingRef = useRef(false);
   const previousModalOpenRef = useRef(false);
+  const { set: scheduleDismiss } = useTimeout();
 
   useEffect(() => {
-    // Clear the connecting intent only on the open -> closed transition
-    // (connected or cancelled). Clearing whenever it is merely false would
-    // race with the click->open window and defeat the guard.
-    if (previousModalOpenRef.current && !walletModalOpen) {
-      connectingRef.current = false;
-    }
+    const justClosed = previousModalOpenRef.current && !walletModalOpen;
     previousModalOpenRef.current = walletModalOpen;
-  }, [walletModalOpen]);
+    if (!justClosed) return;
+    // A dismissal click still belongs to the wallet picker after it closes.
+    // Radix can handle the click later in the same event.
+    return scheduleDismiss(() => {
+      connectingRef.current = false;
+    }, 0);
+  }, [walletModalOpen, scheduleDismiss]);
 
   const markConnecting = useCallback(() => {
     connectingRef.current = true;
