@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
 import { WalletModalContext } from "../../hooks/auth/useWalletModalOpen";
+import type { WalletConnectEvent } from "../../modules/app/authWalletConnectAnalytics";
 import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
 import { createSmartAccountClientResolver } from "../../modules/auth/smartAccountClientResolver";
 import {
@@ -212,6 +213,7 @@ async function waitForReady() {
 function renderOpenfortAuth() {
   let open = false;
   const subscribers = new Set<() => void>();
+  const connections = new Set<(event: WalletConnectEvent) => void>();
   const setOpen = (next: boolean) => {
     open = next;
     for (const subscriber of subscribers) subscriber();
@@ -226,6 +228,14 @@ function renderOpenfortAuth() {
       subscribers.add(subscriber);
       return () => subscribers.delete(subscriber);
     },
+    subscribeConnection: (subscriber: (event: WalletConnectEvent) => void) => {
+      connections.add(subscriber);
+      return () => connections.delete(subscriber);
+    },
+    emit: (event: WalletConnectEvent) =>
+      act(() => {
+        for (const subscriber of connections) subscriber(event);
+      }),
   };
   function wrapper({ children }: { children: ReactNode }) {
     return (
@@ -1625,6 +1635,35 @@ describe("AuthProvider wallet login bridge", () => {
     });
 
     afterEach(() => unregisterSink());
+
+    it("reports an Openfort mobile timeout once and allows a new wallet selection", async () => {
+      vi.useFakeTimers();
+      try {
+        const view = renderOpenfortAuth();
+        await settle();
+        act(() => view.result.current.loginWithWallet());
+        view.modal.emit({ type: "selected", wallet: "rainbow", platform: "mobile" });
+        await settle(19_999);
+        expect(view.result.current.walletConnectFailure).toBeNull();
+        await settle(1);
+        expect(view.result.current.walletConnectFailure).toBe("timeout");
+        view.modal.emit({ type: "failed", reason: "cancelled" });
+        expect(view.modal.isOpen()).toBe(true);
+
+        view.modal.emit({ type: "selected", wallet: "rabby", platform: "qrcode" });
+        await settle(30_000);
+        expect(view.result.current.walletConnectFailure).toBeNull();
+        view.modal.emit({ type: "failed", reason: "connect_error" });
+        expect(view.result.current.walletConnectFailure).toBe("connect_error");
+        expect(recorded("auth_wallet_connect_failed")).toEqual([
+          expect.objectContaining({ reason: "timeout", wallet: "rainbow", platform: "mobile" }),
+          expect.objectContaining({ reason: "connect_error", wallet: "rabby", platform: "qrcode" }),
+        ]);
+        expect(mocks.mockGetAppKit).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
 
     it("times out a phone wallet whose app never opens, and records a later answer", async () => {
       vi.useFakeTimers();

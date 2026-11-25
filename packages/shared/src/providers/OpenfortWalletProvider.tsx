@@ -14,7 +14,7 @@ import { IntlContext } from "react-intl";
 import { WagmiProvider } from "wagmi";
 import { activeWagmiConfig, type AppKitMetadata, setMountedWagmiConfig } from "../config/appkit";
 import { getOpenfortKeys, getOpenfortWalletKey, isOpenfortSignInEnabled } from "../config/openfort";
-import { createOpenfortWalletRuntime } from "../config/openfort-wagmi";
+import { createOpenfortWalletRuntime, isMobileWalletBrowser } from "../config/openfort-wagmi";
 import { WalletModalContext, type WalletModalResult } from "../hooks/auth/useWalletModalOpen";
 import { useEventListener } from "../hooks/utils/useEventListener";
 import { getAuthMode } from "../modules/auth/session";
@@ -95,6 +95,7 @@ function OpenfortWalletSession({
     const modal = createChooser();
     return {
       ...modal,
+      subscribeConnection: runtime.subscribeConnection,
       close: () => {
         runtime.cancelPairing();
         modal.close();
@@ -178,9 +179,7 @@ function WalletPairing({ runtime }: { runtime: WalletRuntime }) {
   const cancel = { id: "app.common.cancel", defaultMessage: "Cancel" };
   const url = new URL(wallet.mobileUrl);
   url.searchParams.set("uri", uri);
-  const mobile =
-    /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent) ||
-    (window.navigator.maxTouchPoints > 1 && /Macintosh/i.test(window.navigator.userAgent));
+  const mobile = isMobileWalletBrowser();
   return (
     <WalletHandoffDialog
       title={

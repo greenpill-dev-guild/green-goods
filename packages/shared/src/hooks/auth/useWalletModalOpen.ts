@@ -7,6 +7,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { getAppKit } from "../../config/appkit";
+import type { WalletConnectEvent } from "../../modules/app/authWalletConnectAnalytics";
 import { useTimeout } from "../utils/useTimeout";
 
 function subscribeWalletModalState(onStoreChange: () => void): () => void {
@@ -29,6 +30,7 @@ interface WalletModal {
   close: () => void;
   isOpen: () => boolean;
   subscribe: (listener: () => void) => () => void;
+  subscribeConnection?: (listener: (event: WalletConnectEvent) => void) => () => void;
 }
 
 // The installed app still uses AppKit. Websites supply their own modal above AuthGate.

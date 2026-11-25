@@ -5,6 +5,7 @@ import {
   type AuthWalletConnectFailureReason,
   type AuthWalletConnectPlatform,
   type AuthWalletConnectWallet,
+  type WalletConnectEvent,
   trackAuthWalletConnectFailed,
   trackAuthWalletConnectStarted,
   trackAuthWalletConnectSuccess,
@@ -155,34 +156,51 @@ export function useWalletConnectLifecycle(
       lastTapAt = Date.now();
     };
 
-    let lastEvent: unknown = null;
-    const unsubscribe = (walletModal ? null : getAppKit())?.subscribeEvents(
-      ({ timestamp, data }) => {
-        const attempt = current();
-        // The events store also notifies for its own bookkeeping, still holding the
-        // last event, which can date from before this attempt.
-        if (!attempt || data === lastEvent || timestamp < attempt.startedAt) return;
-        lastEvent = data;
-        if (data.event === "SELECT_WALLET") {
-          stopClock();
-          attempt.choice = {
-            wallet: toWallet(data.properties.name),
-            platform: data.properties.platform,
-            chosenAt: timestamp,
-            appOpened: false,
-            reported: false,
-          };
-          setFailure(null);
-          startClock();
-        } else if (data.event === "CONNECT_ERROR") {
-          // The modal goes back to its wallets, so trying again is a new choice.
-          fail(attempt, "connect_error");
-          setFailure("connect_error");
-        } else if (data.event === "USER_REJECTED") {
-          fail(attempt, "rejected");
-        }
+    const handleConnection = (event: WalletConnectEvent, timestamp = Date.now()) => {
+      const attempt = current();
+      if (!attempt || timestamp < attempt.startedAt) return;
+      if (event.type === "selected") {
+        stopClock();
+        attempt.choice = {
+          wallet: event.wallet,
+          platform: event.platform,
+          chosenAt: timestamp,
+          appOpened: false,
+          reported: false,
+        };
+        setFailure(null);
+        startClock();
+      } else {
+        fail(attempt, event.reason);
+        if (event.reason === "connect_error") setFailure("connect_error");
       }
-    );
+    };
+    let lastEvent: unknown;
+    const unsubscribe = walletModal
+      ? walletModal.subscribeConnection?.(handleConnection)
+      : getAppKit()?.subscribeEvents(({ timestamp, data }) => {
+          // The store can notify again with the same event, including one from an old attempt.
+          if (data === lastEvent) return;
+          lastEvent = data;
+          if (data.event === "SELECT_WALLET") {
+            handleConnection(
+              {
+                type: "selected",
+                wallet: toWallet(data.properties.name),
+                platform: data.properties.platform,
+              },
+              timestamp
+            );
+          } else if (data.event === "CONNECT_ERROR" || data.event === "USER_REJECTED") {
+            handleConnection(
+              {
+                type: "failed",
+                reason: data.event === "CONNECT_ERROR" ? "connect_error" : "rejected",
+              },
+              timestamp
+            );
+          }
+        });
     document.addEventListener("visibilitychange", handleVisibility);
     document.addEventListener("pointerdown", handleTap, true);
     return () => {
