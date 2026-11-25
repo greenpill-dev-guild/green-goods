@@ -199,7 +199,7 @@ function WalletPairing({ runtime }: { runtime: WalletRuntime }) {
             {intl?.formatMessage(scan, values) ??
               scan.defaultMessage.replace("{wallet}", wallet.name)}
           </p>
-          <div className="mx-auto w-fit rounded-lg bg-white p-3">
+          <div className="mx-auto w-fit rounded-lg bg-static-white p-3">
             <QRCodeSVG aria-hidden="true" level="M" size={216} value={uri} />
           </div>
         </>
@@ -232,7 +232,7 @@ function WalletHandoffDialog({
     <dialog
       ref={dialog}
       aria-labelledby={titleId}
-      className="m-auto max-w-[calc(100vw-2rem)] rounded-xl bg-bg-white-0 p-6 text-text-main shadow-xl backdrop:bg-black/45"
+      className="m-auto max-w-[calc(100vw-2rem)] rounded-xl bg-bg-white-0 p-6 text-text-main shadow-[var(--m3-elevation-2,var(--shadow-float))] backdrop:bg-[var(--admin-modal-scrim,var(--color-scrim))]"
       onCancel={(event) => {
         event.preventDefault();
         onClose();

@@ -1,4 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
+import { encodeFunctionData, encodeFunctionResult, parseAbi } from "viem";
+import deployment from "../../packages/contracts/deployments/11155111-latest.json" with {
+  type: "json",
+};
 import { mockClientBackend } from "../helpers/mock-backend";
 import { AdminTestHelper, seedAcceptedUploadTerms, TEST_URLS } from "../helpers/test-utils";
 
@@ -9,6 +13,7 @@ const MOCK_STEWARD_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
 const TEST_GARDEN_ADDRESS = "0xabcd1234567890123456789012345678901234ef";
 const TEST_GARDEN_ID = "0x1234567890123456789012345678901234567890";
 const TEST_GARDEN_CONTEXT = `gardenId=${encodeURIComponent(TEST_GARDEN_ID)}`;
+const gardenDomainsAbi = parseAbi(["function gardenDomains(address) view returns (uint8)"]);
 
 const MOCK_GARDEN = {
   id: TEST_GARDEN_ID,
@@ -36,6 +41,22 @@ async function setupAuthenticatedAdmin(page: Page) {
   const backend = await mockClientBackend(page, {
     garden: MOCK_GARDEN,
     required: ["indexer: Gardens"],
+    rpcReads: [
+      {
+        name: "garden domains",
+        to: deployment.actionRegistry,
+        data: encodeFunctionData({
+          abi: gardenDomainsAbi,
+          functionName: "gardenDomains",
+          args: [TEST_GARDEN_ID],
+        }),
+        result: encodeFunctionResult({
+          abi: gardenDomainsAbi,
+          functionName: "gardenDomains",
+          result: 0,
+        }),
+      },
+    ],
   });
   return Object.assign(helper, { backend });
 }
