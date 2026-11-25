@@ -330,8 +330,12 @@ export function CommunityMembersTab({
                             ? ready.details
                             : contribution
                               ? count
-                                ? [contribution, count]
-                                : [contribution]
+                                ? joined
+                                  ? [contribution, count, joined]
+                                  : [contribution, count]
+                                : joined
+                                  ? [contribution, joined]
+                                  : [contribution]
                               : joined
                                 ? count
                                   ? [joined, count]

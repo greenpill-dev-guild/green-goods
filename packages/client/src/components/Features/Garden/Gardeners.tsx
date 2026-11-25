@@ -153,19 +153,18 @@ const GardenMemberItem = memo(function GardenMemberItem({
   const intl = useIntl();
   const joinedAt = history?.joinedAt;
   const roles = heldRoles(member, garden, history);
-  const fact: ItemRowDetail | undefined =
-    gardenContributionDetail(contribution, intl) ??
-    (joinedAt
-      ? {
-          text: intl.formatMessage(
-            { id: "app.garden.membership.joinedOn", defaultMessage: "Joined {date}" },
-            {
-              date: intl.formatDate(joinedAt, { year: "numeric", month: "short", day: "numeric" }),
-            }
-          ),
-          dateTime: new Date(joinedAt).toISOString(),
-        }
-      : undefined);
+  const contributionFact = gardenContributionDetail(contribution, intl);
+  const joined: ItemRowDetail | undefined = joinedAt
+    ? {
+        text: intl.formatMessage(
+          { id: "app.garden.membership.joinedOn", defaultMessage: "Joined {date}" },
+          {
+            date: intl.formatDate(joinedAt, { year: "numeric", month: "short", day: "numeric" }),
+          }
+        ),
+        dateTime: new Date(joinedAt).toISOString(),
+      }
+    : undefined;
   return (
     <PersonRow
       className="cv-member"
@@ -175,7 +174,15 @@ const GardenMemberItem = memo(function GardenMemberItem({
       fallbackName={contactName(member)}
       fallbackAvatar={DEFAULT_AVATAR}
       chainId={garden?.chainId ?? DEFAULT_CHAIN_ID}
-      details={fact ? [fact] : undefined}
+      details={
+        contributionFact
+          ? joined
+            ? [contributionFact, joined]
+            : [contributionFact]
+          : joined
+            ? [joined]
+            : undefined
+      }
       onOpen={onClick}
     />
   );
