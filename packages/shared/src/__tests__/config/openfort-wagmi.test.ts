@@ -144,4 +144,24 @@ describe("Openfort WalletConnect pairing", () => {
       "io.metamask",
     ]);
   });
+
+  it("reports cancellation before selecting another wallet", async () => {
+    const runtime = createRuntime();
+    const report = vi.fn();
+    runtime.subscribeConnection(report);
+    const [rabby, rainbow] = runtime.config.connectors;
+    const first = expect(rabby.connect({})).rejects.toThrow("Wallet pairing cancelled");
+    await vi.waitFor(() => expect(relays.get("io.rabby")?.connect).toHaveBeenCalledOnce());
+    const second = expect(rainbow.connect({})).rejects.toThrow("Wallet pairing cancelled");
+    await vi.waitFor(() => expect(relays.get("me.rainbow")?.connect).toHaveBeenCalledOnce());
+    await first;
+
+    expect(report.mock.calls.map(([event]) => event)).toEqual([
+      expect.objectContaining({ type: "selected", wallet: "rabby" }),
+      { type: "failed", reason: "cancelled" },
+      expect.objectContaining({ type: "selected", wallet: "rainbow" }),
+    ]);
+    runtime.cancelPairing();
+    await second;
+  });
 });
