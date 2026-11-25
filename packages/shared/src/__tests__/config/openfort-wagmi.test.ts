@@ -51,24 +51,53 @@ vi.mock("../../config/appkit", async () => {
 vi.mock("wagmi/connectors", () => ({
   walletConnect: Object.assign(
     ({ customStoragePrefix, storage }: { customStoragePrefix: string; storage: RelayStorage }) =>
-      ({ emitter }: { emitter: { emit: (name: string, event: object) => void } }) => {
+      ({
+        emitter,
+        chains,
+        storage: wagmiStorage,
+      }: {
+        emitter: { emit: (name: string, event: object) => void };
+        chains: readonly { id: number }[];
+        storage: {
+          getItem(key: string): Promise<number[] | null>;
+          setItem(key: string, value: number[]): Promise<void>;
+        };
+      }) => {
         let approve!: (value: Connection) => void;
         const approval = new Promise<Connection>((resolve) => {
           approve = resolve;
         });
         const mock = {
-          connect: vi.fn(() => approval),
-          disconnect: vi.fn(async () => {
+          id: "walletConnect",
+          get requestedChainsStorageKey() {
+            return `${this.id}.requestedChains`;
+          },
+          connect: vi.fn(async function (this: { requestedChainsStorageKey: string }) {
+            const connection = await approval;
+            await wagmiStorage.setItem(
+              this.requestedChainsStorageKey,
+              chains.map(({ id }) => id)
+            );
+            return connection;
+          }),
+          disconnect: vi.fn(async function (this: { requestedChainsStorageKey: string }) {
+            await wagmiStorage.setItem(this.requestedChainsStorageKey, []);
             for (const key of await storage.getKeys()) {
               if (key.startsWith("wc@2:universal_provider:")) await storage.removeItem(key);
             }
           }),
+          async isAuthorized() {
+            const session = await storage.getItem(rawSdkKey);
+            const requestedChains = await wagmiStorage.getItem(this.requestedChainsStorageKey);
+            return Boolean(session) && chains.every(({ id }) => requestedChains?.includes(id));
+          },
+          getProvider: async () => ({ prefix: customStoragePrefix }),
           uri: (value: string) => emitter.emit("message", { type: "display_uri", data: value }),
           approve,
           storage,
         };
         relays.set(customStoragePrefix, mock);
-        return { ...mock, getProvider: async () => ({ prefix: customStoragePrefix }) };
+        return mock;
       },
     { type: "walletConnect" }
   ),
@@ -76,6 +105,7 @@ vi.mock("wagmi/connectors", () => ({
 
 const account: Hex = "0x0000000000000000000000000000000000000042";
 const connection = { accounts: [account], chainId: 11155111 };
+const rawSdkKey = "wc@2:universal_provider:session";
 const createRuntime = () =>
   createOpenfortWalletRuntime("test", {
     name: "Green Goods",
@@ -119,7 +149,6 @@ describe("Openfort WalletConnect pairing", () => {
     const retry = connector.connect({});
     const [prefix, nextRelay] = [...relays.entries()][1];
     await vi.waitFor(() => expect(nextRelay.connect).toHaveBeenCalledOnce());
-    const rawSdkKey = "wc@2:universal_provider:session";
     await oldRelay.storage.setItem(rawSdkKey, "old session");
     await nextRelay.storage.setItem(rawSdkKey, "new session");
     nextRelay.uri("wc:retry");
@@ -134,7 +163,9 @@ describe("Openfort WalletConnect pairing", () => {
     await vi.waitFor(async () => expect(await oldRelay.storage.getItem(rawSdkKey)).toBeUndefined());
     expect(nextRelay.disconnect).not.toHaveBeenCalled();
     await expect(nextRelay.storage.getItem(rawSdkKey)).resolves.toBe("new session");
-    await expect(createRuntime().config.connectors[0].getProvider()).resolves.toEqual({ prefix });
+    const restored = createRuntime().config.connectors[0];
+    await expect(restored.isAuthorized()).resolves.toBe(true);
+    await expect(restored.getProvider()).resolves.toEqual({ prefix });
   });
 
   it("keeps each connector ID stable without broadening the wallet list", () => {

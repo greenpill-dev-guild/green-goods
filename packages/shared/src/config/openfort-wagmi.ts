@@ -95,11 +95,10 @@ function createNamedConnector(
           showQrModal: false,
           customStoragePrefix: prefix,
           storage: createRelayStorage(prefix),
-        })({
-          ...config,
-          emitter,
-        }),
+        })({ ...config, emitter }),
         id: prefix,
+        // The spread reads Wagmi's getter before the relay ID is applied.
+        requestedChainsStorageKey: `${prefix}.requestedChains`,
       };
       return { connector, prefix, abandon: () => (abandoned = true) };
     }
