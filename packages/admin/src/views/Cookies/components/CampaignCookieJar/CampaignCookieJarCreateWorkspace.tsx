@@ -203,10 +203,11 @@ export function CampaignCookieJarCreateWorkspace({
     metadataUrlsValid,
     isProtocolTeam,
   });
-  const payoutLabel =
-    parsedClaimAmount && tokenSymbol
-      ? `${formatTokenAmount(parsedClaimAmount, tokenDecimals, tokenDecimals)} ${tokenSymbol}`
-      : null;
+  const payoutLabel = parsedClaimAmount
+    ? [formatTokenAmount(parsedClaimAmount, tokenDecimals, tokenDecimals), tokenSymbol]
+        .filter(Boolean)
+        .join(" ")
+    : null;
   const toggleGarden = (gardenId: string) => {
     setSelectedGardenIds((current) =>
       current.some((id) => id.toLowerCase() === gardenId.toLowerCase())

@@ -6,6 +6,7 @@
  * with its error and Try Again.
  */
 
+import type { CampaignCookieJar } from "@green-goods/shared/types/cookie-jar";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fireEvent, renderWithProviders, screen } from "../../../../__tests__/test-utils";
@@ -20,6 +21,22 @@ const createJar = vi.hoisted(() => ({
   mutate: vi.fn(),
   isPending: false,
   error: null as Error | null,
+}));
+
+const payoutReads = vi.hoisted(() => ({
+  jar: undefined as
+    | Pick<
+        CampaignCookieJar,
+        | "balance"
+        | "decimals"
+        | "symbol"
+        | "withdrawalType"
+        | "fixedAmount"
+        | "maxWithdrawal"
+        | "allowlist"
+      >
+    | undefined,
+  customToken: undefined as { result?: number | string }[] | undefined,
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
@@ -38,7 +55,11 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar", () => ({
     isPending: createJar.isPending,
     error: createJar.error,
   }),
-  useCampaignCookieJar: () => ({ jar: undefined, isLoading: false, hasDetailReadFailure: false }),
+  useCampaignCookieJar: () => ({
+    jar: payoutReads.jar,
+    isLoading: false,
+    hasDetailReadFailure: false,
+  }),
 }));
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarFactoryAddress", () => ({
   useCookieJarFactoryAddress: () => ({
@@ -62,7 +83,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
   }),
 }));
 vi.mock("wagmi", () => ({
-  useReadContracts: () => ({ data: undefined, isLoading: false, isFetching: false }),
+  useReadContracts: () => ({ data: payoutReads.customToken, isLoading: false, isFetching: false }),
 }));
 vi.mock("@/components/EnsAddressText", () => ({
   EnsAddressText: ({ address }: { address: string }) => address,
@@ -75,6 +96,8 @@ beforeEach(() => {
   createJar.mutate.mockReset();
   createJar.isPending = false;
   createJar.error = null;
+  payoutReads.jar = undefined;
+  payoutReads.customToken = undefined;
 });
 
 describe("CampaignCookieJarCreateWorkspace", () => {
@@ -136,6 +159,47 @@ describe("CampaignCookieJarCreateWorkspace", () => {
     expect(screen.getByText("Cookie jar created")).toBeInTheDocument();
     expect(screen.getAllByText(JAR).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Create Another" })).toBeInTheDocument();
+  });
+
+  it("shows the onchain maximum after creating a recurring jar", () => {
+    payoutReads.jar = {
+      balance: 0n,
+      decimals: 6,
+      symbol: "USDC",
+      withdrawalType: "variable",
+      fixedAmount: 0n,
+      maxWithdrawal: 120_000_000n,
+      allowlist: [OWNER],
+    };
+    renderWithProviders(
+      <CampaignCookieJarCreateWorkspace onClose={vi.fn()} initialCreatedJarAddress={JAR} />
+    );
+
+    const label = screen.getByText("Maximum claim per steward");
+    expect(label.closest("dt")?.nextElementSibling).toHaveTextContent("120 USDC");
+  });
+
+  it("reviews the amount and cadence when custom token decimals are known but its symbol is not", async () => {
+    payoutReads.customToken = [{ result: 6 }, {}];
+    renderWithProviders(<CampaignCookieJarCreateWorkspace onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/Campaign name/), { target: { value: "Pilot" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.change(screen.getByLabelText("Claim schedule"), { target: { value: "recurring" } });
+    fireEvent.change(screen.getByLabelText("Maximum claim per steward"), {
+      target: { value: "120.000001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByText("Advanced", { selector: "summary" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Use custom token" }));
+    fireEvent.change(screen.getByLabelText("ERC20 token address"), { target: { value: JAR } });
+    fireEvent.change(screen.getByLabelText("Extra allowlist addresses"), {
+      target: { value: OWNER },
+    });
+
+    expect(screen.getByRole("button", { name: "Create Cookie Jar" })).toBeEnabled();
+    expect(screen.getByText("Up to 120.000001 every 30 days")).toBeInTheDocument();
   });
 
   it("does not complete the flow with a malformed jar address", () => {
