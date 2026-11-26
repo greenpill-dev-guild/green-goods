@@ -109,6 +109,11 @@ vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => mockAuthState.current,
 }));
 
+vi.mock("@green-goods/shared/providers/Auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/providers/Auth")>()),
+  useAuthState: () => mockAuthState.current,
+}));
+
 vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
   useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
 }));

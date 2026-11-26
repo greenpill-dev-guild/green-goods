@@ -387,6 +387,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // "new dependencies optimized" — that line means this list has drifted).
       include: [
         "@hookform/resolvers/zod",
+        "@green-goods/shared > @openfort/react",
+        "@green-goods/shared > @openfort/react/wagmi",
         "react",
         "react-dom",
         "react-hook-form",
@@ -422,6 +424,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "idb-keyval",
         "multiformats/cid",
         "@green-goods/shared > permissionless",
+        "@green-goods/shared > qrcode.react",
         "@green-goods/shared > permissionless/accounts",
         "@green-goods/shared > permissionless/clients/passkeyServer",
         "@green-goods/shared > permissionless/clients/pimlico",
@@ -454,6 +457,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "viem/accounts",
         "viem/actions",
         "wagmi",
+        "wagmi/actions",
+        "wagmi/connectors",
       ],
       exclude: ["@green-goods/shared"],
     },

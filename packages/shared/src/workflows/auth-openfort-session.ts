@@ -19,7 +19,11 @@ import {
   getStoredOpenfortAccount,
   setStoredOpenfortAccount,
 } from "../modules/auth/openfort-account";
-import { defaultOpenfortWallet, type OpenfortWallet } from "../modules/auth/openfort-wallet";
+import {
+  defaultOpenfortWallet,
+  type OpenfortEmailSession,
+  type OpenfortWallet,
+} from "../modules/auth/openfort-wallet";
 import {
   clearAuthMode,
   getAuthMode,
@@ -40,11 +44,11 @@ export interface OpenfortSessionResult {
   method: OpenfortSignInMethod;
 }
 
-export interface OpenfortOperationInput {
-  email: string;
-  code: string;
+export type OpenfortSignIn = { email: string; code: string } | { session: OpenfortEmailSession };
+
+export type OpenfortOperationInput = OpenfortSignIn & {
   chainId: number;
-}
+};
 
 export interface OpenfortSessionDeps {
   wallet?: OpenfortWallet;
@@ -77,7 +81,7 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
     (async (owner, chainId, knownAddress) => {
       const account = await createOpenfortKernelAccount({
         client: createPublicClientForChain(chainId),
-        owner: createOpenfortOwner(wallet, owner, chainId),
+        owner: createOpenfortOwner(wallet, owner),
         knownAddress,
       });
       return {
@@ -142,7 +146,7 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
   const authenticateOpenfort = fromPromise<OpenfortSessionResult, OpenfortOperationInput>(
     async ({ input, signal }) => {
       const assertActive = guardSessionCommit(signal);
-      const email = normalizeEmail(input.email);
+      const email = normalizeEmail("session" in input ? input.session.email : input.email);
       // Renewed after each step, so a slow but live sign-in never looks abandoned.
       let started = "";
       const markProgress = () => {
@@ -151,11 +155,21 @@ export function createOpenfortSessionServices(deps: OpenfortSessionDeps = {}) {
       };
       markProgress();
       try {
-        await wallet.verifyCode(email, input.code.trim());
+        if ("code" in input) await wallet.verifyCode(email, input.code.trim());
+        else {
+          await leftoverSignOut;
+          assertActive();
+        }
         markProgress();
         try {
           assertActive();
-          const owner = await wallet.configureWallet(input.chainId);
+          if ("session" in input) {
+            if (!wallet.acceptEmailSession)
+              throw new Error("Openfort session handoff is unavailable");
+            await wallet.acceptEmailSession({ ...input.session, email });
+            assertActive();
+          }
+          const owner = await wallet.configureWallet();
           markProgress();
           assertActive();
           const session = await openSession(owner, input.chainId, email);

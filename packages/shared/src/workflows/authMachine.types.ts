@@ -14,7 +14,11 @@ import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import type { AuthMode, OpenfortSignInMethod, SmartAccountClientResolver } from "../types/auth";
 import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
-import type { OpenfortOperationInput, OpenfortSessionResult } from "./auth-openfort-session";
+import type {
+  OpenfortOperationInput,
+  OpenfortSessionResult,
+  OpenfortSignIn,
+} from "./auth-openfort-session";
 
 export type WalletConnectionType = "wallet" | "embedded";
 /** Sessions restored by intent saved at sign-in; passkeys restore from their own credential. */
@@ -79,7 +83,7 @@ export type AuthEvent =
     }
   | { type: "LOGIN_WALLET" }
   | { type: "LOGIN_EMBEDDED"; address: Hex } // Login via AppKit embedded wallet (email/social)
-  | { type: "LOGIN_OPENFORT"; email: string; code: string }
+  | ({ type: "LOGIN_OPENFORT" } & OpenfortSignIn)
   | { type: "SWITCH_TO_WALLET" } // Switch from passkey to wallet (requires external wallet)
   | { type: "SWITCH_TO_PASSKEY"; userName: string } // Switch from wallet to passkey
   | { type: "SIGN_OUT" }

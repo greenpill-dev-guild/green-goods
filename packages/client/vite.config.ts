@@ -653,6 +653,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared > @hypercerts-org/marketplace-sdk",
         "@green-goods/shared > @hypercerts-org/sdk",
         "@green-goods/shared > @openfort/openfort-js",
+        "@green-goods/shared > @openfort/react",
+        "@green-goods/shared > @openfort/react/wagmi",
         "@green-goods/shared > @radix-ui/react-popover",
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",
@@ -677,6 +679,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "idb-keyval",
         "multiformats/cid",
         "@green-goods/shared > permissionless",
+        "@green-goods/shared > qrcode.react",
         "@green-goods/shared > permissionless/accounts",
         "@green-goods/shared > permissionless/clients/passkeyServer",
         "@green-goods/shared > permissionless/clients/pimlico",
@@ -704,6 +707,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "viem",
         "viem/actions",
         "wagmi",
+        "wagmi/actions",
+        "wagmi/connectors",
         // ── the service worker (src/sw/sw.ts) ──
         // It is not reached from index.html, so the scan misses its imports too. A page that
         // registers the dev worker, as the browser suite's do, asks for them at request time.

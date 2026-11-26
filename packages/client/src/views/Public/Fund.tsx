@@ -44,7 +44,9 @@ const PublicEndowmentPanel = lazy(() =>
     default: module.PublicEndowmentPanel,
   }))
 );
-const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
+const PublicWalletRuntimeProviders = lazy(
+  () => import("@/components/Public/PublicWalletRuntimeProviders")
+);
 // The endowment engine always supports these two assets, so the metrics
 // section keeps their cards visible even when the live figures cannot be
 // fetched — a blank section reads as "broken" rather than "no data yet".
@@ -630,27 +632,27 @@ function FundPageContent() {
           }
         >
           {selectorState ? (
-            <WalletRuntimeProviders>
+            <PublicWalletRuntimeProviders>
               <PublicFundingCard
                 open
                 garden={selectorState.garden}
                 intent={selectorState.intent}
                 onClose={closeSelector}
               />
-            </WalletRuntimeProviders>
+            </PublicWalletRuntimeProviders>
           ) : null}
         </Suspense>
       ) : null}
 
       {isEndowmentPanelOpen ? (
         <Suspense fallback={null}>
-          <WalletRuntimeProviders>
+          <PublicWalletRuntimeProviders>
             <PublicEndowmentPanel
               open
               onExitComplete={handleEndowmentPanelExitComplete}
               onOpenChange={handleEndowmentPanelOpenChange}
             />
-          </WalletRuntimeProviders>
+          </PublicWalletRuntimeProviders>
         </Suspense>
       ) : null}
     </>

@@ -21,6 +21,7 @@ export const authOpenfortSignInStates = {
         event: AuthEvent;
       }): OpenfortOperationInput => {
         const login = event as LoginOpenfort;
+        if ("session" in login) return { session: login.session, chainId: context.chainId };
         return { email: login.email, code: login.code, chainId: context.chainId };
       },
       onDone: { target: "authenticated.openfort", actions: "storeOpenfortSession" },

@@ -79,10 +79,7 @@ export function PublicEndowmentPanel({
 }: PublicEndowmentPanelProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  // Connect via wallet auth (stores "wallet" intent so the auth machine logs in
-  // and primaryAddress resolves) rather than only opening the AppKit modal —
-  // otherwise endowment positions stay unreachable for a freshly-connected
-  // public wallet (shared root cause with PRD-497).
+  // The auth action resolves the wallet identity needed to read endowment positions.
   const { loginWithWallet } = useAuth();
   // Keep this panel open while the wallet modal is opening/open — its
   // separate-portal focus would otherwise trip Radix outside-dismiss and the

@@ -189,6 +189,8 @@
         "packages/shared/src/modules/work/**",
         "packages/shared/src/providers/Auth.tsx",
         "packages/shared/src/providers/AuthGate.tsx",
+        "packages/shared/src/providers/OpenfortSignIn.tsx",
+        "packages/shared/src/providers/OpenfortWalletProvider.tsx",
         "packages/shared/src/providers/JobQueue.tsx",
         "packages/shared/src/providers/Work.tsx",
         "packages/shared/src/workflows/**",

@@ -72,7 +72,7 @@ const eligibleJar = {
   },
 };
 
-vi.mock("@/routes/WalletRuntimeProviders", () => ({
+vi.mock("@/components/Public/PublicWalletRuntimeProviders", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 

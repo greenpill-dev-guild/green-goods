@@ -1,7 +1,7 @@
 import { useAgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
 import { useAgentReportingRecovery } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingRecovery";
 import { useParams } from "react-router-dom";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import PublicWalletRuntimeProviders from "@/components/Public/PublicWalletRuntimeProviders";
 import { CeremonyView } from "./CeremonyView";
 import { RecoveryView } from "./RecoveryView";
 
@@ -20,17 +20,17 @@ function Recovery({ requestId }: { requestId: string }) {
 export function ReportingCeremonyPage() {
   const { requestId = "" } = useParams();
   return (
-    <WalletRuntimeProviders analyticsIdentity={false}>
+    <PublicWalletRuntimeProviders analyticsIdentity={false}>
       <Ceremony key={requestId} requestId={requestId} />
-    </WalletRuntimeProviders>
+    </PublicWalletRuntimeProviders>
   );
 }
 
 export function ReportingRecoveryPage() {
   const { requestId = "" } = useParams();
   return (
-    <WalletRuntimeProviders analyticsIdentity={false}>
+    <PublicWalletRuntimeProviders analyticsIdentity={false}>
       <Recovery key={requestId} requestId={requestId} />
-    </WalletRuntimeProviders>
+    </PublicWalletRuntimeProviders>
   );
 }

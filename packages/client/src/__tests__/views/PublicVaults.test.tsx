@@ -201,7 +201,7 @@ vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWithdraw", () => ({
   }),
 }));
 
-vi.mock("@/routes/WalletRuntimeProviders", async () => {
+vi.mock("@/components/Public/PublicWalletRuntimeProviders", async () => {
   const { createElement } = await import("react");
 
   return {

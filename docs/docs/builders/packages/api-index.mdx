@@ -32,7 +32,7 @@ generated_from:
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
   - packages/shared/src/public-contracts/voucher-awards.ts
-source_digest: "sha256:7bcfea037ea1e54d3914d686e0387bb39810430f32e3cdc03ad62b808a998c45"
+source_digest: "sha256:590ea949fa86f7322bb1c40a39d7d362ca4252a38ea2a6a1e69a1daa9789991c"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -112,7 +112,7 @@ The route constants are exported by these Shared files:
 
 ## Package exports
 
-543 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
+547 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
 
 ### @green-goods/contracts
 
@@ -123,17 +123,17 @@ The route constants are exported by these Shared files:
 
 ### @green-goods/shared
 
-541 specifiers. Open a group to see its specifiers.
+545 specifiers. Open a group to see its specifiers.
 
 | Group | Specifiers |
 |---|---|
 | `./__tests__` | 5 |
 | `./components` | 77 |
-| `./config` | 16 |
+| `./config` | 17 |
 | `./hooks` | 266 |
 | `./i18n` | 8 |
-| `./modules` | 59 |
-| `./providers` | 8 |
+| `./modules` | 60 |
+| `./providers` | 10 |
 | `./public-contracts` | 8 |
 | `./stores` | 10 |
 | `./styles` | 4 |
@@ -317,7 +317,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./config` (16)</summary>
+<summary>`./config` (17)</summary>
 
 | Specifier | Target |
 |---|---|
@@ -328,6 +328,7 @@ The route constants are exported by these Shared files:
 | `./config/default-chain` | `./src/config/default-chain.ts` |
 | `./config/domain` | `./src/config/domain.ts` |
 | `./config/local-fork` | `./src/config/local-fork.ts` |
+| `./config/openfort` | `./src/config/openfort.ts` |
 | `./config/passkeyServer` | `./src/config/passkeyServer.ts` |
 | `./config/pimlico` | `./src/config/pimlico.ts` |
 | `./config/query-keys/constants` | `./src/config/query-keys/constants.ts` |
@@ -768,7 +769,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./modules` (59)</summary>
+<summary>`./modules` (60)</summary>
 
 **`./modules`** (4)
 
@@ -797,12 +798,13 @@ The route constants are exported by these Shared files:
 | `./modules/app/posthog` | `./src/modules/app/posthog.ts` |
 | `./modules/app/service-worker-protocol` | `./src/modules/app/service-worker-protocol.ts` |
 
-**`./modules/auth`** (2)
+**`./modules/auth`** (3)
 
 | Specifier | Target |
 |---|---|
 | `./modules/auth/passkey-kernel-account` | `./src/modules/auth/passkey-kernel-account.ts` |
 | `./modules/auth/session` | `./src/modules/auth/session.ts` |
+| `./modules/auth/sessionSignOut` | `./src/modules/auth/sessionSignOut.ts` |
 
 **`./modules/commitment-pooling`** (17)
 
@@ -902,7 +904,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./providers` (8)</summary>
+<summary>`./providers` (10)</summary>
 
 | Specifier | Target |
 |---|---|
@@ -912,6 +914,8 @@ The route constants are exported by these Shared files:
 | `./providers/Auth` | `./src/providers/Auth.tsx` |
 | `./providers/AuthGate` | `./src/providers/AuthGate.tsx` |
 | `./providers/JobQueue` | `./src/providers/JobQueue.tsx` |
+| `./providers/OpenfortSignIn` | `./src/providers/OpenfortSignIn.tsx` |
+| `./providers/OpenfortWalletProvider` | `./src/providers/OpenfortWalletProvider.tsx` |
 | `./providers/QueryPersistence` | `./src/providers/QueryPersistence.tsx` |
 | `./providers/Work` | `./src/providers/Work.tsx` |
 

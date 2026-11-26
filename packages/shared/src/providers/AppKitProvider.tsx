@@ -1,5 +1,10 @@
 import { type Config, WagmiProvider } from "wagmi";
-import { type AppKitMetadata, activeWagmiConfig, ensureAppKit } from "../config/appkit";
+import {
+  type AppKitMetadata,
+  activeWagmiConfig,
+  ensureAppKit,
+  setMountedWagmiConfig,
+} from "../config/appkit";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 
 interface AppKitProviderProps {
@@ -30,12 +35,11 @@ export function AppKitProvider({
     throw new Error("AppKitProvider requires a browser environment (wagmiConfig is null in SSR)");
   }
 
+  const config = wagmiConfig as unknown as Config;
+  setMountedWagmiConfig(config);
+
   // Under the development mock-auth seam this is a config no wallet can sign through.
-  return (
-    <WagmiProvider config={activeWagmiConfig(wagmiConfig as unknown as Config)}>
-      {children}
-    </WagmiProvider>
-  );
+  return <WagmiProvider config={activeWagmiConfig(config)}>{children}</WagmiProvider>;
 }
 
 // Re-export AppKit hook

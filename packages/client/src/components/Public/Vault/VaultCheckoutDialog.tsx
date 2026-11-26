@@ -32,7 +32,7 @@ import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifi
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import PublicWalletRuntimeProviders from "@/components/Public/PublicWalletRuntimeProviders";
 import {
   CHECKOUT_FIELD_LABEL,
   CheckoutScreen,
@@ -123,9 +123,9 @@ export interface VaultCheckoutDialogProps {
 
 export function VaultCheckoutDialog(props: VaultCheckoutDialogProps) {
   return (
-    <WalletRuntimeProviders>
+    <PublicWalletRuntimeProviders>
       <VaultCheckoutDialogContent {...props} />
-    </WalletRuntimeProviders>
+    </PublicWalletRuntimeProviders>
   );
 }
 

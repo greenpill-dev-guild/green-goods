@@ -8,7 +8,7 @@ import { connectivityStore } from "../../stores/connectivity";
 import type { WalletRestoreState } from "../../types/auth";
 import type { AuthActor } from "../../workflows/authActor";
 import type { WalletConnectionType } from "../../workflows/authMachine";
-import { isWalletModalOpen } from "./useWalletModalOpen";
+import { useWalletModal } from "./useWalletModalOpen";
 
 const RESTORE_DELAYED_MS = 2_000;
 const RESTORE_TIMEOUT_MS = 15_000;
@@ -64,11 +64,11 @@ function canAdvanceRestoreClock(): boolean {
  * is `reconnecting`, a restore is running and wagmi would skip another, so the
  * App waits for that too rather than spend its ask on nothing (PRD-1575).
  */
-function canRetryConnector(wagmiConfig: WagmiConfig): boolean {
+function canRetryConnector(wagmiConfig: WagmiConfig, modalIsOpen: () => boolean): boolean {
   const { status } = wagmiConfig.state;
   return (
     canAdvanceRestoreClock() &&
-    !isWalletModalOpen() &&
+    !modalIsOpen() &&
     status !== "connecting" &&
     status !== "reconnecting"
   );
@@ -83,6 +83,7 @@ export function useWalletRestoreLifecycle(
   snapshot: AuthSnapshot,
   wagmiConfig: WagmiConfig
 ): { state: WalletRestoreState | null; clear: () => void } {
+  const { isOpen: modalIsOpen } = useWalletModal();
   const attemptRef = useRef<RestoreAttempt | null>(null);
   // The restoring effect's retry, for the moment a restore settles without a wallet.
   const settleRetryRef = useRef<(() => void) | null>(null);
@@ -183,7 +184,7 @@ export function useWalletRestoreLifecycle(
       syncClock();
       if (
         !retryArmed ||
-        !canRetryConnector(wagmiConfig) ||
+        !canRetryConnector(wagmiConfig, modalIsOpen) ||
         !actor.getSnapshot().matches("restoring")
       )
         return;
@@ -205,7 +206,7 @@ export function useWalletRestoreLifecycle(
     // is the authoritative retry point once the connector can answer.
     const handleConnectivity = () => {
       syncClock();
-      if (canRetryConnector(wagmiConfig)) retryRestore();
+      if (canRetryConnector(wagmiConfig, modalIsOpen)) retryRestore();
       else retryArmed = true;
     };
     const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
@@ -233,7 +234,7 @@ export function useWalletRestoreLifecycle(
       window.removeEventListener("online", retryRestore);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [actor, beginAttempt, restoringMode, wagmiConfig]);
+  }, [actor, beginAttempt, modalIsOpen, restoringMode, wagmiConfig]);
 
   // wagmi runs one restore at a time and skips any asked for meanwhile, such as
   // AppKit's restore of a WalletConnect session that registers just after launch.
@@ -265,7 +266,7 @@ export function useWalletRestoreLifecycle(
     let attempt = 0;
     let inFlight: number | null = null;
     const retry = () => {
-      if (inFlight === attempt || !canRetryConnector(wagmiConfig)) return;
+      if (inFlight === attempt || !canRetryConnector(wagmiConfig, modalIsOpen)) return;
       const current = attempt;
       inFlight = current;
       void reconnect(wagmiConfig)
@@ -296,7 +297,7 @@ export function useWalletRestoreLifecycle(
       unsubscribeConnectivity();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [walletAwaitingReconnect, wagmiConfig]);
+  }, [modalIsOpen, walletAwaitingReconnect, wagmiConfig]);
 
   useEffect(() => {
     if (walletAwaitingReconnect || !awaitedReconnectRef.current) return;

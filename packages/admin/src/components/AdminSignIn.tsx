@@ -4,6 +4,11 @@ import {
   type AdminLoginMode,
   useAdminLoginController,
 } from "@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController";
+import {
+  useWalletModal,
+  type WalletModalResult,
+} from "@green-goods/shared/hooks/auth/useWalletModalOpen";
+import { useAuthState } from "@green-goods/shared/providers/Auth";
 import { RiKey2Line } from "@remixicon/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -23,7 +28,15 @@ import { SignInSlots } from "./SignInSlots";
  * one. Every slot keeps its height in every state, so an error, a hint or a pending
  * ceremony never moves a control.
  */
-export function AdminSignIn({ controller }: { controller: AdminLoginController }) {
+export function AdminSignIn({
+  controller,
+  onOtherWays,
+  signingInWithEmail,
+}: {
+  controller: AdminLoginController;
+  onOtherWays?: () => void;
+  signingInWithEmail?: boolean;
+}) {
   if (
     controller.codeSignIn.enabled &&
     (controller.mode === "otherWays" || controller.mode === "code")
@@ -33,7 +46,13 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
   if (controller.mode === "confirmNewAccount") {
     return <AdminConfirmNewAccount controller={controller} />;
   }
-  return <AdminPasskeySignIn controller={controller} />;
+  return (
+    <AdminPasskeySignIn
+      controller={controller}
+      onOtherWays={onOtherWays ?? (() => controller.changeMode("otherWays"))}
+      signingInWithEmail={signingInWithEmail}
+    />
+  );
 }
 
 /**
@@ -109,7 +128,15 @@ function AdminConfirmNewAccount({ controller }: { controller: AdminLoginControll
   );
 }
 
-function AdminPasskeySignIn({ controller }: { controller: AdminLoginController }) {
+function AdminPasskeySignIn({
+  controller,
+  onOtherWays,
+  signingInWithEmail,
+}: {
+  controller: AdminLoginController;
+  onOtherWays: () => void;
+  signingInWithEmail?: boolean;
+}) {
   const { formatMessage } = useIntl();
   const feedbackId = useId();
   const hintId = feedbackId + "-hint";
@@ -224,7 +251,7 @@ function AdminPasskeySignIn({ controller }: { controller: AdminLoginController }
             size="lg"
             emphasis="secondary"
             disabled={controller.isSigningIn}
-            onClick={() => controller.changeMode("otherWays")}
+            onClick={onOtherWays}
           >
             {formatMessage({
               id: "app.login.button.otherWays",
@@ -251,7 +278,7 @@ function AdminPasskeySignIn({ controller }: { controller: AdminLoginController }
           <p id={feedbackId} role="alert" className="type-body text-error-dark">
             {showError ? controller.error : null}
           </p>
-          {controller.isPasskeySigningIn && (isForm || remembered) ? (
+          {signingInWithEmail || (controller.isPasskeySigningIn && (isForm || remembered)) ? (
             <p role="status" className="type-body text-text-sub">
               {formatMessage(
                 isForm
@@ -303,11 +330,47 @@ function AdminPasskeySignIn({ controller }: { controller: AdminLoginController }
 }
 
 export function AdminSignInContainer() {
-  // A choice made on the boot screen opens its screen here; read once, then let go.
-  const [initialMode] = useState<AdminLoginMode>(() =>
-    isPasskeyRequestedAtBoot() ? "username" : isOtherWaysRequestedAtBoot() ? "otherWays" : "entry"
-  );
-  useEffect(() => clearPasskeyRequestAtBoot(), []);
+  const intl = useIntl();
+  const auth = useAuthState();
+  const { openProviders } = useWalletModal();
+  const [result, setResult] = useState<WalletModalResult | null>(null);
+  const [initialRequest] = useState(() => ({
+    passkey: isPasskeyRequestedAtBoot(),
+    alternatives: isOtherWaysRequestedAtBoot(),
+  }));
+  const initialMode: AdminLoginMode = initialRequest.passkey
+    ? "username"
+    : initialRequest.alternatives && !openProviders
+      ? "otherWays"
+      : "entry";
+  useEffect(() => {
+    clearPasskeyRequestAtBoot();
+    if (initialRequest.alternatives && !initialRequest.passkey) openProviders?.(setResult);
+  }, [initialRequest, openProviders]);
   const controller = useAdminLoginController({ initialMode });
-  return <AdminSignIn controller={controller} />;
+  const sheetError =
+    result === "wallet-error"
+      ? intl.formatMessage({
+          id: "app.login.error.walletConnectFailed",
+          defaultMessage: "We couldn't connect your wallet. Try again, or sign in with a passkey.",
+        })
+      : result === "email-error" || (result === "email" && auth.openfortMethod && auth.error)
+        ? intl.formatMessage({
+            id: "app.login.code.error.setup",
+            defaultMessage: "We couldn't open your account just now. Try again in a minute.",
+          })
+        : null;
+
+  return (
+    <AdminSignIn
+      controller={{ ...controller, error: controller.error ?? sheetError }}
+      signingInWithEmail={result === "email" && auth.isAuthenticating}
+      onOtherWays={() => {
+        setResult(null);
+        controller.beginWalletSignIn();
+        if (openProviders) openProviders(setResult);
+        else controller.changeMode("otherWays");
+      }}
+    />
+  );
 }

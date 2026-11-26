@@ -8,6 +8,8 @@ import type { Hex } from "viem";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
+import { WalletModalContext } from "../../hooks/auth/useWalletModalOpen";
+import type { WalletConnectEvent } from "../../modules/app/authWalletConnectAnalytics";
 import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
 import { createSmartAccountClientResolver } from "../../modules/auth/smartAccountClientResolver";
 import {
@@ -19,11 +21,17 @@ import {
   publishSignOut,
   SIGN_OUT_REVISION_KEY,
 } from "../../modules/auth/sessionSignOut";
-import { AUTH_MODE_STORAGE_KEY } from "../../modules/auth/session";
+import {
+  AUTH_MODE_STORAGE_KEY,
+  getStoredWalletAddress,
+  setAuthMode,
+  setStoredWalletAddress,
+} from "../../modules/auth/session";
 import { connectivityStore } from "../../stores/connectivity";
 import { useJoinRequestCountGrantStore } from "../../stores/useJoinRequestCountGrantStore";
 import { queryClient } from "../../config/react-query";
 import { AuthProvider, useAuthContext } from "../../providers/Auth";
+import OpenfortSignIn from "../../providers/OpenfortSignIn";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import {
   type OpenfortSessionServices,
@@ -53,6 +61,27 @@ const mocks = vi.hoisted(() => ({
   mockTrackWalletRestore: vi.fn(),
   mockUseAccount: vi.fn(),
   mockUseConfig: vi.fn(() => ({ id: "wagmi-config" })),
+  openfortClient: {
+    auth: { loginWithSiwe: vi.fn() },
+    eventEmitter: { on: vi.fn(), off: vi.fn() },
+  },
+}));
+
+vi.mock("@openfort/react", () => ({
+  AuthProvider: { EMAIL_OTP: "email", WALLET: "wallet" },
+  OpenfortEvents: { ON_AUTH_INIT: "init", ON_AUTH_SUCCESS: "success" },
+  OpenfortProvider: ({ children }: { children: ReactNode }) => children,
+  useOpenfort: () => mocks.openfortClient,
+  useUI: () => ({
+    openProviders: vi.fn(),
+    openWallets: vi.fn(),
+    openProfile: vi.fn(),
+    isOpen: true,
+  }),
+}));
+
+vi.mock("@openfort/react/wagmi", () => ({
+  OpenfortWagmiBridge: ({ children }: { children: ReactNode }) => children,
 }));
 
 vi.mock("wagmi", () => ({
@@ -61,6 +90,7 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("@wagmi/core", () => ({
+  getConnection: () => accountState,
   disconnect: () => mocks.mockDisconnect(),
   reconnect: () => mocks.mockReconnect(),
 }));
@@ -180,6 +210,43 @@ async function waitForReady() {
   });
 }
 
+function renderOpenfortAuth() {
+  let open = false;
+  const subscribers = new Set<() => void>();
+  const connections = new Set<(event: WalletConnectEvent) => void>();
+  const setOpen = (next: boolean) => {
+    open = next;
+    for (const subscriber of subscribers) subscriber();
+  };
+  const modal = {
+    openProviders: () => setOpen(true),
+    openWallets: () => setOpen(true),
+    openProfile: () => setOpen(true),
+    close: () => setOpen(false),
+    isOpen: () => open,
+    subscribe: (subscriber: () => void) => {
+      subscribers.add(subscriber);
+      return () => subscribers.delete(subscriber);
+    },
+    subscribeConnection: (subscriber: (event: WalletConnectEvent) => void) => {
+      connections.add(subscriber);
+      return () => connections.delete(subscriber);
+    },
+    emit: (event: WalletConnectEvent) =>
+      act(() => {
+        for (const subscriber of connections) subscriber(event);
+      }),
+  };
+  function wrapper({ children }: { children: ReactNode }) {
+    return (
+      <WalletModalContext value={modal}>
+        <AuthProvider>{children}</AuthProvider>
+      </WalletModalContext>
+    );
+  }
+  return { ...renderHook(useAuthContext, { wrapper }), modal };
+}
+
 describe("AuthProvider wallet login bridge", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -216,6 +283,130 @@ describe("AuthProvider wallet login bridge", () => {
     mocks.mockGetAuthActor.mockReturnValue(actor);
     mocks.mockCreateAuthActor.mockReturnValue(actor);
     mocks.mockCreateAuthServices.mockReturnValue({ source: "test-auth-services" });
+  });
+
+  it("uses the existing wallet address when Openfort completes its connection", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+
+    act(() => {
+      expect(view.result.current.loginWithConnectedWallet?.(TEST_WALLET)).toBe(true);
+    });
+    await waitFor(() => expect(view.result.current.eoaAddress).toBe(TEST_WALLET));
+    expect(view.result.current.authMode).toBe("wallet");
+    expect(mocks.mockOpenAppKit).not.toHaveBeenCalled();
+  });
+
+  it("waits for Openfort verification after the website wallet connects", async () => {
+    const view = renderOpenfortAuth();
+    const { modal } = view;
+    await waitForReady();
+
+    act(() => view.result.current.loginWithWallet());
+    expect(modal.isOpen()).toBe(true);
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    expect(view.result.current.isAuthenticated).toBe(false);
+
+    act(() => {
+      expect(view.result.current.loginWithConnectedWallet?.(TEST_WALLET)).toBe(true);
+      expect(getStoredWalletAddress()).toBe(TEST_WALLET);
+      modal.close();
+    });
+    expect(view.result.current.eoaAddress).toBe(TEST_WALLET);
+    expect(view.result.current.authMode).toBe("wallet");
+    expect(mocks.mockGetAppKit).not.toHaveBeenCalled();
+  });
+
+  it("releases a different wallet and keeps the remembered identity during Openfort restore", async () => {
+    actor.stop();
+    actor = createAuthTestActor("wallet", TEST_WALLET);
+    actor.start();
+    mocks.mockGetAuthActor.mockReturnValue(actor);
+    mocks.mockCreateAuthActor.mockReturnValue(actor);
+    setAuthMode("wallet");
+    setStoredWalletAddress(TEST_WALLET);
+    setAccount({ address: OTHER_WALLET, isConnected: true, connector: rabbyConnector });
+
+    const view = renderOpenfortAuth();
+    await waitFor(() => expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true));
+    expect(mocks.mockDisconnect).toHaveBeenCalled();
+    expect(getStoredWalletAddress()).toBe(TEST_WALLET);
+
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.eoaAddress).toBe(TEST_WALLET));
+  });
+
+  it("drops an unverified account change after the Openfort chooser closes", async () => {
+    const view = renderOpenfortAuth();
+    await waitForReady();
+    act(() => view.modal.openWallets());
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    act(() => {
+      expect(view.result.current.loginWithConnectedWallet?.(TEST_WALLET)).toBe(true);
+      view.modal.close();
+    });
+    expect(view.result.current.eoaAddress).toBe(TEST_WALLET);
+
+    act(() => view.modal.openWallets());
+    setAccount({ address: OTHER_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    act(() => view.modal.close());
+
+    expect(mocks.mockDisconnect).toHaveBeenCalled();
+    expect(actor.getSnapshot().context.walletAddress).toBe(TEST_WALLET);
+    expect(getStoredWalletAddress()).toBe(TEST_WALLET);
+  });
+
+  it("rejects a wallet that changed before the Openfort sign-in arrived", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    setAccount({ address: OTHER_WALLET, isConnected: true, connector: rabbyConnector });
+
+    act(() => {
+      expect(view.result.current.loginWithConnectedWallet?.(TEST_WALLET)).toBe(false);
+    });
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
+    expect(mocks.mockOpenAppKit).not.toHaveBeenCalled();
+  });
+
+  it("checks the verified SIWE address when the connected account changes during verification", async () => {
+    let completeVerification = () => {};
+    const sdkLogin = mocks.openfortClient.auth.loginWithSiwe;
+    sdkLogin.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (completeVerification = resolve))
+    );
+    const onFinish = vi.fn();
+    function wrapper({ children }: { children: ReactNode }) {
+      return (
+        <AuthProvider>
+          {children}
+          <OpenfortSignIn
+            keys={{ publishableKey: "pk_test_fixture" }}
+            appName="Green Goods"
+            screen="wallets"
+            onFinish={onFinish}
+          />
+        </AuthProvider>
+      );
+    }
+    const view = renderHook(useAuthContext, { wrapper });
+    await waitForReady();
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    const verification = mocks.openfortClient.auth.loginWithSiwe({ address: TEST_WALLET });
+    setAccount({ address: OTHER_WALLET, isConnected: true, connector: rabbyConnector });
+    await act(async () => {
+      completeVerification();
+      await verification;
+    });
+    expect(sdkLogin).toHaveBeenCalledWith({ address: TEST_WALLET });
+    expect(onFinish).toHaveBeenCalledWith("wallet-error");
+    expect(view.result.current.isAuthenticated).toBe(false);
   });
 
   it("signs out offline without waiting on wallet transport or erasing durable reads", async () => {
@@ -1444,6 +1635,35 @@ describe("AuthProvider wallet login bridge", () => {
     });
 
     afterEach(() => unregisterSink());
+
+    it("reports an Openfort mobile timeout once and allows a new wallet selection", async () => {
+      vi.useFakeTimers();
+      try {
+        const view = renderOpenfortAuth();
+        await settle();
+        act(() => view.result.current.loginWithWallet());
+        view.modal.emit({ type: "selected", wallet: "rainbow", platform: "mobile" });
+        await settle(19_999);
+        expect(view.result.current.walletConnectFailure).toBeNull();
+        await settle(1);
+        expect(view.result.current.walletConnectFailure).toBe("timeout");
+        view.modal.emit({ type: "failed", reason: "cancelled" });
+        expect(view.modal.isOpen()).toBe(true);
+
+        view.modal.emit({ type: "selected", wallet: "rabby", platform: "qrcode" });
+        await settle(30_000);
+        expect(view.result.current.walletConnectFailure).toBeNull();
+        view.modal.emit({ type: "failed", reason: "connect_error" });
+        expect(view.result.current.walletConnectFailure).toBe("connect_error");
+        expect(recorded("auth_wallet_connect_failed")).toEqual([
+          expect.objectContaining({ reason: "timeout", wallet: "rainbow", platform: "mobile" }),
+          expect.objectContaining({ reason: "connect_error", wallet: "rabby", platform: "qrcode" }),
+        ]);
+        expect(mocks.mockGetAppKit).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
 
     it("times out a phone wallet whose app never opens, and records a later answer", async () => {
       vi.useFakeTimers();

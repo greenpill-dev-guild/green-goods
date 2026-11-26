@@ -39,13 +39,9 @@ export class OpenfortOwnerMismatchError extends Error {
  * makes sure this device holds the expected owner's signer, recovering it if the device lost
  * it, and refuses to sign as anyone else.
  */
-export function createOpenfortOwner(
-  wallet: OpenfortWallet,
-  ownerAddress: Hex,
-  chainId: number
-): LocalAccount {
+export function createOpenfortOwner(wallet: OpenfortWallet, ownerAddress: Hex): LocalAccount {
   const ensureOwner = async () => {
-    const current = (await wallet.currentOwnerAddress()) ?? (await wallet.configureWallet(chainId));
+    const current = (await wallet.currentOwnerAddress()) ?? (await wallet.configureWallet());
     if (current.toLowerCase() !== ownerAddress.toLowerCase())
       throw new OpenfortOwnerMismatchError();
   };

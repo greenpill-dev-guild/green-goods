@@ -10,7 +10,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ReactNode } from "react";
 import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import PublicWalletRuntimeProviders from "@/components/Public/PublicWalletRuntimeProviders";
 import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
 import { VaultManagePositionsPanel } from "./VaultManagePositionsPanel";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
@@ -39,9 +39,9 @@ const position: OctantVaultPosition = {
 
 function withWallet({ connected = true, positions = [position] as OctantVaultPosition[] } = {}) {
   return () => {
-    mocked(WalletRuntimeProviders).mockImplementation(({ children }: { children: ReactNode }) => (
-      <>{children}</>
-    ));
+    mocked(PublicWalletRuntimeProviders).mockImplementation(
+      ({ children }: { children: ReactNode }) => <>{children}</>
+    );
     mocked(useUser).mockReturnValue({
       authMode: connected ? "wallet" : null,
       primaryAddress: connected ? OWNER : undefined,
@@ -69,7 +69,7 @@ function withWallet({ connected = true, positions = [position] as OctantVaultPos
       error: null,
     } as unknown as ReturnType<typeof useOctantVaultRedeem>);
     return resetHookMocks(
-      WalletRuntimeProviders,
+      PublicWalletRuntimeProviders,
       useUser,
       useWalletConnectDismissGuard,
       useEnsName,

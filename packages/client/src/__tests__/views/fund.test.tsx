@@ -180,7 +180,7 @@ vi.mock("@/components/Public/PublicEndowmentPanel", () => ({
   },
 }));
 
-vi.mock("@/routes/WalletRuntimeProviders", () => ({
+vi.mock("@/components/Public/PublicWalletRuntimeProviders", () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

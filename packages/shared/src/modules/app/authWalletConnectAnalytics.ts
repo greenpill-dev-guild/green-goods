@@ -21,6 +21,11 @@ export type AuthWalletConnectPlatform =
  */
 export type AuthWalletConnectFailureReason = "timeout" | "connect_error" | "rejected" | "cancelled";
 
+/** Only wallet names and transport reach the sign-in lifecycle, never pairing details. */
+export type WalletConnectEvent =
+  | { type: "selected"; wallet: AuthWalletConnectWallet; platform: AuthWalletConnectPlatform }
+  | { type: "failed"; reason: "connect_error" | "rejected" | "cancelled" };
+
 type AuthWalletConnectEvent = {
   wallet?: AuthWalletConnectWallet;
   platform?: AuthWalletConnectPlatform;

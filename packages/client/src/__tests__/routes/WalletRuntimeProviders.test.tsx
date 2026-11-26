@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockUseAuthState = vi.fn();
 const mockUseApp = vi.fn();
 const mockAppKitProvider = vi.fn();
+const mockOpenfortProvider = vi.fn();
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => mockUseAuthState(),
@@ -28,6 +29,13 @@ vi.mock("@green-goods/shared/providers/AppKitProvider", () => ({
   },
 }));
 
+vi.mock("@green-goods/shared/providers/OpenfortWalletProvider", () => ({
+  OpenfortWalletProvider: (props: { children: ReactNode }) => {
+    mockOpenfortProvider(props);
+    return props.children;
+  },
+}));
+
 vi.mock("@green-goods/shared/providers/AuthGate", () => ({
   AuthGate: ({ children }: { children: ReactNode }) => children,
 }));
@@ -36,6 +44,7 @@ vi.mock("@green-goods/shared/hooks/analytics/useAnalyticsIdentity", () => ({
   useAnalyticsIdentity: vi.fn(),
 }));
 
+import PublicWalletRuntimeProviders from "../../components/Public/PublicWalletRuntimeProviders";
 import WalletRuntimeProviders, { PwaStartupReadySignal } from "../../routes/WalletRuntimeProviders";
 
 describe("WalletRuntimeProviders return fallback", () => {
@@ -44,7 +53,11 @@ describe("WalletRuntimeProviders return fallback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuthState.mockReturnValue({ isReady: false });
-    mockUseApp.mockReturnValue({ isStandalone: true, platform: "android" });
+    mockUseApp.mockReturnValue({
+      isPwaPresentation: true,
+      isStandalone: true,
+      platform: "android",
+    });
     vi.stubEnv("VITE_APP_URL", "https://www.greengoods.app");
     vi.stubEnv("VITE_USE_HASH_ROUTER", "false");
   });
@@ -123,12 +136,22 @@ describe("WalletRuntimeProviders return fallback", () => {
     { isStandalone: true, platform: "ios" },
     { isStandalone: true, platform: "unknown" },
   ])("keeps other wallet return behavior unchanged for %o", (app) => {
-    mockUseApp.mockReturnValue(app);
+    mockUseApp.mockReturnValue({ ...app, isPwaPresentation: true });
 
     render(<WalletRuntimeProviders analyticsIdentity={false}>App</WalletRuntimeProviders>);
 
     expect(mockAppKitProvider.mock.calls[0]?.[0].metadata).not.toHaveProperty("redirect");
   });
+});
+
+it("uses Openfort for wallet sign-in on the public website", () => {
+  vi.clearAllMocks();
+  mockUseApp.mockReturnValue({ isPwaPresentation: false });
+  render(
+    <PublicWalletRuntimeProviders analyticsIdentity={false}>Website</PublicWalletRuntimeProviders>
+  );
+  expect(mockOpenfortProvider).toHaveBeenCalledOnce();
+  expect(mockAppKitProvider).not.toHaveBeenCalled();
 });
 
 describe("PwaStartupReadySignal", () => {

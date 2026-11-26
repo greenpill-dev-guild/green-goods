@@ -4,6 +4,7 @@
  * recovered through the agent, and that nothing signs as the wrong person on a shared phone.
  */
 
+import type { Storage as OpenfortStorage } from "@openfort/openfort-js";
 import { keccak256, recoverMessageAddress, toHex, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +15,8 @@ const sdk = vi.hoisted(() => ({
   state: 1,
   calls: [] as string[],
   configure: vi.fn(),
+  verifiedSession: null as { userId: string; email: string; token: string } | null,
+  authKey: "project1.openfort.authentication",
 }));
 
 vi.mock("@openfort/openfort-js", () => ({
@@ -22,8 +25,18 @@ vi.mock("@openfort/openfort-js", () => ({
   RecoveryMethod: { AUTOMATIC: "automatic" },
   EmbeddedState: { UNAUTHENTICATED: 1, EMBEDDED_SIGNER_NOT_CONFIGURED: 2, READY: 4 },
   Openfort: class {
+    private readonly storage?: OpenfortStorage;
+    constructor(options?: { overrides?: { storage?: OpenfortStorage } }) {
+      this.storage = options?.overrides?.storage;
+    }
     getAccessToken = async () => sdk.token;
     auth = {
+      storeCredentials: async ({ userId, token }: { userId: string; token: string }) => {
+        // Openfort JS 2.6.4 URL-encodes credentials passed through the OAuth handoff API.
+        const value = JSON.stringify({ type: "session", userId, token: encodeURIComponent(token) });
+        if (this.storage) this.storage.save(sdk.authKey, value);
+        else localStorage.setItem(sdk.authKey, value);
+      },
       logout: async () => {
         sdk.calls.push("logout");
         sdk.token = null;
@@ -32,13 +45,28 @@ vi.mock("@openfort/openfort-js", () => ({
         sdk.calls.push(`requestEmailOtp:${email}:${sdk.token ? "while-signed-in" : "signed-out"}`);
       },
     };
+    user = {
+      get: async () => {
+        const stored = this.storage
+          ? await this.storage.get(sdk.authKey)
+          : localStorage.getItem(sdk.authKey);
+        const verified = sdk.verifiedSession;
+        if (!stored || !verified || JSON.parse(stored).token !== verified.token) {
+          throw new Error("Session expired or revoked");
+        }
+        return { id: verified.userId, email: verified.email };
+      },
+    };
     embeddedWallet = { configure: sdk.configure };
   },
 }));
 
 vi.mock("../../config/openfort", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../config/openfort")>()),
-  getOpenfortKeys: () => ({ publishableKey: "pk_test", shieldPublishableKey: "shield_pk" }),
+  getOpenfortKeys: () => ({
+    publishableKey: "pk_test_project1",
+    shieldPublishableKey: "shield_pk",
+  }),
   getOpenfortRecoveryUrl: () => "https://agent.test/public/auth/openfort/recovery-session",
 }));
 
@@ -117,6 +145,7 @@ beforeEach(() => {
   localStorage.clear();
   sdk.token = null;
   sdk.calls = [];
+  sdk.verifiedSession = null;
   sdk.configure.mockReset();
 });
 afterEach(() => {
@@ -125,6 +154,45 @@ afterEach(() => {
 });
 
 describe("email sign-in", () => {
+  it("opens the same sponsored account after the mobile sheet verifies the email", async () => {
+    const acceptEmailSession = vi.fn(async () => {});
+    const wallet = fakeWallet({ acceptEmailSession });
+    const session = { email: " Gardener@Example.com ", userId: "user-1", token: "test-token" };
+
+    const opened = await run(services(wallet).authenticateOpenfort, {
+      session,
+      chainId: CHAIN_ID,
+    });
+
+    expect(acceptEmailSession).toHaveBeenCalledWith({ ...session, email: "gardener@example.com" });
+    expect(wallet.verifyCode).not.toHaveBeenCalled();
+    expect(opened).toMatchObject({
+      smartAccountAddress: ACCOUNT,
+      userName: "gardener@example.com",
+    });
+    expect(getStoredOpenfortAccount()).toMatchObject({
+      smartAccountAddress: ACCOUNT,
+      email: "gardener@example.com",
+    });
+  });
+
+  it("clears a refused mobile email session before it can open a wallet", async () => {
+    const error = new Error("Email mismatch");
+    const wallet = fakeWallet({
+      acceptEmailSession: vi.fn().mockRejectedValue(error),
+    });
+
+    await expect(
+      run(services(wallet).authenticateOpenfort, {
+        session: { email: "gardener@example.com", userId: "user-1", token: "test-token" },
+        chainId: CHAIN_ID,
+      })
+    ).rejects.toThrow(error);
+    expect(wallet.configureWallet).not.toHaveBeenCalled();
+    expect(wallet.signOut).toHaveBeenCalledOnce();
+    expect(getStoredOpenfortAccount()).toBeNull();
+  });
+
   it("verifies the code, recovers the wallet and keeps a record of whose account opened", async () => {
     const wallet = fakeWallet();
     const session = await run<any>(services(wallet).authenticateOpenfort, signIn);
@@ -307,7 +375,7 @@ describe("email sign-in", () => {
 
 describe("the Openfort owner", () => {
   it("signs a raw hash the way the Kernel validator checks it", async () => {
-    const owner = createOpenfortOwner(fakeWallet(), OWNER_ADDRESS, CHAIN_ID);
+    const owner = createOpenfortOwner(fakeWallet(), OWNER_ADDRESS);
     const raw = keccak256(toHex("user operation"));
     const signature = await owner.signMessage({ message: { raw } });
     expect(await recoverMessageAddress({ message: { raw }, signature })).toBe(OWNER.address);
@@ -315,15 +383,15 @@ describe("the Openfort owner", () => {
 
   it("recovers a lost signer before signing, and refuses to sign as anyone else", async () => {
     const lost = fakeWallet({ currentOwnerAddress: vi.fn(async () => null) });
-    await createOpenfortOwner(lost, OWNER_ADDRESS, CHAIN_ID).signMessage({ message: "hello" });
-    expect(lost.configureWallet).toHaveBeenCalledWith(CHAIN_ID);
+    await createOpenfortOwner(lost, OWNER_ADDRESS).signMessage({ message: "hello" });
+    expect(lost.configureWallet).toHaveBeenCalledWith();
 
     const someoneElse = privateKeyToAccount(generatePrivateKey()).address as Hex;
     const switched = fakeWallet({
       currentOwnerAddress: vi.fn(async (): Promise<Hex | null> => someoneElse),
     });
     await expect(
-      createOpenfortOwner(switched, OWNER_ADDRESS, CHAIN_ID).signMessage({ message: "hello" })
+      createOpenfortOwner(switched, OWNER_ADDRESS).signMessage({ message: "hello" })
     ).rejects.toBeInstanceOf(OpenfortOwnerMismatchError);
     expect(switched.signMessage).not.toHaveBeenCalled();
   });
@@ -336,19 +404,34 @@ describe("the Openfort wallet adapter", () => {
     expect(sdk.calls).toEqual(["logout", "requestEmailOtp:next@example.com:signed-out"]);
   });
 
-  it("asks the agent for a single-use recovery session with the person's own Openfort session", async () => {
+  it("preserves the verified email token through the SDK handoff", async () => {
+    const session = {
+      email: "gardener@example.com",
+      userId: "user-1",
+      token: "session.synthetic%2B%2F%3D",
+    };
+    sdk.verifiedSession = session;
+
+    await expect(defaultOpenfortWallet.acceptEmailSession?.(session)).resolves.toBeUndefined();
+    expect(JSON.parse(localStorage.getItem(sdk.authKey) ?? "{}")).toEqual({
+      type: "session",
+      userId: session.userId,
+      token: session.token,
+    });
+  });
+
+  it("configures a chain-independent wallet using a recovery session for the signed-in user", async () => {
     sdk.token = "person-token";
     const fetchMock = vi.fn(async () => Response.json({ ok: true, session: "encryption-session" }));
     vi.stubGlobal("fetch", fetchMock);
     sdk.configure.mockResolvedValue({ address: OWNER.address });
 
-    await expect(defaultOpenfortWallet.configureWallet(CHAIN_ID)).resolves.toBe(OWNER.address);
+    await expect(defaultOpenfortWallet.configureWallet()).resolves.toBe(OWNER.address);
     expect(fetchMock).toHaveBeenCalledWith(
       "https://agent.test/public/auth/openfort/recovery-session",
       expect.objectContaining({ method: "POST", headers: { authorization: "Bearer person-token" } })
     );
     expect(sdk.configure).toHaveBeenCalledWith({
-      chainId: CHAIN_ID,
       chainType: "EVM",
       accountType: "Externally Owned Account",
       recoveryParams: { recoveryMethod: "automatic", encryptionSession: "encryption-session" },
@@ -366,7 +449,7 @@ describe("the Openfort wallet adapter", () => {
         )
       )
     );
-    await expect(defaultOpenfortWallet.configureWallet(CHAIN_ID)).rejects.toMatchObject({
+    await expect(defaultOpenfortWallet.configureWallet()).rejects.toMatchObject({
       reason: "provider_unavailable",
     });
     expect(sdk.configure).not.toHaveBeenCalled();

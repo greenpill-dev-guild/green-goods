@@ -1,13 +1,11 @@
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { HUB_URL } from "@green-goods/shared/config/app";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
   createQueryPersistence,
   createShouldDehydrateQuery,
 } from "@green-goods/shared/config/query-persistence";
 import { queryClient } from "@green-goods/shared/config/react-query";
-import { AppKitProvider } from "@green-goods/shared/providers/AppKitProvider";
-import { AuthGate } from "@green-goods/shared/providers/AuthGate";
+import { OpenfortWalletProvider } from "@green-goods/shared/providers/OpenfortWalletProvider";
 import {
   attachQueryPersistence,
   QueryPersistenceProvider,
@@ -54,7 +52,7 @@ export default function AdminRoot({
   return (
     <QueryPersistenceProvider client={queryClient} persistence={persistence}>
       <ErrorBoundary context="AdminApp">
-        <AppKitProvider
+        <OpenfortWalletProvider
           projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
           metadata={{
             name: "Green Goods Hub",
@@ -62,18 +60,13 @@ export default function AdminRoot({
             url: adminAppUrl,
             icons: [adminIconUrl],
           }}
-          defaultChainId={DEFAULT_CHAIN_ID}
-          fontFamily={'"Plus Jakarta Sans", system-ui, sans-serif'}
         >
-          {/* AuthGate: uses DevAuthProvider when ?mockAuth= param is present in dev, else real AuthProvider */}
-          <AuthGate>
-            <AdminStartupConnect requested={connectWalletOnReady}>
-              <Suspense fallback={<BootShell />}>
-                <AdminWorkspace onReady={onWorkspaceReady} />
-              </Suspense>
-            </AdminStartupConnect>
-          </AuthGate>
-        </AppKitProvider>
+          <AdminStartupConnect requested={connectWalletOnReady}>
+            <Suspense fallback={<BootShell />}>
+              <AdminWorkspace onReady={onWorkspaceReady} />
+            </Suspense>
+          </AdminStartupConnect>
+        </OpenfortWalletProvider>
       </ErrorBoundary>
     </QueryPersistenceProvider>
   );
