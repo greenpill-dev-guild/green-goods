@@ -205,6 +205,31 @@ describe("PublicInstallAction", () => {
     );
   });
 
+  // PUB-049: a desktop visitor can also take the link to their phone by copying it.
+  it("copies the app link from the desktop QR sheet and says it did", async () => {
+    Object.defineProperty(window, "isSecureContext", { value: true, configurable: true });
+    const write = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    render(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: {}, onError: () => {} },
+        createElement(PublicInstallDialog, {
+          open: true,
+          mode: "desktopQr",
+          launchUrl: "https://www.greengoods.app/?install=1",
+          guidance: mockUseInstallGuidance(),
+          onOpenChange: vi.fn(),
+        })
+      )
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Copy Link" }));
+    await waitFor(() =>
+      expect(write).toHaveBeenCalledWith("https://www.greengoods.app/?install=1")
+    );
+    expect(await screen.findByRole("button", { name: "Link copied" })).toBeInTheDocument();
+    write.mockRestore();
+  });
+
   it("intercepts the install tap on Brave/Android and surfaces the Chrome dialog", () => {
     mockUseIsBraveBrowser.mockReturnValue(true);
     mockUseApp.mockReturnValue({

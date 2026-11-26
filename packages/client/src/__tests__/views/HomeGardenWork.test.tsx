@@ -107,6 +107,7 @@ vi.mock("../../views/Home/Garden/WorkViewSection", () => ({
       "div",
       { "data-testid": "work-view-mode" },
       String(props.viewingMode ?? ""),
+      props.notice as React.ReactNode,
       props.fulfills as React.ReactNode,
       props.footer as React.ReactNode
     );
@@ -657,6 +658,159 @@ describe("Home garden work detail", () => {
     expect(screen.getByTestId("work-approval-action-bar")).toHaveClass(
       "rounded-t-[var(--radius-lg)]"
     );
+  });
+
+  it("tells a garden's only steward that their own pending work needs another steward", () => {
+    const steward = "0x3333333333333333333333333333333333333333";
+    const renderOwnWork = (garden: { stewards: string[]; owners: string[] } | undefined) => {
+      mockUseUser.mockReturnValue({ user: { id: steward }, smartAccountClient: null });
+      mockUseWorkDetailController.mockReturnValue({
+        ...mockUseWorkDetailController(),
+        viewingMode: "steward",
+        garden: garden ? { id: "garden-1", evaluators: [], ...garden } : undefined,
+        work: {
+          id: "0xwork",
+          actionUID: "1",
+          gardenerAddress: steward,
+          status: "pending",
+          createdAt: Date.now(),
+          media: [],
+        },
+      });
+      return render(
+        createElement(
+          MemoryRouter,
+          { initialEntries: ["/home/garden-1/work/0xwork"] },
+          createElement(
+            IntlProvider,
+            { locale: "en", messages: {}, onError: () => {} },
+            createElement(
+              Routes,
+              null,
+              createElement(Route, {
+                path: "/home/:id/work/:workId",
+                element: createElement(GardenWork),
+              })
+            )
+          )
+        )
+      );
+    };
+
+    // The contract refuses an approval from the work's own submitter, and nobody else here may
+    // review, so the page says what to do instead of offering acts the chain would refuse.
+    const sole = renderOwnWork({
+      stewards: [steward.toUpperCase().replace("0X", "0x")],
+      owners: [],
+    });
+    expect(screen.getByText("app.work.detail.soleReviewer.title")).toBeInTheDocument();
+    expect(screen.getByText("app.work.detail.soleReviewer.body")).toBeInTheDocument();
+    expect(screen.queryByTestId("work-approval-action-bar")).toBeNull();
+    sole.unmount();
+
+    // An owner reviews work too (`isOperator` reads stewards and owners): that reviewer decides it,
+    // so the page says so the way the Hub does, still with no acts the chain would refuse
+    // (PRD-1617, `SelfAttestation`).
+    const withOwner = renderOwnWork({
+      stewards: [steward],
+      owners: ["0x4444444444444444444444444444444444444444"],
+    });
+    expect(screen.queryByText("app.work.detail.soleReviewer.title")).toBeNull();
+    expect(screen.getByText("app.work.detail.reviewBlocked.selfReviewTitle")).toBeInTheDocument();
+    expect(screen.queryByTestId("work-approval-action-bar")).toBeNull();
+    withOwner.unmount();
+    renderOwnWork({
+      stewards: [steward, "0x5555555555555555555555555555555555555555"],
+      owners: [steward],
+    });
+    expect(screen.queryByText("app.work.detail.soleReviewer.title")).toBeNull();
+    expect(screen.getByText("app.work.detail.reviewBlocked.selfReviewMessage")).toBeInTheDocument();
+    expect(screen.queryByTestId("work-approval-action-bar")).toBeNull();
+  });
+
+  it("holds a steward's own work without a notice until its garden says who else reviews", () => {
+    const steward = "0x3333333333333333333333333333333333333333";
+    mockUseUser.mockReturnValue({ user: { id: steward }, smartAccountClient: null });
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      viewingMode: "steward",
+      garden: undefined,
+      work: {
+        id: "0xwork",
+        actionUID: "1",
+        gardenerAddress: steward,
+        status: "pending",
+        createdAt: Date.now(),
+        media: [],
+      },
+    });
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/0xwork"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {}, onError: () => {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+    expect(screen.queryByTestId("work-approval-action-bar")).toBeNull();
+    expect(screen.queryByText("app.work.detail.reviewBlocked.selfReviewTitle")).toBeNull();
+    expect(screen.queryByText("app.work.detail.soleReviewer.title")).toBeNull();
+  });
+
+  it("still offers another steward Approve and Reject on a steward's pending work", () => {
+    const submitter = "0x3333333333333333333333333333333333333333";
+    mockUseUser.mockReturnValue({
+      user: { id: "0x5555555555555555555555555555555555555555" },
+      smartAccountClient: null,
+    });
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      viewingMode: "steward",
+      garden: {
+        id: "garden-1",
+        evaluators: [],
+        owners: [],
+        stewards: [submitter, "0x5555555555555555555555555555555555555555"],
+      },
+      work: {
+        id: "0xwork",
+        actionUID: "1",
+        gardenerAddress: submitter,
+        status: "pending",
+        createdAt: Date.now(),
+        media: [],
+      },
+    });
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/0xwork"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {}, onError: () => {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+    expect(screen.getByTestId("work-approval-action-bar")).toBeInTheDocument();
+    expect(screen.queryByText("app.work.detail.reviewBlocked.selfReviewTitle")).toBeNull();
   });
 
   it("joins rejection feedback and actions into one reachable surface", () => {

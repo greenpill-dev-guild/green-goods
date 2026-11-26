@@ -27,7 +27,9 @@ import {
   overlayDeadline,
 } from "../../modules/work/local-status-overlay";
 import {
+  ApprovalAlreadyDecidedError,
   ApprovalConnectionUnconfirmedError,
+  ApprovalDecisionUnreadError,
   createDefaultSubmitApprovalPorts,
   submitApproval,
   type SubmitApprovalOutcome,
@@ -51,6 +53,20 @@ import {
 interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
   work: Work;
+  /**
+   * Asked once more as the send starts, before anything is signed, queued or shown as decided:
+   * false when the work can no longer be decided (its status turned unknown or decided while the
+   * decision was being prepared).
+   */
+  stillDecidable?: () => boolean;
+}
+
+/** Nothing was signed or sent: the work could no longer be decided when the send began. */
+class DecisionWithdrawnError extends Error {
+  constructor() {
+    super("This work can no longer be decided here.");
+    this.name = "DecisionWithdrawnError";
+  }
 }
 
 interface UseWorkApprovalDependencies {
@@ -156,17 +172,21 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
 
   const reportApprovalError = useCallback(
     (error: unknown, completion: WorkApprovalCompletion) => {
-      // Refused before the wallet was asked: nothing was signed or sent.
-      if (error instanceof ApprovalConnectionUnconfirmedError) {
-        toastService.info({
-          id: "approval-submit",
-          title: formatMessage({ id: "app.offline.degraded" }),
-          message: formatMessage({ id: "app.approval.connectionUnconfirmed" }),
-          context: "approval submission",
-          suppressLogging: true,
-        });
+      // Withdrawn before anything was signed or shown: the review form already says why, and the
+      // shared toast may still belong to another decision, so it is left alone.
+      if (error instanceof DecisionWithdrawnError) return;
+      // The chain already has this work decided: nothing was sent, and the reads catch up.
+      if (error instanceof ApprovalAlreadyDecidedError) {
+        approvalToasts.alreadyReviewed();
+        refreshApprovalReads(queryClient, chainId, completion, true);
         return;
       }
+      // The chain could not say whether the work is still waiting: nothing was signed or sent.
+      if (error instanceof ApprovalDecisionUnreadError)
+        return void approvalToasts.decisionUnread(error);
+      // Refused before the wallet was asked: nothing was signed or sent.
+      if (error instanceof ApprovalConnectionUnconfirmedError)
+        return void approvalToasts.connectionUnconfirmed();
       if (isCancelledTxError(error)) {
         toastService.error({
           id: "approval-submit",
@@ -211,7 +231,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         },
       });
     },
-    [authMode, chainId, formatMessage]
+    [approvalToasts, authMode, chainId, formatMessage, queryClient]
   );
 
   const onLifecycleConfirmed = useCallback(
@@ -295,7 +315,10 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
     },
     onMutate: async (variables) => {
       if (!variables) return;
-      const { draft, work } = variables;
+      const { draft, work, stillDecidable } = variables;
+      // Asked before anything starts: no wallet, no event, and no optimistic status of this
+      // steward's own, which the form would otherwise read as the work being decided already.
+      if (stillDecidable && !stillDecidable()) throw new DecisionWithdrawnError();
       trackWorkApprovalStarted({
         workUID: draft.workUID,
         gardenAddress: work.gardenAddress,
@@ -440,8 +463,17 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         gardenId: variables.work.gardenAddress,
         workUID: variables.draft.workUID,
       };
-      if (isCancelledTxError(error)) lifecycle.cancel();
-      else lifecycle.fail();
+      // A withdrawn decision began nothing, so it leaves the lifecycle, and any earlier
+      // decision it still holds, as it was.
+      if (!(error instanceof DecisionWithdrawnError)) {
+        if (
+          isCancelledTxError(error) ||
+          error instanceof ApprovalAlreadyDecidedError ||
+          error instanceof ApprovalDecisionUnreadError
+        ) {
+          lifecycle.cancel();
+        } else lifecycle.fail();
+      }
       decisionCacheRef.current = null;
       reportApprovalError(error, completion);
     },

@@ -1,5 +1,4 @@
-import { matchedUsdcLegs, rewardUsdcToken } from "@green-goods/shared/commitment-pooling";
-import { getRewardPayerDeployment } from "@green-goods/shared/utils/blockchain/contracts";
+import { gardenRewardPayment, matchedUsdcLegs } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import {
@@ -91,9 +90,9 @@ export function SeedCommitmentDialog({
   const protocolContext = pool.pool?.poolType === "PROTOCOL";
   const protocolPool = useProtocolPool({ chainId });
   const settlement = useSettlementAccount({ chainId, garden });
-  // A USDC part is offered only where the app can pay it: USDC on this chain and the payer deployed.
-  const usdcMatchAvailable =
-    rewardUsdcToken(chainId) !== null && getRewardPayerDeployment(chainId) !== null;
+  // A USDC part is offered only where this garden can pay it: USDC on this chain, the payer
+  // recorded, and the garden's Safe recorded there to hold and pay the USDC.
+  const usdcMatchAvailable = gardenRewardPayment(chainId, garden) !== null;
   const { data: actions = [] } = useActions(chainId);
   const { data: gardens } = useGardens(chainId);
   const [windowNow, setWindowNow] = useState(() => Date.now());

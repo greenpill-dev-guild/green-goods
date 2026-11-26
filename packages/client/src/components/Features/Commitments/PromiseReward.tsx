@@ -1,9 +1,10 @@
 import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
+  type DueClock,
+  isOpenToTakeUp,
   promiseRewardLegsOf,
   type RewardLeg,
   type RewardShareState,
-  rewardShareSettled,
   usePromiseRewardShares,
   useRewardShareTransaction,
 } from "@green-goods/shared/commitment-pooling";
@@ -53,8 +54,8 @@ const WEI_PER_GOOD_DOLLAR = 10n ** 18n;
 
 /**
  * A promise's reward, or null when it carries none: its G$ part paid through
- * settlement, and the parts declared at Create to be paid from the steward's
- * wallet. An external payout record on its own is not shown here.
+ * settlement, and the parts declared at Create to be paid from the paying
+ * garden's Safe. An external payout record on its own is not shown here.
  */
 export function promiseRewardOf(
   commitment: RewardRecord,
@@ -63,7 +64,7 @@ export function promiseRewardOf(
   const read = promiseRewardLegsOf(commitment, metadata);
   if (!read) return null;
   const goodDollar = read.legs.find((leg) => leg.rail === "celo-settlement");
-  const others = read.legs.filter((leg) => leg.rail === "steward-wallet");
+  const others = read.legs.filter((leg) => leg.rail === "garden-safe");
   return {
     wei: goodDollar?.amount ?? 0n,
     centsAsSet: goodDollar?.usdCentsAsSet ?? null,
@@ -79,14 +80,22 @@ function rewardKey(reward: PromiseReward): string {
   );
 }
 
-/** Where one promise's payout stands: settlement can pay it only once it is kept. */
+/**
+ * Where one promise's payout stands: settlement can pay it only once it is kept. A promise
+ * that ended unkept, cancelled or expired, or an untaken one past its due date, which anyone
+ * may expire, will never be kept, so its reward reads as the amount alone.
+ */
 export function promisePayoutOf(
-  commitment: Pick<CommitmentReadModel, "derivedState" | "considerationPaid">
+  commitment: Pick<CommitmentReadModel, "derivedState" | "considerationPaid">,
+  options: { pastDue?: boolean } = {}
 ): RewardPayout {
   if (commitment.considerationPaid === true) return "paid";
-  return commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED"
-    ? "notPaidYet"
-    : "afterKept";
+  const { derivedState } = commitment;
+  if (derivedState === "FULFILLED" || derivedState === "RECONCILED") return "notPaidYet";
+  if (derivedState === "CANCELLED" || derivedState === "EXPIRED" || options.pastDue) {
+    return "unstated";
+  }
+  return "afterKept";
 }
 
 interface GroupRewards {
@@ -98,13 +107,19 @@ interface GroupRewards {
 /**
  * The rewards on the copies of a group a member could still take up: one
  * amount, unless an Edit Reward stopped part way. With none left to take up,
- * every copy's, for what each one carried.
+ * every copy's, for what each one carried. On the chain's clock a copy past
+ * due is not one to take up (`isOpenToTakeUp`, as `pickCopyToTakeUp` reads it);
+ * while the due dates are unread (`clock` null), the chain's state stands.
  */
 export function groupRewardsOf(
-  copies: readonly (RewardRecord & Pick<CommitmentReadModel, "onchainState">)[],
-  metadata: RewardMetadata
+  copies: readonly (RewardRecord &
+    Pick<CommitmentReadModel, "onchainState" | "derivedState" | "dueDate" | "cycleId">)[],
+  metadata: RewardMetadata,
+  clock: DueClock | null
 ): GroupRewards {
-  const available = copies.filter((copy) => displayBucketOf(copy.onchainState) === "available");
+  const available = copies.filter((copy) =>
+    clock ? isOpenToTakeUp(copy, clock) : displayBucketOf(copy.onchainState) === "available"
+  );
   const byKey = new Map<string, PromiseReward>();
   for (const copy of available.length > 0 ? available : copies) {
     const reward = promiseRewardOf(copy, metadata);
@@ -281,7 +296,6 @@ const PART_MESSAGE_ID = {
   afterKept: "app.commitment.reward.part.afterKept",
   notPaidYet: "app.commitment.reward.part.notPaidYet",
   paid: "app.commitment.reward.part.paid",
-  own: "app.commitment.reward.part.own",
   unknown: "app.commitment.reward.part.goodDollars",
 } as const;
 
@@ -298,18 +312,16 @@ export function rewardLinePayout(
 }
 
 /**
- * One wallet-paid part's row: its amount, network and where it stands. A reader
- * the split pays sees their own share and its transaction once paid; a steward
- * reads their own unpaid share as theirs, since the payer never pays one to oneself.
- * Anyone else sees the part as paid only when every share is settled. Until the
- * plan and the payer have answered, or when either read fails, the row names
- * the amount and network only.
+ * One Safe-paid part's row: its amount, network and where it stands. A reader
+ * the split pays sees their own share and its transaction once the garden's Safe
+ * has paid it. Anyone else sees the part as paid only when every share is paid.
+ * Until the plan and the payer have answered, or when either read fails, the row
+ * names the amount and network only.
  */
 function RewardPartRow({
   leg,
   shares,
   viewer,
-  stewards,
   payout,
   network,
   unknown,
@@ -317,7 +329,6 @@ function RewardPartRow({
   leg: RewardLeg;
   shares: readonly RewardShareState[];
   viewer: Address | null;
-  stewards: readonly Address[];
   payout: RewardPayout;
   network: string;
   /** The reads behind the state haven't answered, or failed. */
@@ -329,29 +340,22 @@ function RewardPartRow({
   const own = viewer
     ? ofLeg.find((share) => share.recipient.toLowerCase() === viewer.toLowerCase())
     : undefined;
-  // A steward's unpaid share is theirs to keep, before and after they pay everyone else's.
-  const ownKept =
-    own !== undefined &&
-    !own.paidBy &&
-    (stewards.some((steward) => steward.toLowerCase() === viewer?.toLowerCase()) ||
-      rewardShareSettled(own, ofLeg));
   const paid = own
     ? Boolean(own.paidBy)
-    : ofLeg.length > 0 && ofLeg.every((share) => rewardShareSettled(share, ofLeg));
+    : ofLeg.length > 0 && ofLeg.every((share) => Boolean(share.paidBy));
   const transaction = useRewardShareTransaction({
     chainId: leg.chainId,
     shareId: own?.paidBy ? own.shareId : null,
   });
+  // A promise that will never be kept names the amount alone, as its reward does (PRD-1370).
   const state =
     payout === "afterKept"
       ? "afterKept"
-      : unknown
+      : unknown || payout === "unstated"
         ? "unknown"
-        : ownKept
-          ? "own"
-          : paid
-            ? "paid"
-            : "notPaidYet";
+        : paid
+          ? "paid"
+          : "notPaidYet";
   const amount = formatMessage(
     { id: "app.commitment.reward.tokenAmount" },
     {
@@ -383,7 +387,7 @@ function RewardPartRow({
 
 /**
  * Each part of a reward paid in more than one token, as its own row: the token,
- * the network it is paid on, and where it stands (PRD-1556). Wallet-paid shares
+ * the network it is paid on, and where it stands (PRD-1556). Safe-paid shares
  * are computed from the promise's G$ payout plan, the same way the steward's Hub
  * computes them, and read from the reward payer. The G$ part's row says it is due
  * once kept; after that its delivery is shown by the wallet's settlement receipts,
@@ -394,15 +398,12 @@ export function PromiseRewardParts({
   chainId,
   commitmentId,
   viewer,
-  stewards = [],
   payout,
 }: {
   reward: PromiseReward;
   chainId: number;
   commitmentId: bigint;
   viewer: Address | null;
-  /** The paying garden's stewards, whose own share is never sent to them. */
-  stewards?: readonly Address[];
   payout: RewardPayout;
 }) {
   const intl = useIntl();
@@ -412,7 +413,8 @@ export function PromiseRewardParts({
     chainId,
     commitmentId,
     legs: others,
-    enabled: others.length > 0 && payout !== "afterKept",
+    // Shares are paid only once a promise is kept: one that ended unkept has none to read.
+    enabled: others.length > 0 && payout !== "afterKept" && payout !== "unstated",
   });
   if (others.length === 0) return null;
   const network = (id: number) => getChain(id)?.name ?? String(id);
@@ -440,7 +442,6 @@ export function PromiseRewardParts({
           leg={leg}
           shares={shares}
           viewer={viewer}
-          stewards={stewards}
           payout={payout}
           network={network(leg.chainId)}
           unknown={isReading || readFailed}

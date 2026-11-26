@@ -112,6 +112,15 @@ describe("useTransactionSender ownership", () => {
     );
   });
 
+  it("checks an email account's queued job against its smart account, never a wallet", async () => {
+    mocks.user = { ...mocks.user, authMode: "openfort" };
+    const { result } = renderHook(() => useTransactionSender());
+    await expect(result.current!.assertOwnership!(account, 42220)).resolves.toBeUndefined();
+    expect(mocks.resolver).toHaveBeenCalledWith(42220);
+    expect(mocks.account).not.toHaveBeenCalled();
+    expect(mocks.created).toHaveBeenCalledWith(expect.objectContaining({ authMode: "openfort" }));
+  });
+
   it("rejects an unsupported chain before resolving a client", async () => {
     const { result } = renderHook(() => useTransactionSender());
     await expect(result.current!.assertOwnership!(account, 123456)).rejects.toThrow(

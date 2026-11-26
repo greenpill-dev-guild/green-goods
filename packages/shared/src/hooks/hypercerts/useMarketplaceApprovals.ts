@@ -72,6 +72,11 @@ export interface UseMarketplaceApprovalsResult {
   signatures: number | null;
 }
 
+/** A press's one read of the approvals: the calls still missing, or why the read failed. */
+type ApprovalRead =
+  | { txs: Awaited<ReturnType<typeof buildApprovalTransactions>> }
+  | { error: unknown };
+
 interface ApprovalSend {
   step: MarketplaceApprovalStep;
   call: ContractCall;
@@ -200,71 +205,89 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
     return "confirming";
   };
 
-  const grantMutation = useMutation({
-    // One act per press, from the first signature to the last approval's receipt (PRD-1571).
-    mutationFn: recordedSendAct(
-      { act: "marketplace_approval", authMode: sender?.authMode, chainId },
-      async (): Promise<HeldOrSent> => {
-        if (!steward || !sender)
-          throw new Error(
-            formatMessage({
-              id: !steward ? "app.account.signInRequired" : "app.account.signerNotReady",
-            })
-          );
-        if (!scope || !store().begin(scope)) return "held";
-        try {
-          await sender.assertOwnership?.(steward, chainId);
-          const txs = await buildApprovalTransactions(steward, chainId);
-          const sends = (
-            [
-              ["exchangeApproved", txs.grantExchange],
-              ["minterApproved", txs.approveMinter],
-            ] as const
-          ).flatMap(([step, call]): ApprovalSend[] =>
-            call ? [{ step, call: { ...call, account: steward, chainId } }] : []
-          );
-          const budget = route.rail ? marketplaceApprovalBudget(route.rail, chainId) : null;
-          if (sends.length > 1 && together && budget)
-            return await grantTogether(scope, steward, sends, budget);
-          // The second approval starts only after the first has confirmed.
-          for (const { step, call } of sends) {
-            const record: MarketplacePendingSubmission = { kind: "approval", steps: [step] };
-            try {
-              const result = await sender.sendContractCall(call, {
-                assertOwnership: () => sender.assertOwnership?.(steward, chainId),
-                onBeforeBroadcast: async (reference) => {
-                  store().checkpoint(scope, { ...record, reference });
-                },
-                onBroadcastReference: async (reference) => {
-                  store().checkpoint(scope, { ...record, reference });
-                },
+  // One act per press, from the first signature to the last approval's receipt (PRD-1571).
+  const recordedGrant = recordedSendAct(
+    { act: "marketplace_approval", authMode: sender?.authMode, chainId },
+    async (read: ApprovalRead | undefined): Promise<HeldOrSent> => {
+      if (!steward || !sender)
+        throw new Error(
+          formatMessage({
+            id: !steward ? "app.account.signInRequired" : "app.account.signerNotReady",
+          })
+        );
+      if (!scope || !store().begin(scope)) return "held";
+      try {
+        await sender.assertOwnership?.(steward, chainId);
+        // The press's read failed: the act records that ending.
+        if (read && "error" in read) throw read.error;
+        const txs = read?.txs ?? (await buildApprovalTransactions(steward, chainId));
+        const sends = (
+          [
+            ["exchangeApproved", txs.grantExchange],
+            ["minterApproved", txs.approveMinter],
+          ] as const
+        ).flatMap(([step, call]): ApprovalSend[] =>
+          call ? [{ step, call: { ...call, account: steward, chainId } }] : []
+        );
+        const budget = route.rail ? marketplaceApprovalBudget(route.rail, chainId) : null;
+        if (sends.length > 1 && together && budget)
+          return await grantTogether(scope, steward, sends, budget);
+        // The second approval starts only after the first has confirmed.
+        for (const { step, call } of sends) {
+          const record: MarketplacePendingSubmission = { kind: "approval", steps: [step] };
+          try {
+            const result = await sender.sendContractCall(call, {
+              assertOwnership: () => sender.assertOwnership?.(steward, chainId),
+              onBeforeBroadcast: async (reference) => {
+                store().checkpoint(scope, { ...record, reference });
+              },
+              onBroadcastReference: async (reference) => {
+                store().checkpoint(scope, { ...record, reference });
+              },
+            });
+            if (result.confirmation === "pending") {
+              store().checkpoint(scope, {
+                ...record,
+                reference: { kind: "transaction", hash: result.hash },
               });
-              if (result.confirmation === "pending") {
-                store().checkpoint(scope, {
-                  ...record,
-                  reference: { kind: "transaction", hash: result.hash },
-                });
-                return "confirming";
-              }
-              store().clear(scope);
-            } catch (error) {
-              if (
-                error instanceof TransactionRevertedError ||
-                error instanceof TransactionReplacementError ||
-                ((isCancelledTxError(error) || refusedForWalletNetwork(error)) &&
-                  !store().pending[scope]?.reference)
-              )
-                store().clear(scope);
-              throw error;
+              return "confirming";
             }
+            store().clear(scope);
+          } catch (error) {
+            if (
+              error instanceof TransactionRevertedError ||
+              error instanceof TransactionReplacementError ||
+              ((isCancelledTxError(error) || refusedForWalletNetwork(error)) &&
+                !store().pending[scope]?.reference)
+            )
+              store().clear(scope);
+            throw error;
           }
-          return "confirmed";
-        } finally {
-          store().finish(scope);
         }
-      },
-      heldOrSentEnding
-    ),
+        return "confirmed";
+      } finally {
+        store().finish(scope);
+      }
+    },
+    heldOrSentEnding
+  );
+
+  const grantMutation = useMutation({
+    mutationFn: async (): Promise<HeldOrSent> => {
+      // One fresh read per press. When it finds both approvals already granted the press sends
+      // nothing, so it records no act (PRD-1561); a read that failed is rethrown inside the
+      // recorded run, which records how it ended.
+      const read =
+        steward && sender
+          ? await buildApprovalTransactions(steward, chainId).then(
+              (txs): ApprovalRead => ({ txs }),
+              (error: unknown): ApprovalRead => ({ error })
+            )
+          : undefined;
+      if (read && "txs" in read && !read.txs.grantExchange && !read.txs.approveMinter)
+        return "confirmed";
+      return recordedGrant(read);
+    },
     onSuccess: () => {
       const keysToInvalidate = queryInvalidation.invalidateMarketplace();
       for (const key of keysToInvalidate) {

@@ -191,6 +191,13 @@ export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 /** Last wallet address used as the primary app identity. */
 export const WALLET_ADDRESS_STORAGE_KEY = "greengoods_wallet_address";
 
+/**
+ * The open email account (owner, smart account, method and email). Kept
+ * here, not beside its reader in `openfort-account`, so sign-out clears it without loading the
+ * Kernel library.
+ */
+export const OPENFORT_ACCOUNT_STORAGE_KEY = "greengoods_openfort_account";
+
 const WAGMI_STORE_KEY = "wagmi.store";
 
 function readWagmiWalletAddress(storage: SessionStorage): Hex | null {
@@ -280,6 +287,7 @@ export function clearActiveSessionAuth(storage: SessionStorage = localStorage): 
   clearAuthMode(storage);
   clearEmbeddedAddress(storage);
   clearStoredWalletAddress(storage);
+  storage.removeItem(OPENFORT_ACCOUNT_STORAGE_KEY);
   setSignedOutSentinel(storage);
 }
 
@@ -301,6 +309,7 @@ export function clearAllAuth(storage: SessionStorage = localStorage): void {
   storage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   storage.removeItem(EMBEDDED_ADDRESS_KEY);
   storage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
+  storage.removeItem(OPENFORT_ACCOUNT_STORAGE_KEY);
   storage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 
@@ -380,6 +389,7 @@ export function hasSessionRestoreEvidence(storage?: Pick<SessionStorage, "getIte
       PROFILE_ACCOUNTS_STORAGE_KEY,
       EMBEDDED_ADDRESS_KEY,
       WALLET_ADDRESS_STORAGE_KEY,
+      OPENFORT_ACCOUNT_STORAGE_KEY,
       LAST_ACCOUNT_STORAGE_KEY,
       WAGMI_STORE_KEY,
       SIGNED_OUT_STORAGE_KEY,
@@ -392,7 +402,8 @@ export function hasSessionRestoreEvidence(storage?: Pick<SessionStorage, "getIte
 /**
  * The storage a local sign-out clears.
  *
- * Auth mode and the addresses a restore would read back go. Passkey recovery
+ * Auth mode and the addresses a restore would read back go, the email
+ * account's record with them. Passkey recovery
  * metadata stays: the username, credential and expected address are the
  * same-device fallback that powers one-tap re-login. The signed-out sentinel
  * makes it durable, suppressing automatic passkey restore until the next
@@ -402,5 +413,6 @@ export function clearSessionForSignOut(storage: SessionStorage = localStorage): 
   clearAuthMode(storage);
   clearEmbeddedAddress(storage);
   clearStoredWalletAddress(storage);
+  storage.removeItem(OPENFORT_ACCOUNT_STORAGE_KEY);
   setSignedOutSentinel(storage);
 }

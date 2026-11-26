@@ -208,6 +208,48 @@ describe("useMarketplaceApprovals grant", () => {
     expect(sent).not.toContain("0xopaque");
   });
 
+  it("records no act for a press whose fresh read finds both approvals granted (PRD-1561)", async () => {
+    mocks.buildApprovalTransactions.mockResolvedValue({});
+    const { acts } = await captureSendActs(async () => {
+      const { result } = renderHookWithQueryClient(() => useMarketplaceApprovals(), {
+        queryClient,
+      });
+      act(() => result.current.grantApprovals());
+      await waitFor(() => expect(mocks.buildApprovalTransactions).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.isGranting).toBe(false));
+    });
+
+    expect(acts).toEqual([]);
+    expect(mocks.sendTransaction).not.toHaveBeenCalled();
+  });
+
+  it("reads the approvals once per press, and records a read that failed as the act's ending", async () => {
+    const readFailed = new Error("RPC unavailable");
+    const { acts } = await captureSendActs(async () => {
+      const { result } = renderHookWithQueryClient(() => useMarketplaceApprovals(), {
+        queryClient,
+      });
+      act(() => result.current.grantApprovals());
+      await waitFor(() => expect(mocks.sendTransaction).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(result.current.isGranting).toBe(false));
+      // Only the grant's own reads count here; the approvals query reads through its own mock.
+      expect(mocks.buildApprovalTransactions).toHaveBeenCalledTimes(1);
+
+      mocks.buildApprovalTransactions.mockRejectedValueOnce(readFailed);
+      act(() => result.current.grantApprovals());
+      await waitFor(() => expect(mocks.buildApprovalTransactions).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(result.current.isGranting).toBe(false));
+    });
+
+    expect(acts).toEqual([
+      ["send_act_started", "marketplace_approval", undefined],
+      ["send_act_ended", "marketplace_approval", "confirmed"],
+      ["send_act_started", "marketplace_approval", undefined],
+      ["send_act_ended", "marketplace_approval", "failed"],
+    ]);
+    expect(mocks.sendTransaction).toHaveBeenCalledTimes(2);
+  });
+
   it("stops before the second approval when the first has not confirmed", async () => {
     mocks.sendTransaction.mockResolvedValueOnce({
       hash: "0xopaque",

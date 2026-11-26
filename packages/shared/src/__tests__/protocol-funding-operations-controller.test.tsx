@@ -104,6 +104,7 @@ function snapshot(
         amount: 2n,
         state,
         executionKey: null,
+        attempt: 1,
       },
     ],
     executions: [],

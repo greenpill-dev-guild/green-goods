@@ -19,7 +19,11 @@ import { sortByCreatedAt } from "../../utils/time";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
-import { gardenWorkListQuery, workSessionStartedAt } from "./gardenWorkListQuery";
+import {
+  gardenReadThisSession,
+  gardenWorkListQuery,
+  workSessionStartedAt,
+} from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWork } from "./useSendingWork";
 import { useWorkVisibility } from "./useWorkVisibility";
@@ -120,7 +124,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     combine: (results) =>
       results.map((result) => result.data as { clientWorkId?: string } | undefined),
   });
-  const { remoteData, works, unknownIds, retainedIds } = useMemo(() => {
+  const { remoteData, works, unknownIds, statusUnknownIds, retainedIds } = useMemo(() => {
     // Offline, the restored screen read is the downloaded copy: background
     // preparation fills this same query, so there is no second source to consult.
     // The window is cut here, inside the memo, so it and every row keep one
@@ -191,10 +195,18 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
         queuedPreviews.has(job.id) ? { ...work, media: queuedPreviews.get(job.id)! } : work
       );
     }
+    // Every work whose decisions this read could not say: those with no status at all, those
+    // showing a status cached from an earlier read because this read's approvals failed, and
+    // stored works this read left out, still shown with their earlier status.
+    const statusUnknownIds = new Set([...resolved.unknownIds, ...resolved.retainedIds]);
+    for (const row of remoteData ?? []) {
+      if (isVisible(row.id) && row.approval === undefined) statusUnknownIds.add(row.id);
+    }
     return {
       remoteData,
       works: sortByCreatedAt(rows),
       unknownIds: resolved.unknownIds,
+      statusUnknownIds,
       retainedIds: resolved.retainedIds,
     };
   }, [
@@ -303,6 +315,11 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       : "unavailable";
   return {
     works: visibleWorks,
+    /**
+     * Works whose decisions this read could not say, whether their status is a fallback or a copy
+     * cached from an earlier read: neither is a decision to act on.
+     */
+    unknownIds: statusUnknownIds,
     availability,
     lastSuccessfulRefresh: online.dataUpdatedAt || undefined,
     fetchStatus: online.fetchStatus,
@@ -339,7 +356,12 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
      * Whether this session has read the garden's rows. Until then they are a
      * copy restored from an earlier session, however old.
      */
-    readThisSession: visibility.isReady && online.dataUpdatedAt >= workSessionStartedAt(),
+    // Counted from the read itself: a decision this device writes into the list moves its update
+    // time, yet it is no read of the garden.
+    readThisSession:
+      visibility.isReady &&
+      online.dataUpdatedAt >= workSessionStartedAt() &&
+      gardenReadThisSession(gardenId, chainId),
     /** Widen the window by one page and read it; a no-op offline. */
     loadOlderWork,
     isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,

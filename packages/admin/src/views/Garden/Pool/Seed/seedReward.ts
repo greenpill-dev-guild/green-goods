@@ -218,8 +218,8 @@ export function rewardFacts(input: {
       formatMessage({ id: "hub.garden.pool.seed.review.rewardInUsdc", defaultMessage: "In USDC" }),
       formatMessage(
         {
-          id: "hub.garden.pool.seed.review.rewardUsdcFromWallet",
-          defaultMessage: "{amount} USDC each, paid from your wallet once it's kept",
+          id: "hub.garden.pool.seed.review.rewardUsdcFromSafe",
+          defaultMessage: "{amount} USDC each, paid from the garden's Safe once it's kept",
         },
         { amount: usdCentsText(cents) }
       ),

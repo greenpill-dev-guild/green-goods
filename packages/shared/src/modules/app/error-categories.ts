@@ -8,6 +8,7 @@
  * @module modules/app/error-categories
  */
 
+import type { AuthMode } from "../../types/auth";
 import { type ParsedContractError, parseContractError } from "../../utils/errors/contract-errors";
 import { recordCrash } from "./crash-reports";
 import { logger } from "./logger";
@@ -99,7 +100,7 @@ export interface ErrorContext {
   /** Transaction hash if relevant */
   txHash?: string;
   /** Auth mode when error occurred */
-  authMode?: "passkey" | "wallet" | "embedded" | null;
+  authMode?: AuthMode;
   /** Whether user was offline when error occurred */
   isOffline?: boolean;
   /** Additional metadata */
@@ -341,15 +342,14 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
 
   // Skip in dev mode
   if (IS_DEV) return;
+  // A crash report replays later as error_tracked, so it keeps the Sentry id too (PRD-1561).
+  const correlated = sentryEventId ? { ...properties, sentry_event_id: sentryEventId } : properties;
   if (context.durable) {
-    recordCrash(capturedError, properties);
+    recordCrash(capturedError, correlated);
     return;
   }
   // The transport is registered lazily after startup; before then this safely no-ops.
-  track(
-    "error_tracked",
-    sentryEventId ? { ...properties, sentry_event_id: sentryEventId } : properties
-  );
+  track("error_tracked", correlated);
 }
 
 // ============================================================================

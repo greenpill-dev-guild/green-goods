@@ -10,6 +10,19 @@ export const gardensKeys = {
       garden?.toLowerCase(),
       account?.toLowerCase(),
     ] as const,
+  /** One garden's joins and role changes, for the Hub's bell. */
+  roleChanges: (garden: string | undefined, chainId: number) =>
+    ["greengoods", "gardens", chainId, "roleChanges", garden?.toLowerCase()] as const,
+  /** Decisions on a garden's promises, read by the pool's promise ids, for the Hub's bell. */
+  promiseDecisions: (garden: string | undefined, chainId: number, ids: readonly string[]) =>
+    [
+      "greengoods",
+      "gardens",
+      chainId,
+      "promiseDecisions",
+      garden?.toLowerCase(),
+      ids.join(","),
+    ] as const,
   memberContributions: (
     garden: string | undefined,
     accounts: readonly string[],
@@ -23,6 +36,22 @@ export const gardensKeys = {
       garden?.toLowerCase(),
       [...accounts].map((account) => account.toLowerCase()).sort(),
     ] as const,
+  memberReadiness: (
+    garden: string | undefined,
+    accounts: readonly string[],
+    chainId: number | undefined
+  ) =>
+    [
+      "greengoods",
+      "gardens",
+      chainId,
+      "memberReadiness",
+      garden?.toLowerCase(),
+      [...accounts].map((account) => account.toLowerCase()).sort(),
+    ] as const,
+  /** Every Gardeners readiness read of one garden, whoever it covers: reread once its work changes. */
+  memberReadinessForGarden: (garden: string | undefined, chainId: number | undefined) =>
+    ["greengoods", "gardens", chainId, "memberReadiness", garden?.toLowerCase()] as const,
   detail: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
   profileMemberships: (account: string | undefined, chainId: number) =>

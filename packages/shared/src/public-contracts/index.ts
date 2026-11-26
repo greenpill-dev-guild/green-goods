@@ -76,6 +76,11 @@ export {
 
 export { type PasskeyAssertionBytes, verifyPasskeyAssertionBytes } from "./passkey-assertion";
 export {
+  type OpenfortRecoveryApiError,
+  type OpenfortRecoveryApiErrorCode,
+  type OpenfortRecoverySessionResponse,
+} from "./openfort-recovery";
+export {
   classifyTestTraffic,
   normalizeTelemetryAddress,
   parseTestTrafficAddresses,

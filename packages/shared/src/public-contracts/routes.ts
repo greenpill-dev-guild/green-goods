@@ -9,6 +9,8 @@ export const PUBLIC_AGENT_ROUTES = {
   commitmentImpact: "/public/commitments/:chainId/impact",
   uploadSign: "/api/uploads/sign",
   passkeyDirectory: "/public/passkeys/rpc",
+  /** Single-use Shield sessions for email accounts' automatic recovery. */
+  openfortRecoverySession: "/public/auth/openfort/recovery-session",
   thirdwebWebhook: "/webhooks/thirdweb",
 } as const;
 

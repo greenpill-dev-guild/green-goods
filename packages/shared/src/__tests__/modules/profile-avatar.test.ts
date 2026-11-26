@@ -316,6 +316,37 @@ describe("explicit profile avatar publish workflow", () => {
     expect(recordSend).toHaveBeenCalledOnce();
   });
 
+  it("ends the recorded send confirmed when the photo saved but its draft cleanup failed (PRD-1561)", async () => {
+    let recordedOutcome: "resolved" | "rejected" | undefined;
+    const recordSend = vi.fn(async (run: () => ReturnType<typeof publishProfileAvatar>) => {
+      try {
+        const result = await run();
+        recordedOutcome = "resolved";
+        return result;
+      } catch (error) {
+        recordedOutcome = "rejected";
+        throw error;
+      }
+    });
+    const { dependencies } = workflow({
+      clearDraft: vi.fn().mockRejectedValue(new Error("storage unavailable")),
+    });
+
+    await expect(
+      publishProfileAvatar(
+        42161,
+        address,
+        { file: file(), action: "set" },
+        { ...dependencies, recordSend }
+      )
+    ).resolves.toEqual(record(1, avatarUri));
+    expect(recordedOutcome).toBe("resolved");
+    expect(dependencies.clearDraft).toHaveBeenCalledOnce();
+    expect(
+      (dependencies.clearDraft as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]
+    ).toBeGreaterThan((dependencies.save as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]!);
+  });
+
   it("keeps an uploaded CID when a later signing or POST step fails", async () => {
     const { dependencies, normalized } = workflow({
       sign: vi.fn().mockRejectedValue(new Error("cancelled")),

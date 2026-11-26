@@ -52,8 +52,11 @@ describe("Review Health's eight weeks", () => {
         },
       ],
       submittedComplete: true,
+      submittedDroppedAt: [],
       reviewedReadFrom: null,
       reviewedComplete: true,
+      reviewedAvailable: true,
+      decidedUnindexed: [],
     } as unknown as GardenReviewFlow;
   });
   afterEach(() => {
@@ -115,15 +118,49 @@ describe("Review Health's eight weeks", () => {
     ]);
   });
 
-  it("keeps the last weeks read when a refresh fails, and says they are the last read", async () => {
+  it("keeps the last weeks read when a refresh fails online, and says the refresh failed", async () => {
     const { result } = renderHealth();
     await waitFor(() => expect(result.current.state).toBe("ready"));
-    expect(result.current.stale).toBe(false);
+    expect(result.current.refreshFailed).toBe(false);
     flow.fails = true;
     await act(async () => void (await result.current.retry()));
-    await waitFor(() => expect(result.current.stale).toBe(true));
+    await waitFor(() => expect(result.current.refreshFailed).toBe(true));
+    // Online, so not the offline notice.
+    expect(result.current.stale).toBe(false);
     expect(result.current.state).toBe("ready");
     expect(result.current.weeks.at(-1)?.submitted).toHaveLength(1);
+  });
+
+  it("counts this device's confirmed decisions and sends before the index holds them", async () => {
+    flow.current = {
+      ...flow.current!,
+      decidedUnindexed: [createMockWork({ id: "decided-here", createdAt: at(11, 3) })],
+    };
+    const { result } = renderHealth();
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    expect(result.current.weeks.at(-1)?.reviewed.map((work) => work.id)).toEqual([
+      "old-decided",
+      "decided-here",
+    ]);
+  });
+
+  it("marks a week short where a malformed submission was left out", async () => {
+    flow.current = { ...flow.current!, submittedDroppedAt: [at(11, 10)] };
+    const { result } = renderHealth();
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    expect(result.current.weeks.map((week) => week.submittedComplete).slice(-2)).toEqual([
+      false,
+      true,
+    ]);
+  });
+
+  it("shows no reviewed counts on a chain that records no decisions", async () => {
+    flow.current = { ...flow.current!, reviewedAvailable: false };
+    const { result } = renderHealth();
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    expect(result.current.reviewedAvailable).toBe(false);
+    expect(result.current.weeks.every((week) => !week.reviewedAvailable)).toBe(true);
+    expect(result.current.weeks.flatMap((week) => week.reviewed)).toEqual([]);
   });
 
   it("opens the week and the list the URL names", async () => {

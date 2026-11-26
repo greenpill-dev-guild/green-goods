@@ -3,6 +3,7 @@ import { expect, userEvent, within } from "storybook/test";
 import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";
 import {
   STORY_CALENDAR_WORKS,
+  storyCutCalendar,
   storyWorkCalendar,
 } from "../../../../../shared/.storybook/workCalendarFixtures";
 import { WorkCalendarCard } from "./WorkCalendarCard";
@@ -57,5 +58,29 @@ export const CouldNotBeRead: Story = {
 export const Offline: Story = { args: { calendar: storyWorkCalendar([], { state: "offline" }) } };
 
 export const PartlyRead: Story = {
-  args: { calendar: storyWorkCalendar(STORY_CALENDAR_WORKS, { complete: false }) },
+  args: { calendar: storyCutCalendar() },
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    // Days after the cut say they were not read, never 0, and the day it stopped in is a minimum.
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByRole("button", { name: /not read/ }).length).toBeGreaterThan(0);
+    await expect(
+      canvas.getAllByRole("button", { name: /at least 2 submissions/ }).length
+    ).toBeGreaterThan(0);
+  },
+};
+
+export const RefreshFailed: Story = {
+  args: { calendar: storyWorkCalendar(STORY_CALENDAR_WORKS, { refreshFailed: true }) },
+  tags: ["storybook-ci"],
+  play: async ({ args, canvasElement }) => {
+    // The last grid stays, and the card says the refresh failed and offers a retry.
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("This month could not be refreshed")).toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "Try Again" }));
+    await expect(args.calendar.retry).toHaveBeenCalledTimes(1);
+    await expect(
+      canvas.getAllByRole("button", { name: /3 submissions: 1 approved, 2 pending/ }).length
+    ).toBeGreaterThan(0);
+  },
 };

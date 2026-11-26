@@ -29,7 +29,8 @@ export function useGardenWorkRange(
     queryKey: worksKeys.range(gardenId ?? "", chainId, range?.from ?? 0, range?.to ?? 0),
     queryFn: async () => {
       // Disabled without a garden and a range, so neither is missing when this runs.
-      if (!gardenId || !range) return { rows: [], complete: true };
+      if (!gardenId || !range)
+        return { rows: [], complete: true, readThrough: null, droppedAt: [] };
       try {
         return await readGardenWorkRange({
           garden: gardenId,
@@ -72,6 +73,8 @@ export function useGardenWorkRange(
     unknownIds,
     /** False when the period holds more works than one read lists. */
     complete: read.data?.complete ?? true,
+    /** Where a cut read stopped (seconds): later works are missing. Null when read in full. */
+    readThrough: read.data?.readThrough ?? null,
     hasRead: read.data !== undefined,
     isLoading: isOnline && read.isPending && range !== null && Boolean(gardenId),
     isFetching: read.isFetching,

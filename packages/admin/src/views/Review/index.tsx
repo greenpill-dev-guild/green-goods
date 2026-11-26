@@ -60,6 +60,9 @@ export default function ReviewView() {
         routeCertificationId={review.routeCertificationId}
         activeWorkDetailId={review.activeWorkDetailId}
         selectedWork={review.selectedWork}
+        // A day opened from the calendar knows which works' statuses it could not read.
+        unknownWorkIds={review.workDay ? review.workDayUnknownIds : undefined}
+        dayStatusUnread={!review.workDayStatusKnown}
         selectedCertification={review.selectedCertification}
         isResolvingSelection={
           review.worksLoading ||
@@ -278,6 +281,8 @@ export default function ReviewView() {
                   stage={review.stage}
                   works={review.scopedWorks}
                   workScope={review.workScope}
+                  unknownIds={review.workDay ? review.workDayUnknownIds : undefined}
+                  onShowWholeDay={review.handleShowWholeDay}
                   onClearWaitingBand={
                     review.waitingBand
                       ? () => review.handleWaitingBandChange(review.waitingBand!)

@@ -1,5 +1,4 @@
 # robots.txt for Green Goods Hub
+# The Hub is a signed-in steward tool with nothing public to index.
 User-agent: *
-Allow: /
-
-Sitemap: https://admin.greengoods.app/sitemap.xml
+Disallow: /

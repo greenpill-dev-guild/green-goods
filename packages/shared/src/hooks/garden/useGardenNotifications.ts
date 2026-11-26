@@ -28,6 +28,13 @@ import { useGardenPermissions } from "./useGardenPermissions";
 import { useJoinRequestCount } from "./useJoinRequestCount";
 import { useMyGardens } from "./useMyGardens";
 
+import type { HubGardenChangeRow as HubChangeRow } from "./useHubGardenChanges";
+
+// The Hub's bell lives beside the installed app's, on this declared leaf (PRD-1536).
+export { useHubGardenChanges } from "./useHubGardenChanges";
+/** One change in the Hub's bell. A local alias, for the reason below. */
+export type HubGardenChangeRow = HubChangeRow;
+
 /**
  * One of the bell's events (`modules/garden/notifications`). A local alias rather than a
  * re-export: Storybook's module mock reads a re-export as a runtime import and fails on a type.

@@ -1,4 +1,4 @@
-import type { WalletRestoreState } from "../../types/auth";
+import { type AuthMode, isSmartAccountAuthMode, type WalletRestoreState } from "../../types/auth";
 import type { Address } from "../../types/domain";
 import { refuseWithoutWallet } from "./wallet-reconnect";
 
@@ -13,7 +13,7 @@ export type MessageSignerAccount = {
 };
 
 export function createAccountMessageSigner(input: {
-  authMode: "wallet" | "embedded" | "passkey" | null;
+  authMode: AuthMode;
   signMessage: (args: { message: string }) => Promise<`0x${string}`>;
   account?: MessageSignerAccount;
   /** A wallet account whose wallet has not answered is asked to reconnect instead (PRD-1499). */
@@ -21,9 +21,14 @@ export function createAccountMessageSigner(input: {
 }): (message: string) => Promise<`0x${string}`> {
   return async (message) => {
     if (input.authMode === "wallet" && input.walletRestore) refuseWithoutWallet();
-    if (input.authMode !== "passkey") return input.signMessage({ message });
+    // A smart account signs through its own account (ERC-1271), never as its owner key.
+    if (!isSmartAccountAuthMode(input.authMode)) return input.signMessage({ message });
     if (!input.account?.signMessage)
-      throw new Error("Reconnect your passkey account before continuing.");
+      throw new Error(
+        input.authMode === "openfort"
+          ? "Sign in with your email again before continuing."
+          : "Reconnect your passkey account before continuing."
+      );
     return input.account.signMessage({ message });
   };
 }

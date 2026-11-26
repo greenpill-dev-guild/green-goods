@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useIntl } from "react-intl";
 import { expect, within } from "storybook/test";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminDialog } from "@/components/AdminDialog";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
@@ -163,6 +164,24 @@ type Story = StoryObj<ReviewStoryArgs>;
 
 /** Nothing sent yet: the row says what the primary will do. */
 export const Default: Story = {};
+
+export const RecurringWithoutTokenSymbol: Story = {
+  render: function Render(args) {
+    const { formatMessage } = useIntl();
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <CampaignCreateReview
+          {...campaignCookieJarCreateFormProps}
+          formatMessage={formatMessage}
+          claimSchedule="recurring"
+          payoutLabel="120.000001"
+          tokenSymbol=""
+          status={statusAt(args)}
+        />
+      </div>
+    );
+  },
+};
 
 export const Sending: Story = { args: { phase: "sending" } };
 

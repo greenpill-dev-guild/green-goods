@@ -4,7 +4,7 @@ import type {
   ReviewHealthWeek,
 } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
 import type { Work } from "@green-goods/shared/types/domain";
-import { expect, fn, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";
 import { daysAgo, STORYBOOK_NOW_SECONDS } from "../../../../../shared/.storybook/fixtures";
 import { ReviewHealthCard } from "./ReviewHealthCard";
@@ -47,12 +47,15 @@ function storyHealth(
     ),
     submittedComplete: true,
     reviewedComplete: true,
+    reviewedAvailable: overrides.reviewedAvailable ?? true,
     isCurrent: index === 7,
   }));
   return {
     weeks,
     state: "ready",
     stale: false,
+    refreshFailed: false,
+    reviewedAvailable: true,
     isFetching: false,
     retry: fn() as unknown as GardenReviewHealth["retry"],
     openWeek: null,
@@ -132,6 +135,38 @@ export const NothingWaiting: Story = {
 };
 
 export const Reading: Story = { args: { health: storyHealth(KEEPING_UP, { state: "loading" }) } };
+
+/** Online, a reread failed: the last weeks stay, and the card offers a retry. */
+export const RefreshFailed: Story = {
+  tags: ["storybook-ci"],
+  args: { health: storyHealth(KEEPING_UP, { refreshFailed: true }) },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("These are the weeks as last read")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Try Again" }));
+    await expect(args.health.retry).toHaveBeenCalledTimes(1);
+    await expect(canvas.getAllByRole("link", { name: /submitted, .* reviewed$/ })).toHaveLength(8);
+  },
+};
+
+/** A chain that records no review decisions: no reviewed counts, never a row of zeros. */
+export const NoReviewDecisions: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    health: storyHealth(
+      KEEPING_UP.map(([submitted]) => [submitted, 0]),
+      { reviewedAvailable: false }
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Reviewed counts are not available on this network")
+    ).toBeVisible();
+    await expect(canvas.queryAllByRole("link", { name: /reviewed$/ })).toHaveLength(0);
+    await expect(canvas.queryByRole("columnheader", { name: "Reviewed" })).toBeNull();
+  },
+};
 
 export const CouldNotBeRead: Story = {
   args: { health: storyHealth(KEEPING_UP, { state: "error" }) },

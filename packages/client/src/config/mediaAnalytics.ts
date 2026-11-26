@@ -1,7 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { track } from "@green-goods/shared/modules/app/posthog";
-
-type AuthMode = "wallet" | "passkey" | "embedded" | null;
+import type { AuthMode } from "@green-goods/shared/hooks/auth/useAuth";
 
 type WorkMediaEventName =
   | "work_media_selected"

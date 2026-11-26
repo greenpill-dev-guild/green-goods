@@ -1,6 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { cycleStanding } from "@green-goods/shared/commitment-pooling";
 import { selectCycleEndAct } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
@@ -39,7 +40,7 @@ export function PoolCyclesCard({
   onArchiveCycle,
 }: PoolCyclesCardProps) {
   const { formatMessage, locale } = useIntl();
-  const { model, cycleNames, isOnline, isActing } = pool;
+  const { model, now, cycleNames, isOnline, isActing } = pool;
   const season = model.season;
   const actDisabled = !isOnline || isActing;
   const canOpenCycle = model.status === "open" || model.status === "ready";
@@ -78,6 +79,21 @@ export function PoolCyclesCard({
       </p>
     );
   };
+  // DL-162: an Open cycle past its end has ended, but the chain still takes new promises into it,
+  // each past due as it is made, until a steward ends it. Said beside the act that ends it.
+  const endedNote = (cycle: CommitmentCycleRecord) =>
+    cycleStanding(cycle, now) === "ended" ? (
+      <p className="type-meta text-warning-dark">
+        {formatMessage(
+          {
+            id: "hub.garden.pool.cycle.endedOpen",
+            defaultMessage:
+              "Ended {date}. New promises can still land in it, each already past due, until it ends.",
+          },
+          { date: formatUnixDate(cycle.endTime, locale, "—") }
+        )}
+      </p>
+    ) : null;
   const endButton = (cycle: CommitmentCycleRecord) =>
     selectCycleEndAct(cycle)?.kind === "end" ? (
       <Button
@@ -107,7 +123,7 @@ export function PoolCyclesCard({
     ) : null;
 
   const cycleRow = (cycle: CommitmentCycleRecord) => {
-    const chip = cycleStateChip(cycle, model.isPaused, formatMessage);
+    const chip = cycleStateChip(cycle, model.isPaused, now, formatMessage);
     const name = cycleName(cycle, cycleNames, formatMessage);
     const canCancel =
       (cycle.state === "SEEDED" || cycle.state === "OPEN") && cycle.liveCommitmentCount === 0n;
@@ -137,6 +153,7 @@ export function PoolCyclesCard({
             </StatusBadge>
           </div>
           <p className="type-meta text-text-soft">{cycleMeta(cycle)}</p>
+          {endedNote(cycle)}
           {endBlockedNote(cycle)}
         </div>
         <div className="flex items-center gap-2">
@@ -177,7 +194,10 @@ export function PoolCyclesCard({
   return (
     <AdminCard variant="elevated" data-component="PoolCyclesCard" className="space-y-4">
       {season ? (
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div
+          className="flex flex-wrap items-start justify-between gap-3"
+          data-testid="pool-cycles-season"
+        >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <AdminCardTitle
@@ -193,10 +213,10 @@ export function PoolCyclesCard({
                 })}
               </StatusBadge>
               <StatusBadge
-                variant={cycleStateChip(season, model.isPaused, formatMessage).variant}
+                variant={cycleStateChip(season, model.isPaused, now, formatMessage).variant}
                 size="sm"
               >
-                {cycleStateChip(season, model.isPaused, formatMessage).label}
+                {cycleStateChip(season, model.isPaused, now, formatMessage).label}
               </StatusBadge>
             </div>
             <p className="mt-1 type-meta text-text-soft">
@@ -214,6 +234,7 @@ export function PoolCyclesCard({
                   )
                 : cycleMeta(season)}
             </p>
+            {endedNote(season)}
             {endBlockedNote(season)}
           </div>
           <div className="flex items-center gap-2">
@@ -313,7 +334,8 @@ export function PoolCyclesCard({
                     defaultMessage: "Campaigns · {open} open · {waiting} waiting to open",
                   },
                   {
-                    open: model.campaigns.filter((row) => row.state === "OPEN").length,
+                    open: model.campaigns.filter((row) => cycleStanding(row, now) === "open")
+                      .length,
                     waiting: model.campaigns.filter((row) => row.state === "SEEDED").length,
                   }
                 )}
@@ -354,7 +376,7 @@ export function PoolCyclesCard({
           </p>
           <ul className="mt-1 divide-y divide-stroke-soft">
             {model.finishedCycles.map((cycle) => {
-              const chip = cycleStateChip(cycle, false, formatMessage);
+              const chip = cycleStateChip(cycle, false, now, formatMessage);
               const name = cycleName(cycle, cycleNames, formatMessage);
               return (
                 <li

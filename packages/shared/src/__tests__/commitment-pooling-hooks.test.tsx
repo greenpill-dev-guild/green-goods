@@ -116,7 +116,8 @@ vi.mock("../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadata: () => ({ byCID: new Map(), isLoading: false, isError: false }),
 }));
 
-vi.mock("../hooks/commitment-pooling/useCommitmentJobs", () => ({
+vi.mock("../hooks/commitment-pooling/useCommitmentJobs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../hooks/commitment-pooling/useCommitmentJobs")>()),
   useCommitmentJobs: () => mocks.jobs,
 }));
 
@@ -1084,6 +1085,14 @@ describe("useCommitmentDialogController", () => {
       const { result, unmount } = render();
       await waitFor(() => expect(result.current.commitment?.confirmers).toEqual(confirmers));
 
+      // The queue says the confirmation landed: the inspector follows it (PRD-1205).
+      mocks.jobs.enqueue.mockImplementationOnce(
+        async (input: { report?: (event: { stage: string; txHash: null }) => void }) => {
+          input.report?.({ stage: "landed", txHash: null });
+          return "job";
+        }
+      );
+      expect(result.current.confirmPhase.status).toBe("idle");
       await act(async () => {
         await result.current.acts.confirmOrdinary();
       });
@@ -1092,7 +1101,9 @@ describe("useCommitmentDialogController", () => {
         commitmentId: 9n,
         gardenAddress: ACCOUNT,
         membershipNotRequired: byAccount,
+        report: expect.any(Function),
       });
+      expect(result.current.confirmPhase.status).toBe("confirmed");
       unmount();
     }
   });

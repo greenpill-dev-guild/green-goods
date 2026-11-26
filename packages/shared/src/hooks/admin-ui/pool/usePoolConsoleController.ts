@@ -148,10 +148,17 @@ export function usePoolConsoleController(input: {
       ),
     [hasPool, cyclesQuery.cycles]
   );
+  const cycleDeadlines = useMemo(
+    () => [...cycleEndTimes.values()].flatMap((end) => (end ? [end] : [])),
+    [cycleEndTimes]
+  );
+  // Ticks at each cycle's end too, as the app's cycle clock does, so a season reads Ended the
+  // second it ends (DL-162), even with no promise in it falling due then.
   const now = useExpiryClock({
     chainId,
     commitments: commitmentsQuery.commitments,
     cycleEndTimes,
+    deadlines: cycleDeadlines,
   });
   const readChainClock = useChainClockReader(chainId);
   const model = useMemo(
@@ -431,6 +438,7 @@ export function usePoolConsoleController(input: {
     pool,
     poolId,
     model,
+    now,
     cycles: hasPool ? cyclesQuery.cycles : [],
     cycleNames: cycleNames.byCycleId,
     commitments: commitmentsQuery.commitments,

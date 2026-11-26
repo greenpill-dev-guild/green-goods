@@ -31,6 +31,7 @@ function disbursement(overrides: Partial<PoolFundingDisbursement> = {}): PoolFun
     amount: 100n,
     state: "QUEUED",
     executionKey: null,
+    attempt: 1,
     ...overrides,
   };
 }
@@ -654,6 +655,9 @@ describe("selectExceededTransferLimit", () => {
     executorPaused = false,
     dispatched = recordedOnCelo,
     commandExecutor = { paused: executorPaused },
+    indexAttempt = 0,
+    indexState,
+    batchId = null,
   }: {
     quote?: { fee: bigint | null; senderPays: boolean | null } | null;
     limits?: Parameters<typeof fundingRead>[0];
@@ -666,6 +670,11 @@ describe("selectExceededTransferLimit", () => {
     dispatched?: boolean;
     /** The executor that command was recorded for; null when the read couldn't show it. */
     commandExecutor?: { paused: boolean | null } | null;
+    /** The attempt the index lists for the transfer. */
+    indexAttempt?: number;
+    /** The index row's state when it isn't the queued or dispatched one `dispatched` implies; it keeps its command. */
+    indexState?: "QUEUED" | "FAILED";
+    batchId?: bigint | null;
   }) {
     const read = fundingRead({
       cap: 2_000n,
@@ -683,8 +692,10 @@ describe("selectExceededTransferLimit", () => {
           {
             id: "42161-8",
             disbursementId: 8n,
-            state: dispatched ? "DISPATCHED" : "QUEUED",
-            executionKey: dispatched ? executionKey : null,
+            state: indexState ?? (dispatched ? "DISPATCHED" : "QUEUED"),
+            executionKey: dispatched || indexState ? executionKey : null,
+            attempt: indexAttempt,
+            batchId,
           },
         ] as PoolFundingDisbursement[],
         executions: recordedOnCelo
@@ -896,6 +907,96 @@ describe("selectExceededTransferLimit", () => {
     expect(
       selectQueuedTransferBlock(read, { disbursementId: 8n, amount: 900n, state: "DISPATCHED" })
     ).toBe(null);
+  });
+
+  it("selectQueuedTransferBlock: holds a resend the index is one attempt behind on, until it catches up", () => {
+    // Attempt 1 failed on Celo, and the transfer was requeued and dispatched again from outside
+    // the panel. The index still lists attempt 1, whose command Celo recorded, so the duplicate
+    // branch would let the resend through; it carries attempt 2's command, which Celo hasn't
+    // recorded, and could be refused after the CCIP fee is spent.
+    const read = queuedRead({
+      dispatched: true,
+      recordedOnCelo: true,
+      commandExecutor: { paused: false },
+      indexAttempt: 0,
+    });
+    const send = (attempt: number) =>
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "DISPATCHED",
+        attempt,
+      });
+    expect(send(1)).toBe("limits_unread");
+    expect(send(0)).toBe(null);
+  });
+
+  it("selectQueuedTransferBlock: holds a send while the index shows the last attempt failed and not yet its requeue", () => {
+    // The index recorded Celo's failure of attempt 0 and keeps its command, which Celo recorded.
+    // The chain has the transfer requeued at attempt 1, and maybe dispatched again: either send
+    // carries a command Celo hasn't seen, so the recorded one can't vouch for it.
+    const read = queuedRead({ recordedOnCelo: true, indexState: "FAILED", indexAttempt: 0 });
+    for (const state of ["DISPATCHED", "QUEUED"]) {
+      expect(
+        selectQueuedTransferBlock(read, { disbursementId: 8n, amount: 900n, state, attempt: 1 })
+      ).toBe("limits_unread");
+    }
+  });
+
+  it("selectQueuedTransferBlock: checks a first dispatch in full even when an earlier command was recorded", () => {
+    // A requeued transfer the index has caught up on still carries its old, recorded command.
+    // A dispatch sends a new one, so it gets the preflight: here, a fee over the policy.
+    const read = queuedRead({
+      recordedOnCelo: true,
+      indexState: "QUEUED",
+      indexAttempt: 1,
+      quote: { fee: 10n, senderPays: true },
+      feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n },
+    });
+    expect(
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "QUEUED",
+        attempt: 1,
+      })
+    ).toBe("fee_policy_breach");
+  });
+
+  it("selectQueuedTransferBlock: leaves batch members' attempts alone, since the index gives them the batch's", () => {
+    // A disbursement requeued once and later batched is at attempt 1 on chain, while the index
+    // copies the new batch's attempt 0 onto it. Comparing them would hold it for good.
+    const read = queuedRead({ batchId: 3n, indexAttempt: 0 });
+    expect(
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "QUEUED",
+        attempt: 1,
+        batchId: 3n,
+      })
+    ).toBe(null);
+  });
+
+  it("selectQueuedTransferBlock: compares attempts for a transfer the chain shows out of its old batch", () => {
+    // A requeue takes a transfer out of its batch on chain, but the index keeps the old batch id.
+    // Batch membership comes from the caller's read, so a lagging row still gets compared.
+    const read = queuedRead({
+      dispatched: true,
+      recordedOnCelo: true,
+      commandExecutor: { paused: false },
+      batchId: 3n,
+      indexAttempt: 1,
+    });
+    expect(
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "DISPATCHED",
+        attempt: 2,
+        batchId: null,
+      })
+    ).toBe("limits_unread");
   });
 
   it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {

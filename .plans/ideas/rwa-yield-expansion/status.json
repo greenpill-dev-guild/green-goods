@@ -171,6 +171,6 @@
     "tracks": ["contracts", "shared", "admin", "client"],
     "work_types": ["research"],
     "surfaces": ["packages/contracts", "packages/shared", "packages/admin", "packages/client"],
-    "depends_on_features": ["yield-split-ui"]
+    "depends_on_features": []
   }
 }

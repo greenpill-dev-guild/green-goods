@@ -320,6 +320,49 @@ export const ApprovedScope: Story = {
   },
 };
 
+/**
+ * One day's list from the Activity calendar: every status, and a work whose decisions could not
+ * be read says so instead of passing for Pending.
+ */
+export const DayWithUnreadStatus: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    scope: "all",
+    items: [{ ...PENDING_WORK[0], status: "approved" as const }, PENDING_WORK[1], PENDING_WORK[2]],
+    unknownIds: new Set([PENDING_WORK[2].id]),
+    worksLoading: false,
+    hasDataError: false,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByText("Status unread")).toHaveLength(1);
+    await expect(canvas.getAllByText("Pending")).toHaveLength(1);
+  },
+};
+
+/**
+ * The same day narrowed to Pending, when its only work has no status read: it is not known to
+ * be waiting, so Pending says so and points to the day's whole list, never "All caught up".
+ */
+export const DayPendingWithUnreadStatus: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    scope: "pending",
+    items: [],
+    unknownIds: new Set([PENDING_WORK[2].id]),
+    onShowWholeDay: fn(),
+    worksLoading: false,
+    hasDataError: false,
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByText("All caught up")).toBeNull();
+    await expect(canvas.getByText("Some statuses could not be read")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Show Whole Day" }));
+    await expect(args.onShowWholeDay).toHaveBeenCalledOnce();
+  },
+};
+
 export const NoApprovedWork: Story = {
   args: {
     scope: "approved",

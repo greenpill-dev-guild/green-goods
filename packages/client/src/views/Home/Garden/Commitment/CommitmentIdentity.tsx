@@ -105,7 +105,7 @@ export function CommitmentIdentity({
   const rewards = rewardsBelow ? [] : [promised].filter((reward) => reward !== null);
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
-  const payout = promisePayoutOf(commitment);
+  const payout = promisePayoutOf(commitment, { pastDue: band?.pastDue });
   const [onlyReward] = rewards;
   const reward = promiseRewardText({
     intl,
@@ -114,7 +114,7 @@ export function CommitmentIdentity({
     payout: rewardLinePayout(onlyReward, payout),
   });
   // A reward paid in more than one token shows each part on its own row (PRD-1556). Where the
-  // service section below carries the G$ and voucher rewards, only the wallet-paid parts show here.
+  // service section below carries the G$ and voucher rewards, only the Safe-paid parts show here.
   const partsReward = rewardsBelow
     ? promised?.others?.length
       ? { ...promised, wei: 0n, centsAsSet: null }
@@ -126,7 +126,6 @@ export function CommitmentIdentity({
       chainId={commitment.chainId}
       commitmentId={commitment.commitmentId}
       viewer={viewer}
-      stewards={stewards}
       payout={payout}
     />
   ) : null;

@@ -1,7 +1,7 @@
 /**
  * Where a kept promise's USDC part stands, row by row, as its reader sees it: the
- * paying steward's own share stays theirs, and nothing reads as paid or owed until
- * the plan and payer reads have answered.
+ * garden's Safe pays every share, a steward's own included, and nothing reads as
+ * paid or owed until the plan and payer reads have answered.
  */
 
 import type { RewardLeg, RewardShareState } from "@green-goods/shared/commitment-pooling";
@@ -12,15 +12,15 @@ import { renderWithProviders, screen } from "../test-utils";
 const mocks = vi.hoisted(() => ({
   shares: [] as RewardShareState[],
   isReading: false,
+  enabled: undefined as boolean | undefined,
 }));
 
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
-  usePromiseRewardShares: () => ({
-    shares: mocks.shares,
-    isReading: mocks.isReading,
-    readFailed: false,
-  }),
+  usePromiseRewardShares: (input: { enabled?: boolean }) => {
+    mocks.enabled = input.enabled;
+    return { shares: mocks.shares, isReading: mocks.isReading, readFailed: false };
+  },
   useRewardShareTransaction: () => ({ data: undefined }),
 }));
 
@@ -29,8 +29,9 @@ const { PromiseRewardParts } = await import("../../components/Features/Commitmen
 const USDC = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address;
 const STEWARD = "0x1111111111111111111111111111111111111111" as Address;
 const GARDENER = "0x2222222222222222222222222222222222222222" as Address;
+const SAFE = "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe" as Address;
 const LEG: RewardLeg = {
-  rail: "steward-wallet",
+  rail: "garden-safe",
   chainId: 42161,
   token: USDC,
   symbol: "USDC",
@@ -53,23 +54,23 @@ const share = (recipient: Address, amount: bigint, paidBy: Address | null | unde
 describe("PromiseRewardParts", () => {
   it.each([
     {
-      reader: "the steward, after paying everyone else",
+      reader: "a steward the split pays, before the Safe pays them",
       viewer: STEWARD,
-      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, STEWARD)],
+      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, SAFE)],
       isReading: false,
-      text: "12 USDC on Arbitrum One, your own share",
+      text: "12 USDC on Arbitrum One, not paid yet",
     },
     {
-      reader: "the gardener the steward paid",
+      reader: "the gardener the Safe paid",
       viewer: GARDENER,
-      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, STEWARD)],
+      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, SAFE)],
       isReading: false,
       text: "8 USDC on Arbitrum One, paid",
     },
     {
-      reader: "anyone else, once every share is settled",
+      reader: "anyone else, only once every share is paid",
       viewer: null,
-      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, STEWARD)],
+      shares: [share(STEWARD, 12_000_000n, SAFE), share(GARDENER, 8_000_000n, SAFE)],
       isReading: false,
       text: "20 USDC on Arbitrum One, paid",
     },
@@ -90,11 +91,29 @@ describe("PromiseRewardParts", () => {
         chainId={42161}
         commitmentId={19n}
         viewer={viewer}
-        stewards={[STEWARD]}
         payout="paid"
       />
     );
     expect(screen.getByText(text)).toBeInTheDocument();
+  });
+
+  // A promise that ended unkept, or one past its due date, will never pay, so its USDC part names
+  // the amount alone, as the G$ reward does (PRD-1370), and its shares aren't read.
+  it("names the USDC part's amount alone on a promise that will never be kept", () => {
+    mocks.shares = [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, null)];
+    mocks.isReading = false;
+    renderWithProviders(
+      <PromiseRewardParts
+        reward={{ wei: 0n, centsAsSet: null, others: [LEG] }}
+        chainId={42161}
+        commitmentId={19n}
+        viewer={null}
+        payout="unstated"
+      />
+    );
+    expect(screen.getByText("20 USDC on Arbitrum One")).toBeInTheDocument();
+    expect(screen.queryByText(/not paid yet/)).toBeNull();
+    expect(mocks.enabled).toBe(false);
   });
 
   // The promise never records a Celo settlement as paid, so once kept the G$ row claims no state:
@@ -111,7 +130,6 @@ describe("PromiseRewardParts", () => {
         chainId={42161}
         commitmentId={19n}
         viewer={null}
-        stewards={[STEWARD]}
         payout={payout}
       />
     );

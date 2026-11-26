@@ -43,6 +43,9 @@ export function useReviewWorkDay({
     [updateSearch, workScope]
   );
 
+  // On a day, no scope is every status: the list that holds works whose status is unread.
+  const handleShowWholeDay = useCallback(() => updateSearch({ scope: undefined }), [updateSearch]);
+
   const workDayCalendarHref = useMemo(() => {
     if (!day) return null;
     const month = monthOfDay(day);
@@ -58,6 +61,13 @@ export function useReviewWorkDay({
     workDayDate: useMemo(() => (day ? dateOfDay(day) : null), [day]),
     /** The day's submissions, every status. Empty while the tab shows its usual queue. */
     workDayWorks: read.works,
+    /** The day's works whose status could not be read: status unread, never Pending. */
+    workDayUnknownIds: read.unknownIds,
+    /**
+     * Whether the day's statuses are current: read, and the latest read neither failed nor waits
+     * offline over an earlier copy. Until then no work of the day can be decided from the day.
+     */
+    workDayStatusKnown: day === null || (read.hasRead && !read.isError && !read.isPaused),
     workDayLoading: day !== null && read.isLoading,
     /** The day could not be read, so its list is unknown, not empty. */
     workDayUnread: day !== null && !read.hasRead && (read.isError || read.isPaused),
@@ -69,5 +79,7 @@ export function useReviewWorkDay({
     /** Garden › Activity on the day's month. */
     workDayCalendarHref,
     handleClearWorkDay,
+    /** Shows the day's every status. Undefined while the tab shows its usual queue. */
+    handleShowWholeDay: day ? handleShowWholeDay : undefined,
   };
 }

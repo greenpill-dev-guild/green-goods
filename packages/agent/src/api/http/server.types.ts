@@ -31,6 +31,7 @@ import type {
 import type { GardenJoinRequestCountGrants } from "../../services/garden-join-request-count-grants";
 import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
 import type { PasskeyDirectory } from "../../services/passkey-directory";
+import type { OpenfortRecovery } from "../../services/openfort-recovery";
 import type { MessagingRouteDeps } from "../routes/messaging";
 import type { VoucherAwardService } from "../../services/voucher-awards";
 import type { ServiceIssuerDeskService } from "../../services/service-issuer-desk";
@@ -114,6 +115,8 @@ export interface ServerDeps {
   gardenJoinRequestSweepIntervalMs?: number;
   /** Issues passkeys under one domain for every site; absent unless the directory is enabled. */
   passkeyDirectory?: PasskeyDirectory;
+  /** Mints Shield sessions for email accounts; absent unless all four keys are set. */
+  openfortRecovery?: OpenfortRecovery;
   now?: () => number;
   /** Browser ceremony API for agent reporting; absent unless reporting is configured. */
   messaging?: MessagingRouteDeps;

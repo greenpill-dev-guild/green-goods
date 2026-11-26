@@ -1,7 +1,10 @@
 import { FactList } from "@green-goods/shared/components/Cards/FactRow";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { CommitmentMetadataV1 } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import type { Meta, StoryObj } from "@storybook/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { expect, within } from "storybook/test";
 import {
@@ -20,7 +23,7 @@ const G_DOLLAR_REWARD: CommitmentMetadataV1["reward"] = {
   usdCents: "2000",
   goodDollarWei: SET_WEI.toString(),
 };
-/** The same $20.00 again in USDC on Arbitrum, paid from the steward's wallet (PRD-1556). */
+/** The same $20.00 again in USDC on Arbitrum, paid from the garden's Safe (PRD-1556). */
 const USDC_LEG = {
   version: 1 as const,
   chainId: 42161,
@@ -34,7 +37,7 @@ interface RewardLineProps {
   metadata: Pick<CommitmentMetadataV1, "reward" | "rewardLegs" | "rewardLegsUnreadable">;
   /** Whether the promise has a G$ part on chain. */
   goodDollars: boolean;
-  derivedState: "ACCEPTED" | "FULFILLED";
+  derivedState: "ACCEPTED" | "FULFILLED" | "CANCELLED" | "EXPIRED";
   /** Show each part on its own row, as the promise page does. */
   parts?: boolean;
 }
@@ -42,6 +45,15 @@ interface RewardLineProps {
 /** The reward row as a promise's facts draw it, from the record and its metadata. */
 function RewardLine({ metadata, goodDollars, derivedState, parts = false }: RewardLineProps) {
   const intl = useIntl();
+  const client = useQueryClient();
+  // The promise's G$ payout plan isn't finalized yet, as a read of the chain would say: no split,
+  // so no USDC share is paid or owed. A story never reads the live chain.
+  useState(() =>
+    client.setQueryData(queryKeys.commitmentPooling.rewardShareRecipients(42161, 19n), {
+      finalized: false,
+      recipients: [],
+    })
+  );
   const reward = promiseRewardOf(
     goodDollars
       ? { chainId: 42161, considerationRail: "CELO_SETTLEMENT", considerationAmount: SET_WEI }
@@ -73,7 +85,7 @@ function RewardLine({ metadata, goodDollars, derivedState, parts = false }: Rewa
 
 /**
  * A promise's reward among its facts. A G$-only reward reads as it always has. A
- * reward with a USDC part paid from the steward's wallet reads as one total, paid in
+ * reward with a USDC part paid from the garden's Safe reads as one total, paid in
  * both tokens. When part of a reward can't be shown, the row says so.
  */
 const meta: Meta<typeof RewardLine> = {
@@ -86,6 +98,15 @@ const meta: Meta<typeof RewardLine> = {
 
 export default meta;
 type Story = StoryObj<typeof RewardLine>;
+
+/** A promise that ended unkept shows its reward as the amount alone (PRD-1370). */
+export const EndedPromise: Story = {
+  args: { derivedState: "CANCELLED" },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("$20.00")).toBeVisible();
+    await expect(within(canvasElement).queryByText(/after it’s kept|after it's kept/)).toBeNull();
+  },
+};
 
 export const GoodDollarsOnly: Story = {
   play: async ({ canvasElement }) => {

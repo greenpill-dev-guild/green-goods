@@ -35,8 +35,8 @@ const meta: Meta<typeof GardenGardeners> = {
   tags: ["autodocs", "storybook-ci"],
   args: { members, garden: JOURNEY_GARDEN_RECORD },
   decorators: [
-    (Story) => (
-      <div style={{ width: "100%", maxWidth: 360 }}>
+    (Story, { parameters }) => (
+      <div style={{ width: "100%", maxWidth: parameters.memberRowWidth ?? 360 }}>
         <Story />
       </div>
     ),
@@ -174,6 +174,11 @@ export const Contributions: Story = {
   },
   play: undefined,
 };
+export const RoomyContributions: Story = {
+  ...Contributions,
+  parameters: { memberRowWidth: 960 },
+};
+
 export const ContributionDetails: Story = {
   ...Contributions,
   play: async ({ canvasElement }) => {

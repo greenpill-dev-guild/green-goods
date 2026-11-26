@@ -108,6 +108,37 @@ describe("readWorkApprovalsForWorks", () => {
     expect(result.approvals).toEqual([]);
     expect(result.failedWorkUIDs).toEqual([workUIDs[50]]);
   });
+
+  it("reads a batch's decisions past one page, and counts the rows it could not read", async () => {
+    // 100 decisions on work 1, then a second page holding one more and a malformed row.
+    const first = Array.from({ length: 100 }, (_, index) => decisionRow(1000 + index, 1, index));
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({ data: { attestations: first } })
+      .mockResolvedValueOnce({
+        data: { attestations: [decisionRow(2000, 1, 500), { id: uid(3000) }] },
+      });
+
+    const result = await readWorkApprovalsForWorks([uid(1)], 42161, {
+      query,
+    } as unknown as GraphQLReader);
+
+    expect(query.mock.calls.map(([, variables]) => variables.skip)).toEqual([0, 100]);
+    expect(result.approvals).toHaveLength(101);
+    expect(result.dropped).toBe(1);
+    expect(result.failedWorkUIDs).toEqual([]);
+
+    // A later page that fails leaves the whole batch unknown, never half a history.
+    const failing = vi
+      .fn()
+      .mockResolvedValueOnce({ data: { attestations: first } })
+      .mockResolvedValueOnce({ error: new Error("provider limit") });
+    const cut = await readWorkApprovalsForWorks([uid(1)], 42161, {
+      query: failing,
+    } as unknown as GraphQLReader);
+    expect(cut.approvals).toEqual([]);
+    expect(cut.failedWorkUIDs).toEqual([uid(1)]);
+  });
 });
 
 describe("getGardenActivitySince", () => {
@@ -210,6 +241,8 @@ describe("getWorksInRange", () => {
     );
     expect(cut.works).toHaveLength(300);
     expect(cut.truncated).toBe(true);
+    // The 300th work was sent at 1299: anything after it is missing.
+    expect(cut.readThrough).toBe(1299);
     const exact = await getWorksInRange(
       GARDEN,
       { chainId: 42161, from: 1000, to: 1300, limit: 300 },
@@ -217,6 +250,20 @@ describe("getWorksInRange", () => {
     );
     expect(exact.works).toHaveLength(300);
     expect(exact.truncated).toBe(false);
+    expect(exact.readThrough).toBeNull();
+  });
+
+  it("says when a row it left out as malformed was sent", async () => {
+    const malformed = vi.fn(async () => ({
+      data: {
+        attestations: [workRow(1, 1000), { id: uid(2), timeCreated: 1001 }, workRow(3, 1002)],
+      },
+    }));
+    const page = await getWorksInRange(GARDEN, { chainId: 42161, from: 1000, to: 1450 }, {
+      query: malformed,
+    } as unknown as GraphQLReader);
+    expect(page.works.map((work) => work.id)).toEqual([uid(1), uid(3)]);
+    expect(page.droppedAt).toEqual([1001]);
   });
 
   it("lists a work once when a late attestation shifts the next page back over it", async () => {

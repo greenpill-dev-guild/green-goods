@@ -63,6 +63,7 @@ function controller(overrides: Partial<PromiseGroupController> = {}): PromiseGro
     sample,
     metadata: null,
     counts: group.counts,
+    dueClock: null,
     availabilityKnown: true,
     yours: [],
     bar: { act: "takeUp", hold: null },

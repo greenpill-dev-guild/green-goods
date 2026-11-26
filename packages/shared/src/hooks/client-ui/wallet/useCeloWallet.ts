@@ -7,7 +7,7 @@ import { tokensKeys } from "../../../config/query-keys/tokens";
 import { CELO_G_DOLLAR_TOKEN } from "../../../config/tokens";
 import { getGardenerSettlementHistory } from "../../../modules/commitment-pooling/data-gardener-settlement";
 import type { GardenerSettlementReceipt } from "../../../modules/commitment-pooling/types-settlement";
-import type { SmartAccountClientResolver } from "../../../types/auth";
+import { isSmartAccountAuthMode, type SmartAccountClientResolver } from "../../../types/auth";
 import { ERC20_BALANCE_ABI } from "../../../utils/blockchain/abis/erc20";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useUser } from "../../auth/useUser";
@@ -29,7 +29,8 @@ export function useCeloWallet() {
   } | null>(null);
 
   useEffect(() => {
-    if (authMode !== "passkey" || !enabled || !resolveSmartAccountClient || !online) return;
+    if (!isSmartAccountAuthMode(authMode) || !enabled || !resolveSmartAccountClient || !online)
+      return;
     let active = true;
     const update = (readiness: CeloWalletReadiness) => {
       if (active) setClientState({ resolver: resolveSmartAccountClient, account, readiness });
@@ -93,7 +94,7 @@ export function useCeloWallet() {
     ? "loading"
     : !enabled || !authMode
       ? "unavailable"
-      : authMode !== "passkey"
+      : !isSmartAccountAuthMode(authMode)
         ? "ready"
         : !resolveSmartAccountClient
           ? "unavailable"

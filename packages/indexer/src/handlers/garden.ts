@@ -11,13 +11,9 @@ function markKarmaDetailsPending(garden: Garden, timestamp: number): Garden {
   };
 }
 
-// GARDEN TOKEN EVENT HANDLERS
-
-// Register new GardenAccount contracts when gardens are minted
 indexer.contractRegister(
   { contract: "GardenToken", event: "GardenMinted" },
   async ({ event, context }) => {
-    // Register the newly created garden account contract for event listening
     context.chain.GardenAccount.add(event.params.account);
 
     context.log.info(
@@ -26,7 +22,6 @@ indexer.contractRegister(
   }
 );
 
-// Handler for the GardenMinted event
 indexer.onEvent({ contract: "GardenToken", event: "GardenMinted" }, async ({ event, context }) => {
   const gardenId = event.params.account;
   const existingGarden =
@@ -51,15 +46,11 @@ indexer.onEvent({ contract: "GardenToken", event: "GardenMinted" }, async ({ eve
   context.Garden.set(gardenEntity);
 });
 
-// GARDEN ACCOUNT EVENT HANDLERS
-
-// Handler for the NameUpdated event
 indexer.onEvent({ contract: "GardenAccount", event: "NameUpdated" }, async ({ event, context }) => {
   const gardenId = event.srcAddress;
   let existingGarden = await context.Garden.get(gardenId);
 
   if (!existingGarden) {
-    // Create minimal garden if it doesn't exist yet
     existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
   }
 
@@ -71,7 +62,6 @@ indexer.onEvent({ contract: "GardenAccount", event: "NameUpdated" }, async ({ ev
   context.Garden.set(updatedGarden);
 });
 
-// Handler for the DescriptionUpdated event
 indexer.onEvent(
   { contract: "GardenAccount", event: "DescriptionUpdated" },
   async ({ event, context }) => {
@@ -91,7 +81,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the LocationUpdated event
 indexer.onEvent(
   { contract: "GardenAccount", event: "LocationUpdated" },
   async ({ event, context }) => {
@@ -111,7 +100,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the BannerImageUpdated event
 indexer.onEvent(
   { contract: "GardenAccount", event: "BannerImageUpdated" },
   async ({ event, context }) => {
@@ -131,7 +119,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the OpenJoiningUpdated event
 indexer.onEvent(
   { contract: "GardenAccount", event: "OpenJoiningUpdated" },
   async ({ event, context }) => {

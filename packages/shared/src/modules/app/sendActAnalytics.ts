@@ -117,7 +117,12 @@ export interface SendActContext {
   operation?: string;
   authMode: AuthMode | undefined;
   chainId?: number;
-  /** Set by `recordSendAct`: one id per attempt, on its start and its ending (PRD-1561). */
+  /**
+   * One id per attempt, on its start and its ending (PRD-1561). `recordSendAct` mints it unless
+   * the flow already did with `newAttemptId` for events of its own. Mint it per press and pass it
+   * to that press's `recordSendAct` call, never in a `recordedSendAct` context built once per
+   * render, which every press would share.
+   */
   attemptId?: string;
 }
 
@@ -129,8 +134,12 @@ const OPTIONS = { includeSessionId: false };
  */
 const SEND_ACT_SCHEMA_VERSION = 1;
 
-/** A fresh id for one attempt: one press of the act, never shared with an explicit retry. */
-function newAttemptId(): string {
+/**
+ * A fresh id for one attempt: one press of the act, never shared with an explicit retry. A flow
+ * that records its own start and ending mints it first and hands it to `recordSendAct`, so its
+ * events and the send act join on one `attempt_id`.
+ */
+export function newAttemptId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
     return crypto.randomUUID();
   return `attempt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -294,7 +303,7 @@ export async function recordSendAct<T>(
   endingOfError: (error: unknown) => SendActEndingDetail = sendActEnding
 ): Promise<T> {
   const startedAt = Date.now();
-  context = { ...context, attemptId: newAttemptId() };
+  context = { ...context, attemptId: context.attemptId ?? newAttemptId() };
   trackSendActStarted(context);
   let result: T;
   try {

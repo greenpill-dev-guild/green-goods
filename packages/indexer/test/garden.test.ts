@@ -100,8 +100,6 @@ describe("GardenToken.GardenMinted", () => {
   });
 });
 
-// GARDEN ACCOUNT UPDATE HANDLERS
-
 describe("GardenAccount.NameUpdated", () => {
   it("updates name on existing garden", async () => {
     let mockDb = createTestIndexer();
@@ -130,7 +128,6 @@ describe("GardenAccount.NameUpdated", () => {
     assert.ok(garden);
     assert.equal(garden.name, "Updated Name");
     assertKarmaDetailsPending(garden);
-    // Other fields should be preserved
     assert.equal(garden.initialized, true);
   });
 

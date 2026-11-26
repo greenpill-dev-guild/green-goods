@@ -25,12 +25,11 @@
 
 import { commitmentNeedsSeat } from "../commitment-pooling/acts";
 import { groupCommitmentsForDisplay } from "../commitment-pooling/display-groups";
-import { cycleStanding, type DueClock } from "../commitment-pooling/due-dates";
+import { cycleStanding, type DueClock, isOpenToTakeUp } from "../commitment-pooling/due-dates";
 import {
   type CountedPoolListEntry,
   canChooseCopy,
   countTakeUpGroup,
-  isOpenToTakeUp,
   selectPoolListEntries,
 } from "../commitment-pooling/group-browsing";
 import type { CommitmentMetadataV1 } from "../commitment-pooling/metadata";

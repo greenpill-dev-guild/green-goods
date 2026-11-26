@@ -119,9 +119,8 @@ const ALLOWED_CONTRACT_EVENTS = {
     "UnitsReleased",
     "UnitsFulfilled",
   ]),
-  // Green Goods' own Arbitrum settlement command state (registers #90/#91). The boundary this
-  // gate protects — no EAS re-indexing, no raw Celo/G$ transfer indexing — is unchanged: these
-  // events are the module's command/acknowledgment lifecycle, not token movement observation.
+  // Settlement command and acknowledgment lifecycle, inside this gate's boundary: no EAS
+  // re-indexing and no raw Celo or G$ transfer indexing.
   SettlementModule: new Set([
     "SettlementDeploymentPinned",
     "FundingConfigurationLocked",
@@ -180,8 +179,8 @@ const ALLOWED_CONTRACT_EVENTS = {
     "SettlementModuleUpdated",
     "PausedSet",
   ]),
-  // Executor protocol events describe Green Goods command execution and acknowledgment state.
-  // The production Celo deployment is pinned in the 42220 chain block below.
+  // Command execution and acknowledgment state; the Celo deployment is pinned in the 42220
+  // block below.
   CeloSettlementExecutor: new Set([
     "ExecutorDeploymentPinned",
     "SourcePeerUpdated",
@@ -201,8 +200,8 @@ const ALLOWED_CONTRACT_EVENTS = {
   ]),
 };
 
-// The 24 October pilot pinned these endpoints. The source module is discovered on Arbitrum from the
-// core's immutable pin event; the Gnosis escrow address comes from 100-pilot-downstream.json.
+// The source module is discovered on Arbitrum from the core's immutable pin event; the Gnosis
+// escrow address comes from 100-pilot-downstream.json.
 ALLOWED_CONTRACT_EVENTS.VoucherRedemptionModule = new Set([
   "VoucherSetupPrepared", "VoucherSetupDecisionSelected", "VoucherSetupDispatched", "VoucherSetupResultRecorded", "VoucherFinalResultRecorded", "VoucherHolderAbortRequested",
   "VoucherEndpointPinned", "VoucherPauseChanged", "RedemptionPrepared", "RedemptionDispatched", "RedemptionResultRecorded",

@@ -98,8 +98,7 @@ describe("fetchJson", () => {
   });
 
   it("persists only successful immutable Effect results", async () => {
-    // TestIndexer omits Effect cache tables. Exercise the registered effect's
-    // persistence decision directly, separately from the handler recovery proof.
+    // TestIndexer omits Effect cache tables, so this calls the effect's persistence decision directly.
     const effect = hypercertMetadataEffect as unknown as {
       handler: (args: {
         input: string;

@@ -4,14 +4,21 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { Contract, getAddress, JsonRpcProvider, keccak256 } from "ethers";
 import {
+  configuredGardenAccount,
   convictionSyncCalls,
+  isUnmintedGardenToken,
   requireConvictionSyncReady,
   type GardenSyncState,
 } from "../utils/conviction-sync-readiness";
 import { HATS_DELEGATION } from "../utils/hats-delegation-release";
+import { CONTRACTS_ROOT } from "../utils/paths";
 
 const GARDENS = "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183";
 const SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
+const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
+/** Far above the live garden count; it only stops a runaway discovery. */
+const MAX_GARDEN_TOKENS = 1_000;
 const abi = [
   "function getGardenCommunity(address) view returns(address)",
   "function getGardenPowerRegistry(address) view returns(address)",
@@ -22,7 +29,47 @@ const abi = [
   "function councilSafe() view returns(address)",
   "function isAuthorizedSyncCaller(address) view returns(bool)",
   "function getThreshold() view returns(uint256)",
+  "function ownerOf(uint256) view returns(address)",
+  "function account(address,bytes32,uint256,address,uint256) view returns(address)",
+  "function getGardenHatIds(address) view returns(uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool)",
 ];
+
+/** Every minted garden at the proof block, as the account the Hats module configured for its token. */
+async function discoverGardens(provider: JsonRpcProvider, blockTag: number): Promise<string[]> {
+  const deployment = JSON.parse(
+    fs.readFileSync(path.join(CONTRACTS_ROOT, "deployments", "42161-latest.json"), "utf8"),
+  ) as Record<string, string | null | undefined>;
+  const implementations = [deployment.gardenAccountImpl, deployment.gardenAccountProxy].filter(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  );
+  assert(deployment.gardenToken && implementations.length, "deployment is missing the garden token or account kinds");
+  const token = new Contract(deployment.gardenToken, abi, provider);
+  const registry = new Contract(TOKENBOUND_REGISTRY, abi, provider);
+  const module = new Contract(HATS_DELEGATION.module, abi, provider);
+  const gardens: string[] = [];
+  for (let tokenId = 0; tokenId < MAX_GARDEN_TOKENS; tokenId++) {
+    try {
+      await token.ownerOf(tokenId, { blockTag });
+    } catch (error) {
+      // Only the token's refusal of an unminted id ends the range; an RPC failure must stop the plan.
+      if (isUnmintedGardenToken(error)) return gardens;
+      throw error;
+    }
+    const candidates = await Promise.all(
+      implementations.map(async (implementation) => {
+        const account = String(
+          await registry.account(implementation, TOKENBOUND_SALT, 42161, deployment.gardenToken, tokenId, {
+            blockTag,
+          }),
+        );
+        const hatIds = await module.getGardenHatIds(account, { blockTag });
+        return { account, configured: hatIds[7] === true };
+      }),
+    );
+    gardens.push(configuredGardenAccount(tokenId, candidates));
+  }
+  throw new Error(`more than ${MAX_GARDEN_TOKENS} garden tokens; raise the discovery bound after review`);
+}
 
 async function main() {
   const { values } = parseArgs({
@@ -32,6 +79,7 @@ async function main() {
       verify: { type: "boolean" },
       output: { type: "string" },
       garden: { type: "string", multiple: true },
+      "all-gardens": { type: "boolean" },
       block: { type: "string" },
       "expected-implementation": { type: "string" },
       "expected-runtime-hash": { type: "string" },
@@ -43,9 +91,11 @@ async function main() {
   assert(runtimeHash, "use the reviewed release runtime hash");
   assert.match(runtimeHash, /^0x[0-9a-fA-F]{64}$/, "use the reviewed release runtime hash");
   assert(values["expected-implementation"], "use the reviewed release implementation");
-  assert(values.garden?.length, "provide at least one garden");
-  const gardens = values.garden.map(getAddress);
-  assert.equal(new Set(gardens).size, gardens.length, "duplicate garden");
+  assert.equal(
+    [Boolean(values.garden?.length), Boolean(values["all-gardens"])].filter(Boolean).length,
+    1,
+    "name gardens with --garden or select --all-gardens",
+  );
   const provider = new JsonRpcProvider(
     process.env.ARBITRUM_RPC_URL ?? "https://arb-mainnet.g.alchemy.com/public",
     42161,
@@ -56,6 +106,11 @@ async function main() {
     const block = await provider.getBlock(Number(values.block));
     assert(block?.hash, "proof block unavailable");
     const at = { blockTag: block.number };
+    const gardens = values["all-gardens"]
+      ? await discoverGardens(provider, block.number)
+      : values.garden!.map((garden) => getAddress(garden));
+    assert(gardens.length, "no gardens at the proof block");
+    assert.equal(new Set(gardens).size, gardens.length, "duplicate garden");
     const implementation = getAddress(
       `0x${(await provider.getStorage(HATS_DELEGATION.module, SLOT, block.number)).slice(-40)}`,
     );

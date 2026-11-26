@@ -32,6 +32,8 @@ const BOOT_COPY: Record<
     connectDescription: string;
     connect: string;
     passkey: string;
+    otherWays: string;
+    connectDescriptionWithEmail: string;
   }
 > = {
   en: {
@@ -47,6 +49,9 @@ const BOOT_COPY: Record<
       "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
     connect: "Sign in with a Wallet",
     passkey: "Continue with Passkey",
+    otherWays: "Other Ways to Sign In",
+    connectDescriptionWithEmail:
+      "Sign in with a passkey, your email or a wallet to open the Green Goods Hub.",
   },
   es: {
     loading: "Abriendo tu espacio de trabajo…",
@@ -61,6 +66,9 @@ const BOOT_COPY: Record<
       "Conecta tu billetera o inicia sesión con una clave de acceso para abrir el Green Goods Hub.",
     connect: "Entrar con wallet",
     passkey: "Continuar con clave de acceso",
+    otherWays: "Otras formas de entrar",
+    connectDescriptionWithEmail:
+      "Entra con una clave de acceso, tu correo o una wallet para abrir el Green Goods Hub.",
   },
   pt: {
     loading: "Abrindo seu espaço de trabalho…",
@@ -75,6 +83,9 @@ const BOOT_COPY: Record<
       "Conecte sua carteira ou entre com uma chave de acesso para abrir o Green Goods Hub.",
     connect: "Entrar com wallet",
     passkey: "Continuar com chave de acesso",
+    otherWays: "Outras formas de entrar",
+    connectDescriptionWithEmail:
+      "Entre com uma chave de acesso, seu e-mail ou uma wallet para abrir o Green Goods Hub.",
   },
 };
 
@@ -148,9 +159,12 @@ export function BootShell() {
 export function BootConnect({
   onConnect,
   onPasskey,
+  onOtherWays,
 }: {
   onConnect: () => void;
   onPasskey: () => void;
+  /** With email sign-in on, the second slot opens the other ways (email, a wallet) instead. */
+  onOtherWays?: () => void;
 }) {
   const locale = resolveBootLocale();
   const copy = BOOT_COPY[locale];
@@ -158,7 +172,7 @@ export function BootConnect({
     <main id="main-content">
       <ConnectPrompt
         title={copy.connectTitle}
-        description={copy.connectDescription}
+        description={onOtherWays ? copy.connectDescriptionWithEmail : copy.connectDescription}
         lang={locale}
         action={
           <SignInSlots
@@ -176,17 +190,30 @@ export function BootConnect({
               </Button>
             }
             slotTwo={
-              <Button
-                className="w-full"
-                type="button"
-                emphasis="secondary"
-                size="lg"
-                leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
-                onClick={onConnect}
-                data-testid="connect-wallet-button"
-              >
-                {copy.connect}
-              </Button>
+              onOtherWays ? (
+                <Button
+                  className="w-full"
+                  type="button"
+                  emphasis="secondary"
+                  size="lg"
+                  onClick={onOtherWays}
+                  data-testid="other-ways-button"
+                >
+                  {copy.otherWays}
+                </Button>
+              ) : (
+                <Button
+                  className="w-full"
+                  type="button"
+                  emphasis="secondary"
+                  size="lg"
+                  leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+                  onClick={onConnect}
+                  data-testid="connect-wallet-button"
+                >
+                  {copy.connect}
+                </Button>
+              )
             }
           />
         }

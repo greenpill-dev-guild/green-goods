@@ -183,7 +183,7 @@ export const commitmentComposerSchema = z
     considerationUsd: z.string().trim().optional(),
     /**
      * Match a G$ reward set in dollars with the same dollars in USDC, paid from the
-     * steward's own wallet once it's kept (seeding only, PRD-1556). Absent is G$ only.
+     * garden's Safe once it's kept (seeding only, PRD-1556). Absent is G$ only.
      */
     rewardMatchedUsdc: z.boolean().optional(),
   })

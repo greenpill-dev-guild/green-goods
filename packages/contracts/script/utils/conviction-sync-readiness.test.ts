@@ -1,5 +1,12 @@
+import { AbiCoder } from "ethers";
 import { describe, expect, it } from "vitest";
-import { convictionSyncCalls, requireConvictionSyncReady, type GardenSyncState } from "./conviction-sync-readiness";
+import {
+  configuredGardenAccount,
+  convictionSyncCalls,
+  isUnmintedGardenToken,
+  requireConvictionSyncReady,
+  type GardenSyncState,
+} from "./conviction-sync-readiness";
 
 const addr = (n: number) => `0x${n.toString(16).padStart(40, "0")}`;
 const hats = addr(7);
@@ -60,5 +67,24 @@ describe("conviction sync launch readiness", () => {
       state[field] = addr(0);
       expect(() => convictionSyncCalls(state, hats, safe)).toThrow("missing");
     }
+  });
+
+  it("takes the one garden account the Hats module configured", () => {
+    const legacy = { account: addr(10), configured: false };
+    const upgradeable = { account: addr(11), configured: true };
+    expect(configuredGardenAccount(18, [legacy, upgradeable]).toLowerCase()).toBe(addr(11));
+    expect(() => configuredGardenAccount(18, [legacy])).toThrow("garden token 18");
+    expect(() => configuredGardenAccount(18, [{ ...legacy, configured: true }, upgradeable])).toThrow("exactly one");
+  });
+
+  it("ends garden discovery only on the token's own refusal of an unminted id", () => {
+    const reason = (text: string) => `0x08c379a0${AbiCoder.defaultAbiCoder().encode(["string"], [text]).slice(2)}`;
+    expect(isUnmintedGardenToken({ code: "CALL_EXCEPTION", data: reason("ERC721: invalid token ID") })).toBe(true);
+    expect(isUnmintedGardenToken({ code: "CALL_EXCEPTION", data: `0x7e273289${"0".repeat(63)}1` })).toBe(true);
+    // ethers raises CALL_EXCEPTION without revert data when the node cannot serve the proof block.
+    expect(isUnmintedGardenToken({ code: "CALL_EXCEPTION", data: null })).toBe(false);
+    expect(isUnmintedGardenToken({ code: "CALL_EXCEPTION", data: reason("paused") })).toBe(false);
+    expect(isUnmintedGardenToken({ code: "CALL_EXCEPTION", data: "0x08c379a0" })).toBe(false);
+    expect(isUnmintedGardenToken(new Error("rate limited"))).toBe(false);
   });
 });

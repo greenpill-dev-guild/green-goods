@@ -22,6 +22,7 @@ export function CommitmentActions({
   onEditReward,
   onEditConfirmers,
   sendPhase,
+  confirmPhase,
 }: {
   isOnline: boolean;
   /** Why the acts are out of reach while the reader has no connection. */
@@ -48,10 +49,14 @@ export function CommitmentActions({
   onEditConfirmers?: () => void;
   /** Where Send for Confirmation stands, followed from the wallet to the chain. */
   sendPhase: CommitmentDialogController["sendPhase"];
+  /** Where this reader's Confirm Kept stands; idle again once the record reads Kept. */
+  confirmPhase: CommitmentDialogController["confirmPhase"];
 }) {
   const { formatMessage } = useIntl();
   // Sent, or kept queued to send: the act stays closed until the record moves on.
   const sendHeld = sendPhase.status !== "idle" && sendPhase.status !== "failed";
+  // Confirmed, or kept queued to send: Confirm Kept is not offered twice (PRD-1205).
+  const confirmHeld = confirmPhase.status !== "idle" && confirmPhase.status !== "failed";
 
   return (
     <>
@@ -160,7 +165,7 @@ export function CommitmentActions({
             emphasis="primary"
             size="compact"
             onClick={() => onOpenDialog("confirm-kept")}
-            disabled={isActing}
+            disabled={isActing || confirmHeld}
           >
             {formatMessage({
               id: "hub.garden.pool.commitment.act.confirm",
@@ -183,6 +188,15 @@ export function CommitmentActions({
           </Button>
         ) : null}
       </div>
+      {confirmPhase.status !== "idle" ? (
+        <ActPhaseLine
+          phase={confirmPhase}
+          confirmed={formatMessage({
+            id: "hub.garden.pool.commitment.act.confirmed",
+            defaultMessage: "Confirmed. It reads Kept once its last confirmation is recorded.",
+          })}
+        />
+      ) : null}
       {can.sendForConfirmation || sendPhase.status !== "idle" ? (
         <ActPhaseLine
           phase={sendPhase}

@@ -1,3 +1,4 @@
+import type { AuthMode } from "../../../types/auth";
 import {
   getNetworkContext,
   trackUploadError,
@@ -33,7 +34,7 @@ export interface FileUploadContext {
   /** Garden address if relevant */
   gardenAddress?: string;
   /** Auth mode if relevant */
-  authMode?: "passkey" | "wallet" | "embedded" | null;
+  authMode?: AuthMode;
   /** Optional callback fired when this file upload completes or fails */
   onFileProgress?: (event: {
     fileIndex?: number;
@@ -51,7 +52,7 @@ export interface JsonUploadContext {
   /** Garden address if relevant */
   gardenAddress?: string;
   /** Auth mode if relevant */
-  authMode?: "passkey" | "wallet" | "embedded" | null;
+  authMode?: AuthMode;
   /** Type of metadata being uploaded */
   metadataType?: string;
 }

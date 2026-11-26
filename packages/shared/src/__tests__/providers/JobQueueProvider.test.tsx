@@ -78,6 +78,7 @@ vi.mock("../../components/toast", () => ({
   toastService: {
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
   },
   createQueueToasts: vi.fn(() => queueToasts),
 }));
@@ -170,6 +171,7 @@ import { createFakeJobQueueHandle } from "../test-utils/job-queue-fakes";
 import { queuedTakeUpChain } from "../test-utils/queued-jobs";
 import type { JobQueueHandle } from "../../modules/job-queue";
 import type { Job, QueueEvent } from "@green-goods/shared/types";
+import { toastService } from "../../components/toast";
 import { JobQueueProvider, useJobQueue, useQueueStats } from "../../providers/JobQueue";
 
 // Type helpers for mocked functions
@@ -484,6 +486,27 @@ describe("providers/JobQueueProvider", () => {
         });
     };
 
+    it("says a kept decision was already reviewed when the work was decided elsewhere, not that it failed", async () => {
+      const emit = listen();
+      renderHook(() => useJobQueue(), { wrapper: createWrapper(mockJobQueue) });
+
+      const decided = failed("approval", "0xgardenb");
+      await emit({
+        ...decided,
+        job: {
+          ...decided.job,
+          payload: { ...(decided.job!.payload as object), workUID: "0xwork" },
+        } as Job,
+        error: "unavailable:work-already-decided",
+      });
+
+      expect(queueToasts.jobFailed).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledWith(
+        // This harness loads no messages, so the title reads its id.
+        expect.objectContaining({ id: "approval-submit", title: "app.work.detail.alreadyReviewed" })
+      );
+    });
+
     it("names the other garden a failed upload waits in, and its action opens the switcher without switching", async () => {
       const emit = listen();
       const onOpenGardenSwitcher = vi.fn();
@@ -630,7 +653,7 @@ describe("providers/JobQueueProvider", () => {
             job: {
               id: "approval-job-1",
               kind: "approval",
-              chainId: 11155111,
+              chainId: 42161,
               payload: {
                 actionUID: 1,
                 workUID: "work-1",
@@ -651,9 +674,17 @@ describe("providers/JobQueueProvider", () => {
       });
 
       await waitFor(() => {
-        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith({
-          queryKey: queryKeys.approvals.all,
-        });
+        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(
+          { queryKey: queryKeys.approvals.all },
+          { cancelRefetch: false }
+        );
+      });
+      // The decision lands only now, so readiness is read again too, on the job's own chain.
+      await waitFor(() => {
+        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(
+          { queryKey: queryKeys.gardens.memberReadinessForGarden("0xgarden", 42161) },
+          { cancelRefetch: false }
+        );
       });
     });
 

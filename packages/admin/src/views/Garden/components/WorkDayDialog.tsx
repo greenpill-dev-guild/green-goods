@@ -83,6 +83,8 @@ export function WorkDayDialog({
   const title = openDay
     ? intl.formatDate(dateOfDay(openDay.day), { weekday: "long", month: "long", day: "numeric" })
     : "";
+  // Review reads one day on its own, so it is the way to a day a cut month read missed.
+  const showsWork = openDay !== null && (openDay.works.length > 0 || openDay.coverage !== "whole");
 
   return (
     <AdminDialog
@@ -92,12 +94,14 @@ export function WorkDayDialog({
       }}
       title={title}
       description={
-        openDay && openDay.counts.total > 0 ? describeWorkCounts(openDay.counts, intl) : undefined
+        openDay && openDay.counts.total > 0
+          ? describeWorkCounts(openDay.counts, intl, openDay.coverage === "partial")
+          : undefined
       }
       size="md"
       tone="garden"
       actions={
-        openDay && openDay.works.length > 0 && openDayWorkHref
+        showsWork && openDayWorkHref
           ? {
               primary: {
                 label: intl.formatMessage({
@@ -148,26 +152,57 @@ export function WorkDayDialog({
             defaultMessage: "The calendar reads this month when you are back online.",
           })}
         </Alert>
-      ) : openDay && openDay.works.length > 0 ? (
-        <ul
-          aria-label={intl.formatMessage({
-            id: "hub.garden.calendar.dayList",
-            defaultMessage: "Work submitted this day",
+      ) : openDay?.coverage === "unread" ? (
+        <Alert
+          variant="warning"
+          title={intl.formatMessage({
+            id: "hub.garden.calendar.partial.title",
+            defaultMessage: "This month is only partly read",
           })}
-          className="flex flex-col gap-(--gg-list-gap)"
         >
-          {openDay.works.map((work) => (
-            <li key={work.id}>
-              <DayWorkRow
-                work={work}
-                status={calendar.statusOf(work)}
-                onOpen={() =>
-                  navigate(adminRoutes.reviewWorkDetail(work.id, { gardenId, day: openDay.day }))
-                }
-              />
-            </li>
-          ))}
-        </ul>
+          {intl.formatMessage({
+            id: "hub.garden.calendar.dayUnread.description",
+            defaultMessage:
+              "The calendar stopped reading before this day. View in Work reads the day on its own.",
+          })}
+        </Alert>
+      ) : openDay && openDay.works.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {openDay.coverage === "partial" ? (
+            <Alert
+              variant="warning"
+              title={intl.formatMessage({
+                id: "hub.garden.calendar.dayPartial.title",
+                defaultMessage: "This day is only partly read",
+              })}
+            >
+              {intl.formatMessage({
+                id: "hub.garden.calendar.dayPartial.description",
+                defaultMessage:
+                  "The month holds more work than the calendar reads at once, so this day's latest submissions are missing. View in Work reads the whole day.",
+              })}
+            </Alert>
+          ) : null}
+          <ul
+            aria-label={intl.formatMessage({
+              id: "hub.garden.calendar.dayList",
+              defaultMessage: "Work submitted this day",
+            })}
+            className="flex flex-col gap-(--gg-list-gap)"
+          >
+            {openDay.works.map((work) => (
+              <li key={work.id}>
+                <DayWorkRow
+                  work={work}
+                  status={calendar.statusOf(work)}
+                  onOpen={() =>
+                    navigate(adminRoutes.reviewWorkDetail(work.id, { gardenId, day: openDay.day }))
+                  }
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : (
         <EmptyState
           icon={<RiCalendarLine className="h-6 w-6" />}

@@ -17,7 +17,7 @@ generated_from:
   - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:4e43a713fc0b32b3ae86683a4de92e2cfcba830cae39a55147ffa64acb156d83"
+source_digest: "sha256:1ec21145cf6b62e56515af95fb3293802f68aa946b33106b8c6ed3e4bb9779d2"
 source_of_truth:
   - packages/contracts/config/schemas.json
   - packages/contracts/deployments/1-latest.json
@@ -40,7 +40,7 @@ Every address below comes from the checked-in deployment artifacts (`packages/co
 
 ## Arbitrum One (42161)
 
-67 recorded contracts and 5 schemas. Addresses open on [arbiscan.io](https://arbiscan.io); schema UIDs open on [arbitrum.easscan.org](https://arbitrum.easscan.org).
+68 recorded contracts and 5 schemas. Addresses open on [arbiscan.io](https://arbiscan.io); schema UIDs open on [arbitrum.easscan.org](https://arbitrum.easscan.org).
 
 ### Core protocol
 
@@ -122,7 +122,7 @@ Capabilities wired to the garden token on this network, and the partner contract
 
 ### Commitment pooling and settlement
 
-Pools, registries, settlement, and their upgradeable implementations.
+Pools, registries, settlement, reward payouts, and their upgradeable implementations.
 
 | Contract | Address | Explorer |
 |---|---|---|
@@ -131,9 +131,10 @@ Pools, registries, settlement, and their upgradeable implementations.
 | Commitment registry (proxy) | <CopyCommand command="0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959" /> | [arbiscan.io](https://arbiscan.io/address/0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959) |
 | Commitment registry (implementation) | <CopyCommand command="0x97d2bc3ec0209a9b9d1e2e7EB9f021d3C4DD2970" /> | [arbiscan.io](https://arbiscan.io/address/0x97d2bc3ec0209a9b9d1e2e7EB9f021d3C4DD2970) |
 | Settlement module (proxy) | <CopyCommand command="0x15c8F6CF25abA2161cc04719b4C4a93c4146935D" /> | [arbiscan.io](https://arbiscan.io/address/0x15c8F6CF25abA2161cc04719b4C4a93c4146935D) |
-| Settlement module (implementation) | <CopyCommand command="0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281" /> | [arbiscan.io](https://arbiscan.io/address/0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281) |
+| Settlement module (implementation) | <CopyCommand command="0xfcDca0E8b6a420Cd06d8f93352c36dCb0343aDB9" /> | [arbiscan.io](https://arbiscan.io/address/0xfcDca0E8b6a420Cd06d8f93352c36dCb0343aDB9) |
 | Credit registry (proxy) | <CopyCommand command="0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34" /> | [arbiscan.io](https://arbiscan.io/address/0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34) |
 | Credit registry (implementation) | <CopyCommand command="0x2ccd72813f02136EF54683c63DBe0bB48Ca13826" /> | [arbiscan.io](https://arbiscan.io/address/0x2ccd72813f02136EF54683c63DBe0bB48Ca13826) |
+| Reward payer | <CopyCommand command="0xEd1244F2c65f5Ddd052912Dd3F6E52A7f22F2829" /> | [arbiscan.io](https://arbiscan.io/address/0xEd1244F2c65f5Ddd052912Dd3F6E52A7f22F2829) |
 
 ### Linked libraries
 
@@ -158,13 +159,13 @@ External libraries the pooling and settlement modules link against.
 | CommitmentPoolingTerminalLib | <CopyCommand command="0x96d1e72637bd4ff431e63c875436f8e25a4f7dda" /> | [arbiscan.io](https://arbiscan.io/address/0x96d1e72637bd4ff431e63c875436f8e25a4f7dda) |
 | CommitmentPoolingTermsLib | <CopyCommand command="0x8b47a12a0c63a518cff5fac52569a1280796b808" /> | [arbiscan.io](https://arbiscan.io/address/0x8b47a12a0c63a518cff5fac52569a1280796b808) |
 | CommitmentPoolingViewsLib | <CopyCommand command="0x2f521181f1b24a452f6be78747a1fca663a6a718" /> | [arbiscan.io](https://arbiscan.io/address/0x2f521181f1b24a452f6be78747a1fca663a6a718) |
-| SettlementAcknowledgmentLib | <CopyCommand command="0xE81212903382ed03c4D4E8d72d23a098d56DE645" /> | [arbiscan.io](https://arbiscan.io/address/0xE81212903382ed03c4D4E8d72d23a098d56DE645) |
-| SettlementCommandLib | <CopyCommand command="0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8" /> | [arbiscan.io](https://arbiscan.io/address/0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8) |
-| SettlementConfigurationLib | <CopyCommand command="0xa7042e327369beF53E01CCdC46E713Af7Ea9a687" /> | [arbiscan.io](https://arbiscan.io/address/0xa7042e327369beF53E01CCdC46E713Af7Ea9a687) |
-| SettlementFundingLib | <CopyCommand command="0x8cC05D2443AE960c4CB98F462D87D619774B2bfA" /> | [arbiscan.io](https://arbiscan.io/address/0x8cC05D2443AE960c4CB98F462D87D619774B2bfA) |
-| SettlementLifecycleLib | <CopyCommand command="0xA9901d5AbA09aFdC180900AAC423d0bF14633501" /> | [arbiscan.io](https://arbiscan.io/address/0xA9901d5AbA09aFdC180900AAC423d0bF14633501) |
-| SettlementLoanLib | <CopyCommand command="0x44e0ADB51338dA96F2Aaa942924E47008e534122" /> | [arbiscan.io](https://arbiscan.io/address/0x44e0ADB51338dA96F2Aaa942924E47008e534122) |
-| SettlementPlanLib | <CopyCommand command="0xbDF2741aaEb9fa5F55bd8001579c5f7c13898622" /> | [arbiscan.io](https://arbiscan.io/address/0xbDF2741aaEb9fa5F55bd8001579c5f7c13898622) |
+| SettlementAcknowledgmentLib | <CopyCommand command="0x33Bc77C79b73E68B10C47B9A6be99DB962e8c113" /> | [arbiscan.io](https://arbiscan.io/address/0x33Bc77C79b73E68B10C47B9A6be99DB962e8c113) |
+| SettlementCommandLib | <CopyCommand command="0x163dEFA96dDe88498A5a797450a9E72745614855" /> | [arbiscan.io](https://arbiscan.io/address/0x163dEFA96dDe88498A5a797450a9E72745614855) |
+| SettlementConfigurationLib | <CopyCommand command="0xc9d206e1C9ad5a330FFf8cAD5087D35E3f795621" /> | [arbiscan.io](https://arbiscan.io/address/0xc9d206e1C9ad5a330FFf8cAD5087D35E3f795621) |
+| SettlementFundingLib | <CopyCommand command="0xa14EEB9652Afc302dC8b70FAc82bBD05182C090b" /> | [arbiscan.io](https://arbiscan.io/address/0xa14EEB9652Afc302dC8b70FAc82bBD05182C090b) |
+| SettlementLifecycleLib | <CopyCommand command="0xe3725031a7900BDcB485bE9900cEe2bc06723c1c" /> | [arbiscan.io](https://arbiscan.io/address/0xe3725031a7900BDcB485bE9900cEe2bc06723c1c) |
+| SettlementLoanLib | <CopyCommand command="0x7d03F0E9E315c8F861E695a1b64d7761d8240612" /> | [arbiscan.io](https://arbiscan.io/address/0x7d03F0E9E315c8F861E695a1b64d7761d8240612) |
+| SettlementPlanLib | <CopyCommand command="0x074d350935C3d0549cA59921f920710E1376Fa3C" /> | [arbiscan.io](https://arbiscan.io/address/0x074d350935C3d0549cA59921f920710E1376Fa3C) |
 
 </details>
 
@@ -217,7 +218,7 @@ The schema each record kind is written against.
 
 ### Commitment pooling and settlement
 
-Pools, registries, settlement, and their upgradeable implementations.
+Pools, registries, settlement, reward payouts, and their upgradeable implementations.
 
 | Contract | Address | Explorer |
 |---|---|---|

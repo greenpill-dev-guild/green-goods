@@ -8,8 +8,9 @@ import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
 import { queryInvalidation } from "../config/query-keys/invalidation";
+import { refreshApprovalReads } from "../modules/work/approval-read-refresh";
 import { draftsKeys, queueKeys } from "../config/query-keys/misc";
-import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
+import { worksKeys } from "../config/query-keys/work";
 import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
 import { useUploadFailureToast } from "../hooks/work/useUploadFailureToast";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
@@ -30,6 +31,7 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
+import { isSmartAccountAuthMode } from "../types/auth";
 import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
 import { WALLET_RECONNECT_REQUIRED } from "../utils/errors/unsent-failures";
 
@@ -228,17 +230,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;
-
-        // Invalidate work approvals to show the new approval
-        if (currentUserAddress) {
-          queryClient.invalidateQueries({
-            queryKey: workApprovalsKeys.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
-          });
-        }
-        queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
+        const { gardenAddress, workUID } = approvalPayload;
+        // A queued decision lands only now, so reread what it changes as an online one does:
+        // approvals, readiness and the calendar's days, with the indexer-lag follow-ups.
+        const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
+        refreshApprovalReads(queryClient, chainId, { gardenId: gardenAddress, workUID }, true);
 
         // Update work status in cache if available
-        const workUID = approvalPayload.workUID;
         queryClient.setQueriesData<Work[]>({ queryKey: worksKeys.all }, (oldWorks) => {
           // Defensive shape check: cached values can be undefined or
           // (rarely) a non-array if a hook stuffed something unexpected
@@ -402,7 +400,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
     // Auto-flush only once the origin has confirmed the connection: "online"
     // is also the boot state and the state while a probe is still pending, and
     // an unstable connection never sends.
-    const autoSends = authMode === "passkey" || authMode === "embedded";
+    const autoSends = isSmartAccountAuthMode(authMode) || authMode === "embedded";
     if (autoSends && connectivityStore.isConfirmedOnline()) {
       void attemptFlush();
     }

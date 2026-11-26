@@ -250,7 +250,8 @@ export function NotificationPanel({
         })}
         description={formatMessage({
           id: "hub.notifications.empty.description",
-          defaultMessage: "Work submissions, assessments, and system alerts will appear here.",
+          defaultMessage:
+            "Joins, role changes and other stewards' decisions show here, with what needs your attention.",
         })}
       />
     </SheetBody>

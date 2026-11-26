@@ -22,6 +22,7 @@ import type { ApprovalJobPayload } from "../../types/job-queue";
 import { toastService } from "../../components/toast";
 import { trackWorkApprovalLifecycle } from "../../modules/app/analytics-events";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import { APPROVAL_ALREADY_DECIDED_REASON } from "../../modules/work/submit-approval-command";
 import { useTimeout } from "../utils/useTimeout";
 import { useWorkApproval } from "./useWorkApproval";
 import type { WorkApprovalCompletion } from "./useWorkApprovalLifecycle";
@@ -191,6 +192,13 @@ export function useWorkApprovalActions({
 
       if (type === "job:failed") {
         setOptimisticStatus(null);
+      }
+      // Decided elsewhere: the queue's own notice says it was already reviewed, and an error here
+      // would replace it, since both use the same toast.
+      if (
+        type === "job:failed" &&
+        !("error" in data && data.error === `unavailable:${APPROVAL_ALREADY_DECIDED_REASON}`)
+      ) {
         toastService.error({
           id: "approval-submit",
           title: "Action failed",
