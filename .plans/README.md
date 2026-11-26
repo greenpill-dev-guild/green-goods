@@ -37,7 +37,7 @@ Ideas and backlog hubs keep the four canonical documents plus `status.json`.
 Lane handoff files are created when the hub moves to `active`; `artifacts/` is added only
 for pictures or data that are real evidence. Hubs take no new reports or prototype code: record
 results in `plan.todo.md`, the pull request's Verification section, or Linear, and keep prototypes
-on a branch, in Storybook, or in an artifact. The regrowth check
+on a branch or in Storybook. The regrowth check
 (`scripts/quality/check-regrowth.mjs`) fails a change that adds either.
 
 `status.json` is the machine-readable source of truth for explicit lane state. Queue readiness is computed by `node scripts/harness/plan-hub.mjs list` from `status.json` plus any required branch trigger.

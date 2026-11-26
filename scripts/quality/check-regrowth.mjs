@@ -9,8 +9,8 @@
 //   request or Linear. Under `docs/`, new markdown belongs in the published pages, the routines or
 //   a release's folder. Elsewhere, new markdown is limited to the guidance folders and the
 //   conventional names (README.md, AGENTS.md and the like).
-// - New prototype code (scripts, pages, styles) in a plan hub; prototypes live on a branch, in
-//   Storybook or in an artifact.
+// - New prototype code (scripts, contracts, pages, styles) in a plan hub; prototypes live on a
+//   branch or in Storybook.
 //
 // Existing text is not judged: a file is compared with the merge base, so only its added lines
 // and added files count.
@@ -37,10 +37,14 @@ const PLANS = ".plans/";
 const DOCS_UNJUDGED = [/^docs\/docs\//, /^docs\/releases\/\d+\.\d+\.\d+[^/]*\//];
 const DOCS_ROUTINES = "docs/routines/";
 const DOCS_ROOT_FILE = /^docs\/[^/]+$/;
-const PROTOTYPE_CODE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|html?|css|scss|vue|svelte)$/i;
+const PROTOTYPE_CODE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|html?|css|scss|vue|svelte|sol|sh|bash|zsh|py)$/i;
 const GUIDANCE_FOLDERS = [".claude/", ".agents/", ".codex/", ".github/"];
-// A skill's references are its templates, a report template included.
+// A skill's references are its templates, a report template included; a dated file or one under
+// `reports/` is a record, not a template.
 const SKILL_FOLDERS = [".claude/skills/", ".agents/skills/"];
+const DATED = /\d{4}-\d{2}-\d{2}/;
+// Lane-to-lane records live in a hub's `handoffs/`, whatever they are named.
+const HUB_HANDOFF = /^\.plans\/[^/]+\/[^/]+\/handoffs\/[^/]+\.mdx?$/i;
 const CONVENTIONAL_NAMES =
   /^(README|AGENTS|CLAUDE|DESIGN[\w.-]*|SKILL|ARCHITECTURE|CHANGELOG|MODULES|CONTRIBUTING|SECURITY|CODE_OF_CONDUCT|LICENSES?)\.mdx?$/i;
 const REPORT_NAME =
@@ -56,9 +60,10 @@ const REPORT_HOME = "record results in the hub's plan.todo.md, the pull request'
 export function planProblem(file) {
   if (!file.startsWith(PLANS)) return null;
   if (PROTOTYPE_CODE.test(file)) {
-    return "is prototype code in a plan hub; keep prototypes on a branch, in Storybook or in an artifact";
+    return "is prototype code in a plan hub; keep prototypes on a branch or in Storybook";
   }
   if (!MARKDOWN.test(file)) return null;
+  if (HUB_HANDOFF.test(file) && !DATED.test(path.posix.basename(file))) return null;
   if (file.split("/").includes("reports") || REPORT_NAME.test(path.posix.basename(file).replace(MARKDOWN, ""))) {
     return `reads as a report; plan hubs take no new reports, so ${REPORT_HOME}`;
   }
@@ -69,7 +74,11 @@ export function planProblem(file) {
 export function markdownProblem(file) {
   if (!MARKDOWN.test(file)) return null;
   if (file.startsWith(PLANS)) return planProblem(file);
-  if (SKILL_FOLDERS.some((home) => file.startsWith(home))) return null;
+  if (SKILL_FOLDERS.some((home) => file.startsWith(home))) {
+    return file.split("/").includes("reports") || DATED.test(path.posix.basename(file))
+      ? `reads as a report; ${REPORT_HOME}`
+      : null;
+  }
   if (DOCS_UNJUDGED.some((home) => home.test(file))) return null;
   const name = path.posix.basename(file);
   if (REPORT_NAME.test(name.replace(MARKDOWN, ""))) {

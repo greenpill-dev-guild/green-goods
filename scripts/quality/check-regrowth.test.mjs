@@ -13,6 +13,7 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     ".plans/active/hub/brief.md",
     ".plans/active/hub/settlement-spec.md",
     ".plans/active/hub/handoffs/codex-contracts.md",
+    ".plans/active/hub/handoffs/ui-handoff.md",
     "docs/docs/builders/quality/index.mdx",
     "docs/docs/community/gardener-guide/report-in-chat.mdx",
     "docs/releases/2.1.0/release-notes.md",
@@ -23,6 +24,7 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     ".claude/skills/review/SKILL.md",
     ".claude/context/testing.md",
     ".claude/skills/qa-triage/references/unattended-report.md",
+    ".claude/skills/audit/report-template.md",
     "scripts/quality/check.mjs",
   ]) {
     assert.equal(markdownProblem(file), null, file);
@@ -36,6 +38,11 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     "SUMMARY.md",
     ".plans/active/hub/findings-2026-11-21.md",
     ".plans/active/hub/reports/closeout.md",
+    ".plans/active/hub/handoffs/2026-11-23-ui-handoff.md",
+    ".plans/active/hub/handoffs/reports/ui.md",
+    ".claude/skills/audit/reports/audit-2026-11-23.md",
+    ".claude/skills/audit/reports/latest.md",
+    ".agents/skills/review/review-2026-11-23.md",
     ".plans/backlog/hub/audit.md",
     "docs/routines/2026-11-21-run-notes.md",
     "docs/plans/roadmap.md",
@@ -50,6 +57,9 @@ test("a plan hub takes no new prototype code, and its pictures and data stay all
     ".plans/active/hub/hifi/screens.ts",
     ".plans/active/hub/artifacts/prototype.html",
     ".plans/ideas/hub/demo.mjs",
+    ".plans/active/hub/prototype.sol",
+    ".plans/active/hub/demo.sh",
+    ".plans/backlog/hub/model.py",
   ]) {
     assert.ok(newFileProblem(file), file);
   }

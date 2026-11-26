@@ -51,7 +51,7 @@ Merge authorized worktrees only, never with blanket "take ours" / "take theirs" 
 
 ## Merge audit format
 
-Required whenever a merge is not a clean fast-forward/cherry-pick with no conflicts. Write it in the conversation or, for plan-backed work, in the pull request body:
+Required whenever a merge is not a clean fast-forward/cherry-pick with no conflicts. Write it in the conversation. For plan-backed work, add it to the pull request body only when you are authorized to edit that pull request:
 
 ```md
 # Clean Merge Audit
