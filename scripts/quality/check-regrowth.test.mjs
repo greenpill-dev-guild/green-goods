@@ -148,6 +148,8 @@ test("the check judges a change against its merge base, uncommitted and untracke
   mkdirSync(path.join(root, ".plans/active/hub"), { recursive: true });
   write(".plans/active/hub/sketch.md", "plan\n");
   write(".plans/backlog/staged/reports/2026-10-01-proof.md", "old report\n");
+  write(".plans/backlog/staged/flow-audit.md", "old audit\n");
+  write(".plans/backlog/staged/vendor-notes.md", "old notes\n");
   git("add", ".");
   git("commit", "-q", "-m", "plan note");
   const planned = git("rev-parse", "HEAD").trim();
@@ -156,6 +158,14 @@ test("the check judges a change against its merge base, uncommitted and untracke
   // A hub that changes stage carries its old reports with it.
   git("mv", ".plans/backlog/staged", ".plans/active/staged");
   assert.equal(judge(root, planned).problems.length, 1);
+  // An old hub report that leaves `.plans/` is judged where it lands.
+  git("mv", ".plans/active/staged/flow-audit.md", "packages/shared/flow-audit.md");
+  mkdirSync(path.join(root, "docs"), { recursive: true });
+  git("mv", ".plans/active/staged/vendor-notes.md", "docs/vendor-notes.md");
+  const moved = judge(root, planned).problems;
+  assert.equal(moved.length, 3, moved.join("\n"));
+  assert.ok(moved.some((problem) => problem.startsWith("packages/shared/flow-audit.md: reads as a report")));
+  assert.ok(moved.some((problem) => problem.startsWith("docs/vendor-notes.md: reads as a report")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/old.ts:3: new label comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/new.ts:1: new banner comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/REVIEW_FINDINGS.md: reads as a report")));

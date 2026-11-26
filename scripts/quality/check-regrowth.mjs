@@ -152,8 +152,11 @@ export function judge(root, ref) {
   let sourceFiles = 0;
   for (const [file, { how, from }] of changedPaths(root, ref)) {
     if (how === "D") continue;
-    // A move lands markdown somewhere new, unless the file was already where it may not be.
-    if (how === "A" || (from && !newFileProblem(from))) {
+    // A move lands a file somewhere new, unless it was already where it may not be. A hub's old
+    // reports and prototypes are such files, so they may move with their hub to another stage,
+    // but one that leaves `.plans/` is judged where it lands.
+    const leavesPlans = from?.startsWith(PLANS) && !file.startsWith(PLANS);
+    if (how === "A" || (from && (leavesPlans || !newFileProblem(from)))) {
       const problem = newFileProblem(file);
       if (problem) problems.push(`${file}: ${problem}.`);
     }
