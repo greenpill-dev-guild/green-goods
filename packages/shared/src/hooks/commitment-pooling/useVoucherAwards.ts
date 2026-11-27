@@ -1,8 +1,11 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useCallback, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
+import { voucherAwardActOutcome } from "../../modules/commitment-pooling/send-act-outcome";
 import { SERVICE_LIVE_ROUTES } from "../../modules/commitment-pooling/service-access-live-config";
 import { createAccountMessageSigner } from "../../modules/auth/account-message-signer";
 import { createVoucherAwardClient } from "../../modules/commitment-pooling/voucher-award-client";
@@ -44,11 +47,13 @@ export function useVoucherAwards(reserve?: Address | null) {
       sign: async (message) => {
         assertCurrent();
         const auth = current.current.user;
-        const accountClient =
-          auth.authMode === "passkey" ? await auth.resolveSmartAccountClient?.(100) : null;
+        const accountClient = isSmartAccountAuthMode(auth.authMode)
+          ? await auth.resolveSmartAccountClient?.(100)
+          : null;
         assertCurrent();
         return createAccountMessageSigner({
           authMode: auth.authMode,
+          walletRestore: auth.walletRestore,
           signMessage: current.current.signMessageAsync,
           account: accountClient?.account,
         })(message);
@@ -129,10 +134,22 @@ export function useVoucherAwards(reserve?: Address | null) {
       throw new Error("Select the award reserve and connect its signer");
     return { record, actor: user.primaryAddress, sender, client: required(), assertCurrent };
   };
+  // `sendVoucherAward` signs and sends every award on Gnosis.
+  const awardAct: SendActContext = {
+    act: "pool_voucher_award",
+    authMode: user.authMode,
+    chainId: 100,
+  };
+  const sendAward = recordedSendAct(
+    awardAct,
+    (record: VoucherAwardRecord) => sendVoucherAward(execution(record)),
+    voucherAwardActOutcome
+  );
   const send = useMutation({
     ...mutationOptions,
+    // The send's ending is recorded before the cache update, which can fail on its own.
     mutationFn: async (record: VoucherAwardRecord) => {
-      const result = await sendVoucherAward(execution(record));
+      const result = await sendAward(record);
       remember(result.record);
       return result;
     },
@@ -153,6 +170,7 @@ export function useVoucherAwards(reserve?: Address | null) {
     reconcile,
     send,
     recover,
-    directSigningAvailable: user.authMode !== "passkey" && Boolean(sender?.signTypedData),
+    directSigningAvailable:
+      !isSmartAccountAuthMode(user.authMode) && Boolean(sender?.signTypedData),
   };
 }

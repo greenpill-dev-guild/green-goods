@@ -22,7 +22,7 @@ export interface RolePair {
 }
 
 /** The people in a roster, each once, in the order their highest role first appears. */
-export function peopleFromRoster(roleMembers: Record<GardenRole, Address[]>): MemberPerson[] {
+function peopleFromRoster(roleMembers: Record<GardenRole, Address[]>): MemberPerson[] {
   const byAddress = new Map<string, MemberPerson>();
   for (const role of GARDEN_ROLE_ORDER) {
     for (const address of roleMembers[role] ?? []) {
@@ -67,6 +67,35 @@ export interface ManageRolesViewer {
   address?: Address | null;
   isOwner: boolean;
   canManage: boolean;
+  canManageStewards?: boolean;
+  allowedRoles?: readonly GardenRole[];
+}
+
+/**
+ * The roles this viewer may grant (PRD-1391), ranked as the garden's role rule on chain is: an
+ * Owner grants any role, a Steward any role below Owner, and the protocol team only Steward.
+ */
+export function grantableRoles(
+  viewer: Pick<ManageRolesViewer, "isOwner" | "canManage" | "canManageStewards">
+): GardenRole[] {
+  return GARDEN_ROLE_ORDER.filter(
+    (role) =>
+      viewer.isOwner ||
+      (viewer.canManage && role !== "owner") ||
+      (Boolean(viewer.canManageStewards) && role === "steward")
+  );
+}
+
+/**
+ * Whether this viewer may add roles to this person. A Steward never changes an Owner (PRD-1391),
+ * so an Owner's row offers a Steward nothing; an Owner, or the protocol team granting Steward,
+ * may add to anyone.
+ */
+function canAddRolesTo(
+  person: Pick<MemberPerson, "roles">,
+  viewer: Pick<ManageRolesViewer, "isOwner" | "canManageStewards">
+): boolean {
+  return viewer.isOwner || Boolean(viewer.canManageStewards) || !person.roles.includes("owner");
 }
 
 /** Why each of a person's roles cannot be removed by this viewer, for the roles that cannot. */
@@ -77,10 +106,15 @@ export function blockedRoles(
 ): Map<GardenRole, GardenRoleRemovalBlock> {
   const blocked = new Map<GardenRole, GardenRoleRemovalBlock>();
   for (const role of person.roles) {
+    if (viewer.allowedRoles && !viewer.allowedRoles.includes(role)) {
+      blocked.set(role, "no-access");
+      continue;
+    }
     const block = gardenRoleRemovalBlock({
       viewer: viewer.address,
       viewerIsOwner: viewer.isOwner,
       viewerCanManage: viewer.canManage,
+      viewerCanManageStewards: viewer.canManageStewards,
       person: person.address,
       personRoles: person.roles,
       role,
@@ -89,6 +123,31 @@ export function blockedRoles(
     if (block) blocked.set(role, block);
   }
   return blocked;
+}
+
+/**
+ * The roster as this viewer may act on it: each person once, the roles each one's row blocks
+ * from removal, and the people whose rows may add or restore roles (`canAddRolesTo`), keyed by
+ * lower-cased address.
+ */
+export function rosterForViewer(
+  roleMembers: Record<GardenRole, Address[]>,
+  viewer: ManageRolesViewer
+): {
+  people: MemberPerson[];
+  blocked: Map<string, Map<GardenRole, GardenRoleRemovalBlock>>;
+  addable: ReadonlySet<string>;
+} {
+  const people = peopleFromRoster(roleMembers);
+  const ownerCount = roleMembers.owner?.length ?? 0;
+  const key = (person: MemberPerson) => person.address.toLowerCase();
+  return {
+    people,
+    blocked: new Map(
+      people.map((person) => [key(person), blockedRoles(person, viewer, ownerCount)])
+    ),
+    addable: new Set(people.filter((person) => canAddRolesTo(person, viewer)).map(key)),
+  };
 }
 
 /** The roles a person keeps once the selected ones go, in role order. */

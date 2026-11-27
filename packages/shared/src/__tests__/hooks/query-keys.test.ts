@@ -28,7 +28,6 @@ import { createTestQueryClient } from "../test-utils/query-client";
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
 const TEST_USER = "0x1111111111111111111111111111111111111111" as Address;
-const TEST_OPERATOR = "0x2222222222222222222222222222222222222222" as Address;
 const TEST_POOL = "0x4444444444444444444444444444444444444444";
 const TEST_JAR = "0x5555555555555555555555555555555555555555";
 const TEST_VAULT = "0x6666666666666666666666666666666666666666";
@@ -214,6 +213,21 @@ describe("queryInvalidation", () => {
     );
     expect(baseKeys).not.toContainEqual(queryKeys.works.mineByUser(TEST_USER));
     expect(userKeys).toContainEqual(queryKeys.works.mineByUser(TEST_USER));
+  });
+
+  it("rereads a garden's Gardeners readiness once a queued work is sent", async () => {
+    const client = createTestQueryClient();
+    const garden = "0xAbCdEf0000000000000000000000000000000001";
+    const readiness = queryKeys.gardens.memberReadiness(garden, [TEST_USER], TEST_CHAIN_ID);
+    client.setQueryData(readiness, {});
+
+    await Promise.all(
+      queryInvalidation
+        .onJobCompleted(garden, TEST_CHAIN_ID)
+        .map((queryKey) => client.invalidateQueries({ queryKey }))
+    );
+
+    expect(client.getQueryState(readiness)?.isInvalidated).toBe(true);
   });
 
   it("fans out job completion invalidation across queue and works", () => {

@@ -26,11 +26,11 @@ const meta: Meta<typeof CanvasIndexerErrorState> = {
     docs: {
       description: {
         component: [
-          "**CanvasIndexerErrorState** — terminal state shown when",
-          "`useEligibleAdminGardens.isError` is true and the role-confirmed",
-          "cross-check produces no fallback gardens. Distinct from",
-          "`CanvasGardenAccessState` (which says 'you don't have access yet') —",
-          "this copy says 'we can't tell yet, the indexer is unreachable'.",
+          "**CanvasIndexerErrorState**: terminal state shown when the access",
+          "check could not finish, because a garden, role or garden-creation",
+          "read failed and no garden is eligible. Distinct from",
+          "`CanvasGardenAccessState`, which says 'you don't have access yet':",
+          "this copy says 'we can't tell yet' and names no source.",
           "",
           "**Accessibility**: heading-first content order, Retry CTA is the",
           "primary action and reachable via Tab.",
@@ -77,7 +77,7 @@ export const ToneMatrix: Story = {
   decorators: [],
   render: (args) => (
     <div className="grid gap-4 p-4 md:grid-cols-2">
-      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+      {(["review", "garden", "community", "actions"] as const).map((tone) => (
         <div
           key={tone}
           data-tone={tone}

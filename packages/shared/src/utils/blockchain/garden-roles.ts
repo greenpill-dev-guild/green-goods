@@ -70,6 +70,40 @@ export const GARDEN_ROLE_ORDER: readonly GardenRole[] = [
 ] as const;
 
 /**
+ * The sub-roles a repair may grant for a person. An Owner grant gives Steward and Gardener but never
+ * Evaluator (the PRD-1554 ruling), and a Steward grant mints Evaluator too, so an owner may be given
+ * back only Gardener. Anyone whose Steward came from an Owner grant, a former owner included, is
+ * never offered Evaluator (PRD-979 ruling): a Steward granted directly before Owner already minted
+ * Evaluator, so any Owner grant on record settles it. Otherwise a steward's own grant gives
+ * Evaluator and Gardener; granting either has no cascade.
+ */
+function repairableSubRoles(
+  roles: readonly GardenRole[],
+  recordedRoles: readonly GardenRole[]
+): readonly GardenRole[] {
+  if (roles.includes("owner") || (roles.includes("steward") && recordedRoles.includes("owner"))) {
+    return ["gardener"];
+  }
+  if (roles.includes("steward")) return ["evaluator", "gardener"];
+  return [];
+}
+
+/**
+ * The missing sub-roles a repair may restore: only ones with no recorded event at all, so never
+ * minted. A sub-role with a recorded grant or revocation was taken away on purpose, or moments ago
+ * before its revocation was indexed, so it is never offered back.
+ */
+export function restorableSubRoles(
+  roles: readonly GardenRole[],
+  recordedRoles: readonly GardenRole[]
+): GardenRole[] {
+  const repairable = repairableSubRoles(roles, recordedRoles);
+  return GARDEN_ROLE_ORDER.filter(
+    (role) => repairable.includes(role) && !roles.includes(role) && !recordedRoles.includes(role)
+  );
+}
+
+/**
  * Color scheme names for role-based styling.
  * Maps to design system color tokens (e.g., bg-warning-lighter, text-warning-base)
  */
@@ -151,7 +185,7 @@ export const GARDEN_ROLE_I18N_KEYS: Record<GardenRole, { singular: string; plura
 } as const;
 
 /**
- * Why the cockpit will not offer to remove one role from one person, or null when it will.
+ * Why the Hub will not offer to remove one role from one person, or null when it will.
  *
  * - `no-access`: the viewer is neither an owner nor a steward of the garden.
  * - `own-access`: the viewer's own Owner or Steward role; giving up your own access is not a
@@ -163,7 +197,7 @@ export const GARDEN_ROLE_I18N_KEYS: Record<GardenRole, { singular: string; plura
  * - `last-owner`: the garden's only Owner role. A garden keeps at least one owner.
  *
  * `owner-only` and `owner-steward` follow the garden's role ranks; `own-access` and
- * `last-owner` are the cockpit's own guards against locking a garden out of its management.
+ * `last-owner` are the Hub's own guards against locking a garden out of its management.
  */
 export type GardenRoleRemovalBlock =
   | "no-access"
@@ -173,11 +207,12 @@ export type GardenRoleRemovalBlock =
   | "last-owner";
 
 export interface GardenRoleRemovalInput {
-  /** Who is looking: the account the cockpit signs with. */
+  /** Who is looking: the account the Hub signs with. */
   viewer?: string | null;
   viewerIsOwner: boolean;
   /** Owners and stewards manage roles. */
   viewerCanManage: boolean;
+  viewerCanManageStewards?: boolean;
   person: string;
   /** Every role the person holds in the garden. */
   personRoles: readonly GardenRole[];
@@ -190,14 +225,17 @@ export function gardenRoleRemovalBlock({
   viewer,
   viewerIsOwner,
   viewerCanManage,
+  viewerCanManageStewards = false,
   person,
   personRoles,
   role,
   ownerCount,
 }: GardenRoleRemovalInput): GardenRoleRemovalBlock | null {
-  if (!viewerCanManage && !viewerIsOwner) return "no-access";
+  if (!viewerCanManage && !viewerIsOwner && !(role === "steward" && viewerCanManageStewards))
+    return "no-access";
   const isSelf = Boolean(viewer) && viewer?.toLowerCase() === person.toLowerCase();
   if (isSelf && (role === "owner" || role === "steward")) return "own-access";
+  if (role === "steward" && viewerCanManageStewards) return null;
   if (!viewerIsOwner) {
     if (personRoles.includes("owner")) return "owner-only";
     if (role === "steward") return "owner-steward";
@@ -224,4 +262,23 @@ export function getRoleLabel(
     singular: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular }),
     plural: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].plural }),
   };
+}
+
+/**
+ * The roles someone holds as one localized phrase, highest first: "Steward and Gardener". Every
+ * place that names a member's roles in text reads them this way.
+ */
+export function formatRoleList(
+  roles: readonly GardenRole[],
+  intl: {
+    formatMessage: (descriptor: { id: string }) => string;
+    formatList: (list: string[], options: { type: "conjunction" }) => string;
+  }
+) {
+  return intl.formatList(
+    GARDEN_ROLE_ORDER.filter((role) => roles.includes(role)).map(
+      (role) => getRoleLabel(role, intl.formatMessage).singular
+    ),
+    { type: "conjunction" }
+  );
 }

@@ -10,7 +10,7 @@ Both modes use live Arbitrum; transaction confirmations can affect production.
 
 ## Contribution Flow
 
-1. Pick a scoped task from the Linear backlog (or discuss the change with maintainers first via Discord). Green Goods tracks all work in Linear — GitHub is for PRs and code review only.
+1. Pick a scoped task from the Linear backlog (or discuss the change with maintainers first through the [Contact page](https://greengoods.app/contact)). Green Goods tracks all work in Linear — GitHub is for PRs and code review only.
 2. Create a focused branch from `develop` (see [Branch Model](#branch-model) below).
 3. Keep the change inside the smallest sensible package boundary.
 4. Add or update tests when behavior changes.
@@ -20,8 +20,11 @@ Both modes use live Arbitrum; transaction confirmations can affect production.
 
 Green Goods runs a **staging → production** flow:
 
-- **`develop`** is the integration/staging branch. Open your PRs here; merges to `develop` deploy to staging for validation.
-- **`main`** is production. Maintainers promote `develop → main` once changes are validated on staging.
+- **`develop`** is the integration/staging branch. Open your PRs here. A merge to `develop` deploys the Agent straight to production. It also deploys the QA app to production and the website, app and admin to staging for validation, unless Vercel's ignore step finds that nothing a site is built from changed since its last deployment.
+- **`main`** is production for the website, app and admin. Maintainers promote `develop → main` once changes are validated on staging.
+- **`alpha`** serves experiments at `alpha.greengoods.app` (App) and `alpha.hub.greengoods.app` (Hub) for a few testers before they reach beta. It runs against the same chain, indexer and Agent as beta, so its writes are real. Its pages send no PostHog analytics, though events the shared Agent records for its requests still count. Cut it from `develop` and merge experiment branches into it; it never merges back. An experiment that graduates reaches `develop` through its own pull request.
+
+Only `main`, `develop` and `alpha` create Vercel deployments for the App and the Hub: the `git.deploymentEnabled` rule in their `vercel.json` turns every other branch off, which keeps preview builds from running for each feature branch.
 
 Branch from `develop` and PR into `develop`. Don't target `main` directly except for a documented hotfix.
 
@@ -79,5 +82,5 @@ Formatting changes use `bun run format`; `bun run format --check` is read-only.
 
 ## Stay in touch
 
-- [Discord](https://discord.gg/greenpill), where the conversation happens and where a maintainer will point you at a first task.
+- Write to the team through the [Contact page](https://greengoods.app/contact).
 - The [Code of Conduct](./CODE_OF_CONDUCT.md) applies everywhere. Report security issues through the [Security Policy](./SECURITY.md), not public issues.

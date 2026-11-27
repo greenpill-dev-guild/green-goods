@@ -148,7 +148,7 @@ export default function CreateAction() {
         preventClose={createAction.isSending}
         title={title}
         description={formatMessage({
-          id: "cockpit.actions.createDescription",
+          id: "hub.actions.createDescription",
           defaultMessage:
             "Define the registry record, timeline, and submission requirements for a new action.",
         })}

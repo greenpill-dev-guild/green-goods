@@ -12,6 +12,8 @@
 /CLAUDE.md @greenpill-dev-guild/engineering-leads
 /.codex/** @greenpill-dev-guild/engineering-leads
 /.claude/** @greenpill-dev-guild/engineering-leads
+# The design decision log records decisions locked in design and QA sessions; it has no owner.
+/.claude/skills/design/decision-log.md
 
 /.env* @greenpill-dev-guild/engineering-leads
 /env.schema @greenpill-dev-guild/engineering-leads
@@ -25,3 +27,65 @@
 
 /packages/indexer/schema.graphql @greenpill-dev-guild/engineering-leads
 /packages/indexer/config.yaml @greenpill-dev-guild/engineering-leads
+
+# Filename patterns in package source. A source file under packages/<name>/src whose name
+# contains passkey, wallet or batch needs a lead, so new auth and money code is covered before
+# it gets a folder below. Plans, docs, scripts and end-to-end specs sit outside packages/*/src,
+# so they no longer match. CODEOWNERS has no [Aa] ranges, so both cases are listed.
+/packages/*/src/**/*passkey* @greenpill-dev-guild/engineering-leads
+/packages/*/src/**/*Passkey* @greenpill-dev-guild/engineering-leads
+/packages/*/src/**/*wallet* @greenpill-dev-guild/engineering-leads
+/packages/*/src/**/*Wallet* @greenpill-dev-guild/engineering-leads
+/packages/*/src/**/*batch* @greenpill-dev-guild/engineering-leads
+/packages/*/src/**/*Batch* @greenpill-dev-guild/engineering-leads
+
+# Unit tests, mocks and stories in package source have no owner here: a line without an owner
+# clears the patterns above for those files. The production folders below come later, so
+# their own tests and stories stay owned (last match wins).
+/packages/*/src/**/__tests__/
+/packages/*/src/**/__mocks__/
+/packages/*/src/**/*.test.*
+/packages/*/src/**/*.spec.*
+/packages/*/src/**/*.stories.*
+
+# Production-affecting paths: an engineering lead reviews before merge, so agents
+# cannot merge them on their own. Merging to develop deploys the Agent and QA apps.
+/packages/agent/** @greenpill-dev-guild/engineering-leads
+/packages/qa/** @greenpill-dev-guild/engineering-leads
+
+# Contracts, deployments and deploy scripts (onchain effects)
+/packages/contracts/** @greenpill-dev-guild/engineering-leads
+
+# Ops scripts that build live Safe transactions (they lost their owner when the filename patterns were narrowed).
+/scripts/ops/garden-rename-batch.ts @greenpill-dev-guild/engineering-leads
+
+# Auth, passkeys, wallets, transactions and batching
+/packages/shared/src/hooks/auth/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/hooks/admin-ui/auth/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/hooks/client-ui/auth/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/hooks/client-ui/wallet/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/hooks/blockchain/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/modules/auth/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/modules/wallet/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/modules/transactions/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/modules/work/wallet-submission/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/utils/blockchain/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/config/passkeyServer.ts @greenpill-dev-guild/engineering-leads
+/packages/client/src/views/Home/WalletSheet/ @greenpill-dev-guild/engineering-leads
+/packages/client/src/routes/WalletRuntimeProviders.tsx @greenpill-dev-guild/engineering-leads
+
+# Deploy configuration: the Agent on Fly (it deploys on every push to develop), the
+# branches the App and Hub deploy from, and the step that decides which Vercel sites build.
+/fly.toml @greenpill-dev-guild/engineering-leads
+/packages/client/vercel.json @greenpill-dev-guild/engineering-leads
+/packages/admin/vercel.json @greenpill-dev-guild/engineering-leads
+/scripts/ops/vercel-ignore.mjs @greenpill-dev-guild/engineering-leads
+
+# Agent policy shared by Claude and Codex, including the merge tiers Forge merges by.
+/.agents/** @greenpill-dev-guild/engineering-leads
+
+# Agent tooling that shapes every agent job: MCP servers, the command policy and git hooks.
+/.mcp.json @greenpill-dev-guild/engineering-leads
+/scripts/mcp/** @greenpill-dev-guild/engineering-leads
+/scripts/harness/** @greenpill-dev-guild/engineering-leads
+/.husky/** @greenpill-dev-guild/engineering-leads

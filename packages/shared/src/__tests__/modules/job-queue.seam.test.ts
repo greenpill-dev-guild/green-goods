@@ -17,6 +17,7 @@ import {
 import { queuedTakeUpChain } from "../test-utils/queued-jobs";
 import { ActRefusedByChain } from "../../modules/job-queue/queue-policy";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 
 const USER = "0x1111111111111111111111111111111111111111";
 
@@ -564,6 +565,39 @@ describe("a work for a promise taken up in the same tap (decision 18)", () => {
     expect(await store.getJob("take-up")).toBeDefined();
   });
 
+  // PRD-1478: a request the member made left the queue with no record of landing, failing or
+  // being thrown away. Every job a discard takes says so, and so does each job taken with it.
+  it("records every job a discard throws away, and each one taken with it", async () => {
+    const request = queuedJob({
+      id: "request",
+      kind: "commitment",
+      attempts: 1,
+      lastError: "TimeoutError",
+    });
+    const chain = queuedTakeUpChain();
+    const store = createInMemoryJobQueueStore([request, chain.claim, chain.work, chain.link]);
+    const { deps, queue } = setup({ store });
+
+    await expect(queue.discardJob("request")).resolves.toBe(true);
+    expect(deps.analytics.jobDiscarded).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "request", kind: "commitment", attempts: 1 }),
+      "discarded"
+    );
+
+    await expect(queue.discardJob("take-up")).resolves.toBe(true);
+    expect(deps.analytics.jobDiscarded).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "its-link", kind: "workLink" }),
+      "with-another"
+    );
+    expect(deps.analytics.jobDiscarded).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "take-up", kind: "claim" }),
+      "discarded"
+    );
+    // A job the discard refuses leaves no trace of being thrown away.
+    await expect(queue.discardJob("missing")).resolves.toBe(false);
+    expect(deps.analytics.jobDiscarded).toHaveBeenCalledTimes(3);
+  });
+
   it("discards a take-up with the links that waited on it, and keeps the work as work on its own", async () => {
     const chain = queuedTakeUpChain();
     const store = createInMemoryJobQueueStore([chain.claim, chain.work, chain.link]);
@@ -717,12 +751,17 @@ describe("processJob", () => {
     expect(executors.execute).not.toHaveBeenCalled();
   });
 
-  it("permanently fails a job at the retry ceiling", async () => {
+  it("reports a job reaching the retry ceiling once", async () => {
     const store = createInMemoryJobQueueStore([queuedJob({ attempts: 5 })]);
     const { deps, queue } = setup({ store });
     await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
       success: false,
       error: "Max retries (5) exceeded",
+    });
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "Max retries (5) exceeded",
+      skipped: true,
     });
     expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledOnce();
   });
@@ -748,7 +787,9 @@ describe("processJob", () => {
         .mockRejectedValueOnce(new ActRefusedByChain(new Error("execution reverted")))
         .mockResolvedValueOnce({ status: "complete", txHash: "0x1" }),
     };
-    const { deps, queue } = setup({ store, executors });
+    const deps = createJobQueueDependencies({ store, executors });
+    deps.config.maxRetries = 7;
+    const queue = createJobQueue(deps);
 
     await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
       success: false,
@@ -762,6 +803,18 @@ describe("processJob", () => {
       expect.objectContaining({ kind: "claim", attempts: 1, lastError: "execution reverted" })
     );
     expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
+
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "execution reverted",
+      skipped: true,
+    });
+    expect(await store.getJob("job-1")).toMatchObject({
+      attempts: 5,
+      lastError: "execution reverted",
+    });
+    expect(executors.execute).toHaveBeenCalledOnce();
+    expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledOnce();
 
     await queue.retryJob("job-1");
     await expect(
@@ -851,6 +904,114 @@ describe("processJob", () => {
     expect(vi.mocked(deps.analytics.jobProcessingError).mock.calls[0]?.[4]).toEqual(
       new Error("send failed")
     );
+  });
+
+  // PRD-1495: a try that sent nothing still leaves a record, so an attempt never vanishes.
+  it("records the start of each try, before any prompt, and every end that sent nothing", async () => {
+    const ends = [
+      {
+        execution: { status: "waiting", reason: "awaiting-confirmation" },
+        skipped: "awaiting-confirmation",
+      },
+      { execution: { status: "submitted", txHash: "0xsent" }, skipped: "pending_materialization" },
+      { execution: { status: "complete", txHash: "0xtest" }, skipped: undefined },
+    ] as const;
+    for (const { execution, skipped } of ends) {
+      const { deps, queue } = setup({
+        store: createInMemoryJobQueueStore([queuedJob()]),
+        executors: createFakeJobExecutorRegistry(execution),
+      });
+      await queue.processJob("job-1", { transactionSender: {} as never });
+
+      expect(deps.analytics.processingStarted).toHaveBeenCalledExactlyOnceWith("work", 1, {
+        explicit: false,
+        confirming: false,
+      });
+      if (skipped)
+        expect(deps.analytics.jobSkipped).toHaveBeenCalledExactlyOnceWith("work", skipped, {
+          explicit: false,
+          started: true,
+        });
+      else expect(deps.analytics.jobProcessed).toHaveBeenCalledOnce();
+      if (!skipped) expect(deps.analytics.jobSkipped).not.toHaveBeenCalled();
+    }
+  });
+
+  it("says why a tap sent nothing, and keeps a background pass that never started quiet", async () => {
+    const connectivity = createFakeJobQueueConnectivity(false);
+    const { deps, queue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob()]),
+      connectivity,
+    });
+
+    await queue.processJob("job-1", { transactionSender: {} as never });
+    expect(deps.analytics.jobSkipped).not.toHaveBeenCalled();
+
+    await queue.processJob("job-1", { transactionSender: {} as never, explicit: true });
+    connectivity.setOnline(true);
+    await queue.processJob("job-1", { transactionSender: null, explicit: true });
+
+    expect(vi.mocked(deps.analytics.jobSkipped).mock.calls).toEqual([
+      ["work", "offline", { explicit: true, started: false }],
+      ["work", "transaction_sender_unavailable", { explicit: true, started: false }],
+    ]);
+    expect(deps.analytics.processingStarted).not.toHaveBeenCalled();
+  });
+
+  // PRD-1499: a wallet account whose wallet has not answered can read but not sign.
+  describe("while the wallet has not answered", () => {
+    function unansweredWallet() {
+      return {
+        assertReadyToSign: vi.fn(() => {
+          throw new WalletReconnectRequiredError(true);
+        }),
+        assertOwnership: vi.fn(() => {
+          throw new WalletReconnectRequiredError(false);
+        }),
+      } as unknown as TransactionSender & { assertReadyToSign: ReturnType<typeof vi.fn> };
+    }
+
+    it("asks to reconnect before a send the person started, and keeps its attempts", async () => {
+      const store = createInMemoryJobQueueStore([queuedJob()]);
+      const executors = { execute: vi.fn() };
+      const { deps, queue } = setup({ store, executors });
+      const sender = unansweredWallet();
+
+      await expect(
+        queue.processJob("job-1", { transactionSender: sender, explicit: true })
+      ).resolves.toEqual({ success: false, error: "wallet-reconnect-required", skipped: true });
+      expect(sender.assertReadyToSign).toHaveBeenCalledOnce();
+      expect(executors.execute).not.toHaveBeenCalled();
+      const job = await store.getJob("job-1");
+      expect(job?.attempts).toBe(0);
+      expect(job?.lastError).toBeUndefined();
+      expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
+      // The tap is on record even though nothing was asked of the wallet.
+      expect(deps.analytics.jobSkipped).toHaveBeenCalledExactlyOnceWith(
+        "work",
+        "wallet-reconnect-required",
+        { explicit: true, started: true }
+      );
+    });
+
+    it("rechecks a send already on record without asking, leaving it awaiting confirmation", async () => {
+      const recorded = queuedJob({
+        payload: { uploadCheckpoint: { transactionHash: `0x${"ab".repeat(32)}` } },
+      } as Partial<Job>);
+      const store = createInMemoryJobQueueStore([recorded]);
+      const executors = { execute: vi.fn() };
+      const { queue } = setup({ store, executors });
+      const sender = unansweredWallet();
+
+      await expect(queue.processJob("job-1", { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "awaiting-confirmation",
+        skipped: true,
+      });
+      expect(sender.assertReadyToSign).not.toHaveBeenCalled();
+      expect(executors.execute).not.toHaveBeenCalled();
+      expect((await store.getJob("job-1"))?.attempts).toBe(0);
+    });
   });
 });
 

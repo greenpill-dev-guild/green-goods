@@ -1,4 +1,5 @@
 import {
+  publicRehearsalCommitments,
   publicRehearsalCycles,
   publicReviewedWorkExclusionIds,
 } from "../../config/public-record-visibility";
@@ -7,11 +8,17 @@ import { integer, type RawRow } from "./data-core";
 
 /** Keyset pagination keeps later QA records in scope without a frozen ID list. */
 export async function readPublicCommitmentExclusions(chainId: number, poolId?: bigint) {
-  const cycles = publicRehearsalCycles(chainId, poolId);
-  if (cycles.length === 0) return [];
-  const filter = cycles
-    .map((cycle) => `{ poolId: { _eq: ${cycle.poolId} }, cycleId: { _eq: ${cycle.cycleId} } }`)
-    .join(",");
+  const filter = [
+    ...publicRehearsalCycles(chainId, poolId).map(
+      (cycle) => `{ poolId: { _eq: ${cycle.poolId} }, cycleId: { _eq: ${cycle.cycleId} } }`
+    ),
+    // A promise registered on its own, made outside any cycle.
+    ...publicRehearsalCommitments(chainId, poolId).map(
+      (commitment) =>
+        `{ poolId: { _eq: ${commitment.poolId} }, commitmentId: { _eq: ${commitment.commitmentId} } }`
+    ),
+  ].join(",");
+  if (filter === "") return [];
   const rows: RawRow[] = [];
   const deadline = AbortSignal.timeout(30000);
   let after = "";

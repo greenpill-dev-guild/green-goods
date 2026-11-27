@@ -2,12 +2,14 @@ import type { PendingProof } from "@green-goods/shared/hooks/client-ui/commitmen
 import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import type { WorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import type { Work } from "@green-goods/shared/types/domain";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import type { IntlShape } from "react-intl";
 import { formatAgo, formatRowDay, formatSavedMeta } from "@/components/Cards/Work/pendingCopy";
 import type { PendingCardKind, PendingCardProps } from "@/components/Cards/Work/PendingCard";
 import {
   blockedShortReasonMessage,
+  type QueuedWorkState,
   readQueuedWorkState,
 } from "@/components/Cards/Work/queuedWorkCopy";
 import { canDiscardQueuedWork, workUploadGroup } from "@/components/Cards/Work/workUploadGroup";
@@ -81,19 +83,45 @@ function linkedMarker(work: Work, context: WorkRowContext): RowCard["marker"] {
 /** A row that is sent, or may be, and is being checked: nothing can be done to it meanwhile. */
 function checkingCard(
   base: Pick<RowCard, "title" | "meta" | "marker">,
-  context: PendingRowContext
+  context: PendingRowContext,
+  { awaiting }: Pick<QueuedWorkState, "awaiting"> = {}
 ) {
   return {
     ...base,
     kind: "checking",
     pill: message(context.intl, "app.uploads.chip.checking"),
-    status: message(
-      context.intl,
-      context.isOnline ? "app.pending.status.checking" : "app.pending.status.checksWhenConnected"
-    ),
+    // A Safe only proposed it: it waits for the Safe's signers, not the network (PRD-1564).
+    status: awaiting
+      ? context.intl.formatMessage(SEND_STAGE_WORDS[awaiting].label)
+      : message(
+          context.intl,
+          context.isOnline
+            ? "app.pending.status.checking"
+            : "app.pending.status.checksWhenConnected"
+        ),
     locked: true,
   } satisfies RowCard;
 }
+
+/**
+ * A send that gave up reads Didn't send (DL-177): one that used up its tries, one the chain
+ * reverted, and one Upload all flagged because the batch it rode in reverted. No single item
+ * explains that last revert, so saying the record refused it would contradict the check it passed.
+ */
+function didntSendCard(base: Pick<RowCard, "title" | "meta" | "marker">, intl: IntlShape) {
+  return {
+    ...base,
+    kind: "needs",
+    pill: message(intl, "app.pending.pill.didntUpload"),
+    status: message(intl, "app.pending.status.nothingWasSent"),
+  } satisfies RowCard;
+}
+
+/**
+ * Upload all's mark for an item whose batch reverted: blocked so it is not resent unchanged. A
+ * check that refuses one item alone records "reverted" instead, and reads as the record refusing it.
+ */
+const BATCH_REVERTED = "batch-reverted";
 
 /**
  * Your own work: on this phone it says where its upload stands, the way its
@@ -126,7 +154,7 @@ export function submissionRow(
   const state = readQueuedWorkState(work.metadata);
   const discardable = canDiscardQueuedWork(state.submissionState, {
     isOnline: context.isOnline,
-    pausedForDataSaver: context.pausedForDataSaver,
+    preparationWaiting: context.pausedForDataSaver,
   });
   const saved = { ...base, meta: formatSavedMeta(intl, at) };
   const toUpload = (status: string, locked = false): RowCard => ({
@@ -159,6 +187,7 @@ export function submissionRow(
       );
     switch (workUploadGroup(state.submissionState)) {
       case "attention":
+        if (state.blockedReason === BATCH_REVERTED) return didntSendCard(saved, intl);
         return {
           ...saved,
           kind: "needs",
@@ -167,24 +196,11 @@ export function submissionRow(
           statusTone: "error",
         };
       case "failed":
-        return state.submissionState === "reverted"
-          ? {
-              ...saved,
-              kind: "needs",
-              pill: message(intl, "app.pending.pill.didntUpload"),
-              status: message(intl, "app.uploads.blocked.short.refused"),
-              statusTone: "error",
-            }
-          : {
-              ...saved,
-              kind: "needs",
-              pill: message(intl, "app.pending.pill.didntUpload"),
-              status: message(intl, "app.pending.status.nothingWasSent"),
-            };
+        return didntSendCard(saved, intl);
       case "sent":
         return state.submissionState === "sending" && context.isOnline
           ? toUpload(message(intl, "app.pending.status.uploadingNow"), true)
-          : checkingCard(saved, context);
+          : checkingCard(saved, context, state);
       case "preparing":
         // A photo still converting says so either way; plain preparation needs the connection.
         return toUpload(
@@ -230,9 +246,10 @@ export function decisionRow(
   const card = ((): RowCard => {
     switch (status?.state) {
       case "sent":
-        return checkingCard(base, context);
+        return checkingCard(base, context, status);
       case "blocked":
       case "photo-needs-attention":
+        if (status.reason === BATCH_REVERTED) return didntSendCard(base, intl);
         return {
           ...base,
           kind: "needs",
@@ -247,12 +264,7 @@ export function decisionRow(
         };
       case "failed":
       case "reverted":
-        return {
-          ...base,
-          kind: "needs",
-          pill: message(intl, "app.pending.pill.didntUpload"),
-          status: message(intl, "app.pending.status.nothingWasSent"),
-        };
+        return didntSendCard(base, intl);
       default:
         return {
           ...base,
@@ -350,8 +362,10 @@ export function proofRow(proof: PendingProof, context: PendingRowContext): Pendi
         status: message(intl, "app.pending.status.notAdded"),
       };
     if (proof.waitingReason === "awaiting-confirmation") {
-      const checking = checkingCard(saved, context);
+      const checking = checkingCard(saved, context, proof);
       if (!sendsFromTap) return checking;
+      // Opened, it offers Check Again; the row keeps saying who it waits for.
+      if (proof.awaiting) return { ...checking, locked: false };
       const status = context.isOnline
         ? "app.pending.status.openToCheck"
         : "app.pending.status.checkAgainWhenConnected";

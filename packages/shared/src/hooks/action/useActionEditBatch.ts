@@ -1,6 +1,11 @@
 import { useBatchCapability } from "../blockchain/useBatchCapability";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
+import {
+  batchSaveActOutcome,
+  recordedSendAct,
+  type SendActContext,
+} from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { actionsKeys, batchKeys } from "../../config/query-keys/garden";
 import {
@@ -40,6 +45,7 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
   const { formatDate, formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const sender = useTransactionSender();
+  const editAct: SendActContext = { act: "action_edit", authMode: sender?.authMode, chainId };
   const { primaryAddress: account, passkeyAccountProfile } = useUser();
   const handleError = createMutationErrorHandler({
     source: "useActionEditBatch",
@@ -88,43 +94,45 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
 
   const sendBatch = useMutation({
     onMutate: () => queryClient.cancelQueries({ queryKey: holdKey }),
-    mutationFn: async ({
-      changes,
-      options,
-    }: {
-      changes: readonly ActionEditChange[];
-      options: SendOptions;
-    }): Promise<ActionEditBatchOutcome> => {
-      let savedCount = 0;
-      try {
-        const outcome = await sendActionEditBatch({
-          ...batchInput(),
-          rail: rail!,
-          changes,
-          atomic: options.atomic ?? (rail === "wallet" ? available : true),
-          onSaved: (saved) => {
-            savedCount += saved.length;
-            options.onSaved?.(saved);
-            // Refresh on the next visit without replacing the active editor's remaining draft.
-            void queryClient.invalidateQueries({
-              queryKey: actionsKeys.byChain(chainId),
-              refetchType: "none",
-            });
-          },
-        });
-        if (outcome.status === "not-saved")
-          toastService.error({
-            title: formatMessage({
-              id: savedCount ? "app.actions.edit.failed" : "app.actions.edit.notSaved",
-            }),
-            context: "save action",
+    mutationFn: recordedSendAct(
+      editAct,
+      async (variables: {
+        changes: readonly ActionEditChange[];
+        options: SendOptions;
+      }): Promise<ActionEditBatchOutcome> => {
+        const { changes, options } = variables;
+        let savedCount = 0;
+        try {
+          const outcome = await sendActionEditBatch({
+            ...batchInput(),
+            rail: rail!,
+            changes,
+            atomic: options.atomic ?? (rail === "wallet" ? available : true),
+            onSaved: (saved) => {
+              savedCount += saved.length;
+              options.onSaved?.(saved);
+              // Refresh on the next visit without replacing the active editor's remaining draft.
+              void queryClient.invalidateQueries({
+                queryKey: actionsKeys.byChain(chainId),
+                refetchType: "none",
+              });
+            },
           });
-        return outcome;
-      } catch (error) {
-        handleError(error, { authMode: rail });
-        return { status: "not-saved" };
-      }
-    },
+          if (outcome.status === "not-saved")
+            toastService.error({
+              title: formatMessage({
+                id: savedCount ? "app.actions.edit.failed" : "app.actions.edit.notSaved",
+              }),
+              context: "save action",
+            });
+          return outcome;
+        } catch (error) {
+          handleError(error, { authMode: rail });
+          return { status: "not-saved" };
+        }
+      },
+      batchSaveActOutcome
+    ),
     onSuccess: (outcome) => {
       if (outcome.status === "saved") refreshActions();
     },

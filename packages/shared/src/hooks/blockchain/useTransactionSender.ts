@@ -29,17 +29,84 @@ import { useMemo, useRef } from "react";
 import { isChainSupported } from "../../config/chains";
 import { ENV } from "../../lib/env";
 import { useConfig, useWriteContract } from "wagmi";
+import { noteUnconfirmedSend } from "../../modules/app/sendActAnalytics";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import {
   createTransactionSender,
   type TransactionSenderOptions,
 } from "../../modules/transactions/factory";
 import type { TransactionSender } from "../../modules/transactions/types";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useUser } from "../auth/useUser";
+
+/**
+ * A wallet account whose wallet has not answered can read but not sign
+ * (PRD-1499). Every way into a signature refuses before anything starts and
+ * asks the person to reconnect. The ownership check refuses too, but asks
+ * nobody: the job queue also runs it to recheck a send already on record, which
+ * waits quietly for the wallet. The wallet's answer is read when the act starts,
+ * not when the sender was made, so a wallet that came back meanwhile sends.
+ */
+function refuseUntilWalletAnswers(sender: TransactionSender, unanswered: () => boolean): void {
+  const guard = () => {
+    if (unanswered()) refuseWithoutWallet();
+  };
+  const { assertOwnership, sendContractCall, sendAtomicBatch, submitAtomicBatch, signTypedData } =
+    sender;
+  sender.assertReadyToSign = guard;
+  sender.readyToSign = () => !unanswered();
+  sender.assertOwnership = async (address, chainId) => {
+    if (unanswered()) throw new WalletReconnectRequiredError(false);
+    await assertOwnership?.(address, chainId);
+  };
+  // Each send runs on the sender it was called on: the job queue calls them on a
+  // sender of its own made from this one, whose ownership check adds its claim.
+  sender.sendContractCall = async function (this: TransactionSender, call, options) {
+    guard();
+    return sendContractCall.call(this, call, options);
+  };
+  if (sendAtomicBatch)
+    sender.sendAtomicBatch = async function (this: TransactionSender, calls, options) {
+      guard();
+      return sendAtomicBatch.call(this, calls, options);
+    };
+  if (submitAtomicBatch)
+    sender.submitAtomicBatch = async function (this: TransactionSender, calls, options) {
+      guard();
+      return submitAtomicBatch.call(this, calls, options);
+    };
+  if (signTypedData)
+    sender.signTypedData = async function (this: TransactionSender, request, options) {
+      guard();
+      return signTypedData.call(this, request, options);
+    };
+}
+
+/**
+ * A send handed back with no receipt, such as a Safe proposal, is noted by hash,
+ * so an act that keeps only the hash still records it as confirming (PRD-1553).
+ * The result and any error pass through unchanged.
+ */
+function noteUnconfirmedSends(sender: TransactionSender): void {
+  const { sendContractCall, sendAtomicBatch } = sender;
+  sender.sendContractCall = async function (this: TransactionSender, call, options) {
+    const result = await sendContractCall.call(this, call, options);
+    noteUnconfirmedSend(result);
+    return result;
+  };
+  if (sendAtomicBatch)
+    sender.sendAtomicBatch = async function (this: TransactionSender, calls, options) {
+      const result = await sendAtomicBatch.call(this, calls, options);
+      noteUnconfirmedSend(result);
+      return result;
+    };
+}
 
 /**
  * Returns a TransactionSender instance that matches the current auth mode.
  *
- * - passkey mode -> PasskeySender (gas-sponsored via bundler)
+ * - passkey and openfort (email) modes -> PasskeySender (gas-sponsored via bundler)
  * - embedded mode -> EmbeddedSender (plain writeContract until EIP-5792 paymaster is available)
  * - wallet mode -> WalletSender (user pays gas, fallback from EIP-5792)
  *
@@ -52,9 +119,12 @@ export function useTransactionSender(): TransactionSender | null {
     resolveSmartAccountClient,
     primaryAddress,
     passkeyAccountProfile,
+    walletRestore,
   } = useUser();
   const { writeContractAsync } = useWriteContract();
   const config = useConfig();
+  const walletUnanswered = useRef(false);
+  walletUnanswered.current = authMode === "wallet" && Boolean(walletRestore);
 
   const erc7677ProxyUrl = ENV.VITE_ERC7677_PROXY_URL as string | undefined;
 
@@ -101,7 +171,7 @@ export function useTransactionSender(): TransactionSender | null {
           generation !== session.current.generation
         )
           throw new Error("submission-ownership-changed");
-        if (authMode === "passkey") {
+        if (isSmartAccountAuthMode(authMode)) {
           const client =
             smartAccountClient?.chain?.id === chainId
               ? smartAccountClient
@@ -132,6 +202,8 @@ export function useTransactionSender(): TransactionSender | null {
         if (generation !== session.current.generation)
           throw new Error("submission-ownership-changed");
       };
+      if (authMode === "wallet") refuseUntilWalletAnswers(sender, () => walletUnanswered.current);
+      noteUnconfirmedSends(sender);
       return sender;
     } catch {
       // If required deps aren't available yet (e.g., smartAccountClient

@@ -1,3 +1,4 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSignMessage } from "wagmi";
 import {
@@ -46,7 +47,7 @@ export function useGardenJoinRequests(
   const kind = options.kind ?? "garden_membership";
   const chainId = useCurrentChain();
   const accountAddress = usePrimaryAddress() as Address | null;
-  const { authMode, smartAccountClient, resolveSmartAccountClient } = useAuth();
+  const { authMode, walletRestore, smartAccountClient, resolveSmartAccountClient } = useAuth();
   const { signMessageAsync } = useSignMessage();
   const session = useGardenJoinRequestSession(
     chainId,
@@ -92,7 +93,7 @@ export function useGardenJoinRequests(
         throw new Error("Connect your account before continuing.");
       }
       let account = smartAccountClient?.account;
-      if (authMode === "passkey") {
+      if (isSmartAccountAuthMode(authMode)) {
         assertSmartAccountClientResolverActive(resolveSmartAccountClient);
         const client =
           smartAccountClient?.chain?.id === chainId
@@ -126,12 +127,14 @@ export function useGardenJoinRequests(
       };
       const signer = createAccountMessageSigner({
         authMode,
+        walletRestore,
         signMessage: signMessageAsync,
         account,
       });
       const signature = await signer(buildGardenJoinProofMessage(unsigned, content));
-      const factoryArgs =
-        authMode === "passkey" ? await resolveAccountFactoryArgs(account) : undefined;
+      const factoryArgs = isSmartAccountAuthMode(authMode)
+        ? await resolveAccountFactoryArgs(account)
+        : undefined;
       if (unsigned.expiresAt <= Math.floor(Date.now() / 1000)) {
         throw new GardenJoinRequestTransportError(
           "Authorization expired while signing. Please sign again.",
@@ -153,6 +156,7 @@ export function useGardenJoinRequests(
     [
       accountAddress,
       authMode,
+      walletRestore,
       smartAccountClient,
       resolveSmartAccountClient,
       chainId,

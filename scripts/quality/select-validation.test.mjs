@@ -35,7 +35,8 @@ test("hook and doctor edits select their behavioral proof", () => {
   const cases = [
     ["review-guardrails-test", [
       ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
-      ".codex/hooks/pre_tool_policy.sh", ".claude/settings.json", ".codex/hooks.json",
+      ".codex/hooks/pre_tool_policy.sh", ".codex/hooks/edit_policy.sh", ".agents/policy.json",
+      ".claude/settings.json", ".codex/hooks.json",
       "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
     ]],
     ["validation-system-test", [
@@ -484,6 +485,7 @@ test("work inspection adds qualified browser proof without forcing a package bui
     "client-test",
     "staged-modules",
     "ontology",
+    "rendered-proof",
     "browser-work-exploration",
   ]);
   assert.equal(
@@ -513,6 +515,25 @@ test("QA app UI changes require rendered browser proof for readiness", () => {
   assert.ok(browserProof.selectedBy.includes("conditional:browser-proof"));
   assert.equal(browserProof.manual, true);
   assert.equal(plan.budget.manualSeconds, 90);
+});
+
+test("a rendered UI change asks for labeled captures, advisory, and never at release", () => {
+  const view = "packages/client/src/views/Home/Garden/GardenPage.tsx";
+  for (const intent of ["qa", "push", "merge"]) {
+    const plan = selectValidation({ intent, changedPaths: [view] });
+    const proof = plan.checks.find((check) => check.id === "rendered-proof");
+    assert.equal(proof?.state, "advisory", intent);
+    assert.equal(proof?.blockedBy?.length ?? 0, 0, intent);
+  }
+  assert.ok(!ids(selectValidation({ intent: "release", changedPaths: [view] })).includes("rendered-proof"));
+  for (const path of [
+    "packages/client/src/views/Home/Garden/__tests__/GardenPage.test.tsx",
+    "packages/shared/src/components/Button/Button.stories.tsx",
+    "packages/admin/src/views/storybookCanvasHarness.tsx",
+    "packages/shared/src/hooks/auth/useAuthContext.ts",
+  ]) {
+    assert.ok(!ids(selectValidation({ intent: "push", changedPaths: [path] })).includes("rendered-proof"), path);
+  }
 });
 
 test("browser proof is advisory in every intent and never blocks a plan", () => {
@@ -673,6 +694,23 @@ test("a focused push plan runs even when its static estimate exceeds the budget"
   assert.ok(unfocused.budget.estimatedWallSeconds > unfocused.budget.hardLimitSeconds);
   assert.equal(unfocused.status, "needs-focus");
   assert.equal(unfocused.stopReason, "local-budget-exceeded");
+});
+
+test("QA recording and run changes select their behavioral suite", () => {
+  for (const changedPath of ["packages/qa/store.ts", "packages/qa/runs.ts", "packages/qa/api/runs.ts", "scripts/agents/qa-status.ts"]) {
+    for (const intent of ["qa", "diagnose", "checkpoint"]) {
+      const plan = selectValidation({ intent, changedPaths: [changedPath] });
+      assert.ok(ids(plan).includes("agent-tools-test"), `${intent}: ${changedPath}`);
+    }
+  }
+});
+
+test("Agent-only browser dependencies select passkey proof and the Client workflow", () => {
+  for (const changedPath of ["packages/agent/src/api/routes/messaging.ts", "packages/agent/src/runtime/reporting.ts", "packages/agent/src/services/reporting/browser-access.ts", "packages/agent/src/__tests__/reporting/driver/server.ts"]) {
+    const plan = selectValidation({ intent: "qa", changedPaths: [changedPath] });
+    assert.ok(ids(plan).includes("browser-passkey"), changedPath);
+    assert.ok(selectExpectedWorkflows({ changedPaths: [changedPath] }).includes("Client"), changedPath);
+  }
 });
 
 test("QA locale changes require catalog tests and rendered browser proof", () => {
@@ -1294,6 +1332,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "docs-authority",
     "staged-modules",
     "source-structure",
+    "rendered-proof",
     "react-patterns",
   ]);
 
@@ -1310,6 +1349,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "docs-authority",
     "staged-modules",
     "source-structure",
+    "rendered-proof",
     "react-patterns",
   ]);
 
@@ -1327,6 +1367,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "staged-modules",
     "source-structure",
     "design-guardrails",
+    "rendered-proof",
   ];
   assert.deepEqual(ids(ship), shipExpected);
   assert.equal(
@@ -1383,7 +1424,7 @@ test("push keeps test-only proof focused while strict intents preserve owning ga
   }
 });
 
-test("scoped admin ship selects exactly the accepted eight checks", () => {
+test("scoped admin ship selects exactly the accepted nine checks", () => {
   const plan = selectValidation({
     intent: "ship",
     changedPaths: ["packages/admin/src/views/Garden/SubmitWork.tsx"],
@@ -1398,6 +1439,7 @@ test("scoped admin ship selects exactly the accepted eight checks", () => {
     "admin-build",
     "source-structure",
     "design-guardrails",
+    "rendered-proof",
     "story-quality",
   ]);
   assert.ok(plan.checks.every((check) => check.mandatory));
@@ -1523,6 +1565,7 @@ test("local merge and merge --ci select identical checks while preserving CI pac
     "admin-build",
     "source-structure",
     "design-guardrails",
+    "rendered-proof",
     "story-quality",
   ];
 
@@ -1887,6 +1930,45 @@ test("deleted tests are not inferred as focused Vitest paths", (t) => {
   }
 });
 
+test("a critical file moved to a routine path plans by both paths, staged and committed", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "validation-moved-selector-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  // Rename detection on, whatever the machine's git config says, so the test fails without the fix.
+  const pinned = { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "diff.renames", GIT_CONFIG_VALUE_0: "true" };
+  const saved = Object.fromEntries(Object.keys(pinned).map((key) => [key, process.env[key]]));
+  Object.assign(process.env, pinned);
+  t.after(() => {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  const git = fixtureGit(directory);
+  git("init");
+  const from = "packages/shared/src/providers/Auth.tsx";
+  const to = "notes/Auth.tsx";
+  mkdirSync(join(directory, "packages/shared/src/providers"), { recursive: true });
+  writeFileSync(join(directory, from), "export const Auth = () => null;\n");
+  git("add", ".");
+  git("commit", "-m", "test: seed moved fixture");
+  mkdirSync(join(directory, "notes"));
+  git("mv", from, to);
+
+  for (const [stage, base] of [["staged", "HEAD"], ["committed", "HEAD~1"]]) {
+    if (stage === "committed") git("commit", "-m", "test: move the provider");
+    const inputs = resolveGitInputs({ changedPaths: [], base, head: "HEAD" }, { cwd: directory });
+    assert.deepEqual(inputs.changedPaths, [to, from], stage);
+    assert.deepEqual(inputs.deletedPaths, [from], stage);
+    const plan = selectValidation({ intent: "push", ...inputs });
+    assert.equal(plan.risk, "critical", stage);
+    for (const checkId of ["format", "lint"]) {
+      const command = plan.checks.find((check) => check.id === checkId)?.command ?? "";
+      assert.match(command, /'notes\/Auth\.tsx'/, `${stage} ${checkId}`);
+      assert.doesNotMatch(command, /providers\/Auth\.tsx/, `${stage} ${checkId}`);
+    }
+  }
+});
+
 test("lane fingerprint ignores an unrelated dirty plan while workspace fingerprint remains broad", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-lane-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
@@ -2194,7 +2276,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["scripts/lib/env-schema.mjs", ["Admin", "Client", "Supply Chain Guardrails"]],
     ["scripts/lib/env-schema.test.mjs", ["Admin", "Client", "Supply Chain Guardrails"]],
     ["scripts/lib/env-parity.mjs", ["Admin", "Client", "Supply Chain Guardrails"]],
-    ["scripts/lib/env-parity.d.mts", ["Admin", "Client"]],
+    ["scripts/lib/env-parity.d.mts", ["Admin", "Client", "Supply Chain Guardrails"]],
     ["scripts/dev/env-check.js", ["Admin", "Client", "Supply Chain Guardrails"]],
     [
       "scripts/quality/check-source-structure.js",
@@ -3433,17 +3515,16 @@ test("a push leaves a check to CI only when the workflow that runs it is expecte
   assert.ok(left > 20, `the push leaves work to CI for many policy paths, got ${left}`);
 });
 
-test("a push keeps a CI-owned check local where its workflow does not run", () => {
-  // The passkey preset reads the Agent's test driver, but an Agent-only change runs no Client CI.
+test("a push delegates the Agent reporting driver's browser proof to the now-required Client workflow", () => {
   const driver = "packages/agent/src/__tests__/reporting/driver/server.ts";
   const plan = selectValidation({
     intent: "push",
     changedPaths: [driver],
     testPaths: { agent: ["src/__tests__/reporting/driver.test.ts"] },
   });
-  assert.ok(!selectExpectedWorkflows({ changedPaths: [driver], intent: "merge", ci: true }).includes("Client"));
-  assert.ok(ids(plan).includes("browser-passkey"));
-  assert.ok(!plan.ciOwned.some((entry) => entry.id === "browser-passkey"));
+  assert.ok(selectExpectedWorkflows({ changedPaths: [driver], intent: "merge", ci: true }).includes("Client"));
+  assert.ok(!ids(plan).includes("browser-passkey"));
+  assert.ok(plan.ciOwned.some((entry) => entry.id === "browser-passkey" && entry.workflow === "Client"));
 });
 
 test("a push replaces builds with typechecks, leaves presets and Storybook to CI, and keeps explicit checks", () => {
@@ -3489,7 +3570,7 @@ test("a push replaces builds with typechecks, leaves presets and Storybook to CI
 
 test("react-patterns runs on push for the source and manifests it reads, never for tests or docs", () => {
   // Every manifest the architecture walk reads, and every package source it scans for imports.
-  for (const path of ["packages/admin/src/views/Hub/index.tsx", "packages/agent/src/services/analytics.ts", "packages/extension/src/graph/canvas.ts", "packages/shared/package.json", "packages/contracts/package.json", "packages/qa/package.json", "packages/extension/package.json", "scripts/quality/check-react-patterns.js"]) {
+  for (const path of ["packages/admin/src/views/Review/index.tsx", "packages/agent/src/services/analytics.ts", "packages/extension/src/graph/canvas.ts", "packages/shared/package.json", "packages/contracts/package.json", "packages/qa/package.json", "packages/extension/package.json", "scripts/quality/check-react-patterns.js"]) {
     const plan = selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] });
     assert.ok(plan.checks.find((check) => check.id === "react-patterns")?.selectedBy.includes("conditional:react-patterns"), path);
   }
@@ -3497,7 +3578,7 @@ test("react-patterns runs on push for the source and manifests it reads, never f
     assert.ok(!ids(selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] })).includes("react-patterns"), path);
   }
   // Only the push selects it from this rule.
-  assert.ok(!ids(selectValidation({ intent: "qa", changedPaths: ["packages/admin/src/views/Hub/index.tsx"] })).includes("react-patterns"));
+  assert.ok(!ids(selectValidation({ intent: "qa", changedPaths: ["packages/admin/src/views/Review/index.tsx"] })).includes("react-patterns"));
 });
 
 test("the Indexer keeps its typecheck, its build, as owner and consumer proof on a critical push", () => {
@@ -3529,4 +3610,27 @@ test("the Indexer keeps its typecheck, its build, as owner and consumer proof on
   assert.equal(manual.status, "ready");
   assert.ok(manual.checks.find((check) => check.id === "indexer-build")?.selectedBy.includes("critical-owner-types:indexer"));
   assert.deepEqual(manual.checks.find((check) => check.id === "indexer-test").focusedPaths, ["test/handlers.test.ts"]);
+});
+
+test("the merge policy's tiers cover every path the selector calls critical or sensitive", () => {
+  const policy = loadPolicy();
+  const merge = JSON.parse(readFileSync(join(repositoryRoot, ".agents/merge-policy.json"), "utf8"));
+  // dev merge-settings reads these globs: ** spans folders, * and ? stay inside one.
+  const globRegex = (glob) =>
+    new RegExp(`^${glob.replace(/\*\*|\*|\?|[.+^${}()|[\]\\]/g, (token) => ({ "**": ".*", "*": "[^/]*", "?": "[^/]" })[token] ?? `\\${token}`)}$`);
+  const covers = (tier, path) => merge.tiers[tier].paths.some((glob) => globRegex(glob).test(path));
+  const probes = (rule) => [
+    ...(rule.exact ?? []),
+    ...(rule.contains?.length
+      ? rule.prefixes.flatMap((prefix) => rule.contains.map((part) => `${prefix}probe/${part}-probe.ts`))
+      : (rule.prefixes ?? []).map((prefix) => (prefix.endsWith("/") ? `${prefix}probe.ts` : prefix))),
+  ];
+  const sensitive = policy.riskRules.filter((rule) => rule.risk === "sensitive").flatMap(probes);
+  assert.deepEqual(
+    [
+      ...policy.criticalOverrides.flatMap(probes).filter((path) => !covers("critical", path)).map((path) => `critical ${path}`),
+      ...sensitive.filter((path) => !covers("sensitive", path) && !covers("critical", path)).map((path) => `sensitive ${path}`),
+    ],
+    [],
+  );
 });

@@ -162,11 +162,13 @@ const directRootTestChecks = new Map([
   ["scripts/ops/dependabot-sync.test.mjs", "dependabot-sync-test"],
   ["scripts/harness/agent-hooks.test.mjs", "review-guardrails-test"],
   ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
+  ["scripts/quality/comment-policy.test.mjs", "comment-policy-test"],
   ["scripts/lib/dev-shared.test.mjs", "validation-system-test"],
   ["scripts/quality/select-validation.test.mjs", "validation-system-test"],
   ["scripts/dev/ci-local.test.mjs", "validation-system-test"],
   ["scripts/dev/surface-leases.test.mjs", "validation-system-test"],
   ["scripts/quality/ci-gate.test.mjs", "validation-system-test"],
+  ["scripts/quality/merge-gate.test.mjs", "validation-system-test"],
   ["scripts/quality/check-commit-identity.test.mjs", "validation-system-test"],
   ["scripts/quality/classify-supply-chain-changes.mjs", "validation-system-test"],
   ["scripts/quality/workflow-performance-parity.test.mjs", "validation-system-test"],
@@ -827,7 +829,7 @@ export function selectValidation(input = {}, options = {}) {
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
       if (rule.exact?.includes(path)) return true;
-      if (rule.check === "browser-proof" && isValidationOnlyPath(path)) return false;
+      if (["browser-proof", "rendered-proof"].includes(rule.check) && isValidationOnlyPath(path)) return false;
       if (rule.check === "ontology" && isValidationOnlyPath(path)) return false;
       if (
         ["source-structure", "design-guardrails"].includes(rule.check) &&
@@ -1488,21 +1490,18 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
   );
   const stagedPatch = gitRawOutput(["diff", "--cached", "--binary", ...pathspec], cwd);
   const unstagedPatch = gitRawOutput(["diff", "--binary", ...pathspec], cwd);
-  const committedPaths = lines(
-    gitOutput(["diff", "--name-only", `${resolvedBase}...${resolvedHead}`], cwd),
-  );
-  const stagedPaths = lines(gitOutput(["diff", "--cached", "--name-only"], cwd));
-  const unstagedPaths = lines(gitOutput(["diff", "--name-only"], cwd));
+  // Rename detection would report a moved file by its new path only, so a critical file moved
+  // to a routine path would plan as routine; without it, the old path is listed and deleted.
+  const diffPaths = (...args) => lines(gitOutput(["diff", "--name-only", "--no-renames", ...args], cwd));
+  const range = `${resolvedBase}...${resolvedHead}`;
+  const committedPaths = diffPaths(range);
+  const stagedPaths = diffPaths("--cached");
+  const unstagedPaths = diffPaths();
   const untrackedPaths = lines(gitOutput(["ls-files", "--others", "--exclude-standard"], cwd));
   const deletedPaths = normalizePaths([
-    ...lines(
-      gitOutput(
-        ["diff", "--name-only", "--diff-filter=D", `${resolvedBase}...${resolvedHead}`],
-        cwd,
-      ),
-    ),
-    ...lines(gitOutput(["diff", "--cached", "--name-only", "--diff-filter=D"], cwd)),
-    ...lines(gitOutput(["diff", "--name-only", "--diff-filter=D"], cwd)),
+    ...diffPaths("--diff-filter=D", range),
+    ...diffPaths("--cached", "--diff-filter=D"),
+    ...diffPaths("--diff-filter=D"),
   ]).filter((path) => !existsSync(resolve(cwd, path)));
   const changedPaths =
     explicitPaths.length > 0

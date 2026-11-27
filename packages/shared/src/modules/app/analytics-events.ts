@@ -12,12 +12,14 @@
  * @module modules/app/analytics-events
  */
 
+import type { AuthMode } from "../../types/auth";
+import type { Address } from "../../types/domain";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { track, type TrackOptions } from "./posthog";
 
 // TRACKER FACTORY
 
-export type AuthMode = "passkey" | "wallet" | "embedded" | null;
+export type { AuthMode } from "../../types/auth";
 type MemberType = GardenRole;
 export type AuthPasskeySource = "server" | "local_cache" | "restore" | "unknown";
 export type AuthPasskeyOutcome = "started" | "success" | "failed";
@@ -83,6 +85,7 @@ export const ANALYTICS_EVENTS = {
   WORK_SUBMISSION_QUEUED: "work_submission_queued",
   WORK_SUBMISSION_SUCCESS: "work_submission_success",
   WORK_SUBMISSION_FAILED: "work_submission_failed",
+  WORK_SUBMISSION_CANCELLED: "work_submission_cancelled",
   WORK_SUBMISSION_OFFLINE: "work_submission_offline",
   WORK_WALLET_REQUEST_STARTED: "work_wallet_request_started",
   WORK_WALLET_REQUEST_EXPIRED: "work_wallet_request_expired",
@@ -180,18 +183,16 @@ export const trackAuthSwitchMethod = createTracker<{
 
 // GARDEN JOIN TRACKING
 
-export const trackGardenJoinStarted = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-  authMode: AuthMode;
-}>(ANALYTICS_EVENTS.GARDEN_JOIN_STARTED);
+/** One join press: its start and its one ending share the send act's `attempt_id` (PRD-1561). */
+type GardenJoinAttempt = { gardenAddress: string; authMode: AuthMode; attemptId: string };
 
-export const trackGardenJoinSuccess = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-  txHash: string;
-  authMode: AuthMode;
-}>(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS);
+export const trackGardenJoinStarted = createTracker<GardenJoinAttempt & { gardenName?: string }>(
+  ANALYTICS_EVENTS.GARDEN_JOIN_STARTED
+);
+
+export const trackGardenJoinSuccess = createTracker<
+  GardenJoinAttempt & { gardenName?: string; txHash: string }
+>(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS);
 
 /**
  * Genuine failures only — telemetry carries the parsed error family, never the
@@ -199,21 +200,17 @@ export const trackGardenJoinSuccess = createTracker<{
  * not a breakage: it emits `trackGardenJoinCancelled` and stays out of the
  * funnel, mirroring the `garden_join_already_member` precedent.
  */
-export const trackGardenJoinFailed = createTracker<{
-  gardenAddress: string;
-  error: string;
-  parsedErrorFamily: string;
-  authMode: AuthMode;
-}>(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED);
+export const trackGardenJoinFailed = createTracker<
+  GardenJoinAttempt & { error: string; parsedErrorFamily: string }
+>(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED);
 
-export const trackGardenJoinCancelled = createTracker<{
-  gardenAddress: string;
-  authMode: AuthMode;
-}>(ANALYTICS_EVENTS.GARDEN_JOIN_CANCELLED);
-
-export const trackGardenJoinAlreadyMember = createTracker<{ gardenAddress: string }>(
-  ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER
+export const trackGardenJoinCancelled = createTracker<GardenJoinAttempt>(
+  ANALYTICS_EVENTS.GARDEN_JOIN_CANCELLED
 );
+
+export const trackGardenJoinAlreadyMember = createTracker<
+  Pick<GardenJoinAttempt, "gardenAddress" | "attemptId">
+>(ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER);
 
 // WORK SUBMISSION TRACKING
 
@@ -251,12 +248,10 @@ export const trackWorkSubmissionStarted = createTracker<{
   submissionPhase?: WorkSubmissionPhase;
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_STARTED, workSubmissionTrackerOptions);
 
-export const trackWorkSubmissionQueued = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
-  jobId: string;
-  isOnline: boolean;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_QUEUED);
+/** A Submit whose send is on record but not confirmed yet: no success or failure (PRD-1495). */
+export const trackWorkSubmissionQueued = createTracker<
+  WorkTrackingSafeMetadata & { status: "awaiting-confirmation"; reason?: "connection-unconfirmed" }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_QUEUED, workSubmissionTrackerOptions);
 
 export const trackWorkSubmissionSuccess = createTracker<{
   gardenAddress?: string;
@@ -269,17 +264,14 @@ export const trackWorkSubmissionSuccess = createTracker<{
   submissionPhase?: WorkSubmissionPhase;
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS, workSubmissionTrackerOptions);
 
-export const trackWorkSubmissionFailed = createTracker<{
-  gardenAddress?: string;
-  actionUID?: number;
-  error: string;
-  authMode: AuthMode;
-  imageCount?: number;
-  workSubmissionJourneyId?: string;
-  chainId?: number;
-  submissionPhase?: WorkSubmissionPhase;
-  parsedErrorFamily?: string;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED, workSubmissionTrackerOptions);
+export const trackWorkSubmissionFailed = createTracker<
+  WorkTrackingSafeMetadata & { gardenAddress?: Address; error: string }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED, workSubmissionTrackerOptions);
+
+/** A Submit declined at the Terms or the wallet's signature: never a failure (PRD-1561). */
+export const trackWorkSubmissionCancelled = createTracker<
+  WorkTrackingSafeMetadata & { reason: "terms_declined" | "flow_left" | "signature_declined" }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_CANCELLED, workSubmissionTrackerOptions);
 
 export const trackWorkWalletRequestStarted = createTracker<WorkTrackingSafeMetadata>(
   ANALYTICS_EVENTS.WORK_WALLET_REQUEST_STARTED,
@@ -296,11 +288,10 @@ export const trackWorkWalletRequestFailed = createTracker<WorkTrackingSafeMetada
   workSubmissionTrackerOptions
 );
 
-export const trackWorkSubmissionOffline = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
-  jobId: string;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE);
+/** A Submit the queue keeps to send later: saved, not sent, so not a success (PRD-1495). */
+export const trackWorkSubmissionOffline = createTracker<
+  WorkTrackingSafeMetadata & { reason: "offline" | "connection-unconfirmed" | "not-sent" }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE, workSubmissionTrackerOptions);
 
 // WORK APPROVAL TRACKING
 

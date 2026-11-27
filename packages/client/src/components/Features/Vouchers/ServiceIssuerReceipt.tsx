@@ -14,7 +14,8 @@ export function ServiceIssuerReceipt({
   deliveredAsset?: ServiceIssuerAsset;
   pool: { name: string; address: string } | null;
 }) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const text = (key: string) => formatMessage({ id: `app.profile.issuer.${key}` });
   return outcome?.status === "confirmed" ? (
     <p role="status" className="text-sm">
@@ -31,7 +32,7 @@ export function ServiceIssuerReceipt({
         <span className="block">
           {text("actualOutput")}:{" "}
           {deliveredAsset
-            ? issuerAmount(outcome.deliveredOutput, deliveredAsset, locale)
+            ? issuerAmount(outcome.deliveredOutput, deliveredAsset, intl)
             : `${outcome.deliveredOutput} ${text("baseUnits")}`}
         </span>
       ) : null}

@@ -13,7 +13,7 @@
 import userEvent from "@testing-library/user-event";
 import type { PromiseGroupController } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
 import type { Address } from "@green-goods/shared/types/domain";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { storyGroup } from "../../components/Features/Commitments/promiseGroupStoryFixtures";
@@ -28,6 +28,29 @@ vi.mock("@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController", ()
   usePromiseGroupController: (input: unknown) => mockController(input),
 }));
 
+// The copies' service read: unread by default, so an ordinary group keeps its take-up.
+const serviceRead = vi.hoisted(() => ({
+  current: { data: undefined, isError: false, status: "pending", fetchStatus: "idle" } as {
+    data?: unknown;
+    isError: boolean;
+    status: string;
+    fetchStatus: string;
+  },
+  /** The copy each read was for, in order. */
+  readFor: [] as Array<bigint | undefined>,
+  refetch: vi.fn(),
+}));
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useServiceAccess: (key: { commitmentId: bigint } | null) => {
+    serviceRead.readFor.push(key?.commitmentId);
+    return { ...serviceRead.current, refetch: serviceRead.refetch };
+  },
+}));
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x7777777777777777777777777777777777777777",
+}));
+
 const start = vi.fn();
 const retry = vi.fn();
 
@@ -40,9 +63,11 @@ function controller(overrides: Partial<PromiseGroupController> = {}): PromiseGro
     sample,
     metadata: null,
     counts: group.counts,
+    dueClock: null,
     availabilityKnown: true,
     yours: [],
     bar: { act: "takeUp", hold: null },
+    choice: null,
     cap: null,
     isMember: true,
     membershipUnavailable: false,
@@ -56,11 +81,16 @@ function controller(overrides: Partial<PromiseGroupController> = {}): PromiseGro
   };
 }
 
+function Location() {
+  return <p data-testid="location">{useLocation().pathname}</p>;
+}
+
 const render = (path = "/home/0xgarden/commitments/group/set-1") =>
   renderWithProviders(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/home/:id/commitments/group/:groupId" element={<GardenPromiseGroup />} />
+        <Route path="/home/:id/commitments/:commitmentId" element={<Location />} />
       </Routes>
     </MemoryRouter>
   );
@@ -68,6 +98,13 @@ const render = (path = "/home/0xgarden/commitments/group/set-1") =>
 describe("GardenPromiseGroup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    serviceRead.current = {
+      data: undefined,
+      isError: false,
+      status: "pending",
+      fetchStatus: "idle",
+    };
+    serviceRead.readFor = [];
   });
 
   it("opens the take-up sheet straight away on a garden pool", async () => {
@@ -208,6 +245,90 @@ describe("GardenPromiseGroup", () => {
 
     const asks = screen.getByRole("region", { name: "What each one asks" });
     expect(within(asks).getByText("$20.00")).toBeInTheDocument();
+  });
+
+  // PRD-1587: Take Up One on a group of voucher service offers queued an ordinary take-up, which
+  // the chain refuses on a service offer (ServiceClaimPathRequired), five times over. A service
+  // offer is booked from a copy's own page.
+  it("books a group of voucher offers from a copy's page, never through an ordinary take-up", async () => {
+    serviceRead.current = {
+      data: { knownService: true, acceptancePolicy: { blockGenericMemberAcceptance: true } },
+      isError: false,
+      status: "success",
+      fetchStatus: "idle",
+    };
+    const { group } = storyGroup({ available: 4, inProgress: 3, kept: 3 });
+    const pick = group.children[1]!.commitmentId;
+    mockController.mockReturnValue(controller({ choice: pick }));
+    const user = userEvent.setup();
+    render();
+
+    expect(screen.queryByRole("button", { name: "Take Up One" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Book One" }));
+
+    expect(start).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      `/home/0xgarden/commitments/${pick.toString()}`
+    );
+  });
+
+  it("holds the act while it can't tell whether the copies are voucher offers, and reads again", async () => {
+    serviceRead.current = { data: undefined, isError: true, status: "error", fetchStatus: "idle" };
+    mockController.mockReturnValue(controller());
+    const user = userEvent.setup();
+    render();
+
+    expect(screen.getByRole("button", { name: "Take Up One" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(serviceRead.refetch).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the counts known after a failed service read when the reader has no act here", () => {
+    serviceRead.current = { data: undefined, isError: true, status: "error", fetchStatus: "idle" };
+    mockController.mockReturnValue(controller({ bar: null }));
+    render();
+
+    expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
+  });
+
+  // Review of PRD-1587: the chain checks the copy it is sent, so that copy's terms decide.
+  it("reads the service terms of the copy the act would choose", () => {
+    const { group } = storyGroup({ available: 4, inProgress: 3, kept: 3 });
+    const pick = group.children[2]!.commitmentId;
+    mockController.mockReturnValue(controller({ choice: pick }));
+    render();
+
+    expect(serviceRead.readFor.at(-1)).toBe(pick);
+  });
+
+  // A request with a voucher reward blocks the generic acceptance too, but it is taken up,
+  // after agreeing to the reward on the copy's page, never booked.
+  it("keeps Take Up One on a group whose copies only carry a voucher reward", () => {
+    serviceRead.current = {
+      data: { knownService: false, acceptancePolicy: { blockGenericMemberAcceptance: true } },
+      isError: false,
+      status: "success",
+      fetchStatus: "idle",
+    };
+    mockController.mockReturnValue(controller());
+    render();
+
+    expect(screen.getByRole("button", { name: "Take Up One" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Book One" })).not.toBeInTheDocument();
+  });
+
+  it("offers Book One while the queue can't be read, since booking queues nothing here", () => {
+    serviceRead.current = {
+      data: { knownService: true, acceptancePolicy: { blockGenericMemberAcceptance: true } },
+      isError: false,
+      status: "success",
+      fetchStatus: "idle",
+    };
+    mockController.mockReturnValue(controller({ queueUnreadable: true }));
+    render();
+
+    expect(screen.getByRole("button", { name: "Book One" })).toBeEnabled();
   });
 
   it("passes the copy a link names, so a reload finds the same group", () => {

@@ -7,6 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { HatsModule } from "../../src/modules/Hats.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { ICVSyncPowerFacet } from "../../src/interfaces/ICVSyncPowerFacet.sol";
+import { HatsRoleSync } from "../../src/lib/HatsRoleSync.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
 
 /// @notice Mock strategy that successfully handles syncPower calls
@@ -84,8 +85,7 @@ contract ReentrantStrategy is ICVSyncPowerFacet {
 }
 
 /// @notice Mock strategy that attempts reentrancy with sufficient gas to reach the nonReentrant guard
-/// @dev Unlike ReentrantStrategy (which is starved by the 100k gas stipend), this contract
-///      catches the revert to prove that nonReentrant independently blocks reentry.
+/// @dev Catches the revert to prove that the guard blocks reentry without reverting the hook.
 contract ReentrantStrategyWithGas is ICVSyncPowerFacet {
     HatsModule public target;
     address public targetGarden;
@@ -124,8 +124,7 @@ contract ReentrantStrategyWithGas is ICVSyncPowerFacet {
 }
 
 /// @notice Mock strategy that consumes ~70-80k gas via storage writes without reverting
-/// @dev Used to test that revocation completes successfully even with a gas-hungry strategy
-///      that comes close to the SYNC_POWER_GAS_STIPEND (100k) limit. We use 2 cold SSTORE
+/// @dev Retains the small-hook regression that also fitted the former 100k limit. We use 2 cold SSTORE
 ///      writes (~20k each) plus a dynamic array push (~22k cold) plus computation to stay
 ///      under 100k total.
 contract GasGuzzlerStrategy is ICVSyncPowerFacet {
@@ -152,6 +151,59 @@ contract NonCompliantContract {
 
     function setValue(uint256 _value) external {
         value = _value;
+    }
+}
+
+/// @notice Cold state writes exceed the old 100k cap but fit the bounded production hook.
+contract ColdStateSyncStrategy is ICVSyncPowerFacet {
+    uint256[12] public recorded;
+
+    function syncPower(address member) external override {
+        for (uint256 i = 0; i < recorded.length; i++) {
+            recorded[i] = uint256(uint160(member)) + i;
+        }
+    }
+
+    function batchSyncPower(address[] calldata) external override { }
+}
+
+/// @notice Observes voting updates before secondary project callbacks.
+contract SyncOrderingKarma {
+    MockStrategy public immutable strategy;
+    uint256 public observed;
+
+    constructor(MockStrategy strategy_) {
+        strategy = strategy_;
+    }
+
+    function addProjectAdmin(address, address) external {
+        require(strategy.syncedCount() == 1, "voting sync did not run first");
+        observed = 1;
+    }
+
+    function removeProjectAdmin(address, address) external {
+        require(strategy.syncedCount() == 2, "voting sync did not run first");
+        observed = 2;
+    }
+}
+
+/// @notice Ordinary hook response fixtures for bounded diagnostic handling.
+contract SyncResponseStrategy {
+    bytes private response;
+    bool private rejects;
+
+    constructor(bytes memory response_, bool rejects_) {
+        response = response_;
+        rejects = rejects_;
+    }
+
+    function syncPower(address) external view {
+        bytes memory result = response;
+        bool reject = rejects;
+        assembly ("memory-safe") {
+            if reject { revert(add(result, 32), mload(result)) }
+            return(add(result, 32), mload(result))
+        }
     }
 }
 
@@ -228,6 +280,136 @@ contract ConvictionSyncTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
     }
 
+    function testConvictionSync_votingUpdatesPrecedeSecondaryProjectAdminHooks() public {
+        address[] memory strategies = new address[](1);
+        strategies[0] = address(strategy1);
+        adapter.setConvictionStrategies(garden1, strategies);
+        SyncOrderingKarma project = new SyncOrderingKarma(strategy1);
+        adapter.setKarmaGAPModule(address(project));
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertEq(project.observed(), 1);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertEq(project.observed(), 2);
+        assertFalse(adapter.isStewardOf(garden1, user1));
+        assertEq(strategy1.syncedCount(), 2);
+    }
+
+    function testConvictionSync_oversizedErrorUsesBoundedDiagnosticAndRevocationCompletes() public {
+        _assertResponseRevocation(
+            abi.encodeWithSignature("Error(string)", string(new bytes(4096))), true, "revert_data_too_large"
+        );
+    }
+
+    function testConvictionSync_maximumRetainedReasonRemainsIntact() public {
+        bytes memory text = new bytes(256);
+        for (uint256 i = 0; i < text.length; i++) {
+            text[i] = bytes1(uint8(33 + i % 94));
+        }
+        string memory reason = string(text);
+        _assertResponseRevocation(abi.encodeWithSignature("Error(string)", reason), true, reason);
+    }
+
+    function testConvictionSync_malformedDynamicReasonCannotRevertTheCaller() public {
+        _assertResponseRevocation(
+            abi.encodePacked(bytes4(keccak256("Error(string)")), uint256(32), type(uint256).max), true, ""
+        );
+    }
+
+    function testConvictionSync_successfulExtraReturnDataIsIgnored() public {
+        _assertResponseRevocation(new bytes(4096), false, "");
+    }
+
+    function _assertResponseRevocation(bytes memory response, bool rejects, string memory reason) private {
+        SyncResponseStrategy hook = new SyncResponseStrategy(response, rejects);
+        address[] memory strategies = new address[](1);
+        strategies[0] = address(hook);
+        adapter.setConvictionStrategies(garden1, strategies);
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+        vm.expectEmit(true, true, true, true, address(adapter));
+        if (rejects) emit ConvictionSyncFailed(garden1, user1, address(hook), reason);
+        else emit ConvictionSyncTriggered(garden1, user1, address(hook));
+        adapter.revokeRole{ gas: 1_500_000 }(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertFalse(adapter.isGardenerOf(garden1, user1), "hook diagnostics cannot restore the role");
+    }
+
+    function testConvictionSync_underfundedGrantLeavesTheRoleUnchanged() public {
+        _setTwoStrategies(address(strategy1), address(strategy2));
+        (bool ok, bytes memory reason) = address(adapter).call{ gas: 500_000 }(
+            abi.encodeCall(HatsModule.grantRole, (garden1, user1, IHatsModule.GardenRole.Gardener))
+        );
+        assertFalse(ok);
+        _assertGasBudgetError(reason);
+        assertFalse(adapter.isGardenerOf(garden1, user1));
+        assertEq(strategy1.syncedCount(), 0);
+        assertEq(strategy2.syncedCount(), 0);
+    }
+
+    function testConvictionSync_underfundedRevocationCanBeRetriedWithEnoughGas() public {
+        _setTwoStrategies(address(strategy1), address(strategy2));
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+        (bool ok, bytes memory reason) = address(adapter).call{ gas: 500_000 }(
+            abi.encodeCall(HatsModule.revokeRole, (garden1, user1, IHatsModule.GardenRole.Gardener))
+        );
+        assertFalse(ok);
+        _assertGasBudgetError(reason);
+        assertTrue(adapter.isGardenerOf(garden1, user1));
+        adapter.revokeRole{ gas: 3_000_000 }(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertFalse(adapter.isGardenerOf(garden1, user1));
+        assertEq(strategy1.syncedCount(), 1);
+        assertEq(strategy2.syncedCount(), 1);
+    }
+
+    function testConvictionSync_tenStrategiesRequireAndReceiveTheirBoundedBudget() public {
+        address[] memory strategies = new address[](10);
+        for (uint256 i = 0; i < strategies.length; i++) {
+            strategies[i] = address(new MockStrategy());
+        }
+        adapter.setConvictionStrategies(garden1, strategies);
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+        (bool ok, bytes memory reason) = address(adapter).call{ gas: 5_000_000 }(
+            abi.encodeCall(HatsModule.revokeRole, (garden1, user1, IHatsModule.GardenRole.Gardener))
+        );
+        assertFalse(ok);
+        _assertGasBudgetError(reason);
+        assertTrue(adapter.isGardenerOf(garden1, user1));
+        adapter.revokeRole{ gas: 12_000_000 }(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertFalse(adapter.isGardenerOf(garden1, user1));
+        for (uint256 i = 0; i < strategies.length; i++) {
+            assertEq(MockStrategy(strategies[i]).syncedCount(), 1);
+        }
+    }
+
+    function testConvictionSync_underfundedRoleBatchRollsBackEveryGrant() public {
+        _setTwoStrategies(address(new ColdStateSyncStrategy()), address(new ColdStateSyncStrategy()));
+        address[] memory accounts = new address[](2);
+        accounts[0] = user1;
+        accounts[1] = user2;
+        IHatsModule.GardenRole[] memory roles = new IHatsModule.GardenRole[](2);
+        roles[0] = IHatsModule.GardenRole.Gardener;
+        roles[1] = IHatsModule.GardenRole.Gardener;
+        (bool ok, bytes memory reason) =
+            address(adapter).call{ gas: 2_700_000 }(abi.encodeCall(HatsModule.grantRoles, (garden1, accounts, roles)));
+        assertFalse(ok);
+        _assertGasBudgetError(reason);
+        assertFalse(adapter.isGardenerOf(garden1, user1));
+        assertFalse(adapter.isGardenerOf(garden1, user2));
+        adapter.grantRoles{ gas: 5_000_000 }(garden1, accounts, roles);
+        assertTrue(adapter.isGardenerOf(garden1, user1));
+        assertTrue(adapter.isGardenerOf(garden1, user2));
+    }
+
+    function _setTwoStrategies(address first, address second) private {
+        address[] memory strategies = new address[](2);
+        strategies[0] = first;
+        strategies[1] = second;
+        adapter.setConvictionStrategies(garden1, strategies);
+    }
+
+    function _assertGasBudgetError(bytes memory reason) private {
+        assertGe(reason.length, 4);
+        assertEq(bytes4(reason), HatsRoleSync.InsufficientConvictionSyncGas.selector);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Strategy Configuration Tests
     // ═══════════════════════════════════════════════════════════════════════════
@@ -301,15 +483,13 @@ contract ConvictionSyncTest is Test {
         assertEq(stored.length, 1, "Operator should be able to set strategies");
     }
 
-    function test_setConvictionStrategies_allowsGardenSelf() public {
+    function testIntegration_ConvictionSync_rejectsGardenAccountAdministrationBypass() public {
         address[] memory strategies = new address[](1);
         strategies[0] = address(strategy1);
 
         vm.prank(garden1);
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.NotGardenAdmin.selector, garden1, garden1));
         adapter.setConvictionStrategies(garden1, strategies);
-
-        address[] memory stored = adapter.getConvictionStrategies(garden1);
-        assertEq(stored.length, 1, "Garden should be able to set its own strategies");
     }
 
     function test_getConvictionStrategies_returnsEmptyForUnconfigured() public {
@@ -575,8 +755,8 @@ contract ConvictionSyncTest is Test {
         mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
 
         // Call revokeRole with high gas so the strategy has plenty of gas
-        // to reach the nonReentrant check (far more than the normal 100k stipend).
-        // The gas stipend in production limits this to 100k, but this test
+        // to reach the nonReentrant check independently of the bounded production hook.
+        // This test
         // proves that even if gas were unlimited, nonReentrant would still protect.
         adapter.revokeRole{ gas: 5_000_000 }(garden1, user1, IHatsModule.GardenRole.Gardener);
 
@@ -588,10 +768,9 @@ contract ConvictionSyncTest is Test {
         assertFalse(adapter.isGardenerOf(garden1, user1), "Role should be revoked despite reentry attempt");
     }
 
-    function test_revokeRole_gasStipendBlocksReentrantExecution() public {
-        // This test complements the above by proving the gas stipend OOG defense.
-        // ReentrantStrategy does NOT catch reverts, so if the gas stipend prevents
-        // execution entirely, reentrancyAttempted will NOT be persisted.
+    function testConvictionSync_uncaughtReentryRollsBackOnlyTheSync() public {
+        // ReentrantStrategy does not catch the nonReentrant rejection. Its writes roll
+        // back, but the outer role removal must still complete at the larger stipend.
         ReentrantStrategy reentrant = new ReentrantStrategy();
         reentrant.setReentrancyTarget(address(adapter), garden1, user1, IHatsModule.GardenRole.Gardener);
 
@@ -601,15 +780,13 @@ contract ConvictionSyncTest is Test {
 
         mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
 
-        // The reentrant callback fails because SYNC_POWER_GAS_STIPEND (100k) is
-        // insufficient for the reentrant call. The try/catch gracefully handles the OOG.
+        // The bounded external callback cannot bypass the module's reentrancy guard.
         vm.expectEmit(true, true, true, false);
         emit ConvictionSyncFailed(garden1, user1, address(reentrant), "");
 
         adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
 
-        // Gas stipend prevented the reentrant call from fully executing
-        assertFalse(reentrant.reentrancyAttempted(), "Gas stipend should prevent reentrant execution");
+        assertFalse(reentrant.reentrancyAttempted(), "Failed callback rolls back its own writes");
         assertFalse(adapter.isGardenerOf(garden1, user1), "Role should be revoked despite reentrancy attempt");
     }
 
@@ -619,7 +796,7 @@ contract ConvictionSyncTest is Test {
 
     function test_revokeRole_gasGuzzlerStrategy_completesSuccessfully() public {
         // Deploy a strategy that consumes significant gas via storage writes
-        // but does NOT revert. This tests that the 100k gas stipend is sufficient
+        // but does NOT revert. This retains the hook that fitted the former 100k limit
         // for legitimate heavy strategies, and that revocation completes normally.
         GasGuzzlerStrategy guzzler = new GasGuzzlerStrategy();
 
@@ -663,5 +840,19 @@ contract ConvictionSyncTest is Test {
         assertEq(guzzler2.syncedCount(), 1, "Guzzler2 should complete");
         assertEq(guzzler3.syncedCount(), 1, "Guzzler3 should complete");
         assertFalse(adapter.isGardenerOf(garden1, user1), "Role should be revoked");
+    }
+
+    function testConvictionSync_twoColdStateStrategiesCompleteWithinTheNewBound() public {
+        ColdStateSyncStrategy first = new ColdStateSyncStrategy();
+        ColdStateSyncStrategy second = new ColdStateSyncStrategy();
+        address[] memory strategies = new address[](2);
+        strategies[0] = address(first);
+        strategies[1] = address(second);
+        adapter.setConvictionStrategies(garden1, strategies);
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertEq(first.recorded(11), uint256(uint160(user1)) + 11);
+        assertEq(second.recorded(11), uint256(uint160(user1)) + 11);
+        assertFalse(adapter.isGardenerOf(garden1, user1));
     }
 }

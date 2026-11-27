@@ -2,16 +2,8 @@ import { type BrowserContext, type Page } from "@playwright/test";
 import { WORK_UPLOAD_POLICY_VERSION } from "../../packages/shared/src/modules/work/upload-policy";
 import { type MockClientBackendOptions, mockClientBackend } from "./mock-backend";
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 /** `operator` is the steward role's former name; DevAuthProvider still resolves it. */
 export type AdminMockRole = "deployer" | "steward" | "operator" | "user" | "disconnected";
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 // In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
 const isCI = process.env.CI === "true";
@@ -23,7 +15,7 @@ export const TEST_URLS = {
   indexer: process.env.TEST_INDEXER_URL ?? "http://localhost:3006/v1/graphql",
 };
 
-// Storage keys used by Green Goods auth (from shared/src/modules/auth/session.ts)
+// Mirrors AUTH_MODE_STORAGE_KEY in packages/shared/src/modules/auth/session.ts.
 const AUTH_STORAGE_KEYS = {
   authMode: "greengoods_auth_mode",
 };
@@ -68,10 +60,6 @@ export async function seedAcceptedUploadTerms(
   await context.setStorageState({ cookies: [], origins: [origin] });
 }
 
-// ============================================================================
-// CLIENT AUTH HELPERS
-// ============================================================================
-
 /**
  * Client CI mock-auth and legacy wallet-storage helpers.
  * Qualified passkey specs own their virtual authenticators.
@@ -90,10 +78,8 @@ export class ClientTestHelper {
   async injectWalletAuth(address: string = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266") {
     await this.page.addInitScript(
       ({ address, authModeKey }) => {
-        // Set auth mode to wallet
         localStorage.setItem(authModeKey, "wallet");
 
-        // Mock wagmi storage (used by Reown AppKit)
         const wagmiState = {
           state: {
             connections: {
@@ -113,7 +99,7 @@ export class ClientTestHelper {
         };
         localStorage.setItem("wagmi.store", JSON.stringify(wagmiState));
 
-        // Also set reown/appkit state
+        // Reown AppKit (formerly Web3Modal) keeps its connection under the @w3m prefix.
         localStorage.setItem("@w3m/connected_connector", '"mock"');
         localStorage.setItem("@w3m/active_caip_network_id", '"eip155:11155111"');
       },
@@ -167,7 +153,7 @@ export class ClientTestHelper {
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
       .catch(() => {
-        // No spinner is fine
+        // Best effort: a spinner still showing after 10s is not a failure here.
       });
   }
 }
@@ -193,14 +179,10 @@ export async function setupAuthenticatedClient(
   return Object.assign(helper, { backend: scenario });
 }
 
-// ============================================================================
-// ADMIN AUTH HELPERS (Dev mockAuth)
-// ============================================================================
-
 /**
  * Helper for admin app testing with deterministic dev auth.
  *
- * Prefer `mockAuth` URL/session overrides for cockpit verification.
+ * Prefer `mockAuth` URL/session overrides for the Hub verification.
  * NOTE: For multi-tab tests, use the context parameter to ensure
  * the init script applies to all pages in the context.
  */
@@ -240,7 +222,7 @@ export class AdminTestHelper {
     }
   }
 
-  async goToCockpit(path: string = "/hub", role: AdminMockRole = "steward") {
+  async goToHub(path: string = "/review", role: AdminMockRole = "steward") {
     await this.page.goto(this.buildMockAuthPath(path, role));
     await this.page.waitForLoadState("domcontentloaded");
   }
@@ -275,7 +257,7 @@ export class AdminTestHelper {
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
       .catch(() => {
-        // No spinner is fine
+        // Best effort: a spinner still showing after 10s is not a failure here.
       });
   }
 }

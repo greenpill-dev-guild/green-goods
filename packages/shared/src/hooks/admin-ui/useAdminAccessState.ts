@@ -35,6 +35,7 @@ export function useAdminAccessState(): AdminAccessState {
     canCreateGarden,
     isLoaded: eligibleGardensLoaded,
     isError: eligibleGardensError,
+    deploymentPermissionsError,
     hasStaleBaseList,
   } = useEligibleAdminGardens();
 
@@ -59,7 +60,9 @@ export function useAdminAccessState(): AdminAccessState {
     };
   }
 
-  if (eligibleGardensError) {
+  // With no garden to open, an unread garden-creation permission cannot be told
+  // apart from no access: a deployer with no garden yet would be turned away.
+  if (eligibleGardensError || deploymentPermissionsError) {
     return { status: "indexer-error" };
   }
 

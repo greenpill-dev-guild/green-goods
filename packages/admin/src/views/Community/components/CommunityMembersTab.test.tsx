@@ -1,7 +1,11 @@
+import {
+  useGardenMemberContributions,
+  useGardenMemberReadiness,
+} from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, useNavigate, useSearchParams } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../../__tests__/test-utils";
 import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { CommunityMembersTab } from "./CommunityMembersTab";
@@ -12,6 +16,25 @@ import {
   storyRoleSummary,
 } from "./communityStoryFixtures";
 
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => ({
+  useGardenMemberContributions: vi.fn(() => ({ canView: false, byAccount: {} })),
+  useGardenMemberReadiness: vi.fn(() => ({ canView: false, byAccount: {} })),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
+  useGardenMemberHistory: () => ({
+    members: [
+      {
+        garden: storyGarden.id,
+        account: storyDirectory[0].address,
+        joinedAt: Date.UTC(2026, 5, 12, 12),
+        memberSince: Date.UTC(2026, 5, 12, 12),
+        roleSince: { owner: Date.UTC(2026, 5, 12, 12) },
+      },
+    ],
+    isLoading: false,
+    isError: false,
+  }),
+}));
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({ isLoading: false }),
   useAddMembersBatch: () => ({
@@ -22,6 +45,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
     available: false,
   }),
   useRemoveMemberRoles: () => ({ account: null, check: vi.fn(), remove: vi.fn() }),
+  useSubRoleCheck: () => vi.fn(),
 }));
 // The steward has an ENS name; the owner has none, so their row shows a short address.
 vi.mock("@green-goods/shared/hooks/ens/useAddressDisplayName", () => ({
@@ -66,6 +90,7 @@ function MembersHarness({
       <CommunityMembersDialogs
         garden={storyGarden}
         canManage
+        canManageStewards={false}
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
         isOwner
         roleMembers={storyRoleMembers}
@@ -96,6 +121,93 @@ function renderMembers(props: Parameters<typeof MembersHarness>[0] = {}) {
 }
 
 describe("CommunityMembersTab", () => {
+  beforeEach(() => {
+    vi.mocked(useGardenMemberContributions).mockReturnValue({ canView: false, byAccount: {} });
+    vi.mocked(useGardenMemberReadiness).mockReturnValue({ canView: false, byAccount: {} });
+  });
+
+  it("shows each member's readiness stage, its evidence and a hint, and filters by stage", async () => {
+    const user = userEvent.setup();
+    const [owner, steward] = storyDirectory;
+    vi.mocked(useGardenMemberReadiness).mockReturnValue({
+      canView: true,
+      byAccount: {
+        [owner.address.toLowerCase()]: {
+          status: "read",
+          stage: "contributing",
+          firstSentAt: Date.UTC(2026, 6, 1, 12),
+          firstApprovedAt: Date.UTC(2026, 6, 3, 12),
+        },
+        [steward.address.toLowerCase()]: {
+          status: "read",
+          stage: "registered",
+          firstSentAt: null,
+          firstApprovedAt: null,
+        },
+      },
+    });
+    renderMembers();
+    // Roles until the mode is chosen; the read is asked for only once it is.
+    expect(screen.queryByText("Contributing")).not.toBeInTheDocument();
+    expect(useGardenMemberReadiness).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: false })
+    );
+    await user.click(screen.getByRole("button", { name: "Readiness" }));
+
+    expect(useGardenMemberReadiness).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: true })
+    );
+    expect(screen.getByText("First work approved Jul 3, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Nothing needed now")).toBeInTheDocument();
+    expect(screen.getByText("Help them send a first report")).toBeInTheDocument();
+    expect(
+      screen.getByText(/people who share a phone are not counted separately/)
+    ).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Readiness stage"), "registered");
+    expect(screen.queryByText("First work approved Jul 3, 2026")).not.toBeInTheDocument();
+    expect(screen.getByText("Help them send a first report")).toBeInTheDocument();
+  });
+
+  it("offers no readiness mode to a member who may not read the records", () => {
+    renderMembers();
+    expect(screen.queryByRole("button", { name: "Readiness" })).not.toBeInTheDocument();
+  });
+  it("keeps contribution first and appends garden membership for roomier rows", () => {
+    vi.mocked(useGardenMemberContributions).mockReturnValue({
+      canView: true,
+      byAccount: {
+        [storyDirectory[0].address.toLowerCase()]: {
+          status: "recorded",
+          at: Date.UTC(2026, 10, 15, 12),
+        },
+      },
+    });
+    renderMembers();
+    expect(screen.getByText("Contributed Nov 15, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Joined Jun 12, 2026")).toBeInTheDocument();
+    const facts = screen.getByText("Contributed Nov 15, 2026").closest(".gg-item-row-detail-list");
+    expect(facts?.textContent).toMatch(/^Contributed Nov 15, 2026.*Joined Jun 12, 2026$/);
+    expect(useGardenMemberContributions).toHaveBeenCalledWith({
+      garden: storyGarden,
+      accounts: storyDirectory.map((entry) => entry.address),
+    });
+  });
+  it("keeps the membership row fact for non-managers even when cached contributions exist", () => {
+    vi.mocked(useGardenMemberContributions).mockReturnValue({
+      canView: false,
+      byAccount: {
+        [storyDirectory[0].address.toLowerCase()]: {
+          status: "recorded",
+          at: Date.UTC(2026, 10, 15, 12),
+        },
+      },
+    });
+    renderMembers();
+    expect(screen.queryByText(/Contributed/)).not.toBeInTheDocument();
+    expect(screen.getByText("Joined Jun 12, 2026")).toBeInTheDocument();
+  });
+
   it("keeps filters count-free, hides empty roles and puts each role count in the Members rail", () => {
     // The steward also evaluates: three role seats held by two people (DL-049).
     const roleSummary = storyRoleSummary.map((entry) =>

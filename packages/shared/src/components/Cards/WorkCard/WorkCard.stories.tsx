@@ -148,11 +148,11 @@ type Locale = keyof typeof CATALOGS;
 
 /**
  * The phone list widths: 320, 360 and 390px less the app's 16px gutters and the
- * cockpit's 12px ones.
+ * Hub's 12px ones.
  */
 const WIDTHS = {
   app: [288, 328, 358],
-  cockpit: [296, 336, 366],
+  hub: [296, 336, 366],
 } as const;
 
 const TITLES: Record<Locale, string[]> = {
@@ -169,7 +169,7 @@ const TITLES: Record<Locale, string[]> = {
  * The rows every list draws, with long real values: names display without the protocol's
  * `.greengoods.eth` and addresses as `0x7b2e...41c9`, as `formatAddress` gives them.
  */
-function LocalizedRows({ surface }: { surface: "app" | "cockpit" }) {
+function LocalizedRows({ surface }: { surface: "app" | "hub" }) {
   const intl = useIntl();
   const locale = intl.locale as Locale;
   const text = (id: string, values?: Record<string, string>) => intl.formatMessage({ id }, values);
@@ -210,7 +210,7 @@ function LocalizedRows({ surface }: { surface: "app" | "cockpit" }) {
           },
         ]
       : [
-          // The cockpit's phone queue: a neutral Pending (DL-044), who, then how long ago.
+          // The Hub's phone queue: a neutral Pending (DL-044), who, then how long ago.
           {
             work: {
               ...mockWork,
@@ -251,7 +251,7 @@ function LocalizedRows({ surface }: { surface: "app" | "cockpit" }) {
 /**
  * Done when (PRD-1273): every row in a list is one height, and no detail line wraps at
  * 320, 360 or 390px in English, Spanish or Portuguese, on the app's lists and the
- * cockpit's phone queue. A detail that does not fit drops whole.
+ * Hub's phone queue. A detail that does not fit drops whole.
  */
 export const FitsEveryLanguage: Story = {
   parameters: { ownColumns: true },
@@ -269,14 +269,14 @@ export const FitsEveryLanguage: Story = {
                 <LocalizedRows surface="app" />
               </div>
             ))}
-            {WIDTHS.cockpit.map((width) => (
+            {WIDTHS.hub.map((width) => (
               <div
-                key={`cockpit-${width}`}
+                key={`hub-${width}`}
                 data-surface-scope="admin"
                 className="flex flex-col gap-(--gg-list-gap)"
                 style={{ width }}
               >
-                <LocalizedRows surface="cockpit" />
+                <LocalizedRows surface="hub" />
               </div>
             ))}
           </section>

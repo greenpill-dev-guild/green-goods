@@ -25,7 +25,8 @@ import { retireWorkCompletionSnapshots } from "../../modules/job-queue/work-comp
 import { logger } from "../../modules/app/logger";
 import { useLiveQuery } from "../utils/useLiveQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
-import { useSendingWorkIds } from "./useSendingWorkIds";
+import { useSendingWork } from "./useSendingWork";
+import { useWorkVisibility } from "./useWorkVisibility";
 
 export interface UseMyWorksOptions {
   /**
@@ -79,6 +80,8 @@ export interface UseMyWorksOptions {
  */
 export function useMyWorks(options: UseMyWorksOptions = {}) {
   const { includeOffline = false, timeFilter, limit = 50, chainId = DEFAULT_CHAIN_ID } = options;
+  const visibility = useWorkVisibility(chainId);
+  const { isVisible } = visibility;
   const { user } = useUser();
   const activeAddress = user?.id;
   const queryClient = useQueryClient();
@@ -89,7 +92,7 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const queryKey = worksKeys.mine(activeAddress, chainId, false, timeFilter, limit);
 
   const isOnline = useOnlineStatus();
-  const sendingJobs = useSendingWorkIds(activeAddress, chainId);
+  const sendingJobs = useSendingWork(activeAddress, chainId);
   const online = useQuery({
     queryKey,
     queryFn: async () => {
@@ -223,6 +226,7 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     const remote = deduplicateById(remoteRows as Work[])
       .filter(
         (work) =>
+          isVisible(work.id) &&
           !["syncing", "sync_failed", "offline", "uploading"].includes(work.status) &&
           !work.id.startsWith("0xoffline_")
       )
@@ -234,13 +238,17 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
       const work = queuedPreviews.has(record.id)
         ? { ...record, media: queuedPreviews.get(record.id)! }
         : record;
-      return isOnline && sendingJobs.has(work.id) && work.status === "offline"
-        ? {
-            ...work,
-            status: "uploading" as const,
-            metadata: JSON.stringify({ ...JSON.parse(work.metadata), submissionState: "sending" }),
-          }
-        : work;
+      if (!isOnline || !sendingJobs.has(work.id) || work.status !== "offline") return work;
+      const sendStage = sendingJobs.get(work.id);
+      return {
+        ...work,
+        status: "uploading" as const,
+        metadata: JSON.stringify({
+          ...JSON.parse(work.metadata),
+          submissionState: "sending",
+          ...(sendStage ? { sendStage } : {}),
+        }),
+      };
     });
     let rows: Work[] = includeOffline ? mergeAndDeduplicateByClientId(remote, localRows) : remote;
     if (timeFilter) rows = filterByTimeRange(rows, timeFilter);
@@ -258,14 +266,17 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     metadataByWork,
     sendingJobs,
     isOnline,
+    isVisible,
   ]);
   const hasRows = works.length > 0;
   return {
     ...online,
     data: works,
     isSuccess: online.isSuccess || hasRows,
-    isError: online.isError && !hasRows,
-    isLoading: isOnline && online.isLoading && !hasRows,
+    isError: (online.isError || (!visibility.isReady && visibility.isError)) && !hasRows,
+    error: visibility.error || online.error,
+    isLoading:
+      isOnline && (online.isLoading || (!visibility.isReady && visibility.isLoading)) && !hasRows,
     /** This phone's queue has not been read yet; only with `includeOffline`. */
     isLoadingQueued: includeOffline && local.isLoading,
     /** This phone's queue could not be read, so queued work may be missing; only with `includeOffline`. */
@@ -273,7 +284,7 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     isFetching: isOnline && online.isFetching,
     isPaused: !isOnline || online.isPaused,
     availability:
-      online.data !== undefined
+      visibility.isReady && online.data !== undefined
         ? hasRows
           ? "available"
           : "empty"
@@ -281,8 +292,9 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
           ? "partial"
           : "unavailable",
     lastSuccessfulRefresh: online.dataUpdatedAt || downloaded.updatedAt,
-    refreshWarning: online.isError && hasRows,
+    refreshWarning: (online.isError || visibility.isError) && hasRows,
     refetch: async () => {
+      if (isOnline) await visibility.refetch();
       if (includeOffline) await local.refetch();
       return isOnline ? online.refetch() : online;
     },

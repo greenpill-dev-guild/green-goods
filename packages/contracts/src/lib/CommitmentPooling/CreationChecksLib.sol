@@ -24,6 +24,10 @@ library CommitmentPoolingCreationChecksLib {
     {
         bool steward =
             msg.sender == env.owner || CommitmentPoolingGuardLib.isGardenSteward(env.hats, pool.garden, msg.sender);
+        if (
+            params.direction == ICommitmentPoolingModule.CommitmentDirection.Request && params.consideration.amount != 0
+                && !steward
+        ) revert ICommitmentPoolingModule.NotPoolSteward(msg.sender, params.poolId);
         if (pool.poolType == ICommitmentPoolingModule.PoolType.Protocol && !steward) {
             revert ICommitmentPoolingModule.NotPoolSteward(msg.sender, params.poolId);
         }

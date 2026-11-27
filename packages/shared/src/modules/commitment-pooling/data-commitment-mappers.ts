@@ -115,7 +115,7 @@ export async function mapCommitmentsWithRequirements(
       : await queryRows(
           `query CommitmentListRequirements($chainId: Int!, $ids: [numeric!]!) {
       CommitmentRequirement(where: { chainId: { _eq: $chainId }, commitmentId: { _in: $ids }, creationSeen: { _eq: true } }, order_by: { requirementIndex: asc }) {
-        commitmentId requirementIndex actionUID requiredCount
+        commitmentId requirementIndex actionUID requiredCount approvedCount
       }
     }`,
           { chainId: chainId, ids: requiredIds },
@@ -171,7 +171,15 @@ export async function mapCommitmentsWithRequirements(
             : Number(raw.confirmationThreshold),
         requirements: terms,
       });
-    return { ...commitment, requirements: known ? terms : null };
+    // Each target's reviewed count, kept only when every one of them reads as a whole number.
+    const approved = terms ? requirements.map((row) => projectionInteger(row.approvedCount)) : [];
+    const requirementsApproved =
+      known &&
+      terms &&
+      approved.every((value) => value !== null && value >= 0n && value < 2n ** 32n)
+        ? approved.map(Number)
+        : null;
+    return { ...commitment, requirements: known ? terms : null, requirementsApproved };
   });
 }
 

@@ -12,7 +12,7 @@ import {
   type PoolSetupAction,
   walletPrompts,
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
-import { getChainName } from "@green-goods/shared/config/chains";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { PoolSetupIntent } from "./setupFlowModel";
 
 type FormatMessage = (
@@ -86,7 +86,7 @@ export function promptNumbers(
 export function promptCount(total: number, formatMessage: FormatMessage): string {
   return formatMessage(
     {
-      id: "cockpit.garden.pool.setup.promptCount",
+      id: "hub.garden.pool.setup.promptCount",
       defaultMessage:
         "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
     },
@@ -98,7 +98,7 @@ export function promptCount(total: number, formatMessage: FormatMessage): string
 export function retryPromptCount(total: number, formatMessage: FormatMessage): string {
   return formatMessage(
     {
-      id: "cockpit.garden.pool.setup.retryCount",
+      id: "hub.garden.pool.setup.retryCount",
       defaultMessage:
         "{count, plural, one {Your wallet will ask once more.} other {Your wallet will ask # more times.}} Nothing already recorded is written twice.",
     },
@@ -114,7 +114,6 @@ export function runningStatus(
   rows: readonly PoolSetupStepState[],
   numbers: readonly (number | null)[],
   total: number,
-  chainId: number,
   formatMessage: FormatMessage
 ): string {
   const current = rows.findIndex((row) => row.status === "signing" || row.status === "confirming");
@@ -124,21 +123,21 @@ export function runningStatus(
     return row.status === "signing"
       ? formatMessage(
           {
-            id: "cockpit.garden.pool.setup.live.signing",
+            id: "hub.garden.pool.setup.live.signing",
             defaultMessage: "Confirm in your wallet ({current} of {total})",
           },
           { current: prompt, total }
         )
       : formatMessage(
           {
-            id: "cockpit.garden.pool.setup.live.confirming",
-            defaultMessage: "Confirming on {network} ({current} of {total})",
+            id: "hub.garden.pool.setup.live.confirming",
+            defaultMessage: "Confirming… ({current} of {total})",
           },
-          { network: getChainName(chainId), current: prompt, total }
+          { current: prompt, total }
         );
   }
   return formatMessage({
-    id: "cockpit.garden.pool.setup.live.checking",
+    id: "hub.garden.pool.setup.live.checking",
     defaultMessage: "Checking the pool before the next change…",
   });
 }
@@ -152,42 +151,42 @@ export function writeTitle(
   switch (action) {
     case "setPoolCharter":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.todo.charter",
+        id: "hub.garden.pool.setup.todo.charter",
         defaultMessage: "Write the agreement",
       });
     case "setProviderOpenCommitmentCap":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.todo.cap",
+        id: "hub.garden.pool.setup.todo.cap",
         defaultMessage: "Set the promise limit",
       });
     case "markPoolReady":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.todo.ready",
+        id: "hub.garden.pool.setup.todo.ready",
         defaultMessage: "Mark the pool ready",
       });
     case "seedCycle":
       return isCampaign
         ? formatMessage({
-            id: "cockpit.garden.pool.setup.todo.seedCampaign",
+            id: "hub.garden.pool.setup.todo.seedCampaign",
             defaultMessage: "Prepare the campaign",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.setup.todo.seedSeason",
+            id: "hub.garden.pool.setup.todo.seedSeason",
             defaultMessage: "Prepare the season",
           });
     case "openPool":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.todo.openPool",
+        id: "hub.garden.pool.setup.todo.openPool",
         defaultMessage: "Open the pool",
       });
     case "openCycle":
       return isCampaign
         ? formatMessage({
-            id: "cockpit.garden.pool.setup.todo.openCampaign",
+            id: "hub.garden.pool.setup.todo.openCampaign",
             defaultMessage: "Open the campaign with its split",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.setup.todo.openSeason",
+            id: "hub.garden.pool.setup.todo.openSeason",
             defaultMessage: "Open the season with its split",
           });
   }
@@ -202,42 +201,42 @@ export function writeDone(
   switch (action) {
     case "setPoolCharter":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.write.charter",
+        id: "hub.garden.pool.setup.write.charter",
         defaultMessage: "Agreement written",
       });
     case "setProviderOpenCommitmentCap":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.write.cap",
+        id: "hub.garden.pool.setup.write.cap",
         defaultMessage: "Promise limit set",
       });
     case "markPoolReady":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.write.ready",
+        id: "hub.garden.pool.setup.write.ready",
         defaultMessage: "Pool marked ready",
       });
     case "seedCycle":
       return isCampaign
         ? formatMessage({
-            id: "cockpit.garden.pool.setup.write.seedCampaign",
+            id: "hub.garden.pool.setup.write.seedCampaign",
             defaultMessage: "Campaign prepared",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.setup.write.seedSeason",
+            id: "hub.garden.pool.setup.write.seedSeason",
             defaultMessage: "Season prepared",
           });
     case "openPool":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.write.openPool",
+        id: "hub.garden.pool.setup.write.openPool",
         defaultMessage: "Pool opened",
       });
     case "openCycle":
       return isCampaign
         ? formatMessage({
-            id: "cockpit.garden.pool.setup.write.openCampaign",
+            id: "hub.garden.pool.setup.write.openCampaign",
             defaultMessage: "Campaign opened with its split",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.setup.write.openSeason",
+            id: "hub.garden.pool.setup.write.openSeason",
             defaultMessage: "Season opened with its split",
           });
   }
@@ -248,32 +247,32 @@ export function writeWhy(action: PoolSetupAction, formatMessage: FormatMessage):
   switch (action) {
     case "setPoolCharter":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.why.charter",
+        id: "hub.garden.pool.setup.why.charter",
         defaultMessage: "Stores what this pool is for, where everyone can read it.",
       });
     case "setProviderOpenCommitmentCap":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.why.cap",
+        id: "hub.garden.pool.setup.why.cap",
         defaultMessage: "Caps how many open promises one person can hold.",
       });
     case "markPoolReady":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.why.ready",
+        id: "hub.garden.pool.setup.why.ready",
         defaultMessage: "Checks that the agreement and the limit are in place.",
       });
     case "seedCycle":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.why.seed",
+        id: "hub.garden.pool.setup.why.seed",
         defaultMessage: "Records the name and dates. Nobody can commit yet.",
       });
     case "openPool":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.why.openPool",
+        id: "hub.garden.pool.setup.why.openPool",
         defaultMessage: "The garden can now see the pool.",
       });
     case "openCycle":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.why.openCycle",
+        id: "hub.garden.pool.setup.why.openCycle",
         defaultMessage: "Fixes the split for good. Promises can start.",
       });
   }
@@ -285,29 +284,24 @@ export function writeStatus(
   formatMessage: FormatMessage
 ): string | null {
   switch (status) {
+    // A write's own stages are the shared stage words (PRD-1552).
     case "signing":
-      return formatMessage({
-        id: "cockpit.garden.pool.setup.status.signing",
-        defaultMessage: "Confirm in your wallet",
-      });
+      return formatMessage(SEND_STAGE_WORDS.wallet.label);
     case "confirming":
-      return formatMessage({
-        id: "cockpit.garden.pool.setup.status.confirming",
-        defaultMessage: "Confirming…",
-      });
+      return formatMessage(SEND_STAGE_WORDS.confirming.label);
     case "landed":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.status.landed",
+        id: "hub.garden.pool.setup.status.landed",
         defaultMessage: "Done",
       });
     case "already":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.status.already",
+        id: "hub.garden.pool.setup.status.already",
         defaultMessage: "Already done",
       });
     case "failed":
       return formatMessage({
-        id: "cockpit.garden.pool.setup.status.failed",
+        id: "hub.garden.pool.setup.status.failed",
         defaultMessage: "Didn’t go through",
       });
     case "pending":

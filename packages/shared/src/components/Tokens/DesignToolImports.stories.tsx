@@ -69,7 +69,7 @@ const componentRoots = [
   {
     root: "Admin/Primitives",
     source: "packages/admin/src/components/Admin*.tsx",
-    use: "Steward cockpit primitives, kept separate from the browser dialect.",
+    use: "Steward Hub primitives, kept separate from the browser dialect.",
   },
 ];
 

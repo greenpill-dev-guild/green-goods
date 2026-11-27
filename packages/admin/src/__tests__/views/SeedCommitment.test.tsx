@@ -695,7 +695,7 @@ describe("SeedCommitmentDialog", () => {
         within(dialog()).getByText("Enter an amount in dollars above zero, like 5.00.")
       ).toBeInTheDocument()
     );
-    expect(dialog().textContent).not.toContain("cockpit.garden.pool.seed.error");
+    expect(dialog().textContent).not.toContain("hub.garden.pool.seed.error");
   });
 
   it("prefills steward review when the pool is the protocol's, and lets the steward gate an offer", async () => {

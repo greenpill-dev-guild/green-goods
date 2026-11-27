@@ -1,4 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const sentry = vi.hoisted(() => ({
+  init: vi.fn(),
+  setTag: vi.fn(),
+  browserTracingIntegration: vi.fn(),
+  replayIntegration: vi.fn(),
+  captureException: vi.fn(),
+  withScope: vi.fn(),
+}));
+vi.mock("@sentry/react", () => sentry);
 import {
   registerExternalErrorReporter,
   type ExternalErrorReporterContext,
@@ -96,5 +106,98 @@ describe("contract error tracking", () => {
     // The structured garden address is a public contract address and is tracked
     // deliberately — redaction must not swallow it.
     expect(calls[0]?.context.gardenAddress).toBe(gardenAddress);
+  });
+});
+
+describe("a PostHog failure and the Sentry report behind it", () => {
+  // error_tracked goes out only from a production build, decided when the module loads.
+  it("carries the id of the report Sentry filed for that handled error, never an earlier one (PRD-1561)", async () => {
+    vi.resetModules();
+    vi.stubEnv("DEV", false);
+    const scope = {
+      setLevel: vi.fn(),
+      setTag: vi.fn(),
+      setFingerprint: vi.fn(),
+      setContext: vi.fn(),
+    };
+    sentry.withScope.mockImplementation((run: (s: typeof scope) => void) => run(scope));
+    sentry.captureException.mockReturnValueOnce("report-1").mockReturnValueOnce("report-2");
+    try {
+      const { registerTelemetrySink } = await import("../../../modules/app/telemetry-sink");
+      const tracked: Record<string, unknown>[] = [];
+      const unregisterSink = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event === "error_tracked") tracked.push(properties);
+        },
+        isReady: () => true,
+      });
+      const { initBrowserSentry } = await import("../../../modules/app/sentry");
+      const stopSentry = initBrowserSentry({
+        dsn: "https://key@sentry.example/1",
+        surface: "client",
+      });
+      const { trackError } = await import("../../../modules/app/error-categories");
+
+      trackError(new Error("Indexer timed out"), { source: "useGardens", category: "graphql" });
+      trackError(new Error("Gateway refused"), { source: "useGardens", category: "graphql" });
+      stopSentry();
+      trackError(new Error("Indexer timed out again"), {
+        source: "useGardens",
+        category: "graphql",
+      });
+      unregisterSink();
+
+      expect(tracked.map((properties) => properties.sentry_event_id)).toEqual([
+        "report-1",
+        "report-2",
+        undefined,
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("keeps the Sentry id on a crash report sent through the durable path", async () => {
+    vi.resetModules();
+    vi.stubEnv("DEV", false);
+    const scope = {
+      setLevel: vi.fn(),
+      setTag: vi.fn(),
+      setFingerprint: vi.fn(),
+      setContext: vi.fn(),
+    };
+    sentry.withScope.mockImplementation((run: (s: typeof scope) => void) => run(scope));
+    sentry.captureException.mockReturnValueOnce("crash-report-1");
+    try {
+      const { registerTelemetrySink } = await import("../../../modules/app/telemetry-sink");
+      const tracked: Record<string, unknown>[] = [];
+      const unregisterSink = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event === "error_tracked") tracked.push(properties);
+        },
+        isReady: () => true,
+      });
+      const { initBrowserSentry } = await import("../../../modules/app/sentry");
+      const stopSentry = initBrowserSentry({
+        dsn: "https://key@sentry.example/1",
+        surface: "client",
+      });
+      const { trackError } = await import("../../../modules/app/error-categories");
+
+      trackError(new Error("Render failed"), {
+        source: "ErrorBoundary",
+        category: "unknown",
+        durable: true,
+      });
+      stopSentry();
+      unregisterSink();
+
+      expect(tracked).toHaveLength(1);
+      expect(tracked[0]?.sentry_event_id).toBe("crash-report-1");
+      // Sent through the kept crash report, not the direct path.
+      expect(tracked[0]?.crash_report_id).toEqual(expect.any(String));
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

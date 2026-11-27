@@ -5,6 +5,7 @@ import {
   usePublicGardens,
 } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { usePublicGardenHypercerts } from "@green-goods/shared/hooks/public/usePublicGardenHypercerts";
+import { isPublicPassportPublished } from "@green-goods/shared/commitment-pooling/public";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
@@ -20,6 +21,9 @@ import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
 import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
+import { PublicPageHead } from "@/components/Public/PublicPageHead";
+import { resolveImageUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { PUBLIC_SOCIAL_PREVIEW_ORIGIN } from "@/content/publicSocialPreviews";
 import { getPublicHeroImage } from "@/content/publicCuration";
 import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 import { StatCell } from "./GardenDetailAtoms";
@@ -27,6 +31,16 @@ import { CommitmentsSection } from "./GardenDetailCommitments";
 import { FieldNotesSection } from "./GardenDetailFieldNotes";
 import { CertificatesSection, StewardsSection } from "./GardenDetailSections";
 import { rememberGardenReturn } from "./gardenReturnFocus";
+
+/** A banner as an absolute URL for sharing; none when it is missing or not a readable URL. */
+function sharingImageUrl(banner: string | undefined | null): string | undefined {
+  if (!banner) return undefined;
+  try {
+    return new URL(resolveImageUrl(banner), PUBLIC_SOCIAL_PREVIEW_ORIGIN).href;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * GardenDetail — the public Garden page at `/gardens/:id`.
@@ -129,6 +143,15 @@ export default function GardenDetail() {
 
   return (
     <>
+      {/* The head names this garden, not the Gardens list the page is served as (PUB-032). */}
+      {identity ? (
+        <PublicPageHead
+          title={`${identity.name} | Green Goods`}
+          description={identity.description || undefined}
+          url={`${PUBLIC_SOCIAL_PREVIEW_ORIGIN}/gardens/${encodeURIComponent(identity.slug)}`}
+          image={sharingImageUrl(identity.bannerImage)}
+        />
+      ) : null}
       {/* Unlisted means unlisted to crawlers too. */}
       {unlisted ? (
         <Helmet>
@@ -269,6 +292,16 @@ export default function GardenDetail() {
                     defaultMessage: "Support This Garden",
                   })}
                 </EditorialPrimaryLink>
+              ) : null}
+              {/* Only a garden whose stewards agreed to publish has a passport to read. The link
+                  names the garden by address: a slug can be shared with another garden. */}
+              {garden && isPublicPassportPublished(chainId, garden.id as Address) ? (
+                <EditorialGhostLink to={`/gardens/${garden.id}/passport`}>
+                  {formatMessage({
+                    id: "public.passport.read",
+                    defaultMessage: "Read the Passport",
+                  })}
+                </EditorialGhostLink>
               ) : null}
               <EditorialGhostLink to="/impact">
                 {formatMessage({

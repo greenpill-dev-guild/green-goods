@@ -4,6 +4,7 @@ import type {
   CampaignCookieJarPayoutAssetId,
 } from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { IntlShape } from "react-intl";
+import type { CampaignCookieJarClaimSchedule } from "../../campaignCookieJarPanel.model";
 
 /** What each step of the Create Cookie Jar flow reads and edits. */
 export interface CampaignCookieJarCreateFormProps {
@@ -29,6 +30,8 @@ export interface CampaignCookieJarCreateFormProps {
   publicCampaignUrl: string;
   claimAmount: string;
   setClaimAmount: (value: string) => void;
+  claimSchedule: CampaignCookieJarClaimSchedule;
+  setClaimSchedule: (value: CampaignCookieJarClaimSchedule) => void;
   tokenSymbol: string;
   gardens: readonly Garden[];
   selectedGardenIds: readonly string[];
@@ -54,10 +57,8 @@ export interface CampaignCookieJarCreateFormProps {
   jarOwner: string;
   setJarOwner: (value: string) => void;
   normalizedJarOwner: string | null;
-  withdrawalIntervalDays: string;
-  setWithdrawalIntervalDays: (value: string) => void;
   extraAddresses: string;
   setExtraAddresses: (value: string) => void;
-  payoutLabel: string;
+  payoutLabel: string | null;
   canCreate: boolean;
 }

@@ -129,6 +129,8 @@ export function getCampaignCookieJarPublicUrl(value: string): string {
   return `${PUBLIC_COOKIE_BASE_URL}?campaign=${deriveCampaignCookieJarSlug(value)}`;
 }
 
+export type CampaignCookieJarClaimSchedule = "one-time" | "recurring";
+
 export function buildCampaignCookieJarCreatePayload(params: {
   factoryAddress: Address;
   campaignTitle: string;
@@ -140,9 +142,10 @@ export function buildCampaignCookieJarCreatePayload(params: {
   allowlist: Address[];
   sourceGardens: Address[];
   extraAllowlist: Address[];
-  fixedAmount: bigint;
-  withdrawalInterval: bigint;
+  claimAmount: bigint;
+  claimSchedule: CampaignCookieJarClaimSchedule;
 }): CreateCampaignCookieJarParams {
+  const recurring = params.claimSchedule === "recurring";
   return {
     factoryAddress: params.factoryAddress,
     title: params.campaignTitle,
@@ -155,13 +158,13 @@ export function buildCampaignCookieJarCreatePayload(params: {
     allowlist: params.allowlist,
     sourceGardens: params.sourceGardens,
     extraAllowlist: params.extraAllowlist,
-    fixedAmount: params.fixedAmount,
-    maxWithdrawal: params.fixedAmount,
-    withdrawalInterval: params.withdrawalInterval,
+    fixedAmount: recurring ? 0n : params.claimAmount,
+    maxWithdrawal: params.claimAmount,
+    withdrawalInterval: recurring ? 30n * 86_400n : 0n,
     minDeposit: 0n,
-    oneTimeWithdrawal: true,
+    oneTimeWithdrawal: !recurring,
     strictPurpose: true,
-    withdrawalType: "fixed",
+    withdrawalType: recurring ? "variable" : "fixed",
   };
 }
 

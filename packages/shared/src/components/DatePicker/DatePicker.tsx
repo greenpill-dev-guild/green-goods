@@ -35,7 +35,7 @@ export interface DatePickerProps {
   /** Custom date formatter function */
   formatDate?: (date: Date) => string;
   /**
-   * `default` is the 16px app field; `admin` rides the cockpit field tier
+   * `default` is the 16px app field; `admin` rides the Hub field tier
    * (8px corner, 44px on touch widths and 40px from 640px; DL-030, DL-031).
    */
   surface?: "default" | "admin";

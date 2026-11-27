@@ -8,19 +8,12 @@ import {
   normalizeAddress,
 } from "./shared";
 
-// ============================================================================
-// ACTION REGISTRY EVENT HANDLERS
-// ============================================================================
-
-// Handler for the ActionRegistered event
 indexer.onEvent(
   { contract: "ActionRegistry", event: "ActionRegistered" },
   async ({ event, context }) => {
-    // Create unique ID by combining chainId and actionUID to prevent cross-chain collisions
     const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
     const capitals = event.params.capitals.map(mapCapitalType);
 
-    // Update or create a new Action entity
     const actionEntity: Action = {
       id: actionId,
       chainId: event.chainId,
@@ -40,7 +33,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the GardenDomainsUpdated event
 indexer.onEvent(
   { contract: "ActionRegistry", event: "GardenDomainsUpdated" },
   async ({ event, context }) => {
@@ -61,7 +53,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the ActionStartTimeUpdated event
 indexer.onEvent(
   { contract: "ActionRegistry", event: "ActionStartTimeUpdated" },
   async ({ event, context }) => {
@@ -79,7 +70,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the ActionEndTimeUpdated event
 indexer.onEvent(
   { contract: "ActionRegistry", event: "ActionEndTimeUpdated" },
   async ({ event, context }) => {
@@ -97,7 +87,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the ActionTitleUpdated event
 indexer.onEvent(
   { contract: "ActionRegistry", event: "ActionTitleUpdated" },
   async ({ event, context }) => {
@@ -115,7 +104,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the ActionInstructionsUpdated event
 indexer.onEvent(
   { contract: "ActionRegistry", event: "ActionInstructionsUpdated" },
   async ({ event, context }) => {
@@ -133,7 +121,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for the ActionMediaUpdated event
 indexer.onEvent(
   { contract: "ActionRegistry", event: "ActionMediaUpdated" },
   async ({ event, context }) => {

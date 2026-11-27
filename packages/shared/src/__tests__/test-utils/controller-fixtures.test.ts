@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import type {
   CommitmentDialogController,
-  HubConfirmQueueController,
+  ReviewConfirmQueueController,
   PoolConsoleController,
 } from "../../hooks/admin-ui/pool";
 import type { ProofComposerController } from "../../hooks/client-ui/commitment";
 import {
   commitmentDialogControllerFixture,
   gardenCommitmentControllerFixture,
-  hubConfirmQueueControllerFixture,
+  reviewConfirmQueueControllerFixture,
   poolConsoleControllerFixture,
   proofComposerControllerFixture,
 } from "./controller-fixtures";
@@ -40,7 +40,7 @@ describe("pool controller fixtures", () => {
       commitments: [commitment],
       claims: [claimRow],
     });
-    const confirmQueue: HubConfirmQueueController = hubConfirmQueueControllerFixture({
+    const confirmQueue: ReviewConfirmQueueController = reviewConfirmQueueControllerFixture({
       toConfirm: toConfirmFixture(),
     });
     const gardenCommitment = gardenCommitmentControllerFixture({ detail });

@@ -54,7 +54,7 @@ export const SHARDS = {
     chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
-      "test/fork/{ArbitrumActionRegistry,ArbitrumAssessmentReleaseSequence,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+      "test/fork/{ArbitrumActionRegistry,ArbitrumAssessmentReleaseSequence,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRewardPayer,ArbitrumRewardSafe,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
     testEnv: {
       HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "488774048",
       HATS_MODULE_UPGRADE_GARDEN_COUNT: "18",
@@ -79,6 +79,14 @@ export const SHARDS = {
     chain: "ARBITRUM",
     description: "Reviewed current-state Arbitrum rehearsal of the live HatsModule UUPS upgrade",
     glob: "test/fork/ArbitrumHatsModuleUpgrade.t.sol",
+    requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
+    requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
+  },
+  "conviction-sync-activation-arbitrum": {
+    chain: "ARBITRUM",
+    description:
+      "PRD-1377 conviction sync proof against the live upgraded HatsModule; authorizes any still-unauthorized pool on the fork",
+    glob: "test/fork/ArbitrumConvictionSyncActivation.t.sol",
     requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
     requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
   },
@@ -171,9 +179,12 @@ export const SHARDS = {
 
 export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant", "garden-account-release", "garden-roles", "gnosis-vouchers"];
 
-// Fork files deliberately outside every shard. Each needs a reason; anything else must join a shard.
+// Fork files deliberately outside every CI shard. Each needs a reason; anything else must join one.
 export const MANUAL_FORK_FILES = {
+  "test/fork/ArbitrumAuditHardening.t.sol": "Audit-hardening release proof requires the pinned Arbitrum block and private exact predecessor, candidate Safe packet and garden inventory files; run explicitly before packet approval, including the cold six-proposal role-revocation case.",
   "test/fork/CeloHats.t.sol": "Legacy unpinned probe of Celo Hats tree 31; it reads the latest block and skips without CELO_RPC_URL.",
+  "test/fork/ArbitrumConvictionSyncActivation.t.sol": "PRD-1377 conviction sync proof against current Arbitrum state; it needs a fresh reviewed block, the live garden count and the live upgraded Hats implementation, so run the conviction-sync-activation-arbitrum shard by hand before signing a garden's pool authorizations and after the Hats upgrade.",
+  "test/fork/ArbitrumHatsProtocolDelegation.t.sol": "PRD-615 release proof requires a reviewed current-state block and private exact Safe packet/prerequisite files; run explicitly before packet approval, with the seven-call rehearsal recorded in private release evidence.",
 };
 
 function loadEnv() {

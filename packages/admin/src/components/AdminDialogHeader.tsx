@@ -17,7 +17,7 @@ interface AdminDialogHeaderProps {
 }
 
 /**
- * The header of the cockpit's dialogs: the shared `SheetHeader` at every
+ * The header of the Hub's dialogs: the shared `SheetHeader` at every
  * width (DL-117), rendered inside the dialog's Radix surface so Radix keeps
  * naming and describing it.
  *

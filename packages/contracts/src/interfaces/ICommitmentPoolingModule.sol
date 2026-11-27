@@ -2,6 +2,8 @@
 pragma solidity ^0.8.25;
 
 interface ICommitmentPoolingModule {
+    error SelfDisputeResolution(uint256 commitmentId);
+    error UnknownDisputeRaiser(uint256 commitmentId);
     // ═════════════════════════════ Types
     // ═════════════════════════════
 

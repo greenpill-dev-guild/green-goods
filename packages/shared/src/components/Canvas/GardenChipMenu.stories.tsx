@@ -39,7 +39,7 @@ async function openMenu(canvasElement: HTMLElement) {
 const meta = {
   title: "Shared/Canvas/GardenChipMenu",
   // The menu is the chip's own trigger and popover, and the chip loads it with its first press,
-  // so every story opens it the way the cockpit does: through the chip, with the chip's props.
+  // so every story opens it the way the Hub does: through the chip, with the chip's props.
   component: GardenChip,
   tags: ["storybook-ci"],
   parameters: {
@@ -47,7 +47,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "**GardenChipMenu**: the cockpit chip's garden menu (D47, D50), the gardens with the chosen one marked, then a divider and Create Garden. `GardenChip` loads it with the chip's first press, so the installed app, which opens its own switcher, never downloads it. Each story presses the chip and stays open.",
+          "**GardenChipMenu**: the Hub chip's garden menu (D47, D50), the gardens with the chosen one marked, then a divider and Create Garden. `GardenChip` loads it with the chip's first press, so the installed app, which opens its own switcher, never downloads it. Each story presses the chip and stays open.",
       },
     },
   },

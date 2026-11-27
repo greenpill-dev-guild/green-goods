@@ -16,6 +16,7 @@ import type {
 } from "../modules/commitment-pooling/service-access-voucher-types";
 import {
   prepareVoucherSafeFile,
+  prepareVoucherStartSend,
   readLiveVoucherConsole,
 } from "../modules/commitment-pooling/voucher-console-live";
 
@@ -321,6 +322,22 @@ describe("live voucher steward integration", () => {
     ).rejects.toThrow("pending or failed frozen transfer");
   });
 
+  // PRD-1462: a booking whose promise was canceled or expired keeps its vouchers in escrow until
+  // the issuer proposes a return, so the console says it ended early, not that it is under way.
+  it.each([
+    "CANCELLED",
+    "EXPIRED",
+  ])("reads a started booking whose promise is %s as ended early", async (coreState) => {
+    const f = fixture(true);
+    f.snapshot.coreState = coreState;
+    const view = await readLiveVoucherConsole(f.input, f.deps);
+    expect(view.bookings[0]!.stage).toEqual({
+      kind: "ended-early",
+      returnLimit: 1_000_000n,
+      returnCeiling: 0n,
+    });
+  });
+
   it("hydrates account-wide wallet bookings from canonical custody", async () => {
     const f = fixture(true);
     const wallet = await readLiveVoucherWallet(f.wallet, f.deps);
@@ -607,5 +624,76 @@ describe("live voucher steward integration", () => {
       asks: [],
       bookings: [],
     });
+  });
+});
+
+describe("a steward's start of a booking they accepted (DL-193)", () => {
+  const STEWARD = "0x0000000000000000000000000000000000000777" as const;
+  const target = (f: ReturnType<typeof fixture>) => ({
+    commitmentId: 7n,
+    buyer: f.a.buyer,
+    setupId: f.setup.setupId,
+  });
+  /** The source has accepted the booking; nothing has started it. */
+  const accept = (f: ReturnType<typeof fixture>) => {
+    const row = f.snapshot.voucherSetups[0]!;
+    row.source.acceptedEver = {
+      setupModule: f.a.sourceModule,
+      claimHash: f.a.claimHash,
+      termsRevision: f.a.termsRevision,
+      requestNonce: f.a.requestNonce,
+      setupId: f.setup.setupId,
+      authorizationHash: f.setup.authorizationHash,
+      depositReceiptHash: voucherDepositReceiptHash(f.a),
+    };
+    row.source.acceptedReceiptHash = hash("8");
+    f.snapshot.consent!.state = "accepted";
+  };
+
+  it("prices the start before acceptance from the booking's own message quote", async () => {
+    const f = fixture();
+    const view = await readLiveVoucherConsole(f.input, f.deps);
+    expect(view.asks[0]!.setup?.startFee).toBe(1n);
+  });
+
+  it("reads the booking again and records its start from the steward's account", async () => {
+    const f = fixture();
+    accept(f);
+    const read = vi.spyOn(f.deps, "readSnapshot");
+    const next = await prepareVoucherStartSend(f.input, target(f), STEWARD, f.deps);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(next.state).toMatchObject({
+      kind: "send",
+      act: { action: "finalizeVoucherActivation", expectedAcceptedReceiptHash: hash("8") },
+    });
+    expect(next.call).toMatchObject({
+      account: STEWARD,
+      chainId: 42161,
+      address: f.route.source.address,
+      functionName: "finalizeActivation",
+      args: [f.setup.setupId, f.setup.authorizationHash],
+      value: 0n,
+    });
+  });
+
+  it("builds nothing for a booking the source hasn't accepted", async () => {
+    const f = fixture();
+    await expect(prepareVoucherStartSend(f.input, target(f), STEWARD, f.deps)).resolves.toEqual({
+      state: { kind: "notAccepted" },
+      call: null,
+    });
+  });
+
+  it("refuses a booking from another garden", async () => {
+    const f = fixture();
+    accept(f);
+    await expect(
+      prepareVoucherStartSend(
+        { ...f.input, garden: "0x0000000000000000000000000000000000000abc" },
+        target(f),
+        STEWARD,
+        f.deps
+      )
+    ).rejects.toThrow();
   });
 });

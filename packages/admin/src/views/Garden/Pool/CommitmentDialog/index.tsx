@@ -19,12 +19,14 @@ import {
   CommitmentDialogUnavailable,
 } from "./CommitmentDialogStates";
 import { CommitmentFacts } from "./CommitmentFacts";
+import { CommitmentProof } from "./CommitmentProof";
 import {
   CommitmentDeclineClaimDialog,
   CommitmentFallbackDialog,
   CommitmentReasonDialogs,
 } from "./CommitmentReasonDialogs";
 import { CommitmentExpireDialog } from "../CommitmentExpireDialog";
+import { EditConfirmersDialog } from "../Group/EditConfirmersDialog";
 import { EditRewardDialog } from "../Group/EditRewardDialog";
 import { GardenPoolTarget } from "../PoolTarget";
 import { CommitmentRecovery } from "./CommitmentRecovery";
@@ -45,7 +47,7 @@ export interface CommitmentDialogPanelProps {
   /** The pool's garden: the authority a garden fallback uses. */
   garden: Address;
   commitmentId: string;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   /**
    * Open the seeding wizard on this commitment's answers. Only a surface that
    * has a seeding wizard passes it, and only the pool's stewards are offered it.
@@ -58,7 +60,7 @@ export interface CommitmentDialogPanelProps {
 /**
  * W10, one commitment in the steward's dialect (uiux-spec §6.7, follow-up
  * item 2: sectioned anatomy). Rendered inside the Garden workspace's left
- * inspector or the Hub's Confirm stage; every act goes through the shared
+ * inspector or Review's Confirm stage; every act goes through the shared
  * controller, every reasoned act through AdminReasonDialog, and a fallback
  * confirmation appears only when the ordinary path is unreachable, naming
  * the garden whose authority it uses.
@@ -93,6 +95,7 @@ function CommitmentRecord({
   const [resolution, setResolution] = useState<DisputeResolutionKey>("RESTORE_PREVIOUS");
   const [assessmentUID, setAssessmentUID] = useState<string | null>(null);
   const [editingReward, setEditingReward] = useState(false);
+  const [editingConfirmers, setEditingConfirmers] = useState(false);
   const waitingRef = useRef<HTMLDivElement>(null);
   const loaded = Boolean(dialog.commitment);
   // The list mounts only once an ask is read, which a cached record may lack.
@@ -104,7 +107,7 @@ function CommitmentRecord({
     }
   }, [focus, loaded, asksShown]);
   const offlineNote = formatMessage({
-    id: "cockpit.garden.pool.offline",
+    id: "hub.garden.pool.offline",
     defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
 
@@ -124,26 +127,32 @@ function CommitmentRecord({
   const title =
     dialog.title ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
+      { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
   const actDisabled = !dialog.isOnline || dialog.isActing;
   // Every dialog below names the commitment and its garden's pool first: the
-  // inspector also opens from the Hub and the protocol list, where the header
+  // inspector also opens from Review and the protocol list, where the header
   // cannot say which garden a write lands in.
   const target = <GardenPoolTarget chainId={chainId} garden={garden} record={title} />;
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);
   const asks = detail?.claimRequests ?? [];
-  // A promise in a group changes its reward from the group; one on its own, here,
-  // while nobody has taken it (the chain locks a reward at take-up). Only a read
-  // document can say it stands alone: one still loading, or unread, may be a copy.
+  const untaken = commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED";
+  // A promise the list shows in a group changes its reward from the group; one on its own,
+  // a group's lone surviving copy included, here, while nobody has taken it (the chain locks a
+  // reward at take-up). Until the reads can say which (null), neither edit shows.
   const rewardWei = commitment.considerationAmount ?? 0n;
+  // Who confirms follows the same rule: from the group for a copy, here for one alone.
+  const editsTermsHere =
+    dialog.isLocalSteward &&
+    dialog.editsTermsFromGroup === false &&
+    (commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED");
+  // The edit writes the team fallback too, so it waits until that is read.
+  const canEditConfirmers =
+    editsTermsHere && typeof commitment.protocolFallbackEnabled === "boolean";
   const canEditReward =
     SETTLEMENT_ENABLED &&
-    dialog.isLocalSteward &&
-    dialog.metadataKnown !== false &&
-    !dialog.metadata?.displayGroup &&
-    (commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED") &&
+    editsTermsHere &&
     commitment.considerationRail === "CELO_SETTLEMENT" &&
     rewardWei > 0n;
   const fallbackPath =
@@ -177,6 +186,11 @@ function CommitmentRecord({
       />
 
       <CommitmentFacts commitment={commitment} detail={detail} />
+
+      <CommitmentProof
+        attributions={detail?.evidenceAttributions ?? []}
+        recordedCount={commitment.evidenceCount}
+      />
 
       {voucherOutcomes ? <CommitmentVoucherOutcomes outcomes={voucherOutcomes} /> : null}
 
@@ -237,14 +251,52 @@ function CommitmentRecord({
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
         sendPhase={dialog.sendPhase}
-        chainId={chainId}
+        // Only while it waits on confirmations: once it reads Kept, or moves on, its state says so.
+        confirmPhase={
+          commitment.derivedState === "READY_FOR_CONFIRMATION"
+            ? dialog.confirmPhase
+            : { status: "idle" }
+        }
+        onCancelUntaken={can.cancel && untaken ? () => setOpen("cancel") : undefined}
         onSeedAnother={
           onSeedAnother && dialog.isLocalSteward
             ? () => onSeedAnother(commitment.commitmentId.toString())
             : undefined
         }
         onEditReward={canEditReward ? () => setEditingReward(true) : undefined}
+        onEditConfirmers={canEditConfirmers ? () => setEditingConfirmers(true) : undefined}
       />
+      {canEditConfirmers && editingConfirmers ? (
+        <EditConfirmersDialog
+          open
+          onClose={() => setEditingConfirmers(false)}
+          onChanged={() => {
+            setEditingConfirmers(false);
+            toastService.success({
+              title: formatMessage(
+                {
+                  id: "hub.garden.pool.group.confirmersChangedToast",
+                  defaultMessage:
+                    "{count, plural, one {Confirmers changed for # promise} other {Confirmers changed for # promises}}",
+                },
+                { count: 1 }
+              ),
+            });
+          }}
+          chainId={chainId}
+          garden={garden}
+          title={title}
+          available={[
+            {
+              commitmentId: commitment.commitmentId,
+              protocolFallbackEnabled: commitment.protocolFallbackEnabled === true,
+            },
+          ]}
+          current={commitment}
+          direction={commitment.direction}
+          taken={0}
+        />
+      ) : null}
       {canEditReward && editingReward ? (
         <PromiseRewardEdit
           onClose={() => setEditingReward(false)}
@@ -264,6 +316,8 @@ function CommitmentRecord({
         acts={acts}
         blockedReason={blockedReason}
         target={target}
+        untaken={untaken}
+        escrowed={commitment.direction === "OFFER" && Boolean(voucherOutcomes?.payment)}
       />
       <CommitmentExpireDialog
         isOpen={open === "expire"}
@@ -340,23 +394,23 @@ function CommitmentRecord({
         target={target}
         variant="warning"
         title={formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.title",
+          id: "hub.garden.pool.commitment.reconciliation.title",
           defaultMessage: "Count Approved Linked Work",
         })}
         description={`${formatMessage(
           {
-            id: "cockpit.garden.pool.commitment.reconciliation.body",
+            id: "hub.garden.pool.commitment.reconciliation.body",
             defaultMessage:
               "{count, plural, one {# approved link is} other {# approved links are}} waiting to count.",
           },
           { count: dialog.reconciliation.count }
         )} ${formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.warning",
+          id: "hub.garden.pool.commitment.reconciliation.warning",
           defaultMessage:
             "Counting work can make the promise ready for confirmation and freeze its contributor roster.",
         })}`}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.confirm",
+          id: "hub.garden.pool.commitment.reconciliation.confirm",
           defaultMessage: "Count Linked Work",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
@@ -364,7 +418,7 @@ function CommitmentRecord({
         onError={() =>
           toastService.error({
             title: formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.unavailable",
+              id: "hub.garden.pool.commitment.reconciliation.unavailable",
               defaultMessage: "Work decision readback is unavailable.",
             }),
             message: formatMessage({ id: "app.error.garden.tryAgain" }),

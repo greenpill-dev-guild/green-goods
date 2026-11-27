@@ -14,6 +14,7 @@ import {
   hasRecordedSend,
   hasRevertedWorkSend,
   isTerminallyFailedJob,
+  recordedSendAwaiting,
 } from "../job-queue/queue-policy";
 
 /** What background preparation last found for a queued item. */
@@ -56,6 +57,8 @@ export interface QueuedUploadStatus {
   photo?: string;
   /** The file that needs attention is a video. */
   video?: true;
+  /** A sent item a Safe only proposed waits for the Safe's signers (PRD-1564). */
+  awaiting?: "safe-signers";
 }
 
 // Each kind here needs an entry in upload-kinds.ts, which says how it is prepared
@@ -106,7 +109,10 @@ export function queuedUploadStatus(
   options: { takeUp?: Job | null } = {}
 ): QueuedUploadStatus {
   if (hasRevertedWorkSend(job)) return { state: "reverted" };
-  if (hasRecordedSend(job)) return { state: "sent" };
+  if (hasRecordedSend(job)) {
+    const awaiting = recordedSendAwaiting(job);
+    return { state: "sent", ...(awaiting ? { awaiting } : {}) };
+  }
   if (isTerminallyFailedJob(job)) return { state: "failed" };
   // However far it was prepared, a work goes only after the take-up of its promise.
   if (options.takeUp)

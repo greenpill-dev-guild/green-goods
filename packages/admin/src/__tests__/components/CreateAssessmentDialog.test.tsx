@@ -23,15 +23,15 @@ import {
 import { CynefinPhase, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 // Loaded up front, so the flow's lazy boundary resolves at once.
-import "@/views/Hub/CreateAssessment";
-import { HubFlowHarness } from "../hubFlowHarness";
+import "@/views/Review/CreateAssessment";
+import { ReviewFlowHarness } from "../reviewFlowHarness";
 
 const createAssessmentControllerOverride = vi.hoisted(() => ({
   current: null as null | (() => unknown),
 }));
 
 type Controller = ReturnType<
-  typeof import("@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController").useCreateAssessmentController
+  typeof import("@green-goods/shared/hooks/admin-ui/review/useCreateAssessmentController").useCreateAssessmentController
 >;
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
@@ -74,11 +74,11 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock(
-  "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController",
+  "@green-goods/shared/hooks/admin-ui/review/useCreateAssessmentController",
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import("@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController")
+        typeof import("@green-goods/shared/hooks/admin-ui/review/useCreateAssessmentController")
       >();
     return {
       ...actual,
@@ -186,7 +186,7 @@ function controllerAt(overrides: Partial<Controller> = {}): Controller {
 }
 
 const FLOW_SEARCH = `?gardenId=${SELECTED_GARDEN.id}&item=create-assessment`;
-const FLOW_URL = `/hub/assess${FLOW_SEARCH}`;
+const FLOW_URL = `/review/assess${FLOW_SEARCH}`;
 
 function renderCreateAssessment(authOverrides: Partial<AuthContextValue> = {}, entry = FLOW_URL) {
   const auth = { ...authContextValue, ...authOverrides };
@@ -205,7 +205,7 @@ function renderCreateAssessment(authOverrides: Partial<AuthContextValue> = {}, e
       canDeploy: false,
     }
   );
-  const router = createMemoryRouter([{ path: "/hub/*", element: <HubFlowHarness /> }], {
+  const router = createMemoryRouter([{ path: "/review/*", element: <ReviewFlowHarness /> }], {
     initialEntries: [entry],
   });
 
@@ -389,7 +389,7 @@ describe("CreateAssessment dialog", () => {
 
     await act(async () => {
       void router?.navigate(
-        "/hub/assess?gardenId=0x2222222222222222222222222222222222222222&item=create-assessment"
+        "/review/assess?gardenId=0x2222222222222222222222222222222222222222&item=create-assessment"
       );
       await Promise.resolve();
     });
@@ -442,14 +442,14 @@ describe("CreateAssessment dialog", () => {
     });
 
     await act(async () => {
-      void router?.navigate("/hub/work");
+      void router?.navigate("/review/work");
       await Promise.resolve();
     });
 
     expect(router?.state.location.search).toBe(FLOW_SEARCH);
   });
 
-  it("closes straight back to the Hub when the form is pristine (no discard prompt)", async () => {
+  it("closes straight back to Review when the form is pristine (no discard prompt)", async () => {
     let router: ReturnType<typeof renderCreateAssessment> | undefined;
     await act(async () => {
       router = renderCreateAssessment();
@@ -473,7 +473,7 @@ describe("CreateAssessment dialog", () => {
 
   it("opens over the stage it was pressed from and returns there on close (DL-140)", async () => {
     const user = userEvent.setup();
-    const stageUrl = `/hub/work?gardenId=${SELECTED_GARDEN.id}`;
+    const stageUrl = `/review/work?gardenId=${SELECTED_GARDEN.id}`;
     let router: ReturnType<typeof renderCreateAssessment> | undefined;
     await act(async () => {
       router = renderCreateAssessment({}, stageUrl);

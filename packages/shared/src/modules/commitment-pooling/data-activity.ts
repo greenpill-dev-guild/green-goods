@@ -107,3 +107,48 @@ export async function getCommitmentActivity(
     })
   );
 }
+
+/** A steward's decision on one of a pool's promises: a confirmation or a cancellation. */
+export interface PromiseDecisionRecord {
+  id: string;
+  commitmentId: bigint;
+  decision: "confirmed" | "canceled";
+  /** The steward who decided: the event's own actor. */
+  by: Address;
+  /** Seconds. */
+  at: number;
+}
+
+/**
+ * The confirmations and cancellations on these promises since a moment (seconds), newest first.
+ * The pool's other decisions are left out on purpose: their events carry no pool, and the actor
+ * the index records for an acceptance or a refusal is the claimant, not the steward who decided.
+ */
+export async function getPromiseDecisions(
+  input: { chainId: number; commitmentEntityIds: readonly string[]; since: number },
+  reader: GraphQLReader = greenGoodsIndexer
+): Promise<PromiseDecisionRecord[]> {
+  if (input.commitmentEntityIds.length === 0) return [];
+  const query = `query PromiseDecisions($chainId: Int!, $ids: [String!]!, $since: Int!) { CommitmentEvent(where: { chainId: { _eq: $chainId }, commitmentEntityId: { _in: $ids }, eventType: { _in: [CONFIRMATION_RECORDED, CANCELLED] }, timestamp: { _gt: $since }, actor: { _is_null: false } }, order_by: [{ timestamp: desc }, { id: desc }], limit: 100) { id commitmentId eventType actor timestamp } }`;
+  const rows = await queryRows(
+    query,
+    { chainId: input.chainId, ids: [...input.commitmentEntityIds], since: input.since },
+    "CommitmentEvent",
+    "getPromiseDecisions",
+    reader
+  );
+  return rows.flatMap((row): PromiseDecisionRecord[] => {
+    const by = address(row.actor);
+    const commitmentId = optionalInteger(row.commitmentId);
+    if (!by || commitmentId === null) return [];
+    return [
+      {
+        id: String(row.id),
+        commitmentId,
+        decision: row.eventType === "CANCELLED" ? "canceled" : "confirmed",
+        by,
+        at: number(row.timestamp),
+      },
+    ];
+  });
+}

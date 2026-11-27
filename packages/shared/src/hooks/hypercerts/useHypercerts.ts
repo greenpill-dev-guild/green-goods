@@ -1,3 +1,5 @@
+import { isWorkVisible } from "../../modules/work/work-visibility";
+import { useWorkVisibility } from "../work/useWorkVisibility";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { logger } from "../../modules/app/logger";
@@ -39,6 +41,8 @@ export interface UseHypercertsResult {
   hypercerts: HypercertRecord[];
   hypercert: HypercertRecord | null;
   isLoading: boolean;
+  /** Linked-work classification can load independently of certificate issuance facts. */
+  evidenceLoading: boolean;
   /** Whether a read is in flight, the first or a refresh. */
   isFetching: boolean;
   error: Error | null;
@@ -197,6 +201,8 @@ function mergeRecordWithMetadata(
 export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsResult {
   const { gardenId, status, hypercertId, optimisticData } = params;
   const chainId = useCurrentChain();
+  const visibility = useWorkVisibility(chainId);
+  const { isVisible, refetch: refetchVisibility, snapshot: visibilitySnapshot } = visibility;
   const queryClient = useQueryClient();
 
   // Polling state for newly minted hypercerts
@@ -371,29 +377,57 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
         : null;
 
   const isLoading = listQuery.isLoading || detailQuery.isLoading;
-  const error = (listQuery.error as Error) ?? (detailQuery.error as Error) ?? null;
+  const evidenceLoading = Boolean(hypercertId) && !visibility.isReady && visibility.isLoading;
+  const error =
+    (listQuery.error as Error) ??
+    (detailQuery.error as Error) ??
+    (hypercertId ? visibility.error : null) ??
+    null;
 
   // Determine the hypercert to return:
   // 1. Real indexed data if available
   // 2. Optimistic data as fallback
-  const hypercert = mergedDetail ?? optimisticFallback;
+  const rawHypercert = mergedDetail ?? optimisticFallback;
+  // The certificate's issuance facts stay intact; only displayed linked work is projected.
+  const hypercert = useMemo(
+    () =>
+      rawHypercert
+        ? {
+            ...rawHypercert,
+            attestations: rawHypercert.attestations?.filter((row) => isVisible(row.workUid)),
+          }
+        : null,
+    [rawHypercert, isVisible]
+  );
 
   const refetch = useCallback(async () => {
     if (hypercertId) {
+      const refreshed = await refetchVisibility();
+      const snapshot = refreshed.data ?? visibilitySnapshot;
+      if (!snapshot) throw refreshed.error ?? new Error("Work visibility could not be read");
       const result = await detailQuery.refetch();
-      return result.data ?? null;
+      return result.data
+        ? {
+            ...result.data,
+            attestations: result.data.attestations?.filter((row) =>
+              isWorkVisible(row.workUid, snapshot)
+            ),
+          }
+        : null;
     }
     const result = await listQuery.refetch();
     return shownRecords(result.data, take, status);
-  }, [hypercertId, detailQuery, listQuery, take, status]);
+  }, [hypercertId, detailQuery, listQuery, take, status, refetchVisibility, visibilitySnapshot]);
 
   return {
     hypercerts: mergedList,
     hypercert,
+    evidenceLoading,
     isLoading: isLoading && !optimisticData, // Don't show loading if we have optimistic data
     isFetching: listQuery.isFetching || detailQuery.isFetching,
     error,
-    hasError: Boolean(error),
+    hasError:
+      Boolean(error) || (Boolean(hypercertId) && !visibility.isReady && !visibility.isLoading),
     syncStatus,
     refetch,
     hasOlder,

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import type { Hex } from "viem";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { batchKeys } from "../../config/query-keys/garden";
@@ -76,6 +77,12 @@ export function useCampaignCookieJarSync(jarAddress: Address | undefined) {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sender = useTransactionSender();
+  const act: SendActContext = {
+    act: "cookie_jar_admin",
+    operation: "syncCampaign",
+    authMode: sender?.authMode,
+    chainId,
+  };
   const { primaryAddress: account, passkeyAccountProfile } = useUser();
   const handleError = createMutationErrorHandler({
     source: "useCampaignCookieJarSync",
@@ -149,7 +156,7 @@ export function useCampaignCookieJarSync(jarAddress: Address | undefined) {
       activeToastId.current = toastId;
       return { toastId };
     },
-    mutationFn: async (sync: CampaignJarSync): Promise<Hex> => {
+    mutationFn: recordedSendAct(act, async (sync: CampaignJarSync): Promise<Hex> => {
       if (!sender || !account) throw new Error("Connected account required");
       let walletAtomic = false;
       // Asked again at the send, so a stale answer never picks the route.
@@ -187,7 +194,7 @@ export function useCampaignCookieJarSync(jarAddress: Address | undefined) {
           message: formatMessage({ id: "app.campaignCookieJar.sync.step" }, { step, total }),
         });
       });
-    },
+    }),
     onSuccess: (_hash, sync, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       toastService.success({
@@ -261,11 +268,11 @@ export function useCampaignCookieJarSync(jarAddress: Address | undefined) {
     /** What the dialog shows while held. Spread it onto `TxHoldFeedback`. */
     holdFeedback: hold
       ? {
-          title: formatMessage({ id: "cockpit.community.cookies.hold.title" }),
-          message: formatMessage({ id: "cockpit.community.cookies.hold.body" }),
+          title: formatMessage({ id: "hub.community.cookies.hold.title" }),
+          message: formatMessage({ id: "hub.community.cookies.hold.body" }),
           detail: hold.onChain
             ? formatMessage(
-                { id: "cockpit.community.cookies.hold.onChain" },
+                { id: "hub.community.cookies.hold.onChain" },
                 {
                   granted: hold.onChain.granted,
                   grantTotal: hold.grant.length,

@@ -164,12 +164,12 @@ export const Count: Story = {
   },
 };
 
-/** In the cockpit the badge takes each workspace tone's action pair. */
-export const CountInCockpitTones: Story = {
+/** In the Hub the badge takes each workspace tone's action pair. */
+export const CountInHubTones: Story = {
   parameters: { surface: "admin" },
   render: () => (
     <div className="flex flex-col gap-3">
-      {["hub", "garden", "community", "actions"].map((tone) => (
+      {["review", "garden", "community", "actions"].map((tone) => (
         <div key={tone} data-tone={tone} className="flex items-center gap-3">
           {COUNT_LADDER.map((count) => (
             <CountBadge key={count} count={count} />

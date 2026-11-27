@@ -1,3 +1,4 @@
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { toastService } from "../toast.service";
 import type { FormatMessageFn } from "./types";
 
@@ -73,6 +74,16 @@ export function createProofToasts(formatMessage: FormatMessageFn) {
         id: PROOF_TOAST_ID,
         title: say("takingLonger.title"),
         message: say("takingLonger.message"),
+        context: "proof",
+        suppressLogging: true,
+      }),
+
+    /** A Safe only proposed it: it lands once enough of the Safe's owners sign (PRD-1564). */
+    safeSigners: () =>
+      toastService.info({
+        id: PROOF_TOAST_ID,
+        title: formatMessage(SEND_STAGE_WORDS["safe-signers"].label),
+        message: formatMessage(SEND_STAGE_WORDS["safe-signers"].detail),
         context: "proof",
         suppressLogging: true,
       }),

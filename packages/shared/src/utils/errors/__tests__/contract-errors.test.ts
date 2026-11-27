@@ -3,6 +3,10 @@
  */
 
 import { encodeErrorResult } from "viem";
+import {
+  ReceiptWaitLimitError,
+  TransactionConfirmationPendingError,
+} from "../../../modules/transactions/types";
 import { HATS_MODULE_ABI } from "../../blockchain/abis/hats";
 import { describe, expect, it } from "vitest";
 import {
@@ -237,6 +241,39 @@ describe("parseContractError", () => {
     it("classifies timeout", () => {
       const result = parseContractError("Request timed out");
       expect(result.name).toBe("TimeoutError");
+    });
+
+    it("reads a Safe proposal as waiting for the Safe's signers", () => {
+      const error = new TransactionConfirmationPendingError({
+        hash: `0x${"5a".repeat(32)}`,
+        sponsored: false,
+        confirmation: "pending",
+        awaiting: "safe-signers",
+      });
+      expect(parseContractError(error)).toMatchObject({
+        name: "SafeProposalPending",
+        titleKey: "app.sendStage.safeSigners",
+        messageKey: "app.sendStage.safeSigners.detail",
+        isKnown: true,
+      });
+    });
+
+    it("reads a sent transaction still confirming as such, never as failed or a timeout", () => {
+      // A receipt past its send's limit, or viem's own receipt timeout: it went out (PRD-1551).
+      for (const error of [
+        new ReceiptWaitLimitError(120_000),
+        Object.assign(new Error("Timed out while waiting for transaction"), {
+          name: "WaitForTransactionReceiptTimeoutError",
+        }),
+      ]) {
+        expect(parseContractError(error)).toMatchObject({
+          name: "SendStillConfirming",
+          titleKey: "app.txFeedback.unconfirmed.title",
+          messageKey: "app.txFeedback.unconfirmed.message",
+          isKnown: true,
+          recoverable: false,
+        });
+      }
     });
 
     it("classifies generic network", () => {

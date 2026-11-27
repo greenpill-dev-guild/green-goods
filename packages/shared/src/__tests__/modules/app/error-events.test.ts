@@ -22,7 +22,7 @@ describe("global import-failure recovery", () => {
     const error = new Error("Failed to fetch dynamically imported module");
     const event = importFailure(error);
 
-    await Promise.reject(error).catch((caught) => {
+    await Promise.reject(error).catch(() => {
       window.dispatchEvent(event);
       // AppKit catches the rejection after Vite has emitted this event.
     });

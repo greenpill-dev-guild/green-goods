@@ -1,12 +1,14 @@
-import type {
-  ServiceAccessSnapshot,
-  ServiceVoucherSetup,
+import {
+  type ServiceAccessSnapshot,
+  type ServiceVoucherSetup,
+  voucherStartFallbackDue,
 } from "@green-goods/shared/commitment-pooling";
 import type {
   ServiceActKind,
   ServiceBookingInput,
   ServiceBookingStage,
-  ServiceBookingView,
+  ServicePill,
+  ServiceProfile,
 } from "./serviceBookingTypes";
 
 /**
@@ -24,7 +26,7 @@ export function currentVoucherSetup(s: ServiceAccessSnapshot): ServiceVoucherSet
 
 /** The stage a voucher booking is in; null when the promise has no voucher route. */
 export function serviceBookingStage(
-  input: Pick<ServiceBookingInput, "snapshot" | "coreState" | "held">
+  input: Pick<ServiceBookingInput, "snapshot" | "coreState" | "held" | "acceptedAt">
 ): ServiceBookingStage | null {
   const { snapshot: s, coreState } = input;
   const voucher = s.offer?.route === "voucher" ? s.offer.voucher : null;
@@ -55,13 +57,22 @@ export function serviceBookingStage(
   if (d?.result.phase === "active") {
     // The issuer's Propose Return raises the most that can come back; nothing moves yet.
     if (d.issuerReturnCeiling !== null && d.issuerReturnCeiling > 0n) return "returnProposed";
+    // The promise ended before its service: the vouchers stay in escrow until the issuer
+    // proposes a return, which the Hub now asks of it (PRD-1462).
+    if (coreState === "CANCELLED" || coreState === "EXPIRED") return "returnDue";
     if (coreState === "READY_FOR_CONFIRMATION" || coreState === "EVIDENCE_SUBMITTED")
       return "readyToClose";
     return d.holderAbortRequested ? "acceptedFirst" : "inProgress";
   }
-  // Accepted but not started: Start the Booking records the activation and sends it. A
-  // cancellation that lost the race says so once the booking has started.
-  if (accepted) return setup.source.decisionDispatched ? "activationInTransit" : "starting";
+  // Accepted but not started: the steward's Accept and Start sends the start (DL-193). Once the
+  // fallback is due, Start the Booking records the activation and sends it. A cancellation that
+  // lost the race says so once the booking has started.
+  if (accepted) {
+    if (setup.source.decisionDispatched) return "activationInTransit";
+    return voucherStartFallbackDue(input.acceptedAt, s.sourceTimestamp, a.acceptanceDeadline)
+      ? "starting"
+      : "stewardStarting";
+  }
   if (!setup.source.authorizationDispatched) return "requestNotSent";
   if (!d || d.result.phase === "none") return "requestInTransit";
   if (d.result.phase === "authorized")
@@ -71,8 +82,11 @@ export function serviceBookingStage(
     : "confirmingDeposit";
 }
 
-export const NEEDS_YOU = new Set<ServiceBookingStage>([
+const NEEDS_YOU = new Set<ServiceBookingStage>([
+  "requestNotSent",
   "readyToDeposit",
+  // The steward's start didn't go, so its fallback, Start the Booking, is the member's (DL-193).
+  "starting",
   "readyToClose",
   "returnProposed",
   "termsChanged",
@@ -83,12 +97,14 @@ export const WAITING = new Set<ServiceBookingStage>([
   "open",
   "notEnough",
   "requestInTransit",
+  "stewardStarting",
   "activationInTransit",
   "waitingApproval",
   "confirmingDeposit",
   "waitingAcceptance",
   "transfersPending",
   "canceling",
+  "returnDue",
 ]);
 
 /**
@@ -136,27 +152,77 @@ export function recoveryAct(
   return null;
 }
 
+/** Whether any of the booking's vouchers reached its escrow: what a cancellation sends back. */
+export function bookingDeposited(setup: ServiceVoucherSetup | null): boolean {
+  return (setup?.destination?.result.depositedUnits ?? 0n) > 0n;
+}
+
 /**
- * The booking's own state beside the promise's pill, where that pill alone would mislead: the
- * promise reads "Offered" through the whole deposit, a cancellation and a changed offer, and
- * "Awaiting confirmation" while a split's transfers are still on their way.
+ * Whether the booking waits on the reader: its own step (deposit, the split, a changed offer, a
+ * failed transfer), or an act of theirs that stopped partway. The page's band and every list row
+ * that shows the booking ask this one question.
  */
-export const CHIP: Partial<
-  Record<ServiceBookingStage, NonNullable<ServiceBookingView["band"]["chip"]>["tone"]>
-> = {
-  requestNotSent: "neutral",
-  waitingApproval: "info",
-  readyToDeposit: "warning",
-  confirmingDeposit: "info",
-  waitingAcceptance: "info",
-  termsChanged: "warning",
-  readyToClose: "warning",
-  returnProposed: "warning",
-  transfersPending: "info",
-  returnFailed: "error",
-  canceling: "neutral",
-  canceled: "success",
+export function bookingNeedsYou(
+  stage: ServiceBookingStage,
+  setup: ServiceVoucherSetup | null
+): boolean {
+  return NEEDS_YOU.has(stage) || recoveryAct(stage, setup) !== null;
+}
+
+const pill = (id: string, tone: ServicePill["tone"]): ServicePill => ({
+  labelId: `app.voucher.pp.chip.${id}`,
+  tone,
+});
+
+/**
+ * The page's one pill per stage, in the member's words. The promise reads "Offered" through the
+ * whole deposit and "Awaiting confirmation" while a split settles, so the booking speaks instead;
+ * a request or a start on its way reads as the wait it is part of.
+ */
+const PILL: Partial<Record<ServiceBookingStage, ServicePill>> = {
+  open: pill("open", "info"),
+  notEnough: pill("open", "info"),
+  requestNotSent: pill("requestNotSent", "warning"),
+  requestInTransit: pill("waitingApproval", "neutral"),
+  waitingApproval: pill("waitingApproval", "neutral"),
+  readyToDeposit: pill("readyToDeposit", "warning"),
+  confirmingDeposit: pill("waitingAcceptance", "neutral"),
+  waitingAcceptance: pill("waitingAcceptance", "neutral"),
+  termsChanged: pill("termsChanged", "warning"),
+  stewardStarting: pill("accepted", "info"),
+  starting: pill("accepted", "info"),
+  activationInTransit: pill("accepted", "info"),
+  inProgress: pill("booked", "success"),
+  acceptedFirst: pill("booked", "success"),
+  readyToClose: pill("readyToClose", "warning"),
+  returnProposed: pill("readyToClose", "warning"),
+  returnDue: { labelId: "app.voucher.pp.st.endedEarly", tone: "neutral" },
+  transfersPending: pill("transfersPending", "info"),
+  returnFailed: pill("returnFailed", "error"),
+  canceling: pill("canceling", "neutral"),
+  canceled: pill("canceled", "neutral"),
 };
+
+/**
+ * The booking's pill, or null where the promise's own says it: Kept, and a reported problem's
+ * Disputed. A booking settled before the promise closes is still Closing; a hub day's delivery is
+ * the visit.
+ */
+export function bookingPill(
+  stage: ServiceBookingStage,
+  profile: ServiceProfile,
+  closed: { kept: boolean; endedEarly: boolean }
+): ServicePill | null {
+  if (stage === "closed")
+    return closed.kept
+      ? null
+      : closed.endedEarly
+        ? { labelId: "app.voucher.pp.st.endedEarly", tone: "neutral" }
+        : pill("transfersPending", "info");
+  if (profile === "hubDay" && (stage === "readyToClose" || stage === "returnProposed"))
+    return pill("visitReported", "warning");
+  return PILL[stage] ?? null;
+}
 
 /**
  * Before the deposit, the reader's own vouchers are what the offer or booking still rests on, so a
@@ -185,6 +251,7 @@ export const POSITION: Record<ServiceBookingStage, number> = {
   termsChanged: 3,
   canceling: 3,
   canceled: 3,
+  stewardStarting: 4,
   starting: 4,
   activationInTransit: 4,
   inProgress: 5,
@@ -192,6 +259,7 @@ export const POSITION: Record<ServiceBookingStage, number> = {
   problemReported: 5,
   readyToClose: 6,
   returnProposed: 6,
+  returnDue: 5,
   transfersPending: 7,
   returnFailed: 7,
   closed: 8,

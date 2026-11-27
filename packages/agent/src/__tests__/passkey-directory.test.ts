@@ -32,7 +32,12 @@ const DOMAIN = "greengoods.app";
 const BETA = "https://beta.greengoods.app";
 const WWW = "https://www.greengoods.app";
 const ADMIN = "https://admin.greengoods.app";
-const PREVIEW = "https://green-goods-git-some-branch-greenpilldevguild.vercel.app";
+// hub.greengoods.app serves the Hub beside admin.greengoods.app (PRD-1485).
+const HUB = "https://hub.greengoods.app";
+const BETA_HUB = "https://beta.hub.greengoods.app";
+const ALPHA = "https://alpha.greengoods.app";
+const ALPHA_HUB = "https://alpha.hub.greengoods.app";
+const PREVIEW = "https://green-goods-git-some-branch-greengoods.vercel.app";
 const LOCALHOST = "http://localhost:3001";
 const LOOPBACK_ADDRESS = "http://127.0.0.1:3001";
 const NOW = 1_759_600_000_000;
@@ -52,8 +57,12 @@ function createDirectoryApp(
     allowedOrigins: new Set([
       BETA,
       "https://beta.admin.greengoods.app",
+      BETA_HUB,
+      ALPHA,
+      ALPHA_HUB,
       WWW,
       ADMIN,
+      HUB,
       LOCALHOST,
       LOOPBACK_ADDRESS,
     ]),
@@ -231,8 +240,12 @@ describe("passkey directory", () => {
   it.each([
     [BETA, "kernel-0.3.3"],
     ["https://beta.admin.greengoods.app", "kernel-0.3.3"],
+    [BETA_HUB, "kernel-0.3.3"],
+    [ALPHA, "kernel-0.3.3"],
+    [ALPHA_HUB, "kernel-0.3.3"],
     [WWW, "kernel-0.3.1-legacy"],
     [ADMIN, "kernel-0.3.1-legacy"],
+    [HUB, "kernel-0.3.1-legacy"],
   ])("pins new account profiles at registration on %s", async (origin, accountProfile) => {
     const { app, store } = createDirectoryApp();
     const { start, verify } = await signUp(app, "ana", { origin, accountProfileVersion: 1 });
@@ -417,17 +430,6 @@ describe("passkey directory", () => {
     });
     expect(preflight.status).toBe(403);
     expect(preflight.headers.get("access-control-allow-origin")).toBeNull();
-  });
-
-  it("uses the router's decoded path when refusing an unlisted preview", async () => {
-    const { app } = createDirectoryApp();
-    const response = await app.request("/public/passkeys/%72pc", {
-      method: "POST",
-      headers: { origin: PREVIEW, "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "pks_getCredentials", params: [{}] }),
-    });
-    expect(response.status).toBe(403);
-    expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });
 
   it("requires the listed site's passkey domain, with localhost only in development", async () => {

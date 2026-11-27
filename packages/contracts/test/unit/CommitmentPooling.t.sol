@@ -663,7 +663,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
 
         // The terminal machinery is the recovery: dispute from ReadyForConfirmation has no
         // time gate, so the provider is not stranded by a garden that went dark.
-        vm.prank(poolSteward);
+        vm.prank(CREATOR);
         module.raiseDispute(commitmentId, "bafy-claiming-garden-dark");
         vm.prank(poolSteward);
         module.resolveDispute(
@@ -700,7 +700,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         module.confirmFulfillmentAsFallback(commitmentId, "only steward is a contributor");
 
         // Same recovery: the contributor-only garden is resolved through dispute, not confirmation.
-        vm.prank(poolSteward);
+        vm.prank(CREATOR);
         module.raiseDispute(commitmentId, "bafy-only-steward-is-contributor");
         vm.prank(poolSteward);
         module.resolveDispute(

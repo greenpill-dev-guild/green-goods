@@ -51,7 +51,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
   const { mutate: setStrategies, isPending: isSaving } = useSetConvictionStrategies();
   const communityBackLink = {
     to: adminRoutes.communityCoordination(gardenRouteContext),
-    label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
+    label: formatMessage({ id: "hub.nav.community", defaultMessage: "Community" }),
   };
 
   if (gardensLoading) {
@@ -189,30 +189,29 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
           {/* Add strategy form */}
           {canManage && (
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-start">
-              <AdminTextField
-                label={formatMessage({ id: "app.conviction.strategyAddress" })}
-                value={newAddress}
-                onChange={(e) => {
-                  setNewAddress(e.target.value);
-                  setAddressError("");
-                }}
-                placeholder={formatMessage({ id: "app.conviction.strategyAddressPlaceholder" })}
-                error={addressError || undefined}
-                className="min-w-0 flex-1"
-              />
-              <Button
-                type="button"
-                emphasis="primary"
-                size="sm"
-                className="w-full sm:mt-6 sm:w-auto"
-                onClick={handleAddStrategy}
-                disabled={isSaving || !newAddress.trim()}
-                loading={isSaving}
-              >
-                {formatMessage({ id: "app.conviction.addStrategy" })}
-              </Button>
-            </div>
+            <AdminTextField
+              label={formatMessage({ id: "app.conviction.strategyAddress" })}
+              value={newAddress}
+              onChange={(e) => {
+                setNewAddress(e.target.value);
+                setAddressError("");
+              }}
+              placeholder={formatMessage({ id: "app.conviction.strategyAddressPlaceholder" })}
+              error={addressError || undefined}
+              className="mt-4"
+              action={
+                <Button
+                  type="button"
+                  emphasis="primary"
+                  size="sm"
+                  onClick={handleAddStrategy}
+                  disabled={isSaving || !newAddress.trim()}
+                  loading={isSaving}
+                >
+                  {formatMessage({ id: "app.conviction.addStrategy" })}
+                </Button>
+              }
+            />
           )}
         </div>
       </section>

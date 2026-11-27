@@ -31,14 +31,14 @@ export function CommitmentAlerts({
           {disputeReason.reason
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.commitment.disputed.withReason",
+                  id: "hub.garden.pool.commitment.disputed.withReason",
                   defaultMessage:
                     "Under review by stewards: “{reason}”. Members see only that it is under review.",
                 },
                 { reason: disputeReason.reason.reason }
               )
             : formatMessage({
-                id: "cockpit.garden.pool.commitment.disputed.noReason",
+                id: "hub.garden.pool.commitment.disputed.noReason",
                 defaultMessage:
                   "Under review by stewards. Members see only that it is under review.",
               })}
@@ -48,7 +48,7 @@ export function CommitmentAlerts({
         <Alert variant="info">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.commitment.cancelled.withReason",
+              id: "hub.garden.pool.commitment.cancelled.withReason",
               defaultMessage: "Canceled: “{reason}”.",
             },
             { reason: cancelReason.reason.reason }
@@ -60,12 +60,12 @@ export function CommitmentAlerts({
           <Alert variant="warning">
             {fallbackPath === "POOL_FALLBACK"
               ? formatMessage({
-                  id: "cockpit.garden.pool.commitment.fallback.garden",
+                  id: "hub.garden.pool.commitment.fallback.garden",
                   defaultMessage:
                     "Nobody on the ordinary path can still confirm this. As a steward of this garden you may confirm it with a recorded reason; every contributor is excluded.",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.commitment.fallback.protocol",
+                  id: "hub.garden.pool.commitment.fallback.protocol",
                   defaultMessage:
                     "Nobody on the ordinary path can still confirm this, and the promise lets the Green Goods team step in. As a protocol steward you may confirm it with a recorded reason; every contributor is excluded.",
                 })}
@@ -75,7 +75,7 @@ export function CommitmentAlerts({
       {poolPaused ? (
         <Alert variant="warning">
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.poolPaused",
+            id: "hub.garden.pool.commitment.poolPaused",
             defaultMessage:
               "The pool is paused: accepting, readying and confirming wait; proof, wind-down and recovery stay open.",
           })}

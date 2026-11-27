@@ -23,8 +23,9 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import type { FabConfig, CanvasMobilePrimaryAction } from "../../components";
 import {
+  type FabConfig,
+  type CanvasMobilePrimaryAction,
   EmptyStateShell,
   WorkbenchCard,
   FabProvider,
@@ -219,7 +220,7 @@ describe("Canvas Primitives", () => {
     // Per handoff sheet-system + admin-design-revamp Tier 5: FAB is registered
     // at every breakpoint <1024px so the floating-pill layer in NavigationBar
     // can render it. The hook ALSO returns a CanvasMobilePrimaryAction for
-    // views that want a content-zone affordance (Hub stage rail) — both
+    // views that want a content-zone affordance (Review stage rail) — both
     // surfaces stay live so phones don't lose creation flows.
     expect(screen.getByTestId("fab-config-state")).toHaveTextContent("mounted");
     await user.click(screen.getByRole("button", { name: /submit work/i }));

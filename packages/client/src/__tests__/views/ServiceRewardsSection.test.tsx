@@ -50,10 +50,11 @@ describe("rendered voucher reward facts", () => {
     );
     expect(container.querySelector("time")).toHaveTextContent(arrival);
   });
-  it("keeps a received reward visible without inventing an arrival time", () => {
+  it("keeps a received reward visible and says nothing about an arrival time it doesn't know", () => {
     const { container } = render(<ServiceRewardsSection view={view("en", en, null)} />);
     expect(screen.getByText("Received")).toBeInTheDocument();
-    expect(screen.getByText("Arrival time unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Integration lesson: 60 minutes for 1 voucher")).toBeInTheDocument();
+    expect(screen.queryByText(/unavailable/)).not.toBeInTheDocument();
     expect(container.querySelector("time")).toBeNull();
   });
   it("does not show an arrival time before delivery", () => {

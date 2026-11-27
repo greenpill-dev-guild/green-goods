@@ -4,18 +4,25 @@ import {
   createFakeSmartAccountClient,
   createFakeWagmiDeps,
   createMockContractCall,
+  fakePreparedUserOperation,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import {
   describeConformance,
   type ConformanceLaw,
 } from "../../../__tests__/test-utils/conformance";
-import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
-import { expect, vi } from "vitest";
-import type { Hex } from "viem";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { describe, expect, it, vi } from "vitest";
+import { type Hex, WaitForTransactionReceiptTimeoutError } from "viem";
+import { WaitForUserOperationReceiptTimeoutError } from "viem/account-abstraction";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { EmbeddedSender } from "../embedded-sender";
 import { PasskeySender } from "../passkey-sender";
-import type { TransactionSender } from "../types";
+import {
+  ReceiptWaitLimitError,
+  type TransactionSender,
+  WalletAnswerAbandonedError,
+} from "../types";
 import { WalletSender } from "../wallet-sender";
 
 const SECOND_TX_HASH = `0x${"b".repeat(64)}` as Hex;
@@ -31,7 +38,19 @@ type SenderScenario = {
   connectedAccount?: `0x${string}`;
   /** What happens while the guard reads the wallet, before it asks who signs. */
   whileGuardReads?: () => void;
+  /** The network never answers with a receipt: a wait with a limit times out, as viem's does. */
+  receiptNeverComes?: boolean;
+  /** What the account's reads say the wallet answered with; `unreadable` when they fail. */
+  walletAnswer?: "transaction" | "safe-proposal" | "unreadable";
+  /** The wallet answers only once this settles, as a person who has not opened it yet. */
+  walletAnswerGate?: Promise<void>;
 };
+
+/** viem's wait for a receipt that never comes: it ends only at the limit it was given. */
+function receiptThatNeverComes(receipt: { hash: Hex; timeout?: number }): never {
+  if (receipt.timeout) throw new WaitForTransactionReceiptTimeoutError({ hash: receipt.hash });
+  throw new Error("waited for a receipt with no limit");
+}
 
 type ForwardedCall = {
   account?: string;
@@ -55,6 +74,15 @@ type SenderExpectations = {
   chainSource: "resolver" | "call";
   receipt: "none" | "always" | "canonical-only";
   revertedReceipt: true | string;
+  /**
+   * Whose limit ends a receipt wait: the caller's option, else 120 seconds (`default`), or
+   * always the sender's own (`own`).
+   */
+  receiptWaitLimit: "caller-or-default" | "own";
+  /** Stops waiting on a Safe's proposal hash, which no receipt ever follows. */
+  safeProposal: true | string;
+  /** Lets the person stop waiting for the wallet's answer (`signal`). */
+  abandonsWalletAnswer: true | string;
   nonCanonicalHash: true | string;
   guardOrder: string[];
   omittedValue: bigint | undefined;
@@ -80,6 +108,9 @@ const cases: SenderCase[] = [
       chainSource: "call",
       receipt: "canonical-only",
       revertedReceipt: true,
+      receiptWaitLimit: "caller-or-default",
+      safeProposal: true,
+      abandonsWalletAnswer: true,
       nonCanonicalHash: true,
       guardOrder: ["chain", "safety", "send", "receipt"],
       omittedValue: undefined,
@@ -108,11 +139,17 @@ const cases: SenderCase[] = [
         trace.push("send");
         forwarded.push({ account: call.account, chainId: call.chainId, value: call.value });
         if (scenario.transportFailure) throw scenario.transportFailure;
+        await scenario.walletAnswerGate;
         return hashes() as `0x${string}`;
+      });
+      deps.readWalletAnswer.mockImplementation(async () => {
+        if (scenario.walletAnswer === "unreadable") throw new Error("eth_getCode unavailable");
+        return scenario.walletAnswer ?? "transaction";
       });
       deps.waitForTransactionReceipt.mockImplementation(async (_config, receipt) => {
         trace.push("receipt");
         receiptHashes.push(receipt.hash);
+        if (scenario.receiptNeverComes) receiptThatNeverComes(receipt);
         return { status: scenario.receiptStatus ?? "success" };
       });
       return {
@@ -133,6 +170,9 @@ const cases: SenderCase[] = [
       chainSource: "resolver",
       receipt: "always",
       revertedReceipt: true,
+      receiptWaitLimit: "own",
+      safeProposal: "a passkey signs as its own smart account, never a Safe",
+      abandonsWalletAnswer: "a passkey prompt is the browser's, closed there",
       nonCanonicalHash: "passkey mode confirms a UserOperation receipt",
       guardOrder: ["safety", "send", "receipt"],
       omittedValue: 0n,
@@ -159,6 +199,7 @@ const cases: SenderCase[] = [
       vi.mocked(client.waitForUserOperationReceipt).mockImplementation(async ({ hash }) => {
         trace.push("receipt");
         receiptHashes.push(hash);
+        if (scenario.receiptNeverComes) throw new WaitForUserOperationReceiptTimeoutError({ hash });
         return {
           actualGasCost: 1n,
           actualGasUsed: 1n,
@@ -213,6 +254,9 @@ const cases: SenderCase[] = [
       chainSource: "call",
       receipt: "always",
       revertedReceipt: true,
+      receiptWaitLimit: "caller-or-default",
+      safeProposal: "an embedded wallet is the app's own account, never a Safe",
+      abandonsWalletAnswer: "an embedded wallet signs without a prompt to wait on",
       nonCanonicalHash: "embedded mode always waits for its wagmi receipt",
       guardOrder: ["chain", "safety", "send", "receipt"],
       omittedValue: undefined,
@@ -250,6 +294,7 @@ const cases: SenderCase[] = [
       deps.waitForTransactionReceipt.mockImplementation(async (_config, receipt) => {
         trace.push("receipt");
         receiptHashes.push(receipt.hash);
+        if (scenario.receiptNeverComes) receiptThatNeverComes(receipt);
         return { status: scenario.receiptStatus ?? "success" };
       });
       return {
@@ -422,6 +467,129 @@ const laws: ConformanceLaw<SenderCase>[] = [
     },
   },
   {
+    // The send went out, so a receipt that outlasts the limit never reads as a failure: the
+    // caller's record of the broadcast confirms it later (PRD-1550).
+    name: "ends a receipt wait at its limit, after the broadcast is reported",
+    verify: async ({ make, expectations }) => {
+      const own = expectations.receiptWaitLimit === "own";
+      const harness = make({ receiptNeverComes: true });
+      const onBroadcastReference = vi.fn(async () => {
+        harness.trace.push("broadcast");
+      });
+      const sent = harness.sender.sendContractCall(createMockContractCall(), {
+        onBroadcastReference,
+        receiptWaitLimitMs: 30_000,
+      });
+      await expect(sent).rejects.toBeInstanceOf(ReceiptWaitLimitError);
+      // A transaction's wait names the transaction still confirming; a UserOperation's names none.
+      await expect(sent).rejects.toMatchObject(
+        own ? { limitMs: 120_000 } : { limitMs: 30_000, hash: SECOND_TX_HASH }
+      );
+      expect(harness.trace.slice(-2)).toEqual(["broadcast", "receipt"]);
+
+      const unstated = make({ receiptNeverComes: true });
+      if (own) {
+        // A caller that asked for no limit keeps the sender's own timeout, which error copy
+        // reads as a timeout rather than an unknown failure.
+        await expect(unstated.sender.sendContractCall(createMockContractCall())).rejects.toThrow(
+          WaitForUserOperationReceiptTimeoutError
+        );
+        return;
+      }
+
+      // A caller that names no limit gets the sender's own: no receipt wait is open-ended (PRD-1551).
+      const unstatedSend = unstated.sender.sendContractCall(createMockContractCall());
+      await expect(unstatedSend).rejects.toBeInstanceOf(ReceiptWaitLimitError);
+      await expect(unstatedSend).rejects.toMatchObject({ limitMs: 120_000, hash: SECOND_TX_HASH });
+    },
+  },
+  {
+    // Safe{Wallet} answers with its proposal's 32-byte hash. It looks like a transaction's, but
+    // no receipt ever follows: the proposal waits for the Safe's owners (PRD-1551, PRD-1262 walk).
+    name: "stops at a Safe proposal and says it waits for the Safe's signers",
+    applicable: ({ expectations }) => expectations.safeProposal,
+    verify: async ({ make }) => {
+      const proposal = make({ walletAnswer: "safe-proposal" });
+      const onBroadcastReference = vi.fn(async () => undefined);
+      const onAwaiting = vi.fn();
+      await expect(
+        proposal.sender.sendContractCall(createMockContractCall(), {
+          onBroadcastReference,
+          onAwaiting,
+        })
+      ).resolves.toEqual({
+        hash: SECOND_TX_HASH,
+        sponsored: false,
+        confirmation: "pending",
+        awaiting: "safe-signers",
+      });
+      expect(proposal.receiptHashes).toEqual([]);
+      // A caller that keeps only the hash still learns the act waits on the Safe.
+      expect(onAwaiting).toHaveBeenCalledWith("safe-signers");
+      // Kept on record as any answer is, so a later read can find what the Safe ran.
+      expect(onBroadcastReference).toHaveBeenCalledWith({
+        kind: "transaction",
+        hash: SECOND_TX_HASH,
+      });
+
+      // Reads that cannot tell leave it a transaction, waited on within its limit.
+      const unreadable = make({ walletAnswer: "unreadable" });
+      await expect(unreadable.sender.sendContractCall(createMockContractCall())).resolves.toEqual({
+        hash: SECOND_TX_HASH,
+        sponsored: false,
+      });
+      expect(unreadable.receiptHashes).toEqual([SECOND_TX_HASH]);
+    },
+  },
+  {
+    // After 20 seconds the act offers Cancel (PRD-1551). The wallet may still hold the request,
+    // so stopping never pretends nothing was sent: a late answer is still reported.
+    name: "lets the person stop waiting for the wallet's answer, and reports a late one",
+    applicable: ({ expectations }) => expectations.abandonsWalletAnswer,
+    verify: async ({ make }) => {
+      let answer!: () => void;
+      const harness = make({
+        walletAnswerGate: new Promise<void>((resolve) => {
+          answer = resolve;
+        }),
+      });
+      const cancel = new AbortController();
+      const onBroadcastReference = vi.fn(async () => undefined);
+      const onBroadcast = vi.fn(async () => undefined);
+      const sent = harness.sender.sendContractCall(createMockContractCall(), {
+        signal: cancel.signal,
+        onBroadcastReference,
+        onBroadcast,
+      });
+      await vi.waitFor(() => expect(harness.trace).toContain("send"));
+      cancel.abort();
+      await expect(sent).rejects.toBeInstanceOf(WalletAnswerAbandonedError);
+      expect(onBroadcast).not.toHaveBeenCalled();
+
+      answer();
+      await vi.waitFor(() => expect(onBroadcast).toHaveBeenCalledWith(SECOND_TX_HASH));
+      expect(onBroadcastReference).toHaveBeenCalledWith({
+        kind: "transaction",
+        hash: SECOND_TX_HASH,
+      });
+      expect(harness.receiptHashes).toEqual([]);
+
+      // Stopped before the wallet is asked: it is never asked, and no intent is recorded.
+      const early = make();
+      const stopped = new AbortController();
+      stopped.abort();
+      const onBeforeBroadcast = vi.fn(async () => undefined);
+      await expect(
+        early.sender.sendContractCall(createMockContractCall(), {
+          signal: stopped.signal,
+          onBeforeBroadcast,
+        })
+      ).rejects.toBeInstanceOf(WalletAnswerAbandonedError);
+      expect(early.trace).toEqual([]);
+      expect(onBeforeBroadcast).not.toHaveBeenCalled();
+    },
+  },
+  {
     name: "passes through a non-canonical wallet hash without waiting",
     applicable: ({ expectations }) => expectations.nonCanonicalHash,
     verify: async ({ make }) => {
@@ -446,3 +614,28 @@ const laws: ConformanceLaw<SenderCase>[] = [
 ];
 
 describeConformance("TransactionSender conformance", cases, laws);
+
+/** Every class in Shared's source that implements `TransactionSender`. */
+function sendersInSource(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory())
+      return entry.name === "__tests__" || entry.name === "node_modules"
+        ? []
+        : sendersInSource(path);
+    if (!/\.tsx?$/.test(entry.name) || /\.(test|stories)\.tsx?$/.test(entry.name)) return [];
+    return [
+      ...readFileSync(path, "utf8").matchAll(
+        /class (\w+)[^{]*\bimplements\b[^{]*\bTransactionSender\b/g
+      ),
+    ].map((match) => match[1]);
+  });
+}
+
+describe("TransactionSender roster", () => {
+  // A new sender has to meet these laws too, its receipt limit among them (PRD-1551).
+  it("holds every sender in Shared to the conformance laws", () => {
+    const senders = sendersInSource(resolve(__dirname, "../../.."));
+    expect(senders.sort()).toEqual(cases.map(({ name }) => name).sort());
+  });
+});

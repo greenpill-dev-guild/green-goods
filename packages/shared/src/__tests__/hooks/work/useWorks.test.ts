@@ -66,6 +66,8 @@ vi.mock("../../../modules/job-queue/db", () => ({
         return { unsubscribe() {} };
       },
     }),
+    // The live view of the queue; offlineReads.test.ts covers the reads it triggers.
+    observeJobs: () => ({ subscribe: () => ({ unsubscribe() {} }) }),
     getImagesForJob: (...args: unknown[]) => mockGetImagesForJob(...args),
   },
 }));
@@ -73,6 +75,7 @@ vi.mock("../../../modules/job-queue/db", () => ({
 vi.mock("../../../modules/job-queue/event-bus", () => ({
   jobQueueEventBus: {
     onMultiple: mockOnMultiple,
+    currentSendStages: () => new Map(),
   },
   useJobQueueEvents: vi.fn(),
 }));
@@ -93,6 +96,7 @@ vi.mock("../../../modules/app/logger", () => ({
 
 vi.mock("../../../config/query-keys/work", () => ({
   worksKeys: {
+    visibility: (chainId: number) => ["works", "visibility", chainId],
     online: (gardenId: string, chainId: number) => ["works", "online", gardenId, chainId],
     window: (gardenId: string, chainId: number) => ["works", "window", gardenId, chainId],
     offline: (gardenId: string, chainId?: number, account?: string) => [
@@ -175,6 +179,8 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 51,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
   });
 
@@ -247,6 +253,42 @@ describe("hooks/work/useWorks", () => {
     await waitFor(() => expect(result.current.readThisSession).toBe(true));
   });
 
+  it("does not count a decision written into a restored list as reading the garden", async () => {
+    // A garden no other test reads: what this session has read is kept for the whole session.
+    const garden = "0x4444444444444444444444444444444444444444";
+    const key = ["works", "online", garden, TEST_CHAIN_ID];
+    const restored = [
+      {
+        id: "w1",
+        title: "W1",
+        actionUID: 1,
+        gardenerAddress: "0x1",
+        gardenAddress: garden,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        status: "pending" as const,
+      },
+    ];
+    let finishRead = (_rows: unknown) => {};
+    mockGetWorkListPage.mockReturnValue(new Promise((resolve) => (finishRead = resolve)));
+    queryClient.setQueryData(key, restored, { updatedAt: 1 });
+    const { result } = renderHookWithProviders(() => useWorks(garden), { queryClient });
+
+    // A decision this device just recorded is written into the list with the current time.
+    await act(async () => {
+      queryClient.setQueryData(key, [{ ...restored[0], status: "approved" as const }]);
+    });
+    // Once the visibility read is in, only the list's own read is missing.
+    await waitFor(() => expect(result.current.works[0]?.status).toBe("approved"));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(result.current.readThisSession).toBe(false);
+
+    await act(async () => finishRead(restored));
+    await waitFor(() => expect(result.current.readThisSession).toBe(true));
+  });
+
   it("reads one lookahead row, offers older work, and widens the shared window", async () => {
     const page = (count: number, offset = 0) =>
       Array.from({ length: count }, (_, index) => ({
@@ -278,6 +320,8 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenLastCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 101,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
     // A page short of the window means the garden has nothing older left.
     expect(result.current.hasOlderWork).toBe(false);
@@ -306,7 +350,41 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 51,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
+  });
+
+  it("fills a visible page without deleting a newer excluded cached work", async () => {
+    const visible = Array.from({ length: 50 }, (_, index) => ({
+      id: `work-${index}`,
+      title: `Work ${index}`,
+      actionUID: 1,
+      gardenerAddress: TEST_PRIMARY_ADDRESS,
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: JSON.stringify({ clientWorkId: `client-${index}` }),
+      media: [],
+      createdAt: 2_000 - index,
+      status: "pending" as const,
+    }));
+    const hidden = { ...visible[0], id: `0x${"a".repeat(64)}`, createdAt: 3_000 };
+    const mergedKey = ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID];
+    queryClient.setQueryData(mergedKey, [hidden]);
+    queryClient.setQueryData(["works", "visibility", TEST_CHAIN_ID], {
+      chainId: TEST_CHAIN_ID,
+      excludedWorkUIDs: [hidden.id],
+      excludedApprovalUIDs: [],
+    });
+    mockGetWorkListPage.mockResolvedValue(visible);
+
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+
+    await waitFor(() => expect(mockGetWorkListPage).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.works.map((work) => work.id)).toEqual(visible.map((work) => work.id));
+    expect(result.current.hasOlderWork).toBe(false);
+    expect(queryClient.getQueryData(mergedKey)).toEqual(expect.arrayContaining([hidden]));
   });
 
   it("does not let a second consumer shrink a widened garden window", async () => {
@@ -341,6 +419,8 @@ describe("hooks/work/useWorks", () => {
       expect(mockGetWorkListPage).toHaveBeenLastCalledWith(TEST_GARDEN, {
         chainId: TEST_CHAIN_ID,
         take: 101,
+        excludedWorkUIDs: [],
+        excludedApprovalUIDs: [],
       })
     );
     expect(result.current.first.works).toHaveLength(70);
@@ -433,6 +513,61 @@ describe("hooks/work/useWorks", () => {
     expect(result.current.works[0].status).toBe("pending");
     // That pending is a fallback, and the hook says so: queue health must not read it as settled.
     expect(result.current.hasUnknownStatuses).toBe(true);
+    // And names the work, so a review surface can hold its decision.
+    expect(result.current.unknownIds.has("w1")).toBe(true);
+  });
+
+  it("names a work whose approvals a later read could not read, though its status is cached", async () => {
+    const work = {
+      id: "w1",
+      title: "W1",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1000,
+      status: "pending" as const,
+    };
+    mockGetWorkListPage.mockResolvedValue([work]);
+    mockGetWorkApprovalsForWorks.mockResolvedValue([]);
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+    await waitFor(() => expect(result.current.works).toHaveLength(1));
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(false));
+    expect(result.current.unknownIds.has("w1")).toBe(false);
+
+    // The next read's approvals fail: the cached pending shows, but it is not a decision.
+    mockGetWorkApprovalsForWorks.mockRejectedValue(new Error("Network error"));
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(true));
+    expect(result.current.works[0].status).toBe("pending");
+    expect(result.current.unknownIds.has("w1")).toBe(true);
+  });
+
+  it("names a work a later read left out, though it still shows from the stored read", async () => {
+    const work = {
+      id: "w1",
+      title: "W1",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1000,
+      status: "pending" as const,
+    };
+    mockGetWorkListPage.mockResolvedValue([work]);
+    mockGetWorkApprovalsForWorks.mockResolvedValue([]);
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(false));
+
+    // The indexer briefly returns nothing: the stored work stays, but its status is not current.
+    mockGetWorkListPage.mockResolvedValue([]);
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.unknownIds.has("w1")).toBe(true));
+    expect(result.current.works.map((item) => item.id)).toContain("w1");
   });
 
   it("marks work as rejected when approval.approved is false", async () => {
@@ -900,6 +1035,19 @@ describe("hooks/work/useWorks", () => {
         );
         expect(stateOf(job).submissionState).toBe("awaiting-confirmation");
         expect(stateOf(job).blockedReason).toBeUndefined();
+      });
+
+      // The row says the Safe's signers from the send's record, after the send ended (PRD-1564).
+      it("carries a Safe's proposal on record to the row as waiting for the Safe's signers", () => {
+        const hash = `0x${"5a".repeat(32)}` as const;
+        const proposed = { ...uploads, transactionHash: hash, awaiting: "safe-signers" as const };
+        expect(stateOf(queuedJob({}, proposed))).toMatchObject({
+          submissionState: "awaiting-confirmation",
+          awaiting: "safe-signers",
+        });
+        expect(stateOf(queuedJob({}, { ...uploads, transactionHash: hash }))).not.toHaveProperty(
+          "awaiting"
+        );
       });
     });
 

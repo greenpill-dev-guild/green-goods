@@ -52,13 +52,13 @@ export interface ToConfirmGroup {
 
 /**
  * A commitment in the pool of a garden the reader stewards that waits on the
- * reader's own confirmation, not the garden's. Only the Hub asks for these
+ * reader's own confirmation, not the garden's. Only Review asks for these
  * (`includeOwn`), because it has no Live tab to carry them.
  */
 export interface ToConfirmOwnRow {
   commitment: CommitmentReadModel;
   /**
-   * The pool's garden, which the reader stewards: the Hub scope the row
+   * The pool's garden, which the reader stewards: the Review scope the row
    * belongs to, and the authority a dispute on it would use.
    */
   garden: Address;

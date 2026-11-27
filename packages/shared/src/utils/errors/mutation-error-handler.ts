@@ -7,10 +7,12 @@
  * @module utils/errors/mutation-error-handler
  */
 
+import type { AuthMode } from "../../types/auth";
 import { type FormatMessageFn, toastService, walletProgressToasts } from "../../components/toast";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { DEBUG_ENABLED, debugError } from "../../utils/debug";
 import { type ParsedContractError, parseAndFormatError } from "./contract-errors";
+import { wasAskedToReconnect } from "./unsent-failures";
 
 /**
  * Configuration for creating a mutation error handler
@@ -25,11 +27,11 @@ export interface MutationErrorHandlerConfig {
   /** Analytics tracking function */
   trackError?: (error: string, metadata?: Record<string, unknown>) => void;
   /** Get fallback message based on auth mode */
-  getFallbackMessage?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
+  getFallbackMessage?: (authMode: AuthMode) => string;
   /** Get fallback description based on auth mode */
-  getFallbackDescription?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
+  getFallbackDescription?: (authMode: AuthMode) => string;
   /** Get fallback toast title (e.g. localized); defaults to "<toastContext> failed" */
-  getFallbackTitle?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
+  getFallbackTitle?: (authMode: AuthMode) => string;
   /** Use wallet progress toast style for wallet mode */
   useWalletProgressToast?: boolean;
   /**
@@ -45,7 +47,7 @@ export interface MutationErrorHandlerConfig {
  */
 export interface MutationErrorContext {
   /** Current authentication mode */
-  authMode?: "wallet" | "passkey" | "embedded" | null;
+  authMode?: AuthMode;
   /** Garden address for tracking */
   gardenAddress?: string | null;
   /** Additional metadata for tracking */
@@ -110,6 +112,12 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
 
     // Parse contract error for user-friendly message
     const { title, message, parsed } = parseAndFormatError(error);
+    // Neither is a failure (PRD-1551): a send still confirming went out and may still land, and
+    // a send the person stopped waiting for may still be in the wallet. Neither is recorded as a
+    // contract failure or shown in red; the act's own line, or an info toast, says where it stands.
+    const stillConfirming =
+      parsed.name === "SendStillConfirming" || parsed.name === "SafeProposalPending";
+    const stoppedWaiting = error instanceof Error && error.name === "WalletAnswerAbandonedError";
 
     // Track error with analytics if provided
     if (trackError) {
@@ -121,17 +129,18 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
     }
 
     // Track as structured exception for error dashboard
-    trackContractError(error, {
-      source,
-      gardenAddress: gardenAddress ?? undefined,
-      authMode,
-      userAction: toastContext,
-      metadata: {
-        parsedErrorName: parsed.name,
-        isKnown: parsed.isKnown,
-        ...metadata,
-      },
-    });
+    if (!stillConfirming && !stoppedWaiting)
+      trackContractError(error, {
+        source,
+        gardenAddress: gardenAddress ?? undefined,
+        authMode,
+        userAction: toastContext,
+        metadata: {
+          parsedErrorName: parsed.name,
+          isKnown: parsed.isKnown,
+          ...metadata,
+        },
+      });
 
     const localized = (key: string | undefined, fallback: string) =>
       key && formatMessage
@@ -152,9 +161,10 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
         ? getFallbackTitle(authMode ?? null)
         : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
 
-    // Show error toast
-    if (showToast) {
-      if (useWalletProgressToast && authMode === "wallet") {
+    // Show error toast, unless the wallet reconnect prompt already asked for this act, or the
+    // person stopped waiting for the wallet: the act's own line says so, and nothing failed.
+    if (showToast && !wasAskedToReconnect(error) && !stoppedWaiting) {
+      if (useWalletProgressToast && authMode === "wallet" && !stillConfirming) {
         walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
       } else {
         const description = parsed.isKnown
@@ -165,7 +175,8 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
             ? getFallbackDescription(authMode ?? null)
             : undefined;
 
-        toastService.error({
+        const show = stillConfirming ? toastService.info : toastService.error;
+        show({
           id: toastId,
           title: displayTitle,
           message: displayMessage,

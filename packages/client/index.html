@@ -14,7 +14,7 @@
     <meta
       key="description"
       name="description"
-      content="Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support."
+      content="Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support."
     />
     <meta name="author" content="Green Goods" />
 
@@ -28,10 +28,10 @@
     <meta property="og:site_name" content="Green Goods" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://greengoods.app" />
-    <meta property="og:description" content="Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support." />
+    <meta property="og:description" content="Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support." />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:description" content="Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support." />
+    <meta name="twitter:description" content="Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support." />
     <meta name="twitter:title" content="Green Goods" />
     <meta name="twitter:site" content="greengoodsapp" />
     <meta name="twitter:creator" content="time_is_oba" />
@@ -223,9 +223,18 @@
         var supported = ["en", "es", "pt"];
         var stored = null;
         try {
-          stored = window.localStorage.getItem("gg-language");
+          // The choice made on any Green Goods site, shared as a cookie (PRD-1493), comes first.
+          var shared = document.cookie.match(/(?:^|;\s*)gg-language=([^;]*)/);
+          if (shared && shared[1]) stored = decodeURIComponent(shared[1]);
         } catch (error) {
-          // Storage can be blocked. The browser language still applies.
+          // Cookies can be blocked. This site's own choice still applies.
+        }
+        if (!stored) {
+          try {
+            stored = window.localStorage.getItem("gg-language");
+          } catch (error) {
+            // Storage can be blocked. The browser language still applies.
+          }
         }
         var browser =
           navigator.languages && navigator.languages.length
@@ -1291,6 +1300,9 @@
     </div>
     <script id="boot-fallback-controller">
       (function () {
+        // Below the browser minimum the update screen is the whole page and the app never starts
+        // (the gate first in the body, scripts/lib/browser-minimum-gate.js).
+        if (document.documentElement.hasAttribute("data-browser-update")) return;
         var root = document.getElementById("root");
         var fallback = document.getElementById("boot-fallback");
         var website = document.getElementById("boot-fallback-website");

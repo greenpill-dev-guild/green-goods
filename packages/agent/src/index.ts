@@ -65,16 +65,13 @@ import { createGardenJoinRequestCountGrants } from "./services/garden-join-reque
 import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
 import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
 import { createPasskeyDirectory } from "./services/passkey-directory";
+import { createOpenfortRecovery, readOpenfortRecoveryConfig } from "./services/openfort-recovery";
 import {
   createHostedPasskeyLookup,
   createSqlitePasskeyDisplayNames,
   createSqlitePasskeyDirectoryStore,
 } from "./services/passkey-directory-adapters";
 import { PASSKEY_RP_ID, PASSKEY_RP_NAME } from "@green-goods/shared/public-contracts";
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -89,6 +86,11 @@ async function main(): Promise<void> {
   initAgentAnalytics({
     apiKey: config.posthogApiKey,
     enabled: config.analyticsEnabled,
+    // The same environment and release the Sentry reports carry (PRD-1560).
+    environment: config.nodeEnv,
+    release: config.sentryRelease,
+    testAccounts: config.telemetryTestAccounts,
+    testGardens: config.telemetryTestGardens,
   });
 
   logger.info(
@@ -107,7 +109,6 @@ async function main(): Promise<void> {
     nodeEnv: config.nodeEnv,
   });
 
-  // Initialize services
   initDB(config.dbPath);
   const agentRpc = resolveAgentRpc(config.chainId);
   const hostedPasskeys = config.passkeyHostedDirectoryUrl
@@ -115,6 +116,17 @@ async function main(): Promise<void> {
         rpcUrl: config.passkeyHostedDirectoryUrl,
         origin: `https://${PASSKEY_RP_ID}`,
       })
+    : undefined;
+  // Email sign-in recovery is on only with all four Openfort values; names, never values.
+  const openfortRecoveryConfig = readOpenfortRecoveryConfig();
+  if (!openfortRecoveryConfig.config && openfortRecoveryConfig.missing.length < 4) {
+    logger.warn(
+      { missing: openfortRecoveryConfig.missing },
+      "Openfort recovery is off: some of its settings are missing"
+    );
+  }
+  const openfortRecovery = openfortRecoveryConfig.config
+    ? createOpenfortRecovery(openfortRecoveryConfig.config)
     : undefined;
   // Only the host is logged: a configured address can carry a provider key in its path.
   const rpcLog = {
@@ -190,10 +202,6 @@ async function main(): Promise<void> {
     });
   }
 
-  // ============================================================================
-  // LAUNCH
-  // ============================================================================
-
   // Start HTTP server in both modes (health + API endpoints always available)
   const server = createServer({
     isAIReady: isAIModelLoaded,
@@ -246,6 +254,7 @@ async function main(): Promise<void> {
         : undefined,
       allowLocalDevelopment: config.isDevelopment,
     }),
+    openfortRecovery,
     gardenJoinRequestsEnabled: config.joinRequestsEnabled,
     gardenJoinRequestStore,
     ...(config.joinRequestsEnabled
@@ -346,10 +355,6 @@ async function main(): Promise<void> {
     },
     "✅ Agent running"
   );
-
-  // ============================================================================
-  // GRACEFUL SHUTDOWN
-  // ============================================================================
 
   const shutdown = createShutdownHandler({
     bot,

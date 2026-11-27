@@ -22,6 +22,7 @@ import { RiAwardLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { BadgeDetails } from "./BadgeDetails";
 import { BadgeTile } from "./BadgeTile";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
@@ -262,6 +263,7 @@ export const ProfileBadges: React.FC = () => {
       ? describeBadgeClaimError(selectedClaimState.error)
       : null;
   const selectedTitle = selectedBadge ? badgeTitle(intl, selectedBadge.slug) : "";
+  const selectedEarned = claimLanded || selectedBadge?.profileStatus === "earned";
 
   if (!primaryAddress) {
     return renderBadgeState(
@@ -356,7 +358,7 @@ export const ProfileBadges: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3" data-testid="profile-badge-grid">
+      <div className="grid auto-rows-fr grid-cols-2 gap-3" data-testid="profile-badge-grid">
         {displayBadges.map((badge) => {
           const title = badgeTitle(intl, badge.slug);
           const statusLabel = badgeStatusLabel(intl, badge.profileStatus);
@@ -369,6 +371,7 @@ export const ProfileBadges: React.FC = () => {
               unlockLock={badge.unlockLock}
               title={title}
               earned={badge.profileStatus === "earned"}
+              issuedAt={badge.ownership?.issuedAt}
               statusLabel={statusLabel}
               onOpen={() => setOpenedBadge(badge)}
             />
@@ -408,57 +411,59 @@ export const ProfileBadges: React.FC = () => {
             : undefined
         }
         size="md"
+        // One height whether or not the badge is earned (DL-014): the smallest
+        // tier that holds the artwork, its standing and the claim bar at 360 x 640.
+        sheetSize="tall"
       >
         {selectedBadge && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-bg-weak-50 px-2 py-1 text-xs font-medium text-text-sub-600">
-                {badgeStatusLabel(intl, claimLanded ? "earned" : selectedBadge.profileStatus)}
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-text-sub-600">
-              {badgeDescription(intl, selectedBadge.slug)}
-            </p>
-            {selectedClaim.note ? (
-              <p className="text-xs text-text-sub-600">{selectedClaim.note}</p>
-            ) : null}
-            {claimLanded ? (
-              <Alert
-                variant="success"
-                title={intl.formatMessage(
-                  { id: "app.profile.badges.claim.successTitle" },
-                  { badge: selectedTitle }
-                )}
-              >
-                {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
-              </Alert>
-            ) : claimAwaiting ? (
-              <Alert
-                variant="info"
-                title={intl.formatMessage({ id: "app.profile.badges.claim.awaitingTitle" })}
-              >
-                {intl.formatMessage({ id: "app.profile.badges.claim.awaitingMessage" })}
-              </Alert>
-            ) : selectedClaimState?.isPending ? (
-              <p role="status" className="text-xs text-text-sub-600">
-                {intl.formatMessage({ id: "app.profile.badges.claim.pendingMessage" })}
-              </p>
-            ) : claimFailure ? (
-              <Alert
-                variant={claimFailure.kind === "cancelled" ? "warning" : "error"}
-                title={
-                  claimFailure.kind === "cancelled"
-                    ? intl.formatMessage({ id: "app.profile.badges.claim.cancelledTitle" })
-                    : intl.formatMessage(
-                        { id: "app.profile.badges.claim.failedTitle" },
-                        { badge: selectedTitle }
-                      )
-                }
-              >
-                {intl.formatMessage({ id: claimFailure.messageId })}
-              </Alert>
-            ) : null}
-          </div>
+          <BadgeDetails
+            badge={selectedBadge}
+            earned={selectedEarned}
+            statusLabel={badgeStatusLabel(intl, selectedEarned ? "earned" : "claimable")}
+            description={badgeDescription(intl, selectedBadge.slug)}
+            note={selectedClaim.note}
+            claimProgress={
+              claimLanded ? (
+                <Alert
+                  className="w-full text-start"
+                  variant="success"
+                  title={intl.formatMessage(
+                    { id: "app.profile.badges.claim.successTitle" },
+                    { badge: selectedTitle }
+                  )}
+                >
+                  {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
+                </Alert>
+              ) : claimAwaiting ? (
+                <Alert
+                  className="w-full text-start"
+                  variant="info"
+                  title={intl.formatMessage({ id: "app.profile.badges.claim.awaitingTitle" })}
+                >
+                  {intl.formatMessage({ id: "app.profile.badges.claim.awaitingMessage" })}
+                </Alert>
+              ) : selectedClaimState?.isPending ? (
+                <p role="status" className="type-meta text-text-sub-600">
+                  {intl.formatMessage({ id: "app.profile.badges.claim.pendingMessage" })}
+                </p>
+              ) : claimFailure ? (
+                <Alert
+                  className="w-full text-start"
+                  variant={claimFailure.kind === "cancelled" ? "warning" : "error"}
+                  title={
+                    claimFailure.kind === "cancelled"
+                      ? intl.formatMessage({ id: "app.profile.badges.claim.cancelledTitle" })
+                      : intl.formatMessage(
+                          { id: "app.profile.badges.claim.failedTitle" },
+                          { badge: selectedTitle }
+                        )
+                  }
+                >
+                  {intl.formatMessage({ id: claimFailure.messageId })}
+                </Alert>
+              ) : null
+            }
+          />
         )}
       </DialogShell>
     </>

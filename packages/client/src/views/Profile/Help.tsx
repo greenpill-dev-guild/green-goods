@@ -28,8 +28,6 @@ interface FaqCategory {
   topics: string[];
 }
 
-type ProfileHelpProps = {};
-
 const GARDENER_GUIDE_URL = "https://docs.greengoods.app/community/gardener-guide";
 
 const LEARN_AND_CONNECT: readonly HelpLink[] = [
@@ -186,7 +184,7 @@ function FaqGuideLink({ href }: { href: string }) {
   );
 }
 
-export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
+export const ProfileHelp: React.FC = () => {
   const intl = useIntl();
 
   return (
@@ -197,6 +195,13 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
       {LEARN_AND_CONNECT.map((link) => (
         <HelpLinkCard key={link.messageKey} link={link} />
       ))}
+      {/* The docs are published in English only (PRD-1493), so a reader in another language
+          hears it before opening one. */}
+      {intl.locale.startsWith("en") ? null : (
+        <p className="text-xs text-text-sub-600">
+          {intl.formatMessage({ id: "app.profile.help.guidesInEnglish" })}
+        </p>
+      )}
       <HelpSectionHeading>
         {intl.formatMessage({ id: "app.profile.help.privacySafety" })}
       </HelpSectionHeading>

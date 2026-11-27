@@ -1,5 +1,5 @@
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { Button } from "@green-goods/shared/components/Button";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import {
@@ -12,7 +12,7 @@ import {
   isRetriablePoolSetupFailure,
   type PoolSetupStep,
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
@@ -55,7 +55,7 @@ export function PoolSettingsDialog({
   const sequence = useCommitmentPoolSetupSequence({
     chainId: pool.chainId,
     toastContext: formatMessage({
-      id: "cockpit.garden.pool.settings.title",
+      id: "hub.garden.pool.settings.title",
       defaultMessage: "Pool Settings",
     }),
   });
@@ -85,7 +85,7 @@ export function PoolSettingsDialog({
   const capError =
     cap.trim().length > 0 && (capValue === null || capValue === 0n)
       ? formatMessage({
-          id: "cockpit.garden.pool.settings.capError",
+          id: "hub.garden.pool.settings.capError",
           defaultMessage: "A whole number above zero",
         })
       : undefined;
@@ -156,64 +156,52 @@ export function PoolSettingsDialog({
 
   // Three footers: done, a stopped save (and the retry it started), and the
   // edit, whose Save stays busy through the first run.
-  const footer = (): ReactNode => {
+  const footer = (): SheetActionsProps => {
     if (status === "complete") {
-      return (
-        <Button type="button" emphasis="primary" size="sm" onClick={onClose}>
-          {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </Button>
-      );
+      return {
+        primary: {
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: onClose,
+        },
+      };
     }
     if (stopped || (status === "running" && lastAct === "retry")) {
-      return (
-        <>
-          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose} disabled={busy}>
-            {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-          </Button>
-          {retryable || status === "running" ? (
-            <Button
-              type="button"
-              emphasis="primary"
-              size="sm"
-              onClick={() => void retry()}
-              disabled={busy || !pool.isOnline}
-              loading={status === "running"}
-            >
-              {formatMessage({
-                id: "cockpit.garden.pool.setup.retry",
-                defaultMessage: "Try Again",
-              })}
-            </Button>
-          ) : null}
-        </>
-      );
+      return {
+        primary:
+          retryable || status === "running"
+            ? {
+                label: formatMessage({
+                  id: "hub.garden.pool.setup.retry",
+                  defaultMessage: "Try Again",
+                }),
+                onClick: () => void retry(),
+                disabled: busy || !pool.isOnline,
+                loading: status === "running",
+              }
+            : undefined,
+        secondary: {
+          label: formatMessage({ id: "app.common.close", defaultMessage: "Close" }),
+          onClick: onClose,
+          disabled: busy,
+        },
+      };
     }
-    return (
-      <>
-        <Button
-          type="button"
-          emphasis="tertiary"
-          size="sm"
-          onClick={() => dirtyClose.onOpenChange(false)}
-          disabled={busy}
-        >
-          {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </Button>
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={() => void save()}
-          disabled={!canSave}
-          loading={busy}
-        >
-          {formatMessage({
-            id: "cockpit.garden.pool.settings.save",
-            defaultMessage: "Save Settings",
-          })}
-        </Button>
-      </>
-    );
+    return {
+      primary: {
+        label: formatMessage({
+          id: "hub.garden.pool.settings.save",
+          defaultMessage: "Save Settings",
+        }),
+        onClick: () => void save(),
+        disabled: !canSave,
+        loading: busy,
+      },
+      secondary: {
+        label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+        onClick: () => dirtyClose.onOpenChange(false),
+        disabled: busy,
+      },
+    };
   };
 
   return (
@@ -225,7 +213,7 @@ export function PoolSettingsDialog({
         tone="garden"
         preventClose={busy}
         title={formatMessage({
-          id: "cockpit.garden.pool.settings.title",
+          id: "hub.garden.pool.settings.title",
           defaultMessage: "Pool Settings",
         })}
         target={<PoolTarget target={target} />}
@@ -237,7 +225,7 @@ export function PoolSettingsDialog({
             <AdminTextArea
               id={purposeId}
               label={formatMessage({
-                id: "cockpit.garden.pool.settings.purpose",
+                id: "hub.garden.pool.settings.purpose",
                 defaultMessage: "What this pool is for",
               })}
               value={purpose}
@@ -250,14 +238,14 @@ export function PoolSettingsDialog({
             />
             <AdminTextField
               label={formatMessage({
-                id: "cockpit.garden.pool.settings.cap",
+                id: "hub.garden.pool.settings.cap",
                 defaultMessage: "How many promises one person can hold at once",
               })}
               value={cap}
               onChange={(event) => setCap(event.target.value)}
               error={capError}
               helperText={formatMessage({
-                id: "cockpit.garden.pool.settings.capHelp",
+                id: "hub.garden.pool.settings.capHelp",
                 defaultMessage: "A safety limit so nobody over-commits. 24 suits most gardens.",
               })}
               inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
@@ -266,7 +254,7 @@ export function PoolSettingsDialog({
             />
             <p className="type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.settings.note",
+                id: "hub.garden.pool.settings.note",
                 defaultMessage:
                   "Both stay editable for the pool's whole life. Changing the limit never affects promises already made.",
               })}
@@ -290,7 +278,7 @@ export function PoolSettingsDialog({
         {!pool.isOnline && status !== "complete" ? (
           <Alert variant="warning">
             {formatMessage({
-              id: "cockpit.garden.pool.offline",
+              id: "hub.garden.pool.offline",
               defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
             })}
           </Alert>
@@ -298,7 +286,7 @@ export function PoolSettingsDialog({
         {pinFailed ? (
           <Alert variant="error">
             {formatMessage({
-              id: "cockpit.garden.pool.settings.pinFailed",
+              id: "hub.garden.pool.settings.pinFailed",
               defaultMessage:
                 "The agreement could not be stored, so nothing was sent. Your words are still here; try saving again.",
             })}

@@ -36,7 +36,7 @@ export const Unselected: Story = {
 export const Selected: Story = {
   args: { selected: true },
   // The app sets no workspace tone, so a selected chip keeps the action fill and
-  // its white text; only the cockpit's tone scopes fill it in their tone (DL-116).
+  // its white text; only the Hub's tone scopes fill it in their tone (DL-116).
   play: async ({ canvasElement }) => {
     const chip = within(canvasElement).getByRole("button", { name: "Offers" });
     const actionPair = document.createElement("span");
@@ -52,7 +52,7 @@ export const Selected: Story = {
 };
 
 function FilterRow() {
-  const filters = ["All", "Offers", "Asks"];
+  const filters = ["All", "Offers", "Requests"];
   const [active, setActive] = useState("All");
   return (
     <div className="flex gap-2">
@@ -73,8 +73,8 @@ export const FilterToggle: Story = {
       "aria-pressed",
       "true"
     );
-    await userEvent.click(canvas.getByRole("button", { name: "Asks" }));
-    await expect(canvas.getByRole("button", { name: "Asks" })).toHaveAttribute(
+    await userEvent.click(canvas.getByRole("button", { name: "Requests" }));
+    await expect(canvas.getByRole("button", { name: "Requests" })).toHaveAttribute(
       "aria-pressed",
       "true"
     );

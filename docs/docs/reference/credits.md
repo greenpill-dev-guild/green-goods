@@ -36,7 +36,7 @@ The code and documentation are available under the MIT License. Read the [Licens
 
 ### The Green Goods team
 
-Development happens in the open on [GitHub](https://github.com/greenpill-dev-guild/green-goods). The work includes the app, steward dashboard, contracts, infrastructure, documentation, and community support.
+Development happens in the open on [GitHub](https://github.com/greenpill-dev-guild/green-goods). The work includes the Green Goods App, Website and Hub, contracts, infrastructure, documentation, and community support.
 
 ## Contributors
 
@@ -68,7 +68,7 @@ The project also depends on work from OpenZeppelin, Viem, TanStack Query, Zustan
 
 ### Grants & Sponsors
 
-To discuss supporting Green Goods, contact the team through [Discord](https://discord.gg/greenpill). To support a garden directly, follow the [Funder Guide](/community/funder-guide/).
+To discuss supporting Green Goods, contact the team through the [Contact page](https://greengoods.app/contact). To support a garden directly, follow the [Funder Guide](/community/funder-guide/).
 
 ## Community Partners
 
@@ -100,13 +100,12 @@ Use the [Brand kit](/brand-kit) for current logos, icons, palette, fonts, and ed
 
 ### Development Team
 
-- [Discord community chat](https://discord.gg/greenpill)
 - [GitHub repository](https://github.com/greenpill-dev-guild/green-goods)
 - [Green Goods on X](https://x.com/greengoodsapp)
 
 ### For Press & Media
 
-Contact the team through [Discord](https://discord.gg/greenpill) for media inquiries and attribution questions.
+Contact the team through the [Contact page](https://greengoods.app/contact) for media inquiries and attribution questions.
 
 ## Contributing
 

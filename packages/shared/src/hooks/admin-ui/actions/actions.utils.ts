@@ -65,7 +65,7 @@ export function buildActionsHeaderStats({
     value: String(totalCount),
     label: formatMessage(
       {
-        id: "cockpit.actions.stats.total",
+        id: "hub.actions.stats.total",
         defaultMessage: "{count, plural, one {action} other {actions}}",
       },
       { count: totalCount }
@@ -79,7 +79,7 @@ export function buildActionsHeaderStats({
       value: String(domainsCovered),
       label: formatMessage(
         {
-          id: "cockpit.actions.stats.domains",
+          id: "hub.actions.stats.domains",
           defaultMessage: "{count, plural, one {domain} other {domains}}",
         },
         { count: domainsCovered }
@@ -89,10 +89,10 @@ export function buildActionsHeaderStats({
 }
 
 export const LIFECYCLE_TABS: { id: LifecycleStage; labelId: string; defaultLabel: string }[] = [
-  { id: "all", labelId: "cockpit.actions.stage.all", defaultLabel: "All" },
-  { id: "active", labelId: "cockpit.actions.stage.active", defaultLabel: "Active" },
-  { id: "upcoming", labelId: "cockpit.actions.stage.upcoming", defaultLabel: "Upcoming" },
-  { id: "completed", labelId: "cockpit.actions.stage.completed", defaultLabel: "Completed" },
+  { id: "all", labelId: "hub.actions.stage.all", defaultLabel: "All" },
+  { id: "active", labelId: "hub.actions.stage.active", defaultLabel: "Active" },
+  { id: "upcoming", labelId: "hub.actions.stage.upcoming", defaultLabel: "Upcoming" },
+  { id: "completed", labelId: "hub.actions.stage.completed", defaultLabel: "Completed" },
 ];
 
 function normalizeTimestamp(value: number): number {

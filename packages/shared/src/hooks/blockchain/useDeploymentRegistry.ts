@@ -11,6 +11,7 @@ import { getNetworkConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
+import { recordSendAct } from "../../modules/app/sendActAnalytics";
 import { requireConfirmed } from "../../modules/transactions/confirmation";
 import {
   TransactionConfirmationPendingError,
@@ -106,6 +107,12 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     enabled: !!normalizedAddress && ready,
     staleTime: STALE_TIMES.baseLists,
     networkMode: "offlineFirst",
+    // A read with no answer stays settled until Try Again or a reconnect asks for it again.
+    // Restarting it when the access gate mounts the workspace, or when the tab regains focus,
+    // reopens the gate, which unmounts the workspace and starts the loop over (PRD-1506). An
+    // answer, once there is one, still refreshes on focus, so a changed permission shows.
+    retryOnMount: false,
+    refetchOnWindowFocus: (query) => query.state.data !== undefined,
   });
 
   return {
@@ -113,7 +120,8 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     isInAllowlist: data?.isInAllowlist ?? false,
     canDeploy: data?.canDeploy ?? false,
     loading: !ready || isLoading,
-    ...(error ? { error: error instanceof Error ? error.message : "Unknown error" } : {}),
+    // Only a read with no answer is unknown: a failed refresh keeps the answer it already had.
+    ...(error && !data ? { error: error instanceof Error ? error.message : "Unknown error" } : {}),
   };
 }
 
@@ -264,7 +272,7 @@ export function useGardenCreators(): GardenCreators {
         // The sender is still being set up, a passkey account initializing say: nothing can go.
         toastService.error({
           title: messages.errorMessage,
-          message: formatMessage({ id: "cockpit.community.gardenCreators.checkFailed" }),
+          message: formatMessage({ id: "hub.community.gardenCreators.checkFailed" }),
           context: "garden creators",
         });
         return false;
@@ -289,7 +297,7 @@ export function useGardenCreators(): GardenCreators {
             // could not run, and its parsed message would read as a refusal it never made.
             message: simulation.error?.reverted
               ? simulation.error.message
-              : formatMessage({ id: "cockpit.community.gardenCreators.checkFailed" }),
+              : formatMessage({ id: "hub.community.gardenCreators.checkFailed" }),
             context: "garden creators",
           });
           return false;
@@ -298,34 +306,44 @@ export function useGardenCreators(): GardenCreators {
         let couldReachNetwork = false;
         try {
           await executeWithToast(
-            async () => {
-              try {
-                const result = await sender.sendContractCall(
-                  {
-                    address: registry,
-                    // The account the simulation and the permission read were for, and no other.
-                    account: address,
-                    abi,
-                    functionName,
-                    args: [creator],
-                    chainId,
-                  },
-                  {
-                    assertOwnership: () => sender.assertOwnership?.(address, chainId),
-                    onBeforeBroadcast: async () => {
-                      couldReachNetwork = true;
-                    },
+            // One act per change, from the signature to its receipt (PRD-1571).
+            () =>
+              recordSendAct(
+                {
+                  act: "garden_creator_allowlist",
+                  operation: functionName,
+                  authMode: sender.authMode,
+                  chainId,
+                },
+                async () => {
+                  try {
+                    const result = await sender.sendContractCall(
+                      {
+                        address: registry,
+                        // The account the simulation and the permission read were for, and no other.
+                        account: address,
+                        abi,
+                        functionName,
+                        args: [creator],
+                        chainId,
+                      },
+                      {
+                        assertOwnership: () => sender.assertOwnership?.(address, chainId),
+                        onBeforeBroadcast: async () => {
+                          couldReachNetwork = true;
+                        },
+                      }
+                    );
+                    // A wallet that queues the call, a Safe say, answers before it runs.
+                    return requireConfirmed(result);
+                  } catch (error) {
+                    if (mayStillLand(error, couldReachNetwork)) {
+                      throw new TransactionConfirmationPendingError();
+                    }
+                    throw error;
                   }
-                );
-                // A wallet that queues the call, a Safe say, answers before it runs.
-                return requireConfirmed(result);
-              } catch (error) {
-                if (mayStillLand(error, couldReachNetwork)) {
-                  throw new TransactionConfirmationPendingError();
                 }
-                throw error;
-              }
-            },
+              ),
             { ...messages, context: "garden creators" }
           );
           return true;
@@ -353,15 +371,15 @@ export function useGardenCreators(): GardenCreators {
     (creator: Address) =>
       writeAllowlist("addToAllowlist", creator, {
         loadingMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.adding",
+          id: "hub.community.gardenCreators.adding",
           defaultMessage: "Adding garden creator...",
         }),
         successMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.added",
+          id: "hub.community.gardenCreators.added",
           defaultMessage: "Garden creator added",
         }),
         errorMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.addFailed",
+          id: "hub.community.gardenCreators.addFailed",
           defaultMessage: "Couldn't add garden creator",
         }),
       }),
@@ -372,15 +390,15 @@ export function useGardenCreators(): GardenCreators {
     (creator: Address) =>
       writeAllowlist("removeFromAllowlist", creator, {
         loadingMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.removing",
+          id: "hub.community.gardenCreators.removing",
           defaultMessage: "Removing garden creator...",
         }),
         successMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.removed",
+          id: "hub.community.gardenCreators.removed",
           defaultMessage: "Garden creator removed",
         }),
         errorMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.removeFailed",
+          id: "hub.community.gardenCreators.removeFailed",
           defaultMessage: "Couldn't remove garden creator",
         }),
       }),

@@ -260,6 +260,8 @@ export async function enqueueProof({
   let secondActSent = null as (() => Promise<boolean>) | null;
   let ended = null as "landed" | "declined" | null;
   let queuedReason = undefined as string | undefined;
+  // The wallet answered with a Safe proposal: the queue keeps it, and it waits for the signers.
+  let awaitingSafeSigners = false;
   const onItsWay = () =>
     startProofSend(send.key, { contents: send.contents, baseline: send.baseline });
   // The proof is on the record, whatever its second act does next; say sent
@@ -323,6 +325,9 @@ export async function enqueueProof({
         queuedReason = event.reason;
         onLanding("queued");
         return;
+      case "safe-signers":
+        awaitingSafeSigners = true;
+        return;
     }
   };
 
@@ -355,7 +360,10 @@ export async function enqueueProof({
     // Followed since admission; the follower says how the flush's send ended.
   } else {
     sendOver();
-    if (queuedReason === "awaiting-confirmation") toasts.takingLonger();
+    if (queuedReason === "awaiting-confirmation") {
+      if (awaitingSafeSigners) toasts.safeSigners();
+      else toasts.takingLonger();
+    }
     // Otherwise the wallet send waits its turn; the promise's notice says why.
     else toasts.dismiss();
   }

@@ -190,7 +190,7 @@ describe("useCommitmentsToConfirm", () => {
     expect(mocks.getCommitments).not.toHaveBeenCalled();
   });
 
-  // The Hub's refresh calls this queue's refetch on the Confirm tab; it must not
+  // Review's refresh calls this queue's refetch on the Confirm tab; it must not
   // run a read the queue's own gate keeps off.
   it("asks nothing for a plain member on a refresh either", async () => {
     mocks.gardens = [garden(GARDEN_A, "Rocinha", { gardeners: [VIEWER] })];
@@ -282,8 +282,8 @@ describe("useCommitmentsToConfirm", () => {
     expect(result.current.count).toBe(1);
   });
 
-  it("lists the reader's own confirmations in a pool they steward only when the Hub asks", async () => {
-    // Admin has no Live tab, so the Hub asks for what waits on the steward's own
+  it("lists the reader's own confirmations in a pool they steward only when Review asks", async () => {
+    // Admin has no Live tab, so Review asks for what waits on the steward's own
     // account (PRD-1204). The PWA does not: Live already carries it there.
     mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     answerWith([]);
@@ -327,12 +327,12 @@ describe("useCommitmentsToConfirm", () => {
     expect(pwa.current.own).toEqual([]);
     expect(pwa.current.count).toBe(0);
 
-    const hub = await toConfirm({ includeOwn: true });
-    expect(hub.current.own?.map((row) => [row.commitment.id, row.garden])).toEqual([
+    const review = await toConfirm({ includeOwn: true });
+    expect(review.current.own?.map((row) => [row.commitment.id, row.garden])).toEqual([
       ["42161-23", GARDEN_A],
       ["42161-20", GARDEN_A],
     ]);
-    expect(hub.current.count).toBe(2);
+    expect(review.current.count).toBe(2);
   });
 
   it("treats the reader's own confirmations failing as the tab failing", async () => {
@@ -449,7 +449,7 @@ describe("useCommitmentsToConfirm", () => {
     expect(ownCalls).toHaveLength(1);
   });
 
-  // The Hub's refresh is busy while the Confirm tab's queue rereads.
+  // Review's refresh is busy while the Confirm tab's queue rereads.
   it("is busy while a refresh rereads it", async () => {
     mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     answerWith([commitment()]);

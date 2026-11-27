@@ -4,15 +4,26 @@
 
 import { commitmentFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import type { CommitmentEventRecord } from "@green-goods/shared/commitment-pooling";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { BookingHistoryAnchor } from "../../views/Home/Garden/Commitment/serviceBookingTypes";
+import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
-const mocks = vi.hoisted(() => ({ events: [] as CommitmentEventRecord[] }));
+const mocks = vi.hoisted(() => ({
+  events: [] as CommitmentEventRecord[],
+  reason: { reason: null, isLoading: false, isUnavailable: false } as {
+    reason: { version: 1; reason: string } | null;
+    isLoading: boolean;
+    isUnavailable: boolean;
+  },
+  reasonCIDs: [] as (string | null | undefined)[],
+}));
 
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentActivity: () => ({ events: mocks.events, isError: false }),
+  useCommitmentReason: (cid: string | null | undefined) => {
+    mocks.reasonCIDs.push(cid);
+    return mocks.reason;
+  },
 }));
 
 const { CommitmentHistory } = await import("../../views/Home/Garden/Commitment/CommitmentHistory");
@@ -39,31 +50,12 @@ function event(eventType: string, minute: number): CommitmentEventRecord {
   };
 }
 
-const step = (id: string, anchor?: BookingHistoryAnchor) => ({
-  id,
-  text: `Booking: ${id}`,
-  state: "done",
-  stateLabel: "Done",
-  anchor,
-});
-
-/** A hub day booked, accepted and reported, its split approved: newest first, as the page reads it. */
-const HUB_DAY_STEPS = [
-  step("split"),
-  step("delivered", "READY_FOR_CONFIRMATION"),
-  step("started"),
-  step("accepted", "ACCEPTED"),
-  step("deposited"),
-  step("agreed", "CLAIM_REQUESTED"),
-];
-
-function renderHistory(bookingLines = HUB_DAY_STEPS) {
+function renderHistory() {
   renderWithProviders(
     <CommitmentHistory
       chainId={42161}
       commitment={commitmentFixture({ commitmentId: 4101n, direction: "OFFER" })}
       viewer={VIEWER}
-      bookingLines={bookingLines}
     />
   );
   return screen.getAllByRole("listitem").map((item) => ({
@@ -72,8 +64,8 @@ function renderHistory(bookingLines = HUB_DAY_STEPS) {
   }));
 }
 
-describe("a voucher booking in History", () => {
-  beforeEach(() => {
+describe("a promise's History", () => {
+  it("lists the promise's events newest first, the newest marked latest", () => {
     mocks.events = [
       event("CONFIRMATION_RECORDED", 50),
       event("READY_FOR_CONFIRMATION", 40),
@@ -81,76 +73,80 @@ describe("a voucher booking in History", () => {
       event("CLAIM_REQUESTED", 10),
       event("CREATED", 0),
     ];
-  });
-
-  it("puts a confirmation made while a transfer was on its way above the split, as the latest", () => {
     const lines = renderHistory();
-    expect(lines[0]).toEqual({ text: "You confirmed it was kept", latest: true });
-    expect(lines.filter((line) => line.latest)).toHaveLength(1);
-    expect(lines.map((line) => line.text).slice(1, 4)).toEqual([
-      "Booking: split",
-      "Booking: delivered",
-      "You sent it for confirmation",
-    ]);
-  });
-
-  it("places each booking step at the promise's own event, or after the step before it", () => {
-    const texts = renderHistory().map((line) => line.text);
-    const at = (text: string) => texts.indexOf(text);
-    // Approval and deposit happened between asking for the hub day and its acceptance.
-    expect(at("Booking: deposited")).toBeLessThan(at("Booking: agreed"));
-    expect(at("Booking: deposited")).toBeGreaterThan(at("You took this up"));
-    expect(at("Booking: started")).toBeLessThan(at("Booking: accepted"));
-    expect(at("Booking: started")).toBeGreaterThan(at("You sent it for confirmation"));
-    expect(texts.at(-1)).toBe("You offered this");
-  });
-
-  it("never dates a step before the step it followed", () => {
-    // An older reading of acceptance than of the deposit before it still sorts above the deposit.
-    mocks.events = [event("ACCEPTED", 5), event("CLAIM_REQUESTED", 10)];
-    const texts = renderHistory([
-      step("accepted", "ACCEPTED"),
-      step("agreed", "CLAIM_REQUESTED"),
-    ]).map((line) => line.text);
-    expect(texts.indexOf("Booking: accepted")).toBeLessThan(texts.indexOf("Booking: agreed"));
-  });
-
-  it("keeps a confirmation in the same block as the send above the split", () => {
-    // Sent for confirmation and confirmed in one block: one timestamp, the confirmation newer.
-    mocks.events = [
-      event("CONFIRMATION_RECORDED", 40),
-      event("READY_FOR_CONFIRMATION", 40),
-      event("ACCEPTED", 30),
-      event("CLAIM_REQUESTED", 10),
-    ];
-    const lines = renderHistory();
-    expect(lines[0]).toEqual({ text: "You confirmed it was kept", latest: true });
-    expect(lines[1]?.text).toBe("Booking: split");
-  });
-
-  it("puts the kept step at the confirmation that kept the promise", () => {
-    mocks.events = [
-      event("FULFILLED", 50),
-      event("CONFIRMATION_RECORDED", 50),
-      event("ACCEPTED", 30),
-    ];
-    // The two land in one transaction, so History draws one line for both.
-    mocks.events[0]!.txHash = mocks.events[1]!.txHash;
-    const texts = renderHistory([
-      step("kept", "FULFILLED"),
-      step("split"),
-      step("accepted", "ACCEPTED"),
-    ]).map((line) => line.text);
-    expect(texts.slice(0, 3)).toEqual([
-      "Booking: kept",
-      "You confirmed it was kept",
-      "Booking: split",
-    ]);
-  });
-
-  it("keeps the promise's events in their own order when there is no booking", () => {
-    const lines = renderHistory([]);
     expect(lines[0]).toEqual({ text: "You confirmed it was kept", latest: true });
     expect(lines.at(-1)?.text).toBe("You offered this");
+  });
+});
+
+describe("a withdrawn promise in History", () => {
+  const STEWARD = "0x3333333333333333333333333333333333333333" as const;
+
+  function renderWithdrawn() {
+    const withdrawn = event("CANCELLED", 20);
+    withdrawn.actor = STEWARD;
+    mocks.events = [withdrawn, event("CREATED", 0)];
+    mocks.reasonCIDs = [];
+    renderWithProviders(
+      <CommitmentHistory
+        chainId={42161}
+        commitment={commitmentFixture({
+          commitmentId: 4101n,
+          direction: "OFFER",
+          cancelReasonCID: "bafy-cancel-reason",
+        })}
+        viewer={VIEWER}
+      />
+    );
+    return screen.getAllByRole("listitem")[0]!;
+  }
+
+  // The creator reads why a steward withdrew it, under the line that says so.
+  it.each([
+    {
+      shown: "the steward's reason",
+      reason: {
+        reason: { version: 1 as const, reason: "Duplicate promise" },
+        isLoading: false,
+        isUnavailable: false,
+      },
+      detail: "Reason: Duplicate promise",
+    },
+    {
+      shown: "a quiet note while it loads",
+      reason: { reason: null, isLoading: true, isUnavailable: false },
+      detail: "Reading the reason…",
+    },
+    {
+      shown: "a quiet note when it can't be read",
+      reason: { reason: null, isLoading: false, isUnavailable: true },
+      detail: "The reason can't be read right now.",
+    },
+  ])("shows $shown under the withdrawn line", ({ reason, detail }) => {
+    mocks.reason = reason;
+    const line = renderWithdrawn();
+    const texts = [...line.querySelectorAll("p")].map((p) => p.textContent);
+    expect(texts[0]).toMatch(/withdrew it$/);
+    expect(texts[1]).toBe(detail);
+    expect(mocks.reasonCIDs).toContain("bafy-cancel-reason");
+  });
+
+  it("reads no reason for a promise that was never withdrawn", () => {
+    mocks.events = [event("CREATED", 0)];
+    mocks.reasonCIDs = [];
+    mocks.reason = { reason: null, isLoading: false, isUnavailable: false };
+    renderWithProviders(
+      <CommitmentHistory
+        chainId={42161}
+        commitment={commitmentFixture({
+          commitmentId: 4101n,
+          cancelReasonCID: "bafy-cancel-reason",
+        })}
+        viewer={VIEWER}
+      />
+    );
+    // The hook still runs on every render; it is handed no CID, so it reads nothing.
+    expect(mocks.reasonCIDs.length).toBeGreaterThan(0);
+    expect(mocks.reasonCIDs.every((cid) => cid === null || cid === undefined)).toBe(true);
   });
 });

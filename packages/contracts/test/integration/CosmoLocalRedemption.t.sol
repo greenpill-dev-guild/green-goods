@@ -133,7 +133,7 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
         uint256 commitmentId = _acceptVoucherOffer(poolId, keccak256("fictional dispute confirmation"), false);
         bytes32 id = _present(commitmentId);
         _ready(commitmentId);
-        vm.prank(PROVIDER_STEWARD);
+        vm.prank(CREATOR);
         module.raiseDispute(commitmentId, "fictional service dispute");
         vm.prank(PROVIDER_STEWARD);
         module.resolveDispute(commitmentId, Core.DisputeResolution.Fulfilled, "fictional authorized resolution");

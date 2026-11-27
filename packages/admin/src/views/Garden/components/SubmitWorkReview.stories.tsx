@@ -2,6 +2,10 @@ import { type Action, Domain } from "@green-goods/shared/types/domain";
 import { RiUploadCloudLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
+import {
+  stagedWorkPhotos,
+  stagedWorkVideo,
+} from "../../../../../shared/.storybook/workPhotoFixtures";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminDialog } from "@/components/AdminDialog";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import {
@@ -53,22 +57,39 @@ const FILLED = {
 };
 
 interface ReviewStoryArgs {
+  images: File[];
   phase: FlowSendPhase;
   /** The stage the send says it is on, while it sends. */
   progressMessage: string;
   values: Record<string, unknown>;
+  /** Sent, its receipt not seen yet. */
+  awaitingConfirmation?: boolean;
 }
 
 /** The Review at one moment of the send: only the status row and the Edit links change. */
-function ReviewAt({ phase, progressMessage, values }: ReviewStoryArgs) {
+function ReviewAt({
+  phase,
+  progressMessage,
+  values,
+  images,
+  awaitingConfirmation,
+}: ReviewStoryArgs) {
   const { formatMessage } = useIntl();
-  const status = submitWorkSendStatus({ phase, progressMessage, formatMessage });
+  const status = submitWorkSendStatus({
+    phase,
+    progressMessage,
+    formatMessage,
+    awaitingConfirmation,
+  });
   return (
     <SubmitWorkReview
       action={ACTION}
-      images={[]}
+      images={images}
       values={values}
-      photoRequirementText="1 photo required"
+      photoRequirementText={formatMessage(
+        { id: "app.admin.work.submit.photosRequired" },
+        { count: 1 }
+      )}
       status={status}
       onEditStep={noop}
     />
@@ -126,7 +147,7 @@ function ReviewInFlow(args: ReviewStoryArgs) {
 const meta: Meta<ReviewStoryArgs> = {
   title: "Admin/Workflows/Garden/SubmitWorkReview",
   tags: ["autodocs"],
-  args: { phase: "ready", progressMessage: "", values: FILLED },
+  args: { phase: "ready", progressMessage: "", values: FILLED, images: [] },
   argTypes: {
     phase: { control: "inline-radio", options: ["ready", "sending", "sent", "failed"] },
   },
@@ -158,6 +179,14 @@ type Story = StoryObj<ReviewStoryArgs>;
 /** Nothing sent yet: the row says what the primary will do. */
 export const Filled: Story = {};
 
+export const MixedMedia: Story = {
+  args: { images: [...stagedWorkPhotos(1), stagedWorkVideo("walkthrough.mp4")] },
+};
+
+export const VideoOnly: Story = {
+  args: { images: [stagedWorkVideo("walkthrough.webm")] },
+};
+
 export const Empty: Story = {
   args: { values: {} },
 };
@@ -184,9 +213,15 @@ export const InFlowReady: Story = { ...inFlow };
 
 export const InFlowSending: Story = {
   ...inFlow,
-  args: { phase: "sending", progressMessage: "Confirm in your wallet..." },
+  args: { phase: "sending", progressMessage: "Confirm in your wallet" },
 };
 
 export const InFlowSent: Story = { ...inFlow, args: { phase: "sent" } };
+
+/** Sent, its receipt not seen yet: the shared still confirming words (PRD-1552). */
+export const InFlowStillConfirming: Story = {
+  ...inFlow,
+  args: { phase: "sent", awaitingConfirmation: true },
+};
 
 export const InFlowFailed: Story = { ...inFlow, args: { phase: "failed" } };

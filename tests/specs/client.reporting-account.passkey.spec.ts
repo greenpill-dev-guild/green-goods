@@ -39,7 +39,6 @@ async function arrive(page: Page, link: string) {
   await act(page, "Continue").click({ timeout: FIRST_PAINT });
 }
 
-/** From the two choices: Create Account, a name, and the passkey prompt. */
 async function createAccount(page: Page, name: string) {
   await act(page, "Create Account").click();
   await expect(heading(page)).toHaveText("Create Your Account");
@@ -164,7 +163,6 @@ test("someone with an account gets back in, by its passkey and then by its name"
     expect(world.linkOpenings()).toBe(1);
   });
   await test.step("a browser that has forgotten the account opens on the two choices", async () => {
-    // The same device and passkey, in a browser that no longer knows the account.
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
@@ -219,15 +217,22 @@ test("a link opened on the wrong account signs the browser out before Continue",
       ["es", "Cuenta y ayuda", "Cerrar sesión en este navegador"],
       ["pt", "Conta e ajuda", "Sair da conta neste navegador"],
     ] as const) {
-      // The reader's stored choice, as the language picker leaves it.
-      await page.evaluate((chosen) => localStorage.setItem("gg-language", chosen), language);
+      // The reader's stored choice, as the language picker leaves it: this site's storage and the
+      // cookie every Green Goods site shares (PRD-1493), which wins when the two differ.
+      await page.evaluate((chosen) => {
+        localStorage.setItem("gg-language", chosen);
+        document.cookie = `gg-language=${chosen}; Path=/`;
+      }, language);
       await page.reload({ waitUntil: "domcontentloaded" });
       const sheet = await openAccount(page, profile);
       await expect(sheet.getByRole("button", { name: signOut })).toBeVisible(CEREMONY);
       await keep(page, `sign-out-${language}`);
       await page.keyboard.press("Escape");
     }
-    await page.evaluate(() => localStorage.removeItem("gg-language"));
+    await page.evaluate(() => {
+      localStorage.removeItem("gg-language");
+      document.cookie = "gg-language=; Path=/; Max-Age=0";
+    });
     await page.reload({ waitUntil: "domcontentloaded" });
   });
   await test.step("signing out opens nothing and signs nothing", async () => {

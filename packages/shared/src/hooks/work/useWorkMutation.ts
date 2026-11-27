@@ -1,6 +1,12 @@
 import { connectivityStore } from "../../stores/connectivity";
 import { useIntl } from "react-intl";
-import { showWorkSubmissionFailure } from "./workSubmissionFeedback";
+import {
+  recordWorkSubmissionFailure,
+  recordWorkSubmissionOutcome,
+  recordWorkSubmissionStart,
+  showWorkStillConfirming,
+  showWorkSubmissionFailure,
+} from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 import { draftDB } from "../../modules/job-queue/draft-db";
@@ -15,11 +21,7 @@ import {
   workToasts,
 } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import {
-  trackWorkSubmissionStarted,
-  trackWorkSubmissionSuccess,
-  trackWorkWalletRequestStarted,
-} from "../../modules/app/analytics-events";
+import { trackWorkWalletRequestStarted } from "../../modules/app/analytics-events";
 import { addBreadcrumb } from "../../modules/app/error-tracking";
 import {
   hasRecordedSend,
@@ -38,6 +40,7 @@ import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { gardensKeys } from "../../config/query-keys/garden";
 import { worksKeys } from "../../config/query-keys/work";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
@@ -112,6 +115,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
         queryClient.invalidateQueries({
           queryKey: worksKeys.merged(lastGardenRef.current, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: gardensKeys.memberReadinessForGarden(lastGardenRef.current, chainId),
         });
       }
     }, [queryClient, chainId]),
@@ -216,7 +222,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           onWalletStage: (stage, message) => {
             if (!ownsFlow(origin)) return;
             if (
-              stage === "confirming" &&
+              stage === "wallet" &&
               walletRequestStartedJourneyRef.current !== workSubmissionJourneyId
             ) {
               walletRequestStartedJourneyRef.current = workSubmissionJourneyId;
@@ -233,7 +239,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             if (stage === "complete") {
               walletProgressToasts.success();
             } else {
-              showWalletProgress(stage, message);
+              showWalletProgress(stage, message, intl.formatMessage);
             }
             onProgress?.(stage, message);
           },
@@ -268,12 +274,12 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const hasSubmissionContext = userAddress && gardenAddress && typeof actionUID === "number";
       if (hasSubmissionContext && (!hasRecordedSend(work) || hasRevertedWorkSend(work))) {
         const receipt = await uploadPolicy.request();
-        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError("flow-left");
         assertWorkUploadConsent(receipt, userAddress);
         origin.uploadConsent = receipt;
         if (variables.beforeAdmission && !(await variables.beforeAdmission()))
-          throw new UploadPolicyCancelledError();
-        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
+          throw new UploadPolicyCancelledError("before-admission");
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError("flow-left");
       }
       const workSubmissionJourneyId = origin.journeyId;
 
@@ -297,7 +303,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         imageCount: variables?.images.length ?? 0,
         workSubmissionJourneyId,
       });
-      trackWorkSubmissionStarted({
+      recordWorkSubmissionStart({
         actionUID: actionUID ?? 0,
         authMode,
         imageCount: variables?.images.length ?? 0,
@@ -366,25 +372,18 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
     onSuccess: (txHash, variables) => {
       const origin = origins.current.get(variables);
-      if (!origin || !ownsFlow(origin)) return;
+      if (!origin || !ownsSession(origin)) return;
+      // The ending is recorded even when the person has left the flow (PRD-1495).
+      recordWorkSubmissionOutcome(origin, txHash, options);
+      if (!ownsFlow(origin)) return;
       const isOfflineHash = typeof txHash === "string" && isOfflineTxHash(txHash);
-      const workSubmissionJourneyId = origin.journeyId;
 
       const awaiting = origin.outcome?.kind === "awaiting-confirmation";
       // A send on record whose check could not run now says so, not that it is being checked.
       const unchecked =
         origin.outcome?.kind === "awaiting-confirmation" &&
         origin.outcome.reason === "connection-unconfirmed";
-      if (awaiting) {
-        walletProgressToasts.dismiss();
-        toastService.info({
-          title: intl.formatMessage({ id: "app.work.awaitingConfirmation" }),
-          message: intl.formatMessage({
-            id: unchecked ? "app.work.confirmationUnchecked" : "app.work.confirmationExplanation",
-          }),
-          context: "work",
-        });
-      }
+      if (awaiting) showWorkStillConfirming(intl, unchecked);
       if (!awaiting) hapticSuccess();
       // Offline already said "Saved offline"; an unstable connection says why nothing was sent.
       if (origin.outcome?.kind === "queued" && origin.outcome.reason === "connection-unconfirmed")
@@ -393,17 +392,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           title: intl.formatMessage({ id: "app.offline.degraded" }),
           message: intl.formatMessage({ id: "app.work.queuedConnectionUnconfirmed" }),
           context: "work",
-        });
-
-      // Confirmation checks have not established a successful submission yet.
-      if (!awaiting)
-        trackWorkSubmissionSuccess({
-          actionUID: actionUID ?? 0,
-          authMode,
-          wasOffline: isOfflineHash,
-          workSubmissionJourneyId,
-          chainId,
-          submissionPhase: "success",
         });
 
       if (completeClientFlow) {
@@ -426,6 +414,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         queryClient.invalidateQueries({
           queryKey: worksKeys.merged(gardenAddress, chainId),
         });
+        // A sent work can move its gardener's readiness in the Gardeners view.
+        queryClient.invalidateQueries({
+          queryKey: gardensKeys.memberReadinessForGarden(gardenAddress, chainId),
+        });
 
         lastGardenRef.current = gardenAddress;
         scheduleFollowUp();
@@ -445,8 +437,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
     onError: (error: unknown, variables, context) => {
       const origin = origins.current.get(variables);
-      if (!origin || !ownsFlow(origin)) return;
+      if (!origin || !ownsSession(origin)) return;
+      // The ending is recorded even when the person has left the flow (PRD-1495).
+      if (!ownsFlow(origin)) return recordWorkSubmissionFailure(error, options, origin, variables);
       if (error instanceof UploadPolicyCancelledError) {
+        recordWorkSubmissionFailure(error, options, origin, variables);
         onError?.(error);
         return;
       }

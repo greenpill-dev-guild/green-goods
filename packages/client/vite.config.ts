@@ -10,10 +10,16 @@ import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
 import {
+  browserMinimumGatePlugin,
+  SUPPORTED_BROWSER_TARGETS,
+} from "../../scripts/lib/browser-support.mjs";
+import {
   assertEnvParity,
   assertSentryDsnResolvable,
+  clearAlphaAnalyticsKeys,
   dropVercelFrameworkVariables,
 } from "../../scripts/lib/env-parity.mjs";
+import { telemetryBuildDefines } from "../../scripts/lib/telemetry-build";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
@@ -244,6 +250,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     });
     assertSentryDsnResolvable({ app: "client", sentryDsn, env: process.env });
   }
+  // After the parity check, which would warn about the keys it empties: alpha sends no
+  // product analytics.
+  clearAlphaAnalyticsKeys(process.env);
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() || "http://localhost:3006/v1/graphql";
@@ -285,6 +294,12 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const plugins = [
     devTunnelPlugin(),
     pwaHtmlMetadataPlugin(pwaBranding),
+    // Below the browser minimum the installed App and the reporting pages show an update screen.
+    browserMinimumGatePlugin({
+      surface: "client",
+      logo: `${pwaRouting.assetBasePath}icon.png`,
+      posthogKey: process.env.VITE_POSTHOG_KEY,
+    }),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -315,6 +330,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       filename: "sw.ts",
       injectManifest: {
         rollupFormat: "iife",
+        // The plugin's default is build.target; naming the same list keeps a plugin
+        // upgrade from moving the worker off the supported minimum.
+        target: [...SUPPORTED_BROWSER_TARGETS],
         minify: nodeEnv === "production",
         sourcemap: false,
         // Build-time VITE_ flags come from the same env files.
@@ -445,6 +463,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {
+      // The supported minimum, named so a Vite upgrade cannot move it; the CSS target follows it.
+      target: [...SUPPORTED_BROWSER_TARGETS],
       // 'hidden' emits .map files for server-side upload (PostHog / Sentry) but
       // omits the sourceMappingURL comment, so the maps are never referenced from
       // — or served to — browsers. The upload lane deletes them after upload.
@@ -511,9 +531,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               // part of it, as the reporting pages reach the categories, must not split it into
               // one more file the page preloads. Keep its recovery state and worker protocol
               // together too: the preload-error handler reaches both before any route loads.
+              // The external-error rules and the telemetry context (PRD-1560) are reached from
+              // here and from the lazy Sentry and PostHog loaders, so they stay in this file.
               {
                 name: "error-reporting",
-                test: /\/packages\/shared\/src\/modules\/app\/(?:error-(?:breadcrumbs|categories|events)|cache-recovery|service-worker-protocol)\.ts$/,
+                test: /\/packages\/shared\/src\/(?:modules\/app\/(?:error-(?:breadcrumbs|categories|events)|cache-recovery|service-worker-protocol|external-errors|telemetry-context)|public-contracts\/telemetry-segmentation)\.ts$/,
                 priority: 45,
                 includeDependenciesRecursively: false,
               },
@@ -549,6 +571,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_CLIENT_DSN": JSON.stringify(sentryDsn ?? ""),
       "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
+      ...telemetryBuildDefines({ surface: "app", release: sentryRelease }),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
     oxc: {
@@ -629,6 +652,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared > @hypercerts-org/contracts",
         "@green-goods/shared > @hypercerts-org/marketplace-sdk",
         "@green-goods/shared > @hypercerts-org/sdk",
+        "@green-goods/shared > @openfort/openfort-js",
         "@green-goods/shared > @radix-ui/react-popover",
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",
@@ -668,6 +692,18 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",
+        // ── @green-goods/shared imports the startup scan misses (checked by vite/prebundle.test.ts) ──
+        "@radix-ui/react-dialog",
+        "@remixicon/react",
+        "@tanstack/react-query",
+        "@green-goods/shared > @wagmi/core/query",
+        "@green-goods/shared > permissionless/actions/passkeyServer",
+        "@green-goods/shared > permissionless/utils",
+        "react-intl",
+        "react-router-dom",
+        "viem",
+        "viem/actions",
+        "wagmi",
         // ── the service worker (src/sw/sw.ts) ──
         // It is not reached from index.html, so the scan misses its imports too. A page that
         // registers the dev worker, as the browser suite's do, asks for them at request time.

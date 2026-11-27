@@ -21,7 +21,9 @@ import type { Hex } from "viem";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { logger } from "../../modules/app/logger";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import { recordedSendAwaiting } from "../../modules/job-queue/queue-policy";
 import type {
   ClaimJobPayload,
   CommitmentCreationPayload,
@@ -180,11 +182,13 @@ const SEND_FAILED = "The commitment could not be sent";
 
 /**
  * A send's reports, fed to a view's act-phase line: broadcast when the chain
- * has the transaction, then either landed or left queued on this device.
+ * has the transaction, then either landed, waiting for a Safe's signers, or
+ * left queued on this device.
  */
 export function toActPhaseReport(report: ActPhaseReport): (event: CommitmentSendReport) => void {
   return (event) => {
     if (event.stage === "confirming") report({ type: "broadcast", hash: event.txHash as Hex });
+    else if (event.stage === "safe-signers") report({ type: "safe-signers" });
     else if (event.stage === "landed") report({ type: "confirmed" });
     else if (event.stage === "queued") report({ type: "queued" });
   };
@@ -207,6 +211,23 @@ function tell(
       error: error instanceof Error ? error.message : String(error),
     });
   }
+}
+
+/**
+ * Tell the view a send that landed or was left queued; false for neither. A tap that only settles a
+ * Safe's proposal on record sends no stage, so the record says it waits for its signers (PRD-957).
+ */
+async function toldEnding(
+  jobId: string,
+  result: ProcessJobResult,
+  report?: (event: CommitmentSendReport) => void
+): Promise<boolean> {
+  if (result.success) tell(report, { stage: "landed", txHash: result.txHash ?? null });
+  if (result.success || !result.skipped) return result.success;
+  const job = report && (await jobQueueDB.getJob(jobId).catch(() => undefined));
+  if (job && recordedSendAwaiting(job) === "safe-signers") tell(report, { stage: "safe-signers" });
+  tell(report, { stage: "queued", ...(result.error ? { reason: result.error } : {}) });
+  return true;
 }
 
 /** One explicit send, and the second pass that settles a creation it submitted. */
@@ -294,14 +315,7 @@ async function sendFromTap(
         )
       ).lead
     : await sendAndSettle(jobId, sender, report);
-  if (result.success) {
-    tell(report, { stage: "landed", txHash: result.txHash ?? null });
-    return;
-  }
-  if (result.skipped) {
-    tell(report, { stage: "queued", ...(result.error ? { reason: result.error } : {}) });
-    return;
-  }
+  if (await toldEnding(jobId, result, report)) return;
 
   if (isCancelledTxError(result.error)) {
     if (keepDeclined) {
@@ -330,15 +344,7 @@ export async function retryQueuedCommitmentJob(
   if (!sender) throw new Error("Sign in before sending a commitment");
   await jobQueue.retryJob(jobId);
   const result = await sendAndSettle(jobId, sender, report);
-  if (result.success) {
-    tell(report, { stage: "landed", txHash: result.txHash ?? null });
-    return;
-  }
-  if (result.skipped) {
-    tell(report, { stage: "queued" });
-    return;
-  }
-  throw new Error(result.error ?? SEND_FAILED);
+  if (!(await toldEnding(jobId, result, report))) throw new Error(result.error ?? SEND_FAILED);
 }
 
 export function useCommitmentJobs(

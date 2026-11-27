@@ -2,9 +2,18 @@ export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";
 export const APP_DESCRIPTION =
-  "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.";
+  "Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support.";
 export const APP_URL = "https://greengoods.app";
 export const APP_ICON = "https://greengoods.app/icon.png";
+
+/**
+ * The Green Goods Hub's canonical address, for links and metadata that name one Hub origin.
+ * hub.greengoods.app serves the Hub beside admin.greengoods.app (PRD-1485); this stays on admin
+ * until the new host is confirmed live, and then this line is the switch.
+ */
+export const HUB_URL = "https://admin.greengoods.app";
+/** The production hosts that serve the Hub. A prefixed host (`beta.hub`) pairs with its root. */
+export const HUB_HOSTS = ["admin.greengoods.app", "hub.greengoods.app"] as const;
 
 export const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
 

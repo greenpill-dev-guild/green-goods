@@ -7,8 +7,7 @@ import {
 } from "../src/handlers/commitment-pool-creation";
 import { handleContributorEvent } from "../src/handlers/commitment-pool-contributors";
 import { handleLifecycle } from "../src/handlers/commitment-pool-lifecycle";
-import { sortedUnique } from "../src/handlers/commitment-pool-projections";
-import { commitmentState } from "../src/handlers/commitment-pool-projections";
+import { commitmentState, sortedUnique } from "../src/handlers/commitment-pool-projections";
 import {
   eventType,
   firstExplicitActor,
@@ -892,6 +891,144 @@ describe("Commitment Pooling review regressions", () => {
     assert.equal(cancelledClaim?.state, "SUPERSEDED");
     assert.equal(cancelledClaim?.resolutionCode, "COMMITMENT_CANCELLED");
     assert.equal(cancelledClaim?.resolvedAt, START_BLOCK + 7);
+
+    // Taken up by someone else and canceled later: the acceptance closed the request, so the
+    // asker hears it was taken up, never that it was withdrawn before anyone did.
+    const acceptedThenCancelledDb = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(48n, START_BLOCK + 2, 1n),
+      accepted(48n, START_BLOCK + 6),
+      CommitmentPoolingModule.CommitmentCancelled.createMockEvent({
+        commitmentId: 48n,
+        canceller: address(2),
+        reasonCID: "ipfs://cancelled",
+        mockEventData: eventData(START_BLOCK + 7),
+      }),
+    ]);
+    await handleClaimEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ClaimRequested.createMockEvent({
+          commitmentId: 48n,
+          claimant: address(8),
+          requestedBy: address(8),
+          kind: 1n,
+          gardenContext: address(9),
+          requestedAt: 100n,
+          mockEventData: eventData(START_BLOCK + 4),
+        }),
+        "ClaimRequested"
+      ),
+      acceptedThenCancelledDb as unknown as PoolingContext
+    );
+    const takenUpClaim = await acceptedThenCancelledDb.CommitmentClaimRequest.get(
+      `${CHAIN_ID}-48-${address(8).toLowerCase()}`
+    );
+    assert.equal(takenUpClaim?.state, "SUPERSEDED");
+    assert.equal(takenUpClaim?.resolutionCode, "COMMITMENT_ACCEPTED");
+    assert.equal(takenUpClaim?.resolvedAt, START_BLOCK + 6);
+  });
+
+  const lateTakeUpRequest = (commitmentId: bigint, claimant: number, block: number, logIndex = 0) =>
+    CommitmentPoolingModule.ClaimRequested.createMockEvent({
+      commitmentId,
+      claimant: address(claimant),
+      requestedBy: address(claimant),
+      kind: 1n,
+      gardenContext: address(4),
+      requestedAt: BigInt(block),
+      mockEventData: eventData(block, logIndex),
+    });
+  const lateTakeUpDecline = (commitmentId: bigint, claimant: number, block: number) =>
+    CommitmentPoolingModule.ClaimDeclined.createMockEvent({
+      commitmentId,
+      claimant: address(claimant),
+      reasonCID: "ipfs://declined",
+      mockEventData: eventData(block),
+    });
+  const ending = (kind: "cancel" | "expiry", commitmentId: bigint, block: number) =>
+    kind === "cancel"
+      ? CommitmentPoolingModule.CommitmentCancelled.createMockEvent({
+          commitmentId,
+          canceller: address(2),
+          reasonCID: "ipfs://cancelled",
+          mockEventData: eventData(block),
+        })
+      : CommitmentPoolingModule.CommitmentExpired.createMockEvent({
+          commitmentId,
+          mockEventData: eventData(block),
+        });
+
+  for (const [kind, commitmentId, code] of [
+    ["cancel", 49n, "COMMITMENT_CANCELLED"],
+    ["expiry", 50n, "COMMITMENT_EXPIRED"],
+  ] as const) {
+    it(`lets an acceptance delivered after a newer ${kind} take back the requests it closed`, async () => {
+      const db = await processEvents(createTestIndexer(), [
+        poolRegistered(START_BLOCK),
+        cycleSeeded(START_BLOCK + 1),
+        commitmentCreated(commitmentId, START_BLOCK + 2, 1n),
+        lateTakeUpRequest(commitmentId, 3, START_BLOCK + 3),
+        lateTakeUpRequest(commitmentId, 8, START_BLOCK + 4),
+        lateTakeUpRequest(commitmentId, 5, START_BLOCK + 4, 1),
+        lateTakeUpDecline(commitmentId, 5, START_BLOCK + 5),
+        ending(kind, commitmentId, START_BLOCK + 7),
+      ]);
+      const claimOf = (claimant: number) =>
+        db.CommitmentClaimRequest.get(
+          `${CHAIN_ID}-${commitmentId}-${address(claimant).toLowerCase()}`
+        );
+      assert.equal((await claimOf(8))?.resolutionCode, code);
+
+      await handleAccepted(
+        runtimeEvent(accepted(commitmentId, START_BLOCK + 6), "CommitmentAccepted"),
+        db as unknown as PoolingContext
+      );
+
+      const takenUp = await claimOf(3);
+      const passedOver = await claimOf(8);
+      const declined = await claimOf(5);
+      assert.equal(takenUp?.state, "ACCEPTED");
+      assert.equal(takenUp?.resolutionCode, "COMMITMENT_ACCEPTED");
+      assert.equal(takenUp?.resolvedAt, START_BLOCK + 6);
+      assert.equal(passedOver?.state, "SUPERSEDED");
+      assert.equal(passedOver?.resolutionCode, "COMMITMENT_ACCEPTED");
+      assert.equal(passedOver?.resolvedAt, START_BLOCK + 6);
+      // A steward's answer is never taken back.
+      assert.equal(declined?.state, "DECLINED");
+      assert.equal(declined?.resolutionCode, "CLAIM_DECLINED");
+    });
+  }
+
+  it("takes back a request the ending closed even when its row carries an older time", async () => {
+    // The taker was declined, asked again, and was taken up before the cancel; the second ask is
+    // indexed after the cancel, so its row keeps the decline's time, older than the acceptance.
+    const db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(51n, START_BLOCK + 2, 1n),
+      lateTakeUpRequest(51n, 3, START_BLOCK + 3),
+      lateTakeUpDecline(51n, 3, START_BLOCK + 4),
+      ending("cancel", 51n, START_BLOCK + 8),
+    ]);
+    await handleClaimEvent(
+      runtimeEvent(lateTakeUpRequest(51n, 3, START_BLOCK + 5), "ClaimRequested"),
+      db as unknown as PoolingContext
+    );
+    const claimId = `${CHAIN_ID}-51-${address(3).toLowerCase()}`;
+    const closed = await db.CommitmentClaimRequest.get(claimId);
+    assert.equal(closed?.resolutionCode, "COMMITMENT_CANCELLED");
+    assert.ok((closed?.resolvedAt ?? 0) < START_BLOCK + 6);
+
+    await handleAccepted(
+      runtimeEvent(accepted(51n, START_BLOCK + 6), "CommitmentAccepted"),
+      db as unknown as PoolingContext
+    );
+
+    const takenUp = await db.CommitmentClaimRequest.get(claimId);
+    assert.equal(takenUp?.state, "ACCEPTED");
+    assert.equal(takenUp?.resolutionCode, "COMMITMENT_ACCEPTED");
+    assert.equal(takenUp?.resolvedAt, START_BLOCK + 6);
   });
 
   it("applies every signed unit delta and refreshes ownership on a winning relink", async () => {
@@ -1105,7 +1242,7 @@ describe("Commitment Pooling review regressions", () => {
   });
 
   it("reverses transient fulfilled-member history when the frozen roster converges", async () => {
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(34n, START_BLOCK + 2),
@@ -1252,7 +1389,7 @@ describe("Commitment Pooling review regressions", () => {
   });
 
   it("lets a cursor-winning decline land after a newer acceptance was delivered first", async () => {
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(53n, START_BLOCK + 2, 1n),
@@ -1284,7 +1421,7 @@ describe("Commitment Pooling review regressions", () => {
   });
 
   it("lets a cursor-winning decline land after a newer terminal event was delivered first", async () => {
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(54n, START_BLOCK + 2, 1n),

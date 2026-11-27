@@ -1,8 +1,10 @@
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentReadModel, InboxCommitment } from "@green-goods/shared/commitment-pooling";
-import type { DisplayGroupCounts } from "@green-goods/shared/modules/commitment-pooling/display-groups";
-import type { GroupTakeUpBar } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
+import type {
+  GroupTakeUpBar,
+  GroupTakeUpCounts,
+} from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { RiHandHeartLine, RiRefreshLine, RiSeedlingLine, RiTimeLine } from "@remixicon/react";
 import { type ReactNode, useId } from "react";
@@ -17,7 +19,13 @@ export const GROUP_ACT_LABEL = {
   takeUp: "app.pool.group.act.takeUpOne",
   takeUpAnother: "app.pool.group.act.takeUpAnother",
   askToTakeUp: "app.pool.group.act.askToTakeUpOne",
+  book: "app.pool.group.act.bookOne",
 } as const;
+
+/** The group's one act: a take-up, or, for voucher service offers, a booking from a copy's page. */
+export type PromiseGroupBar = Omit<GroupTakeUpBar, "act"> & {
+  act: GroupTakeUpBar["act"] | "book";
+};
 
 const HOLD_REASON = {
   closed: "app.pool.group.hold.closed",
@@ -35,12 +43,12 @@ export interface PromiseGroupPageProps {
   note: string | null;
   /** The reward each one carries, in words, or null when they carry none. */
   reward: string | null;
-  counts: DisplayGroupCounts;
+  counts: GroupTakeUpCounts;
   availabilityKnown: boolean;
   /** The pool's at-once limit, stated for promises it counts against. */
   cap: bigint | null;
   yours: InboxCommitment[];
-  bar: GroupTakeUpBar | null;
+  bar: PromiseGroupBar | null;
   isPending: boolean;
   isOnline: boolean;
   queueUnreadable: boolean;
@@ -98,13 +106,19 @@ export function PromiseGroupPage({
         bar ? (
           <CommitmentActionBar
             act={{
-              kind: bar.act === "askToTakeUp" ? "askToTakeUp" : "takeUp",
+              kind:
+                bar.act === "askToTakeUp"
+                  ? "askToTakeUp"
+                  : bar.act === "book"
+                    ? "service"
+                    : "takeUp",
               labelId: GROUP_ACT_LABEL[bar.act],
             }}
             isPending={isPending}
             isOnline={isOnline}
             blockedReasonId={
-              queueUnreadable
+              // Booking only opens a copy's page, so it queues nothing that could send twice.
+              queueUnreadable && bar.act !== "book"
                 ? "app.commitments.queueUnreadable"
                 : bar.hold
                   ? HOLD_REASON[bar.hold]

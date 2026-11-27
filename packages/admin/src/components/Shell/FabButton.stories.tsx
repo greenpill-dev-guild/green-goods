@@ -6,6 +6,7 @@ import {
   RiHandCoinLine,
   RiMedalLine,
   RiMoneyDollarCircleLine,
+  RiSeedlingLine,
   RiSettings3Line,
   RiUserAddLine,
 } from "@remixicon/react";
@@ -23,40 +24,40 @@ const addMember: FabAction = {
   id: "add-member",
   icon: RiUserAddLine,
   label: "Add Member",
-  labelId: "cockpit.community.action.addMember",
+  labelId: "hub.community.action.addMember",
 };
 const depositWithdraw: FabAction = {
   id: "deposit-withdraw",
   icon: RiMoneyDollarCircleLine,
   label: "Deposit / Withdraw",
-  labelId: "cockpit.community.action.depositWithdraw",
+  labelId: "hub.community.action.depositWithdraw",
 };
 const fundCookieJar: FabAction = {
   id: "fund-payout-jar",
   icon: RiHandCoinLine,
   label: "Fund Cookie Jar",
-  labelId: "cockpit.community.action.fundPayoutJar",
+  labelId: "hub.community.action.fundPayoutJar",
 };
 
 // Each workspace's action set, as its view declares it.
-const hubDial = fabConfig(
+const reviewDial = fabConfig(
   {
     id: "submit-work",
     icon: RiAddLine,
     label: "Submit Work",
-    labelId: "cockpit.hub.action.submitWork",
+    labelId: "hub.review.action.submitWork",
   },
   {
     id: "create-assessment",
     icon: RiCheckLine,
     label: "Create Assessment",
-    labelId: "cockpit.hub.action.createAssessment",
+    labelId: "hub.review.action.createAssessment",
   },
   {
     id: "create-hypercert",
     icon: RiMedalLine,
     label: "Create Hypercert",
-    labelId: "cockpit.hub.action.createHypercert",
+    labelId: "hub.review.action.createHypercert",
   }
 );
 const gardenDial = fabConfig(
@@ -64,21 +65,32 @@ const gardenDial = fabConfig(
     id: "edit-garden",
     icon: RiSettings3Line,
     label: "Edit Garden",
-    labelId: "cockpit.garden.action.editGarden",
+    labelId: "hub.garden.action.editGarden",
   },
   {
     id: "view-public",
     icon: RiExternalLinkLine,
     label: "View Public",
-    labelId: "cockpit.garden.action.viewPublic",
+    labelId: "hub.garden.action.viewPublic",
   }
+);
+// The Promises tab's dial (PRD-1491): Seed Promises nearest the "+", then the Garden pair.
+const gardenPromisesDial = fabConfig(
+  {
+    id: "seed-promises",
+    icon: RiSeedlingLine,
+    label: "Seed Promises",
+    labelId: "hub.garden.pool.act.seedPromises",
+  },
+  // After the primary the dial keeps the header's order: View Public, then Edit Garden.
+  ...[...gardenDial.actions].reverse()
 );
 const communityDial = fabConfig(addMember, depositWithdraw, fundCookieJar);
 const actionsFab = fabConfig({
   id: "create-action",
   icon: RiAddLine,
   label: "Create Action",
-  labelId: "cockpit.actions.action.createAction",
+  labelId: "hub.actions.action.createAction",
 });
 
 const meta = {
@@ -87,11 +99,11 @@ const meta = {
   tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
-    workspace: "hub",
+    workspace: "review",
     docs: {
       description: {
         component:
-          "The cockpit's creation FAB (Cockpit M3, finished): circular, tone-action filled, warm chrome shadow at rest. Closed, it shows a plus in every workspace, whether it fires one act or opens a dial; the workspace tone says which tab it belongs to (DL-078). A multi-action config opens the speed dial, where each act keeps its own icon and label, and shows a close icon while open. Single-action configs fire directly and get a hover tooltip. Floats above the nav bar on tablet/mobile only — desktop carries inline header actions instead.",
+          "The Hub's creation FAB (Hub M3, finished): circular, tone-action filled, warm chrome shadow at rest. Closed, it shows a plus in every workspace, whether it fires one act or opens a dial; the workspace tone says which tab it belongs to (DL-078). A multi-action config opens the speed dial, where each act keeps its own icon and label, and shows a close icon while open. Single-action configs fire directly and get a hover tooltip. Floats above the nav bar on tablet/mobile only — desktop carries inline header actions instead.",
       },
     },
   },
@@ -108,7 +120,7 @@ const meta = {
       </div>
     ),
   ],
-  args: { config: hubDial, mobileFloating: true },
+  args: { config: reviewDial, mobileFloating: true },
 } satisfies Meta<typeof FabButton>;
 
 export default meta;
@@ -141,6 +153,21 @@ const restsClosed: Play = async ({ canvasElement }) => {
   await expectLayerBeneath(fab);
 };
 
+/** How far a computed box-shadow list reaches past the box on each side, in px. */
+function shadowReach(boxShadow: string) {
+  const reach = { left: 0, right: 0, top: 0, bottom: 0 };
+  for (const [, x, y, blur, spread] of boxShadow.matchAll(
+    /(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px (-?[\d.]+)px/g
+  )) {
+    const size = Number(blur) + Number(spread);
+    reach.left = Math.max(reach.left, size - Number(x));
+    reach.right = Math.max(reach.right, size + Number(x));
+    reach.top = Math.max(reach.top, size - Number(y));
+    reach.bottom = Math.max(reach.bottom, size + Number(y));
+  }
+  return reach;
+}
+
 /** Open, the button is named for closing, and each act says what it does. */
 function opensDial(...labels: string[]): Play {
   return async ({ canvasElement }) => {
@@ -151,12 +178,23 @@ function opensDial(...labels: string[]): Play {
     await expect(fab).toHaveAttribute("aria-expanded", "true");
     const items = await canvas.findAllByRole("menuitem");
     await expect(items.map((item) => item.textContent)).toEqual(labels);
+    // The dial scrolls, so it clips at its edges: each item, with its focus ring and its
+    // whole shadow, has to sit inside the list's box, or an edge is cut off (PRD-1491).
+    const list = canvas.getByRole("menu").getBoundingClientRect();
+    for (const item of items) {
+      const box = item.getBoundingClientRect();
+      const reach = shadowReach(getComputedStyle(item).boxShadow);
+      await expect(box.right + Math.max(reach.right, 2)).toBeLessThanOrEqual(list.right);
+      await expect(box.left - Math.max(reach.left, 2)).toBeGreaterThanOrEqual(list.left);
+      await expect(box.top - Math.max(reach.top, 2)).toBeGreaterThanOrEqual(list.top);
+      await expect(box.bottom + Math.max(reach.bottom, 2)).toBeLessThanOrEqual(list.bottom);
+    }
   };
 }
 
-export const Hub: Story = { play: restsClosed };
+export const Review: Story = { play: restsClosed };
 
-export const HubOpen: Story = {
+export const ReviewOpen: Story = {
   play: opensDial("Submit Work", "Create Assessment", "Create Hypercert"),
 };
 
@@ -167,6 +205,18 @@ export const Garden: Story = {
 };
 
 export const GardenOpen: Story = { ...Garden, play: opensDial("Edit Garden", "View Public") };
+
+/** On the Promises tab the "+" leads to adding a promise: Seed Promises sits nearest it. */
+export const GardenPromises: Story = {
+  args: { config: gardenPromisesDial },
+  parameters: { workspace: "garden" },
+  play: restsClosed,
+};
+
+export const GardenPromisesOpen: Story = {
+  ...GardenPromises,
+  play: opensDial("Seed Promises", "View Public", "Edit Garden"),
+};
 
 export const Community: Story = {
   args: { config: communityDial },
@@ -221,7 +271,7 @@ export const DisabledActionSaysWhy: Story = {
     config: fabConfig(addMember, {
       ...fundCookieJar,
       disabled: true,
-      disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+      disabledReasonId: "hub.community.action.fundPayoutJarNoJar",
       disabledReason: "This garden has no payout jar yet.",
     }),
   },

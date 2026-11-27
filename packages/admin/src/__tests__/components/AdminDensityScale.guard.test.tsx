@@ -1,9 +1,9 @@
 /**
- * AdminDensityScale.guard — pins the compact cockpit metric (DL-011).
+ * AdminDensityScale.guard — pins the compact Hub metric (DL-011).
  *
- * The cockpit control scale is 28 / 32 / 36 / 40 / 44:
+ * The Hub control scale is 28 / 32 / 36 / 40 / 44:
  *   buttons 28 (sm) / 32 (md) / 40 (lg), the shared Button's compact / sm / lg
- *   on the cockpit's tokens (DL-115) · fields 44 on touch widths and 40 from
+ *   on the Hub's tokens (DL-115) · fields 44 on touch widths and 40 from
  *   640px (DL-030) · toolbar pills 36 · inline field 32 (button-row axis) ·
  *   chips 32 · identity pill 36 · list rows from 44, growing with their content.
  * Shell chrome (AppBar, FAB, nav dock) is deliberately outside this scale.
@@ -163,7 +163,7 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(screen.getByRole("textbox", { name: /Action id/ })).toHaveClass("h-8");
   });
 
-  it("maps the shared family onto the cockpit tiers through index.css tokens, mirrored in Storybook (DL-031)", () => {
+  it("maps the shared family onto the Hub tiers through index.css tokens, mirrored in Storybook (DL-031)", () => {
     const adminCss = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
     const surfacesCss = readFileSync(
       resolve(__dirname, "../../../../shared/.storybook/surfaces.css"),
@@ -203,10 +203,10 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-icon-size-sm": "2rem",
       "--gg-icon-size-compact": "1.75rem",
       "--gg-hit-block": "2.75rem",
-      // The cockpit's look on the shared family (DL-115): no press scale, round
+      // The Hub's look on the shared family (DL-115): no press scale, round
       // icon buttons with an 18px glyph, and the neutral disabled pair instead of
       // a dim, with an aria-disabled button keeping its pointer for a hover reason.
-      // Each size capped at its block, as the cockpit's fixed-height pill was, so a
+      // Each size capped at its block, as the Hub's fixed-height pill was, so a
       // stretching row never grows a button, with the hit-target classes' margin
       // reserved around it, 6px around 28 and 32px and 2px around 40px (DL-119).
       "--gg-button-block-cap-lg": "var(--gg-button-block-lg)",
@@ -224,14 +224,14 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-button-disabled-fill": "rgb(var(--m3-on-surface) / 0.12)",
       "--gg-button-disabled-ink": "rgb(var(--m3-on-surface) / 0.38)",
       "--gg-button-aria-disabled-events": "auto",
-      // Shared fields, secondary buttons and chips draw the cockpit's control-grade
+      // Shared fields, secondary buttons and chips draw the Hub's control-grade
       // outline, and focus draws one solid 2px ring with no halo (F3).
       "--gg-control-outline": "var(--m3-outline)",
       "--gg-focus-ring-width": "2px",
       "--gg-focus-halo-alpha": "0",
       // The message line under every field reserves two lines, as the app's do (F3).
       "--gg-field-message-lines": "2",
-      // A selected chip lays the neutral ink layer at the cockpit's state
+      // A selected chip lays the neutral ink layer at the Hub's state
       // opacities on hover and press; the app sets neither (DL-116).
       "--gg-chip-state-hover": "var(--m3-state-hover)",
       "--gg-chip-state-pressed": "var(--m3-state-pressed)",
@@ -239,7 +239,7 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       // its budget (Rule 18).
       "--gg-state-mark-fill": "rgb(var(--text-strong-950) / 0.06)",
       "--gg-state-mark-ink": "rgb(var(--text-sub-600))",
-      // The type roles at the cockpit's density: titles 22 / 16 / 14, body and
+      // The type roles at the Hub's density: titles 22 / 16 / 14, body and
       // labels 14 at -0.006em, small labels and meta 12 (labels at 500), chips 11,
       // and field text 16px on touch widths (14px from 640px, a media rule).
       "--gg-type-title-lg-size": "1.375rem",
@@ -272,7 +272,7 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-sheet-title-size": "var(--gg-type-title-lg-size)",
       "--gg-sheet-title-line": "var(--gg-type-title-lg-line)",
       // A card's one-line title at 13px / 600 (F7), and the shared card surface
-      // on the cockpit's own ladder: its card, the app's linen-grade edge and
+      // on the Hub's own ladder: its card, the app's linen-grade edge and
       // the fill one step above the card.
       "--gg-type-card-title-size": "0.8125rem",
       "--gg-type-card-title-line": "1.125rem",
@@ -359,7 +359,7 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(unmarked).toEqual([]);
   });
 
-  it("names the type on every cockpit Button, so one in a form never submits it by accident", () => {
+  it("names the type on every Hub Button, so one in a form never submits it by accident", () => {
     // The shared Button leaves `type` to its caller, where a native button
     // defaults to submit; a link drawn as one (`asChild`) has none.
     const adminSource = resolve(__dirname, "../..");
@@ -375,8 +375,8 @@ describe("AdminDensityScale.guard (DL-011)", () => {
 
   it("tunes the shared state block only through its tokens, never by restyling it (DL-031, DL-106)", () => {
     // Storybook never loads these stylesheets, so a rule in them that restyles the block reaches
-    // only the running cockpit: four such rules drew every cockpit state at a 72px tile, a 22px
-    // title and a 16px line until acceptance pass 1. The cockpit sets --gg-state-mark-* instead.
+    // only the running Hub: four such rules drew every Hub state at a 72px tile, a 22px
+    // title and a 16px line until acceptance pass 1. The Hub sets --gg-state-mark-* instead.
     const stylesDir = resolve(__dirname, "../../styles");
     const stylesheets = [
       resolve(__dirname, "../../index.css"),

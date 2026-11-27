@@ -49,6 +49,7 @@ function Sheet({ step }: { step: LessonSheetStep }) {
         onOpenChange={fn()}
         view={view}
         title={LESSON_STORY_TITLE}
+        confirms
         isPending={false}
         onApprove={fn()}
         onReport={fn()}

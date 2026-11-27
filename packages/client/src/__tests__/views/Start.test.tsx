@@ -5,6 +5,8 @@
  */
 
 import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
@@ -116,10 +118,12 @@ function Harness(props: Partial<WorkStartProps> & { onDomain?: (domain: Domain |
 }
 
 function renderStart(
-  props: Partial<WorkStartProps> & { onDomain?: (domain: Domain | null) => void }
+  props: Partial<WorkStartProps> & { onDomain?: (domain: Domain | null) => void },
+  locale = "en",
+  messages = en
 ) {
   return render(
-    <IntlProvider locale="en" messages={en}>
+    <IntlProvider locale={locale} messages={messages}>
       <Harness {...props} />
     </IntlProvider>
   );
@@ -133,6 +137,67 @@ const tiles = () =>
 afterEach(cleanup);
 
 describe("WorkStart", () => {
+  const guidance = [
+    ["en", en, "What type of work did you do?", "Which promise is this work for?"],
+    ["es", es, "¿Qué tipo de trabajo hiciste?", "¿Para qué promesa es este trabajo?"],
+    ["pt", pt, "Que tipo de trabalho você fez?", "Para qual promessa é este trabalho?"],
+  ] as const;
+
+  it.each(guidance)("shows the full action guidance card in %s", (locale, messages, info) => {
+    const { container } = renderStart({}, locale, messages);
+    const card = container.querySelector('[data-component="FormInfo"]') as HTMLElement;
+
+    expect(card).toBeVisible();
+    expect(
+      within(card).getByRole("heading", { name: messages["app.garden.selectYourAction"] })
+    ).toBeVisible();
+    expect(within(card).getByText(info)).toBeVisible();
+  });
+
+  it.each(
+    guidance
+  )("shows the full promise guidance card in %s", (locale, messages, _info, info) => {
+    const { container } = renderStart(
+      { start: startStep({ screen: { kind: "promises" }, promises: [promise([1], false)] }) },
+      locale,
+      messages
+    );
+    const card = container.querySelector('[data-component="FormInfo"]') as HTMLElement;
+
+    expect(card).toBeVisible();
+    expect(
+      within(card).getByRole("heading", { name: messages["app.garden.start.promises.title"] })
+    ).toBeVisible();
+    expect(within(card).getByText(info)).toBeVisible();
+  });
+
+  // Afo on PRD-1522: the garden line sits right under the info card, on whichever screen Start shows.
+  it.each([
+    ["actions", startStep()],
+    ["promises", startStep({ screen: { kind: "promises" }, promises: [promise([1], false)] })],
+    ["promise", startStep({ screen: { kind: "promise", promise: promise([1], true) } })],
+  ])("puts the garden line right under the info card on the %s screen", (_screen, start) => {
+    const { container } = renderStart({
+      start,
+      gardenLine: <p data-testid="garden-line">Logging work in Hilltop Garden</p>,
+    });
+    const card = container.querySelector('[data-component="FormInfo"]') as HTMLElement;
+
+    expect(card.nextElementSibling).toBe(screen.getByTestId("garden-line"));
+  });
+
+  // Review of 4af54dceb: the loading placeholder must keep the line's row, so the tiles land
+  // where their placeholders were (DL-185).
+  it("keeps the garden line under the info card's placeholder while Start loads", () => {
+    const { container } = renderStart({
+      start: startStep({ waiting: true }),
+      gardenLine: <p data-testid="garden-line">Logging work in Hilltop Garden</p>,
+    });
+    const skeleton = container.querySelector('[data-component="WorkStartSkeleton"]');
+
+    expect(skeleton?.children[1]).toBe(screen.getByTestId("garden-line"));
+  });
+
   it("filters the tiles with the domain chips, which choose nothing and move nothing", () => {
     const onDomain = vi.fn();
     const start = startStep();
@@ -208,7 +273,7 @@ describe("WorkStart", () => {
     const { container } = renderStart({ start });
 
     const section = container.querySelector('[data-component="StartAsks"]') as HTMLElement;
-    expect(within(section).getByRole("heading", { name: "Take Up an Ask" })).toBeVisible();
+    expect(within(section).getByRole("heading", { name: "Take Up a Request" })).toBeVisible();
     expect(
       within(section).getByText(
         "Taking one up opens 3 wallet or passkey prompts: the take-up, the work and its link."
@@ -218,7 +283,7 @@ describe("WorkStart", () => {
     expect(cards).toHaveLength(2);
     expect(within(cards[0]).getByText("Node uptime log")).toBeVisible();
     expect(within(cards[1]).getByText("Hub keys handover")).toBeVisible();
-    expect(within(cards[1]).getByText("Ask")).toBeVisible();
+    expect(within(cards[1]).getByText("Request")).toBeVisible();
     expect(
       container.querySelector('[data-component="WorkStart"] [data-component="LogWorkOnItsOwn"]')
         ?.previousElementSibling

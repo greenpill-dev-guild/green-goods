@@ -1,4 +1,7 @@
-import type { VoucherWalletSnapshot } from "@green-goods/shared/commitment-pooling";
+import {
+  useVoucherAwards,
+  type VoucherWalletSnapshot,
+} from "@green-goods/shared/commitment-pooling";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import esMessages from "@green-goods/shared/i18n/es.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
@@ -6,8 +9,9 @@ import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import type { ComponentType } from "react";
 import { IntlProvider } from "react-intl";
-import { expect, fn, screen, userEvent } from "storybook/test";
+import { expect, fn, mocked, screen, userEvent } from "storybook/test";
 import { withDataRouter, withSeededQueryClient } from "../../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { voucherWalletStory } from "../../../../../shared/.storybook/voucherPilotFixtures";
 import { VouchersTab } from "./VouchersTab";
 
@@ -169,6 +173,26 @@ export const ReturnPendingPt: Story = {
   ...ReturnPending,
   decorators: [inLocale("pt")],
   play: undefined,
+};
+
+/**
+ * A wallet read from the chain also lists Awards for Past Contributions under the holdings, saying
+ * what it holds before anything is loaded, so a recipient a steward points here finds it.
+ */
+export const AwardReceipts: Story = {
+  args: { wallet: { ...voucherWalletStory("vouchers"), evidence: "onchain" } },
+  beforeEach: () => {
+    mocked(useVoucherAwards).mockReturnValue({
+      records: [],
+      load: { mutate: fn(), isPending: false, isError: false, isSuccess: false },
+      isLimited: false,
+    } as unknown as ReturnType<typeof useVoucherAwards>);
+    return resetHookMocks(useVoucherAwards);
+  },
+  play: async () => {
+    await expect(await screen.findByText("Awards for Past Contributions")).toBeVisible();
+    await expect(screen.getByText(/awarded you for past contributions show here/)).toBeVisible();
+  },
 };
 
 /** A failed canonical read stays visible without reusing balances or claiming an empty account. */

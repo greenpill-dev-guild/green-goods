@@ -26,7 +26,11 @@ vi.mock("../../modules/job-queue/work-claims", async (importOriginal) => ({
 }));
 
 import { createJobQueue } from "../../modules/job-queue/queue";
-import { createJobQueueDependencies } from "../test-utils/job-queue-fakes";
+import type { Job } from "../../types/job-queue";
+import {
+  createInMemoryJobQueueStore,
+  createJobQueueDependencies,
+} from "../test-utils/job-queue-fakes";
 
 function claim() {
   return {
@@ -69,5 +73,49 @@ describe("processJob and its execution claim", () => {
       error: "already-processing",
     });
     expect(mocks.hold).not.toHaveBeenCalled();
+  });
+
+  // PRD-1495: a tap that sends nothing says why, even when another send holds the job.
+  it("records why a tap sent nothing when another send holds the job, and keeps a background pass quiet", async () => {
+    mocks.acquire.mockResolvedValue(null);
+    const busy = {
+      id: "busy-job",
+      kind: "work",
+      payload: {},
+      userAddress: "0x1111111111111111111111111111111111111111",
+      chainId: 11155111,
+      createdAt: 1,
+      attempts: 0,
+      synced: false,
+    } as Job;
+    const deps = createJobQueueDependencies({ store: createInMemoryJobQueueStore([busy]) });
+    const queue = createJobQueue(deps);
+
+    await queue.processJob("busy-job", { transactionSender: null });
+    expect(deps.analytics.jobSkipped).not.toHaveBeenCalled();
+
+    await queue.processJob("busy-job", { transactionSender: null, explicit: true });
+    expect(deps.analytics.jobSkipped).toHaveBeenCalledExactlyOnceWith(
+      "work",
+      "already-processing",
+      {
+        explicit: true,
+        started: false,
+      }
+    );
+  });
+
+  it("still answers that another send holds the job when that tap cannot be recorded", async () => {
+    mocks.acquire.mockResolvedValue(null);
+    const store = createInMemoryJobQueueStore();
+    store.getJob = vi.fn().mockRejectedValue(new Error("read failed"));
+    const deps = createJobQueueDependencies({ store });
+    const queue = createJobQueue(deps);
+
+    await expect(
+      queue.processJob("busy-job", { transactionSender: null, explicit: true })
+    ).resolves.toEqual({ success: false, skipped: true, error: "already-processing" });
+    expect(deps.analytics.jobSkipped).not.toHaveBeenCalled();
+    expect(deps.logger.warn).toHaveBeenCalledOnce();
   });
 });

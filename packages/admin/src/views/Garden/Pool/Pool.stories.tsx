@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { UNAVAILABLE_VOUCHER_CONSOLE } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import esMessages from "@green-goods/shared/i18n/es.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
@@ -28,6 +29,7 @@ import {
   STORY_GREEN_GOODS_COMMITMENTS,
   STORY_GREEN_GOODS_RETURN_FAILED,
   STORY_GREEN_GOODS_SAFE,
+  STORY_MARA_VISITED,
   STORY_TECH_AND_SUN_CLAIMS,
   STORY_TECH_AND_SUN_COMMITMENTS,
   STORY_TECH_AND_SUN_SAFE,
@@ -88,10 +90,11 @@ function voucherSeeds(
   ];
 }
 
+// Mara's hub day was yesterday, so its report waits in Review Promises beside the two asks.
 const TECH_AND_SUN_SEEDS = voucherSeeds(
   STORY_TECH_AND_SUN_COMMITMENTS,
   STORY_TECH_AND_SUN_CLAIMS,
-  STORY_TECH_AND_SUN_VOUCHERS,
+  { ...STORY_TECH_AND_SUN_VOUCHERS, bookings: [STORY_MARA_VISITED] },
   STORY_TECH_AND_SUN_SAFE
 );
 
@@ -117,7 +120,7 @@ const meta: Meta<typeof GardenPoolTab> = {
     docs: {
       description: {
         component:
-          "W7, the steward's pool console over the shared controller. On the left, what needs the steward, the season and its campaigns, and Offers and Asks under Open · Confirmed · Past; on the right, 37.5% of the width, Review Promises, Pool Status and Pool Funding (PRD-1025 D8–D10, named by DL-077). On narrow screens the right column comes last. Seeded through the registry keys the controller reads.",
+          "W7, the steward's pool console over the shared controller. On the left, what needs the steward, the season and its campaigns, and Offers and Requests under Open · Confirmed · Past; on the right, 37.5% of the width, Review Promises, Pool Status and Pool Funding (PRD-1025 D8–D10, named by DL-077). On narrow screens the right column comes last. Seeded through the registry keys the controller reads.",
       },
     },
   },
@@ -164,10 +167,11 @@ export const ReaderView: Story = {
 };
 
 /**
- * Tech and Sun's Promises console with the voucher pilot read in: two hub days
- * asked in Review Promises (one waits on the Safe's approval, one can be
- * accepted), Mara's visit under way in Offers and Asks, and Tech and Sun's
- * reserve in the rail. Fictional people, working pilot terms.
+ * Tech and Sun's Promises console with the voucher pilot read in: Review
+ * Promises holds two hub days asked (one waits on the Safe's approval, one can
+ * be accepted) and Mara's visit to report, the hub days are rows in Offers and
+ * Asks, and Tech and Sun's reserve leads the rest of the rail. Fictional
+ * people, working pilot terms.
  */
 export const TechAndSunVouchers: Story = {
   args: { garden: { id: STORY_GARDEN, name: "Tech and Sun" } },
@@ -176,7 +180,7 @@ export const TechAndSunVouchers: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText("Your Reserve")).toBeVisible();
-    await expect(await canvas.findByRole("button", { name: "Accept…" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Accept and Start…" })).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Report Visit…" })).toBeVisible();
   },
 };
@@ -238,4 +242,27 @@ export const TechAndSunVouchersPt: Story = {
     ),
     ...decorators(TECH_AND_SUN_SEEDS),
   ],
+};
+
+/**
+ * The voucher read failed and nothing waits: its notice comes first, above an empty Review
+ * Promises on a phone and atop the main column from two columns, so the steward reads why the
+ * queue may be missing bookings before acting on it.
+ */
+export const VoucherReadFailed: Story = {
+  tags: ["storybook-ci"],
+  args: TechAndSunVouchers.args,
+  decorators: decorators(
+    voucherSeeds(
+      STORY_TECH_AND_SUN_COMMITMENTS,
+      [],
+      UNAVAILABLE_VOUCHER_CONSOLE,
+      STORY_TECH_AND_SUN_SAFE
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText(/Voucher bookings could not be loaded/)).toBeVisible();
+    await expect(canvas.getByText("Nothing to review.")).toBeVisible();
+  },
 };

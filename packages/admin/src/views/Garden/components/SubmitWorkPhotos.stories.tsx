@@ -43,7 +43,7 @@ export const BelowRequirement: Story = {
 
 /**
  * Worst case: a name longer than its tile, and two files that are staged but
- * are not photos to open or count: a video, and a HEIC still waiting to convert.
+ * have no photo preview: a video that counts, and a HEIC still waiting to convert.
  */
 export const LongNamesAndOtherFiles: Story = {
   args: {

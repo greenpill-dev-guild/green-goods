@@ -15,6 +15,7 @@
 
 import { claimActKey, type TxActPhase } from "../transactions/act-phase";
 import type { Address } from "../../types/domain";
+import { type ClaimSupersededBy, selectClaimSupersededBy } from "./selectors";
 import type {
   CommitmentClaimRequestRecord,
   CommitmentReadModel,
@@ -59,10 +60,18 @@ export type WaitingRowState =
   | { status: "waiting"; isNew: boolean }
   | { status: "signing" }
   | { status: "confirming" }
+  /**
+   * An approval that may still land (still confirming, or waiting on a Safe's signers), or one
+   * the steward stopped waiting for while the wallet may still hold it (PRD-1551). The ask stays
+   * closed for the visit and its line says which; the index moves it on once one lands.
+   */
+  | { status: "held" }
   | { status: "failed" }
   | { status: "approved"; at: number }
   | { status: "declined"; at: number }
   | { status: "not-chosen"; at: number }
+  /** The promise was canceled or ran out of time while the ask waited, so the ask closed with it. */
+  | { status: "closed"; ending: Exclude<ClaimSupersededBy, "taken-up">; at: number }
   | { status: "gone" };
 
 /** The key an ask's act, and its decision, go by. */
@@ -111,9 +120,15 @@ function decidedHere(
   return chosen ? { status: "not-chosen", at: chosen.at } : null;
 }
 
-/** An approval with the wallet or the chain, or one that failed and left the ask waiting. */
+/**
+ * An approval with the wallet or the chain, or one that failed and left the ask waiting. One
+ * that may still land, or that the steward stopped waiting for while the wallet may still hold
+ * it, holds the ask, so Approve cannot send a second request (PRD-1551).
+ */
 function onTheLine(phase: TxActPhase): WaitingRowState | null {
   const { status } = phase;
+  if (status === "still-confirming" || status === "safe-signers" || status === "stopped")
+    return { status: "held" };
   return status === "signing" || status === "confirming" || status === "failed" ? { status } : null;
 }
 
@@ -125,10 +140,13 @@ export function waitingRowState(
   entry: WaitingVisitEntry,
   input: { live: ReadonlySet<string>; decisions: ClaimDecisions; phase: TxActPhase }
 ): WaitingRowState {
+  const live = input.live.has(entry.key);
+  const line = onTheLine(input.phase);
   return (
     decidedHere(entry.key, entry.row.claim, input.decisions) ??
-    onTheLine(input.phase) ??
-    (input.live.has(entry.key) ? { status: "waiting", isNew: entry.isNew } : { status: "gone" })
+    // A held ask the index no longer lists has been decided, by this approval or another.
+    (line?.status === "held" && !live ? { status: "gone" } : line) ??
+    (live ? { status: "waiting", isNew: entry.isNew } : { status: "gone" })
   );
 }
 
@@ -146,7 +164,10 @@ export function askState(
   const at = (claim.resolvedAt ?? claim.updatedAt) * 1000;
   if (claim.state === "ACCEPTED") return { status: "approved", at };
   if (claim.state === "DECLINED") return { status: "declined", at };
-  if (claim.state === "SUPERSEDED") return { status: "not-chosen", at };
+  // Only a take-up means another ask was chosen; an ending closed the ask with its promise.
+  const supersededBy = selectClaimSupersededBy(claim);
+  if (supersededBy === "taken-up") return { status: "not-chosen", at };
+  if (supersededBy) return { status: "closed", ending: supersededBy, at };
   return onTheLine(input.phase) ?? { status: "waiting", isNew: false };
 }
 
@@ -207,6 +228,7 @@ export function isStillWaiting(state: WaitingRowState): boolean {
     state.status === "waiting" ||
     state.status === "signing" ||
     state.status === "confirming" ||
+    state.status === "held" ||
     state.status === "failed"
   );
 }

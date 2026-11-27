@@ -38,7 +38,19 @@ import type {
   VoucherConsoleSnapshot,
   VoucherIssuerReserve,
 } from "../../../modules/commitment-pooling/voucher-console";
+import type { VoucherStartOutcome } from "../../../modules/commitment-pooling/voucher-start";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
+import type { VoucherStartProgress } from "./useVoucherStart";
+
+/**
+ * How an Accept and Start ended once the acceptance went: the start's own ending, or, when no
+ * start could follow, `acceptanceWaiting` for a Safe proposal its signers still have to approve
+ * and `acceptanceConfirming` for a wallet answer with no receipt yet, which may still land.
+ */
+export type VoucherAcceptAndStartOutcome =
+  | VoucherStartOutcome
+  | "acceptanceWaiting"
+  | "acceptanceConfirming";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
   PoolFundingSnapshot,
@@ -86,6 +98,13 @@ export interface PoolConsoleActs {
    * than `now`, and refuses before the wallet while one fails.
    */
   acceptServiceClaim: (ask: VoucherAsk, now: number) => Promise<HexString>;
+  /**
+   * Accept and Start (DL-193): accept the booking as `acceptServiceClaim` does, then send its
+   * start from the steward's own wallet, recording the activation and sending it to the escrow.
+   * A failed acceptance throws; a start that doesn't go resolves with how it ended, since the
+   * booking stays accepted and the member's fallback covers it.
+   */
+  acceptAndStartBooking: (ask: VoucherAsk, now: number) => Promise<VoucherAcceptAndStartOutcome>;
   declineClaim: (commitmentId: bigint, claimant: Address, reason: string) => Promise<HexString>;
   /** Send a creation still queued on this device, as the steward's own tap. */
   retryQueued: (jobId: string) => Promise<void>;
@@ -115,6 +134,11 @@ export interface PoolConsoleController {
     | null;
   poolId?: bigint;
   model: ReturnType<typeof selectPoolConsoleModel>;
+  /**
+   * The chain's clock the model was read on (Unix seconds). A season or campaign reads on it
+   * (`cycleStanding`, DL-162), so the Hub calls an Open cycle past its end Ended, as the app does.
+   */
+  now: bigint;
   cycles: CommitmentCycleRecord[];
   cycleNames: CommitmentCycleNameMap["byCycleId"];
   commitments: CommitmentReadModel[];
@@ -138,6 +162,11 @@ export interface PoolConsoleController {
   claimDecisions: ClaimDecisions;
   /** An approval is with the wallet or the chain, from this card or the inspector. */
   claimInFlight: boolean;
+  /**
+   * Where this ask's start stands after its Accept and Start: its two sends. Idle for any other
+   * ask, so one booking's sends never show on another's dialog.
+   */
+  voucherStartFor: (commitmentId: bigint, buyer: Address) => VoucherStartProgress;
   /** Where Resume Pool stands. */
   resumePhase: TxActPhase;
   /** Where the send started from this queued row stands. */
@@ -203,19 +232,19 @@ export interface ConfirmQueueRow {
   groupSize: number | null;
 }
 
-export interface HubConfirmQueueActs {
+export interface ReviewConfirmQueueActs {
   confirm: (row: ConfirmQueueRow) => Promise<string>;
   notYet: (row: ConfirmQueueRow, reason: string) => Promise<HexString>;
 }
 
-export interface HubConfirmQueueController {
+export interface ReviewConfirmQueueController {
   rows: ConfirmQueueRow[];
   isOnline: boolean;
   isLoading: boolean;
   isError: boolean;
   isConfirming: boolean;
   isDisputing: boolean;
-  acts: HubConfirmQueueActs;
+  acts: ReviewConfirmQueueActs;
 }
 
 export type DisputeResolutionKey = "RESTORE_PREVIOUS" | "FULFILLED" | "CANCELLED" | "EXPIRED";
@@ -264,11 +293,12 @@ export interface CommitmentDialogController {
   /** The promise's metadata document: its group and the reward as set, when it has them. */
   metadata: CommitmentMetadataV1 | null;
   /**
-   * Whether `metadata` can be trusted to say the promise is in no group: it was
-   * read, or there is none to read. False while it loads or when the read failed.
-   * The controller always sets it; a hand-built one that leaves it out reads as known.
+   * Whether the promise's reward and confirmers change from its group's inspector rather than
+   * here (`editsTermsFromGroup`, PRD-1548): true while the pool lists it in a group or the group
+   * has copies queued on this device, false for a promise on its own (a group's lone surviving
+   * copy included), null while its words or the pool's are still being read.
    */
-  metadataKnown?: boolean;
+  editsTermsFromGroup: boolean | null;
   cycle: CommitmentCycleRecord | null;
   events: CommitmentEventRecord[];
   disputeReason: CommitmentReasonResolution;
@@ -298,6 +328,8 @@ export interface CommitmentDialogController {
   claimantStanding: (claimant: Address) => ClaimantStanding | null;
   /** Where Send for Confirmation stands. */
   sendPhase: TxActPhase;
+  /** Where this reader's Confirm Kept stands, once the review has sent it (PRD-1205). */
+  confirmPhase: TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -307,7 +339,14 @@ export interface CommitmentDialogController {
 }
 
 /** `proposed`: a Safe took it as a proposal, and it holds until the chain shows it ran. */
-export type SettlementActPhase = "signing" | "submitted" | "proposed" | "confirmed" | "failed";
+/** `still-confirming`: sent past its receipt limit, so it may still land and holds like a proposal. */
+export type SettlementActPhase =
+  | "signing"
+  | "submitted"
+  | "proposed"
+  | "still-confirming"
+  | "confirmed"
+  | "failed";
 
 export type SettlementActKind =
   | "queue-funding"

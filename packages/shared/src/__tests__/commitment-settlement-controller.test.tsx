@@ -7,6 +7,7 @@ import { useCommitmentSettlementController } from "../hooks/admin-ui/pool/useCom
 import type { CommitmentSettlementChainState } from "../modules/commitment-pooling/data-settlement-chain";
 import type { PoolFundingSnapshot } from "../modules/commitment-pooling/pool-funding";
 import { hashRecognitionSnapshot } from "../modules/commitment-pooling/settlement";
+import { ReceiptWaitLimitError } from "../modules/transactions/types";
 import type { Address } from "../types/domain";
 import {
   availableCapability,
@@ -194,12 +195,13 @@ describe("useCommitmentSettlementController", () => {
         maxBatchAmount: null,
         batchSizeLimit: null,
       },
-      disbursements: [{ id: "42161-40", disbursementId: 40n }],
+      disbursements: [{ id: "42161-40", disbursementId: 40n, state: "QUEUED", attempt: 0 }],
       feeQuotes: [
         { id: "42161-40", amount: 250n * G, fee: 0n, senderPays: false, recipient: PROVIDER_SAFE },
       ],
       feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
       executorPaused: false,
+      commandExecutors: [],
       executions: [],
       settlementUnavailableReasons: [],
     }) as unknown as PoolFundingSnapshot;
@@ -246,6 +248,70 @@ describe("useCommitmentSettlementController", () => {
       action: "dispatchDisbursement",
       disbursementId: 40n,
     });
+  });
+
+  it("reads the chain again with the funding read before a resend, and holds one the index is an attempt behind on", async () => {
+    // The panel loaded with attempt 0 dispatched. Since then someone outside it requeued and
+    // dispatched the transfer again (attempt 1), but the funding index still lists attempt 0,
+    // whose command Celo recorded. The resend carries attempt 1's command, which Celo hasn't.
+    const dispatched = (attempt: number) => {
+      const state = queuedPayout();
+      const [row] = state.disbursements;
+      return {
+        ...state,
+        disbursements: [{ ...row!, state: "DISPATCHED" as const, attempt, dispatchedAt: 1 }],
+      };
+    };
+    const key = (n: number) => `0x${String(n).repeat(64)}` as const;
+    const indexed = (attempt: number, recorded: boolean) => {
+      const read = payerSafe(500n * G);
+      return {
+        ...read,
+        disbursements: [
+          {
+            id: "42161-40",
+            disbursementId: 40n,
+            state: "DISPATCHED",
+            attempt,
+            executionKey: key(attempt),
+          },
+        ],
+        executions: recorded
+          ? [
+              {
+                executionKey: key(attempt),
+                status: "FAILED",
+                createdAt: 1,
+                acknowledgmentSent: false,
+              },
+            ]
+          : [],
+        commandExecutors: [{ executionKey: key(attempt), executor: null, paused: false }],
+        feeQuotes: [
+          { id: "42161-40", amount: 250n * G, fee: 0n, senderPays: true, recipient: PROVIDER_SAFE },
+        ],
+      } as unknown as PoolFundingSnapshot;
+    };
+    mocks.readChain.mockResolvedValue(dispatched(0));
+    mocks.fundingSnapshot = indexed(0, true);
+    const commitment = beneficiaryCommitment();
+    const { result } = renderHookWithProviders(() =>
+      useCommitmentSettlementController({ chainId: 42161, commitment, detail: null })
+    );
+    await waitFor(() => expect(result.current.chainRead).toBe("ready"));
+
+    mocks.readChain.mockResolvedValue(dispatched(1));
+    await act(async () => {
+      await expect(result.current.acts.retry(40n)).rejects.toThrow(/limits_unread/);
+    });
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
+
+    // Once the index lists attempt 1, the resend goes through its own checks.
+    mocks.fundingSnapshot = indexed(1, false);
+    await act(async () => {
+      await result.current.acts.retry(40n);
+    });
+    expect(mocks.mutateAsync).toHaveBeenCalledWith({ action: "retryCommand", disbursementId: 40n });
   });
 
   it("holds a step a Safe took as a proposal until the chain shows it ran", async () => {
@@ -384,6 +450,33 @@ describe("useCommitmentSettlementController", () => {
     expect(mocks.mutateAsync).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.plan?.payoutPlanId).toBe(7n));
     expect(result.current.workflow.nextAction).toEqual({ kind: "finalize-plan", payoutPlanId: 7n });
+  });
+
+  it("holds a step past its receipt limit as still confirming, never failed", async () => {
+    // It went out and may still land: read as failed, the step would be offered again (PRD-1551).
+    mocks.readChain.mockResolvedValue(chainState());
+    mocks.mutateAsync.mockRejectedValue(
+      new ReceiptWaitLimitError(120_000, { hash: `0x${"ab".repeat(32)}` })
+    );
+    const { result } = renderHookWithProviders(() =>
+      useCommitmentSettlementController({
+        chainId: 42161,
+        commitment: beneficiaryCommitment(),
+        detail: null,
+      })
+    );
+    await waitFor(() =>
+      expect(result.current.workflow.nextAction).toEqual({ kind: "create-plan" })
+    );
+
+    await act(async () => {
+      await expect(result.current.acts.createPlan()).rejects.toThrow(ReceiptWaitLimitError);
+    });
+    expect(result.current.lastAct).toMatchObject({
+      kind: "create-plan",
+      phase: "still-confirming",
+    });
+    expect(result.current.workflow.nextAction).toBeNull();
   });
 
   it("keeps the displayed state on the chain's answer when a transaction is rejected", async () => {

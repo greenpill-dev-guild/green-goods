@@ -36,7 +36,7 @@ interface UseViewActionsResult {
  *   blocked: hasOpenInspector,
  *   actions: [
  *     { id: "submit-work", label: "Submit Work", labelId: "hub.submit", icon: RiAddLine,
- *       onClick: () => navigate("/hub/submit"), variant: "primary", primary: true,
+ *       onClick: () => navigate("/review/submit"), variant: "primary", primary: true,
  *       visible: canManage },
  *     { id: "create-assessment", ... },
  *   ],

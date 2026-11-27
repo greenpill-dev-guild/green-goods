@@ -7,10 +7,13 @@
  * if the connected user has deploy permissions.
  */
 
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { roleKeys } from "../../../config/query-keys/identity";
 import { MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { captureSendActs } from "../../test-utils/send-acts";
 
 // ============================================
 // Mocks
@@ -294,6 +297,73 @@ describe("useDeploymentRegistry", () => {
       expect(result.current.error).toBe("Unknown error");
       expect(result.current.canDeploy).toBe(false);
     });
+
+    it("keeps a failed read settled when another consumer mounts, and reads again on Try Again", async () => {
+      const queryClient = createTestQueryClient();
+      mockReadContract.mockRejectedValue(new Error("RPC connection failed"));
+      const first = renderHookWithQueryClient(() => useDeploymentRegistry(), { queryClient });
+      await waitFor(() => expect(first.result.current.error).toBe("RPC connection failed"));
+      const callsAfterFailure = mockReadContract.mock.calls.length;
+
+      // The Hub's access gate mounts the workspace, whose components read permissions again.
+      const next = renderHookWithQueryClient(() => useDeploymentRegistry(), { queryClient });
+      expect(next.result.current.loading).toBe(false);
+      await waitFor(() => expect(next.result.current.error).toBe("RPC connection failed"));
+      expect(first.result.current.loading).toBe(false);
+      expect(mockReadContract).toHaveBeenCalledTimes(callsAfterFailure);
+
+      // Returning to the tab doesn't restart it either.
+      act(() => {
+        queryClient.getQueryCache().onFocus();
+      });
+      expect(next.result.current.loading).toBe(false);
+      expect(mockReadContract).toHaveBeenCalledTimes(callsAfterFailure);
+
+      mockReadContract
+        .mockReset()
+        .mockResolvedValueOnce(MOCK_ADDRESSES.deployer)
+        .mockResolvedValueOnce(false);
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: roleKeys.all });
+      });
+      await waitFor(() => expect(next.result.current.canDeploy).toBe(true));
+    });
+
+    it("still refreshes a stale answer when the tab regains focus, so a revoked deployer shows", async () => {
+      const queryClient = createTestQueryClient();
+      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry(), { queryClient });
+      await waitFor(() => expect(result.current.canDeploy).toBe(true));
+
+      // Ownership moved while the tab was in the background, and the answer has gone stale.
+      mockReadContract
+        .mockResolvedValueOnce("0xSomeOtherOwner123456789012345678901234")
+        .mockResolvedValueOnce(false);
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: roleKeys.all, refetchType: "none" });
+        queryClient.getQueryCache().onFocus();
+      });
+      await waitFor(() => expect(result.current.canDeploy).toBe(false));
+      expect(result.current.loading).toBe(false);
+    });
+
+    it("keeps an earlier answer when a refresh fails, and reports no error", async () => {
+      const queryClient = createTestQueryClient();
+      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry(), { queryClient });
+      await waitFor(() => expect(result.current.canDeploy).toBe(true));
+
+      mockReadContract.mockRejectedValue(new Error("RPC connection failed"));
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: roleKeys.all });
+      });
+      const [query] = queryClient.getQueryCache().findAll({
+        queryKey: ["greengoods", "role", "deploymentPermissions"],
+      });
+      await waitFor(() => expect(query?.state.status).toBe("error"));
+      expect(result.current).toMatchObject({ canDeploy: true, loading: false });
+      expect(result.current.error).toBeUndefined();
+    });
   });
 
   // ------------------------------------------
@@ -427,8 +497,17 @@ describe("useDeploymentRegistry", () => {
       const { result } = renderHookWithQueryClient(() => useGardenCreators());
       await waitFor(() => expect(result.current.canManage).toBe(true));
 
-      await expect(result.current.addCreator(creator)).resolves.toBe(true);
+      const { acts, sent } = await captureSendActs(() =>
+        expect(result.current.addCreator(creator)).resolves.toBe(true)
+      );
 
+      // One act per change, named by the call and carrying no address (PRD-1571).
+      expect(acts).toEqual([
+        ["send_act_started", "garden_creator_allowlist", undefined],
+        ["send_act_ended", "garden_creator_allowlist", "confirmed"],
+      ]);
+      expect(sent).toContain("addtoallowlist");
+      expect(sent).not.toContain(creator.slice(2).toLowerCase());
       expect(mockSendContractCall).toHaveBeenCalledWith(
         expect.objectContaining({
           address: mockDeploymentRegistryAddress,
@@ -454,7 +533,7 @@ describe("useDeploymentRegistry", () => {
         // An RPC that answers with an error page parses to a code, which would read as a refusal.
         when: "the check itself cannot run",
         reverted: false,
-        says: "cockpit.community.gardenCreators.checkFailed",
+        says: "hub.community.gardenCreators.checkFailed",
       },
     ])("never opens the wallet when $when", async ({ reverted, says }) => {
       registryAnswers({ canManage: true, allowlist: [creator] });
@@ -511,21 +590,30 @@ describe("useDeploymentRegistry", () => {
       const { result } = renderHookWithQueryClient(() => useGardenCreators());
       await waitFor(() => expect(result.current.canManage).toBe(true));
 
-      await expect(result.current.addCreator(creator)).resolves.toBe(true);
+      const { acts } = await captureSendActs(() =>
+        expect(result.current.addCreator(creator)).resolves.toBe(true)
+      );
+      expect(acts.at(-1)).toEqual(["send_act_ended", "garden_creator_allowlist", "confirming"]);
     });
 
     it.each([
-      { when: "the person declines the signature", error: new Error("User rejected the request") },
+      {
+        when: "the person declines the signature",
+        error: new Error("User rejected the request"),
+        ending: "cancelled",
+      },
       {
         when: "the receipt shows a revert",
         error: new TransactionRevertedError(`0x${"3".repeat(64)}`),
+        ending: "failed",
       },
       {
         // viem refused the write for the wallet's network and the check before a retry failed.
         when: "the wallet changed network and the write was not tried again",
         error: new WalletWriteNotRetriedError(new Error("Switch to Arbitrum failed")),
+        ending: "failed",
       },
-    ])("reports the change as not sent when $when", async ({ error }) => {
+    ])("reports the change as not sent when $when", async ({ error, ending }) => {
       registryAnswers({ canManage: true, allowlist: [] });
       mockSimulateTransaction.mockResolvedValue({ success: true });
       mockSendContractCall.mockImplementation(
@@ -537,7 +625,10 @@ describe("useDeploymentRegistry", () => {
       const { result } = renderHookWithQueryClient(() => useGardenCreators());
       await waitFor(() => expect(result.current.canManage).toBe(true));
 
-      await expect(result.current.addCreator(creator)).resolves.toBe(false);
+      const { acts } = await captureSendActs(() =>
+        expect(result.current.addCreator(creator)).resolves.toBe(false)
+      );
+      expect(acts.at(-1)).toEqual(["send_act_ended", "garden_creator_allowlist", ending]);
       await waitFor(() => expect(result.current.isWriting).toBe(false));
     });
   });

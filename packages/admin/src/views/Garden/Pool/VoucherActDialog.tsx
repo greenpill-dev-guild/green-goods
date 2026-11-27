@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { Address } from "@green-goods/shared/types/domain";
+import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { type ComponentProps, type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
@@ -45,9 +46,12 @@ export interface VoucherActDialogProps
 }
 
 /**
- * One voucher act on the cockpit's confirm dialog (V5): busy while the act
+ * One voucher act on the Hub's confirm dialog (V5): busy while the act
  * runs, closed when it lands, and kept open saying it didn't go through, with
- * the confirm offered again, when it fails. The body ends with who signs.
+ * the confirm offered again, when it fails. An act that may still land (still
+ * confirming, or stopped while the wallet may still hold it) closes too, so the
+ * confirm never sends it twice; its row and toast say where it stands
+ * (PRD-1551). The body ends with who signs.
  */
 export function VoucherActDialog({
   open,
@@ -75,7 +79,7 @@ export function VoucherActDialog({
       confirmLabel={
         failed
           ? formatMessage({
-              id: "cockpit.garden.pool.approvals.retry",
+              id: "hub.garden.pool.approvals.retry",
               defaultMessage: "Try Again",
             })
           : confirmLabel
@@ -90,8 +94,8 @@ export function VoucherActDialog({
           setBusy(false);
         }
       }}
-      // The confirm dialog has logged it; the dialog says so and stays.
-      onError={() => setFailed(true)}
+      // The confirm dialog has logged it; a failure says so and stays.
+      onError={(error) => (mayStillLand(error) ? close() : setFailed(true))}
     >
       <div className="space-y-4">
         {children}

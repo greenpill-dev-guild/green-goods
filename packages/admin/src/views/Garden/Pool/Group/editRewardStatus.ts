@@ -38,6 +38,17 @@ export interface EditRewardStatus {
 
 const IN_FLIGHT = new Set<RewardEditProgress["status"]>(["waiting", "wallet", "confirming"]);
 
+/**
+ * How many copies a batching wallet is asked about now: the one bundle it
+ * holds, never every copy, since above 50 the copies go in several requests.
+ */
+export function copiesInRequest(copies: readonly Pick<RewardEditProgress, "status">[]): number {
+  const asked = copies.filter(
+    (copy) => copy.status === "wallet" || copy.status === "confirming"
+  ).length;
+  return asked > 0 ? asked : copies.length;
+}
+
 export function editRewardStatus(input: {
   mode: CreationSendMode | null;
   isSending: boolean;
@@ -57,7 +68,7 @@ export function editRewardStatus(input: {
         : input.formatList([
             ...takenBy.slice(0, 2),
             formatMessage(
-              { id: "cockpit.garden.pool.reward.others", defaultMessage: "{count} others" },
+              { id: "hub.garden.pool.reward.others", defaultMessage: "{count} others" },
               { count: takenBy.length - 2 }
             ),
           ]);
@@ -69,7 +80,7 @@ export function editRewardStatus(input: {
       retry: [],
       title: formatMessage(
         {
-          id: "cockpit.garden.pool.reward.ready",
+          id: "hub.garden.pool.reward.ready",
           defaultMessage:
             "{count, plural, one {Changes the reward for the one available promise} other {Changes the reward for # available promises}}",
         },
@@ -78,12 +89,12 @@ export function editRewardStatus(input: {
       description:
         takenBy.length === 0
           ? formatMessage({
-              id: "cockpit.garden.pool.reward.readyNoneTaken",
+              id: "hub.garden.pool.reward.readyNoneTaken",
               defaultMessage: "Nobody has taken one yet, so every one changes.",
             })
           : formatMessage(
               {
-                id: "cockpit.garden.pool.reward.readyTakenAgreements",
+                id: "hub.garden.pool.reward.readyTakenAgreements",
                 defaultMessage:
                   "{count, plural, one {{names} keeps the reward agreed at take-up.} other {{names} keep the rewards agreed at take-up.}}",
               },
@@ -111,14 +122,14 @@ export function editRewardStatus(input: {
         retry: [],
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.reward.sending",
+            id: "hub.garden.pool.reward.sending",
             defaultMessage: "Confirm in your wallet ({current} of {total})",
           },
           { current: at + 1, total: copies.length }
         ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.reward.sendingHint",
+            id: "hub.garden.pool.reward.sendingHint",
             defaultMessage:
               "{changed} changed so far. This wallet asks once per promise; declining one leaves only that one as it was.",
           },
@@ -127,6 +138,7 @@ export function editRewardStatus(input: {
       };
     }
     const confirming = copies[at]?.status === "confirming";
+    const inRequest = copiesInRequest(copies);
     return confirming
       ? {
           phase: "confirming",
@@ -136,14 +148,14 @@ export function editRewardStatus(input: {
           retry: [],
           title: formatMessage(
             {
-              id: "cockpit.garden.pool.reward.confirming",
+              id: "hub.garden.pool.reward.confirming",
               defaultMessage:
                 "{count, plural, one {Changing the reward} other {Changing # rewards}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
           description: formatMessage({
-            id: "cockpit.garden.pool.reward.confirmingHint",
+            id: "hub.garden.pool.reward.confirmingHint",
             defaultMessage: "Your wallet approved. Waiting for confirmation…",
           }),
         }
@@ -155,19 +167,19 @@ export function editRewardStatus(input: {
           retry: [],
           title: formatMessage(
             {
-              id: "cockpit.garden.pool.reward.asking",
+              id: "hub.garden.pool.reward.asking",
               defaultMessage:
                 "{count, plural, one {Approve in your wallet} other {Approve in your wallet: # rewards in one request}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
           description: formatMessage(
             {
-              id: "cockpit.garden.pool.reward.askingHint",
+              id: "hub.garden.pool.reward.askingHint",
               defaultMessage:
                 "{count, plural, one {It changes once your wallet approves.} other {They change together: all #, or none if the wallet declines.}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
         };
   }
@@ -182,11 +194,11 @@ export function editRewardStatus(input: {
         progress: null,
         retry,
         title: formatMessage({
-          id: "cockpit.garden.pool.reward.unconfirmed",
+          id: "hub.garden.pool.reward.unconfirmed",
           defaultMessage: "The request didn't finish",
         }),
         description: formatMessage({
-          id: "cockpit.garden.pool.reward.unconfirmedHint",
+          id: "hub.garden.pool.reward.unconfirmedHint",
           defaultMessage:
             "Some may have changed anyway. Try Again sets the rest; setting a reward twice changes nothing.",
         }),
@@ -200,23 +212,23 @@ export function editRewardStatus(input: {
       progress: null,
       retry,
       title: formatMessage({
-        id: "cockpit.garden.pool.reward.nothing",
+        id: "hub.garden.pool.reward.nothing",
         defaultMessage: "Nothing was changed",
       }),
       description: declined
         ? formatMessage({
-            id: "cockpit.garden.pool.reward.declinedHint",
+            id: "hub.garden.pool.reward.declinedHint",
             defaultMessage:
               "Your wallet declined the request. The rewards are as they were, and Try Again asks once more.",
           })
         : missed.every((copy) => copy.miss === "over-ceilings")
           ? formatMessage({
-              id: "cockpit.garden.pool.reward.overCeilingsHint",
+              id: "hub.garden.pool.reward.overCeilingsHint",
               defaultMessage:
                 "These rewards can't change in one signature right now, so nothing was sent. They are as they were, and Try Again asks for each one on its own.",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.reward.refusedHint",
+              id: "hub.garden.pool.reward.refusedHint",
               defaultMessage:
                 "The request didn't go through. The rewards are as they were; check the amount, then Try Again.",
             }),
@@ -231,14 +243,14 @@ export function editRewardStatus(input: {
       retry,
       title: formatMessage(
         {
-          id: "cockpit.garden.pool.reward.partial",
+          id: "hub.garden.pool.reward.partial",
           defaultMessage: "{changed} changed · {left} didn't change",
         },
         { changed, left: missed.length }
       ),
       description: formatMessage(
         {
-          id: "cockpit.garden.pool.reward.partialHint",
+          id: "hub.garden.pool.reward.partialHint",
           defaultMessage: "Try Again ({left}) changes only those, to the same amount.",
         },
         { left: missed.length }
@@ -253,13 +265,13 @@ export function editRewardStatus(input: {
     retry: [],
     title: formatMessage(
       {
-        id: "cockpit.garden.pool.reward.changed",
+        id: "hub.garden.pool.reward.changed",
         defaultMessage: "{count, plural, one {The reward is changed} other {# rewards changed}}",
       },
       { count: changed }
     ),
     description: formatMessage({
-      id: "cockpit.garden.pool.reward.changedHint",
+      id: "hub.garden.pool.reward.changedHint",
       defaultMessage: "Anyone who takes one up from now agrees to the new reward.",
     }),
   };
@@ -298,12 +310,12 @@ export function editRewardSummary(input: {
     availableTotal === null || takenTotal === null
       ? "—"
       : formatMessage(
-          { id: "cockpit.garden.pool.reward.upTo", defaultMessage: "up to {amount}" },
+          { id: "hub.garden.pool.reward.upTo", defaultMessage: "up to {amount}" },
           {
             amount:
               estimated || taken.some((agreement) => agreement.estimated)
                 ? formatMessage(
-                    { id: "cockpit.garden.pool.reward.about", defaultMessage: "about {amount}" },
+                    { id: "hub.garden.pool.reward.about", defaultMessage: "about {amount}" },
                     { amount: formatUsd(availableTotal + takenTotal) }
                   )
                 : formatUsd(availableTotal + takenTotal),
@@ -312,11 +324,11 @@ export function editRewardSummary(input: {
   const rows: Array<[string, string]> = [
     [
       formatMessage(
-        { id: "cockpit.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
+        { id: "hub.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
         { count: available.length }
       ),
       formatMessage(
-        { id: "cockpit.garden.pool.reward.fromTo", defaultMessage: "{from} → {to} each" },
+        { id: "hub.garden.pool.reward.fromTo", defaultMessage: "{from} → {to} each" },
         {
           from: available.every((agreement) => agreement.current === available[0]?.current)
             ? (available[0]?.current ?? "—")
@@ -329,12 +341,12 @@ export function editRewardSummary(input: {
   if (taken.length > 0) {
     rows.push([
       formatMessage(
-        { id: "cockpit.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
+        { id: "hub.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
         { count: taken.length }
       ),
       formatMessage(
         {
-          id: "cockpit.garden.pool.reward.takenKeepAgreements",
+          id: "hub.garden.pool.reward.takenKeepAgreements",
           defaultMessage: "{amounts} · unchanged, as agreed",
         },
         { amounts: amountsText(taken) }
@@ -343,11 +355,11 @@ export function editRewardSummary(input: {
   }
   rows.push([
     formatMessage({
-      id: "cockpit.garden.pool.reward.allKept",
+      id: "hub.garden.pool.reward.allKept",
       defaultMessage: "Reward if all are kept",
     }),
     formatMessage(
-      { id: "cockpit.garden.pool.reward.totalFromTo", defaultMessage: "{from} → {to}" },
+      { id: "hub.garden.pool.reward.totalFromTo", defaultMessage: "{from} → {to}" },
       {
         from: upTo(
           total(available),

@@ -26,14 +26,16 @@ import { CharacterCounter, countedLength, overLimitMessage } from "./CharacterCo
  * message layout (F3) around Shared's own control:
  * - The label above the control, the shared field title (`gg-field-label`)
  * - The shared control (`TextInput`, `Textarea`, `NativeSelect`) on the admin
- *   surface: the cockpit's 8px corner on the responsive field tier, 44px /
+ *   surface: the Hub's 8px corner on the responsive field tier, 44px /
  *   16px text below 640px (the installed app's touch fields) and 40px / 14px
  *   text from 640px (DL-030, DL-031), the control-grade outline at rest, one
  *   2px focus ring in the workspace tone (DL-098), and the error colour on error
  * - Leading and trailing icon slots (20px, on-surface-variant)
+ * - An `action` slot: a button in the control's own row, centred on the
+ *   control whatever their heights, above the message line
  * - Supporting text / error message below with aria-describedby linkage, on
  *   the shared message line (`gg-field-message`), which reserves the
- *   cockpit's message lines whether or not it shows one, so a message that
+ *   Hub's message lines whether or not it shows one, so a message that
  *   fits never moves the form (DL-064) and a longer one grows the line
  * - Opt-in character counter at the end of that row, toward the control's maxLength,
  *   with an error past it
@@ -61,6 +63,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       id: idProp,
       placeholder,
       className,
+      action,
       controlProps,
       showCount = false,
       countBytes = false,
@@ -221,6 +224,27 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
         disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
       );
 
+    const fieldContainer = (
+      <div
+        data-region="field-container"
+        className={cn("relative", action ? "min-w-0 flex-1" : undefined)}
+      >
+        {LeadingIcon ? (
+          <span aria-hidden="true" className={iconClasses("left")}>
+            <LeadingIcon className="h-full w-full" />
+          </span>
+        ) : null}
+
+        {control}
+
+        {TrailingIcon ? (
+          <span aria-hidden="true" className={iconClasses("right")}>
+            <TrailingIcon className="h-full w-full" />
+          </span>
+        ) : null}
+      </div>
+    );
+
     return (
       <div
         data-component={select ? "AdminSelect" : "AdminTextField"}
@@ -240,22 +264,22 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           {required ? <span aria-hidden="true">{"\u00a0*"}</span> : null}
         </label>
 
-        {/* The control and the icons laid over its inline padding */}
-        <div data-region="field-container" className="relative">
-          {LeadingIcon ? (
-            <span aria-hidden="true" className={iconClasses("left")}>
-              <LeadingIcon className="h-full w-full" />
-            </span>
-          ) : null}
-
-          {control}
-
-          {TrailingIcon ? (
-            <span aria-hidden="true" className={iconClasses("right")}>
-              <TrailingIcon className="h-full w-full" />
-            </span>
-          ) : null}
-        </div>
+        {/* The control and the icons laid over its inline padding. An action
+            shares the control's row, centred on it, with its reserve margin
+            dropped so the row stays the control's height. */}
+        {action ? (
+          <div data-region="control-row" className="flex items-center gap-2">
+            {fieldContainer}
+            <div
+              data-region="field-action"
+              className="flex shrink-0 items-center gap-2 [--gg-button-reserve-compact:0] [--gg-button-reserve-lg:0] [--gg-button-reserve-md:0] [--gg-button-reserve-sm:0]"
+            >
+              {action}
+            </div>
+          </div>
+        ) : (
+          fieldContainer
+        )}
 
         {/* Supporting text at the start of the line, the counter at its end. */}
         <div data-region="supporting-line" className="gg-field-help gg-field-message flex gap-4">

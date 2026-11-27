@@ -1,5 +1,6 @@
 import {
   issuerPoolStatus,
+  liveVoucherIssuerName,
   serviceIssuerIssuanceLimit,
   type ServiceIssuerAction,
   type ServiceIssuerAsset,
@@ -7,7 +8,9 @@ import {
   type ServiceIssuerSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import type { IntlShape } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
+import { voucherServiceDescriptions } from "@/components/Features/Commitments/voucherServices";
 
 /** Never round a member's entered quantity into a different authorization. */
 export function parseIssuerAmount(value: string, decimals: number): bigint | null {
@@ -17,8 +20,30 @@ export function parseIssuerAmount(value: string, decimals: number): bigint | nul
   return amount > 0n && amount < (1n << 256n) - 1n ? amount : null;
 }
 
-export function issuerAmount(value: bigint, asset: ServiceIssuerAsset, locale: string) {
-  return `${issuerCount(value, asset.decimals, locale)} ${asset.symbol}`;
+/** What names an amount's unit: the asset's name and decimals, and its token for the catalog. */
+export type IssuerUnitAsset = Pick<ServiceIssuerAsset, "name" | "decimals"> & {
+  token: Pick<ServiceIssuerAsset["token"], "address">;
+};
+
+/**
+ * The issuer's name for a voucher phrase: the live catalog's ("Green Goods" for the token named
+ * "Green Goods Service Voucher"), else the asset's own name with a trailing voucher noun taken
+ * off, so no phrase reads "Service Voucher vouchers". A name with no such noun stands as it is.
+ */
+function issuerStem(asset: IssuerUnitAsset): string {
+  return (
+    liveVoucherIssuerName(asset.token.address) ??
+    asset.name.replace(/\s+(service\s+)?vouchers?\s*$/i, "").trim()
+  );
+}
+
+/** A quantity in the issuer's own words, never a symbol: "0.5 Fictional engineer help vouchers". */
+export function issuerAmount(
+  value: bigint,
+  asset: IssuerUnitAsset,
+  intl: Pick<IntlShape, "formatMessage" | "locale">
+) {
+  return `${issuerCount(value, asset.decimals, intl.locale)} ${issuerUnitWords(value, asset, intl)}`;
 }
 
 /** A quantity without its unit, every decimal kept: the capacity and location numbers. */
@@ -28,6 +53,55 @@ export const issuerCount = (value: bigint, decimals: number, locale: string) =>
 /** The same quantity as a number, only to choose a plural form. */
 export const issuerPlural = (value: bigint, decimals: number) =>
   Number(formatUnits(value, decimals));
+
+/** The unit in the issuer's own words, never a symbol: "Fictional engineer help vouchers". */
+export function issuerUnitWords(
+  value: bigint,
+  asset: IssuerUnitAsset,
+  intl: Pick<IntlShape, "formatMessage">
+) {
+  return intl.formatMessage(
+    { id: "app.voucher.unit" },
+    { count: issuerPlural(value, asset.decimals), issuer: issuerStem(asset), gender: "other" }
+  );
+}
+
+/** The quantity with the plain unit, for an act's own label: "Exchange 0.5 vouchers". */
+export function issuerPlainAmount(
+  value: bigint,
+  decimals: number,
+  intl: Pick<IntlShape, "formatMessage" | "locale">
+) {
+  return `${issuerCount(value, decimals, intl.locale)} ${intl.formatMessage(
+    { id: "app.voucher.unitPlain" },
+    { count: issuerPlural(value, decimals) }
+  )}`;
+}
+
+/**
+ * What one of the asset's vouchers books, from its reviewed offers, as the wallet writes a
+ * holding's terms. Nothing while no offer is reviewed: the review then says no less than it knows.
+ */
+export function issuerBooks(
+  asset: Pick<ServiceIssuerAsset, "name" | "decimals" | "service">,
+  intl: Pick<IntlShape, "formatMessage" | "locale">
+): string[] {
+  const offers = asset.service.offers;
+  if (!offers?.length) return [];
+  return voucherServiceDescriptions(
+    {
+      services: offers.map((offer) => ({
+        name: offer.name ?? asset.name,
+        unit: offer.unit,
+        serviceUnits: offer.serviceUnits,
+        voucherUnits: offer.voucherUnits,
+        serviceTermsRef: offer.serviceTermsRef,
+      })),
+    },
+    asset.decimals,
+    intl
+  );
+}
 
 type Onchain = Extract<ServiceIssuerSnapshot, { evidence: "onchain" }>;
 const sum = (values: bigint[]) => values.reduce((total, value) => total + value, 0n);
@@ -98,7 +172,7 @@ export function issuerEscrowed(snapshot: Onchain): bigint | null {
   );
 }
 
-type IssuerListing = "setup" | "listed" | "paused" | "delisted" | "unavailable";
+export type IssuerListing = "setup" | "listed" | "paused" | "delisted" | "unavailable";
 
 /**
  * The pool takes the token in: admitted under a holding limit, so Green Goods' side of setup is

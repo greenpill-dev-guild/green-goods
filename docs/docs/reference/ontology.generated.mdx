@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:cfbd7e32edddf29e3ad5052248eda2f47b2e4edd9916f1bbacc4f2bbe3577057"
+source_digest: "sha256:1badd1f853ca8c7da492297e5b625315d55e5268f9c50217d317bc186e8ee83a"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -637,7 +637,7 @@ GraphQL execution-result mirror with an explicit UNKNOWN sentinel.
 
 ### `commitment-claim-request-state`
 
-Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.
+Indexer lifecycle of a commitment claim request. A request still pending is superseded when its commitment is taken up by someone else, canceled or expires, and its resolution code (COMMITMENT_ACCEPTED, COMMITMENT_CANCELLED or COMMITMENT_EXPIRED) says which.
 
 **Canonical members:** PENDING · ACCEPTED · DECLINED · SUPERSEDED
 
@@ -963,7 +963,7 @@ Direction-aware fulfillment: the party receiving the team's work confirms by def
 | Offered · Requested · Accepted | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
 | Offered · Requested · Accepted · ReadyForConfirmation | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
 | Accepted · ReadyForConfirmation · Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
-| Disputed | Accepted · ReadyForConfirmation · Fulfilled · Cancelled · Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
+| Disputed | Accepted · ReadyForConfirmation · Fulfilled · Cancelled · Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution rejects the steward who raised the dispute (SelfDisputeResolution) and a dispute with no recorded raiser (UnknownDisputeRaiser), while that steward may still restore, cancel or expire it; it then requires an available recognition policy and verified contributor, and freezes an unfrozen roster before DisputeResolved |
 
 ### `commitment-loan`
 

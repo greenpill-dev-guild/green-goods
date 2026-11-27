@@ -7,6 +7,7 @@ import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
 import { useGardenPermissions } from "../../garden/useGardenPermissions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
+import { useWorkVisibility } from "../../work/useWorkVisibility";
 import { replaceEqualDeep } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
@@ -29,6 +30,7 @@ function isSameRecord<T>(known: T, next: T): boolean {
 }
 
 export function useResolvedWorkDetail(workId: string | undefined) {
+  const visibility = useWorkVisibility(DEFAULT_CHAIN_ID);
   const gardenPermissions = useGardenPermissions();
   const {
     activeGarden,
@@ -65,10 +67,14 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     isFetching: worksFetching,
     isLoading: worksLoading,
     works,
+    unknownIds,
+    readThisSession,
   } = useWorks(gardenId ?? "");
-  const liveWork =
+  const candidateWork =
     works.find((candidateWork) => candidateWork.id === workId) ??
     matchedGarden?.works?.find((candidateWork) => candidateWork.id === workId);
+  const liveWork =
+    candidateWork && visibility.isVisible(candidateWork.id) ? candidateWork : undefined;
 
   const [lastResolved, setLastResolved] = useState<ResolvedWorkSnapshot | null>(null);
   useEffect(() => {
@@ -89,13 +95,23 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     );
   }, [liveGarden, liveWork, workId]);
 
-  const retained = lastResolved?.workId === workId ? lastResolved : null;
+  const retained =
+    lastResolved && lastResolved.workId === workId && visibility.isVisible(lastResolved.work.id)
+      ? lastResolved
+      : null;
   const hasLiveRecord = Boolean(liveGarden && liveWork);
   const garden = hasLiveRecord ? liveGarden : (retained?.garden ?? null);
   const work = hasLiveRecord ? liveWork : retained?.work;
-  const hasQueryError = gardenContextError || gardensQueryError || worksQueryError;
+  const hasQueryError =
+    gardenContextError ||
+    gardensQueryError ||
+    worksQueryError ||
+    (!visibility.isReady && !visibility.isLoading);
   const isSettling =
-    gardensLoading || gardensFetching || (gardenId ? worksLoading || worksFetching : false);
+    gardensLoading ||
+    gardensFetching ||
+    (gardenId ? worksLoading || worksFetching : false) ||
+    (!visibility.isReady && visibility.isLoading);
   const resolutionStatus: WorkDetailResolutionStatus = hasLiveRecord
     ? "resolved"
     : retained
@@ -117,6 +133,17 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     ? gardenPermissions.isStewardOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
     : false;
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
+  // No decision is offered on a work whose status is not current: its decisions could not be read,
+  // the garden's read failed or this session has not read the garden yet (a restored copy may be
+  // old, online or off), or the work is not in the current read at all (the garden list's copy, or the
+  // snapshot kept after it left the read).
+  const statusUnread = Boolean(
+    work &&
+      (unknownIds?.has(work.id) ||
+        worksQueryError ||
+        readThisSession === false ||
+        !works.some((candidate) => candidate.id === work.id))
+  );
 
   useEffect(() => {
     if (matchedGarden && !compareAddresses(matchedGarden.id, activeGardenId)) {
@@ -141,6 +168,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     canReview,
     canApproveOrReject,
     isReviewed,
+    statusUnread,
     metadata,
     audioNoteCids: metadata?.audioNoteCids,
     documents,
@@ -152,6 +180,6 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     isTemporarilyAbsent: resolutionStatus === "temporarily-absent",
     isNotFound: resolutionStatus === "not-found",
     isError: resolutionStatus === "error",
-    error: gardensError ?? worksError ?? null,
+    error: visibility.error ?? gardensError ?? worksError ?? null,
   };
 }

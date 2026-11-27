@@ -7,6 +7,7 @@ import {
   useResolvedProfileAvatar,
 } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import {
   getProfileAvatarFailureMessage,
   getProfileAvatarStageMessage,
@@ -86,6 +87,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       await editor.save(selectedFile);
       setSelectedFile(null);
     } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       if (caught instanceof UploadPolicyCancelledError) return;
       setSelectedFile(null);
       setError(getProfileAvatarFailureMessage("save", formatMessage));
@@ -97,7 +99,8 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.clear();
       setSelectedFile(null);
-    } catch {
+    } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       setError(getProfileAvatarFailureMessage("remove", formatMessage));
     }
   };
@@ -107,6 +110,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.continueAfterReconnect();
     } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("continue", formatMessage));
     }
@@ -158,35 +162,30 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         })}
         icon={RiCameraLine}
         size="md"
-        tone="hub"
+        tone="review"
         preventClose={busy}
-        actions={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {resolved.source === "app" ? (
-              <Button
-                type="button"
-                emphasis="primary"
-                tone="danger"
-                size="sm"
-                onClick={() => setRemoveConfirmOpen(true)}
-                disabled={busy}
-                leadingIcon={<RiDeleteBinLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-              >
-                {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" })}
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              emphasis="primary"
-              size="sm"
-              onClick={save}
-              disabled={!selectedFile || busy}
-              loading={busy && Boolean(selectedFile)}
-            >
-              {saveLabel}
-            </Button>
-          </div>
-        }
+        actions={{
+          primary: {
+            label: saveLabel,
+            onClick: save,
+            disabled: !selectedFile || busy,
+            loading: busy && Boolean(selectedFile),
+          },
+          // Removing the photo is the destructive way out, so it is outlined in the danger tone.
+          secondary:
+            resolved.source === "app"
+              ? {
+                  label: formatMessage({
+                    id: "profile.avatar.remove",
+                    defaultMessage: "Remove Photo",
+                  }),
+                  tone: "danger",
+                  icon: <RiDeleteBinLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+                  onClick: () => setRemoveConfirmOpen(true),
+                  disabled: busy,
+                }
+              : undefined,
+        }}
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
@@ -310,7 +309,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         cancelLabel={formatMessage({ id: "profile.avatar.cancel", defaultMessage: "Cancel" })}
         variant="danger"
         isLoading={busy}
-        tone="hub"
+        tone="review"
       />
     </>
   );

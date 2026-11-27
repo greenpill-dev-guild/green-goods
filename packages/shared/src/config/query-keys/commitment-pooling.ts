@@ -276,6 +276,38 @@ export const commitmentPoolingKeys = {
   /** Whether a wallet has run one settlement proposal, by the identifier it returned for it. */
   settlementProposal: (chainId: number, proposal: string) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-proposal", proposal] as const,
+  /** Who paid each wallet-paid reward share of one commitment, read from the reward payer. */
+  rewardShares: (chainId: number, commitmentId: bigint | string | number, shareIds: string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "reward-shares",
+      String(commitmentId),
+      shareIds,
+    ] as const,
+  /** Who one commitment's G$ payout plan pays, for splitting its wallet-paid parts the same way. */
+  rewardShareRecipients: (chainId: number, commitmentId: bigint | string | number) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "reward-share-recipients",
+      String(commitmentId),
+    ] as const,
+  /** The transaction that paid one wallet-paid reward share. */
+  rewardShareTransaction: (chainId: number, shareId: string) =>
+    [...commitmentPoolingKeys.all(chainId), "reward-share-transaction", shareId] as const,
+  /** A garden Safe's payment of a promise's owed shares: the transaction and its approvals so far. */
+  rewardSafePayment: (
+    chainId: number,
+    commitmentId: bigint | string | number,
+    safe: string,
+    shareIds: string
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "reward-safe-payment",
+      String(commitmentId),
+      safe.toLowerCase(),
+      shareIds,
+    ] as const,
   /** Owner, pause flag and gardener-delivery gate of the settlement module. */
   settlementOperations: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-operations"] as const,

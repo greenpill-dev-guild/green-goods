@@ -19,6 +19,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import { vaultsKeys } from "../../config/query-keys/vault";
@@ -92,6 +93,12 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
   const queryClient = useQueryClient();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
+  const redeemAct = (params: { chainId: number }): SendActContext => ({
+    act: "vault_withdraw",
+    operation: "octant_redeem",
+    authMode: sender?.authMode,
+    chainId: params.chainId,
+  });
   const showLifecycleToast = shouldShowLifecycleToast(options.toastMode);
   const showErrorToast = showLifecycleToast && shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
@@ -100,7 +107,7 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
   });
 
   const mutation = useMutation({
-    mutationFn: async (params: OctantVaultRedeemParams) => {
+    mutationFn: recordedSendAct(redeemAct, async (params: OctantVaultRedeemParams) => {
       if (params.chainId !== OCTANT_V2_ETHEREUM_CHAIN_ID) {
         throw new Error("Octant vault withdrawals require Ethereum mainnet chain ID 1");
       }
@@ -147,7 +154,7 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
         chainId: params.chainId,
       });
       return result.hash;
-    },
+    }),
     onMutate: () => {
       if (!showLifecycleToast) return { toastId: undefined };
       const toastId = toastService.loading({

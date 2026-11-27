@@ -18,6 +18,7 @@ import { publicJarLink } from "./helpers";
 export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Address }) {
   const { formatMessage } = useIntl();
   const { jar, isLoading, hasDetailReadFailure } = useCampaignCookieJar(jarAddress);
+  const isVariableClaim = jar?.withdrawalType === "variable";
   const publicUrl = publicJarLink(jarAddress);
 
   return (
@@ -26,7 +27,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
         <div>
           <p className="type-label-sm text-text-strong">
             {formatMessage({
-              id: "cockpit.community.cookies.jarAddress",
+              id: "hub.community.cookies.jarAddress",
               defaultMessage: "Jar address",
             })}
           </p>
@@ -46,7 +47,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
         <Button type="button" emphasis="secondary" size="sm" asChild>
           <a href={publicUrl} target="_blank" rel="noreferrer">
             {formatMessage({
-              id: "cockpit.community.cookies.openPublicLink",
+              id: "hub.community.cookies.openPublicLink",
               defaultMessage: "Open Public Link",
             })}
           </a>
@@ -55,14 +56,14 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
       <AdminCard variant="outlined" className="space-y-3">
         <AdminCardTitle>
           {formatMessage({
-            id: "cockpit.community.cookies.onchainReadTitle",
+            id: "hub.community.cookies.onchainReadTitle",
             defaultMessage: "Onchain read",
           })}
         </AdminCardTitle>
         {isLoading ? (
           <p className="type-meta text-text-sub">
             {formatMessage({
-              id: "cockpit.community.cookies.onchainReadLoading",
+              id: "hub.community.cookies.onchainReadLoading",
               defaultMessage: "Reading jar details...",
             })}
           </p>
@@ -70,21 +71,32 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
           <FactList frame="inset">
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.cookies.rowBalance",
+                id: "hub.community.cookies.rowBalance",
                 defaultMessage: "Jar balance",
               })}
               value={`${formatTokenAmount(jar.balance, jar.decimals, 4)} ${jar.symbol}`}
             />
             <FactRow
-              label={formatMessage({
-                id: "cockpit.community.cookies.claimAmountPerSteward",
-                defaultMessage: "Claim amount per steward",
-              })}
-              value={`${formatTokenAmount(jar.fixedAmount, jar.decimals, 4)} ${jar.symbol}`}
+              label={formatMessage(
+                isVariableClaim
+                  ? {
+                      id: "hub.community.cookies.maximumClaimPerSteward",
+                      defaultMessage: "Maximum claim per steward",
+                    }
+                  : {
+                      id: "hub.community.cookies.claimAmountPerSteward",
+                      defaultMessage: "Claim amount per steward",
+                    }
+              )}
+              value={`${formatTokenAmount(
+                isVariableClaim ? jar.maxWithdrawal : jar.fixedAmount,
+                jar.decimals,
+                jar.decimals
+              )} ${jar.symbol}`}
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.cookies.generatedStewards",
+                id: "hub.community.cookies.generatedStewards",
                 defaultMessage: "Stewards who can claim",
               })}
               value={jar.allowlist.length}
@@ -93,7 +105,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
         ) : (
           <p className="type-meta text-error-dark">
             {formatMessage({
-              id: "cockpit.community.cookies.onchainReadUnavailable",
+              id: "hub.community.cookies.onchainReadUnavailable",
               defaultMessage:
                 "The jar was created, but this browser could not read the jar details yet.",
             })}
@@ -102,7 +114,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
         {hasDetailReadFailure ? (
           <p className="type-meta text-text-sub">
             {formatMessage({
-              id: "cockpit.community.cookies.onchainReadPartial",
+              id: "hub.community.cookies.onchainReadPartial",
               defaultMessage:
                 "Some optional metadata reads failed. The direct jar link still works.",
             })}
@@ -138,45 +150,37 @@ export function CampaignCookieJarSubmittedState({
       <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-4">
         <p className="type-label-sm text-text-strong">
           {formatMessage({
-            id: "cockpit.community.cookies.submittedTransaction",
+            id: "hub.community.cookies.submittedTransaction",
             defaultMessage: "Submitted transaction",
           })}
         </p>
         <p className="mt-1 break-all type-meta text-text-sub">{hash}</p>
       </div>
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <AdminTextField
-          id="campaign-cookie-jar-created-address"
-          className="min-w-0"
-          label={formatMessage({
-            id: "cockpit.community.cookies.createdJarAddressInput",
-            defaultMessage: "Created jar address",
-          })}
-          value={manualInput}
-          onChange={(event) => onManualInputChange(event.target.value)}
-          error={
-            manualInput && !manualAddress
-              ? formatMessage({
-                  id: "cockpit.community.cookies.invalidAddress",
-                  defaultMessage: "Enter a valid Ethereum address.",
-                })
-              : undefined
-          }
-        />
-        {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
-        <Button
-          size="sm"
-          type="button"
-          onClick={onUseManualAddress}
-          disabled={!manualAddress}
-          className="md:mb-9"
-        >
-          {formatMessage({
-            id: "cockpit.community.cookies.useCreatedJar",
-            defaultMessage: "Use jar address",
-          })}
-        </Button>
-      </div>
+      <AdminTextField
+        id="campaign-cookie-jar-created-address"
+        label={formatMessage({
+          id: "hub.community.cookies.createdJarAddressInput",
+          defaultMessage: "Created jar address",
+        })}
+        value={manualInput}
+        onChange={(event) => onManualInputChange(event.target.value)}
+        error={
+          manualInput && !manualAddress
+            ? formatMessage({
+                id: "hub.community.cookies.invalidAddress",
+                defaultMessage: "Enter a valid Ethereum address.",
+              })
+            : undefined
+        }
+        action={
+          <Button size="sm" type="button" onClick={onUseManualAddress} disabled={!manualAddress}>
+            {formatMessage({
+              id: "hub.community.cookies.useCreatedJar",
+              defaultMessage: "Use jar address",
+            })}
+          </Button>
+        }
+      />
     </div>
   );
 }

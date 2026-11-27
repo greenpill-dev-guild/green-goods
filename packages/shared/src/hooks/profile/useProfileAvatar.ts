@@ -1,3 +1,4 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import {
   createAccountMessageSigner,
   resolveAccountFactoryArgs,
@@ -10,15 +11,22 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { profileAvatarKeys } from "../../config/query-keys/identity";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useAuth } from "../auth/useAuth";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useEnsAvatar } from "../blockchain/useEnsAvatar";
 import { useEnsName } from "../blockchain/useEnsName";
 import { uploadFileToIPFS } from "../../modules/data/ipfs/upload";
 import {
+  recordSendAct,
+  type SendActEndingDetail,
+  sendActEnding,
+} from "../../modules/app/sendActAnalytics";
+import {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
   loadProfileAvatarDraft,
   normalizeProfileAvatarFile,
+  ProfileAvatarTransportError,
   publishProfileAvatar,
   profileAvatarTransport,
   resolveProfileAvatar,
@@ -58,6 +66,13 @@ export interface ProfileAvatarReadOptions {
    * already reads.
    */
   list?: boolean;
+}
+
+/** A save the server may have taken, which a read could not prove, may still have landed. */
+function profileAvatarSaveEnding(error: unknown): SendActEndingDetail {
+  if (error instanceof ProfileAvatarTransportError && error.isAmbiguous)
+    return { outcome: "confirming", parsedErrorFamily: "ProfileAvatarSaveUnconfirmed" };
+  return sendActEnding(error);
 }
 
 export function useProfileAvatar(
@@ -174,14 +189,15 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
     (message: string) =>
       createAccountMessageSigner({
         authMode: auth.authMode,
+        walletRestore: auth.walletRestore,
         signMessage: signMessageAsync,
         account: auth.smartAccountClient?.account,
       })(message),
-    [auth.authMode, auth.smartAccountClient, signMessageAsync]
+    [auth.authMode, auth.walletRestore, auth.smartAccountClient, signMessageAsync]
   );
 
   const getFactoryArgs = useCallback(async () => {
-    if (auth.authMode !== "passkey") return undefined;
+    if (!isSmartAccountAuthMode(auth.authMode)) return undefined;
     return resolveAccountFactoryArgs(
       auth.smartAccountClient?.account,
       editorOptions?.factory && editorOptions.factoryData
@@ -195,6 +211,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
 
   const publish = useCallback(
     async (input: { file?: File | null; action: "set" | "clear"; cid?: string }) => {
+      if (auth.authMode === "wallet" && auth.walletRestore) refuseWithoutWallet();
       if (!address) throw new Error("Reconnect before publishing your profile photo.");
       const generation = ++draftLoadGeneration.current;
       const operationIdentity = editorIdentity;
@@ -222,6 +239,14 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
             if (isCurrentOperation()) setStage(nextStage);
           },
           getFactoryArgs,
+          // The signature and the save are the act; a photo already in place records none.
+          recordSend: (run) =>
+            recordSendAct(
+              { act: "profile_avatar", operation: input.action, authMode: auth.authMode, chainId },
+              run,
+              () => "confirmed",
+              profileAvatarSaveEnding
+            ),
         });
         queryClient.setQueryData(profileAvatarKeys.record(chainId, address), record);
         if (isCurrentOperation()) {
@@ -250,6 +275,8 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
       address,
       chainId,
       editorIdentity,
+      auth.authMode,
+      auth.walletRestore,
       getFactoryArgs,
       loadDraft,
       queryClient,

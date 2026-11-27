@@ -3,7 +3,7 @@
  * @vitest-environment happy-dom
  *
  * The row opens its item, keeps its one action apart, reads the amount it carries, is content
- * when it has nothing to open, and holds at most two details in the type's order. Layout (one
+ * when it has nothing to open, and holds bounded details in priority order. Layout (one
  * 88px height, a detail line that never wraps) is measured in a real browser by the ItemRow and
  * WorkCard stories.
  */
@@ -28,6 +28,23 @@ const renderRow = (props: Partial<ItemRowProps> = {}) =>
   );
 
 describe("ItemRow", () => {
+  it("keeps contribution, role count and garden join date in that priority order", () => {
+    renderRow({
+      details: [
+        { text: "Contributed Nov 15, 2026", dateTime: "2026-11-15T12:00:00.000Z" },
+        "2 roles",
+        { text: "Joined Jun 12, 2026", dateTime: "2026-06-12T12:00:00.000Z" },
+      ],
+    });
+    const line = screen.getByTitle("Contributed Nov 15, 2026 · 2 roles · Joined Jun 12, 2026");
+    expect(line.querySelectorAll("time")).toHaveLength(2);
+    expect(line.textContent).toBe("Contributed Nov 15, 20262 rolesJoined Jun 12, 2026");
+    expect(screen.getByText("Joined Jun 12, 2026")).toHaveAttribute(
+      "datetime",
+      "2026-06-12T12:00:00.000Z"
+    );
+  });
+
   it("opens its item from the whole row, named by its title, pill and details", () => {
     const onOpen = vi.fn();
     renderRow({ onOpen });
@@ -147,7 +164,7 @@ describe("ItemRow", () => {
     expect(screen.getByRole("button")).toHaveAccessibleName(/^maria\.eth\s*Gardener\s*2 roles$/);
   });
 
-  it("holds at most two details on one line, in the type's order, an age as a moment", () => {
+  it("keeps details in priority order and marks an age as a moment", () => {
     renderRow({
       details: [
         "maria.eth",
@@ -167,8 +184,8 @@ describe("ItemRow", () => {
     // The line carries every detail on hover, in order, for the ones a narrow row drops.
     expect(screen.getByTitle("maria.eth · 2 hr. ago")).toContainElement(age);
 
-    // @ts-expect-error A detail line holds the status and at most two details.
-    const third: ItemRowProps["details"] = ["maria.eth", "2 hr. ago", "3 photos"];
-    expect(third).toHaveLength(3);
+    // @ts-expect-error Even the roomy member line holds at most three details.
+    const fourth: ItemRowProps["details"] = ["one", "two", "three", "four"];
+    expect(fourth).toHaveLength(4);
   });
 });

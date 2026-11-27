@@ -109,7 +109,8 @@ vi.mock("../../../config/appkit", () => ({
   getWagmiConfig: () => ({}),
 }));
 
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   readContract: vi.fn().mockResolvedValue(1000000n),
 }));
 

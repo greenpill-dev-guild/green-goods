@@ -347,7 +347,7 @@ describe("the sheet", () => {
       "Seed Swap",
     ]);
     expect(rows.map((row) => within(row).getByRole("status").textContent)).toEqual([
-      "Take-up request",
+      "Asked to take up",
       "New submission",
       "Taken up",
       "Rejected",
@@ -428,9 +428,9 @@ describe("the sheet", () => {
     const sheet = openSheet();
 
     expect(readAgain).toHaveBeenCalledTimes(1);
-    // Your Work's header row: 16px under the rail, the count in words, Refresh, then the period.
+    // Your Work's header row: 12px under the rail (DL-198), the count in words, Refresh, then the period.
     const header = within(within(sheet).getByRole("tabpanel")).getByTestId("sheet-list-header");
-    expect(header).toHaveClass("pt-4");
+    expect(header).toHaveClass("pt-3", "mb-2");
     expect(within(header).getByRole("status")).toHaveTextContent(/^5 notifications$/);
     // Only the spans its sources answer in full: its work activity reaches back a week.
     const period = within(header).getByRole("combobox", { name: "Time period" });
@@ -545,7 +545,7 @@ describe("the sheet", () => {
 
       const row = rowsOf(sheet)[3];
       expect(titleOf(row)).toBe("3 people asked to join");
-      expect(within(row).getByRole("status").textContent).toBe("Join request");
+      expect(within(row).getByRole("status").textContent).toBe("Asked to join");
       expect(detailsOf(row)).toEqual(["4 hr. ago"]);
       for (const tab of ["Work", "Promises"]) {
         fireEvent.click(within(sheet).getByRole("tab", { name: tab }));

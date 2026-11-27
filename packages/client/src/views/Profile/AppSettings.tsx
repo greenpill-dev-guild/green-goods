@@ -48,6 +48,13 @@ interface UpdateRow {
 const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 
 /**
+ * A switch's slot: the same control column, the switch at its trailing edge where every control
+ * ends, so its hint wraps at the same line as its siblings' (PRD-1531). On a phone too narrow for
+ * the column the switch stays beside the title, since it is small enough to.
+ */
+const SETTING_SWITCH_SLOT = `flex shrink-0 justify-end ${SETTING_CONTROL_WIDTH} @max-[328px]:w-auto`;
+
+/**
  * The control's slot: beside the title, and under it on a phone too narrow for both, so a title
  * or hint is never cut to make room (DL-159). The tab under 328px is a phone under 360px.
  */
@@ -99,7 +106,7 @@ function SettingRow({
           </div>
           {description}
         </div>
-        <div className={compact ? "shrink-0" : SETTING_CONTROL_SLOT}>{control}</div>
+        <div className={compact ? SETTING_SWITCH_SLOT : SETTING_CONTROL_SLOT}>{control}</div>
       </div>
     </Card>
   );

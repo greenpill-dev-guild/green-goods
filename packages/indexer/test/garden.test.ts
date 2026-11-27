@@ -12,10 +12,6 @@ function assertKarmaDetailsPending(garden: Garden | undefined) {
   assert.equal(garden.karmaDetailsReason, "garden_metadata_changed");
 }
 
-// ============================================================================
-// GARDEN TOKEN HANDLERS
-// ============================================================================
-
 describe("GardenToken.GardenMinted", () => {
   it("registers the minted GardenAccount for dynamic discovery", async () => {
     const mockDb = createTestIndexer();
@@ -104,16 +100,11 @@ describe("GardenToken.GardenMinted", () => {
   });
 });
 
-// ============================================================================
-// GARDEN ACCOUNT UPDATE HANDLERS
-// ============================================================================
-
 describe("GardenAccount.NameUpdated", () => {
   it("updates name on existing garden", async () => {
     let mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
-    // Create garden first
     const mintEvent = GardenToken.GardenMinted.createMockEvent({
       tokenId: 1n,
       account: gardenAddress,
@@ -137,7 +128,6 @@ describe("GardenAccount.NameUpdated", () => {
     assert.ok(garden);
     assert.equal(garden.name, "Updated Name");
     assertKarmaDetailsPending(garden);
-    // Other fields should be preserved
     assert.equal(garden.initialized, true);
   });
 

@@ -13,7 +13,7 @@ import { isAddress } from "viem";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
 import GardenStrategiesView from "@/views/Garden/Strategies";
-import { CookieJarDepositModal } from "@/views/Hub/components/CookieJarDepositModal";
+import { CookieJarDepositModal } from "@/views/Review/components/CookieJarDepositModal";
 import { type VaultActionRoute, VaultActionRouteDialog } from "./VaultActionRouteDialog";
 
 interface CommunitySheetDescriptorProps {

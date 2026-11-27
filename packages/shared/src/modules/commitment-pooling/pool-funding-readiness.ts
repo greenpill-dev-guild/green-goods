@@ -246,7 +246,23 @@ const SAFE_WIDE_UNREAD = [
  * A resend of a command Celo has already recorded is the exception. Celo takes it
  * down its duplicate-message branch, which skips the transfer preflight and debits
  * nothing, and sends again only an acknowledgment it still owes. A paused executor
- * is all that refuses that message, so nothing else holds it.
+ * is all that refuses that message, so nothing else holds it. Only a dispatched
+ * transfer resends its recorded command: a queued or failed one's command was an
+ * earlier attempt's, and its next send carries a new one Celo hasn't seen.
+ *
+ * A dispatched transfer's command goes to the executor it was recorded for. During a
+ * route change's grace window that can be the previous executor, so a resend is held
+ * on that executor's pause flag, read for its command, and not on the current one's.
+ * The caller's own read of the transfer can be ahead of the funding index: one the
+ * index still lists as dispatched may already be requeued, and its dispatch goes to
+ * the current executor. Until the two reads agree it is a resend, it waits. The same
+ * holds when the index is an attempt behind, whatever state it still shows for the
+ * earlier attempt: a transfer requeued, and maybe dispatched again, from outside the
+ * panel carries the next attempt's command. Until the index reaches the caller's
+ * attempt, the send waits. A batch member is the exception: the index gives it the
+ * batch's attempt, not its own, and it is never resent on its own. Membership comes
+ * from the caller's read, since a requeue takes a transfer out of its batch on chain
+ * while the index keeps the old batch id.
  */
 export function selectQueuedTransferBlock(
   funding: Omit<TransferFundingRead, "snapshot"> & {
@@ -257,12 +273,19 @@ export function selectQueuedTransferBlock(
       | "disbursements"
       | "executions"
       | "executorPaused"
+      | "commandExecutors"
       | "feeQuotes"
       | "feePolicy"
       | "settlementUnavailableReasons"
     > | null;
   },
-  transfer: { disbursementId: bigint; amount: bigint }
+  transfer: {
+    disbursementId: bigint;
+    amount: bigint;
+    state?: string;
+    attempt?: number | null;
+    batchId?: bigint | null;
+  }
 ): PoolFundingTransferBlock | null {
   const { snapshot } = funding;
   // A snapshot kept from a failed refresh is not current, so it shows nothing.
@@ -270,19 +293,42 @@ export function selectQueuedTransferBlock(
   const row = snapshot.disbursements.find(
     (entry) => entry.disbursementId === transfer.disbursementId
   );
-  if (row && celoRecorded(snapshot, row)) {
-    if (snapshot.executorPaused === null) return "executor_unreadable";
-    return snapshot.executorPaused ? "executor_paused" : null;
+  const resend = row?.state === "DISPATCHED" && row.executionKey ? row.executionKey : null;
+  if (resend && transfer.state !== undefined && transfer.state !== "DISPATCHED") {
+    return "limits_unread";
   }
+  if (
+    row &&
+    !transfer.batchId &&
+    transfer.attempt !== undefined &&
+    row.attempt !== transfer.attempt
+  ) {
+    return "limits_unread";
+  }
+  const commandPaused = resend ? recordedExecutorPaused(snapshot, resend) : undefined;
+  if (resend && row && celoRecorded(snapshot, row)) {
+    const paused = commandPaused === undefined ? snapshot.executorPaused : commandPaused;
+    if (paused === null) return "executor_unreadable";
+    return paused ? "executor_paused" : null;
+  }
+  const reasons: readonly SettlementUnavailableReason[] =
+    commandPaused === undefined
+      ? snapshot.settlementUnavailableReasons
+      : [
+          ...snapshot.settlementUnavailableReasons.filter(
+            (reason) => reason !== "executor_paused" && reason !== "executor_unreadable"
+          ),
+          ...(commandPaused === null
+            ? (["executor_unreadable"] as const)
+            : commandPaused
+              ? (["executor_paused"] as const)
+              : []),
+        ];
   // A refusal the current read shows outranks anything it couldn't read.
-  const refusal = SAFE_WIDE_REFUSALS.find((reason) =>
-    snapshot.settlementUnavailableReasons.includes(reason)
-  );
+  const refusal = SAFE_WIDE_REFUSALS.find((reason) => reasons.includes(reason));
   if (refusal) return refusal;
   if (!selectTransferLimitsRead(funding)) return "limits_unread";
-  const unread = SAFE_WIDE_UNREAD.find((reason) =>
-    snapshot.settlementUnavailableReasons.includes(reason)
-  );
+  const unread = SAFE_WIDE_UNREAD.find((reason) => reasons.includes(reason));
   if (unread) return unread;
   const quote = row && snapshot.feeQuotes.find((entry) => entry.id === row.id);
   if (!quote || quote.fee === null || quote.senderPays === null) return "limits_unread";
@@ -293,6 +339,21 @@ export function selectQueuedTransferBlock(
     return "fee_policy_breach";
   }
   return selectExceededTransferLimit(funding, transfer.amount, quote.fee);
+}
+
+/**
+ * Whether the executor a recorded command goes to is paused; null when the read
+ * couldn't show that executor or its pause flag, which holds the resend.
+ */
+function recordedExecutorPaused(
+  snapshot: Pick<PoolFundingSnapshot, "commandExecutors">,
+  executionKey: `0x${string}`
+): boolean | null {
+  const key = executionKey.toLowerCase();
+  return (
+    snapshot.commandExecutors.find((entry) => entry.executionKey.toLowerCase() === key)?.paused ??
+    null
+  );
 }
 
 /** Whether Celo has recorded an execution of the transfer's current command. */

@@ -41,7 +41,37 @@ const query = vi.fn();
 const reader = { query } as unknown as GraphQLReader;
 
 describe("readGardenReviewQueue", () => {
-  beforeEach(() => query.mockReset());
+  beforeEach(() => {
+    query.mockReset();
+  });
+
+  it("applies the same exclusions to waiting rows, latest review and aggregate counts", async () => {
+    const hiddenDecision = decision(1, 450);
+    query.mockImplementation(async (_document, variables) => {
+      const works = [work(1, 100), work(2, 200)].filter(
+        (row) => !variables.works.id?.notIn.includes(row.id)
+      );
+      const decisions = [hiddenDecision].filter(
+        (row) => !variables.decisions.id?.notIn.includes(row.id)
+      );
+      return {
+        data: { works, decisions, ...counts(works.length, works.length, decisions.length) },
+      };
+    });
+    const options = {
+      chainId: 42161,
+      now: NOW,
+      excludedWorkUIDs: [uid(1)],
+      excludedApprovalUIDs: [hiddenDecision.id],
+    };
+
+    await expect(readGardenReviewQueue(GARDEN, options, reader)).resolves.toEqual({
+      lastReviewedAt: null,
+      waiting: [{ id: uid(2), submittedAt: 200 }],
+    });
+    const variables = query.mock.calls[0][1];
+    expect(variables.worksOverWeek.id).toEqual(variables.works.id);
+  });
 
   it("lists the works no decision has settled, and when the latest decision landed", async () => {
     query.mockResolvedValue({

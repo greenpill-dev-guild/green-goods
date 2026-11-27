@@ -3,6 +3,7 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { jobQueue } from "@green-goods/shared/modules/job-queue/default-instance";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import { useJobQueue } from "@green-goods/shared/providers/JobQueue";
 import {
   RiAlertLine,
@@ -93,6 +94,14 @@ function noticeCopy(
   }
   switch (act.waitingReason) {
     case "awaiting-confirmation":
+      // A Safe only proposed it: it waits for the Safe's signers, in the shared words (PRD-1564).
+      if (act.awaiting === "safe-signers")
+        return {
+          tone: "info",
+          icon: <RiRefreshLine className={ICON} aria-hidden="true" />,
+          titleId: SEND_STAGE_WORDS["safe-signers"].label.id,
+          bodyId: SEND_STAGE_WORDS["safe-signers"].detail.id,
+        };
       return {
         tone: "info",
         icon: <RiRefreshLine className={ICON} aria-hidden="true" />,

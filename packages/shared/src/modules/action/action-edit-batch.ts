@@ -156,7 +156,7 @@ interface ActionEditBatchInput {
 export type ActionEditBatchOutcome =
   | { status: "saved"; transactionHash: Hex }
   /** No further writes will land; proven fields were reported before stopping. */
-  | { status: "not-saved" }
+  | { status: "not-saved"; declined?: true }
   /** It may have landed: the edit is held until someone reads it or moves on. */
   | { status: "unknown" }
   /** Nothing was sent, and these changes can still go one at a time. */
@@ -198,6 +198,7 @@ export async function sendActionEditBatch(
     });
     if (record.status === "confirmed")
       return { status: "saved", transactionHash: record.receipts.at(-1)!.transactionHash };
+    if (record.status === "declined") return { status: "not-saved", declined: true };
     return { status: UNKNOWN_BATCH_STATES.has(record.status) ? "unknown" : "not-saved" };
   } catch (error) {
     if (input.atomic !== false && error instanceof Error && NOT_BATCHABLE.has(error.message))

@@ -25,7 +25,11 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
-import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
+import {
+  hasRecordedSend,
+  isTerminallyFailedJob,
+  recordedSendAwaiting,
+} from "../../modules/job-queue/queue-policy";
 import { creationRefusalOf } from "../../modules/commitment-pooling/creation-standing";
 import {
   CONSIDERATION_RAIL_ORDINAL,
@@ -106,6 +110,8 @@ export interface PendingCommitmentAct {
   confirmationAction?: ConfirmationJobPayload["action"];
   /** Why the last flush left it waiting, when the queue recorded a reason. */
   waitingReason: string | null;
+  /** Its send on record is a Safe proposal, waiting for the Safe's signers (PRD-1564). */
+  awaiting?: "safe-signers";
   /** Whether throwing it away is safe (its transaction was never sent). */
   discardable: boolean;
   /** Why its last send failed; absent when none has, and once it is tried again. */
@@ -410,6 +416,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       if (commitmentId) {
         pendingCommitmentIds.add(commitmentId);
         if (waitsForQueuedProof(job)) continue;
+        const awaiting = recordedSendAwaiting(job);
         pendingActs.set(commitmentId, {
           jobId: job.id,
           kind: job.kind as CommitmentJobKind,
@@ -417,6 +424,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
             ? { confirmationAction: (job.payload as ConfirmationJobPayload).action }
             : {}),
           waitingReason: pendingActWaitingReason(job),
+          ...(awaiting ? { awaiting } : {}),
           discardable: isDiscardableJob(job),
           sendFailure: explainFailedSend(job.lastError),
           createdAt: job.createdAt,

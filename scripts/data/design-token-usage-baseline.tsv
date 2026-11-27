@@ -87,7 +87,7 @@ packages/client/vite/social-preview.ts const HERO_CARD_FILL = "#f7f0e4";	generat
 packages/client/vite/social-preview.ts const HERO_CARD_LEDE_COLOR = "#514a3d";	generated-media	client	2026-12-31	social preview SVG renderer uses literal media colors pending tokenized renderer
 packages/client/vite/social-preview.ts const HERO_CARD_TITLE_COLOR = "#221f18";	generated-media	client	2026-12-31	social preview SVG renderer uses literal media colors pending tokenized renderer
 packages/shared/src/components/Conviction/ConvictionMeter.tsx "width var(--spring-spatial-slow-duration, 600ms) var(--spring-spatial-slow-easing, cubic-bezier(0.16, 1, 0.3, 1))",	legacy-runtime	shared	2026-12-31	transition fallback embeds canonical spring curve for non-admin scopes
-# 2026-08-29 admin cockpit invariant debt (PRD-644 round 2; the 2026-08-29 admin cockpit audit in the closed design-system-alignment-review hub, see .plans/ARCHIVE.md).
+# 2026-08-29 Hub invariant debt (PRD-644 round 2; the 2026-08-29 Hub audit in the closed design-system-alignment-review hub, see .plans/ARCHIVE.md).
 # Removed automatically as migrations land: fixing a line makes its entry stale and check:design-tokens demands the deletion.
 packages/admin/src/components/AdminSelectableCard.tsx "active:scale-[0.99]",	legacy-runtime	admin	2026-12-31	2026-08-29 admin audit: hover/press transform; replace with elevation step or 8% ink layer (PRD-644 round 2)
 packages/admin/src/components/Hypercerts/CreateListingDialog.tsx <RiLoader4Line className="h-5 w-5 animate-spin text-primary-base" />	legacy-runtime	admin	2026-12-31	2026-08-29 admin audit: state text on -base step; write text-*-dark (PRD-644 round 2)
@@ -109,7 +109,6 @@ packages/admin/src/views/Community/Community.stories.tsx expectAllVisibleSelecto
 packages/admin/src/views/Garden/Garden.stories.tsx expectAllVisibleSelectorContrast(canvasElement, ".text-primary-base", {	storybook-fixture	admin	2026-12-31	2026-08-29 admin audit: state text on -base step; write text-*-dark (PRD-644 round 2)
 packages/admin/src/views/Garden/HypercertDetail.tsx <RiExchangeDollarLine className="h-4 w-4 text-primary-base" />	legacy-runtime	admin	2026-12-31	2026-08-29 admin audit: state text on -base step; write text-*-dark (PRD-644 round 2)
 packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx className="type-meta text-error-base hover:text-error-dark"	legacy-runtime	admin	2026-12-31	2026-08-29 admin audit: state text on -base step; write text-*-dark (PRD-644 round 2)
-packages/admin/src/views/Hub/components/MediaEvidence.tsx className="h-full w-full object-cover transition-transform group-hover:scale-105"	legacy-runtime	admin	2026-12-31	2026-08-29 admin audit: hover/press transform; replace with elevation step or 8% ink layer (PRD-644 round 2)
 # Admin wrapper-adoption sweep baseline (2026-08-30 audit) — burns down via migration; do not add new entries for new code.
 packages/admin/src/components/Layout/AccountProfileAvatarEditor.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/components/Layout/AccountProfilePanel.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
@@ -119,7 +118,7 @@ packages/admin/src/components/Layout/CommandPalette.tsx <button	legacy-runtime	a
 packages/admin/src/views/Garden/Pool/PoolStatsCard.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx <Textarea	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
-packages/admin/src/views/Hub/components/HubConfirmQueue.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
+packages/admin/src/views/Review/components/ReviewConfirmQueue.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/components/Layout/AdminToneGallery.stories.tsx className="admin-m3 space-y-3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"	storybook-theme	admin	2027-03-31	Tone gallery samples set their own data-theme; the M3 surface re-resolves under a nested theme and the Warm Earth bg-bg-white alias does not
 packages/extension/src/graph/canvas.ts aboutConcept: "#5d6b8c",	legacy-runtime	extension	2027-04-30	Grove G0 spike (#1230): Sigma draws graph nodes and edges in WebGL from literal colors; move them to tokens if the extension ships
 packages/extension/src/graph/canvas.ts action: "#6a8f3c",	legacy-runtime	extension	2027-04-30	Grove G0 spike (#1230): Sigma draws graph nodes and edges in WebGL from literal colors; move them to tokens if the extension ships

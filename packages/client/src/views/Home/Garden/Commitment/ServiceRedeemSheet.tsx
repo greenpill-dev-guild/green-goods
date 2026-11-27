@@ -6,9 +6,9 @@ import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { FormProgress } from "@/components/Communication";
 import { formatVoucherMessage } from "./serviceBooking";
 import type { ServiceBookingView } from "./serviceBookingTypes";
-import { type ServiceStripStep, ServiceStepStrip } from "./ServiceStepStrip";
 
 /** What the sheet answers after its act, or why its act can't be taken. */
 export type ServiceRedeemOutcome =
@@ -54,9 +54,10 @@ export function detailed(value: ReactNode, detail: ReactNode | null) {
 }
 
 /**
- * Review and Redeem, the booking sheet over the promise page. Its strip shows a booking's four
- * steps (V1), its terms are a fact list, and every write says the passkey asks first. Agreeing
- * records consent and moves nothing; a deposit may ask twice, to allow and then to deposit.
+ * Review and Redeem, the booking sheet over the promise page. It carries the page's own tracker
+ * (Book, Deposit, Service, Done), its terms are a fact list, and every write says the passkey
+ * asks first. Agreeing records consent and moves nothing; a deposit may ask twice, to allow and
+ * then to deposit.
  */
 export function ServiceRedeemSheet({
   open,
@@ -77,7 +78,7 @@ export function ServiceRedeemSheet({
   const w = view.words;
   const t = (id: string, values: Record<string, string | number> = {}) =>
     formatVoucherMessage(intl, id, { issuer: w.issuer, issuerFull: w.issuer, ...values });
-  // Agree, the issuer's approval, the deposit, and the issuer's acceptance.
+  // Agreeing, the issuer's approval, the deposit, and what follows it.
   const at =
     view.stage === "open" || view.stage === "notEnough"
       ? 0
@@ -86,18 +87,6 @@ export function ServiceRedeemSheet({
         : view.stage === "readyToDeposit"
           ? 2
           : 3;
-  const strip: ServiceStripStep[] = (
-    [
-      ["agree", t("pay.j.agree"), false],
-      ["approved", t("pay.j.approved"), true],
-      ["deposit", t("pay.j.deposit"), false],
-      ["accepted", t("pay.j.accepted"), true],
-    ] as const
-  ).map(([id, label, theirs], index) => ({
-    id,
-    label,
-    state: index < at ? "done" : index === at ? (theirs ? "wait" : "now") : "todo",
-  }));
   const notice = (variant: "info" | "warning" | "success", title: string, text: string) => (
     <Alert variant={variant} title={title} className="p-3">
       {text}
@@ -278,7 +267,13 @@ export function ServiceRedeemSheet({
       actions={actions}
     >
       <div className="space-y-4" data-component="ServiceRedeemSheet" data-step={at}>
-        <ServiceStepStrip steps={strip} label={t("pay.journey")} />
+        {view.tracker ? (
+          <FormProgress
+            currentStep={view.tracker.at}
+            steps={view.tracker.markers}
+            waiting={view.tracker.waiting ?? undefined}
+          />
+        ) : null}
         <SheetHeading>{stepTitle}</SheetHeading>
         {body}
         {passkey ? <p className="text-xs text-text-sub-600">{t("c.passkey")}</p> : null}

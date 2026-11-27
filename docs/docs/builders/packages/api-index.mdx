@@ -11,6 +11,7 @@ generated_from:
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
   - packages/agent/src/api/routes/garden-join-requests.ts
+  - packages/agent/src/api/routes/openfort-recovery.ts
   - packages/agent/src/api/routes/passkey-directory.ts
   - packages/agent/src/api/routes/profile-avatars.ts
   - packages/agent/src/api/routes/public-commitment-impact.ts
@@ -31,12 +32,13 @@ generated_from:
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
   - packages/shared/src/public-contracts/voucher-awards.ts
-source_digest: "sha256:1599c55b629c97cdf0a58e2abd51db4725e53985832f92926526122b47b29085"
+source_digest: "sha256:7bcfea037ea1e54d3914d686e0387bb39810430f32e3cdc03ad62b808a998c45"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
   - packages/agent/src/api/routes/garden-join-requests.ts
+  - packages/agent/src/api/routes/openfort-recovery.ts
   - packages/agent/src/api/routes/passkey-directory.ts
   - packages/agent/src/api/routes/profile-avatars.ts
   - packages/agent/src/api/routes/public-commitment-impact.ts
@@ -73,6 +75,7 @@ Every route the agent registers under `/public/`, and every route a shared route
 | Path | Registered methods | Shared constant | Registered in |
 |---|---|---|---|
 | `/api/uploads/sign` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.uploadSign` | `routes/upload-sign.ts` |
+| `/public/auth/openfort/recovery-session` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.openfortRecoverySession` | `routes/openfort-recovery.ts` |
 | `/public/commitments/:chainId/impact` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.commitmentImpact` | `routes/public-commitment-impact.ts` |
 | `/public/features/garden-join-requests` | `GET`, `OPTIONS` | none | `server.ts` |
 | `/public/funding-intents` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.fundingIntents` | `funding/routes.ts` |
@@ -109,7 +112,7 @@ The route constants are exported by these Shared files:
 
 ## Package exports
 
-538 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
+543 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
 
 ### @green-goods/contracts
 
@@ -120,16 +123,16 @@ The route constants are exported by these Shared files:
 
 ### @green-goods/shared
 
-536 specifiers. Open a group to see its specifiers.
+541 specifiers. Open a group to see its specifiers.
 
 | Group | Specifiers |
 |---|---|
 | `./__tests__` | 5 |
-| `./components` | 75 |
+| `./components` | 77 |
 | `./config` | 16 |
-| `./hooks` | 264 |
+| `./hooks` | 266 |
 | `./i18n` | 8 |
-| `./modules` | 58 |
+| `./modules` | 59 |
 | `./providers` | 8 |
 | `./public-contracts` | 8 |
 | `./stores` | 10 |
@@ -152,9 +155,9 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./components` (75)</summary>
+<summary>`./components` (77)</summary>
 
-**`./components`** (13)
+**`./components`** (15)
 
 | Specifier | Target |
 |---|---|
@@ -165,6 +168,8 @@ The route constants are exported by these Shared files:
 | `./components/Chip` | `./src/components/Chip.tsx` |
 | `./components/DomainBadge` | `./src/components/DomainBadge.tsx` |
 | `./components/FileUploadField` | `./src/components/FileUploadField.tsx` |
+| `./components/GardenContributionDate` | `./src/components/GardenContributionDate.tsx` |
+| `./components/GardenMembershipDates` | `./src/components/GardenMembershipDates.tsx` |
 | `./components/HydrationFallback` | `./src/components/HydrationFallback.tsx` |
 | `./components/IconButton` | `./src/components/IconButton.tsx` |
 | `./components/ListPrimitives` | `./src/components/ListPrimitives.tsx` |
@@ -336,7 +341,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./hooks` (264)</summary>
+<summary>`./hooks` (266)</summary>
 
 **`./hooks`** (2)
 
@@ -372,11 +377,6 @@ The route constants are exported by these Shared files:
 | `./hooks/admin-ui/garden/useGardenWorkspaceController` | `./src/hooks/admin-ui/garden/useGardenWorkspaceController.ts` |
 | `./hooks/admin-ui/garden/useResolvedWorkDetail` | `./src/hooks/admin-ui/garden/useResolvedWorkDetail.ts` |
 | `./hooks/admin-ui/garden/useSubmitWorkController` | `./src/hooks/admin-ui/garden/useSubmitWorkController.ts` |
-| `./hooks/admin-ui/hub/hub.utils` | `./src/hooks/admin-ui/hub/hub.utils.ts` |
-| `./hooks/admin-ui/hub/hub.workbenchModel` | `./src/hooks/admin-ui/hub/hub.workbenchModel.ts` |
-| `./hooks/admin-ui/hub/useCreateAssessmentController` | `./src/hooks/admin-ui/hub/useCreateAssessmentController.ts` |
-| `./hooks/admin-ui/hub/useCreateHypercertController` | `./src/hooks/admin-ui/hub/useCreateHypercertController.ts` |
-| `./hooks/admin-ui/hub/useHubWorkbenchController` | `./src/hooks/admin-ui/hub/useHubWorkbenchController.ts` |
 | `./hooks/admin-ui/hypercerts/types` | `./src/hooks/admin-ui/hypercerts/types.ts` |
 | `./hooks/admin-ui/hypercerts/useWizardData` | `./src/hooks/admin-ui/hypercerts/useWizardData.ts` |
 | `./hooks/admin-ui/layout/accountSheet.events` | `./src/hooks/admin-ui/layout/accountSheet.events.ts` |
@@ -394,12 +394,17 @@ The route constants are exported by these Shared files:
 | `./hooks/admin-ui/pool/useCommitmentDialogController` | `./src/hooks/admin-ui/pool/useCommitmentDialogController.ts` |
 | `./hooks/admin-ui/pool/useCommitmentSettlementController` | `./src/hooks/admin-ui/pool/useCommitmentSettlementController.ts` |
 | `./hooks/admin-ui/pool/useEditReward` | `./src/hooks/admin-ui/pool/useEditReward.ts` |
-| `./hooks/admin-ui/pool/useHubConfirmQueueController` | `./src/hooks/admin-ui/pool/useHubConfirmQueueController.ts` |
 | `./hooks/admin-ui/pool/usePoolConsoleController` | `./src/hooks/admin-ui/pool/usePoolConsoleController.ts` |
 | `./hooks/admin-ui/pool/useProtocolFundingOperationsController` | `./src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts` |
+| `./hooks/admin-ui/pool/useReviewConfirmQueueController` | `./src/hooks/admin-ui/pool/useReviewConfirmQueueController.ts` |
 | `./hooks/admin-ui/pool/useSeedTray` | `./src/hooks/admin-ui/pool/useSeedTray.ts` |
 | `./hooks/admin-ui/pool/useSettlementOperationsController` | `./src/hooks/admin-ui/pool/useSettlementOperationsController.ts` |
 | `./hooks/admin-ui/pool/useWaitingForApproval` | `./src/hooks/admin-ui/pool/useWaitingForApproval.ts` |
+| `./hooks/admin-ui/review/review.utils` | `./src/hooks/admin-ui/review/review.utils.ts` |
+| `./hooks/admin-ui/review/review.workbenchModel` | `./src/hooks/admin-ui/review/review.workbenchModel.ts` |
+| `./hooks/admin-ui/review/useCreateAssessmentController` | `./src/hooks/admin-ui/review/useCreateAssessmentController.ts` |
+| `./hooks/admin-ui/review/useCreateHypercertController` | `./src/hooks/admin-ui/review/useCreateHypercertController.ts` |
+| `./hooks/admin-ui/review/useReviewWorkbenchController` | `./src/hooks/admin-ui/review/useReviewWorkbenchController.ts` |
 | `./hooks/admin-ui/useAdminAccessState` | `./src/hooks/admin-ui/useAdminAccessState.ts` |
 | `./hooks/admin-ui/useAdminUploadPolicy` | `./src/hooks/admin-ui/useAdminUploadPolicy.ts` |
 | `./hooks/admin-ui/useCanvasChromeProbe` | `./src/hooks/admin-ui/useCanvasChromeProbe.ts` |
@@ -557,7 +562,7 @@ The route constants are exported by these Shared files:
 | `./hooks/ens/useProtocolMemberStatus` | `./src/hooks/ens/useProtocolMemberStatus.ts` |
 | `./hooks/ens/useSlugAvailability` | `./src/hooks/ens/useSlugAvailability.ts` |
 
-**`./hooks/garden`** (23)
+**`./hooks/garden`** (25)
 
 | Specifier | Target |
 |---|---|
@@ -573,6 +578,8 @@ The route constants are exported by these Shared files:
 | `./hooks/garden/useGardenDomains` | `./src/hooks/garden/useGardenDomains.ts` |
 | `./hooks/garden/useGardenJoinRequests` | `./src/hooks/garden/useGardenJoinRequests.ts` |
 | `./hooks/garden/useGardenJournal` | `./src/hooks/garden/useGardenJournal.ts` |
+| `./hooks/garden/useGardenMemberContributions` | `./src/hooks/garden/useGardenMemberContributions.ts` |
+| `./hooks/garden/useGardenMemberHistory` | `./src/hooks/garden/useGardenMemberHistory.ts` |
 | `./hooks/garden/useGardenNotifications` | `./src/hooks/garden/useGardenNotifications.ts` |
 | `./hooks/garden/useGardenOperations` | `./src/hooks/garden/useGardenOperations.ts` |
 | `./hooks/garden/useGardenPermissions` | `./src/hooks/garden/useGardenPermissions.ts` |
@@ -761,7 +768,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./modules` (58)</summary>
+<summary>`./modules` (59)</summary>
 
 **`./modules`** (4)
 
@@ -849,6 +856,12 @@ The route constants are exported by these Shared files:
 | Specifier | Target |
 |---|---|
 | `./modules/profile-avatar/editor-messages` | `./src/modules/profile-avatar/editor-messages.ts` |
+
+**`./modules/transactions`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./modules/transactions/send-stage` | `./src/modules/transactions/send-stage.ts` |
 
 **`./modules/translation`** (1)
 

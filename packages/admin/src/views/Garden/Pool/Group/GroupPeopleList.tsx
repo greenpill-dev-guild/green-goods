@@ -30,6 +30,11 @@ export interface GroupPeopleListProps {
   /** Copies whose next act is this steward's own: their rows say "Needs you". */
   waitingOnYou: ReadonlySet<string>;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
+  /**
+   * An act a taken copy offers beside its row (a voucher booking's optional return), or null.
+   * It sits outside the row's button, which opens the copy.
+   */
+  actFor?: (commitment: CommitmentReadModel) => ReactNode;
 }
 
 /**
@@ -47,6 +52,7 @@ export function GroupPeopleList({
   rewarded,
   waitingOnYou,
   onOpenCommitment,
+  actFor,
 }: GroupPeopleListProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -58,19 +64,19 @@ export function GroupPeopleList({
     if (row.tookAt !== null) {
       line.push(
         formatMessage(
-          { id: "cockpit.garden.pool.group.tookIt", defaultMessage: "Took it {when}" },
+          { id: "hub.garden.pool.group.tookIt", defaultMessage: "Took it {when}" },
           { when: timelineTime(intl, row.tookAt, now) }
         )
       );
     }
     if (commitment.evidenceCount === 0) {
       line.push(
-        formatMessage({ id: "cockpit.garden.pool.group.noProof", defaultMessage: "No proof yet" })
+        formatMessage({ id: "hub.garden.pool.group.noProof", defaultMessage: "No proof yet" })
       );
     } else if (row.proofAt !== null) {
       line.push(
         formatMessage(
-          { id: "cockpit.garden.pool.group.proofAt", defaultMessage: "Proof {when}" },
+          { id: "hub.garden.pool.group.proofAt", defaultMessage: "Proof {when}" },
           { when: timelineTime(intl, row.proofAt, now) }
         )
       );
@@ -79,7 +85,7 @@ export function GroupPeopleList({
       line.push(
         formatMessage(
           {
-            id: "cockpit.garden.pool.group.confirmedBy",
+            id: "hub.garden.pool.group.confirmedBy",
             defaultMessage: "Confirmed by {who}, {when}",
           },
           {
@@ -98,11 +104,11 @@ export function GroupPeopleList({
       line.push(
         commitment.evidenceCount === 0 && commitment.dueDate
           ? formatMessage(
-              { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
+              { id: "hub.garden.pool.row.due", defaultMessage: "due {date}" },
               { date: dueDateText(intl, Number(commitment.dueDate) * 1000, now) }
             )
           : formatMessage({
-              id: "cockpit.garden.pool.group.notConfirmed",
+              id: "hub.garden.pool.group.notConfirmed",
               defaultMessage: "Not confirmed yet",
             })
       );
@@ -111,11 +117,11 @@ export function GroupPeopleList({
       line.push(
         commitment.considerationPaid
           ? formatMessage({
-              id: "cockpit.garden.pool.group.rewardPaid",
+              id: "hub.garden.pool.group.rewardPaid",
               defaultMessage: "Reward paid",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.group.rewardUnpaid",
+              id: "hub.garden.pool.group.rewardUnpaid",
               defaultMessage: "Reward not paid yet",
             })
       );
@@ -124,7 +130,7 @@ export function GroupPeopleList({
       line.push(
         formatMessage(
           {
-            id: "cockpit.garden.pool.group.repeat",
+            id: "hub.garden.pool.group.repeat",
             defaultMessage:
               "{nth, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} from this group",
           },
@@ -136,12 +142,16 @@ export function GroupPeopleList({
   };
 
   return (
-    <ul className="divide-y divide-stroke-soft" data-testid="group-people">
+    <ul className="@container divide-y divide-stroke-soft" data-testid="group-people">
       {taken.map((row) => {
         const chip = commitmentStateChip(row.commitment, formatMessage);
+        const act = actFor?.(row.commitment) ?? null;
         return (
-          <li key={row.commitment.id}>
-            <AdminListRow onClick={() => onOpenCommitment(row.commitment)} className={ROW_CLASS}>
+          <li key={row.commitment.id} className={act ? "flex items-center gap-2" : undefined}>
+            <AdminListRow
+              onClick={() => onOpenCommitment(row.commitment)}
+              className={act ? `${ROW_CLASS} min-w-0 flex-1` : ROW_CLASS}
+            >
               <span className={TEXT_CLASS}>
                 {row.commitment.counterparty ? (
                   <ClaimantName
@@ -167,7 +177,7 @@ export function GroupPeopleList({
                 {waitingOnYou.has(row.commitment.id) ? (
                   <span className="type-label-sm text-warning-dark">
                     {formatMessage({
-                      id: "cockpit.garden.pool.group.needsYou",
+                      id: "hub.garden.pool.group.needsYou",
                       defaultMessage: "Needs you",
                     })}
                   </span>
@@ -178,6 +188,7 @@ export function GroupPeopleList({
                 <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
               </span>
             </AdminListRow>
+            {act ? <span className="shrink-0">{act}</span> : null}
           </li>
         );
       })}
@@ -191,7 +202,7 @@ export function GroupPeopleList({
               <span className="block type-body font-semibold text-text-strong">
                 {formatMessage(
                   {
-                    id: "cockpit.garden.pool.group.notTaken",
+                    id: "hub.garden.pool.group.notTaken",
                     defaultMessage: "{count} not taken up yet",
                   },
                   { count: available.length }
@@ -199,7 +210,7 @@ export function GroupPeopleList({
               </span>
               <span className="mt-0.5 block type-meta text-text-sub">
                 {formatMessage({
-                  id: "cockpit.garden.pool.group.anyone",
+                  id: "hub.garden.pool.group.anyone",
                   defaultMessage: "Anyone in the garden can take one up",
                 })}
               </span>
@@ -207,7 +218,7 @@ export function GroupPeopleList({
             <span className={END_CLASS}>
               <StatusBadge variant="info" size="sm">
                 {formatMessage({
-                  id: "cockpit.garden.pool.group.availableChip",
+                  id: "hub.garden.pool.group.availableChip",
                   defaultMessage: "Available",
                 })}
               </StatusBadge>

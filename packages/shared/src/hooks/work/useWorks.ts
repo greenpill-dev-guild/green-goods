@@ -19,9 +19,14 @@ import { sortByCreatedAt } from "../../utils/time";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
-import { gardenWorkListQuery, workSessionStartedAt } from "./gardenWorkListQuery";
+import {
+  gardenReadThisSession,
+  gardenWorkListQuery,
+  workSessionStartedAt,
+} from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
-import { useSendingWorkIds } from "./useSendingWorkIds";
+import { useSendingWork } from "./useSendingWork";
+import { useWorkVisibility } from "./useWorkVisibility";
 
 export { usePendingWorksCount } from "./usePendingWorksCount";
 
@@ -42,6 +47,8 @@ const NO_QUEUED_JOBS: Job<WorkJobPayload>[] = [];
 export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const { offline = false } = options;
   const chainId = DEFAULT_CHAIN_ID;
+  const visibility = useWorkVisibility(chainId);
+  const { isVisible } = visibility;
   const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
   const isOnline = useOnlineStatus();
@@ -49,7 +56,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     primaryAddress ? `${chainId}:${primaryAddress.toLowerCase()}` : null,
     () => jobQueueDB.observeWorkCompletions(primaryAddress!, chainId)
   );
-  const sendingJobs = useSendingWorkIds(primaryAddress, chainId);
+  const sendingJobs = useSendingWork(primaryAddress, chainId);
   const projectionKey = offline
     ? worksKeys.local(gardenId, chainId, primaryAddress ?? undefined)
     : worksKeys.merged(gardenId, chainId);
@@ -117,7 +124,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     combine: (results) =>
       results.map((result) => result.data as { clientWorkId?: string } | undefined),
   });
-  const { remoteData, works, unknownIds, retainedIds } = useMemo(() => {
+  const { remoteData, works, unknownIds, statusUnknownIds, retainedIds } = useMemo(() => {
     // Offline, the restored screen read is the downloaded copy: background
     // preparation fills this same query, so there is no second source to consult.
     // The window is cut here, inside the memo, so it and every row keep one
@@ -149,8 +156,13 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       overlay: overlay.data,
     });
     // Confirmed previews and cached history share the indexed pagination window.
+    // Excluded records stay cached without taking a visible row's page slot.
     // Pending queue jobs are appended below and stay visible independently.
-    const rows: Work[] = sortByCreatedAt(resolved.rows).slice(0, take);
+    const sortedRows = sortByCreatedAt(resolved.rows);
+    const rows: Work[] = [
+      ...sortedRows.filter((work) => isVisible(work.id)).slice(0, take),
+      ...sortedRows.filter((work) => !isVisible(work.id)),
+    ];
     // Identity must agree on submitter and clientWorkId. A CID whose metadata
     // has not been downloaded cannot prove a match, so retain the local work.
     const identities = new Set(
@@ -171,20 +183,30 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       if (rows.some((work) => work.id === job.id)) continue;
       const work = jobToWork(job);
       if (isOnline && sendingJobs.has(job.id) && work.status === "offline") {
+        const sendStage = sendingJobs.get(job.id);
         work.status = "uploading";
         work.metadata = JSON.stringify({
           ...JSON.parse(work.metadata),
           submissionState: "sending",
+          ...(sendStage ? { sendStage } : {}),
         });
       }
       rows.push(
         queuedPreviews.has(job.id) ? { ...work, media: queuedPreviews.get(job.id)! } : work
       );
     }
+    // Every work whose decisions this read could not say: those with no status at all, those
+    // showing a status cached from an earlier read because this read's approvals failed, and
+    // stored works this read left out, still shown with their earlier status.
+    const statusUnknownIds = new Set([...resolved.unknownIds, ...resolved.retainedIds]);
+    for (const row of remoteData ?? []) {
+      if (isVisible(row.id) && row.approval === undefined) statusUnknownIds.add(row.id);
+    }
     return {
       remoteData,
       works: sortByCreatedAt(rows),
       unknownIds: resolved.unknownIds,
+      statusUnknownIds,
       retainedIds: resolved.retainedIds,
     };
   }, [
@@ -202,6 +224,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     metadataByWork,
     sendingJobs,
     isOnline,
+    isVisible,
   ]);
 
   useEffect(() => {
@@ -257,31 +280,67 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
         void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
     }
   );
-  const hasRemote = remoteData !== undefined || (projection.data?.length ?? 0) > 0;
+
+  // Background preparation and Upload all record what they found on a work's stored job and
+  // raise no queue event, so the events above left a work's page on "Preparing uploads…" after
+  // it was ready (PRD-1488). The store's live view answers after every write, whoever made it,
+  // in this tab or another, and each answer reads the queued work again.
+  useEffect(() => {
+    if (!offline || !gardenId || !primaryAddress) return;
+    const queryKey = worksKeys.offline(gardenId, chainId, primaryAddress);
+    const subscription = jobQueueDB
+      .observeJobs({ userAddress: primaryAddress, kind: "work", synced: false })
+      .subscribe({
+        next: () => void queryClient.invalidateQueries({ queryKey, exact: true }),
+        // The queue's own events still refresh the read; a page left on them can be stale.
+        error: (error: unknown) =>
+          logger.warn("[useWorks] The queue's live view stopped; queued work may lag", { error }),
+      });
+    return () => subscription.unsubscribe();
+  }, [offline, gardenId, chainId, primaryAddress, queryClient]);
+
+  // Filter the projection, never purge a saved record or an unsent queue job.
+  const visibleWorks = useMemo(
+    () => works.filter((work) => isVisible(work.id)),
+    [works, isVisible]
+  );
+  const hasRemote =
+    visibility.isReady && (remoteData !== undefined || (projection.data?.length ?? 0) > 0);
   const availability: WorkAvailability = hasRemote
-    ? works.length === 0
+    ? visibleWorks.length === 0
       ? "empty"
       : "available"
-    : works.length > 0
+    : visibleWorks.length > 0
       ? "partial"
       : "unavailable";
   return {
-    works,
+    works: visibleWorks,
+    /**
+     * Works whose decisions this read could not say, whether their status is a fallback or a copy
+     * cached from an earlier read: neither is a decision to act on.
+     */
+    unknownIds: statusUnknownIds,
     availability,
     lastSuccessfulRefresh: online.dataUpdatedAt || undefined,
     fetchStatus: online.fetchStatus,
     isPaused: !isOnline || online.isPaused,
-    isLoading: isOnline && online.isPending && works.length === 0,
+    isLoading:
+      isOnline &&
+      (online.isPending || (!visibility.isReady && visibility.isLoading)) &&
+      visibleWorks.length === 0,
     /** Local queued work may still be loading after the garden read settles. */
     queuedLoading: offline && queued.isPending && works.length === 0,
-    isFetching: isOnline && online.isFetching,
-    isError: online.isError || (offline && queued.isError),
+    isFetching: isOnline && (online.isFetching || visibility.isFetching),
+    isError:
+      online.isError || (!visibility.isReady && visibility.isError) || (offline && queued.isError),
     refreshWarning:
       hasRemote &&
-      (online.isError || (remoteData?.some((row) => row.approval === undefined) ?? false)),
-    error: online.error || (offline ? queued.error : null),
+      (online.isError ||
+        visibility.isError ||
+        (remoteData?.some((row) => isVisible(row.id) && row.approval === undefined) ?? false)),
+    error: visibility.error || online.error || (offline ? queued.error : null),
     offlineCount: queuedJobs.length,
-    onlineCount: remoteData?.length ?? 0,
+    onlineCount: remoteData?.filter((work) => isVisible(work.id)).length ?? 0,
     /** Whether the garden may have work older than the loaded window. */
     hasOlderWork,
     /**
@@ -290,18 +349,24 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
      * since: queue health must not treat these as current.
      */
     hasUnknownStatuses:
-      (remoteData?.some((row) => row.approval === undefined) ?? false) ||
-      works.some((work) => retainedIds.has(work.id) && work.status === "pending"),
+      !visibility.isReady ||
+      (remoteData?.some((row) => isVisible(row.id) && row.approval === undefined) ?? false) ||
+      visibleWorks.some((work) => retainedIds.has(work.id) && work.status === "pending"),
     /**
      * Whether this session has read the garden's rows. Until then they are a
      * copy restored from an earlier session, however old.
      */
-    readThisSession: online.dataUpdatedAt >= workSessionStartedAt(),
+    // Counted from the read itself: a decision this device writes into the list moves its update
+    // time, yet it is no read of the garden.
+    readThisSession:
+      visibility.isReady &&
+      online.dataUpdatedAt >= workSessionStartedAt() &&
+      gardenReadThisSession(gardenId, chainId),
     /** Widen the window by one page and read it; a no-op offline. */
     loadOlderWork,
     isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,
     refetch: () => {
-      if (isOnline) void online.refetch();
+      if (isOnline) void visibility.refetch().then(() => online.refetch());
       if (offline) void queued.refetch();
     },
   };

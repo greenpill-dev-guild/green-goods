@@ -5,7 +5,7 @@
  * dark-mode fixes as the runtime app.
  *
  * This file contains NO remote styling of shared components — that practice
- * ended with the Shell fork (Cockpit M3 1a, Step 1) and the removal of
+ * ended with the Shell fork (Hub M3 1a, Step 1) and the removal of
  * admin-m3-overrides.css (Step 5).
  * ============================================================================ */
 
@@ -107,10 +107,14 @@
   }
 }
 
-/* The confirm family hosts the shared action bar in the dialog's own footer bar,
- * which pads it and draws its hairline, the way DialogShell and ConfirmDialog
- * set the bar's padding from their own selectors (DL-117). */
-[data-component="AdminDialog"] [data-slot="actions"] > [data-component="SheetActions"] {
+/* A dialog hosts the shared action bar in its own footer bar, which pads it and
+ * draws its hairline, the way DialogShell and ConfirmDialog set the bar's
+ * padding from their own selectors (DL-117). The bar fills that row, so a note
+ * takes the start and the actions keep to the end. */
+[data-component="AdminDialog"] [data-slot="actions"] > [data-component="SheetActions"],
+[data-region="form-flow-actions"] > [data-component="SheetActions"] {
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0;
   background-color: transparent;
 }
@@ -224,7 +228,7 @@
  * Action flow phase cross-fade (qualify ↔ configure)
  * Animates only the content group — the ActionFlowShell header + footer stay
  * stationary. Reuses the route-content fade keyframe + admin motion tokens
- * (minimal-cockpit budget). Disabled under reduced motion.
+ * (minimal-chrome budget). Disabled under reduced motion.
  * ============================================================================ */
 .action-flow-fade {
   animation: var(--admin-motion-route-content-duration) var(--admin-motion-route-content-easing) both

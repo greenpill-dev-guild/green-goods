@@ -1,11 +1,13 @@
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
-import type {
-  CommitmentPoolRecord,
-  CommitmentsInbox,
-  InboxCommitment,
+import {
+  type CommitmentPoolRecord,
+  type CommitmentsInbox,
+  type InboxCommitment,
+  type ServiceOfferLine,
+  useServiceOfferLines,
 } from "@green-goods/shared/commitment-pooling";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
-import { expect, fn, screen, userEvent, within } from "storybook/test";
+import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
 
 import {
   STORY_GROUP_METADATA,
@@ -13,6 +15,7 @@ import {
   storyGroup,
 } from "@/components/Features/Commitments/promiseGroupStoryFixtures";
 import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import {
   withClientAppRuntime,
   withRouter,
@@ -59,6 +62,19 @@ const tenOffers: InboxCommitment[] = storyGroup({
   },
 }).group.children.map((commitment) => ({ commitment, seat: "provider", needsYou: false }));
 
+/** Each copy is a service that takes one Tech and Sun voucher, and the reader holds two. */
+const serviceLines = new Map<string, ServiceOfferLine>(
+  tenOffers.map((row) => [
+    row.commitment.commitmentId.toString(),
+    {
+      promisedBy: "Tech and Sun",
+      gender: "feminine",
+      takes: { units: 1_000_000n, decimals: 6 },
+      booking: { kind: "hold", held: 2_000_000n, decimals: 6 },
+    },
+  ])
+);
+
 /**
  * The Live tab of the Promises sheet, in the active garden. Fictional data from the
  * group fixtures.
@@ -69,6 +85,10 @@ const meta: Meta<typeof LiveTab> = {
   tags: ["autodocs", "storybook-ci"],
   globals: { viewport: { value: "mobile" } },
   parameters: { layout: "fullscreen" },
+  beforeEach: () => {
+    mocked(useServiceOfferLines).mockReturnValue(serviceLines);
+    return resetHookMocks(useServiceOfferLines);
+  },
   decorators: [
     withSheetBody,
     withSeededQueryClient(
@@ -99,7 +119,8 @@ type Story = StoryObj<typeof LiveTab>;
 
 /**
  * Identical open copies are one row with their number on the tile (DL-150), and the row opens
- * a half sheet of the ten, each its own row into its own promise.
+ * a half sheet of the ten, each its own row into its own promise. A service's fold says what a
+ * booking takes beside its count (DL-166); each copy's row adds what the reader holds.
  */
 export const IdenticalCopies: Story = {
   play: async ({ canvasElement, args }) => {
@@ -107,6 +128,8 @@ export const IdenticalCopies: Story = {
       name: /A group of 10 separate promises/,
     });
     await expect(fold).toHaveTextContent("Offered");
+    await expect(fold).toHaveTextContent("Takes 1 Tech and Sun voucher");
+    await expect(fold).toHaveTextContent("10 promises");
     await expectItemRowsFit(canvasElement);
     await userEvent.click(fold);
 

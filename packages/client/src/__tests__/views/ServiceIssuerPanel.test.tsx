@@ -13,7 +13,12 @@ import {
   issuerStorySnapshot,
   ISSUER_STORY_HASH,
 } from "../../views/Profile/serviceIssuerStoryFixtures";
-import { parseIssuerAmount } from "@/components/Features/Vouchers/serviceIssuerPresentation";
+import en from "@green-goods/shared/i18n/en";
+import { createIntl } from "react-intl";
+import {
+  issuerAmount,
+  parseIssuerAmount,
+} from "@/components/Features/Vouchers/serviceIssuerPresentation";
 import { renderWithProviders, screen, userEvent, within } from "../test-utils";
 
 // A booking row names its holder; these tests read no profile, ENS or Green Goods name.
@@ -80,7 +85,9 @@ describe("a member's own service", () => {
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     expect(screen.getByRole("heading", { name: "Services I Offer" })).toBeInTheDocument();
     await userEvent.click(screen.getByText("Vouchers I Hold"));
-    expect(screen.getByLabelText("Action")).toBeInTheDocument();
+    // The exchange is the act the section opens on; the pool's permission waits under it.
+    expect(screen.getByLabelText("Quantity (vouchers)")).toBeInTheDocument();
+    expect(screen.getByText("Manage permission")).toBeInTheDocument();
   });
   it("approves a booking only through its exact review, with the booking's own consent", async () => {
     const h = harness(issuerServiceStory("approve"));
@@ -188,7 +195,7 @@ describe("a member's own service", () => {
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     expect(screen.getByText("Rewards can't draw on your reserve")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Approve for Rewards" }));
-    await userEvent.type(screen.getByLabelText("How many (EHELP)"), "0.75");
+    await userEvent.type(screen.getByLabelText("How many (vouchers)"), "0.75");
     await userEvent.click(screen.getByRole("button", { name: "Review" }));
     expect(h.onReview).toHaveBeenCalledWith({ kind: "approveReserve", amount: 750_000n });
     const sheet = await reviewSheet();
@@ -204,21 +211,23 @@ describe("a member's own service", () => {
     const view = renderWithProviders(<ServiceIssuerPanel {...h} />);
     await userEvent.click(screen.getByRole("button", { name: "Issue More" }));
     expect(screen.getByText("Promised 6 · 5 issued · 1 more can be issued")).toBeInTheDocument();
-    const field = screen.getByLabelText("How many (EHELP)");
+    const field = screen.getByLabelText("How many (vouchers)");
     await userEvent.type(field, "2");
     expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
     await userEvent.clear(field);
     await userEvent.type(field, "1");
     await userEvent.click(screen.getByRole("button", { name: "Review" }));
     expect(h.onReview).toHaveBeenCalledWith({ kind: "issue", amount: 1_000_000n });
-    expect((await reviewSheet()).getByRole("button", { name: "Issue 1 EHELP" })).toBeDisabled();
+    expect(
+      (await reviewSheet()).getByRole("button", { name: "Issue 1 Fictional engineer help voucher" })
+    ).toBeDisabled();
     view.unmount();
     renderWithProviders(<ServiceIssuerPanel {...harness(issuerServiceStory("full"))} />);
     await userEvent.click(screen.getByRole("button", { name: "Issue More" }));
     expect(
       screen.getByText("Issuing more would promise more than you can deliver.")
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText("How many (EHELP)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("How many (vouchers)")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
   });
 
@@ -281,7 +290,7 @@ describe("a member's own service", () => {
     const active = h.snapshot.bookings.records[1]!;
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     await userEvent.click(screen.getByRole("button", { name: "Propose Return" }));
-    const field = screen.getByLabelText("Most that can come back (EHELP)");
+    const field = screen.getByLabelText("Most that can come back (vouchers)");
     fireEvent.change(field, { target: { value: "1.1" } });
     expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
     fireEvent.change(field, { target: { value: "0.5" } });
@@ -381,8 +390,12 @@ describe("a member's own service", () => {
     };
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     expect(screen.getByText("Settling")).toBeInTheDocument();
-    expect(screen.getByText("0.5 EHELP to your reserve")).toBeInTheDocument();
-    expect(screen.getByText("0.5 EHELP back to the holder")).toBeInTheDocument();
+    expect(
+      screen.getByText("0.5 Fictional engineer help vouchers to your reserve")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("0.5 Fictional engineer help vouchers back to the holder")
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Propose Return" })).not.toBeInTheDocument();
     expect(h.onExecute).not.toHaveBeenCalled();
   });
@@ -408,7 +421,7 @@ describe("a holder of another member's vouchers", () => {
   it("keeps the holder's vouchers apart from the issuer's acts and invents no services owed", () => {
     const h = holder();
     renderWithProviders(<ServiceIssuerPanel {...h} />);
-    expect(fact("Vouchers You Hold")).toHaveTextContent("0.5 EHELP");
+    expect(fact("Vouchers You Hold")).toHaveTextContent("0.5 Fictional engineer help vouchers");
     expect(screen.queryByText(/Total services owed: unknown/)).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Issue Vouchers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Issue More" })).not.toBeInTheDocument();
@@ -420,13 +433,14 @@ describe("a holder of another member's vouchers", () => {
     const h = holder();
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText("Action"), "exchange");
-    await user.type(screen.getByLabelText("Quantity (EHELP)"), "1");
+    await user.type(screen.getByLabelText("Quantity (vouchers)"), "1");
     await user.selectOptions(screen.getByLabelText("Receive"), "analyst-help");
-    expect(screen.getByRole("button", { name: "Review Action" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review Exchange" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Get Exchange Quote" }));
-    expect(await screen.findByText(/Minimum Received: 2 AHELP/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Review Action" }));
+    expect(
+      await screen.findByText(/Minimum Received: 2 Fictional analyst coaching vouchers/)
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review Exchange" }));
     expect(h.onReview).toHaveBeenCalledWith({
       kind: "exchange",
       amount: 1_000_000n,
@@ -435,10 +449,49 @@ describe("a holder of another member's vouchers", () => {
       minimumOutput: 2_000_000n,
       deadline: 1_900_000_300n,
     });
-    await user.click((await reviewSheet()).getByRole("button", { name: "Cancel" }));
-    await user.type(screen.getByLabelText("Quantity (EHELP)"), "0");
+    // The review reads as the exchange sheet does, in the issuers' own words: no symbol, no epoch
+    // number, the pool by name, and the addresses and signing account under Transaction details,
+    // with the consent last, right above the acts.
+    const sheet = await reviewSheet();
+    const body = document.querySelector<HTMLElement>('[data-component="ServiceIssuerReview"]')!;
+    const facts = within(body.querySelector<HTMLElement>('[data-component="FactList"]')!);
+    const row = (label: string) => facts.getByText(label).closest("[data-component=FactRow]");
+    expect(row("You spend")).toHaveTextContent("1 Fictional engineer help voucher");
+    expect(row("You receive")).toHaveTextContent("2 Fictional analyst coaching vouchers");
+    expect(row("Fees")).toHaveTextContent("Not quoted");
+    expect(row("Exchange Deadline")).not.toHaveTextContent("1900000300");
+    expect(facts.queryByText(/0x7777/)).not.toBeInTheDocument();
+    expect(facts.queryByText("Signing Account")).not.toBeInTheDocument();
+    expect(facts.queryByText(/EHELP|AHELP/)).not.toBeInTheDocument();
+    expect(sheet.getByRole("button", { name: "Exchange 1 voucher" })).toBeDisabled();
+    expect(body.lastElementChild).toContainElement(sheet.getByRole("checkbox"));
+    await user.click(sheet.getByRole("button", { name: "Cancel" }));
+    await user.type(screen.getByLabelText("Quantity (vouchers)"), "0");
     expect(screen.queryByText(/Minimum Received:/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Review Action" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review Exchange" })).toBeDisabled();
+    expect(h.onExecute).not.toHaveBeenCalled();
+  });
+
+  it("opens on the exchange, with the pool's permission under Manage permission in plain words", async () => {
+    const h = holder();
+    renderWithProviders(<ServiceIssuerPanel {...h} />);
+    const user = userEvent.setup();
+    expect(screen.queryByLabelText("Action")).not.toBeInTheDocument();
+    expect(fact("The pool may spend")).toHaveTextContent("0 Fictional engineer help vouchers");
+    expect(screen.getByLabelText("Quantity (vouchers)")).toBeInTheDocument();
+    await user.click(screen.getByText("Manage permission"));
+    await user.type(screen.getByLabelText("Let the pool spend up to (vouchers)"), "2");
+    await user.click(screen.getByRole("button", { name: "Review the Permission" }));
+    expect(h.onReview).toHaveBeenLastCalledWith({ kind: "approveExchange", amount: 2_000_000n });
+    const allow = await reviewSheet();
+    expect(allow.getByText("Let the Pool Spend Your Vouchers")).toBeInTheDocument();
+    expect(allow.getByText("Let the pool spend up to")).toBeInTheDocument();
+    expect(allow.getByRole("button", { name: "Let the Pool Spend 2 vouchers" })).toBeDisabled();
+    await user.click(allow.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Take That Permission Back" }));
+    expect(h.onReview).toHaveBeenLastCalledWith({ kind: "revokeExchange" });
+    const revoke = await reviewSheet();
+    expect(revoke.getByRole("button", { name: "Take That Permission Back" })).toBeDisabled();
     expect(h.onExecute).not.toHaveBeenCalled();
   });
 
@@ -464,11 +517,41 @@ describe("a holder of another member's vouchers", () => {
     });
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     await userEvent.click(screen.getByRole("button", { name: "Check Transaction Status" }));
-    expect(await screen.findByText("Actually Delivered: 2.1 AHELP")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Actually Delivered: 2.1 Fictional analyst coaching vouchers")
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/Current balances or approvals have changed since its receipt/)
     ).toBeInTheDocument();
     expect(h.onExecute).not.toHaveBeenCalled();
+  });
+});
+
+describe("issuer amounts in words", () => {
+  const intl = createIntl({ locale: "en", messages: en });
+  // The live tokens are named "Green Goods Service Voucher" and "Tech and Sun Service Voucher":
+  // the catalog names the issuer, and an uncatalogued name loses its own voucher noun.
+  it("names a live token by its issuer and never doubles the voucher noun", () => {
+    const live = {
+      name: "Green Goods Service Voucher",
+      decimals: 6,
+      token: { address: "0xbaF8c6f7c0cA8310Df725D90023C188FA8f1B590" as const },
+    };
+    expect(issuerAmount(500_000n, live, intl)).toBe("0.5 Green Goods vouchers");
+    expect(
+      issuerAmount(
+        1_000_000n,
+        {
+          ...live,
+          name: "Fictional Service Voucher",
+          token: { address: "0x9999999999999999999999999999999999999999" },
+        },
+        intl
+      )
+    ).toBe("1 Fictional voucher");
+    expect(issuerAmount(2_000_000n, issuerStoryAssets[0]!, intl)).toBe(
+      "2 Fictional engineer help vouchers"
+    );
   });
 });
 

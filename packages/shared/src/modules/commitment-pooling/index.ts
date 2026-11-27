@@ -12,7 +12,12 @@ export * from "./data-settlement-operations";
 export { DEMO_POOLING_PARAM, isDemoPoolingActive } from "./demo/demo-mode";
 export * from "./disclosure";
 export * from "./document-store";
-export { type CycleStanding, cycleStanding } from "./due-dates";
+export {
+  type CycleStanding,
+  cycleStanding,
+  type DueClock,
+  isOpenToTakeUp,
+} from "./due-dates";
 export * from "./evidence";
 export * from "./ids";
 export * from "./jobs";
@@ -23,12 +28,24 @@ export * from "./pool-lifecycle";
 export * from "./pool-setup";
 export * from "./proof-draft-repository";
 export * from "./reasons";
+export * from "./reward-legs";
+export {
+  gardenRewardPayment,
+  rewardBeneficiarySafeMissing,
+  rewardShareRecipientsOf,
+  rewardSharesOwed,
+  type RewardShareRecipient,
+} from "./reward-payer";
+export type { RewardPayOutcome, RewardSafePaymentRead } from "./reward-pay-send";
+export type { RewardSafeSyncOutcome } from "./reward-safe-sync";
 export * from "./selectors";
 export * from "./service-access";
 export { liveVoucherIssuerName } from "./service-access-live-config";
 export * from "./service-access-pilot-types";
 export * from "./service-access-types";
 export * from "./service-access-voucher-types";
+// The member's Start the Booking is a fallback for the steward's (DL-193).
+export { voucherStartFallbackDue } from "./voucher-start";
 export type { ServiceOfferLine } from "./service-offer-line";
 export {
   hasVoucherWalletRoute,

@@ -1,5 +1,4 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { Button } from "@green-goods/shared/components/Button";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import {
   type ListingStep,
@@ -8,6 +7,7 @@ import {
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { type CreateListingParams, LISTING_DEFAULTS } from "@green-goods/shared/types/hypercerts";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -113,6 +113,10 @@ export function CreateListingDialog({
     try {
       await createListing(params);
     } catch (error) {
+      if (wasAskedToReconnect(error)) {
+        setPhase("configure");
+        return;
+      }
       logger.error("Failed to create listing", { error });
       setSubmissionError(
         error instanceof Error
@@ -162,63 +166,62 @@ export function CreateListingDialog({
         preventClose={busy || isClearing}
         hideCloseButton={busy || isClearing}
         actions={
-          configuring ? (
-            <>
-              <Button type="button" emphasis="tertiary" size="sm" onClick={handleClose}>
-                {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-              </Button>
-              <Button size="sm" type="submit" form={formId}>
-                {formatMessage({
-                  id: "app.listing.signAndList",
-                  defaultMessage: "Sign & List",
-                })}
-              </Button>
-            </>
-          ) : (
-            <>
-              {(step === "done" || step === "pending" || isErrorState) && (
-                <Button type="button" emphasis="tertiary" size="sm" onClick={handleClose}>
-                  {step === "done"
-                    ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
-                    : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-                </Button>
-              )}
-              {step === "pending" && (
-                <Button
-                  size="sm"
-                  type="button"
-                  disabled={isCheckingConfirmation || isClearing}
-                  onClick={() => void checkConfirmation()}
-                >
-                  {formatMessage({ id: "app.account.checkConfirmation" })}
-                </Button>
-              )}
-              {step === "pending" && (
-                <Button
-                  type="button"
-                  emphasis="tertiary"
-                  size="sm"
-                  disabled={isCheckingConfirmation || isClearing}
-                  onClick={() => setReviewCancellation(true)}
-                >
-                  {formatMessage({ id: "app.account.reviewCancellation" })}
-                </Button>
-              )}
-              {isErrorState && step !== "pending" && (
-                <Button
-                  size="sm"
-                  type="button"
-                  onClick={() => {
-                    setSubmissionError(null);
-                    reset();
-                    setPhase("configure");
-                  }}
-                >
-                  {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-                </Button>
-              )}
-            </>
-          )
+          configuring
+            ? {
+                primary: {
+                  label: formatMessage({
+                    id: "app.listing.signAndList",
+                    defaultMessage: "Sign & List",
+                  }),
+                  type: "submit",
+                  form: formId,
+                },
+                secondary: {
+                  label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+                  onClick: handleClose,
+                },
+              }
+            : {
+                // A listing still waiting on its wallet checks again; one that failed starts over.
+                primary:
+                  step === "pending"
+                    ? {
+                        label: formatMessage({ id: "app.account.checkConfirmation" }),
+                        disabled: isCheckingConfirmation || isClearing,
+                        onClick: () => void checkConfirmation(),
+                      }
+                    : isErrorState
+                      ? {
+                          label: formatMessage({
+                            id: "app.common.tryAgain",
+                            defaultMessage: "Try Again",
+                          }),
+                          onClick: () => {
+                            setSubmissionError(null);
+                            reset();
+                            setPhase("configure");
+                          },
+                        }
+                      : undefined,
+                secondary:
+                  step === "done" || step === "pending" || isErrorState
+                    ? {
+                        label:
+                          step === "done"
+                            ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
+                            : formatMessage({ id: "app.common.close", defaultMessage: "Close" }),
+                        onClick: handleClose,
+                      }
+                    : undefined,
+                tertiary:
+                  step === "pending"
+                    ? {
+                        label: formatMessage({ id: "app.account.reviewCancellation" }),
+                        disabled: isCheckingConfirmation || isClearing,
+                        onClick: () => setReviewCancellation(true),
+                      }
+                    : undefined,
+              }
         }
       >
         {configuring ? (

@@ -19,3 +19,7 @@ The client package serves two experiences from one codebase. Do not prompt, revi
 | Public browser | Standard browser visit | Funders, community members | `packages/client/DESIGN.browser.md` | `SiteHeader` with mobile hamburger and desktop links |
 
 Hard rule: Browser = website with `SiteHeader` at the top. Installed PWA = app with bottom `AppBar`. Never mix the chrome, typography emphasis, or copy voice between the two dialects.
+
+## Waits
+
+Both dialects follow the waiting rule in the quality contract (PRD-1495). Within 2 seconds a wait names what it waits for, and a send's stage is said in the shared words (`modules/transactions/send-stage`): "Confirm in your wallet" while the wallet is asked, "Confirming…" while the network confirms, and "Still confirming…" once a send outlasts its 120 second receipt wait, with the sentence that it went out and the person can leave without sending it again. The queue reports each send's stage on the work it carries, however the send started (Upload now, Upload all, or the background send), so the Work page's footer and Your Work's rows take it from there instead of wiring it themselves. A wait on the wallet has no cut-off: at 20 seconds it says to open the wallet and offers Cancel where the wait can stop. Nothing reads as failed while a send may still land.

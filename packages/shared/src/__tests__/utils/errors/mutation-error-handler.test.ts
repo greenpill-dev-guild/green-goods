@@ -10,6 +10,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { WalletAnswerAbandonedError } from "../../../modules/transactions/types";
 
 // ============================================
 // Mocks — vi.hoisted ensures these are available before vi.mock hoisting
@@ -17,12 +18,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   mockToastError,
+  mockToastInfo,
   mockWalletProgressError,
   mockTrackContractError,
   mockDebugError,
   mockParseAndFormatError,
 } = vi.hoisted(() => ({
   mockToastError: vi.fn(),
+  mockToastInfo: vi.fn(),
   mockWalletProgressError: vi.fn(),
   mockTrackContractError: vi.fn(),
   mockDebugError: vi.fn(),
@@ -32,6 +35,7 @@ const {
 vi.mock("../../../components/toast", () => ({
   toastService: {
     error: (...args: unknown[]) => mockToastError(...args),
+    info: (...args: unknown[]) => mockToastInfo(...args),
   },
   walletProgressToasts: {
     error: (...args: unknown[]) => mockWalletProgressError(...args),
@@ -136,6 +140,56 @@ describe("createMutationErrorHandler", () => {
           context: "work upload",
         })
       );
+    });
+
+    it("shows no toast once the person stopped waiting for the wallet: the act's line says so", () => {
+      const handler = createMutationErrorHandler({ source: "pool", toastContext: "pool act" });
+
+      handler(new WalletAnswerAbandonedError());
+
+      expect(mockToastError).not.toHaveBeenCalled();
+    });
+
+    it("tells a send still confirming in an info toast, never an error", () => {
+      mockParseAndFormatError.mockReturnValueOnce({
+        title: "Send Still Confirming",
+        message: "It could still go through",
+        parsed: {
+          raw: "",
+          name: "SendStillConfirming",
+          message: "",
+          isKnown: true,
+          recoverable: false,
+        },
+      });
+      const handler = createMutationErrorHandler({ source: "pool", toastContext: "pool act" });
+
+      handler(new Error("No receipt within 120s"), { authMode: "wallet" });
+
+      expect(mockToastError).not.toHaveBeenCalled();
+      expect(mockToastInfo).toHaveBeenCalledOnce();
+      // Not a contract failure either: it went out and may still land.
+      expect(mockTrackContractError).not.toHaveBeenCalled();
+
+      // Nor in the wallet progress toast, which only says failures.
+      mockParseAndFormatError.mockReturnValueOnce({
+        title: "Send Still Confirming",
+        message: "It could still go through",
+        parsed: {
+          raw: "",
+          name: "SendStillConfirming",
+          message: "",
+          isKnown: true,
+          recoverable: false,
+        },
+      });
+      createMutationErrorHandler({
+        source: "work",
+        toastContext: "work upload",
+        useWalletProgressToast: true,
+      })(new Error("No receipt within 120s"), { authMode: "wallet" });
+      expect(mockWalletProgressError).not.toHaveBeenCalled();
+      expect(mockToastInfo).toHaveBeenCalledTimes(2);
     });
 
     it("returns parsed error result", () => {
@@ -457,6 +511,27 @@ describe("createMutationErrorHandler", () => {
 
       // mockKnownParsedResult has recoverable: false
       expect(mockWalletProgressError.mock.calls[0][1]).toBe(false);
+    });
+
+    // PRD-1499: an act refused because the wallet has not answered, before it started.
+    it("leaves the ask to the wallet reconnect prompt, and still tracks the refusal", async () => {
+      // Imported after the reset, as the handler is, so the class is the one it checks.
+      const { WalletReconnectRequiredError } = await import(
+        "../../../utils/errors/unsent-failures"
+      );
+      const handler = createMutationErrorHandler({ source: "useTest", toastContext: "test" });
+
+      handler(new WalletReconnectRequiredError(true), { authMode: "wallet" });
+      // An act that wraps the refusal in an error of its own is followed to it.
+      handler(new Error("Approval failed", { cause: new WalletReconnectRequiredError(true) }), {
+        authMode: "wallet",
+      });
+      expect(mockToastError).not.toHaveBeenCalled();
+      expect(mockTrackContractError).toHaveBeenCalledTimes(2);
+
+      // With no prompt mounted to ask, the act says so itself.
+      handler(new WalletReconnectRequiredError(false), { authMode: "wallet" });
+      expect(mockToastError).toHaveBeenCalledOnce();
     });
   });
 

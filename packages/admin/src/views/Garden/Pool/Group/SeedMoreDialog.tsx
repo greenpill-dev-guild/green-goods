@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
@@ -45,7 +44,7 @@ export function SeedMoreDialog({
 
   const question = formatMessage(
     {
-      id: "cockpit.garden.pool.seedMore.question",
+      id: "hub.garden.pool.seedMore.question",
       defaultMessage: "How should the new promises relate to {title}?",
     },
     { title: <b key="title">{title}</b> }
@@ -60,25 +59,25 @@ export function SeedMoreDialog({
       size="md"
       tone="garden"
       title={formatMessage({
-        id: "cockpit.garden.pool.seedMore.title",
+        id: "hub.garden.pool.seedMore.title",
         defaultMessage: "Seed More Like This",
       })}
-      actions={
-        <>
-          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose}>
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </Button>
-          <Button type="button" emphasis="primary" size="sm" onClick={() => onContinue(choice)}>
-            {formatMessage({ id: "app.common.continue", defaultMessage: "Continue" })}
-          </Button>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({ id: "app.common.continue", defaultMessage: "Continue" }),
+          onClick: () => onContinue(choice),
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: onClose,
+        },
+      }}
     >
       <div className="space-y-3" data-testid="seed-more">
         <p className="type-body text-text-strong">{question}</p>
         <AdminChoiceGroup
           ariaLabel={formatMessage({
-            id: "cockpit.garden.pool.seedMore.choice",
+            id: "hub.garden.pool.seedMore.choice",
             defaultMessage: "Add to this group or start a new one",
           })}
           value={choice}
@@ -89,30 +88,30 @@ export function SeedMoreDialog({
               value: "add",
               disabled: addRefusal !== null,
               label: formatMessage({
-                id: "cockpit.garden.pool.seedMore.add",
+                id: "hub.garden.pool.seedMore.add",
                 defaultMessage: "Add to this group",
               }),
               description:
                 addRefusal === "expired"
                   ? formatMessage({
-                      id: "cockpit.garden.pool.seedMore.addExpired",
+                      id: "hub.garden.pool.seedMore.addExpired",
                       defaultMessage: "Its deadline has passed, so nothing can join it now.",
                     })
                   : addRefusal === "closed"
                     ? formatMessage({
-                        id: "cockpit.garden.pool.seedMore.addClosed",
+                        id: "hub.garden.pool.seedMore.addClosed",
                         defaultMessage:
                           "Its pool, season or campaign isn't taking new promises, so nothing can join it now.",
                       })
                     : addRefusal === "not-creator"
                       ? formatMessage({
-                          id: "cockpit.garden.pool.seedMore.addNotCreator",
+                          id: "hub.garden.pool.seedMore.addNotCreator",
                           defaultMessage:
                             "Only the steward who created it can add to it and keep it one group.",
                         })
                       : formatMessage(
                           {
-                            id: "cockpit.garden.pool.seedMore.addHint",
+                            id: "hub.garden.pool.seedMore.addHint",
                             defaultMessage:
                               "Same terms and the same deadline, {due}. Only the number changes.",
                           },
@@ -122,11 +121,11 @@ export function SeedMoreDialog({
             {
               value: "new",
               label: formatMessage({
-                id: "cockpit.garden.pool.seedMore.new",
+                id: "hub.garden.pool.seedMore.new",
                 defaultMessage: "Start a new group",
               }),
               description: formatMessage({
-                id: "cockpit.garden.pool.seedMore.newHint",
+                id: "hub.garden.pool.seedMore.newHint",
                 defaultMessage:
                   "Starts from these terms. You can change anything, including the deadline. It shows as its own group.",
               }),
@@ -135,7 +134,7 @@ export function SeedMoreDialog({
         />
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.seedMore.help",
+            id: "hub.garden.pool.seedMore.help",
             defaultMessage:
               "Adding is possible while the group's deadline is still ahead. After that, only a new group can be started.",
           })}

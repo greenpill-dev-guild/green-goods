@@ -15,7 +15,6 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { formatDate } from "@green-goods/shared/utils/time";
-import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import {
   RiCheckLine,
   RiExchangeDollarLine,
@@ -30,6 +29,7 @@ import { EnsAddressText } from "@/components/EnsAddressText";
 import { CreateListingDialog } from "@/components/Hypercerts/CreateListingDialog";
 import { MarketplaceApprovalGate } from "@/components/Hypercerts/MarketplaceApprovalGate";
 import { TradeHistoryTable } from "@/components/Hypercerts/TradeHistoryTable";
+import { HypercertEvidence } from "./HypercertEvidence";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -87,7 +87,6 @@ export default function HypercertDetail({
 }: HypercertDetailProps = {}) {
   const { hypercertId: routeHypercertId } = useParams<{ hypercertId: string }>();
   const { formatMessage } = useIntl();
-  const untitledWork = formatMessage({ id: "app.admin.work.untitledWork" });
   const location = useLocation();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { data: gardens = [] } = useGardens();
@@ -102,7 +101,7 @@ export default function HypercertDetail({
   const locationState = location.state as { optimisticData?: OptimisticHypercertData } | null;
   const optimisticData = locationState?.optimisticData;
 
-  const { hypercert, isLoading, syncStatus } = useHypercerts({
+  const { hypercert, isLoading, evidenceLoading, hasError, syncStatus } = useHypercerts({
     hypercertId,
     gardenId: garden?.id,
     optimisticData,
@@ -283,31 +282,11 @@ export default function HypercertDetail({
             />
           )}
 
-          {hypercert.attestations && hypercert.attestations.length > 0 && (
-            <section className="surface-inset p-6">
-              <h3 className="type-body font-semibold text-text-strong">
-                {formatMessage({ id: "app.hypercerts.detail.attestationRefs" })}
-              </h3>
-              <div className="mt-3 space-y-2">
-                {hypercert.attestations.map((attestation) => (
-                  <div
-                    key={attestation.id}
-                    className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 type-meta"
-                  >
-                    <div className="font-medium text-text-strong">
-                      {toWorkDisplayTitle(attestation.title, untitledWork)}
-                    </div>
-                    <div className="text-text-sub">
-                      <EnsAddressText
-                        address={attestation.gardenerAddress}
-                        fallbackName={attestation.gardenerName}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          <HypercertEvidence
+            attestations={hypercert.attestations}
+            isLoading={evidenceLoading}
+            hasError={hasError}
+          />
 
           {hypercert.allowlistEntries && hypercert.allowlistEntries.length > 0 && (
             <section className="surface-inset p-6">

@@ -189,7 +189,7 @@ describe("service access presentation", () => {
 
   it("asks for exact terms consent before sending a voucher service request", async () => {
     const onAction = renderPanel();
-    await userEvent.click(screen.getByRole("button", { name: "Review and Request" }));
+    await userEvent.click(screen.getByRole("button", { name: "Review and Book" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(
       screen.getByRole("checkbox", { name: /I agree to this exact service/ })
@@ -199,13 +199,13 @@ describe("service access presentation", () => {
 
   it("submits the reviewed revision, nonce, buyer garden and distinct holder", async () => {
     const onAction = renderPanel();
-    await userEvent.click(screen.getByRole("button", { name: "Review and Request" }));
+    await userEvent.click(screen.getByRole("button", { name: "Review and Book" }));
     const dialog = within(screen.getByRole("dialog"));
     const holder = dialog.getByRole("textbox", { name: "Voucher holder account" });
     await userEvent.clear(holder);
     await userEvent.type(holder, HOLDER);
     await userEvent.click(dialog.getByRole("checkbox"));
-    await userEvent.click(dialog.getByRole("button", { name: "Review and Request" }));
+    await userEvent.click(dialog.getByRole("button", { name: "Review and Book" }));
     expect(onAction).toHaveBeenCalledWith({
       action: "requestClaim",
       expectedRevision: 1n,
@@ -235,7 +235,7 @@ describe("service access presentation", () => {
       })
     );
     expect(screen.getByText("Service access is unavailable")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Review and Request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Review and Book" })).not.toBeInTheDocument();
   });
 
   it("does not turn generic core fulfillment into holder delivery approval", () => {
@@ -353,7 +353,7 @@ describe("service consent", () => {
     );
     expect(screen.getByRole("checkbox")).not.toBeChecked();
     expect(screen.getByText("The terms changed. Review them again.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Review and Request" }));
+    await userEvent.click(screen.getByRole("button", { name: "Review and Book" }));
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
@@ -915,6 +915,6 @@ describe("voucher setup and recovery review", () => {
     renderPanel(state);
     expect(screen.getByText("Earned voucher consent")).toBeInTheDocument();
     expect(screen.getByText(/A steward account cannot substitute/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Review and Request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Review and Book" })).not.toBeInTheDocument();
   });
 });

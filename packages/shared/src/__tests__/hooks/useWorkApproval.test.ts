@@ -52,7 +52,14 @@ vi.mock("../../components/Toast/toast.service", () => ({
     success: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    dismiss: vi.fn(),
   },
+}));
+
+// The chain recheck before a send reads the work's decision; these tests decide fresh works.
+const mockIsDecided = vi.hoisted(() => vi.fn(async (_workUID: string) => false));
+vi.mock("../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: mockIsDecided }),
 }));
 
 vi.mock("../../config/blockchain", () => ({
@@ -232,6 +239,50 @@ describe("hooks/work/useWorkApproval", () => {
         finishRead([]);
         unsubscribe();
       }
+    });
+
+    it("sends nothing, and says nothing, when the work can no longer be decided by send time", async () => {
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await result.current
+          .mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+            stillDecidable: () => false,
+          })
+          .catch(() => undefined);
+      });
+
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(submitApprovalToQueue).not.toHaveBeenCalled();
+      expect(toastService.error).not.toHaveBeenCalled();
+      // It raised no toast of its own, and the shared one may still be another decision's.
+      expect(toastService.dismiss).not.toHaveBeenCalled();
+    });
+
+    it("leaves the approval lifecycle, and any earlier decision it holds, alone on a withdrawal", async () => {
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
+      const before = result.current.approvalLifecycleStage;
+
+      await act(async () => {
+        await result.current
+          .mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+            stillDecidable: () => false,
+          })
+          .catch(() => undefined);
+      });
+
+      // Cancelling or failing would clear the one pending record the device keeps.
+      expect(result.current.approvalLifecycleStage).toBe(before);
     });
 
     it("calls submitApprovalDirectly for wallet users", async () => {
@@ -953,7 +1004,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ stage: "handoff" })
       );
       expect(toastService.loading).not.toHaveBeenCalledWith(
-        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+        expect.objectContaining({ title: en["app.sendStage.wallet"] })
       );
     });
 
@@ -988,7 +1039,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ stage: "handoff" })
       );
       expect(toastService.loading).not.toHaveBeenCalledWith(
-        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+        expect.objectContaining({ title: en["app.sendStage.wallet"] })
       );
       expect(toastService.success).toHaveBeenLastCalledWith(
         expect.objectContaining({ message: en["app.toast.approval.savedOffline.message"] })
@@ -1021,8 +1072,32 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ stage: "handoff" })
       );
       expect(toastService.loading).not.toHaveBeenCalledWith(
-        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+        expect.objectContaining({ title: en["app.sendStage.wallet"] })
       );
+    });
+
+    it("sends no second decision on a work the chain already has decided, and says so", async () => {
+      mockIsDecided.mockResolvedValueOnce(true);
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current
+          .mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+          })
+          .catch(() => undefined);
+      });
+
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "approval-submit",
+          title: "This work has already been reviewed.",
+        })
+      );
+      expect(mockErrorHandler).not.toHaveBeenCalled();
+      expect(result.current.approvalLifecycleStage).not.toBe("failed");
     });
 
     it("shows error toast on failure", async () => {

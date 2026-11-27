@@ -34,6 +34,8 @@ export interface NetworkContracts {
   commitmentRegistry: Address;
   settlementModule: Address;
   celoSettlementExecutor: Address;
+  /** Pays wallet-paid reward shares (PRD-1556); zero until it is deployed on this chain. */
+  rewardPayer?: Address;
 }
 
 export type MarketplaceReadinessField =

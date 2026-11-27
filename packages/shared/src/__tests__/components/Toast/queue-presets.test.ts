@@ -1,9 +1,10 @@
-// TEST-QUALITY: allow-small-test-file - no other file covers the queue toasts' copy; the provider's test mocks them and covers which garden reaches this one, and these three cases are all its two variants have.
+// TEST-QUALITY: allow-small-test-file - no other file covers the queue toasts' copy; the provider's test mocks them and covers which garden reaches this one. Three cases cover the failure toast's two variants, and a fourth the one name every failed send shares.
 /**
  * The queue's failure toast (PWA Home step 12). Your Work lists only the active garden, so a failed
  * upload in another of the member's gardens names that garden and offers the switcher, which
  * changes nothing until the member picks; one in the active garden says to open Your Work and
- * offers Review, which does. The job's own error reaches the diagnostics only.
+ * offers Review, which does. The job's own error reaches the diagnostics only. A send that
+ * gave up has one name, Didn't send, wherever a toast says so (DL-177).
  */
 
 import { createIntl } from "react-intl";
@@ -99,5 +100,34 @@ describe("queue failure toast", () => {
     // Without a way to Your Work, the words stand on their own.
     toastsIn("en", en).jobFailed("work", "network");
     expect(error.mock.lastCall?.[0].action).toBeUndefined();
+  });
+
+  it("gives every failed send one name, Didn't send, in every language (DL-177)", () => {
+    const error = vi.spyOn(toastService, "error").mockReturnValue("job-queue-flush");
+    const catalogs = { en, es, pt };
+
+    for (const [locale, messages] of Object.entries(catalogs)) {
+      const toasts = toastsIn(locale, messages);
+      toasts.syncError();
+      toasts.retryFailed();
+    }
+
+    expect(error.mock.calls.map(([shown]) => shown.title)).toEqual([
+      "Didn't send",
+      "Didn't send",
+      "No se envió",
+      "No se envió",
+      "Não enviou",
+      "Não enviou",
+    ]);
+    // The work page's Upload now and Upload all's two failures say it as the queue's toast does.
+    for (const messages of Object.values(catalogs)) {
+      const name = messages["app.toast.queue.jobFailed.title"];
+      expect([
+        messages["app.home.work.retryFailed"],
+        messages["app.uploads.revertedTitle"],
+        messages["app.uploads.notSentTitle"],
+      ]).toEqual([name, name, name]);
+    }
   });
 });

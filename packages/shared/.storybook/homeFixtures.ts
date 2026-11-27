@@ -110,5 +110,7 @@ export function activeGarden(
     // The hook's own scope rule over the story's gardens.
     inScope: (named) => isInGardenListScope({ activeGardenId: gardenId, memberGardenIds }, named),
     selectGarden: fn(),
+    addedGardens: [],
+    acknowledgeAddedGardens: fn(),
   };
 }

@@ -1,0 +1,36 @@
+name: Agents Doctor
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".agents/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".github/CODEOWNERS"
+      - ".github/pull_request_template.md"
+      - ".github/workflows/agents-doctor.yml"
+  push:
+    branches: [main, develop]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".agents/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".github/CODEOWNERS"
+      - ".github/pull_request_template.md"
+      - ".github/workflows/agents-doctor.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  agents-doctor:
+    # Pinned like every action here; doctor-ref matches, so the workflow and the doctor script it
+    # runs come from the same guild commit.
+    uses: greenpill-dev-guild/.github/.github/workflows/agents-doctor.yml@d5bab15ee152be8fe289257826b28655090e4d05
+    with:
+      mode: ci
+      doctor-ref: d5bab15ee152be8fe289257826b28655090e4d05

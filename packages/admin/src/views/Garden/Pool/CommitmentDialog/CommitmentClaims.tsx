@@ -79,31 +79,31 @@ export function CommitmentClaims({
     return [
       known.holding === 0
         ? formatMessage({
-            id: "cockpit.garden.pool.asks.holdsNone",
+            id: "hub.garden.pool.asks.holdsNone",
             defaultMessage: "No open promises here",
           })
         : known.cap > 0
           ? formatMessage(
               {
-                id: "cockpit.garden.pool.asks.holdsOfCap",
+                id: "hub.garden.pool.asks.holdsOfCap",
                 defaultMessage: "Holds {holding} of {cap} open promises here",
               },
               { holding: known.holding, cap: known.cap }
             )
           : formatMessage(
               {
-                id: "cockpit.garden.pool.asks.holds",
+                id: "hub.garden.pool.asks.holds",
                 defaultMessage: "Holds {holding} open promises here",
               },
               { holding: known.holding }
             ),
       known.kept === 0
         ? formatMessage({
-            id: "cockpit.garden.pool.asks.keptNone",
+            id: "hub.garden.pool.asks.keptNone",
             defaultMessage: "None kept here yet",
           })
         : formatMessage(
-            { id: "cockpit.garden.pool.asks.kept", defaultMessage: "Kept {kept} here before" },
+            { id: "hub.garden.pool.asks.kept", defaultMessage: "Kept {kept} here before" },
             { kept: known.kept }
           ),
     ];
@@ -114,12 +114,12 @@ export function CommitmentClaims({
       className="space-y-2"
       data-testid="commitment-claims"
       aria-label={formatMessage({
-        id: "cockpit.garden.pool.asks.title",
+        id: "hub.garden.pool.asks.title",
         defaultMessage: "Who asked",
       })}
     >
       <AdminCardTitle as="h4">
-        {formatMessage({ id: "cockpit.garden.pool.asks.title", defaultMessage: "Who asked" })}
+        {formatMessage({ id: "hub.garden.pool.asks.title", defaultMessage: "Who asked" })}
       </AdminCardTitle>
       <ul className="divide-y divide-stroke-soft">
         {rows.map(({ claim, phase, state }) => {
@@ -131,8 +131,8 @@ export function CommitmentClaims({
                     {
                       id:
                         state.status === "approved"
-                          ? "cockpit.garden.pool.asks.approvedAt"
-                          : "cockpit.garden.pool.asks.declinedAt",
+                          ? "hub.garden.pool.asks.approvedAt"
+                          : "hub.garden.pool.asks.declinedAt",
                       defaultMessage:
                         state.status === "approved" ? "approved {when}" : "declined {when}",
                     },
@@ -142,36 +142,52 @@ export function CommitmentClaims({
               : state.status === "not-chosen"
                 ? [
                     formatMessage({
-                      id: "cockpit.garden.pool.asks.otherApproved",
-                      defaultMessage: "another ask was approved",
+                      id: "hub.garden.pool.asks.otherApproved",
+                      defaultMessage: "someone else was approved",
                     }),
                   ]
-                : [
-                    formatMessage(
-                      { id: "cockpit.garden.pool.asks.askedAt", defaultMessage: "Asked {when}" },
-                      { when: timelineTime(intl, claim.requestedAt * 1000, now) }
-                    ),
-                    ...(claim.requestedBy.toLowerCase() !== claim.claimant.toLowerCase()
-                      ? [
-                          formatMessage(
-                            {
-                              id: "cockpit.garden.pool.claims.requestedBy",
-                              defaultMessage: "asked by {who}",
-                            },
-                            {
-                              who: (
-                                <PersonName
-                                  key="by"
-                                  address={claim.requestedBy}
-                                  className="type-meta font-normal text-text-sub"
-                                />
-                              ),
-                            }
-                          ),
-                        ]
-                      : []),
-                    ...standing(claim),
-                  ];
+                : state.status === "closed"
+                  ? [
+                      formatMessage(
+                        {
+                          id:
+                            state.ending === "canceled"
+                              ? "hub.garden.pool.asks.promiseCanceledAt"
+                              : "hub.garden.pool.asks.promiseExpiredAt",
+                          defaultMessage:
+                            state.ending === "canceled"
+                              ? "promise canceled {when}"
+                              : "promise expired {when}",
+                        },
+                        { when: timelineTime(intl, state.at, now) }
+                      ),
+                    ]
+                  : [
+                      formatMessage(
+                        { id: "hub.garden.pool.asks.askedAt", defaultMessage: "Asked {when}" },
+                        { when: timelineTime(intl, claim.requestedAt * 1000, now) }
+                      ),
+                      ...(claim.requestedBy.toLowerCase() !== claim.claimant.toLowerCase()
+                        ? [
+                            formatMessage(
+                              {
+                                id: "hub.garden.pool.claims.requestedBy",
+                                defaultMessage: "asked by {who}",
+                              },
+                              {
+                                who: (
+                                  <PersonName
+                                    key="by"
+                                    address={claim.requestedBy}
+                                    className="type-meta font-normal text-text-sub"
+                                  />
+                                ),
+                              }
+                            ),
+                          ]
+                        : []),
+                      ...standing(claim),
+                    ];
           return (
             <li
               key={claim.id}
@@ -190,11 +206,11 @@ export function CommitmentClaims({
                     ·{" "}
                     {claim.claimType === "GARDEN"
                       ? formatMessage({
-                          id: "cockpit.garden.pool.claims.type.garden",
+                          id: "hub.garden.pool.claims.type.garden",
                           defaultMessage: "garden",
                         })
                       : formatMessage({
-                          id: "cockpit.garden.pool.claims.type.individual",
+                          id: "hub.garden.pool.claims.type.individual",
                           defaultMessage: "individual",
                         })}
                   </span>
@@ -208,14 +224,14 @@ export function CommitmentClaims({
                   ))}
                 </p>
                 {/* A failure says nothing changed, and the pair comes back as Try Again. */}
-                {state.status === "failed" ? (
-                  <ActPhaseLine phase={phase} chainId={chainId} confirmed="" />
-                ) : null}
+                {state.status === "failed" ? <ActPhaseLine phase={phase} confirmed="" /> : null}
               </div>
               <span className="flex items-center gap-2">
                 <AskOutcome state={state} />
-                {state.status === "signing" || state.status === "confirming" ? (
-                  <ActPhaseLine phase={phase} chainId={chainId} confirmed="" />
+                {state.status === "signing" ||
+                state.status === "confirming" ||
+                state.status === "held" ? (
+                  <ActPhaseLine phase={phase} confirmed="" />
                 ) : waiting && can.acceptClaim ? (
                   <>
                     <Button
@@ -228,7 +244,7 @@ export function CommitmentClaims({
                       disabled={actDisabled}
                     >
                       {formatMessage({
-                        id: "cockpit.garden.pool.claims.act.decline",
+                        id: "hub.garden.pool.claims.act.decline",
                         defaultMessage: "Decline…",
                       })}
                     </Button>
@@ -241,11 +257,11 @@ export function CommitmentClaims({
                     >
                       {state.status === "failed"
                         ? formatMessage({
-                            id: "cockpit.garden.pool.approvals.retry",
+                            id: "hub.garden.pool.approvals.retry",
                             defaultMessage: "Try Again",
                           })
                         : formatMessage({
-                            id: "cockpit.garden.pool.approvals.approve",
+                            id: "hub.garden.pool.approvals.approve",
                             defaultMessage: "Approve",
                           })}
                     </Button>
@@ -267,30 +283,35 @@ function AskOutcome({ state }: { state: WaitingRowState }) {
     return (
       <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
         {formatMessage({
-          id: "cockpit.garden.pool.approvals.approved",
+          id: "hub.garden.pool.approvals.approved",
           defaultMessage: "Approved",
         })}
       </StatusBadge>
     );
   }
-  if (state.status === "declined" || state.status === "not-chosen") {
+  if (state.status === "declined" || state.status === "not-chosen" || state.status === "closed") {
     return (
       <StatusBadge variant="neutral" size="sm" showIcon={false}>
         {state.status === "declined"
           ? formatMessage({
-              id: "cockpit.garden.pool.approvals.declined",
+              id: "hub.garden.pool.approvals.declined",
               defaultMessage: "Declined",
             })
-          : formatMessage({
-              id: "cockpit.garden.pool.approvals.notChosen",
-              defaultMessage: "Not chosen",
-            })}
+          : state.status === "closed"
+            ? formatMessage({
+                id: "hub.garden.pool.approvals.closed",
+                defaultMessage: "Closed",
+              })
+            : formatMessage({
+                id: "hub.garden.pool.approvals.notChosen",
+                defaultMessage: "Not chosen",
+              })}
       </StatusBadge>
     );
   }
   return (
     <StatusBadge variant="warning" size="sm" icon={<RiTimeLine className="h-3 w-3" />}>
-      {formatMessage({ id: "cockpit.garden.pool.claims.waiting", defaultMessage: "Waiting" })}
+      {formatMessage({ id: "hub.garden.pool.claims.waiting", defaultMessage: "Waiting" })}
     </StatusBadge>
   );
 }
@@ -307,12 +328,12 @@ export function CommitmentRoster({
     <section
       className="space-y-1"
       aria-label={formatMessage({
-        id: "cockpit.garden.pool.commitment.team",
+        id: "hub.garden.pool.commitment.team",
         defaultMessage: "Team",
       })}
     >
       <AdminCardTitle as="h4">
-        {formatMessage({ id: "cockpit.garden.pool.commitment.team", defaultMessage: "Team" })}
+        {formatMessage({ id: "hub.garden.pool.commitment.team", defaultMessage: "Team" })}
       </AdminCardTitle>
       <ul className="type-body text-text-sub">
         {contributors.map((row) => (
@@ -321,16 +342,16 @@ export function CommitmentRoster({
             <span className="text-text-soft">
               {row.isLead
                 ? formatMessage({
-                    id: "cockpit.garden.pool.commitment.team.lead",
+                    id: "hub.garden.pool.commitment.team.lead",
                     defaultMessage: "lead",
                   })
                 : row.active
                   ? formatMessage({
-                      id: "cockpit.garden.pool.commitment.team.contributor",
+                      id: "hub.garden.pool.commitment.team.contributor",
                       defaultMessage: "contributor",
                     })
                   : formatMessage({
-                      id: "cockpit.garden.pool.commitment.team.left",
+                      id: "hub.garden.pool.commitment.team.left",
                       defaultMessage: "left",
                     })}
             </span>

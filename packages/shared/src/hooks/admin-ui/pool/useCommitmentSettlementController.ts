@@ -47,6 +47,7 @@ import type {
 import type { CommitmentDetail } from "../../../modules/commitment-pooling/types-relations";
 import type { Address } from "../../../types/domain";
 import { isZeroAddress } from "../../../utils/blockchain/address";
+import { mayStillLand } from "../../../utils/errors/tx-error-classifier";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useCommitmentPoolingAvailability } from "../../commitment-pooling/useCommitmentPoolingAvailability";
@@ -139,14 +140,20 @@ export function useCommitmentSettlementController(input: {
       sends?: bigint
     ): Promise<HexString> => {
       setLastAct({ kind, phase: "signing" });
-      const before = chainQuery.data ? settlementProgressKey(chainQuery.data) : null;
+      let before = chainQuery.data ? settlementProgressKey(chainQuery.data) : null;
       try {
         if (sends !== undefined) {
-          // The panel's funding read can be 30 seconds old; the send reads again.
-          const transfer = chainQuery.data?.disbursements.find(
-            (row) => row.disbursementId === sends
-          );
-          const fresh = await fundingQuery.refetch();
+          // Both of the panel's reads can be 30 seconds old, and the funding index can lag the
+          // chain. The send reads both again: the transfer's state and attempt come from the chain
+          // as it stands, so the check can hold a send the index hasn't caught up on.
+          const [freshChain, fresh] = await Promise.all([
+            chainQuery.refetch(),
+            fundingQuery.refetch(),
+          ]);
+          if (freshChain.data) before = settlementProgressKey(freshChain.data);
+          const transfer = freshChain.isError
+            ? undefined
+            : freshChain.data?.disbursements.find((row) => row.disbursementId === sends);
           const block = transfer
             ? selectQueuedTransferBlock(
                 { snapshot: fresh.data ?? null, isError: fresh.isError, hasStaleBalance: false },
@@ -166,14 +173,19 @@ export function useCommitmentSettlementController(input: {
         await refetch();
         return hash;
       } catch (error) {
-        setLastAct({ kind, phase: "failed", error });
+        // A send past its receipt limit went out and may still land: the step stays closed, as
+        // for a proposal, until the chain moves, and it never reads as failed (PRD-1551).
+        if (mayStillLand(error)) {
+          setProposedAt(before);
+          setLastAct({ kind, phase: "still-confirming" });
+        } else setLastAct({ kind, phase: "failed", error });
         // A rejected or reverted call changes nothing on chain; the read that
         // follows is what the panel renders from, never the attempt itself.
         await refetch().catch(() => undefined);
         throw error;
       }
     },
-    [chainQuery.data, fundingQuery, mutation, refetch]
+    [chainQuery, fundingQuery, mutation, refetch]
   );
 
   const acts = useMemo<CommitmentSettlementActs>(
@@ -331,9 +343,9 @@ export function useCommitmentSettlementController(input: {
       resolved: !payerRoles.isLoading && !capabilities.isLoading,
     },
     acts,
-    // Once the chain moves, the proposal ran: the read says so, never the wallet.
+    // Once the chain moves, the proposal or the send ran: the read says so, never the wallet.
     lastAct:
-      lastAct?.phase === "proposed" && !proposalPending
+      (lastAct?.phase === "proposed" || lastAct?.phase === "still-confirming") && !proposalPending
         ? { ...lastAct, phase: "confirmed" }
         : lastAct,
     isActing,

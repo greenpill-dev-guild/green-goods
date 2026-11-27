@@ -1,3 +1,4 @@
+import serviceOffersABI from "@green-goods/contracts/abis/ICommitmentServiceOffers.json";
 import {
   type Config,
   getBlock as wagmiGetBlock,
@@ -8,7 +9,7 @@ import {
   readContract as wagmiReadContract,
   simulateContract as wagmiSimulateContract,
 } from "@wagmi/core";
-import { decodeEventLog, type Hex, keccak256, toBytes } from "viem";
+import { type Abi, decodeEventLog, type Hex, keccak256, toBytes } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import {
@@ -21,6 +22,13 @@ import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
 import { logger } from "../app/logger";
 import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import { createSendChainReads, type SendChainReads } from "./send-chain-reads";
+
+const queuedActSimulationABI = [
+  ...CommitmentPoolingModuleABI,
+  ...(serviceOffersABI as Abi).filter(
+    (item) => item.type === "error" && item.name === "ServiceClaimPathRequired"
+  ),
+] satisfies Abi;
 
 export type CommitmentChainReads = Pick<
   CommitmentJobExecutionDependencies,
@@ -52,6 +60,11 @@ export type CommitmentChainReads = Pick<
       account: Address;
       chainId: number;
     }) => Promise<void>;
+    /**
+     * Whether this transaction was mined and reverted. False while it is pending or unknown, and
+     * when the read fails: only a revert proves it made nothing.
+     */
+    transactionReverted?: (transactionHash: Hex) => Promise<boolean>;
     /**
      * Whether this transaction's receipt holds the module's WorkLinked event for
      * this link, made by this caller's operation key. The event carries the key,
@@ -282,12 +295,23 @@ export function createCommitmentChainReads({
     simulateSend: async (call) => {
       await simulateContract(wagmiConfig, {
         address: call.address,
-        abi: CommitmentPoolingModuleABI,
+        abi: queuedActSimulationABI,
         functionName: call.functionName,
         args: call.args,
         account: call.account,
         chainId: call.chainId,
       } as Parameters<typeof wagmiSimulateContract>[1]);
+    },
+    transactionReverted: async (transactionHash) => {
+      try {
+        const receipt = await getTransactionReceipt(wagmiConfig, {
+          hash: transactionHash,
+          chainId,
+        });
+        return receipt.status === "reverted";
+      } catch {
+        return false;
+      }
     },
     transactionMadeWorkLink: async (transactionHash, link) => {
       const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });

@@ -10,6 +10,7 @@ decision 17). It is not a product surface: nothing here ships, and G1 may replac
 | Gemma | `src/model/gemma.worker.ts` loads Gemma 4 E2B (q4f16, WebGPU) through Transformers.js and answers one fixed packet; `src/model/validate.ts` keeps only proposals with a known target, a known predicate and an exact quote |
 | Pi Durable | `src/execution/` runs a three-phase task (`prepare`, `work`, `apply`) on a Harness opened with an empty model catalog, with an idempotent effect store |
 | WebMCP | `entrypoints/webmcp*.content.ts` list and run a page tool shaped like the Admin Hub's `green_goods_get_garden_snapshot` through `document.modelContext` from the isolated and the main world |
+| Encoder | `src/model/encoder.worker.ts` loads `nomic-ai/nomic-embed-text-v1.5` (quantized ONNX) through Transformers.js on WebAssembly or WebGPU; `entrypoints/encoder/` ranks the synthetic `src/model/encoder-fixture.json` (40 requirements, 120 sections) by BM25, by the encoder and by both fused (`src/model/ranking.ts`) |
 
 Every text in the fixtures is invented. The model weights download from the Hugging Face hub into
 the browser's cache; nothing is committed.
@@ -24,6 +25,7 @@ Run these from the repository root.
 | `bun run --cwd packages/extension test` | Node unit tests: validation, the synthetic graph, the Pi task with a simulated crash |
 | `bun run --cwd packages/extension typecheck` and `bun run --cwd packages/extension lint` | Types and oxlint |
 | `bun run --cwd packages/extension g0 -- --only lifecycle,webmcp,model,pi` | Drive the built extension in Brave Beta over CDP and write `g0/out/observations.json`; add `--headed` for visible windows or `--fresh` to wipe the persistent `main` profile |
+| `bun run --cwd packages/extension g0 -- --only encoder` | The encoder item, run only when named: fresh `encoder-wasm` and `encoder-webgpu` profiles, cold and warm loads, an offline rerun with every request blocked and recorded over CDP, a constrained pass (two threads, 4x CPU throttling) and a Node check over the same model files exported to `g0/out/encoder-model/` |
 
 The rig launches `/Applications/Brave Browser Beta.app` headless with a scratch `--user-data-dir`
 under `g0/out/profiles/`, `--remote-debugging-port=0`, `--no-first-run`,

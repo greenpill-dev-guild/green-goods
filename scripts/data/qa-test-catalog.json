@@ -1,7 +1,15 @@
 {
-  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only: results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list. The public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
+  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only: results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab, named 'Green Goods App' since 2026-11-14, when 'Public Website' became 'Green Goods Website' and 'Admin Dashboard' became 'Green Goods Hub' (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list. The public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger. Rollout Readiness (ROLL-) is reserved for in-progress behavior and must never be used as evidence that a capability has shipped. Each rollout case names an activation gate. Other tabs cover regression behavior; a case definition is not a live deployment or passing-run attestation.",
   "version": 3,
-  "tabs": ["Public Website", "PWA", "Admin Dashboard", "Docs"],
+  "tabs": [
+    "Green Goods Website",
+    "Green Goods App",
+    "Green Goods Hub",
+    "Docs",
+    "Agent Reporting",
+    "QA Operations",
+    "Rollout Readiness"
+  ],
   "statuses": [
     {
       "id": "active",
@@ -237,12 +245,305 @@
           "knownGate": "Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved."
         }
       ]
+    },
+    {
+      "id": "service-vouchers",
+      "label": "Service booking: member, steward and wallet",
+      "summary": "Walk an enabled service booking through approval, delivery and balance reconciliation. Confirm the deployment and write boundary first; record missing prerequisites as Blocked, never as a completed exchange.",
+      "lanes": [
+        {
+          "id": "member",
+          "label": "Member",
+          "role": "Member booking the service"
+        },
+        {
+          "id": "steward",
+          "label": "Steward",
+          "role": "Independent steward authorized to resolve this booking"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "PWA-140",
+          "phaseId": "walk",
+          "leadLaneId": "member",
+          "verifyLaneIds": ["steward"],
+          "handoff": "The steward verifies the booking ID, approved terms, amount and held balance before resolving it."
+        },
+        {
+          "caseId": "ADM-205",
+          "phaseId": "walk",
+          "leadLaneId": "steward",
+          "verifyLaneIds": ["member"],
+          "handoff": "The member sees the confirmed resolution on the same booking before checking wallet balances."
+        },
+        {
+          "caseId": "PWA-141",
+          "phaseId": "walk",
+          "leadLaneId": "member",
+          "verifyLaneIds": ["steward"],
+          "handoff": "Both people reconcile the same booking with the held, spent and returned voucher amounts."
+        }
+      ]
+    },
+    {
+      "id": "steward-access",
+      "label": "Steward access: request, role and Hub",
+      "summary": "Use separate requester and reviewer accounts. A pending request grants no privileges; verify the confirmed role before entering the Hub.",
+      "lanes": [
+        {
+          "id": "requester",
+          "label": "Requester",
+          "role": "Account without steward access"
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "role": "Authorized garden reviewer"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "ADM-201",
+          "phaseId": "walk",
+          "leadLaneId": "requester",
+          "verifyLaneIds": ["reviewer"],
+          "handoff": "The reviewer sees the pending request for the same account and garden; the requester still has no steward access."
+        },
+        {
+          "caseId": "ADM-202",
+          "phaseId": "walk",
+          "leadLaneId": "reviewer",
+          "verifyLaneIds": ["requester"],
+          "handoff": "The requester refreshes and verifies the confirmed role and Hub access in the intended garden."
+        }
+      ]
+    },
+    {
+      "id": "telegram-reporting",
+      "label": "Telegram report: consent, Work and independent review",
+      "summary": "Use the enabled Telegram adapter and private disposable evidence. Browser authorization, Work publication and independent review are separate outcomes; unavailable services remain Blocked.",
+      "lanes": [
+        {
+          "id": "reporter",
+          "label": "Reporter",
+          "role": "Consenting garden member"
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "role": "Independent steward outside the contributor roster"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "AGT-001",
+          "phaseId": "walk",
+          "leadLaneId": "reporter"
+        },
+        {
+          "caseId": "AGT-002",
+          "phaseId": "walk",
+          "leadLaneId": "reporter",
+          "verifyLaneIds": ["reviewer"],
+          "handoff": "The independent reviewer finds the same published Work and evidence in the Hub before reviewing."
+        },
+        {
+          "caseId": "AGT-003",
+          "phaseId": "walk",
+          "leadLaneId": "reviewer",
+          "verifyLaneIds": ["reporter"],
+          "handoff": "The reporter sees the confirmed review result for the same Work in both chat and the app."
+        }
+      ]
+    },
+    {
+      "id": "passkey-continuity",
+      "label": "Passkey recovery: same account, then a signed operation",
+      "summary": "Walk on the supported hosted origins and real device families in scope. Virtual authenticators and local substitutes do not prove account recovery on a real device.",
+      "lanes": [
+        {
+          "id": "member",
+          "label": "Member",
+          "role": "Owner of the older passkey account"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "PWA-144",
+          "phaseId": "walk",
+          "leadLaneId": "member"
+        },
+        {
+          "caseId": "PWA-145",
+          "phaseId": "walk",
+          "leadLaneId": "member"
+        }
+      ]
+    },
+    {
+      "id": "qa-recording",
+      "label": "QA operations: saved verdicts and run rollover",
+      "summary": "Use a disposable run and private notes. Confirm the catalog revision and builds, then prove recording and rollover with two devices.",
+      "lanes": [
+        {
+          "id": "tester",
+          "label": "Tester",
+          "role": "Allowlisted tester"
+        },
+        {
+          "id": "peer",
+          "label": "Peer",
+          "role": "Second allowlisted tester"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "QA-001",
+          "phaseId": "walk",
+          "leadLaneId": "tester"
+        },
+        {
+          "caseId": "QA-002",
+          "phaseId": "walk",
+          "leadLaneId": "tester",
+          "verifyLaneIds": ["peer"],
+          "handoff": "Both devices show the confirmed verdict and note; the peer verifies that their own entry remains independent."
+        },
+        {
+          "caseId": "QA-003",
+          "phaseId": "walk",
+          "leadLaneId": "peer",
+          "verifyLaneIds": ["tester"],
+          "handoff": "Both testers identify the new open run and read the closed run; recovered old outbox entries remain parked."
+        },
+        {
+          "caseId": "QA-004",
+          "phaseId": "walk",
+          "leadLaneId": "tester"
+        }
+      ]
+    },
+    {
+      "id": "rollout-service-issuer",
+      "label": "In progress: issuer revision and exchange",
+      "summary": "Rollout readiness only. Do not count these steps as shipped coverage or activation approval. Confirm the reviewed deployment, issuer revision and allowed value boundary first.",
+      "lanes": [
+        {
+          "id": "issuer",
+          "label": "Issuer",
+          "role": "Issuer preparing the reviewed terms"
+        },
+        {
+          "id": "steward",
+          "label": "Steward",
+          "role": "Reviewer of the issuer and destination pool"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "ROLL-001",
+          "phaseId": "walk",
+          "leadLaneId": "issuer",
+          "verifyLaneIds": ["steward"],
+          "handoff": "The reviewer verifies the current issuer revision and fresh approval before any exchange is prepared."
+        },
+        {
+          "caseId": "ROLL-002",
+          "phaseId": "walk",
+          "leadLaneId": "steward",
+          "verifyLaneIds": ["issuer"],
+          "handoff": "Both people reconcile the selected pool and receipt, keeping this result in the rollout run."
+        }
+      ]
+    },
+    {
+      "id": "rollout-hats-jars",
+      "label": "In progress: Hats jar migration and permissions",
+      "summary": "Rollout readiness only. Rehearse on a pinned fork before an authorized staging walk. A passing rehearsal does not authorize a live migration or certify every garden.",
+      "lanes": [
+        {
+          "id": "operator",
+          "label": "Release operator",
+          "role": "Operator of the reviewed migration rehearsal"
+        },
+        {
+          "id": "steward",
+          "label": "Steward",
+          "role": "Garden steward with separately verified role authority"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "ROLL-007",
+          "phaseId": "walk",
+          "leadLaneId": "operator",
+          "verifyLaneIds": ["steward"],
+          "handoff": "The steward verifies both asset mappings and the rollback evidence before walking the staged jar controls."
+        },
+        {
+          "caseId": "ROLL-005",
+          "phaseId": "walk",
+          "leadLaneId": "steward",
+          "verifyLaneIds": ["operator"],
+          "handoff": "The operator verifies policy limits, budget and revoked-role rejection on the same reviewed jar pair."
+        },
+        {
+          "caseId": "ROLL-006",
+          "phaseId": "walk",
+          "leadLaneId": "operator",
+          "verifyLaneIds": ["steward"],
+          "handoff": "Both people verify the applied policy, pause state and approved recovery destination without inferring fleet activation."
+        }
+      ]
     }
   ],
   "cases": [
     {
       "id": "PUB-001",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "journey",
@@ -260,7 +561,7 @@
     },
     {
       "id": "PUB-002",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Mobile Browser",
       "priority": "P0",
       "kind": "journey",
@@ -283,7 +584,7 @@
     },
     {
       "id": "PUB-011",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop + Mobile Browser",
       "priority": "P2",
       "kind": "accessibility",
@@ -306,7 +607,7 @@
     },
     {
       "id": "PUB-025",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "accessibility",
@@ -327,7 +628,7 @@
     },
     {
       "id": "PUB-031",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "content",
@@ -349,7 +650,7 @@
     },
     {
       "id": "PUB-032",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "content",
@@ -372,13 +673,13 @@
     },
     {
       "id": "PUB-033",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "content",
       "area": "Site-wide",
-      "scenario": "Editorial vocabulary holds: no admin/cockpit jargon on public pages",
-      "expected": "Public pages use the editorial vocabulary only (no cockpit/internal terms, frozen names intact); lint:vocab excludes prompt-only wording, so this human sweep is the gate",
+      "scenario": "Editorial vocabulary holds: no Hub jargon on public pages",
+      "expected": "Public pages use the editorial vocabulary only (no Hub or internal terms, frozen names intact); lint:vocab excludes prompt-only wording, so this human sweep is the gate",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",
@@ -394,7 +695,7 @@
     },
     {
       "id": "PUB-042",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -412,7 +713,7 @@
     },
     {
       "id": "PUB-043",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "journey",
@@ -430,7 +731,7 @@
     },
     {
       "id": "PUB-044",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "accessibility",
@@ -451,7 +752,7 @@
     },
     {
       "id": "PUB-003",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "data-integrity",
@@ -474,7 +775,7 @@
     },
     {
       "id": "PUB-013",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "resilience",
@@ -492,7 +793,7 @@
     },
     {
       "id": "PUB-053",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "resilience",
@@ -514,7 +815,7 @@
     },
     {
       "id": "PUB-026",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -537,7 +838,7 @@
     },
     {
       "id": "PUB-045",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -583,7 +884,7 @@
     },
     {
       "id": "PUB-056",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "content",
@@ -606,7 +907,7 @@
     },
     {
       "id": "PUB-057",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "content",
@@ -626,7 +927,7 @@
     },
     {
       "id": "PUB-058",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "data-integrity",
@@ -647,7 +948,7 @@
     },
     {
       "id": "PUB-059",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "resilience",
@@ -670,7 +971,7 @@
     },
     {
       "id": "PUB-060",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "content",
@@ -695,7 +996,7 @@
     },
     {
       "id": "PUB-028",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "journey",
@@ -716,7 +1017,7 @@
     },
     {
       "id": "PUB-029",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "journey",
@@ -737,7 +1038,7 @@
     },
     {
       "id": "PUB-034",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "data-integrity",
@@ -755,7 +1056,7 @@
     },
     {
       "id": "PUB-046",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -773,7 +1074,7 @@
     },
     {
       "id": "PUB-030",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -795,7 +1096,7 @@
     },
     {
       "id": "PUB-012",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "resilience",
@@ -820,7 +1121,7 @@
     },
     {
       "id": "PUB-035",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "transaction",
@@ -843,7 +1144,7 @@
     },
     {
       "id": "PUB-036",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "transaction",
@@ -865,7 +1166,7 @@
     },
     {
       "id": "PUB-015",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "transaction",
@@ -890,7 +1191,7 @@
     },
     {
       "id": "PUB-016",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "transaction",
@@ -912,7 +1213,7 @@
     },
     {
       "id": "PUB-051",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -937,7 +1238,7 @@
     },
     {
       "id": "PUB-052",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "journey",
@@ -958,7 +1259,7 @@
     },
     {
       "id": "PUB-037",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "transaction",
@@ -984,7 +1285,7 @@
     },
     {
       "id": "PUB-038",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "journey",
@@ -1005,7 +1306,7 @@
     },
     {
       "id": "PUB-018",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "transaction",
@@ -1027,7 +1328,7 @@
     },
     {
       "id": "PUB-008",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "resilience",
@@ -1045,7 +1346,7 @@
     },
     {
       "id": "PUB-040",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1067,7 +1368,7 @@
     },
     {
       "id": "PUB-019",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "transaction",
@@ -1089,7 +1390,7 @@
     },
     {
       "id": "PUB-039",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "transaction",
@@ -1111,7 +1412,7 @@
     },
     {
       "id": "PUB-041",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "journey",
@@ -1129,7 +1430,7 @@
     },
     {
       "id": "PUB-006",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "data-integrity",
@@ -1147,7 +1448,7 @@
     },
     {
       "id": "PUB-047",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1169,7 +1470,7 @@
     },
     {
       "id": "PUB-048",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1192,7 +1493,7 @@
     },
     {
       "id": "PUB-054",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "data-integrity",
@@ -1217,7 +1518,7 @@
     },
     {
       "id": "PUB-007",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "content",
@@ -1235,7 +1536,7 @@
     },
     {
       "id": "PUB-055",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "journey",
@@ -1257,7 +1558,7 @@
     },
     {
       "id": "PUB-010",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "content",
@@ -1281,7 +1582,7 @@
     },
     {
       "id": "PUB-049",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1304,7 +1605,7 @@
     },
     {
       "id": "PUB-050",
-      "tab": "Public Website",
+      "tab": "Green Goods Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1579,7 +1880,7 @@
     },
     {
       "id": "XPLAT-005",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Any",
       "priority": "P1",
       "kind": "journey",
@@ -1603,7 +1904,7 @@
     },
     {
       "id": "PWA-IOS-001",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "journey",
@@ -1621,7 +1922,7 @@
     },
     {
       "id": "PWA-AND-001",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P0",
       "kind": "journey",
@@ -1645,7 +1946,7 @@
     },
     {
       "id": "PWA-041",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -1667,7 +1968,7 @@
     },
     {
       "id": "PWA-IOS-002",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "resilience",
@@ -1685,7 +1986,7 @@
     },
     {
       "id": "PWA-AND-002",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P0",
       "kind": "resilience",
@@ -1703,7 +2004,7 @@
     },
     {
       "id": "PWA-020",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "journey",
@@ -1725,7 +2026,7 @@
     },
     {
       "id": "PWA-026",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -1747,7 +2048,7 @@
     },
     {
       "id": "PWA-064",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -1765,7 +2066,7 @@
     },
     {
       "id": "PWA-IOS-003",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "resilience",
@@ -1783,7 +2084,7 @@
     },
     {
       "id": "PWA-IOS-013",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P1",
       "kind": "journey",
@@ -1807,7 +2108,7 @@
     },
     {
       "id": "PWA-AND-006",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P0",
       "kind": "resilience",
@@ -1825,7 +2126,7 @@
     },
     {
       "id": "PWA-067",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P1",
       "kind": "resilience",
@@ -1852,15 +2153,15 @@
     },
     {
       "id": "PWA-068",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
-      "area": "Home",
+      "area": "Explore",
       "scenario": "Filter the garden list by scope and sort order, then reset",
       "preconditions": ["Authenticated gardener who belongs to at least one garden"],
       "steps": [
-        "Open the Filters drawer from the Home header",
+        "Open the Filters drawer from the Explore header",
         "Choose My gardens, then each sort order: Default order, Newest first, Name (A-Z)",
         "Read the badge on the Filters button and the list",
         "Press Reset Filters"
@@ -1868,14 +2169,14 @@
       "expected": "My gardens shows only gardens the address belongs to, with the count in its label; each sort reorders the list; the Filters button carries a badge with the number of active filters while any is set; Reset returns to All gardens in Default order and clears the badge",
       "evidence": "Screenshot of the filtered list with the badge",
       "role": "gardener",
-      "tags": ["home"],
+      "tags": ["explore"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-pwa-split-2026-09-07"
     },
     {
       "id": "PWA-069",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -1883,7 +2184,6 @@
       "scenario": "Arrival toast names the uploads still on this phone and its action lands",
       "preconditions": [
         "Authenticated session in a fresh browser tab (the toast fires once per tab session per address)",
-        "An address that already has a Green Goods name, or that dismissed the ENS reminder before, so only the arrival toast fires (PWA-095 covers the reminder)",
         "A known state to arrive in: work, a review or proof queued in the active garden, the same queued only in another of your gardens, or nothing queued"
       ],
       "steps": [
@@ -1917,12 +2217,14 @@
       "role": "gardener",
       "tags": ["home", "ens"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-pwa-split-2026-09-07"
+      "status": "retired",
+      "source": "qa-runs-pwa-split-2026-09-07",
+      "retiredOn": "2026-11-11",
+      "retiredReason": "The Home ENS claim-name reminder was removed; no replacement prompt is required."
     },
     {
       "id": "PWA-096",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "journey",
@@ -1947,7 +2249,7 @@
     },
     {
       "id": "PWA-IOS-008",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P1",
       "kind": "data-integrity",
@@ -1971,7 +2273,7 @@
     },
     {
       "id": "PWA-097",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -1997,7 +2299,7 @@
     },
     {
       "id": "PWA-098",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2023,7 +2325,7 @@
     },
     {
       "id": "PWA-099",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2049,7 +2351,7 @@
     },
     {
       "id": "PWA-094",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2075,7 +2377,7 @@
     },
     {
       "id": "PWA-051",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -2097,7 +2399,7 @@
     },
     {
       "id": "PWA-139",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Mobile Browser",
       "priority": "P0",
       "kind": "transaction",
@@ -2129,7 +2431,7 @@
     },
     {
       "id": "PWA-052",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -2151,7 +2453,7 @@
     },
     {
       "id": "PWA-053",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -2173,7 +2475,7 @@
     },
     {
       "id": "PWA-054",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -2195,7 +2497,7 @@
     },
     {
       "id": "PWA-046",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2222,7 +2524,7 @@
     },
     {
       "id": "PWA-055",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2248,7 +2550,7 @@
     },
     {
       "id": "PWA-056",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -2274,7 +2576,7 @@
     },
     {
       "id": "PWA-057",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -2299,7 +2601,7 @@
     },
     {
       "id": "PWA-058",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -2321,7 +2623,7 @@
     },
     {
       "id": "PWA-059",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -2343,7 +2645,7 @@
     },
     {
       "id": "PWA-IOS-010",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P1",
       "kind": "journey",
@@ -2367,7 +2669,7 @@
     },
     {
       "id": "PWA-077",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -2393,7 +2695,7 @@
     },
     {
       "id": "PWA-078",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -2418,7 +2720,7 @@
     },
     {
       "id": "PWA-079",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -2444,7 +2746,7 @@
     },
     {
       "id": "PWA-080",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "data-integrity",
@@ -2496,7 +2798,7 @@
     },
     {
       "id": "PWA-075",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "journey",
@@ -2522,7 +2824,7 @@
     },
     {
       "id": "PWA-076",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2548,7 +2850,7 @@
     },
     {
       "id": "PWA-048",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -2576,7 +2878,7 @@
     },
     {
       "id": "PWA-050",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -2600,7 +2902,7 @@
     },
     {
       "id": "PWA-105",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2627,7 +2929,7 @@
     },
     {
       "id": "PWA-IOS-004",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "data-integrity",
@@ -2653,7 +2955,7 @@
     },
     {
       "id": "PWA-IOS-005",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P1",
       "kind": "data-integrity",
@@ -2678,7 +2980,7 @@
     },
     {
       "id": "PWA-IOS-014",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "transaction",
@@ -2701,7 +3003,7 @@
     },
     {
       "id": "PWA-ROLE-001",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "transaction",
@@ -2720,7 +3022,7 @@
     },
     {
       "id": "PWA-ROLE-002",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "transaction",
@@ -2739,7 +3041,7 @@
     },
     {
       "id": "PWA-ROLE-003",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "journey",
@@ -2758,7 +3060,7 @@
     },
     {
       "id": "PWA-AND-007",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P0",
       "kind": "data-integrity",
@@ -2784,7 +3086,7 @@
     },
     {
       "id": "PWA-AND-008",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P1",
       "kind": "data-integrity",
@@ -2809,7 +3111,7 @@
     },
     {
       "id": "PWA-ROLE-004",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P1",
       "kind": "transaction",
@@ -2828,7 +3130,7 @@
     },
     {
       "id": "PWA-ROLE-005",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P1",
       "kind": "transaction",
@@ -2847,7 +3149,7 @@
     },
     {
       "id": "PWA-ROLE-006",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P1",
       "kind": "journey",
@@ -2866,7 +3168,7 @@
     },
     {
       "id": "PWA-100",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2892,7 +3194,7 @@
     },
     {
       "id": "PWA-101",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2918,7 +3220,7 @@
     },
     {
       "id": "PWA-102",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -2944,7 +3246,7 @@
     },
     {
       "id": "PWA-081",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -2993,7 +3295,7 @@
     },
     {
       "id": "PWA-108",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3017,7 +3319,7 @@
     },
     {
       "id": "PWA-109",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3065,7 +3367,7 @@
     },
     {
       "id": "PWA-110",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -3087,7 +3389,7 @@
     },
     {
       "id": "PWA-111",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -3108,7 +3410,7 @@
     },
     {
       "id": "PWA-084",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3134,7 +3436,7 @@
     },
     {
       "id": "PWA-085",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3159,7 +3461,7 @@
     },
     {
       "id": "PWA-086",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3196,11 +3498,11 @@
         "Read the status band and the People section",
         "Read the card under the status band and the bottom of the screen"
       ],
-      "expected": "The commitment reads in full; no act bar is drawn; the card reads 'Join {garden} to take this up' with Join Garden when the garden is open to join and Request to Join otherwise; pressing Join Garden joins and Take This Up appears without a reload",
+      "expected": "The commitment reads in full; no act bar is drawn; the card reads 'Join {garden} to take this up' with Join Garden when the garden is open to join and Ask to Join otherwise; pressing Join Garden joins and Take This Up appears without a reload",
       "evidence": "Screenshot of the card",
       "role": "gardener",
       "tags": ["commitments", "claim"],
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "area": "Commitments",
       "requiresProduction": false,
@@ -3226,7 +3528,7 @@
       "evidence": "Screenshots before and after the take-up",
       "role": "gardener",
       "tags": ["commitments", "claim", "tx"],
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "area": "Commitments",
       "requiresProduction": false,
@@ -3252,7 +3554,7 @@
       "evidence": "Screenshot of the row and of the screen after Send Now",
       "role": "gardener",
       "tags": ["commitments", "queue", "tx"],
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "area": "Commitments",
       "requiresProduction": false,
@@ -3278,7 +3580,7 @@
       "evidence": "Screenshot of the row while offline and of the screen after Check Again",
       "role": "gardener",
       "tags": ["commitments", "queue", "tx"],
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "area": "Commitments",
       "requiresProduction": false,
@@ -3287,7 +3589,7 @@
     },
     {
       "id": "PWA-127",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3309,7 +3611,7 @@
     },
     {
       "id": "PWA-128",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3334,7 +3636,7 @@
     },
     {
       "id": "PWA-129",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3360,7 +3662,7 @@
     },
     {
       "id": "PWA-130",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3385,7 +3687,7 @@
     },
     {
       "id": "PWA-131",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3411,7 +3713,7 @@
     },
     {
       "id": "PWA-132",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "data-integrity",
@@ -3435,7 +3737,7 @@
     },
     {
       "id": "PWA-133",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -3456,7 +3758,7 @@
     },
     {
       "id": "PWA-134",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -3481,7 +3783,7 @@
     },
     {
       "id": "PWA-135",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -3505,7 +3807,7 @@
     },
     {
       "id": "PWA-103",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3530,7 +3832,7 @@
     },
     {
       "id": "PWA-087",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3578,7 +3880,7 @@
     },
     {
       "id": "PWA-088",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3603,7 +3905,7 @@
     },
     {
       "id": "PWA-089",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3627,7 +3929,7 @@
     },
     {
       "id": "PWA-090",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3652,7 +3954,7 @@
     },
     {
       "id": "PWA-091",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3678,7 +3980,7 @@
     },
     {
       "id": "PWA-092",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3729,7 +4031,7 @@
     },
     {
       "id": "PWA-112",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -3753,7 +4055,7 @@
     },
     {
       "id": "PWA-113",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -3774,7 +4076,7 @@
     },
     {
       "id": "PWA-114",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3826,7 +4128,7 @@
     },
     {
       "id": "PWA-115",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -3850,21 +4152,21 @@
     },
     {
       "id": "PWA-116",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
       "area": "Commitments",
-      "scenario": "Ask Again opens the composer on an ended request's answers",
+      "scenario": "Request It Again opens the composer on an ended request's answers",
       "preconditions": [
         "An own request that has ended: ran out of time, kept, or withdrawn, in a pool the gardener belongs to"
       ],
       "steps": [
         "Open the ended request from the drawer's History and read the bar",
-        "Press Ask Again",
+        "Press Request It Again",
         "Read each beat of the composer without placing it"
       ],
-      "expected": "The bar offers Ask Again to the person who asked, not to whoever took it up; it opens the Request composer in that commitment's own garden with the earlier title, note, links, unit, amount, team, action rows, and who may take it up; the due date and the season are chosen fresh; nothing is placed until the place button is pressed",
+      "expected": "The bar offers Request It Again to the person who asked, not to whoever took it up; it opens the Request composer in that commitment's own garden with the earlier title, note, links, unit, amount, team, action rows, and who may take it up; the due date and the season are chosen fresh; nothing is placed until the place button is pressed",
       "evidence": "Screenshots of the ended request and of the prefilled composer",
       "role": "gardener",
       "tags": ["commitments"],
@@ -3874,7 +4176,7 @@
     },
     {
       "id": "PWA-117",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "journey",
@@ -3894,7 +4196,7 @@
     },
     {
       "id": "PWA-047",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3921,7 +4223,7 @@
     },
     {
       "id": "PWA-049",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3948,7 +4250,7 @@
     },
     {
       "id": "PWA-118",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -3973,7 +4275,7 @@
     },
     {
       "id": "PWA-119",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "data-integrity",
@@ -3997,7 +4299,7 @@
     },
     {
       "id": "PWA-120",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -4022,7 +4324,7 @@
     },
     {
       "id": "PWA-121",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "data-integrity",
@@ -4044,7 +4346,7 @@
     },
     {
       "id": "PWA-122",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "content",
@@ -4069,7 +4371,7 @@
     },
     {
       "id": "PWA-070",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -4094,7 +4396,7 @@
     },
     {
       "id": "PWA-071",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -4120,7 +4422,7 @@
     },
     {
       "id": "PWA-072",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -4148,7 +4450,7 @@
     },
     {
       "id": "PWA-073",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -4173,7 +4475,7 @@
     },
     {
       "id": "PWA-028",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -4195,7 +4497,7 @@
     },
     {
       "id": "PWA-060",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -4218,7 +4520,7 @@
     },
     {
       "id": "PWA-061",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "content",
@@ -4252,12 +4554,14 @@
       "role": "gardener",
       "tags": ["profile", "ens", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-catalog-split-2026-09-07"
+      "status": "retired",
+      "source": "qa-runs-catalog-split-2026-09-07",
+      "retiredOn": "2026-11-11",
+      "retiredReason": "Profile ENS claim and release controls were removed; existing name display remains supported."
     },
     {
       "id": "PWA-063",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -4275,7 +4579,7 @@
     },
     {
       "id": "PWA-040",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -4297,7 +4601,7 @@
     },
     {
       "id": "PWA-IOS-006",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P0",
       "kind": "transaction",
@@ -4323,7 +4627,7 @@
     },
     {
       "id": "PWA-AND-004",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P0",
       "kind": "transaction",
@@ -4342,7 +4646,7 @@
     },
     {
       "id": "PWA-106",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -4370,7 +4674,7 @@
     },
     {
       "id": "PWA-107",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "content",
@@ -4397,7 +4701,7 @@
     },
     {
       "id": "PWA-023",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android (installed PWA)",
       "priority": "P1",
       "kind": "journey",
@@ -4429,7 +4733,7 @@
     },
     {
       "id": "PWA-042",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "accessibility",
@@ -4452,7 +4756,7 @@
     },
     {
       "id": "PWA-025",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "content",
@@ -4473,13 +4777,13 @@
     },
     {
       "id": "PWA-045",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "content",
       "area": "App-wide",
       "scenario": "PWA vocabulary holds: gardener-facing language, no internal or admin terms",
-      "expected": "App copy speaks gardener-facing vocabulary; no admin/cockpit or internal terms leak; frozen names intact",
+      "expected": "App copy speaks gardener-facing vocabulary; no Hub or internal terms leak; frozen names intact",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",
@@ -4495,7 +4799,7 @@
     },
     {
       "id": "PWA-065",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -4518,7 +4822,7 @@
     },
     {
       "id": "PWA-066",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "data-integrity",
@@ -4539,7 +4843,7 @@
     },
     {
       "id": "PWA-IOS-007",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P1",
       "kind": "accessibility",
@@ -4558,7 +4862,7 @@
     },
     {
       "id": "PWA-IOS-012",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "iOS Safari Installed PWA",
       "priority": "P1",
       "kind": "journey",
@@ -4582,7 +4886,7 @@
     },
     {
       "id": "PWA-AND-005",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Android Chrome Installed PWA",
       "priority": "P1",
       "kind": "accessibility",
@@ -5007,14 +5311,14 @@
     },
     {
       "id": "ADM-001",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
       "area": "Shell",
       "scenario": "Admin hub loads with canonical canvas shell",
       "preconditions": ["Admin URL available"],
-      "steps": ["Open /hub", "Hard refresh", "Inspect shell"],
+      "steps": ["Open /review", "Hard refresh", "Inspect shell"],
       "expected": "Canvas shell loads; AppBar root appears transparent; route does not blank",
       "evidence": "Screenshot",
       "role": "steward",
@@ -5025,7 +5329,7 @@
     },
     {
       "id": "ADM-096",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -5034,7 +5338,7 @@
       "preconditions": ["Steward of two gardens"],
       "steps": [
         "Switch gardens with the header chip",
-        "Open /hub/work, /garden/health, and /community/members",
+        "Open /review/work, /garden/health, and /community/members",
         "Read the URL, reload, and use browser back"
       ],
       "expected": "Every workspace re-reads for the new garden; the URL carries the garden and a reload keeps it; back returns to the previous garden's view without stranding the user",
@@ -5047,7 +5351,7 @@
     },
     {
       "id": "ADM-097",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -5069,7 +5373,7 @@
     },
     {
       "id": "ADM-098",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -5091,7 +5395,7 @@
     },
     {
       "id": "ADM-099",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -5109,7 +5413,7 @@
     },
     {
       "id": "ADM-019",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -5130,7 +5434,7 @@
     },
     {
       "id": "ADM-108",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -5152,7 +5456,7 @@
     },
     {
       "id": "ADM-002",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
@@ -5160,7 +5464,7 @@
       "scenario": "Primary admin direct routes reload",
       "preconditions": ["Admin URL available"],
       "steps": [
-        "Open /hub/work, /hub/assess, /hub/certify, /garden, /community, /actions, and /cookies"
+        "Open /review/work, /review/assess, /review/certify, /garden, /community, /actions, and /cookies"
       ],
       "expected": "Each route reloads into a clear page or honest gated state",
       "evidence": "Screenshot set or notes",
@@ -5172,14 +5476,14 @@
     },
     {
       "id": "ADM-003",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
       "area": "App-wide",
       "scenario": "Unauthenticated admin state is clear",
       "preconditions": ["Logged out or private window"],
-      "steps": ["Open /hub and one mutation route"],
+      "steps": ["Open /review and one mutation route"],
       "expected": "User sees connect/auth gate with no broken chrome",
       "evidence": "Screenshot",
       "role": "none",
@@ -5190,7 +5494,7 @@
     },
     {
       "id": "ADM-011",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -5208,7 +5512,7 @@
     },
     {
       "id": "ADM-015",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -5217,7 +5521,7 @@
       "preconditions": ["Steward session with access to two gardens"],
       "steps": [
         "Select a non-default garden via the workspace switcher",
-        "Navigate /hub -> /garden/health -> a detail route",
+        "Navigate /review -> /garden/health -> a detail route",
         "Use browser back at each level",
         "Hard refresh on a deep route",
         "Open a deep link with ?gardenId= in a new tab"
@@ -5232,7 +5536,7 @@
     },
     {
       "id": "ADM-032",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "resilience",
@@ -5254,7 +5558,7 @@
     },
     {
       "id": "ADM-034",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "accessibility",
@@ -5275,7 +5579,7 @@
     },
     {
       "id": "ADM-036",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "accessibility",
@@ -5297,7 +5601,7 @@
     },
     {
       "id": "ADM-016",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "content",
@@ -5320,13 +5624,13 @@
     },
     {
       "id": "ADM-035",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
       "area": "App-wide",
-      "scenario": "Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms",
-      "expected": "Cockpit copy stays in the admin vocabulary (no client editorial terms); Title Case action labels per DL-012; frozen names intact",
+      "scenario": "Hub vocabulary holds: the Hub's utility language, no editorial 'hero/story' terms",
+      "expected": "Hub copy stays in the Hub's vocabulary (no client editorial terms); Title Case action labels per DL-012; frozen names intact",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",
@@ -5342,14 +5646,14 @@
     },
     {
       "id": "ADM-004",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Work queue/detail state is usable",
       "preconditions": ["Steward or mock role available"],
-      "steps": ["Open /hub/work", "Open available work detail or empty state"],
+      "steps": ["Open /review/work", "Open available work detail or empty state"],
       "expected": "Work data renders or empty state is honest",
       "evidence": "Screenshot",
       "role": "steward",
@@ -5360,12 +5664,12 @@
     },
     {
       "id": "ADM-031",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
-      "area": "Hub · Work",
-      "scenario": "Hub queue at volume: full scroll, search/sort, deep item open and return",
+      "area": "Review · Work",
+      "scenario": "Review queue at volume: full scroll, search/sort, deep item open and return",
       "preconditions": ["Garden with many submissions"],
       "steps": [
         "Open the fullest garden's queue",
@@ -5382,14 +5686,14 @@
     },
     {
       "id": "ADM-047",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "data-integrity",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "The admin work queue shows a gardener's ENS name and avatar",
       "preconditions": ["Steward session", "A submission from a gardener with ENS set"],
-      "steps": ["Open /hub/work", "Find the gardener's submission"],
+      "steps": ["Open /review/work", "Find the gardener's submission"],
       "expected": "The ENS name and avatar resolve in the queue and on the submission; no raw address where a name exists",
       "evidence": "Screenshot of the queue row and submission",
       "role": "steward",
@@ -5400,15 +5704,15 @@
     },
     {
       "id": "ADM-012",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Full review decision path completes with actions visible",
       "preconditions": ["Steward session; at least one pending submission in the selected garden"],
       "steps": [
-        "Open /hub/work",
+        "Open /review/work",
         "Open a pending submission",
         "Inspect evidence media",
         "Choose a confidence level (none is chosen at first) and enter feedback",
@@ -5426,12 +5730,12 @@
     },
     {
       "id": "ADM-198",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
-      "area": "Hub · Work",
-      "scenario": "Stage several reviews with Add to Batch and send them from the Hub under one signature",
+      "area": "Review · Work",
+      "scenario": "Stage several reviews with Add to Batch and send them from Review under one signature",
       "preconditions": [
         "Steward session on a garden on Arbitrum with at least three pending submissions",
         "A legacy passkey or any wallet, since a review batch works on every wallet"
@@ -5439,12 +5743,12 @@
       "steps": [
         "Open a pending submission, choose Approve, and press Add to Batch",
         "Stage a second approval and one rejection the same way",
-        "Open the Hub and read the chips on the queue and the batch bar",
+        "Open Review and read the chips on the queue and the batch bar",
         "Reload the page and read the bar again",
         "Press Send 3 and confirm the one prompt",
         "Read the queue and the bar after the send"
       ],
-      "expected": "Add to Batch sits beside Approve and in the reject dialog, and a staged review reads 'It goes out when you send your batch from the Hub.'; the queue shows 'To approve' and 'To reject' chips, and the bar, 'Reviews waiting to send', counts '2 approvals' and '1 rejection' and says how many signatures sending takes before any prompt; the staged reviews survive the reload; Send 3 goes under one signature and the bar reads '3 reviews sent'; Approve and Reject without Add to Batch still send at once",
+      "expected": "Add to Batch sits beside Approve and in the reject dialog, and a staged review reads 'It goes out when you send your batch from Review.'; the queue shows 'To approve' and 'To reject' chips, and the bar, 'Reviews waiting to send', counts '2 approvals' and '1 rejection' and says how many signatures sending takes before any prompt; the staged reviews survive the reload; Send 3 goes under one signature and the bar reads '3 reviews sent'; Approve and Reject without Add to Batch still send at once",
       "evidence": "Screenshots of the staged chips, the bar before sending, and the sent state",
       "role": "steward",
       "tags": ["review", "batch", "tx"],
@@ -5454,11 +5758,11 @@
     },
     {
       "id": "ADM-018",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Decision integrity: no double decisions, honest tx failure",
       "preconditions": ["Steward session; a pending submission it is safe to decide on"],
       "steps": [
@@ -5476,11 +5780,11 @@
     },
     {
       "id": "XPLAT-007",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "transaction",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Two stewards acting on the same submission converge on one state",
       "preconditions": ["Two steward sessions on the same garden with a pending submission"],
       "steps": [
@@ -5498,18 +5802,18 @@
     },
     {
       "id": "ADM-107",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "The work inspector blocks self-review and expired-action decisions",
       "preconditions": [
         "A steward's own pending submission",
         "A pending submission for an action whose lifecycle window has ended"
       ],
       "steps": [
-        "Open the own submission in /hub/work",
+        "Open the own submission in /review/work",
         "Open the expired-action submission",
         "Read the action region of each"
       ],
@@ -5523,11 +5827,11 @@
     },
     {
       "id": "ADM-041",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Approve Work linked to the protocol Request without joining its contributors",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
@@ -5550,11 +5854,11 @@
     },
     {
       "id": "ADM-030",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Admin submit-work wizard with review-step edit jumps and offline queueing",
       "preconditions": ["Authenticated steward"],
       "steps": [
@@ -5572,15 +5876,15 @@
     },
     {
       "id": "ADM-005",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
-      "area": "Hub · Assessments",
+      "area": "Review · Assessments",
       "scenario": "Assessment create flow gates invalid input",
       "preconditions": ["Admin role available"],
       "steps": [
-        "Open /hub/assess/create",
+        "Open /review/assess/create",
         "Attempt incomplete submit",
         "Complete required fields if safe"
       ],
@@ -5594,15 +5898,15 @@
     },
     {
       "id": "ADM-046",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Assessments",
+      "area": "Review · Assessments",
       "scenario": "Submit an assessment end to end from the admin",
       "preconditions": ["Steward session with a garden that can be assessed"],
       "steps": [
-        "Open /hub/assess/create",
+        "Open /review/assess/create",
         "Complete every required field",
         "Review and submit",
         "Wait for the assessment to appear on the garden"
@@ -5617,11 +5921,11 @@
     },
     {
       "id": "ADM-037",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
-      "area": "Hub · Assessments",
+      "area": "Review · Assessments",
       "scenario": "Record a starting assessment for the test garden",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
@@ -5643,15 +5947,15 @@
     },
     {
       "id": "ADM-006",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
-      "area": "Hub · Hypercerts",
+      "area": "Review · Hypercerts",
       "scenario": "Certification flow does not overpromise transaction state",
       "preconditions": ["Admin role available"],
       "steps": [
-        "Open /hub/certify/create, or open an assessment's record on /hub/assess and press Create Hypercert",
+        "Open /review/certify/create, or open an assessment's record on /review/assess and press Create Hypercert",
         "Inspect actions"
       ],
       "expected": "Disabled/loading/error states are explicit before transaction",
@@ -5664,18 +5968,18 @@
     },
     {
       "id": "ADM-106",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Hypercerts",
+      "area": "Review · Hypercerts",
       "scenario": "Mint a hypercert from an assessment",
       "preconditions": [
         "Steward with manage rights",
         "A garden with approved work attestations and an assessment"
       ],
       "steps": [
-        "Open /hub/assess, open the assessment, and press Create Hypercert",
+        "Open /review/assess, open the assessment, and press Create Hypercert",
         "Select attestations, fill the metadata, and set the distribution",
         "Press Mint Hypercert and keep the tab open",
         "Read the hypercert on /garden/impact"
@@ -5717,23 +6021,23 @@
     },
     {
       "id": "ADM-144",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
-      "area": "Hub · Confirm",
-      "scenario": "Hub → Confirm lists only what the garden in the header confirms, or what waits on you in its pool",
+      "area": "Review · Confirm",
+      "scenario": "Review → Confirm lists only what the garden in the header confirms, or what waits on you in its pool",
       "preconditions": [
         "Steward of two gardens",
         "At least one commitment waiting for the first garden's confirmation; for the second garden, no ordinary, garden-fallback, or disputed row, and no promise in its pool waiting on your own confirmation"
       ],
       "steps": [
-        "Select the first garden with the header chip and open Hub → Confirm (/hub/confirm)",
+        "Select the first garden with the header chip and open Review → Confirm (/review/confirm)",
         "Read the rows and the count on the Confirm tab",
-        "Select the second garden with the header chip and read Hub → Confirm again"
+        "Select the second garden with the header chip and read Review → Confirm again"
       ],
       "expected": "With the first garden selected, its waiting commitments are listed and the Confirm tab's count matches them; with the second, the stage reads Nothing to confirm and the count is zero. Neither stage lists a Needs the Green Goods team row: those are confirmed from Protocol Confirmations on /community/coordination",
-      "evidence": "Screenshots of Hub → Confirm with each garden selected",
+      "evidence": "Screenshots of Review → Confirm with each garden selected",
       "role": "steward",
       "tags": ["commitment", "confirm", "garden-switch"],
       "requiresProduction": false,
@@ -5742,21 +6046,21 @@
     },
     {
       "id": "ADM-145",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Confirm",
+      "area": "Review · Confirm",
       "scenario": "Confirm Kept… reviews the commitment before confirming it",
       "preconditions": [
         "Steward with the garden that confirms the commitment selected in the header",
         "A commitment waiting for that garden's confirmation and marked Ready to confirm; the confirming account is not a contributor"
       ],
       "steps": [
-        "Open Hub → Confirm and press Confirm Kept… on the commitment's row",
+        "Open Review → Confirm and press Confirm Kept… on the commitment's row",
         "Read the review",
         "Press Confirm Kept and confirm in the wallet",
-        "Read Hub → Confirm and the commitment afterwards"
+        "Read Review → Confirm and the commitment afterwards"
       ],
       "expected": "Before anything is sent, the review names the commitment, the garden's pool it lives in, and who kept it, and says either that this confirmation closes it as kept for everyone or which confirmation of how many it is, and that it cannot be undone; confirming is one transaction; the commitment then reads Kept and leaves the queue, or its row shows one more confirmation",
       "evidence": "Screenshots of the review and of the commitment afterwards",
@@ -5768,18 +6072,18 @@
     },
     {
       "id": "ADM-146",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "data-integrity",
-      "area": "Hub · Confirm",
+      "area": "Review · Confirm",
       "scenario": "A commitment that has left the confirmation queue says so when its link is opened",
       "preconditions": [
         "Steward with the garden that confirms the commitment selected in the header",
         "A commitment waiting for that garden's confirmation, whose next confirmation closes it"
       ],
       "steps": [
-        "Open the commitment from its row in Hub → Confirm and copy the page's address",
+        "Open the commitment from its row in Review → Confirm and copy the page's address",
         "Confirm it (ADM-145) and wait until it leaves the queue",
         "Open the copied address"
       ],
@@ -5793,21 +6097,21 @@
     },
     {
       "id": "ADM-200",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Confirm",
-      "scenario": "A promise waiting on your own confirmation is listed in Hub → Confirm and confirmed there",
+      "area": "Review · Confirm",
+      "scenario": "A promise waiting on your own confirmation is listed in Review → Confirm and confirmed there",
       "preconditions": [
         "Steward of the garden selected in the header",
         "In that garden's pool, a promise you asked for that another member took up, added proof to, and sent for confirmation; you are not on its team"
       ],
       "steps": [
-        "Read the count on the Confirm tab, then open Hub → Confirm (/hub/confirm) and find the promise's row",
+        "Read the count on the Confirm tab, then open Review → Confirm (/review/confirm) and find the promise's row",
         "Press Confirm Kept… on the row and read the review",
         "Press Confirm Kept and confirm in the wallet",
-        "Read Hub → Confirm and the promise afterwards"
+        "Read Review → Confirm and the promise afterwards"
       ],
       "expected": "The row reads Yours to confirm and the Confirm tab's count includes it; Confirm Kept… opens the same review as a garden's row; confirming is one transaction from your account; the promise then reads Kept and leaves the queue",
       "evidence": "Screenshots of the row and the tab count, the review, and the promise afterwards",
@@ -5819,11 +6123,11 @@
     },
     {
       "id": "ADM-042",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Confirm",
+      "area": "Review · Confirm",
       "scenario": "Confirm the protocol Request after its Work is approved",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
@@ -5846,7 +6150,7 @@
     },
     {
       "id": "ADM-033",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -5868,7 +6172,7 @@
     },
     {
       "id": "ADM-017",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -5894,7 +6198,7 @@
     },
     {
       "id": "ADM-048",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -5923,7 +6227,7 @@
     },
     {
       "id": "ADM-049",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -5946,7 +6250,7 @@
     },
     {
       "id": "ADM-050",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -5969,7 +6273,7 @@
     },
     {
       "id": "ADM-051",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -5991,7 +6295,7 @@
     },
     {
       "id": "ADM-014",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -6015,7 +6319,7 @@
     },
     {
       "id": "ADM-154",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "data-integrity",
@@ -6038,7 +6342,7 @@
     },
     {
       "id": "ADM-155",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "data-integrity",
@@ -6061,7 +6365,7 @@
     },
     {
       "id": "ADM-056",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -6083,7 +6387,7 @@
     },
     {
       "id": "ADM-162",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "resilience",
@@ -6105,7 +6409,7 @@
     },
     {
       "id": "ADM-163",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6127,7 +6431,7 @@
     },
     {
       "id": "ADM-167",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6153,7 +6457,7 @@
     },
     {
       "id": "ADM-168",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6179,7 +6483,7 @@
     },
     {
       "id": "ADM-169",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6203,7 +6507,7 @@
     },
     {
       "id": "ADM-170",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6229,7 +6533,7 @@
     },
     {
       "id": "ADM-171",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6247,7 +6551,7 @@
     },
     {
       "id": "ADM-172",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6268,7 +6572,7 @@
     },
     {
       "id": "ADM-173",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6286,7 +6590,7 @@
     },
     {
       "id": "ADM-174",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6331,7 +6635,7 @@
     },
     {
       "id": "ADM-176",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6354,15 +6658,15 @@
     },
     {
       "id": "ADM-177",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Rejecting work asks for a reason and sends it as the gardener's feedback",
       "preconditions": ["Steward session; a pending submission it is safe to reject"],
       "steps": [
-        "Open the submission from /hub/work and type a note in Feedback",
+        "Open the submission from /review/work and type a note in Feedback",
         "Press Reject and read the Reject Work dialog",
         "Clear the reason, then choose a suggested reason or write one",
         "Press Reject Work and approve the wallet prompt",
@@ -6379,22 +6683,22 @@
     },
     {
       "id": "ADM-178",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "data-integrity",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Waiting work reads as its age, and a garden reads Critical only when review has stalled",
       "preconditions": [
         "Steward session; a garden with pending work submitted more than a week ago"
       ],
       "steps": [
-        "Open /hub/work and read the cards and the header",
+        "Open /review/work and read the cards and the header",
         "Open the garden's Overview and read Garden Health: its status, its alert, and Median review time",
         "Compare them with when the garden's last review landed"
       ],
       "expected": "Cards read a neutral Pending with 'submitted <age>'; the header counts work waiting over a week in plain ink; the garden reads Critical with 'No reviews in 7 days' only when no review landed in the last week, and otherwise Needs attention with the count of work waiting over a week; Median review time reads in days, or weeks past two weeks",
-      "evidence": "Screenshots of the Hub queue and Garden Health",
+      "evidence": "Screenshots of the Review queue and Garden Health",
       "role": "steward",
       "tags": ["review"],
       "requiresProduction": false,
@@ -6403,7 +6707,7 @@
     },
     {
       "id": "ADM-179",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -6429,7 +6733,7 @@
     },
     {
       "id": "ADM-180",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "data-integrity",
@@ -6453,7 +6757,7 @@
     },
     {
       "id": "ADM-181",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -6475,7 +6779,7 @@
     },
     {
       "id": "ADM-182",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "data-integrity",
@@ -6499,19 +6803,19 @@
     },
     {
       "id": "ADM-183",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
       "area": "Shell",
       "scenario": "At 360 and 375 pixels the phone chrome fits in English, Spanish, and Portuguese",
       "preconditions": [
-        "Admin open on the Hub of a garden with a long name, such as the Green Goods Community Garden"
+        "The Hub open on Review for a garden with a long name, such as the Green Goods Community Garden"
       ],
       "steps": [
         "At 375 pixels read the garden chip beside the refresh and bell buttons",
         "At 360 and 375 pixels read every bottom navigation label in English, Spanish, and Portuguese",
-        "Read the Hub's stage tabs, then scroll them"
+        "Read Review's stage tabs, then scroll them"
       ],
       "expected": "The chip ends before the refresh and bell and truncates a long name; every navigation label shows whole in its own tab (Community, Comunidad, Comunidade); a tab row wider than the screen fades the edge it clips and snaps tabs as it scrolls",
       "evidence": "Screenshots at 360 and 375 pixels in each language",
@@ -6523,7 +6827,7 @@
     },
     {
       "id": "ADM-184",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -6565,28 +6869,28 @@
     },
     {
       "id": "ADM-186",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
-      "area": "Hub",
-      "scenario": "The Hub's three actions are outlined, with Submit Work rightmost",
+      "area": "Review",
+      "scenario": "Review's three actions are outlined, with Submit Work rightmost",
       "preconditions": ["Steward session that can submit and review work, at desktop width"],
       "steps": [
-        "Open each Hub stage and read the header actions",
+        "Open each Review stage and read the header actions",
         "At phone width open the floating action button"
       ],
       "expected": "Create Assessment, Create Hypercert, and Submit Work render outlined on every stage, so no action outshouts the queue; Submit Work stays rightmost and is the action nearest the phone button",
-      "evidence": "Screenshot of the Hub header",
+      "evidence": "Screenshot of the Review header",
       "role": "steward",
-      "tags": ["hub"],
+      "tags": ["review"],
       "requiresProduction": false,
       "status": "active",
       "source": "steward-cockpit-ux-2026-09-25"
     },
     {
       "id": "ADM-187",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -6607,7 +6911,7 @@
     },
     {
       "id": "ADM-188",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -6629,7 +6933,7 @@
     },
     {
       "id": "ADM-189",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -6655,7 +6959,7 @@
     },
     {
       "id": "ADM-057",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -6663,13 +6967,14 @@
       "scenario": "Start a season and open it to the garden",
       "preconditions": ["Steward with manage rights on a garden with a pool"],
       "steps": [
-        "Press Start Season, complete the cycle form, and confirm its ordered wallet prompts",
+        "Press Start Season, complete the cycle form, and read how many times the flow says the wallet will ask",
+        "Confirm its ordered wallet prompts",
         "Read the opened season in the cycles list",
         "Read the completed flow before closing it",
         "Read the Pool tab in the app"
       ],
-      "expected": "The flow seeds and opens the season in order; on a legacy passkey opening the seeded season goes in one prompt, while a plain wallet confirms each step in turn; the cycles list shows its dates and Open state, and the app's seasons and campaigns rail shows it as open",
-      "evidence": "Screenshots of the cycles list and the app's rail",
+      "expected": "Before anything is sent, the flow says 'Your wallet will ask you twice, one after the other.' on a legacy passkey: the first prompt seeds the season (and opens the pool when it isn't open yet), and the second opens the season, because only the seeding receipt names the new season. A plain wallet confirms each write in turn: twice on an open pool, three times on one that isn't open yet. The flow seeds and opens the season in order; the cycles list shows its dates and Open state, and the app's seasons and campaigns rail shows it as open. A declined second prompt leaves the season seeded, ready for ADM-209",
+      "evidence": "Screenshots of the prompt count, the cycles list and the app's rail",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
       "requiresProduction": false,
@@ -6677,8 +6982,34 @@
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
+      "id": "ADM-209",
+      "tab": "Green Goods Hub",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Open an already seeded season with Open to the Garden",
+      "preconditions": [
+        "Steward with manage rights on a garden whose pool is open and holds a seeded season, such as one left by declining the second prompt of Set Up and Open or Start Season",
+        "A legacy passkey on Arbitrum, or a plain wallet"
+      ],
+      "steps": [
+        "Open /garden/pool and find the seeded season's row",
+        "Press Open to the Garden, set the split and recognition terms, and read how many times the flow says the wallet will ask",
+        "Confirm the wallet prompt",
+        "Read the season's row and the Pool tab in the app"
+      ],
+      "expected": "The row reads 'nobody can commit yet' and offers Open to the Garden. The flow shows opening the pool as already done and says 'Your wallet will ask you once.' on every wallet; the one prompt carries one call. The season opens with exactly the split and recognition terms entered, the row shows its dates and Open state, and the app's seasons and campaigns rail shows it as open",
+      "evidence": "Screenshots of the seeded row, the prompt count, and the opened season with its terms",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-1428"
+    },
+    {
       "id": "ADM-058",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -6700,7 +7031,7 @@
     },
     {
       "id": "ADM-038",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -6727,7 +7058,7 @@
     },
     {
       "id": "ADM-059",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -6752,7 +7083,7 @@
     },
     {
       "id": "ADM-060",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -6774,7 +7105,7 @@
     },
     {
       "id": "ADM-164",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -6795,7 +7126,7 @@
     },
     {
       "id": "ADM-061",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -6819,7 +7150,7 @@
     },
     {
       "id": "ADM-062",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -6867,7 +7198,7 @@
     },
     {
       "id": "ADM-147",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -6890,7 +7221,7 @@
     },
     {
       "id": "ADM-148",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -6916,7 +7247,7 @@
     },
     {
       "id": "ADM-149",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -6962,7 +7293,7 @@
     },
     {
       "id": "ADM-140",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -6986,7 +7317,7 @@
     },
     {
       "id": "ADM-157",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
@@ -7011,7 +7342,7 @@
     },
     {
       "id": "ADM-158",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -7068,7 +7399,7 @@
     },
     {
       "id": "ADM-139",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7096,7 +7427,7 @@
     },
     {
       "id": "ADM-161",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -7118,7 +7449,7 @@
     },
     {
       "id": "ADM-040",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7145,7 +7476,7 @@
     },
     {
       "id": "ADM-065",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7171,7 +7502,7 @@
     },
     {
       "id": "ADM-159",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7196,7 +7527,7 @@
     },
     {
       "id": "ADM-064",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7221,7 +7552,7 @@
     },
     {
       "id": "ADM-160",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -7248,7 +7579,7 @@
     },
     {
       "id": "ADM-125",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7270,7 +7601,7 @@
     },
     {
       "id": "ADM-126",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7296,7 +7627,7 @@
     },
     {
       "id": "ADM-127",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7321,7 +7652,7 @@
     },
     {
       "id": "ADM-166",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7346,7 +7677,7 @@
     },
     {
       "id": "ADM-128",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "resilience",
@@ -7393,7 +7724,7 @@
     },
     {
       "id": "ADM-130",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -7417,7 +7748,7 @@
     },
     {
       "id": "ADM-142",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -7438,7 +7769,7 @@
     },
     {
       "id": "ADM-143",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -7459,7 +7790,7 @@
     },
     {
       "id": "ADM-131",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7485,7 +7816,7 @@
     },
     {
       "id": "ADM-132",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7539,7 +7870,7 @@
     },
     {
       "id": "ADM-133",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -7564,7 +7895,7 @@
     },
     {
       "id": "ADM-134",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -7588,7 +7919,7 @@
     },
     {
       "id": "ADM-137",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -7612,7 +7943,7 @@
     },
     {
       "id": "ADM-138",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7634,7 +7965,7 @@
     },
     {
       "id": "ADM-151",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7660,7 +7991,7 @@
     },
     {
       "id": "ADM-152",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -7681,7 +8012,7 @@
     },
     {
       "id": "ADM-153",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7706,7 +8037,7 @@
     },
     {
       "id": "ADM-075",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7718,9 +8049,9 @@
       "steps": [
         "Open /garden/pool and the commitment",
         "Press Send for Confirmation",
-        "Read the timeline, then Hub → Confirm with the confirming garden selected in the header"
+        "Read the timeline, then Review → Confirm with the confirming garden selected in the header"
       ],
-      "expected": "The act is offered only to the provider once evidence exists; it sends in one transaction; the timeline records it and the commitment appears in Hub → Confirm for its confirmers",
+      "expected": "The act is offered only to the provider once evidence exists; it sends in one transaction; the timeline records it and the commitment appears in Review → Confirm for its confirmers",
       "evidence": "Screenshots of the inspector and the confirm queue",
       "role": "steward",
       "tags": ["commitment", "tx"],
@@ -7730,7 +8061,7 @@
     },
     {
       "id": "ADM-165",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7782,7 +8113,7 @@
     },
     {
       "id": "ADM-110",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7807,7 +8138,7 @@
     },
     {
       "id": "ADM-111",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7832,7 +8163,7 @@
     },
     {
       "id": "ADM-112",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -7853,7 +8184,7 @@
     },
     {
       "id": "ADM-077",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7866,9 +8197,9 @@
       "steps": [
         "Press Raise Dispute… and try to confirm without a reason",
         "Type a reason and press Raise Dispute",
-        "Read the band, Hub → Confirm with the pool's garden selected in the header, and the app"
+        "Read the band, Review → Confirm with the pool's garden selected in the header, and the app"
       ],
-      "expected": "The reason is required; the dispute is one transaction; the commitment reads disputed in the inspector and the app, and Under review with Resolve… in Hub → Confirm; the ordinary confirm is withheld while disputed and the reason is in the timeline",
+      "expected": "The reason is required; the dispute is one transaction; the commitment reads disputed in the inspector and the app, and Under review with Resolve… in Review → Confirm; the ordinary confirm is withheld while disputed and the reason is in the timeline",
       "evidence": "Screenshots of the dispute dialog and the disputed band",
       "role": "steward",
       "tags": ["commitment", "tx"],
@@ -7902,7 +8233,7 @@
     },
     {
       "id": "ADM-113",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7924,7 +8255,7 @@
     },
     {
       "id": "ADM-114",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7949,7 +8280,7 @@
     },
     {
       "id": "ADM-115",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7971,7 +8302,7 @@
     },
     {
       "id": "ADM-116",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7993,7 +8324,7 @@
     },
     {
       "id": "ADM-117",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -8014,7 +8345,7 @@
     },
     {
       "id": "ADM-141",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -8035,7 +8366,7 @@
     },
     {
       "id": "ADM-079",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8060,7 +8391,7 @@
     },
     {
       "id": "ADM-080",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8086,7 +8417,7 @@
     },
     {
       "id": "ADM-081",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8108,7 +8439,7 @@
     },
     {
       "id": "ADM-082",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8133,7 +8464,7 @@
     },
     {
       "id": "ADM-135",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -8158,7 +8489,7 @@
     },
     {
       "id": "ADM-136",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -8206,7 +8537,7 @@
     },
     {
       "id": "ADM-118",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8231,7 +8562,7 @@
     },
     {
       "id": "ADM-119",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8253,7 +8584,7 @@
     },
     {
       "id": "ADM-084",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8276,7 +8607,7 @@
     },
     {
       "id": "ADM-109",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8329,7 +8660,7 @@
     },
     {
       "id": "ADM-120",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8354,7 +8685,7 @@
     },
     {
       "id": "ADM-121",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8376,7 +8707,7 @@
     },
     {
       "id": "ADM-122",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8400,7 +8731,7 @@
     },
     {
       "id": "ADM-123",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "resilience",
@@ -8422,7 +8753,7 @@
     },
     {
       "id": "ADM-124",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "resilience",
@@ -8447,7 +8778,7 @@
     },
     {
       "id": "ADM-086",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8465,7 +8796,7 @@
     },
     {
       "id": "ADM-043",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8493,7 +8824,7 @@
     },
     {
       "id": "ADM-044",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8521,7 +8852,7 @@
     },
     {
       "id": "ADM-094",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8543,7 +8874,7 @@
     },
     {
       "id": "ADM-095",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8561,7 +8892,7 @@
     },
     {
       "id": "ADM-052",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8588,7 +8919,7 @@
     },
     {
       "id": "ADM-053",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8610,7 +8941,7 @@
     },
     {
       "id": "ADM-054",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8635,7 +8966,7 @@
     },
     {
       "id": "ADM-055",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8662,7 +8993,7 @@
     },
     {
       "id": "ADM-008",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -8683,7 +9014,7 @@
     },
     {
       "id": "ADM-090",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8703,7 +9034,7 @@
     },
     {
       "id": "ADM-091",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8728,7 +9059,7 @@
     },
     {
       "id": "ADM-092",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8750,7 +9081,7 @@
     },
     {
       "id": "ADM-093",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8775,7 +9106,7 @@
     },
     {
       "id": "ADM-045",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8804,7 +9135,7 @@
     },
     {
       "id": "ADM-088",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8826,7 +9157,7 @@
     },
     {
       "id": "ADM-089",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8853,7 +9184,7 @@
     },
     {
       "id": "ADM-156",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -8878,7 +9209,7 @@
     },
     {
       "id": "ADM-087",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8901,7 +9232,7 @@
     },
     {
       "id": "ADM-007",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
@@ -8919,7 +9250,7 @@
     },
     {
       "id": "ADM-066",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8947,7 +9278,7 @@
     },
     {
       "id": "ADM-067",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8969,7 +9300,7 @@
     },
     {
       "id": "ADM-068",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8991,7 +9322,7 @@
     },
     {
       "id": "ADM-069",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9013,7 +9344,7 @@
     },
     {
       "id": "ADM-070",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9040,7 +9371,7 @@
     },
     {
       "id": "ADM-071",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9109,13 +9440,16 @@
     },
     {
       "id": "ADM-074",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
       "area": "Community · Payouts",
       "scenario": "Edit the payouts jar's per-claim limit and cooldown",
-      "preconditions": ["The wallet that owns the garden, or one it permissioned"],
+      "preconditions": [
+        "Legacy cookie jar using the existing garden-account permission model; Hats jar rollout checks are ROLL-005 and ROLL-006",
+        "The wallet that owns the garden, or one it permissioned"
+      ],
       "steps": [
         "On the jar card press Edit beside Per-claim limit, change the value, press Update Limit, and confirm",
         "Press Edit beside Withdrawal cooldown, pick another cooldown, press Update Cooldown, and confirm",
@@ -9133,7 +9467,7 @@
     },
     {
       "id": "ADM-100",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9156,7 +9490,7 @@
     },
     {
       "id": "ADM-101",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9179,7 +9513,7 @@
     },
     {
       "id": "ADM-102",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -9201,7 +9535,7 @@
     },
     {
       "id": "ADM-103",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9224,7 +9558,7 @@
     },
     {
       "id": "ADM-104",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9246,7 +9580,7 @@
     },
     {
       "id": "ADM-105",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -10459,7 +10793,7 @@
     },
     {
       "id": "PWA-136",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "journey",
@@ -10486,7 +10820,7 @@
     },
     {
       "id": "PWA-137",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -10514,7 +10848,7 @@
     },
     {
       "id": "ADM-190",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -10543,7 +10877,7 @@
     },
     {
       "id": "ADM-199",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -10571,7 +10905,7 @@
     },
     {
       "id": "ADM-191",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -10598,122 +10932,122 @@
     },
     {
       "id": "ADM-192",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
-      "area": "Hub · Work",
+      "area": "Review · Work",
       "scenario": "Work tab keeps approved work under an Approved scope",
       "preconditions": [
         "Steward with manage rights",
         "A garden with pending work and approved work"
       ],
       "steps": [
-        "Open /hub/work and read the Pending and Approved chips beside the search",
+        "Open /review/work and read the Pending and Approved chips beside the search",
         "Press Approved, open an approved work, and close it",
         "Press Pending"
       ],
       "expected": "Pending lists work waiting for review and Approved lists approved work, each card marked with its state; the Work tab's count stays the pending count in both scopes; closing a work opened from Approved returns to Approved; no tab presents approved work as an assessment queue",
       "evidence": "Screenshots of both scopes",
       "role": "steward",
-      "tags": ["hub", "work", "work-queue"],
+      "tags": ["review", "work", "work-queue"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
     },
     {
       "id": "ADM-193",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
-      "area": "Hub · Assessments",
+      "area": "Review · Assessments",
       "scenario": "Assessments tab lists the garden's assessments and opens each record",
       "preconditions": ["Steward of a garden with at least two assessments"],
       "steps": [
-        "Open /hub/assess and read the list and the tab rail",
+        "Open /review/assess and read the list and the tab rail",
         "Open an assessment and read its record",
         "Follow View Assessment on EAS Explorer, then close the record"
       ],
       "expected": "Every assessment of the selected garden is listed newest first with its domain and reporting period, and the tab carries no count; the record shows the description, domain, reporting period, location, author and date, links to the attestation, and offers Create Hypercert; the Assessments tab stays selected behind the open record",
       "evidence": "Screenshots of the list and an open record",
       "role": "steward",
-      "tags": ["hub", "assess", "assessment"],
+      "tags": ["review", "assess", "assessment"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
     },
     {
       "id": "ADM-194",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
-      "area": "Hub · Hypercerts",
+      "area": "Review · Hypercerts",
       "scenario": "Hypercerts tab lists the garden's minted hypercerts",
       "preconditions": [
         "Steward of a garden with at least one minted hypercert and one assessment"
       ],
-      "steps": ["Open /hub/certify and read the list and the tab rail", "Open a hypercert"],
+      "steps": ["Open /review/certify and read the list and the tab rail", "Open a hypercert"],
       "expected": "Minted hypercerts are listed newest first with their mint date and work scopes; no assessment appears as ready to certify, and the tab carries no count; opening a hypercert shows its record on /garden/impact",
       "evidence": "Screenshots of the list and the opened hypercert",
       "role": "steward",
-      "tags": ["hub", "certify", "hypercert"],
+      "tags": ["review", "certify", "hypercert"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
     },
     {
       "id": "ADM-195",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "content",
-      "area": "Hub",
+      "area": "Review",
       "scenario": "Empty Assessments and Hypercerts tabs say what they hold and when they are needed",
       "preconditions": ["Steward of a garden with no assessments and no hypercerts"],
       "steps": [
-        "Open /hub/assess and read the empty state",
-        "Open /hub/certify and read the empty state",
+        "Open /review/assess and read the empty state",
+        "Open /review/certify and read the empty state",
         "Type a word nothing matches into the search",
         "Repeat in Spanish and Portuguese"
       ],
       "expected": "Assessments says what an assessment records, that one is written when a period opens, and that it is optional and never holds up a season, and offers Create Assessment; Hypercerts says what a hypercert is and when to create one, and offers Create Hypercert; a search that finds nothing says so and offers Clear Search, never the empty-tab copy; all of it reads in each language",
       "evidence": "Screenshots of both empty states per language",
       "role": "steward",
-      "tags": ["hub", "empty-state"],
+      "tags": ["review", "empty-state"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
     },
     {
       "id": "ADM-196",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
-      "area": "Hub",
+      "area": "Review",
       "scenario": "An evaluator sees Assessments and Hypercerts, and no Work tab",
       "preconditions": [
         "Signed in as an evaluator of the garden who is neither an owner nor a steward",
         "The garden has at least one assessment"
       ],
       "steps": [
-        "Open /hub and read the tab rail",
+        "Open /review and read the tab rail",
         "Open an assessment's record",
         "Open Hypercerts"
       ],
-      "expected": "The rail shows Assessments and Hypercerts and no Work tab, and /hub lands on Assessments; Create Assessment is offered; an assessment's record and the Hypercerts tab offer no Create Hypercert, and the record says only garden owners and stewards can create the hypercert",
+      "expected": "The rail shows Assessments and Hypercerts and no Work tab, and /review lands on Assessments; Create Assessment is offered; an assessment's record and the Hypercerts tab offer no Create Hypercert, and the record says only garden owners and stewards can create the hypercert",
       "evidence": "Screenshots of the rail and the record",
       "role": "any",
-      "tags": ["hub", "permissions"],
+      "tags": ["review", "permissions"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
     },
     {
       "id": "PWA-138",
-      "tab": "PWA",
+      "tab": "Green Goods App",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "journey",
@@ -10737,7 +11071,7 @@
     },
     {
       "id": "ADM-197",
-      "tab": "Admin Dashboard",
+      "tab": "Green Goods Hub",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -10748,17 +11082,1007 @@
         "A deployer session for the Actions button, which only a deployer has"
       ],
       "steps": [
-        "On Garden, Community, and the Hub read the floating action button",
+        "On Garden, Community, and Review read the floating action button",
         "Open its menu and read the actions, then close it",
         "On Actions read the button, and as a deployer press it"
       ],
-      "expected": "On Garden, Community, and the Hub the button shows a plain plus on that workspace's own color (green, amber, and blue); while its menu is open it shows a close icon and each action carries its own icon and label, and closing the menu brings the plus back; on Actions a deployer's button shows the same plus beside Create Action and opens that flow directly, and a steward has no button there",
+      "expected": "On Garden, Community, and Review the button shows a plain plus on that workspace's own color (green, amber, and blue); while its menu is open it shows a close icon and each action carries its own icon and label, and closing the menu brings the plus back; on Actions a deployer's button shows the same plus beside Create Action and opens that flow directly, and a steward has no button there",
       "evidence": "Screenshots of each button closed and one menu open",
       "role": "steward",
       "tags": ["shell", "responsive"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "PWA-140",
+      "tab": "Green Goods App",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Service vouchers",
+      "scenario": "Approve service terms and book the agreed amount",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized"
+      ],
+      "steps": [
+        "Open the service promise and review issuer, unit, amount and terms",
+        "Cancel once, then approve the current terms and book",
+        "Wait for the receipt and open the booking from Your Wallet"
+      ],
+      "expected": "Cancel sends nothing. One booking uses the approved terms and amount; its held balance and wallet link agree. A pending receipt is not shown as completed.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "service-vouchers", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-141",
+      "tab": "Green Goods App",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "data-integrity",
+      "area": "Service vouchers",
+      "scenario": "Receive a delivered service and reconcile held, spent and returned vouchers",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized",
+        "A booking whose delivery the independent steward can resolve"
+      ],
+      "steps": [
+        "Record the held and available amounts",
+        "Have the steward complete the agreed delivery, then reopen the booking",
+        "Compare the wallet, booking and steward record after confirmation"
+      ],
+      "expected": "The delivery and any agreed split or return reconcile to the original booking amount. Held value is not also available to spend; receipt history remains visible.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "service-vouchers"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-142",
+      "tab": "Green Goods App",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Service vouchers",
+      "scenario": "Cancel a booking and reconcile a delayed return",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized",
+        "A cancelable booking and a controlled test environment that can delay confirmation"
+      ],
+      "steps": [
+        "Cancel once and interrupt the confirmation read",
+        "Reload and check the known booking before retrying",
+        "Restore reads and wait for the return; inspect available and held balances"
+      ],
+      "expected": "Uncertain cancellation stays pending. No second cancellation or return is invented; the returned amount becomes available once, and the booking keeps its history.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "service-vouchers", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-143",
+      "tab": "Green Goods App",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Service vouchers",
+      "scenario": "Refuse stale terms, insufficient funds and unavailable service reads",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized"
+      ],
+      "steps": [
+        "Open the booking review, then change the approved terms or exhaust the available amount using the test fixture",
+        "Try to continue; repeat with a failed service or balance read",
+        "Restore the fixture and reopen the review"
+      ],
+      "expected": "The changed terms require fresh approval. Insufficient funds and unreadable state prevent sending with an explanation; an unavailable balance is never zero. Recovery uses current terms and balances.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "service-vouchers"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-144",
+      "tab": "Green Goods App",
+      "platform": "Real device",
+      "priority": "P0",
+      "kind": "data-integrity",
+      "area": "Identity",
+      "scenario": "Recover an older passkey account without changing its identity",
+      "preconditions": [
+        "Older passkey account with its original address recorded privately",
+        "Hosted supported origin; a second browser or device with the passkey available through the intended Apple or Google account"
+      ],
+      "steps": [
+        "Sign out and recover by the existing account name on a browser without local account storage",
+        "Compare the recovered address, memberships and balances with the original",
+        "Reload, sign out and recover again on each supported origin in scope"
+      ],
+      "expected": "Recovery opens the original account, with the same address and memberships. A different origin or unavailable passkey gives an honest recovery path and never silently creates a replacement account.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "identity"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11",
+      "requiresDevice": true
+    },
+    {
+      "id": "PWA-145",
+      "tab": "Green Goods App",
+      "platform": "Real device",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Identity",
+      "scenario": "Sign after passkey recovery and keep account switching isolated",
+      "preconditions": [
+        "PWA-144 completed on the same supported origin",
+        "One small test Work submission or other explicitly authorized account operation",
+        "A second account and an unsent item on the original device"
+      ],
+      "steps": [
+        "Reject the first signing prompt, then retry the authorized operation",
+        "Wait for its receipt and verify the original account is the author",
+        "Switch accounts, reload, and return to the original account"
+      ],
+      "expected": "Rejected signing sends nothing. The retry lands once under the recovered account. The other account cannot see, send or discard the original account’s unsent items; returning restores them.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "identity", "tx"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11",
+      "requiresDevice": true
+    },
+    {
+      "id": "PWA-146",
+      "tab": "Green Goods App",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Identity",
+      "scenario": "Recover from a directory outage or mismatched account without overwriting the saved account",
+      "preconditions": [
+        "Controlled staging fixture for failed lookup, mismatched account and rejected verification",
+        "A remembered account with unsent local work"
+      ],
+      "steps": [
+        "Attempt recovery under each fixture and cancel one device prompt",
+        "Reload and inspect the remembered identity and local work",
+        "Restore the directory and retry recovery"
+      ],
+      "expected": "Failure never authenticates the wrong account or overwrites the remembered account and work. The message offers retry; a successful retry restores the intended identity.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "identity"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-147",
+      "tab": "Green Goods App",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Home",
+      "scenario": "Choose and switch the active garden while keeping visits separate",
+      "preconditions": ["Accounts with zero, one and multiple gardens; one other public garden"],
+      "steps": [
+        "Open Home with each account and choose a garden when offered",
+        "Reload and inspect the active garden",
+        "Visit another garden through Explore, return, then explicitly switch gardens"
+      ],
+      "expected": "No-garden, sole-garden and chooser states are usable. Reload retains the selection. Visiting does not silently switch it; an explicit switch changes the journal and closes the previous garden’s sheets.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-148",
+      "tab": "Green Goods App",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Home",
+      "scenario": "Follow journal sections and recover empty or partial reads",
+      "preconditions": [
+        "An active garden with work, promises, a current cycle and saved local work",
+        "A plain member and steward; controlled unavailable-read fixture"
+      ],
+      "steps": [
+        "Open What’s Open, Needs Your Attention, Recent Activity, Continue, Take Part and About This Garden where applicable",
+        "Follow a work and promise, then return using Back",
+        "Repeat with no records, offline cached records and one failed read"
+      ],
+      "expected": "Links open the right record and garden, returning preserves usable navigation, and steward duties are role-gated. Empty, offline and partial states remain distinct without hiding available local work.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-149",
+      "tab": "Green Goods App",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Home",
+      "scenario": "Read and clear Home notifications within the current account and garden",
+      "preconditions": ["Two gardens and two accounts with Work and Promise notifications"],
+      "steps": [
+        "Open the Home bell, switch All, Work and Promises, and follow an item",
+        "Return and clear the listed events; reload",
+        "Switch gardens and accounts, then repeat offline and with a partial read"
+      ],
+      "expected": "Opening a tab marks only its shown events seen. Clear All persists for that account and garden without clearing another’s events. Unreadable events are not described as an empty inbox.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-201",
+      "tab": "Green Goods Hub",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Steward access",
+      "scenario": "Request steward access and remain unprivileged while pending",
+      "preconditions": [
+        "Signed-in requester without steward access; eligible garden; enabled request API",
+        "Required participants: requester."
+      ],
+      "steps": [
+        "Choose the garden from the no-access screen and review the request",
+        "Cancel signing once, then sign and submit",
+        "Reload and open a protected garden route"
+      ],
+      "expected": "Cancellation creates no request. A submitted request is pending for the chosen garden; it grants no role and protected actions remain unavailable.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "steward-access"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-202",
+      "tab": "Green Goods Hub",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Steward access",
+      "scenario": "Resolve a steward request and verify confirmed Hub access",
+      "preconditions": [
+        "ADM-201 pending request",
+        "Authorized independent reviewer and requester using separate accounts",
+        "Role assignment transaction explicitly authorized"
+      ],
+      "steps": [
+        "Open the steward-access queue and approve the request",
+        "Wait for the role receipt and request resolution",
+        "As the requester, refresh and enter the Hub; compare with an ordinary membership request"
+      ],
+      "expected": "Approval assigns the steward role, not ordinary membership. Access opens only after confirmed authority; a pending or failed role assignment is not reported as access granted.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "steward-access", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-203",
+      "tab": "Green Goods Hub",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Steward access",
+      "scenario": "Decline, withdraw and resubmit without losing request history",
+      "preconditions": [
+        "Requester and reviewer with separate disposable pending requests",
+        "Required participants: requester and steward."
+      ],
+      "steps": [
+        "Decline one request with a reason and read it as the requester",
+        "Withdraw the other request and reload both queues",
+        "Resubmit through the offered path and inspect the new pending request"
+      ],
+      "expected": "Declined and withdrawn requests grant no role. Their outcomes remain legible; resubmission creates one current request without reviving an old approval.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "steward-access"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-204",
+      "tab": "Green Goods Hub",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Steward access",
+      "scenario": "Reconcile uncertain approval and concurrent reviewers safely",
+      "preconditions": [
+        "Controlled request API and role receipt faults",
+        "Two authorized reviewers and an unauthorized identity"
+      ],
+      "steps": [
+        "Try resolving as the unauthorized identity",
+        "Approve in one reviewer session, interrupt the response, and inspect outcome before retrying",
+        "Resolve or refresh the same request in the second session; repeat with the role granted but request resolution interrupted"
+      ],
+      "expected": "Unauthorized resolution is refused. Both reviewers converge on one outcome; retry reconciles the existing role and request without duplicate grants or premature success. API unavailability retains a retryable pending state.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "steward-access", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-205",
+      "tab": "Green Goods Hub",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Service vouchers",
+      "scenario": "Resolve a service booking with the approved terms and amount",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized",
+        "PWA-140 booking awaiting authorized delivery resolution"
+      ],
+      "steps": [
+        "Open the booking from the voucher console",
+        "Review its terms and proposed delivery, split or return",
+        "Cancel once, then confirm the agreed outcome and wait for the receipt"
+      ],
+      "expected": "Only the authorized steward can resolve it. Cancel changes nothing; the confirmed outcome conserves the booked amount and is visible to the member without claiming payment from Work approval alone.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "service-vouchers", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-206",
+      "tab": "Green Goods Hub",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Service vouchers",
+      "scenario": "Manage issuer listing and reserve limits with the correct authority",
+      "preconditions": [
+        "Existing issuer and enabled voucher console",
+        "Authorized Safe signer, unauthorized wallet and controlled low-reserve or exhausted-allowance state"
+      ],
+      "steps": [
+        "Inspect issuer approval, listing and reserve status from both identities",
+        "Try an operation with insufficient reserve or allowance",
+        "Propose an authorized listing change, then verify its execution separately; test delisting on a disposable issuer"
+      ],
+      "expected": "Unauthorized or underfunded operations cannot send. A Safe proposal remains pending until executed. Delisting blocks new activity while keeping existing bookings and returns visible.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "service-vouchers", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-207",
+      "tab": "Green Goods Hub",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Settlement",
+      "scenario": "Recover stale ledgers and refuse changed routes, fees and limits before sending",
+      "preconditions": [
+        "Controlled settlement fixture with readable chain clocks",
+        "Cases for stale or missing ledger, route mismatch, pause, exhausted allowance, cap, unacceptable fee and low acknowledgment reserve"
+      ],
+      "steps": [
+        "Open Pool Funding under each fixture and inspect the reason and disabled operation",
+        "Restore coherent reads and refresh",
+        "Change a limit after opening a ready review, then attempt dispatch"
+      ],
+      "expected": "Each unavailable state names its actual cause and prevents dispatch. Refresh clears only recovered causes. Send-time checks reject a changed limit before signing or spending; no unavailable read is presented as zero.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "settlement"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-208",
+      "tab": "Green Goods Hub",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Settlement",
+      "scenario": "Keep Safe proposal, execution and acknowledgment separate through retry",
+      "preconditions": [
+        "Authorized test settlement through a Safe",
+        "Controlled delayed execution, delayed acknowledgment and replay fixture",
+        "Required participants: Safe signer and recipient."
+      ],
+      "steps": [
+        "Propose the operation and reload before execution",
+        "Execute it and inspect both chains before acknowledgment",
+        "Restore acknowledgment or use the supported retry, then compare recipient balance and indexer history"
+      ],
+      "expected": "Proposal alone moves no value and is not completed. Execution awaiting acknowledgment stays pending. Retry or replay converges on one payout with consistent recipient balance and retained history.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "settlement", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PUB-061",
+      "tab": "Green Goods Website",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "WebMCP",
+      "scenario": "Discover public browser tools and reject private or external navigation",
+      "preconditions": [
+        "Brave build exposing document.modelContext; separate ordinary browser without it",
+        "Public website and no private account context"
+      ],
+      "steps": [
+        "Discover and invoke the public describe and navigation tools",
+        "Try a private app/admin destination and an external URL",
+        "Navigate normally without the API and repeat registration after a controlled failure"
+      ],
+      "expected": "Tools describe and navigate only supported public routes, expose no private data or writes, and reject forbidden destinations. Missing API or partial registration never breaks ordinary browsing.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "none",
+      "tags": ["coverage-review-2026-11", "webmcp"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "DOCS-034",
+      "tab": "Docs",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Editor",
+      "scenario": "Save and reopen authored content on the review branch",
+      "preconditions": [
+        "Authorized editor; disposable authored page change; configured review branch confirmed before saving",
+        "Required participants: docs editor."
+      ],
+      "steps": [
+        "Sign in to the editor and open an authored page",
+        "Edit text, one heading, a link and an image caption, then save",
+        "Reopen and preview; verify the commit target and restore the disposable change through the same review workflow"
+      ],
+      "expected": "Saved content survives reopening and preview. Existing anchors, images and metadata remain intact. The save targets the review branch and does not publish directly to production.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "editor"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "DOCS-035",
+      "tab": "Docs",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Editor",
+      "scenario": "Refuse unauthorized edits and protect generated pages",
+      "preconditions": [
+        "Signed-out browser and authorized editor; generated glossary and catalog pages",
+        "Required participants: docs editor."
+      ],
+      "steps": [
+        "Try editing while signed out or unauthorized",
+        "Inspect the authorized collection for generated pages and create/delete controls",
+        "Interrupt a disposable save and reopen the page"
+      ],
+      "expected": "Unauthorized writes are refused. Generated pages and repository-owned creation/deletion remain outside the editor. Interrupted saving reports uncertainty without claiming the page was published.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "editor"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-001",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Pairing",
+      "scenario": "Consent and pair a Telegram reporter with the intended account",
+      "preconditions": [
+        "Enabled Telegram reporting channel in the selected environment",
+        "Disposable conversation and member account; consent to private test media",
+        "Required participants: reporter."
+      ],
+      "steps": [
+        "Start reporting and read the consent and account link",
+        "Decline once; restart and open the link with the intended account",
+        "Complete account proof and return to the conversation"
+      ],
+      "expected": "Declining records no report. Pairing binds only the proven account and intended conversation; it grants no unrelated garden role.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "pairing"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-002",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Reporting",
+      "scenario": "Correct a report and publish one Work through browser authorization",
+      "preconditions": [
+        "AGT-001 paired member; authorized test submission",
+        "Disposable text, photo, voice and document samples; only supported evidence is accepted",
+        "Required participants: reporter."
+      ],
+      "steps": [
+        "Create a report, attach supported media and correct the action, description or garden before confirmation",
+        "Open the browser authorization and reject signing once",
+        "Retry, confirm and wait for the receipt; open the resulting Work in the app"
+      ],
+      "expected": "The review matches the corrected report and accepted evidence. Unsupported input is explained. Rejection sends nothing; confirmed submission publishes one Work under the paired account, never an automatic approval.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "reporting", "tx"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-003",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Review",
+      "scenario": "Independently review chat-submitted Work and verify the reporter’s result",
+      "preconditions": [
+        "AGT-002 published Work",
+        "Independent steward outside the contributor roster; authorized review",
+        "Required participants: steward and reporter."
+      ],
+      "steps": [
+        "Find the same Work and evidence in the Hub",
+        "Approve or reject with feedback and wait for confirmation",
+        "As the reporter, read the resulting status in chat and the app"
+      ],
+      "expected": "The independent review and feedback agree across chat, App and Hub. A Work receipt is not confused with review approval or payout.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "review", "tx"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-004",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Authorization",
+      "scenario": "Reject expired, forwarded and wrong-account reporting links",
+      "preconditions": [
+        "Disposable expired link, valid link opened by another identity and revoked garden role",
+        "Required participants: reporter."
+      ],
+      "steps": [
+        "Open each link and try to continue",
+        "Revoke the paired member’s role before authorization and retry",
+        "Request a fresh link and recover with the correct authorized account"
+      ],
+      "expected": "Expired or mismatched links and missing authority cannot publish or rebind the report. A valid recovery resumes the intended report without exposing private content to another account.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "authorization"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-005",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Recovery",
+      "scenario": "Recover provider redelivery and restart without duplicate Work",
+      "preconditions": [
+        "Controlled Telegram replay and Agent restart environment",
+        "One report paused before confirmation and one with a known send reference",
+        "Required participants: reporter and QA operator."
+      ],
+      "steps": [
+        "Redeliver the same provider event",
+        "Restart before confirmation, then resume",
+        "Interrupt the submission response and restart; reconcile the known send before any retry"
+      ],
+      "expected": "Provider duplicates produce no second draft or Work. A restart retains the correct report. An uncertain send is reconciled against its receipt and cannot silently submit twice.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "recovery"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-006",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Permissions",
+      "scenario": "Expire or revoke delegated reporting authority",
+      "preconditions": [
+        "Explicitly enabled delegation on a test account with scoped authority",
+        "Authorized grant and revocation actions",
+        "Required participants: reporter."
+      ],
+      "steps": [
+        "Review and grant the bounded permission",
+        "Attempt a report outside its scope",
+        "Revoke or expire it, then retry a pending report"
+      ],
+      "expected": "Only the reviewed scope is usable. Expired or revoked authority blocks new execution and offers fresh authorization; it never silently extends itself.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "permissions", "tx"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-007",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Privacy",
+      "scenario": "Stop reporting and delete eligible private conversation data",
+      "preconditions": [
+        "Disposable conversation with consent and an unpublished draft; retain public Work separately",
+        "Required participants: reporter."
+      ],
+      "steps": [
+        "Use the supported stop command and try to continue",
+        "Use the delete flow and read its explanation",
+        "Restart with fresh consent and inspect what is retained"
+      ],
+      "expected": "Stop prevents further reporting until fresh consent. Deletion removes eligible private material and explains immutable public records; it never promises to erase an onchain Work.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "privacy"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "QA-001",
+      "tab": "QA Operations",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Recording",
+      "scenario": "Authenticate and save one private verdict across reload",
+      "preconditions": [
+        "Hosted QA app; allowlisted tester and a non-allowlisted wallet",
+        "Disposable run; record its environment, catalog revision and build under test",
+        "Required participants: allowlisted QA tester."
+      ],
+      "steps": [
+        "Try sign-in with the non-allowlisted wallet, then cancel and complete allowed sign-in",
+        "Record a verdict and note in the disposable run",
+        "Wait for saved confirmation, reload and read the same case"
+      ],
+      "expected": "Unauthorized access is refused and cancellation is retryable. The allowed tester’s verdict and note persist in the intended run without exposing private data publicly.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "recording"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "QA-002",
+      "tab": "QA Operations",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Recording",
+      "scenario": "Converge two devices and recover an offline verdict",
+      "preconditions": [
+        "QA-001 signed-in tester on two devices; second tester on a different case",
+        "Required participants: allowlisted QA tester."
+      ],
+      "steps": [
+        "Change a verdict on one device and its note on the other",
+        "Go offline, edit another note and reload",
+        "Reconnect and compare both devices and the other tester’s record"
+      ],
+      "expected": "Field changes converge without overwriting confirmed edits or another tester. Offline changes remain local with an honest unsaved message and sync once into their original open run.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "recording"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "QA-003",
+      "tab": "QA Operations",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Runs",
+      "scenario": "Roll over with unsaved edits and preserve closed-run history",
+      "preconditions": [
+        "Disposable QA run; two testers; one live unsaved edit and one outbox recovered after reload",
+        "Required participants: allowlisted QA tester."
+      ],
+      "steps": [
+        "Have both testers start the successor run at nearly the same time",
+        "Read the outcome and the handling of live versus recovered unsent edits",
+        "Open the closed run and compare it with the successor"
+      ],
+      "expected": "Exactly one successor is open. Closed history cannot be edited; live edits explain their new destination and recovered old-run edits wait for an explicit decision. No verdict silently moves to another run.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "runs"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "QA-004",
+      "tab": "QA Operations",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Runs",
+      "scenario": "Verify catalog revision and distinguish regression from rollout results",
+      "preconditions": [
+        "A QA deployment with the intended catalog revision; known build identifiers",
+        "Required participants: allowlisted QA tester."
+      ],
+      "steps": [
+        "Compare the deployed revision with the catalog being reviewed and record the product builds",
+        "Select a normal surface, then Rollout Readiness and an In progress journey",
+        "Read the private run report by surface and inspect retired IDs"
+      ],
+      "expected": "The run identifies the exact catalog and builds. Rollout cases are visibly separate and are not treated as proof of shipped behavior; retired IDs retain history but cannot be walked.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "runs"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-001",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Issuer desk",
+      "scenario": "In progress: revise an issuer draft and obtain fresh member approval",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Issuer-desk rollout enabled; issuer and authorized reviewer with disposable draft",
+        "Required participants: issuer and steward."
+      ],
+      "steps": [
+        "Create and review a draft with terms and proposed pool",
+        "Approve one revision, then change a material term",
+        "Attempt activation with the old approval, then review the current revision"
+      ],
+      "expected": "Revision history is retained. Old approval cannot authorize changed terms; activation remains gated until the exact current revision and authorities are approved.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "issuer-desk", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-002",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Voucher exchange",
+      "scenario": "In progress: choose the explicit exchange pool and reconcile the receipt",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed issuer-desk revision; two configured garden exchange pools; authorized test funds",
+        "Required participants: member and steward."
+      ],
+      "steps": [
+        "Choose the destination pool and inspect the route, asset and terms",
+        "Reject a wrong or unavailable route, then submit the approved route",
+        "Reload during receipt lookup and reconcile the known operation"
+      ],
+      "expected": "Only the explicitly selected reviewed pool is used. Unavailable routes cannot send; reload never duplicates exchange or approval, and the receipt records the actual pool.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "voucher-exchange", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-003",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Voucher awards",
+      "scenario": "In progress: propose an award and reconcile Safe execution once",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Voucher-award rollout enabled; authorized proposer and Safe executor; disposable eligible award",
+        "Required participants: steward and Safe signer."
+      ],
+      "steps": [
+        "Review recipient, asset, amount and authority; cancel once",
+        "Propose through the Safe and inspect the pending record",
+        "Execute and reconcile after an interrupted response; compare recipient wallet and award history"
+      ],
+      "expected": "Cancel changes nothing. Proposal is not payment; confirmed execution records one award and one recipient credit, retaining receipt history across retries.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "voucher-awards", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-004",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Voucher awards",
+      "scenario": "In progress: reject stale authority, changed amounts and duplicate awards",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Controlled award fixture with insufficient reserve, wrong signer and changed revision"
+      ],
+      "steps": [
+        "Attempt each invalid award and inspect the refusal",
+        "Submit the same authorized award from two sessions",
+        "Restore valid authority and reconcile the original record"
+      ],
+      "expected": "Invalid or stale authority cannot spend. Concurrent or replayed requests do not award twice; recovery preserves the original reviewed amount and recipient.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "voucher-awards", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-005",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Hats jars",
+      "scenario": "In progress: operate limits within policy and enforce role loss",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed Hats jar pair on a test garden; owner, steward, gardener and unrelated accounts",
+        "Required participants: owner and steward."
+      ],
+      "steps": [
+        "Inspect and change operational limits as each role",
+        "Try exceeding the policy ceiling, shortening cooldown and exceeding daily budget",
+        "Revoke the acting role before confirmation and retry; inspect legacy jars separately"
+      ],
+      "expected": "Only the designated role can act within policy. Limits, cooldown and budget reject boundary violations; role loss is rechecked. Legacy and new jars retain their distinct permission rules.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "hats-jars", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-006",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Hats jars",
+      "scenario": "In progress: apply delayed policy and recover a paused jar safely",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed Hats jar pair and authorized governor; disposable balance and approved recovery destination",
+        "Required participants: owner and steward."
+      ],
+      "steps": [
+        "Propose a policy, try early execution, cancel it and propose a replacement",
+        "Apply after the delay and reject the stale proposal",
+        "Pause and test claim refusal; verify separate unpause and recovery authority and reject the wrong recovery recipient"
+      ],
+      "expected": "Only the current policy executes after its delay. Pause blocks claims; unpause and recovery require their designated authority. Recovery uses only the approved destination and uncertain receipts are checked before retrying.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "hats-jars", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-007",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "data-integrity",
+      "area": "Hats jars",
+      "scenario": "In progress: rehearse migration atomically and reconcile each garden’s two jars",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Pinned pre-migration fork and reviewed manifest of every garden and asset pair",
+        "No live broadcast; use the owning migration rehearsal and direct adapter tests",
+        "Required participants: release operator."
+      ],
+      "steps": [
+        "Snapshot legacy registry, balances, roles and yield destinations",
+        "Rehearse legacy unlisting and pair provisioning; inject a second-asset failure and changed Hat/factory inputs",
+        "Retry from the unchanged fixture and read both registry entries, factory identities and yield destinations"
+      ],
+      "expected": "A failed pair leaves neither partial deployment nor partial registration. Changed roles, factory or existing entries reject stale calldata. Successful pairs map the intended assets; old history is retained and active new jars cannot be unlisted as legacy.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "any",
+      "tags": ["coverage-review-2026-11", "hats-jars", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
     }
   ]
 }

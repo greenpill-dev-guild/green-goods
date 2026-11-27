@@ -74,4 +74,28 @@ describe("AdminReasonDialog", () => {
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith(error));
   });
+
+  it.each([
+    "ReceiptWaitLimitError",
+    "WalletAnswerAbandonedError",
+  ])("closes, rather than offering Confirm again, after a %s: it may still land (PRD-1551)", async (name) => {
+    const onClose = vi.fn();
+    const onError = vi.fn();
+    renderWithProviders(
+      <AdminReasonDialog
+        isOpen
+        onClose={onClose}
+        onConfirm={vi.fn().mockRejectedValue(Object.assign(new Error(name), { name }))}
+        onError={onError}
+        title="Pause the pool"
+        description="Stops new commitments until you resume."
+        confirmLabel="Pause Pool"
+      />
+    );
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "storm damage" } });
+    fireEvent.click(screen.getByRole("button", { name: /pause pool/i }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(onError).not.toHaveBeenCalled();
+  });
 });

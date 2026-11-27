@@ -31,7 +31,7 @@ function GardenSelectorCheckbox({
       label={garden.name}
       description={formatMessage(
         {
-          id: "cockpit.community.cookies.stewardCount",
+          id: "hub.community.cookies.stewardCount",
           defaultMessage: "{count, plural, one {# steward} other {# stewards}} · {address}",
         },
         { count: garden.stewards.length, address: addressLabel }
@@ -78,23 +78,31 @@ export function GardenSelector({
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <AdminTextField
-          id="campaign-cookie-jar-garden-search"
-          className="min-w-0"
-          label={formatMessage({
-            id: "cockpit.community.cookies.searchGardens",
-            defaultMessage: "Search gardens",
-          })}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={formatMessage({
-            id: "cockpit.community.cookies.searchGardensPlaceholder",
-            defaultMessage: "Search by name, slug, or address",
-          })}
-        />
-        {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
-        <div className="flex flex-wrap gap-2 md:mb-9">
+      <AdminTextField
+        id="campaign-cookie-jar-garden-search"
+        label={formatMessage({
+          id: "hub.community.cookies.searchGardens",
+          defaultMessage: "Search gardens",
+        })}
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder={formatMessage({
+          id: "hub.community.cookies.searchGardensPlaceholder",
+          defaultMessage: "Search by name, slug, or address",
+        })}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="type-meta text-text-sub">
+          {formatMessage(
+            {
+              id: "hub.community.cookies.gardenSelectorSummary",
+              defaultMessage:
+                "{selected, plural, one {# selected garden} other {# selected gardens}} - {visible, plural, one {# visible garden} other {# visible gardens}}",
+            },
+            { selected: selectedGardenIds.length, visible: filteredGardens.length }
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             emphasis="secondary"
@@ -103,7 +111,7 @@ export function GardenSelector({
             disabled={!onSelectMany || filteredGardens.length === 0 || allVisibleSelected}
           >
             {formatMessage({
-              id: "cockpit.community.cookies.selectVisibleGardens",
+              id: "hub.community.cookies.selectVisibleGardens",
               defaultMessage: "Select Visible",
             })}
           </Button>
@@ -115,27 +123,17 @@ export function GardenSelector({
             disabled={!onClear || selectedGardenIds.length === 0}
           >
             {formatMessage({
-              id: "cockpit.community.cookies.clearGardens",
+              id: "hub.community.cookies.clearGardens",
               defaultMessage: "Clear",
             })}
           </Button>
         </div>
       </div>
-      <p className="type-meta text-text-sub">
-        {formatMessage(
-          {
-            id: "cockpit.community.cookies.gardenSelectorSummary",
-            defaultMessage:
-              "{selected, plural, one {# selected garden} other {# selected gardens}} - {visible, plural, one {# visible garden} other {# visible gardens}}",
-          },
-          { selected: selectedGardenIds.length, visible: filteredGardens.length }
-        )}
-      </p>
       <div className={`rounded-[var(--m3-shape-md)] border border-stroke-soft ${listClassName}`}>
         {visibleGardens.length === 0 ? (
           <p className="p-4 type-meta text-text-sub">
             {formatMessage({
-              id: "cockpit.community.cookies.noGardenMatches",
+              id: "hub.community.cookies.noGardenMatches",
               defaultMessage: "No gardens match that search.",
             })}
           </p>

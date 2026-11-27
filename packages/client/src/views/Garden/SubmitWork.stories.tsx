@@ -25,6 +25,7 @@ import {
   submitWorkControllerFixture,
 } from "../../../../shared/.storybook/submitWorkFixtures";
 import Work from ".";
+import { stagedWorkPhotos, stagedWorkVideo } from "../../../../shared/.storybook/workPhotoFixtures";
 
 const exitFlow = fn();
 
@@ -127,7 +128,7 @@ export const StartOnPromises: Story = {
 
 /**
  * A resumed draft whose garden is not the active one: Start in the draft's garden, which one
- * line under the steps names (decision 28).
+ * line under Start's info card names (decision 28).
  */
 export const StartForAResumedDraft: Story = {
   beforeEach: onStep("start", {
@@ -158,7 +159,7 @@ export const StartSkippedForOneAction: Story = {
 
 /**
  * Frame `submit-media`: from a promise's page the link skips Start, so Media opens with the
- * heading, the promise pinned, and the photo rule met.
+ * heading, the garden line under it, the promise pinned, and the photo rule met.
  */
 export const MediaForAPromise: Story = {
   tags: ["storybook-ci"],
@@ -171,7 +172,12 @@ export const MediaForAPromise: Story = {
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    await expect(canvas.getByText("1 photo added")).toBeVisible();
+    // Media is the first step here, so the garden line sits right under its info card and
+    // leads the pinned promise (PRD-1522).
+    const line = canvas.getByTestId("submission-garden");
+    await expect(line.previousElementSibling).toHaveAttribute("data-component", "FormInfo");
+    await expect(line.nextElementSibling).toBe(pinned);
+    await expect(canvas.getByText("1 media item added")).toBeVisible();
   },
 };
 
@@ -188,7 +194,7 @@ export const ReviewForAnOpenAsk: Story = {
   beforeEach: onStep("review", { takesUp: true }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const note = canvas.getByText(/^Uploading takes up the ask first\./);
+    const note = canvas.getByText(/^Uploading takes up the request first\./);
     await expect(note).toHaveTextContent("It opens 3 wallet or passkey prompts");
     await expect(canvas.getByRole("button", { name: "Upload Work" })).toHaveAccessibleDescription(
       note.textContent ?? ""
@@ -221,6 +227,27 @@ export const PromiseSheet: Story = {
 /** Work that isn't for a promise pins nothing. */
 export const MediaWithoutAPromise: Story = {
   beforeEach: onStep("media", { linked: false }),
+};
+
+/** Two required media items, met by a photo and a video, in the toolbar language. */
+export const MediaWithVideo: Story = {
+  beforeEach: () => {
+    const cleanup = onStep("media", { linked: false })();
+    const controller = submitWorkControllerFixture("media", { linked: false });
+    mocked(useWorkSubmissionFlowController).mockReturnValue({
+      ...controller,
+      images: [...stagedWorkPhotos(1), stagedWorkVideo("walkthrough.mp4")],
+      mediaConfig: {
+        ...controller.mediaConfig,
+        title: "",
+        description: "",
+        required: true,
+        minImageCount: 2,
+      },
+      minRequired: 2,
+    });
+    return cleanup;
+  },
 };
 
 /** Real photo, fictional data, no promise: the documentation's evidence example. */

@@ -2,7 +2,10 @@
 
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useGardenPoolController } from "../../../hooks/client-ui/pool/useGardenPoolController";
+import {
+  useGardenPoolController,
+  usePoolAccess,
+} from "../../../hooks/client-ui/pool/useGardenPoolController";
 import { commitmentFixture, poolFixture } from "../../test-utils/commitment-pooling-fixtures";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
@@ -216,6 +219,12 @@ describe("useGardenPoolController", () => {
     mocks.hasRole = true;
     rerender({ targetPool: poolFixture({ state: "OPEN", poolType: "PROTOCOL" }) });
     expect(result.current.canCreate).toBe(true);
+  });
+
+  it("offers no creation before Home knows the garden's pool, whatever the reader's roles", () => {
+    mocks.hasRole = true;
+    const { result } = renderHookWithProviders(() => usePoolAccess(undefined));
+    expect(result.current.canCreate).toBe(false);
   });
 
   it("knows whether the reader stewards the pool only once the role reads answer", () => {

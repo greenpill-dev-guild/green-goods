@@ -1,4 +1,5 @@
 import { createLogger } from "../logger";
+import { captureAgentException } from "../sentry";
 import { readControl } from "./controls";
 import { inTransaction } from "./database";
 import { decryptConversationChat } from "./identity-store";
@@ -30,6 +31,18 @@ export interface ReplyIntent {
 
 function payloadContext(outboxId: string): string {
   return `delivery_outbox.payload:${outboxId}`;
+}
+
+/** A reply as it was written, or null once retention has removed its content. */
+export function readReplyMessage(
+  core: ReportingCore,
+  row: { id: string; payload_ciphertext: string | null }
+): OutboundMessage | null {
+  return row.payload_ciphertext
+    ? (JSON.parse(
+        core.keyring.open(row.payload_ciphertext, payloadContext(row.id))
+      ) as OutboundMessage)
+    : null;
 }
 
 /** Call inside the committing transaction. A repeated dedupe key returns null and sends nothing. */
@@ -95,7 +108,15 @@ const CONSENT_EXEMPT = new Set([
   "publish.unknown",
   "publish.uncertain",
   "publish.reverted",
+  "publish.stillConfirming",
+  "publish.unconfirmed",
+  "publish.attestationUnread",
+  "publish.publishedChecking",
   "review.recorded",
+  "review.recordedChecking",
+  "review.stillConfirming",
+  "review.unconfirmed",
+  "review.attestationUnread",
 ]);
 
 interface OutboxRow {
@@ -203,11 +224,7 @@ export async function dispatchOutbox(
       const claim = claimNext(core, conversationId);
       if (!claim) break;
       const chat = decryptConversationChat(core, conversationId);
-      const message = claim.row.payload_ciphertext
-        ? (JSON.parse(
-            core.keyring.open(claim.row.payload_ciphertext, payloadContext(claim.row.id))
-          ) as OutboundMessage)
-        : null;
+      const message = readReplyMessage(core, claim.row);
       const result =
         chat && message
           ? await transport
@@ -281,11 +298,7 @@ async function retireEarlierQuestion(
     } | null;
     if (!earlier || (JSON.parse(earlier.options_json) as unknown[]).length === 0) return;
     // The question as sent lets the channel keep its links; a purge leaves only the question row.
-    const message = earlier.payload_ciphertext
-      ? (JSON.parse(
-          core.keyring.open(earlier.payload_ciphertext, payloadContext(earlier.id))
-        ) as OutboundMessage)
-      : null;
+    const message = readReplyMessage(core, earlier);
     await transport.retireChoices?.({
       providerRealm: chat.providerRealm,
       externalChatId: chat.chatId,
@@ -342,24 +355,48 @@ function recordSendResult(
   });
 }
 
-/** A failed delivery waits for its next attempt, or ends once it is terminal or exhausted. */
+/**
+ * A failed delivery waits for its next attempt, or ends once it is terminal or exhausted. Moving
+ * into a wait leaves a warning; moving into the end leaves an error and an error event, since the
+ * message never reaches the chat. A provider can repeat a failed status for one attempt, and a
+ * repeat that leaves the state as it was records nothing, so it cannot flood the error tracker.
+ * Only the reply's kind, the error code and the attempt count are recorded.
+ */
 export function endOrRetry(
   core: ReportingCore,
   outboxId: string,
   input: { terminal: boolean; code: string; next: number; now: number }
 ): void {
+  const state = input.terminal ? "terminal_failed" : "retry_wait";
+  const before = core.db
+    .query("SELECT state, reply_kind, attempts FROM delivery_outbox WHERE id = $id")
+    .get({ id: outboxId }) as { state: string; reply_kind: string; attempts: number } | null;
   core.db
     .query(
       `UPDATE delivery_outbox SET state = $state, last_error_code = $code, next_attempt_at = $next, updated_at = $now
        WHERE id = $id`
     )
-    .run({
-      id: outboxId,
-      state: input.terminal ? "terminal_failed" : "retry_wait",
-      code: input.code,
-      next: input.next,
-      now: input.now,
-    });
+    .run({ id: outboxId, state, code: input.code, next: input.next, now: input.now });
+  if (!before || before.state === state) return;
+  const fields = {
+    replyKind: before.reply_kind,
+    errorCode: input.code,
+    attempt: before.attempts,
+    maxAttempts: core.settings.maxOutboxAttempts,
+  };
+  if (!input.terminal) {
+    log.warn(
+      { ...fields, retryInMs: input.next - input.now },
+      "Chat message not delivered; trying again"
+    );
+    return;
+  }
+  log.error(fields, "Chat message could not be delivered");
+  captureAgentException(new Error("Chat message could not be delivered"), {
+    source: "reporting.outbox",
+    surface: "reporting",
+    metadata: fields,
+  });
 }
 
 /** A crash between claim and result leaves `dispatching`; treat it as uncertain and retry later. */

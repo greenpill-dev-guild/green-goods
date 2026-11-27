@@ -81,6 +81,7 @@ test("package changes require every package and supply-chain workflow", () => {
 test("guidance-consumer source changes also require supply-chain guardrails", () => {
   assert.deepEqual(expectedWorkflowNames(["packages/agent/src/index.ts"]), [
     "Agent",
+    "Client",
     "Supply Chain Guardrails",
   ]);
 });

@@ -1,8 +1,10 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useEffect, useState } from "react";
+import { type ComponentType, useEffect, useState } from "react";
+import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
@@ -20,10 +22,15 @@ import {
 import {
   nameVoucherMembers,
   STORY_GREEN_GOODS_CLAIMS,
+  STORY_GREEN_GOODS_COMMITMENTS,
+  STORY_GREEN_GOODS_RETURN_FAILED,
   STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
   STORY_KWESI_ASK,
   STORY_LINA_ASK,
+  STORY_LONG_NAME_MEMBER,
+  STORY_MARA_VISITED,
+  STORY_TECH_AND_SUN_COMMITMENTS,
   STORY_TECH_AND_SUN_CLAIMS,
   STORY_TECH_AND_SUN_MEMBER_CLAIMS,
   STORY_TECH_AND_SUN_MEMBER_VOUCHERS,
@@ -107,13 +114,14 @@ const meta: Meta<typeof PoolClaimsCard> = {
     docs: {
       description: {
         component:
-          "Review Promises (PRD-1025, named by DL-077), at the top of the Promises tab's right column: everyone asking to take up a request or an offer. It is always there, one quiet line when nothing waits. Each row is two lines, who and when, then what for, with Decline… and Approve on the right; the row opens its promise. Pressing Approve puts the act's progress in the pair's place, then the outcome, which stays until the steward leaves the tab, and approving one closes the others on the same promise. A failure brings the pair back as Try Again, and a new ask joins the end marked New.",
+          "Review Promises (PRD-1025, named by DL-077), at the top of the Promises tab's right column and first on a phone: everything that waits on the steward, from asks to take up a request or an offer to a voucher booking's next act (approve, accept, report a visit, propose a return, retry a transfer). It is always there, one quiet line when nothing waits. Each row is two lines, who and when, then what for, with Decline… and Approve on the right; the row opens its promise. Pressing Approve puts the act's progress in the pair's place, then the outcome, which stays until the steward leaves the tab, and approving one closes the others on the same promise. A failure brings the pair back as Try Again, and a new ask joins the end marked New.",
       },
     },
   },
   args: {
     onDecline: () => undefined,
     onOpen: () => undefined,
+    onOpenPromise: () => undefined,
     console: consoleWith(),
     vouchers: storyVoucherConsole(),
     target: { gardenName: "Rio Rainforest Lab", isProtocol: false },
@@ -209,7 +217,7 @@ export const Paused: Story = {
 /**
  * Tech and Sun's voucher bookings (PRD-1297 surface 6): Lina's hub day waits on
  * the Safe's approval (Approve…), and Kwesi's deposit is confirmed, so the steward
- * can accept it (Accept…). Neither is a one-tap Approve.
+ * can accept it (Accept and Start…). Neither is a one-tap Approve.
  */
 export const VoucherAsks: Story = {
   args: {
@@ -237,11 +245,13 @@ export const VoucherApproveBooking: Story = {
   },
 };
 
-/** Accept… opens the acceptance with its four checks, all holding. */
+/** Accept and Start… opens the acceptance with its four checks, all holding. */
 export const VoucherAccept: Story = {
   ...VoucherAsks,
   play: async ({ canvasElement }) => {
-    await userEvent.click(await within(canvasElement).findByRole("button", { name: "Accept…" }));
+    await userEvent.click(
+      await within(canvasElement).findByRole("button", { name: "Accept and Start…" })
+    );
     await expect(await screen.findByText("Accept Kwesi?")).toBeVisible();
   },
 };
@@ -278,7 +288,7 @@ export const VoucherAskGreenGoods: Story = {
 
 /**
  * A member's lesson beside the hub days (PRD-1299 slice 2): Teo approved Maya's
- * booking from his own account, so her row says he did, and Accept… opens his
+ * booking from his own account, so her row says he did, and Accept and Start… opens his
  * checks, never the Safe's.
  */
 export const VoucherMemberAsk: Story = {
@@ -296,7 +306,7 @@ export const VoucherMemberAsk: Story = {
       /^1 Teo Alves voucher in escrow · Teo Alves approved · accept by /
     );
     const row = within(line.closest("li")!);
-    await userEvent.click(row.getByRole("button", { name: "Accept…" }));
+    await userEvent.click(row.getByRole("button", { name: "Accept and Start…" }));
     // The dialog fades in, so its words are read once it has.
     await waitFor(async () => expect(await screen.findByText("Accept Maya?")).toBeVisible());
     await expect(
@@ -316,11 +326,11 @@ export const VoucherAskWaitingForIssuer: Story = {
     const card = within(canvasElement);
     await expect(await card.findByText("Waiting for Tech and Sun")).toBeVisible();
     await expect(card.queryByRole("button", { name: "Approve…" })).toBeNull();
-    await expect(card.getByRole("button", { name: "Accept…" })).toBeEnabled();
+    await expect(card.getByRole("button", { name: "Accept and Start…" })).toBeEnabled();
   },
 };
 
-/** Kwesi's deposit landed, but his ask names no agreement the acceptance can name: no Accept…. */
+/** Kwesi's deposit landed, but his ask names no agreement the acceptance can name: no Accept and Start…. */
 export const VoucherAgreementMissing: Story = {
   args: {
     ...VoucherAsks.args,
@@ -334,7 +344,7 @@ export const VoucherAgreementMissing: Story = {
     const card = within(canvasElement);
     await expect(await card.findByText("Agreement missing")).toBeVisible();
     await expect(card.getByText("No agreement to accept · they book again")).toBeVisible();
-    await expect(card.queryByRole("button", { name: "Accept…" })).toBeNull();
+    await expect(card.queryByRole("button", { name: "Accept and Start…" })).toBeNull();
   },
 };
 
@@ -367,5 +377,125 @@ export const VoucherAcceptedAfterRefresh: Story = {
     await expect(await card.findByText("Accepted")).toBeVisible();
     await expect(card.queryByText("Approved")).toBeNull();
     await expect(card.getAllByText("Booking · Hub day, up to 4 hours")).toHaveLength(2);
+  },
+};
+
+/**
+ * A hub day for Tech and Sun's steward (decision 1 of the 18 November 2026 review): every act
+ * that waits on them in one queue. Lina's booking waits on the Safe's approval, Kwesi's deposit
+ * on acceptance, and Mara's visit, which was yesterday, on its report.
+ */
+export const VoucherEveryAct: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_TECH_AND_SUN_COMMITMENTS,
+      claims: STORY_TECH_AND_SUN_CLAIMS,
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      bookings: [STORY_MARA_VISITED],
+    }),
+    target: { gardenName: "Tech and Sun", isProtocol: false },
+    safe: STORY_TECH_AND_SUN_SAFE,
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(await card.findByRole("button", { name: "Approve…" })).toBeEnabled();
+    await expect(card.getByRole("button", { name: "Accept and Start…" })).toBeEnabled();
+    await expect(card.getByRole("button", { name: "Report Visit…" })).toBeEnabled();
+    await expect(card.getByText("Visit to report")).toBeVisible();
+    await expect(
+      card.getByText(
+        "Everything waiting on you: people asking to take a promise up, bookings to approve, deposits to accept and visits to report."
+      )
+    ).toBeVisible();
+  },
+};
+
+/** Report Visit… opens the visit's facts; once reported, the row keeps its outcome for the visit. */
+export const VoucherReportVisit: Story = {
+  ...VoucherEveryAct,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await userEvent.click(await card.findByRole("button", { name: "Report Visit…" }));
+    const dialog = await screen.findByRole("dialog");
+    await expect(within(dialog).getByText("Mara checked in")).toBeVisible();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Report Visit" }));
+    const row = card.getByTestId("pool-booking-43");
+    await waitFor(() => expect(within(row).getByText("Reported")).toBeVisible());
+    await expect(within(row).getByText("Waiting for Mara to confirm")).toBeVisible();
+  },
+};
+
+/** Lina's Claude access stopped after 12 days: Propose Return… opens what comes back, within the terms. */
+export const VoucherProposeReturn: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_GREEN_GOODS_COMMITMENTS,
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole(STORY_GREEN_GOODS_VOUCHERS),
+    target: { gardenName: "Green Goods Community Garden", isProtocol: true },
+    safe: STORY_GREEN_GOODS_SAFE,
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(await card.findByText("Return to propose")).toBeVisible();
+    await userEvent.click(card.getByRole("button", { name: "Propose Return…" }));
+    await expect(await screen.findByText("Propose a Return to Lina")).toBeVisible();
+  },
+};
+
+/** The 6 back to Lina didn't arrive: anyone can retry the same transfer, in one tap. */
+export const VoucherRetryTransfer: Story = {
+  args: {
+    ...VoucherProposeReturn.args,
+    vouchers: storyVoucherConsole(STORY_GREEN_GOODS_RETURN_FAILED),
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(await card.findByText("Needs recovery")).toBeVisible();
+    await expect(card.getByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+  },
+};
+
+/**
+ * A long name in Portuguese, reported this visit: the pill that names her gives way after the
+ * line beside it and keeps its words as a title, and her name keeps its length first.
+ */
+export const VoucherReportedLongNamePt: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    ...VoucherEveryAct.args,
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      bookings: [{ ...STORY_MARA_VISITED, holder: STORY_LONG_NAME_MEMBER }],
+    }),
+  },
+  decorators: [
+    (Story: ComponentType) => (
+      <IntlProvider locale="pt" messages={ptMessages}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await userEvent.click(await card.findByRole("button", { name: "Informar visita…" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await userEvent.click(dialog.getByRole("button", { name: "Informar visita" }));
+    const row = card.getByTestId("pool-booking-43");
+    await waitFor(() =>
+      expect(
+        within(row).getByTitle("Aguardando Maria Aparecida dos Santos Oliveira confirmar")
+      ).toBeVisible()
+    );
   },
 };

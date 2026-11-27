@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "REWARD_PAYER_DEPLOYMENT",
+  "network": "arbitrum",
+  "chainId": 42161,
+  "address": "0xEd1244F2c65f5Ddd052912Dd3F6E52A7f22F2829",
+  "runtimeCodeHash": "0x3b909f2db969a637af9e4303b7f314935ab951c5470d6e6c2c53ded02bf5c5db",
+  "creationCodeHash": "0xe0dd8fcda7835ce952d0e8e416bbea3cb0a044cdaf8f9f7dc2d94f9886eedfb5",
+  "transactionHash": "0x9ab795e47f418749db5366d5e0c5855ac28a588ec8928a535cc8c38a1c4e84d5",
+  "blockNumber": 526958954,
+  "blockHash": "0xc20d40e710e9a6c5c8cc9e5080ebc549e2ea622f4bac5ecd39bfa2b7648dd210",
+  "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "nonce": 1142,
+  "commit": "6153127b8be62090eba1a7ef085a37cebdebc84b",
+  "verifiedAt": "2026-11-24T00:05:52.628Z"
+}

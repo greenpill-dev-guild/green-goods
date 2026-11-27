@@ -24,6 +24,7 @@ import { WorkFulfills } from "./WorkFulfills";
 import { WorkStatusNotice } from "./WorkStatusNotice";
 import { WorkUploadFooter } from "./WorkUploadFooter";
 import { WorkViewSection } from "./WorkViewSection";
+import { hasOtherWorkReviewer, OwnWorkReviewNotice } from "./OwnWorkReviewNotice";
 
 export const GardenWork: React.FC = () => {
   const intl = useIntl();
@@ -49,6 +50,7 @@ export const GardenWork: React.FC = () => {
     isOfflineWork,
     isOnline,
     isRetrying,
+    takeUpStage,
     gardensLoading,
     workLoading,
     workLoadError,
@@ -118,17 +120,22 @@ export const GardenWork: React.FC = () => {
     })
   );
 
-  // The gardener's own queued work: where it stands and what they can do about it.
+  // The gardener's own queued work: where it stands and what they can do about it. The notice
+  // and the bar read one answer for what preparation is doing with it, so they never disagree.
   const ownQueuedWork = isOfflineWork && isUserAddress(work.gardenerAddress, user?.id);
-  const retryNotice = ownQueuedWork ? <WorkStatusNotice work={work} isOnline={isOnline} /> : null;
+  const preparation = ownQueuedWork ? uploads.preparationOf(work.id) : "working";
+  const retryNotice = ownQueuedWork ? (
+    <WorkStatusNotice work={work} isOnline={isOnline} preparation={preparation} />
+  ) : null;
   const retryFooter = ownQueuedWork ? (
     <WorkUploadFooter
       work={work}
       isOnline={isOnline}
-      pausedForDataSaver={uploads.pausedForDataSaver}
+      preparation={preparation}
       onPrepareNow={uploads.prepareNow}
       onRetry={handleRetry}
       isRetrying={isRetrying}
+      takeUpStage={takeUpStage}
       onTryAgain={queuedWork.tryAgain}
       isTryingAgain={queuedWork.isTryingAgain}
       onDiscard={async () => {
@@ -138,9 +145,19 @@ export const GardenWork: React.FC = () => {
     />
   ) : null;
 
+  // A steward's own pending work is never theirs to decide: the chain refuses it (PRD-1617).
+  const ownPendingWork =
+    viewingMode === "steward" &&
+    effectiveStatus === "pending" &&
+    !isOfflineWork &&
+    isUserAddress(work.gardenerAddress, user?.id);
+
   const queuedDecision = uploads.decisionFor(work.id);
   const approvalFooter =
-    viewingMode === "steward" && effectiveStatus === "pending" && !queuedDecision ? (
+    viewingMode === "steward" &&
+    effectiveStatus === "pending" &&
+    !queuedDecision &&
+    !ownPendingWork ? (
       <>
         {/* Backdrop - Fades in over content */}
         <div
@@ -416,7 +433,15 @@ export const GardenWork: React.FC = () => {
           onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
           onShare={handleShare}
           onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-          notice={retryNotice}
+          notice={
+            retryNotice ??
+            // Which notice is true waits on the garden's reviewers; the acts stay hidden.
+            (ownPendingWork && garden !== undefined ? (
+              <OwnWorkReviewNotice
+                soleReviewer={!hasOtherWorkReviewer(garden, work.gardenerAddress)}
+              />
+            ) : null)
+          }
           fulfills={<WorkFulfills chainId={chainId} workUID={onChainWorkId} gardenId={gardenId} />}
           footer={retryFooter || approvalFooter || decisionFooter || successFooter}
           reserveFooterSpace={Boolean(

@@ -1,3 +1,4 @@
+import type { AuthMode } from "@green-goods/shared/hooks/auth/useAuth";
 import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -10,6 +11,7 @@ import {
   isHeicFile,
   isVideoFile,
   isWorkDocument,
+  isWorkMedia,
   validateWorkAttachments,
   validateWorkVideo,
   WORK_DOCUMENT_ACCEPT,
@@ -79,12 +81,12 @@ interface WorkMediaProps {
   onRemoveBrokenMedia?: (surface: "media") => void;
   workSubmissionJourneyId?: string | null;
   ensureWorkSubmissionJourneyId?: () => string;
-  authMode?: "wallet" | "passkey" | "embedded" | null;
+  authMode?: AuthMode;
   actionUID?: number | null;
   /** A HEIC photo's conversion while it waits for the decoder; `undefined` otherwise. */
   heicStateOf?: (file: File) => PendingPhotoState | undefined;
   onRetryHeicConversion?: (file: File) => void;
-  /** The promise this work is for, after the heading (O9). */
+  /** After the heading: the first step's garden line, then the work's promise (O9, PRD-1522). */
   pinned?: React.ReactNode;
 }
 
@@ -478,11 +480,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       toastService.error({
         title: intl.formatMessage({
           id: "app.garden.upload.compressionFailedTitle",
-          defaultMessage: "Couldn't process those images",
+          defaultMessage: "Couldn't prepare those files",
         }),
         message: intl.formatMessage({
           id: "app.garden.upload.compressionFailedMessage",
-          defaultMessage: "Try fewer or smaller images, or check your connection.",
+          defaultMessage: "Try fewer or smaller files, or check your connection.",
         }),
         context: "mediaUpload",
         error,
@@ -522,23 +524,23 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     config?.description ||
     intl.formatMessage({
       id: "app.garden.submit.tab.media.instruction",
-      defaultMessage: "Please take a clear photo of the plants in the garden",
+      defaultMessage: "Add media that clearly shows the work you did.",
     });
   const neededItems = useMemo(() => config?.needed?.filter(Boolean) ?? [], [config?.needed]);
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
-  const photoCount = images.filter((file) => !isVideoFile(file) && !isWorkDocument(file)).length;
+  const mediaCount = images.filter((file) => isWorkMedia(file, { pendingHeic: "accept" })).length;
 
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={title} info={description} Icon={RiImageFill} />
       {pinned}
-      {minRequired > 0 || photoCount > 0 ? (
-        <MediaRulePill met={photoCount >= minRequired}>
-          {photoCount >= minRequired
-            ? intl.formatMessage({ id: "app.garden.upload.mediaRule.added" }, { count: photoCount })
+      {minRequired > 0 || mediaCount > 0 ? (
+        <MediaRulePill met={mediaCount >= minRequired}>
+          {mediaCount >= minRequired
+            ? intl.formatMessage({ id: "app.garden.upload.mediaRule.added" }, { count: mediaCount })
             : intl.formatMessage(
                 { id: "app.garden.upload.mediaRule.needed" },
-                { current: photoCount, required: minRequired }
+                { current: mediaCount, required: minRequired }
               )}
         </MediaRulePill>
       ) : null}

@@ -14,12 +14,14 @@
 import type { CommitmentComposerValues } from "../../hooks/commitment-pooling/useCommitmentComposerForm";
 import { SETTLEMENT_ENABLED } from "../../config/app";
 import type { Address } from "../../types/domain";
-import { parseUsdCents } from "../wallet/good-dollar-price";
+import { parseUsdCents, usdCentsToGoodDollarWei } from "../wallet/good-dollar-price";
 import { CONSIDERATION_RAIL_ORDINAL, type CommitmentCreationPayload } from "./job-types";
+import { rewardLegAmountMatchesDollars } from "./reward-legs";
 import {
   buildCommitmentMetadata,
   COMMITMENT_REWARD_RECORD_VERSION,
   type CommitmentDisplayGroup,
+  type CommitmentRewardLegRecord,
   type CommitmentRewardRecord,
 } from "./metadata";
 
@@ -34,14 +36,16 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
 const ZERO_BYTES32 = `0x${"0".repeat(64)}` as `0x${string}`;
 
 /**
- * The dollars a G$ reward was typed in, beside the amount they became, for the
- * metadata to keep (D13). Only a reward entered in dollars has one.
+ * The dollars a G$ reward was typed in, beside the amount they became and the
+ * G$ price that made them so, for the metadata to keep (D13, PRD-1556). Only a
+ * reward entered in dollars has one.
  */
 function rewardRecordOf(
   values: Pick<
     CommitmentComposerValues,
     "considerationRail" | "considerationUsd" | "considerationAmount"
-  >
+  >,
+  goodDollarPrice: bigint | undefined
 ): CommitmentRewardRecord | undefined {
   if (values.considerationRail !== "CELO_SETTLEMENT" || values.considerationUsd === undefined) {
     return undefined;
@@ -53,6 +57,9 @@ function rewardRecordOf(
     version: COMMITMENT_REWARD_RECORD_VERSION,
     usdCents: cents.toString(),
     goodDollarWei: amount.toString(),
+    ...(goodDollarPrice && goodDollarPrice > 0n
+      ? { goodDollarPrice: goodDollarPrice.toString() }
+      : {}),
   };
 }
 
@@ -89,6 +96,15 @@ export function buildCommitmentCreationPayload(input: {
    * defaults to steward review); a member composing alone may not.
    */
   allowGatedOffers?: boolean;
+  /** Steward console only. The contract independently verifies the calling steward. */
+  allowRequestReward?: boolean;
+  /**
+   * The G$ price the dollars were converted at (cUSD per G$, 18 decimals), kept
+   * beside the reward so what each part was worth at Create stays on record.
+   */
+  goodDollarPrice?: bigint;
+  /** The reward's parts paid from the steward's wallet, declared now and fixed with the CID. */
+  rewardLegs?: CommitmentRewardLegRecord[];
   /**
    * Delegated creation, and only for a `StewardCaptured` commitment: the member
    * whose contribution a steward is capturing. Every other type must send the
@@ -99,6 +115,13 @@ export function buildCommitmentCreationPayload(input: {
   capturedFor?: Address;
 }): Omit<CommitmentCreationPayload, "creationRequestKey"> {
   const { values, clientCommitmentId, poolId, gardenAddress } = input;
+  if (
+    values.direction === "REQUEST" &&
+    values.considerationRail !== "NONE" &&
+    !input.allowRequestReward
+  ) {
+    throw new Error("Only a pool steward can create a Request with a reward");
+  }
   if (!SETTLEMENT_ENABLED && values.considerationRail === "CELO_SETTLEMENT") {
     throw new Error("G$ reward promises are unavailable in this release");
   }
@@ -116,7 +139,21 @@ export function buildCommitmentCreationPayload(input: {
     token: rail === "ARBITRUM_EXTERNAL" ? (values.considerationToken as Address) : ZERO_ADDRESS,
     amount: rail === "NONE" ? 0n : BigInt(values.considerationAmount || "0"),
   };
-  const reward = rewardRecordOf(values);
+  const reward = rewardRecordOf(values, input.goodDollarPrice);
+  // A part paid from the steward's wallet is balanced 1:1 in dollars with the G$
+  // part at the price read for this Create (PRD-1556): the G$ amount is exactly
+  // the dollars at that recorded price, and the part's amount is exactly the same
+  // dollars in its token. A Create where any of this differs is refused rather than sent.
+  if (input.rewardLegs?.length) {
+    const balanced =
+      reward?.goodDollarPrice !== undefined &&
+      BigInt(reward.goodDollarWei) ===
+        usdCentsToGoodDollarWei(BigInt(reward.usdCents), BigInt(reward.goodDollarPrice)) &&
+      input.rewardLegs.every(
+        (leg) => leg.usdCents === reward.usdCents && rewardLegAmountMatchesDollars(leg)
+      );
+    if (!balanced) throw new Error("A reward's USDC part must equal its G$ part in dollars");
+  }
 
   return {
     clientCommitmentId,
@@ -161,6 +198,7 @@ export function buildCommitmentCreationPayload(input: {
       links: values.links.map((url) => ({ url })),
       ...(input.displayGroup ? { displayGroup: input.displayGroup } : {}),
       ...(reward ? { reward } : {}),
+      ...(input.rewardLegs?.length ? { rewardLegs: input.rewardLegs } : {}),
     }),
     needUID: ZERO_BYTES32,
     counterCommitmentId: 0n,

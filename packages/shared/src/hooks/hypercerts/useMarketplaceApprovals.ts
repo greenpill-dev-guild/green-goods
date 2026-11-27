@@ -46,6 +46,11 @@ import { useIntl } from "react-intl";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { batchKeys } from "../../config/query-keys/garden";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
+import {
+  type HeldOrSent,
+  heldOrSentEnding,
+  recordedSendAct,
+} from "../../modules/app/sendActAnalytics";
 import { marketplaceKeys } from "../../config/query-keys/hypercert";
 
 export interface UseMarketplaceApprovalsResult {
@@ -66,6 +71,11 @@ export interface UseMarketplaceApprovalsResult {
   /** How many signatures granting what is missing takes, or null until that can be said. */
   signatures: number | null;
 }
+
+/** A press's one read of the approvals: the calls still missing, or why the read failed. */
+type ApprovalRead =
+  | { txs: Awaited<ReturnType<typeof buildApprovalTransactions>> }
+  | { error: unknown };
 
 interface ApprovalSend {
   step: MarketplaceApprovalStep;
@@ -141,7 +151,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
     account: NonNullable<typeof steward>,
     sends: readonly ApprovalSend[],
     budget: BatchBudget
-  ) => {
+  ): Promise<HeldOrSent> => {
     const record: Extract<MarketplacePendingSubmission, { kind: "approval" }> = {
       kind: "approval",
       steps: sends.map(({ step }) => step),
@@ -166,7 +176,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
       );
     } catch (error) {
       // Sent, and nobody can say yet whether it landed: the record and its reference stay.
-      if (error instanceof BatchConfirmationPendingError) return;
+      if (error instanceof BatchConfirmationPendingError) return "confirming";
       // It was promised one signature, so going one approval at a time takes another press.
       if (error instanceof Error && NOT_BATCHABLE.has(error.message))
         queryClient.setQueryData(overCeilingsKey, true);
@@ -185,24 +195,32 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
       async (step) =>
         (await checkMarketplaceApprovals(account, chainId))[step as MarketplaceApprovalStep]
     )({ account, chainId, itemIds: record.steps, receipts: [] }).catch(() => []);
-    if (granted.length === record.steps.length) store().clear(pendingScope);
+    if (granted.length === record.steps.length) {
+      store().clear(pendingScope);
+      return "confirmed";
+    }
     // Until the chain shows both, the send stays pending under its receipt, which Check
     // Confirmation reads again.
-    else checkpoint({ kind: "transaction", hash: landed.hash });
+    checkpoint({ kind: "transaction", hash: landed.hash });
+    return "confirming";
   };
 
-  const grantMutation = useMutation({
-    mutationFn: async () => {
+  // One act per press, from the first signature to the last approval's receipt (PRD-1571).
+  const recordedGrant = recordedSendAct(
+    { act: "marketplace_approval", authMode: sender?.authMode, chainId },
+    async (read: ApprovalRead | undefined): Promise<HeldOrSent> => {
       if (!steward || !sender)
         throw new Error(
           formatMessage({
             id: !steward ? "app.account.signInRequired" : "app.account.signerNotReady",
           })
         );
-      if (!scope || !store().begin(scope)) return;
+      if (!scope || !store().begin(scope)) return "held";
       try {
         await sender.assertOwnership?.(steward, chainId);
-        const txs = await buildApprovalTransactions(steward, chainId);
+        // The press's read failed: the act records that ending.
+        if (read && "error" in read) throw read.error;
+        const txs = read?.txs ?? (await buildApprovalTransactions(steward, chainId));
         const sends = (
           [
             ["exchangeApproved", txs.grantExchange],
@@ -212,10 +230,8 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
           call ? [{ step, call: { ...call, account: steward, chainId } }] : []
         );
         const budget = route.rail ? marketplaceApprovalBudget(route.rail, chainId) : null;
-        if (sends.length > 1 && together && budget) {
-          await grantTogether(scope, steward, sends, budget);
-          return;
-        }
+        if (sends.length > 1 && together && budget)
+          return await grantTogether(scope, steward, sends, budget);
         // The second approval starts only after the first has confirmed.
         for (const { step, call } of sends) {
           const record: MarketplacePendingSubmission = { kind: "approval", steps: [step] };
@@ -234,7 +250,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
                 ...record,
                 reference: { kind: "transaction", hash: result.hash },
               });
-              return;
+              return "confirming";
             }
             store().clear(scope);
           } catch (error) {
@@ -248,9 +264,29 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
             throw error;
           }
         }
+        return "confirmed";
       } finally {
         store().finish(scope);
       }
+    },
+    heldOrSentEnding
+  );
+
+  const grantMutation = useMutation({
+    mutationFn: async (): Promise<HeldOrSent> => {
+      // One fresh read per press. When it finds both approvals already granted the press sends
+      // nothing, so it records no act (PRD-1561); a read that failed is rethrown inside the
+      // recorded run, which records how it ended.
+      const read =
+        steward && sender
+          ? await buildApprovalTransactions(steward, chainId).then(
+              (txs): ApprovalRead => ({ txs }),
+              (error: unknown): ApprovalRead => ({ error })
+            )
+          : undefined;
+      if (read && "txs" in read && !read.txs.grantExchange && !read.txs.approveMinter)
+        return "confirmed";
+      return recordedGrant(read);
     },
     onSuccess: () => {
       const keysToInvalidate = queryInvalidation.invalidateMarketplace();

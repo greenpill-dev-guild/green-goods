@@ -25,6 +25,7 @@ export type AtomicBatchAction =
   | "pool-setup"
   | "commitment-creations"
   | "reward-edits"
+  | "confirmer-edits"
   | "marketplace-approvals"
   | "proof-and-send";
 
@@ -66,6 +67,12 @@ export interface TxResult {
   broadcastReference?: BroadcastReference;
   /** Opaque wallet identifiers have no execution receipt yet. */
   confirmation?: "pending";
+  /**
+   * What a pending result waits for. `safe-signers`: the wallet answered with a Safe proposal,
+   * whose hash is the Safe's own (safeTxHash). It lands only once the Safe's owners approve it and
+   * someone runs it, and the transaction that runs it has another hash.
+   */
+  awaiting?: "safe-signers";
   hash: Hex;
   sponsored: boolean;
 }
@@ -85,6 +92,31 @@ export interface TransactionSendOptions {
   onBroadcast?: (hash: Hex) => Promise<void>;
   /** Opaque batch identity, checkpointed before any receipt wait. */
   onBatchReference?: (reference: BatchReference) => Promise<void>;
+  /**
+   * How long to wait for the receipt once the network has the transaction. When
+   * it passes, the send rejects with `ReceiptWaitLimitError`: the transaction went
+   * out and may still land. The wallet and embedded senders wait 120 seconds
+   * (`TX_RECEIPT_TIMEOUT_MS`) for a caller that names no limit: no receipt wait is
+   * open-ended (PRD-1551). A passkey send keeps its own 120 second limit; given
+   * this option, it ends with the same error when that limit passes, and without
+   * it, with viem's timeout as before.
+   */
+  receiptWaitLimitMs?: number;
+  /**
+   * Lets the person stop waiting for the wallet's answer. Aborted before the
+   * wallet answers, the send rejects with `WalletAnswerAbandonedError`. The
+   * wallet may still hold the request: an answer that comes later is still
+   * reported to `onBroadcastReference` and `onBroadcast`, so a caller that keeps
+   * a record of its sends keeps this one too. Only the wallet sender asks a
+   * wallet; the other senders ignore it.
+   */
+  signal?: AbortSignal;
+  /**
+   * Called when the wallet's answer waits on others rather than the network (`TxResult.awaiting`:
+   * a Safe's signers), just before the send returns it as pending. A caller that keeps only the
+   * hash learns here that the act has not landed.
+   */
+  onAwaiting?: (awaiting: NonNullable<TxResult["awaiting"]>) => void;
 }
 
 export interface AtomicBatchOptions extends BatchSendOptions {
@@ -132,6 +164,15 @@ export interface TransactionSender {
   /** Sign an order with the same account and chain as its subsequent transaction. */
   signTypedData?(request: AccountTypedDataRequest, options?: TransactionSendOptions): Promise<Hex>;
   assertOwnership?: (address: Address, chainId: number) => void | Promise<void>;
+  /**
+   * Refuses, before anything starts, an act this sender cannot sign now: a
+   * wallet account whose wallet has not answered (PRD-1499). It asks the person
+   * to reconnect, so call it only where a person started the act. Absent where
+   * the sender can always sign.
+   */
+  assertReadyToSign?: () => void;
+  /** Whether this sender can sign now, asked of nobody. Absent where it always can. */
+  readyToSign?: () => boolean;
   reconcileBroadcast?: (reference: BroadcastReference) => Promise<BroadcastConfirmation>;
   /** Send a single contract call */
   sendContractCall(call: ContractCall, options?: TransactionSendOptions): Promise<TxResult>;
@@ -188,6 +229,63 @@ export class TransactionRevertedError extends Error {
   ) {
     super(message);
     this.name = "TransactionRevertedError";
+  }
+}
+
+/**
+ * The receipt did not come within the send's limit. The transaction went out and
+ * may still land, so this is never a failure: what is on record confirms it later.
+ */
+export class ReceiptWaitLimitError extends Error {
+  /** The transaction still confirming, when the wait was for one; a UserOperation's wait names none. */
+  readonly hash?: Hex;
+
+  constructor(
+    readonly limitMs: number,
+    options?: { cause?: unknown; hash?: Hex }
+  ) {
+    super(`No receipt within ${limitMs / 1000}s. The transaction may still land.`, options);
+    this.name = "ReceiptWaitLimitError";
+    if (options?.hash) this.hash = options.hash;
+  }
+}
+
+const RECEIPT_WAIT_TIMEOUTS: ReadonlySet<string> = new Set([
+  "WaitForTransactionReceiptTimeoutError",
+  "WaitForUserOperationReceiptTimeoutError",
+  "WaitForCallsStatusTimeoutError",
+]);
+
+/** Whether a wait for a receipt or a wallet batch's status ran out of its time (viem's timeout). */
+export function isReceiptWaitTimeout(error: unknown): boolean {
+  return error instanceof Error && RECEIPT_WAIT_TIMEOUTS.has(error.name);
+}
+
+/**
+ * The limit, when a receipt wait given one ran out of it: viem's own timeout, for
+ * a transaction or a UserOperation, becomes `ReceiptWaitLimitError`, naming the
+ * transaction when there is one. Any other failure, or a wait with no limit,
+ * passes through unchanged.
+ */
+export function asReceiptWaitLimit(
+  error: unknown,
+  limitMs: number | undefined,
+  hash?: Hex
+): unknown {
+  return limitMs && isReceiptWaitTimeout(error)
+    ? new ReceiptWaitLimitError(limitMs, { cause: error, ...(hash ? { hash } : {}) })
+    : error;
+}
+
+/**
+ * The person stopped waiting for the wallet's answer (`TransactionSendOptions.signal`). Nothing
+ * says whether the wallet still holds the request: it may yet be approved and sent, so this is
+ * neither a refusal nor a failure. The name and message avoid the words a rejection is read by.
+ */
+export class WalletAnswerAbandonedError extends Error {
+  constructor() {
+    super("Stopped waiting for the wallet's answer. The wallet may still hold the request.");
+    this.name = "WalletAnswerAbandonedError";
   }
 }
 

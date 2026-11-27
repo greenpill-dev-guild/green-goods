@@ -162,7 +162,7 @@ export function HypercertWizard({
         open={wizard.showLeaveConfirm}
         onKeepEditing={wizard.handleCancelLeave}
         onDiscard={wizard.handleConfirmLeave}
-        tone="hub"
+        tone="review"
       />
       <AdminConfirmDialog
         isOpen={wizard.showRestoreDraft}
@@ -181,7 +181,7 @@ export function HypercertWizard({
         description={formatMessage({ id: "app.hypercerts.wizard.restore.description" })}
         confirmLabel={formatMessage({ id: "app.hypercerts.wizard.restore.confirm" })}
         cancelLabel={formatMessage({ id: "app.hypercerts.wizard.restore.cancel" })}
-        tone="hub"
+        tone="review"
         onCancel={async () => {
           try {
             await wizard.clearDraft();

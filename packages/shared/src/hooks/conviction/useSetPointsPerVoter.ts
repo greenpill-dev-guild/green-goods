@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { SetPointsPerVoterParams } from "../../types/conviction";
 import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis/conviction";
@@ -17,6 +18,13 @@ export function useSetPointsPerVoter() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "conviction",
+    operation: "setPointsPerVoter",
+    authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useSetPointsPerVoter",
     toastContext: "set points per voter",
@@ -35,14 +43,14 @@ export function useSetPointsPerVoter() {
   );
 
   return useMutation({
-    mutationFn: async (params: SetPointsPerVoterParams) => {
+    mutationFn: recordedSendAct(act, async (params: SetPointsPerVoterParams) => {
       return sendContractTx({
         address: params.poolAddress,
         abi: HYPERCERT_SIGNAL_POOL_ABI,
         functionName: "setPointsPerVoter",
         args: [params.newPoints],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.conviction.settingPointsPerVoter" }),

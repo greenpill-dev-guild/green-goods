@@ -16,6 +16,7 @@ import { queryKeys } from "../../../config/query-keys";
 import {
   usePoolConsoleController,
   useVoucherConsole,
+  VOUCHER_START_IDLE,
 } from "../../../hooks/admin-ui/pool/usePoolConsoleController";
 import type { CommitmentMutationInput } from "../../../hooks/commitment-pooling/useCommitmentMutations";
 import type { CommitmentPoolMutationInput } from "../../../hooks/commitment-pooling/useCommitmentPoolMutations";
@@ -79,7 +80,8 @@ const mocks = vi.hoisted(() => ({
   poolPending: false,
   commitmentPending: false,
   fundingRefetch: vi.fn(),
-  sender: { authMode: "wallet" },
+  sender: { authMode: "wallet", sendContractCall: vi.fn() },
+  prepareStart: vi.fn(),
   retryQueuedCommitmentJob: vi.fn(),
   discardJob: vi.fn(),
   getBlock: vi.fn(),
@@ -127,6 +129,14 @@ vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../hooks/commitment-pooling/useCommitmentJobs")>()),
   retryQueuedCommitmentJob: mocks.retryQueuedCommitmentJob,
+}));
+
+// Each start send reads the booking from the chain; here the read hands the next send directly.
+vi.mock("../../../modules/commitment-pooling/voucher-console-live", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("../../../modules/commitment-pooling/voucher-console-live")
+  >()),
+  prepareVoucherStartSend: mocks.prepareStart,
 }));
 
 vi.mock("../../../modules/job-queue/default-instance", () => ({
@@ -342,6 +352,14 @@ afterEach(() => {
   focusManager.setFocused(true);
   onlineManager.setOnline(true);
 });
+
+/** The callbacks a tracked act forwards to its send: the line's broadcast, a Safe's answer, and Cancel (PRD-1551). */
+const ACT_SEND = {
+  onBroadcast: expect.any(Function),
+  onAwaiting: expect.any(Function),
+  onUnconfirmed: expect.any(Function),
+  signal: expect.any(AbortSignal),
+};
 
 describe("usePoolConsoleController", () => {
   it("projects the seeded reads and filters pending creates to the active pool", async () => {
@@ -626,7 +644,7 @@ describe("usePoolConsoleController", () => {
     expect(mocks.poolMutate.mock.calls.map(([input]) => input)).toEqual([
       { action: "pausePool", poolId: POOL_ID, reason: "Maintenance", gardenAddress: GARDEN },
       // Resume follows its own send, so the status card can say where it stands.
-      { action: "resumePool", poolId: POOL_ID, send: { onBroadcast: expect.any(Function) } },
+      { action: "resumePool", poolId: POOL_ID, send: ACT_SEND },
       { action: "closePool", poolId: POOL_ID },
       { action: "compostPool", poolId: POOL_ID },
       { action: "reopenPool", poolId: POOL_ID, toOpen: false },
@@ -646,7 +664,7 @@ describe("usePoolConsoleController", () => {
         action: "acceptClaim",
         commitmentId: 31n,
         claimant: CLAIMANT,
-        send: { onBroadcast: expect.any(Function) },
+        send: ACT_SEND,
       },
       {
         action: "declineClaim",
@@ -683,7 +701,7 @@ describe("usePoolConsoleController", () => {
         commitmentId: COMMITMENT.commitmentId,
         buyer: CLAIMANT,
         expectedClaimHash: ready.claimHash,
-        send: { onBroadcast: expect.any(Function) },
+        send: ACT_SEND,
       },
     ]);
     // It is the ask's decision, on the same line Approve uses, so its row keeps the outcome.
@@ -724,6 +742,201 @@ describe("usePoolConsoleController", () => {
       "The chain's time can't be read right now, so nothing was accepted"
     );
     expect(mocks.commitmentMutate).not.toHaveBeenCalled();
+  });
+
+  describe("Accept and Start (DL-193)", () => {
+    const SETUP_ID = `0x${"5e".repeat(32)}` as const;
+    const at = 1_761_600_000;
+    const call = (functionName: string) => ({ functionName, account: TUNDE });
+    const sends = [
+      {
+        state: { kind: "send", act: { action: "finalizeVoucherActivation" } },
+        call: call("finalizeActivation"),
+      },
+      {
+        state: {
+          kind: "send",
+          act: { action: "dispatchVoucherSetupCommand", kind: "decision", reviewedNativeFee: 9n },
+        },
+        call: call("dispatchSetupCommand"),
+      },
+    ];
+    const ready = () => voucherAsk(at, { setupId: SETUP_ID });
+    const render = () => {
+      vi.spyOn(Date, "now").mockReturnValue(at * 1000);
+      mocks.getBlock.mockResolvedValue({ timestamp: BigInt(at) });
+      const queryClient = testQueryClient();
+      seedControllerQueries(queryClient);
+      return renderControllerOnChain(queryClient);
+    };
+
+    it("accepts, then sends the start from the steward's own wallet, one send after the other", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]).mockResolvedValueOnce(sends[1]);
+      mocks.sender.sendContractCall
+        .mockResolvedValueOnce({ hash: "0x01", sponsored: false })
+        .mockResolvedValueOnce({ hash: "0x02", sponsored: false });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("started");
+      expect(mocks.commitmentMutate.mock.calls[0]![0]).toMatchObject({
+        action: "acceptServiceClaim",
+      });
+      // Each send reads the accepted booking again, as the steward who sends it.
+      expect(mocks.prepareStart).toHaveBeenCalledWith(
+        { chainId: CHAIN_ID, garden: GARDEN },
+        { commitmentId: COMMITMENT.commitmentId, buyer: CLAIMANT, setupId: SETUP_ID },
+        TUNDE
+      );
+      expect(mocks.sender.sendContractCall.mock.calls.map(([sent]) => sent.functionName)).toEqual([
+        "finalizeActivation",
+        "dispatchSetupCommand",
+      ]);
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toMatchObject({
+        record: "done",
+        send: "done",
+        fee: 9n,
+        hashes: { record: "0x01", send: "0x02" },
+      });
+    });
+
+    it("starts nothing behind an acceptance its Safe's signers still have to approve", async () => {
+      mocks.commitmentMutate.mockImplementation(async (input) => {
+        if ("send" in input)
+          (input.send as { onAwaiting?: (a: string) => void }).onAwaiting?.("safe-signers");
+        return "0x5afe";
+      });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("acceptanceWaiting");
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    });
+
+    // PRD-1574: a wallet's opaque answer is no acceptance yet, so no start follows it and the
+    // Hub says the acceptance is still being confirmed, not that the start wasn't sent.
+    it("starts nothing behind an acceptance that is still being confirmed", async () => {
+      mocks.commitmentMutate.mockImplementation(async (input) => {
+        if ("send" in input) (input.send as { onUnconfirmed?: () => void }).onUnconfirmed?.();
+        return "0x1234";
+      });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("acceptanceConfirming");
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+      // Nor does the ask read as approved: its row holds the acceptance as still confirming.
+      expect(
+        result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
+      ).toBeUndefined();
+    });
+
+    it("keeps the acceptance when its start fails, and says the start wasn't sent", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]);
+      mocks.sender.sendContractCall.mockRejectedValueOnce(new Error("insufficient funds"));
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("notSent");
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT).record).toBe(
+        "failed"
+      );
+      expect(
+        result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
+      ).toMatchObject({ kind: "approved" });
+    });
+
+    it("throws when the acceptance itself fails, before any start", async () => {
+      mocks.commitmentMutate.mockRejectedValue(new Error("reverted"));
+      const { result } = render();
+
+      await expect(result.current.acts.acceptAndStartBooking(ready(), at)).rejects.toThrow(
+        "reverted"
+      );
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+    });
+
+    // Through the real send record (PRD-1561): it records the send as still confirming and
+    // rethrows, and the start must not then call it failed (Codex on #1748).
+    it("says a start send past its receipt limit is still confirming, not failed", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]);
+      mocks.sender.sendContractCall.mockRejectedValueOnce(
+        Object.assign(new Error("Receipt wait limit reached"), { name: "ReceiptWaitLimitError" })
+      );
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("unconfirmed");
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT).record).toBe(
+        "confirming"
+      );
+    });
+
+    // One booking's start rows never show on another's dialog (Codex and CodeRabbit on #1748).
+    it("keeps each booking's start progress to that booking, and starts each acceptance clean", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]).mockResolvedValueOnce(sends[1]);
+      mocks.sender.sendContractCall
+        .mockResolvedValueOnce({ hash: "0x01", sponsored: false })
+        .mockResolvedValueOnce({ hash: "0x02", sponsored: false });
+      const { result } = render();
+
+      await act(async () => {
+        await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toMatchObject({
+        record: "done",
+        send: "done",
+      });
+      // Another member's ask on the same promise opens with nothing sent.
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, TUNDE)).toEqual(
+        VOUCHER_START_IDLE
+      );
+
+      // Accepting again starts clean, before its first send is asked for.
+      let release!: (hash: HexString) => void;
+      mocks.commitmentMutate.mockImplementationOnce(
+        () => new Promise<HexString>((resolve) => (release = resolve))
+      );
+      let pending!: Promise<unknown>;
+      act(() => {
+        pending = result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+      await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toEqual(
+        VOUCHER_START_IDLE
+      );
+      mocks.prepareStart.mockResolvedValueOnce({ state: { kind: "started" }, call: null });
+      await act(async () => {
+        release("0xacce");
+        await pending;
+      });
+    });
   });
 
   it("sends or drops a queued creation and re-reads the row either way", async () => {

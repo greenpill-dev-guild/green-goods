@@ -13,33 +13,37 @@ violated half of these. Validators check structure; this contract is what "desig
 
 - **Action clusters are end-aligned. Always.** Header action rows, dialog footers, card actions,
   row trailing acts, sheet footers: every group of action buttons sits at the end of its
-  container. Proof: `PageHeader.tsx` `route-header-actions` (`justify-end`); `AdminDialog.tsx`
-  footer (`sm:justify-end`, doc: "buttons right-aligned"); in-content clusters
+  container. Proof: `PageHeader.tsx` `route-header-actions` (`justify-end`); `AdminDialog.tsx`'s
+  footer, which draws the shared `SheetActions` bar (end-aligned from 640px in Shared's
+  `utilities.css`); in-content clusters
   `flex items-center justify-end gap-2` ([GardenWorkspaceContent.tsx:195](../../../packages/admin/src/views/Garden/components/GardenWorkspaceContent.tsx)).
   A left-aligned action cluster anywhere is a defect. (Jakob's Law; Refactoring UI alignment.)
 - **A view declares ONE stable action set, identical across its tabs.** The set never changes
   with the active tab; availability is expressed by disabling, not by removing. Proof:
-  [garden.utils.ts:103](../../../packages/shared/src/hooks/admin-ui/garden/garden.utils.ts),
-  where `buildGardenViewActions` accepts the active view and ignores it; `AdminViewActions.tsx:15`:
-  "ONE fixed primary action … stable across tabs." (NN/g consistency; recognition over recall.)
+  [garden.utils.ts](../../../packages/shared/src/hooks/admin-ui/garden/garden.utils.ts),
+  where `buildGardenViewActions` reads the active view only for the exception below;
+  `AdminViewActions.tsx:15`: "ONE fixed primary action … stable across tabs." (NN/g consistency;
+  recognition over recall.) One exception (DL-200): on the Garden workspace's Promises tab, Seed
+  Promises joins the set as its filled primary and Edit Garden steps back to secondary, so the
+  speed dial below 1024px reaches it first.
 - **The primary is rightmost; secondaries sit left of it in declaration order.** Destructive acts
   never share a cluster with routine acts: they get their own row, region, or the confirm
   dialog's danger slot. (Brief: destructive separation; Fitts's Law.)
-- **A review surface renders its action set outlined.** The Hub exists to review work, so its
-  trio (Submit Work, Create Assessment, Create Hypercert) fills no button above the queue. The
-  declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
-  [hub.utils.ts](../../../packages/shared/src/hooks/admin-ui/hub/hub.utils.ts),
-  where `buildHubViewActions` declares every action `secondary` and keeps Submit Work `primary`.
+- **A review surface renders its action set outlined.** Review, the `/review` workspace, exists to
+  review work, so its trio (Submit Work, Create Assessment, Create Hypercert) fills no button
+  above the queue. The declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
+  [review.utils.ts](../../../packages/shared/src/hooks/admin-ui/review/review.utils.ts),
+  where `buildReviewViewActions` declares every action `secondary` and keeps Submit Work `primary`.
 - **Tab-specific actions live in the tab's content**, end-aligned in the section they act on:
   a section-header trailing act, a right-rail quick-actions card, or a row's one trailing act.
-  Never in the view header.
+  Never in the view header, except Seed Promises on the Promises tab (DL-200).
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
   trigger ([useViewActions.ts](../../../packages/shared/src/components/Canvas/useViewActions.ts):
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.
-- **Empty-state Create repeats a hidden header action only.** The Hub's Assessments and
+- **Empty-state Create repeats a hidden header action only.** Review's Assessments and
   Hypercerts keep their Create button below 1024px, where the FAB carries the route actions,
   and hide it from 1024px, where the header trio is visible (DL-138). Proof:
-  [HubRecordLists.tsx](../../../packages/admin/src/views/Hub/components/HubRecordLists.tsx).
+  [ReviewRecordLists.tsx](../../../packages/admin/src/views/Review/components/ReviewRecordLists.tsx).
 - **The FAB always shows a plus.** Closed, every FAB shows "+" in the workspace tone it already
   wears, whether it fires one act or opens a dial: the tone says which tab this is, so the glyph
   stays one landmark across all of them. A dial swaps the plus for a close icon while open, and
@@ -47,6 +51,21 @@ violated half of these. Validators check structure; this contract is what "desig
   DL-050's primary-action icon). Proof:
   [FabButton.tsx](../../../packages/admin/src/components/Shell/FabButton.tsx), where `FabIcon` is
   `RiAddLine` unless a dial is open. (NN/g consistency and standards.)
+- **A button beside a field sits in the field's own row.** A button that acts on what a field
+  holds (Add, Max, Remove, Use) goes in the field's `action` slot: centered on the control at both
+  field heights, at its own size, with the message line under both. A button that acts on a list
+  (Select Visible, Clear) sits with the list's count, not beside its search field (DL-188). Proof:
+  [AdminTextField.tsx](../../../packages/admin/src/components/AdminTextField.tsx), where `action`
+  renders in the control's row; `.claude/rules/frontend-design.md` Rule 15 has the example.
+- **A dialog's or flow's footer actions are the shared action bar.** `SheetActions` draws them:
+  40px buttons 8px apart, the main action on top when they stack below 640px and rightmost from
+  it, Cancel outlined, Back beside the way on in one row, and the line that says how often the
+  wallet will ask, or a send's progress, in the bar's `note` slot (DL-189). `AdminDialog`'s
+  `actions` are the bar's props and the dialog draws the bar, so that slot cannot hold a
+  hand-built footer (DL-190); a flow's `footer` and a `SheetFooter` pinned in a dialog's body are
+  still held by review. Proof:
+  [SheetActions.tsx](../../../packages/shared/src/components/Dialog/SheetActions.tsx);
+  `AdminFieldActionAndFooter.guard` fails on a hand-stacked footer button.
 
 ## 2. Dialog taxonomy and continuity
 
@@ -83,9 +102,9 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   why it cannot go on, because no tab behind it will. A choice inside the dialog may still lead
   elsewhere: Fix Limit First goes to the jar's limit editor under Payouts, and Done after a send
   lands on the result (DL-080, § 3), replacing the dialog's history entry. Every shipped case
-  follows this: Fund Cookie Jar, Add Member, Edit Garden, and the Hub's Submit Work, Create
+  follows this: Fund Cookie Jar, Add Member, Edit Garden, and Review's Submit Work, Create
   Assessment and Create Hypercert, whose old paths now redirect to their items. Proof:
-  `buildCommunityViewActions`, `buildGardenViewActions` and `buildHubViewActions` hand each press
+  `buildCommunityViewActions`, `buildGardenViewActions` and `buildReviewViewActions` hand each press
   the active tab; [useRouteItemClose](../../../packages/shared/src/hooks/navigation/useCanvasSearchParams.ts)
   owns the close; [CommunitySheetDescriptor.test.tsx](../../../packages/admin/src/views/Community/components/CommunitySheetDescriptor.test.tsx),
   [CommunityMembersDialogs.test.tsx](../../../packages/admin/src/views/Community/components/CommunityMembersDialogs.test.tsx)
@@ -187,7 +206,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   when, then what for, one line each; the name keeps its length and the age gives way first),
   with Decline… and Approve. A decided row keeps its place with its outcome until the steward
   leaves the tab, here and wherever a steward decides in a list (a commitment's waiting list,
-  the Hub's Confirm queue).
+  Review's Confirm queue).
 - **A card is titled by its subject.** When a card is about one object, that object heads the
   card (title, chips, counts, and its one act in the header) rather than a generic title with
   the object stacked beneath as a second header. Peers list below a quiet section divider whose
@@ -225,7 +244,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [AccountProfilePanel.tsx](../../../packages/admin/src/components/Layout/AccountProfilePanel.tsx)
   and [useStewardAccessRequestController.ts](../../../packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts).
 - **Work age is metadata, never an alarm (DL-044).** A waiting card shows a neutral Pending chip
-  with its age ("submitted 6 months ago"), and the Hub header counts work waiting over a week in
+  with its age ("submitted 6 months ago"), and the Review header counts work waiting over a week in
   plain ink. A garden's health turns Critical only when work has waited 7 days or more *and* no
   review landed in the last 7 days; work waiting over a week while reviews still land reads Needs
   attention. An unknown review time (a decision only this device knows, a row restored from an

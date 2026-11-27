@@ -10,6 +10,7 @@
 
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { VoucherConsoleView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
@@ -47,6 +48,8 @@ const STORY_KWESI = "0x6b30000000000000000000000000000000004b2c" as Address;
 const STORY_MARA = "0x7c40000000000000000000000000000000005c3d" as Address;
 const STORY_RAFA = "0x8d50000000000000000000000000000000006d4e" as Address;
 const STORY_MAYA = "0x9e60000000000000000000000000000000007e5f" as Address;
+/** A member whose long name the Hub's rows must let give way. */
+export const STORY_LONG_NAME_MEMBER = "0xaf70000000000000000000000000000000008f6a" as Address;
 
 /** Who each fictional member is, as their Green Goods names would say. */
 const STORY_VOUCHER_NAMES: Record<string, string> = {
@@ -55,6 +58,7 @@ const STORY_VOUCHER_NAMES: Record<string, string> = {
   [STORY_MARA.toLowerCase()]: "Mara",
   [STORY_RAFA.toLowerCase()]: "Rafa",
   [STORY_MAYA.toLowerCase()]: "Maya",
+  [STORY_LONG_NAME_MEMBER.toLowerCase()]: "Maria Aparecida dos Santos Oliveira",
 };
 
 // The vouchers and their issuers' Safes live on Gnosis, the pilot's voucher network.
@@ -156,6 +160,8 @@ function ask(
             depositedUnits: VOUCHER,
             depositConfirmed: true,
             acceptBy: agreedAt + 7 * 86_400,
+            // About what the start's message to the voucher network costs on Arbitrum.
+            startFee: 41_000_000_000_000n,
             ...setup,
           },
   };
@@ -212,6 +218,59 @@ export const STORY_MARA_VISIT: VoucherBooking = {
   },
   stage: { kind: "in-progress" },
 };
+
+/** Mara's hub day was yesterday: the visit is in, and it waits for Tech and Sun's report. */
+export const STORY_MARA_VISITED: VoucherBooking = {
+  ...STORY_MARA_VISIT,
+  service: {
+    kind: "visit",
+    startsAt: VISIT_START - 5 * 86_400,
+    endsAt: VISIT_START - 5 * 86_400 + 4 * 3_600,
+    report: { checkedIn: true, usableHours: 4, ofHours: 4, photos: 2 },
+  },
+};
+
+const HUB_DAYS_CID = "bafy-hub-days";
+/** The voucher offers' titles, with Tech and Sun's hub days made together as one group. */
+export const STORY_HUB_DAY_TITLES = new Map([
+  ...STORY_VOUCHER_TITLES,
+  [
+    HUB_DAYS_CID,
+    buildCommitmentMetadata({
+      title: "Hub day, up to 4 hours",
+      displayGroup: { version: 1, id: "group-hubdays01" },
+    }),
+  ],
+]);
+
+/** One of Tech and Sun's hub days made together, open until someone books it. */
+export const storyHubDay = (id: number, overrides: Partial<CommitmentReadModel> = {}) =>
+  storyCommitment({
+    id: `${DEFAULT_CHAIN_ID}-${id}`,
+    commitmentId: BigInt(id),
+    onchainState: "OFFERED",
+    derivedState: "OFFERED",
+    state: "OFFERED",
+    direction: "OFFER",
+    creator: STORY_STEWARD,
+    leadProvider: STORY_STEWARD,
+    counterparty: null,
+    unitLabel: "booking",
+    targetUnits: 1n,
+    dueDate: BigInt(daysFromNow(36)),
+    requirements: [],
+    poolId: 7n,
+    commitmentSeriesId: 0n,
+    claimType: "INDIVIDUAL",
+    contributorPolicy: "LEAD_MANAGED",
+    needUID: null,
+    counterCommitmentId: 0n,
+    considerationSource: null,
+    considerationToken: null,
+    claimMode: "APPROVAL_GATED",
+    metadataCID: HUB_DAYS_CID,
+    ...overrides,
+  });
 
 const TECH_AND_SUN_RESERVE: VoucherIssuerReserve = {
   issuer: TECH_AND_SUN,

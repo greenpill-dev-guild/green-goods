@@ -10,7 +10,13 @@ export class UploadPolicyRequiredError extends Error {
 }
 
 export class UploadPolicyCancelledError extends Error {
-  constructor() {
+  /**
+   * `terms` when the person declined or left the Terms prompt; `flow-left` when they accepted but
+   * moved to another draft or flow before admission (a change of account ends the session, and
+   * records nothing); `before-admission` when a step the Submit runs before admission, such as
+   * taking up a promise, did not go.
+   */
+  constructor(readonly stage: "terms" | "flow-left" | "before-admission" = "terms") {
     super("User cancelled upload");
     this.name = "UploadPolicyCancelledError";
   }

@@ -28,12 +28,13 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.fieldLead": "¿{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "¡Hola! Soy el asistente de reportes de Green Goods. Para ayudarte a reportar el trabajo del jardín, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte.\n\nAl aceptar, aceptas las reglas para compartir, versión {version}: https://www.greengoods.app/terms. Comparte solo material propio o que tengas permiso para publicar, con permiso de cada adulto identificable. No envíes menores identificables, información personal sensible, abuso, odio, amenazas, contenido sexual o ilegal, fraude ni spam. Los reportes confirmados se publican en Arbitrum e IPFS; las copias independientes pueden permanecer para siempre.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
+    "¡Hola! Soy el asistente de reportes de Green Goods. Para ayudarte a reportar el trabajo del jardín, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte. Lo que envíes antes de responder queda guardado sin leer: lo borro de inmediato si dices que no, y a las {hours} horas si no respondes.\n\nAl aceptar, aceptas las reglas para compartir, versión {version}: https://www.greengoods.app/terms. Comparte solo material propio o que tengas permiso para publicar, con permiso de cada adulto identificable. No envíes menores identificables, información personal sensible, abuso, odio, amenazas, contenido sexual o ilegal, fraude ni spam. Los reportes confirmados se publican en Arbitrum e IPFS; las copias independientes pueden permanecer para siempre.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
   "consent.processors": " y puedo usar IA para entenderlos",
   "consent.agree": "Acepto",
   "consent.decline": "No, gracias",
   "consent.declined":
     "De acuerdo. No procesaré tus mensajes y eliminé lo que enviaste. Escribe a {support} si cambias de opinión.",
+  "consent.grantedPlain": "¡Gracias!",
   "consent.granted": "¡Gracias! Cuéntame el trabajo que hiciste. Puedes enviar texto y fotos.",
   "consent.stopped":
     "Detuviste el asistente. No leeré mensajes nuevos hasta que envíes START. Los reportes publicados siguen siendo públicos; los borradores sin publicar se están eliminando. Soporte: {support}",
@@ -121,6 +122,31 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Entendido: {action} en {garden}. Una pregunta rápida y luego un resumen para revisar.",
   "report.actionAdoptedMany":
     "Entendido: {action} en {garden}. {count} preguntas rápidas y luego un resumen para revisar.",
+  "question.milestoneType": "¿Qué instalaste o terminaste?",
+  "question.milestoneSolar": "¿Qué potencia solar instalaste, en kW? Por ejemplo, 5 kW.",
+  "question.milestoneBattery":
+    "¿Cuánta capacidad de batería añadiste, en kWh? Por ejemplo, 10 kWh.",
+  "question.milestoneInternet":
+    "¿Qué velocidad tiene ahora la conexión, en Mbps? Por ejemplo, 50 Mbps.",
+  "question.milestoneRetrofit": "¿Cuántas rehabilitaciones terminaste?",
+  "question.milestoneCommissioning": "¿Cuántos sistemas probaste y entregaste?",
+  "question.seedlingsPlanted": "¿Cuántas plántulas plantaste?",
+  "question.seedlingsAndSpecies": "¿Cuántas plántulas plantaste, y de qué especies?",
+  "question.participants": "¿Cuántas personas participaron?",
+  "question.speciesTags": "¿Qué especies plantaste?",
+  "report.descriptionStale":
+    "\nTu descripción todavía dice {was}. Envía EDIT para cambiar el texto.",
+  "suggest.last": "¿Igual que la última vez: {action} en {garden}?",
+  "suggest.lastGarden": "¿El mismo jardín que la última vez: {garden}?",
+  "suggest.lastAction": "¿La misma actividad que la última vez: {action}?",
+  "suggest.use": "Sí",
+  "suggest.change": "Otra cosa",
+  "suggest.never": "No sugerir más",
+  "suggest.off": "De acuerdo, no lo sugeriré más.",
+  "report.accepted": "Tengo:{facts}",
+  "report.factNew": "\n• {title}: {now}",
+  "report.factChanged": "\n• {title}: {now} (antes: {was})",
+  "report.factTime": "Tiempo dedicado",
   "report.askAction": "¿Qué actividad de {garden} describe mejor tu trabajo?",
   "report.moreChoices": "Más opciones",
   "report.noActions":
@@ -156,6 +182,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.invalid.ambiguous_number":
     "¿Es un número entero o decimal? Escríbelo sin separador de miles, por ejemplo 1200 o 1,2.",
   "report.invalid.negative": "Responde con un número igual o mayor que cero.",
+  "report.invalid.whole_number":
+    "Responde con un número entero igual o mayor que uno, por ejemplo 2.",
   "report.invalid.unit_mismatch":
     "Esto se cuenta en {unit}, pero escribiste {stated}. ¿Puedes darlo en {unit}?",
   "report.invalid.unit_required": "Incluye la unidad, por ejemplo 2 horas o 30 minutos.",
@@ -198,6 +226,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "state.authority": "esperando la verificación de la cuenta",
   "state.preparing": "preparándose para publicar",
   "state.signature": "esperando tu firma",
+  "state.choice": "esperando que elijas cómo publicarlo",
   "state.publishing": "publicándose",
   "report.noStatus": "No tienes un reporte en curso. Describe tu trabajo para empezar uno.",
   "report.expired":
@@ -258,6 +287,17 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Tu publicación se envió, pero aún no puedo confirmarla en la cadena. No la enviaré dos veces; te avisaré cuando lo sepa.",
   "publish.unknown":
     "No recibí respuesta de tu billetera, así que aún no sé si se envió. No lo enviaré otra vez; estoy revisando la cadena y te diré lo que encuentre.",
+  "publish.unconfirmed":
+    "Revisé la cadena y todavía no encuentro tu reporte, así que dejé de buscarlo. No lo enviaré otra vez. Si no aparece en el jardín, escribe a {support}.",
+  "publish.linkExpired":
+    "Tu enlace para publicar caducó antes de que se enviara nada, así que no se publicó nada. Tu reporte está guardado; responde RETRY para recibir un enlace nuevo.",
+  "publish.stillConfirming": "{stillConfirming} Te escribiré cuando tu reporte esté publicado.",
+  "publish.safeSigners":
+    "{safeSigners}. {safeSignersDetail} Te escribiré cuando tu reporte esté publicado.",
+  "publish.publishedChecking":
+    "Tu reporte está publicado. El equipo de Green Goods está revisando su registro, así que todavía no puedo enviarte el enlace. No necesitas firmar ni enviar nada otra vez.",
+  "publish.attestationUnread":
+    "La transacción está confirmada, pero todavía no puedo leer los detalles de la atestación, así que dejé de revisar. No necesitas firmar ni enviar nada otra vez. Si tu reporte no aparece en el jardín, escribe a {support}.",
   "publish.rejected":
     "La firma fue rechazada, así que no se publicó nada. Aquí está tu reporte otra vez; confírmalo cuando quieras.",
   "publish.reverted":
@@ -278,7 +318,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.none": "No hay trabajo esperando tu revisión.",
   "review.resumeFirst":
     "Tienes una revisión en curso. Envía CANCEL para descartarla o continúa con ella.",
-  "review.askDecision": "¿Apruebas o rechazas «{title}» de {gardener}?",
+  "review.askDecision":
+    "¿Apruebas o rechazas «{title}» de {gardener}? Puedes dar tu nivel de confianza y tu comentario en la misma respuesta.",
   "review.approve": "Aprobar",
   "review.reject": "Rechazar",
   "review.askConfidence": "¿Qué tanta confianza tienes en este trabajo?",
@@ -317,6 +358,17 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "La firma fue rechazada, así que tu revisión no se registró. Aquí está de nuevo; confírmala cuando quieras.",
   "review.reverted":
     "El registro de tu revisión falló en la cadena. Revísala y confírmala de nuevo para reintentar.",
+  "review.unconfirmed":
+    "Revisé la cadena y todavía no encuentro tu revisión, así que dejé de buscarla. No la enviaré otra vez. Si no aparece en el trabajo, escribe a {support}.",
+  "review.stillConfirming": "{stillConfirming} Te escribiré cuando tu revisión quede registrada.",
+  "review.safeSigners":
+    "{safeSigners}. {safeSignersDetail} Te escribiré cuando tu revisión quede registrada.",
+  "review.recordedChecking":
+    "Tu revisión quedó registrada. El equipo de Green Goods está revisando su registro, así que todavía no puedo enviarte el enlace. No necesitas firmar ni enviar nada otra vez.",
+  "review.linkExpired":
+    "Tu enlace para firmar caducó antes de que se enviara nada, así que tu revisión no se registró. Tu decisión está guardada; responde RETRY para recibir un enlace nuevo.",
+  "review.attestationUnread":
+    "La transacción está confirmada, pero todavía no puedo leer los detalles de la atestación, así que dejé de revisar. No necesitas firmar ni enviar nada otra vez. Si tu revisión no aparece en el trabajo, escribe a {support}.",
   "recovery.started":
     "Para mover tu cuenta de Green Goods a este chat, abre esta página y verifica la cuenta que usabas antes. El enlace caduca en 10 minutos.",
   "recovery.code": "Escribe este código en la página de recuperación de Green Goods: {code}",

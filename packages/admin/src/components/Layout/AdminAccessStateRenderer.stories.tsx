@@ -7,6 +7,7 @@ import {
   withCanvasFrame,
   withRouter,
   withSeededQueryClient,
+  withAdminIdentity,
 } from "../../../../shared/.storybook/decorators";
 import { AdminAccessStateRenderer } from "./AdminAccessStateRenderer";
 
@@ -32,7 +33,7 @@ const meta: Meta<typeof AdminAccessStateRenderer> = {
   component: AdminAccessStateRenderer,
   tags: ["autodocs"],
   decorators: [
-    withRouter(["/hub/work"]),
+    withRouter(["/review/work"]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[640px]",
@@ -60,7 +61,9 @@ export const Checking: Story = {
   },
 };
 
+/** Signed out: the same connect surface and sign-in slots as the boot screen. */
 export const ConnectRequired: Story = {
+  decorators: [withAdminIdentity],
   args: {
     state: { status: "disconnected" },
     ready: <div>Ready canvas</div>,

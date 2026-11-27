@@ -5,10 +5,10 @@ import {
   useSubmissionFlowController,
 } from "@green-goods/shared/hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
-import type React from "react";
-import type { ReactNode } from "react";
+import type { FC, ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { FlowBarNote, SubmissionFlow, WorkViewSkeleton } from "@/components/Features/Work";
 import { DraftSheet } from "@/components/Sheets";
@@ -33,7 +33,7 @@ const trackControllerMediaEvent = (
  * on the shared shell, with the work kind's pieces at each stage and its own queue path, the
  * Work send and its dependent link to the promise, unchanged.
  */
-const Work: React.FC = () => {
+const Work: FC = () => {
   const intl = useIntl();
   const controller = useWorkSubmissionFlowController({
     homeRoute: APP_ROUTES.home,
@@ -103,6 +103,13 @@ const Work: React.FC = () => {
     workSubmissionJourneyId,
   } = controller;
 
+  // The garden is named once, under the info card of the flow's first step: Start, or Media when
+  // Start's answer was known (decision 17). A draft that reopens past that step names none, and
+  // later steps do not repeat it; Review names it in its summary (PRD-1522).
+  const gardenLine = namedSubmissionGarden ? (
+    <SubmissionGardenLine garden={namedSubmissionGarden} />
+  ) : null;
+
   // The work kind's piece at each stage. Once a promise is chosen at Start, every later step
   // names it after its heading (D16, O9): the shell hands the pinned card in, and its sheet
   // can unlink the work. Start's own pieces come from the controller's Start model (DL-131).
@@ -110,7 +117,10 @@ const Work: React.FC = () => {
     switch (stage) {
       case "start":
         return showSkeleton ? (
-          <StartSkeleton />
+          // While a draft is read, its garden is not settled yet: keep the line's row, not a name.
+          <StartSkeleton
+            gardenLine={gardenLine && <div aria-hidden="true" className="h-[22px]" />}
+          />
         ) : (
           <WorkStart
             start={start}
@@ -138,6 +148,7 @@ const Work: React.FC = () => {
               onRetry: () => void refetchCommitmentLinkChoices(),
               onLetGo: clearLinkIntent,
             }}
+            gardenLine={gardenLine}
           />
         );
       case "media":
@@ -164,7 +175,17 @@ const Work: React.FC = () => {
             actionUID={actionUID}
             heicStateOf={heicStateOf}
             onRetryHeicConversion={retryHeicConversion}
-            pinned={pinned}
+            // Media is the first step when Start was skipped: its garden line leads the slot.
+            pinned={
+              start.skipped ? (
+                <>
+                  {gardenLine}
+                  {pinned}
+                </>
+              ) : (
+                pinned
+              )
+            }
           />
         );
       case "details":
@@ -233,9 +254,8 @@ const Work: React.FC = () => {
         tallBar={isSchedulingDependentLink || hasPendingLinkRecovery}
         lead={
           <>
-            {namedSubmissionGarden ? <SubmissionGardenLine garden={namedSubmissionGarden} /> : null}
             {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
-              <p role="status">{intl.formatMessage({ id: "app.work.awaitingConfirmation" })}</p>
+              <p role="status">{intl.formatMessage(SEND_STAGE_WORDS["still-confirming"].label)}</p>
             )}
             <DraftStatus draft={draft} submissionCompleted={submissionCompleted} />
           </>

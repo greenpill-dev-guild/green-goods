@@ -1,3 +1,4 @@
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { toastService } from "../toast.service";
 import { type FormatMessageFn, toastMessageIds } from "./types";
 
@@ -5,7 +6,10 @@ import { type FormatMessageFn, toastMessageIds } from "./types";
 const approvalDefaults = {
   submittingApproval: { title: "Submitting approval", message: "Approving work..." },
   submittingDecision: { title: "Submitting decision", message: "Recording decision..." },
-  walletConfirm: { title: "Confirm in your wallet", message: "Waiting for wallet confirmation..." },
+  walletConfirm: {
+    title: SEND_STAGE_WORDS.wallet.label.defaultMessage,
+    message: "Approve it there to send your decision.",
+  },
   success: { title: "Approval submitted", message: "Decision recorded." },
   decisionSuccess: { title: "Decision submitted", message: "Feedback recorded." },
   savedOfflineApproval: { title: "Approval saved offline" },
@@ -103,6 +107,36 @@ export function createApprovalToasts(formatMessage: FormatMessageFn) {
           id: toastMessageIds.approval.savedOffline.message,
           defaultMessage: approvalDefaults.savedOfflineMessage,
         }),
+        context: "approval submission",
+        suppressLogging: true,
+      }),
+
+    /** Nothing was sent: the chain already has this work decided. */
+    alreadyReviewed: () =>
+      toastService.info({
+        id: "approval-submit",
+        title: formatMessage({ id: "app.work.detail.alreadyReviewed" }),
+        context: "approval submission",
+        suppressLogging: true,
+      }),
+
+    /** Nothing was signed or sent: whether the work still waits could not be read. */
+    decisionUnread: (error: unknown) =>
+      toastService.error({
+        id: "approval-submit",
+        title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
+        message: formatMessage({ id: "app.approval.decisionUnread" }),
+        context: "approval submission",
+        error,
+        suppressLogging: true,
+      }),
+
+    /** Nothing was signed or sent: the connection was not confirmed before the wallet was asked. */
+    connectionUnconfirmed: () =>
+      toastService.info({
+        id: "approval-submit",
+        title: formatMessage({ id: "app.offline.degraded" }),
+        message: formatMessage({ id: "app.approval.connectionUnconfirmed" }),
         context: "approval submission",
         suppressLogging: true,
       }),

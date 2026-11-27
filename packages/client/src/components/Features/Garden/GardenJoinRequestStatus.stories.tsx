@@ -43,7 +43,7 @@ export const CheckedEmpty: Story = {
   args: { hasCheckedStatus: true, receipt: { kind: "checked", text: "Checked just now." } },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole("status")).toHaveTextContent(
-      "You do not have a request"
+      "You haven’t asked to join this garden yet"
     );
   },
 };

@@ -36,6 +36,7 @@ const mockActions = [
     domain: 1, // AGRO
     capitals: [3], // LIVING
     media: ["https://example.com/tree.jpg"],
+    instructions: "ipfs://bafkreitreeplantinginstructions",
     inputs: [],
     startTime: 1700000000,
     endTime: 1800000000,
@@ -194,6 +195,25 @@ describe("ActionsGallery", () => {
     expect(within(dialog).queryByText(/Install the Green Goods app/)).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("img")).not.toBeInTheDocument();
     expect(within(dialog).getByText(mockActions[1].description)).toBeInTheDocument();
+  });
+
+  // PUB-055: an action's dialog links the instructions it was published with.
+  it("links an action's published instructions as its source, and nothing it lacks", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: /Tree Planting/ }));
+    const source = within(screen.getByRole("dialog", { name: "Tree Planting" })).getByRole("link", {
+      name: "View Source",
+    });
+    expect(source.getAttribute("href")).toMatch(/\/ipfs\/bafkreitreeplantinginstructions$/);
+    expect(source).toHaveAttribute("target", "_blank");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.click(screen.getByRole("button", { name: /Solar Panel Installation/ }));
+    expect(
+      within(screen.getByRole("dialog", { name: "Solar Panel Installation" })).queryByRole("link", {
+        name: "View Source",
+      })
+    ).not.toBeInTheDocument();
   });
 
   it("uses a full-width mobile sheet and caps its width only on desktop", () => {

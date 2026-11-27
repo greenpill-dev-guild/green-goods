@@ -8,6 +8,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
+import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminTextField } from "@/components/AdminTextField";
 import { formatGoodDollars, formatUsd } from "../poolPresentation";
 import { carriedOverUsd, priceUnavailableReason, rewardCentsOf } from "./seedReward";
@@ -20,6 +21,8 @@ export interface SeedRewardSectionProps {
   errorOf: SeedFieldError;
   /** G$ is paid through the garden's settlement account, so Yes waits until it is active. */
   settlementActive: boolean;
+  /** Whether the G$ reward can be matched in USDC on this chain (PRD-1556). */
+  usdcMatchAvailable: boolean;
   price: GoodDollarPriceState;
   /** How many promises the answer creates, for the most the reward could total. */
   count: number;
@@ -30,7 +33,10 @@ export interface SeedRewardSectionProps {
  * Yes pays in G$ through the garden's settlement account, and waits, with its
  * reason, until that account is active. The steward enters dollars; the G$
  * amount is converted at today's rate when the promises are created and fixed
- * from then. Nothing here pays anyone or reserves anything.
+ * from then. Where this garden can pay it, the steward may match the G$ with the
+ * same dollars in USDC, paid from the garden's Safe once each is kept (PRD-1556):
+ * the two parts are balanced 1:1 at the price read at Create. Nothing here pays
+ * anyone or reserves anything.
  */
 export function SeedRewardSection({
   form,
@@ -38,6 +44,7 @@ export function SeedRewardSection({
   busy,
   errorOf,
   settlementActive,
+  usdcMatchAvailable,
   price,
   count,
 }: SeedRewardSectionProps) {
@@ -46,7 +53,7 @@ export function SeedRewardSection({
   const cents = rewardCentsOf(values);
   const unavailable = priceUnavailableReason(price, formatMessage);
   const question = formatMessage({
-    id: "cockpit.garden.pool.seed.rewardQuestion",
+    id: "hub.garden.pool.seed.rewardQuestion",
     defaultMessage: "Does this come with a reward?",
   });
 
@@ -71,6 +78,7 @@ export function SeedRewardSection({
       form.setValue("considerationRail", "NONE", { shouldDirty: true });
       form.setValue("considerationUsd", undefined, { shouldDirty: true });
       form.setValue("considerationAmount", "", { shouldDirty: true });
+      form.setValue("rewardMatchedUsdc", undefined, { shouldDirty: true });
     }
     void form.trigger(["considerationUsd", "considerationAmount"]);
   };
@@ -80,16 +88,22 @@ export function SeedRewardSection({
     (cents !== null && cents > 0n && price.status === "ready"
       ? formatMessage(
           {
-            id: "cockpit.garden.pool.seed.rewardEstimate",
+            id: "hub.garden.pool.seed.rewardEstimate",
             defaultMessage:
               "About {amount} G$ at today's rate. The G$ amount is fixed when you create.",
           },
           { amount: formatGoodDollars(usdCentsToGoodDollarWei(cents, price.price), locale) }
         )
       : formatMessage({
-          id: "cockpit.garden.pool.seed.rewardRate",
+          id: "hub.garden.pool.seed.rewardRate",
           defaultMessage: "Paid in G$ at today's rate. The G$ amount is fixed when you create.",
         }));
+
+  const matched = wanted && usdcMatchAvailable && values.rewardMatchedUsdc === true;
+  const paidInLabel = formatMessage({
+    id: "hub.garden.pool.seed.rewardPaidIn",
+    defaultMessage: "Paid in",
+  });
 
   return (
     <section className="space-y-3" data-testid="seed-reward">
@@ -103,9 +117,9 @@ export function SeedRewardSection({
           {
             value: "no",
             disabled: busy,
-            label: formatMessage({ id: "cockpit.garden.pool.seed.rewardNo", defaultMessage: "No" }),
+            label: formatMessage({ id: "hub.garden.pool.seed.rewardNo", defaultMessage: "No" }),
             description: formatMessage({
-              id: "cockpit.garden.pool.seed.rewardNoHint",
+              id: "hub.garden.pool.seed.rewardNoHint",
               defaultMessage: "Nothing is paid",
             }),
           },
@@ -113,16 +127,16 @@ export function SeedRewardSection({
             value: "yes",
             disabled: busy || !settlementActive,
             label: formatMessage({
-              id: "cockpit.garden.pool.seed.rewardYes",
+              id: "hub.garden.pool.seed.rewardYes",
               defaultMessage: "Yes",
             }),
             description: settlementActive
               ? formatMessage({
-                  id: "cockpit.garden.pool.seed.rewardYesHint",
+                  id: "hub.garden.pool.seed.rewardYesHint",
                   defaultMessage: "Paid in G$ after each one is kept",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.seed.rail.celoUnavailable",
+                  id: "hub.garden.pool.seed.rail.celoUnavailable",
                   defaultMessage: "Needs this garden's settlement account to be active first",
                 }),
           },
@@ -132,7 +146,7 @@ export function SeedRewardSection({
         <div className="space-y-1">
           <AdminTextField
             label={formatMessage({
-              id: "cockpit.garden.pool.seed.rewardAmountUsd",
+              id: "hub.garden.pool.seed.rewardAmountUsd",
               defaultMessage: "Amount for each (USD)",
             })}
             value={values.considerationUsd ?? ""}
@@ -149,21 +163,70 @@ export function SeedRewardSection({
             disabled={busy || price.status !== "ready"}
             className="max-w-sm"
           />
+          {usdcMatchAvailable && values.considerationUsd !== undefined ? (
+            <AdminFieldGroup label={paidInLabel} className="mt-4">
+              <AdminChoiceGroup
+                ariaLabel={paidInLabel}
+                value={matched ? "matched" : "goodDollars"}
+                columns={2}
+                onChange={(answer) =>
+                  form.setValue("rewardMatchedUsdc", answer === "matched" ? true : undefined, {
+                    shouldDirty: true,
+                  })
+                }
+                options={[
+                  {
+                    value: "goodDollars",
+                    disabled: busy,
+                    label: formatMessage({
+                      id: "hub.garden.pool.seed.rewardPaidInGoodDollars",
+                      defaultMessage: "G$",
+                    }),
+                    description: formatMessage({
+                      id: "hub.garden.pool.seed.rewardPaidInGoodDollarsHint",
+                      defaultMessage: "Through this garden's settlement account",
+                    }),
+                  },
+                  {
+                    value: "matched",
+                    disabled: busy,
+                    label: formatMessage({
+                      id: "hub.garden.pool.seed.rewardPaidInMatched",
+                      defaultMessage: "G$, matched in USDC",
+                    }),
+                    description: formatMessage({
+                      id: "hub.garden.pool.seed.rewardPaidInMatchedHint",
+                      defaultMessage: "The same amount again in USDC, from this garden's Safe",
+                    }),
+                  },
+                ]}
+              />
+            </AdminFieldGroup>
+          ) : null}
           <p className="type-meta text-text-soft">
-            {cents !== null && cents > 0n && count > 1
+            {matched && cents !== null && cents > 0n
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.rewardTotal",
+                    id: "hub.garden.pool.seed.rewardMatchedSummary",
                     defaultMessage:
-                      "Up to {total} if all {count} are kept, paid in G$ through this garden's settlement account. Nothing is reserved or paid here.",
+                      "Each one pays {amount} in G$ and {amount} in USDC once it's kept, shared by whoever keeps it. The USDC is paid from this garden's Safe then. Nothing is reserved or paid here.",
                   },
-                  { total: formatUsd(cents * BigInt(count), locale), count }
+                  { amount: formatUsd(cents, locale) }
                 )
-              : formatMessage({
-                  id: "cockpit.garden.pool.seed.rewardTotalOne",
-                  defaultMessage:
-                    "Paid in G$ through this garden's settlement account once it's kept. Nothing is reserved or paid here.",
-                })}
+              : cents !== null && cents > 0n && count > 1
+                ? formatMessage(
+                    {
+                      id: "hub.garden.pool.seed.rewardTotal",
+                      defaultMessage:
+                        "Up to {total} if all {count} are kept, paid in G$ through this garden's settlement account. Nothing is reserved or paid here.",
+                    },
+                    { total: formatUsd(cents * BigInt(count), locale), count }
+                  )
+                : formatMessage({
+                    id: "hub.garden.pool.seed.rewardTotalOne",
+                    defaultMessage:
+                      "Paid in G$ through this garden's settlement account once it's kept. Nothing is reserved or paid here.",
+                  })}
           </p>
         </div>
       ) : null}

@@ -218,6 +218,7 @@ class JobQueueStore {
       job.lastError = error;
       job.attempts = Math.max(job.attempts, 5);
       job.lastAttemptAt = Date.now();
+      job.meta = { ...job.meta, terminalFailure: true };
     });
   }
 

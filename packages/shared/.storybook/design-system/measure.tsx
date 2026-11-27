@@ -252,9 +252,14 @@ export function useLiveMeasurement<T extends HTMLElement>(
   return measurement;
 }
 
-/** Reads a CSS custom property as the browser resolves it on an element. */
+/**
+ * Reads a CSS custom property as the browser resolves it on an element. A custom property comes
+ * back as its stylesheet wrote it, and a minified build writes `0.6875rem` as `.6875rem`, so a
+ * bare decimal gets its zero back: one token reads the same from the dev server and a static build.
+ */
 export function readToken(name: string, element: Element = document.documentElement): string {
-  return getComputedStyle(element).getPropertyValue(name).trim() || "∅";
+  const value = getComputedStyle(element).getPropertyValue(name).trim();
+  return value.replace(/(?<=^|[\s(,+\-*/])\.(?=\d)/g, "0.") || "∅";
 }
 
 /**

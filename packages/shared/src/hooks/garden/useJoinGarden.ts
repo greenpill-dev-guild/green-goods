@@ -30,6 +30,8 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { newAttemptId, recordSendAct, sendActEnding } from "../../modules/app/sendActAnalytics";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { activeGardenScope } from "../../modules/garden/active-garden";
 import {
   createDefaultJoinGardenPorts,
@@ -58,7 +60,6 @@ interface PasskeySession {
 
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/contract-errors";
-import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { gardensKeys } from "../../config/query-keys/garden";
 import { useDocumentEvent } from "../utils/useEventListener";
@@ -164,9 +165,9 @@ interface JoinGardenState {
  */
 export function useJoinGarden() {
   const { formatMessage } = useIntl();
-  const { smartAccountAddress, smartAccountClient, eoa } = useUser();
-  const walletAddress = eoa?.address;
-  const primaryAddress = smartAccountAddress || walletAddress;
+  // The primary address covers every sign-in: an embedded wallet has no `eoa` and no smart
+  // account, and joins through the wallet path under the address useUser() derives for it.
+  const { smartAccountClient, walletRestore, authMode: signIn, primaryAddress } = useUser();
 
   const networkConfig = getDefaultChain();
   const chainId = Number(networkConfig.chainId ?? DEFAULT_CHAIN_ID);
@@ -224,12 +225,17 @@ export function useJoinGarden() {
         throw new Error(formatMessage({ id: "app.garden.joinMissingInfo" }));
       }
 
-      // Track join started
-      const authMode = client?.account ? "passkey" : "wallet";
+      // A passkey account sends through its smart account; any other sign-in sends through the
+      // wallet path, and an embedded wallet keeps its own kind in every record (PRD-1570).
+      const sendsByWallet = !client?.account;
+      const authMode = sendsByWallet ? (signIn === "embedded" ? "embedded" : "wallet") : "passkey";
       addBreadcrumb("garden_join_started", { gardenAddress, authMode });
+      // One id for this press: the join's own events and its send act share it (PRD-1561).
+      const attemptId = newAttemptId();
       trackGardenJoinStarted({
         gardenAddress,
         authMode,
+        attemptId,
       });
 
       setState((prev) => ({
@@ -243,24 +249,34 @@ export function useJoinGarden() {
       const previousGardens = queryClient.getQueryData<Garden[]>(gardensKeys.byChain(chainId));
 
       try {
-        const txHash = await submitJoinGarden(
-          {
-            gardenAddress: gardenAddress as Hex,
-            userAddress: targetAddress as Hex,
-            chainId,
-            smartAccountClient: client,
-          },
-          createDefaultJoinGardenPorts({
-            walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) =>
-              writeContractAsync({
-                address: targetGarden,
-                abi: GardenAccountABI,
-                functionName: "joinGarden",
-                args: [],
-                chainId: targetChain,
-              }),
-            recordPending: addPendingJoin,
-          })
+        // A wallet join returns once it is broadcast, before its receipt: it may still land.
+        const joinEnding = () => (sendsByWallet ? "confirming" : "confirmed");
+        const txHash = await recordSendAct(
+          { act: "garden_join", authMode, chainId, attemptId },
+          () =>
+            submitJoinGarden(
+              {
+                gardenAddress: gardenAddress as Hex,
+                userAddress: targetAddress as Hex,
+                chainId,
+                smartAccountClient: client,
+              },
+              createDefaultJoinGardenPorts({
+                walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) => {
+                  // A wallet that has not answered is asked to reconnect before it is asked to sign.
+                  if (walletRestore) refuseWithoutWallet();
+                  return writeContractAsync({
+                    address: targetGarden,
+                    abi: GardenAccountABI,
+                    functionName: "joinGarden",
+                    args: [],
+                    chainId: targetChain,
+                  });
+                },
+                recordPending: addPendingJoin,
+              })
+            ),
+          joinEnding
         );
 
         // Optimistic update: add user to garden's gardeners list, marked as the join's own entry so
@@ -295,6 +311,7 @@ export function useJoinGarden() {
           gardenAddress,
           txHash,
           authMode,
+          attemptId,
         });
 
         isJoiningRef.current = false;
@@ -310,7 +327,7 @@ export function useJoinGarden() {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
           isJoiningRef.current = false;
-          trackGardenJoinAlreadyMember({ gardenAddress });
+          trackGardenJoinAlreadyMember({ gardenAddress, attemptId });
           addPendingJoin(gardenAddress, targetAddress);
           activateJoinedGarden(gardenAddress, targetAddress);
           setState((prev) => ({
@@ -333,9 +350,12 @@ export function useJoinGarden() {
         // stays out of the failure funnel and the error dashboard — counting
         // aborts as failures is what made `failures.conversion-kill` read a
         // two-person retry loop as a 66.7% garden_join conversion kill (PRD-717).
-        if (isCancelledTxError(error)) {
-          trackGardenJoinCancelled({ gardenAddress, authMode });
-        } else {
+        // A send that may still land is not a failure either: `send_act_ended`
+        // records it as still confirming (PRD-1553).
+        const { outcome } = sendActEnding(error);
+        if (outcome === "cancelled") {
+          trackGardenJoinCancelled({ gardenAddress, authMode, attemptId });
+        } else if (outcome === "failed") {
           // Telemetry carries the parsed error family only — viem embeds the
           // signer address in raw wallet messages, and these values are quoted
           // into shared surfaces by the growth-pulse routine.
@@ -347,6 +367,7 @@ export function useJoinGarden() {
             error: parsedErrorFamily,
             parsedErrorFamily,
             authMode,
+            attemptId,
           });
 
           // Also track as structured exception for PostHog error dashboard
@@ -372,6 +393,8 @@ export function useJoinGarden() {
     [
       primaryAddress,
       smartAccountClient,
+      signIn,
+      walletRestore,
       writeContractAsync,
       chainId,
       queryClient,

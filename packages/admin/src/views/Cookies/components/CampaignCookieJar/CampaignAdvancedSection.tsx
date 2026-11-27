@@ -21,8 +21,6 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
     jarOwner,
     setJarOwner,
     normalizedJarOwner,
-    withdrawalIntervalDays,
-    setWithdrawalIntervalDays,
     extraAddresses,
     setExtraAddresses,
     aggregation,
@@ -32,7 +30,7 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
       <details open={advancedOpen} onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}>
         <summary className="cursor-pointer type-title-sm font-semibold text-text-strong">
           {formatMessage({
-            id: "cockpit.community.cookies.advanced",
+            id: "hub.community.cookies.advanced",
             defaultMessage: "Advanced",
           })}
         </summary>
@@ -41,7 +39,7 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
             <div className="flex flex-wrap gap-2">
               <AdminFilterChip
                 label={formatMessage({
-                  id: "cockpit.community.cookies.useCustomToken",
+                  id: "hub.community.cookies.useCustomToken",
                   defaultMessage: "Use custom token",
                 })}
                 selected={selectedAssetId === "custom"}
@@ -55,7 +53,7 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
                   onClick={() => setSelectedAssetId(defaultPayoutAsset.id)}
                 >
                   {formatMessage({
-                    id: "cockpit.community.cookies.useDefaultAssets",
+                    id: "hub.community.cookies.useDefaultAssets",
                     defaultMessage: "Use default assets",
                   })}
                 </Button>
@@ -65,7 +63,7 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
               <AdminTextField
                 id="campaign-cookie-jar-custom-token"
                 label={formatMessage({
-                  id: "cockpit.community.cookies.tokenAddress",
+                  id: "hub.community.cookies.tokenAddress",
                   defaultMessage: "ERC20 token address",
                 })}
                 value={customTokenAddress}
@@ -74,14 +72,14 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
                   tokenSymbol
                     ? formatMessage(
                         {
-                          id: "cockpit.community.cookies.tokenInfo",
+                          id: "hub.community.cookies.tokenInfo",
                           defaultMessage: "{symbol}, {decimals} decimals",
                         },
                         { symbol: tokenSymbol, decimals: tokenDecimals }
                       )
                     : customTokenLoading
                       ? formatMessage({
-                          id: "cockpit.community.cookies.tokenInfoLoading",
+                          id: "hub.community.cookies.tokenInfoLoading",
                           defaultMessage: "Reading token decimals...",
                         })
                       : undefined
@@ -89,12 +87,12 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
                 error={
                   customTokenAddress && !normalizedCustomTokenAddress
                     ? formatMessage({
-                        id: "cockpit.community.cookies.invalidAddress",
+                        id: "hub.community.cookies.invalidAddress",
                         defaultMessage: "Enter a valid Ethereum address.",
                       })
                     : customTokenError
                       ? formatMessage({
-                          id: "cockpit.community.cookies.tokenDecimalsRequired",
+                          id: "hub.community.cookies.tokenDecimalsRequired",
                           defaultMessage:
                             "Token decimals could not be read. Check the ERC20 address and try again.",
                         })
@@ -105,7 +103,7 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
             <AdminTextField
               id="campaign-cookie-jar-owner"
               label={formatMessage({
-                id: "cockpit.community.cookies.owner",
+                id: "hub.community.cookies.owner",
                 defaultMessage: "Jar owner",
               })}
               value={jarOwner}
@@ -113,39 +111,29 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
               error={
                 jarOwner && !normalizedJarOwner
                   ? formatMessage({
-                      id: "cockpit.community.cookies.invalidAddress",
+                      id: "hub.community.cookies.invalidAddress",
                       defaultMessage: "Enter a valid Ethereum address.",
                     })
                   : undefined
               }
             />
-            <AdminTextField
-              id="campaign-cookie-jar-cooldown"
-              label={formatMessage({
-                id: "cockpit.community.cookies.cooldownDays",
-                defaultMessage: "Cooldown days",
-              })}
-              value={withdrawalIntervalDays}
-              onChange={(event) => setWithdrawalIntervalDays(event.target.value)}
-              inputProps={{ inputMode: "numeric" }}
-            />
             <AdminTextArea
               id="campaign-cookie-jar-extra-addresses"
               label={formatMessage({
-                id: "cockpit.community.cookies.extraAddresses",
+                id: "hub.community.cookies.extraAddresses",
                 defaultMessage: "Extra allowlist addresses",
               })}
               value={extraAddresses}
               onChange={(event) => setExtraAddresses(event.target.value)}
               placeholder={formatMessage({
-                id: "cockpit.community.cookies.extraPlaceholder",
+                id: "hub.community.cookies.extraPlaceholder",
                 defaultMessage: "Paste addresses separated by commas, spaces, or new lines",
               })}
               error={
                 aggregation.invalidAddresses.length > 0
                   ? formatMessage(
                       {
-                        id: "cockpit.community.cookies.invalidExtras",
+                        id: "hub.community.cookies.invalidExtras",
                         defaultMessage: "Invalid addresses: {addresses}",
                       },
                       { addresses: aggregation.invalidAddresses.join(", ") }

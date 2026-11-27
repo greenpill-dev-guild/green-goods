@@ -20,7 +20,7 @@ const prismDark = {
 // The brand voice descriptor (docs/docs/reference/brand-voice.mdx, section 1). The
 // tagline and the footer carry the same sentence.
 const descriptor =
-  'Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.';
+  'Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support.';
 
 const config: Config = {
   title: 'Green Goods Documentation',
@@ -47,6 +47,7 @@ const config: Config = {
 
   clientModules: [
     './src/clientModules/mermaidExpand.ts',
+    './src/clientModules/searchResultFocus.ts',
   ],
 
   // Even if you don't use internationalization, you can use this field to set
@@ -593,7 +594,7 @@ const config: Config = {
         },
         {
           href: 'https://admin.greengoods.app',
-          label: 'Admin',
+          label: 'Hub',
           position: 'right',
         },
       ],
@@ -624,7 +625,6 @@ const config: Config = {
         {
           title: 'Connect',
           items: [
-            { label: 'Discord', href: 'https://discord.gg/greenpill' },
             { label: 'X (Twitter)', href: 'https://x.com/greengoodsapp' },
             { label: 'LinkedIn', href: 'https://www.linkedin.com/company/greengoodsapp/' },
             { label: 'GitHub', href: 'https://github.com/greenpill-dev-guild/green-goods' },

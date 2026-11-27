@@ -7,10 +7,12 @@ import {
 import type { CopyValues } from "../copy";
 import { gardenScope } from "../gardens";
 import { type PromptRecord, resolvePrompt, typedChoice } from "../prompts";
+import { disableSuggestions } from "../suggestions";
 import { requestConnection } from "./account-steps";
 import { isGreeting } from "./commands";
 import type { TurnContext, TurnPlan } from "./context";
-import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
+import { acceptsAmount, profiledInput, profiledWords } from "../questions";
+import { EDITABLE_STATES, lifecycleState, questionProfileOf } from "./draft-commit";
 import { askEditField, askEditMenu } from "./edit-menu";
 import {
   AGAIN_CHOICE,
@@ -20,25 +22,23 @@ import {
   JOIN_CHOICE,
   offeredGardens,
 } from "./garden-step";
-import {
-  askAction,
-  askAnotherGarden,
-  askField,
-  fieldHint,
-  fieldQuestionText,
-  gardenLabel,
-  promptNextStep,
-} from "./prompting";
+import { askField, fieldHint, fieldQuestionText } from "./field-questions";
+import { askAction, askAnotherGarden, gardenLabel, promptNextStep } from "./prompting";
+import { frozenReply } from "./report-commands";
 import { handleReportMessage } from "./report-message";
+import { namesTheCount } from "./story-words";
 import {
   adoptAction,
   apply,
+  applyStory,
   finish,
   gardenerFact,
   gardenRef,
   type TurnExternal,
   type Working,
 } from "./report-work";
+import { NO_SUGGESTIONS, SUGGESTION_PROMPT, suggestedGarden, USE_SUGGESTION } from "./last-report";
+import { answeredActivity } from "./turn-reading";
 import type { TurnWriter } from "./writer";
 
 function invalid(writer: TurnWriter, reason: string, values: CopyValues = {}): void {
@@ -75,6 +75,20 @@ function explainQuestion(writer: TurnWriter, prompt: PromptRecord): void {
   }
 }
 
+/** Whether a model read something in the words that a message's handling can act on. */
+function usableReading(read: TurnExternal["interpretation"]): boolean {
+  return (
+    read !== null &&
+    (read.intent === "status" ||
+      read.intent === "cancel" ||
+      read.intent === "connect" ||
+      read.intent === "disconnect" ||
+      read.gardenKey !== null ||
+      read.actionUID !== null ||
+      read.facts.length > 0)
+  );
+}
+
 /**
  * Typed words that pick none of the choices on offer. What the model could read in them (a status
  * or cancel request, a request to link an account, a correction, new facts) is handled as a
@@ -90,16 +104,7 @@ function offChoice(
   const read = external.interpretation;
   if (read?.intent === "connect") return requestConnection(writer, null);
   const hello = isGreeting(plan.text) || read?.intent === "greeting";
-  const usable =
-    !hello &&
-    read !== null &&
-    (read.intent === "status" ||
-      read.intent === "cancel" ||
-      read.intent === "disconnect" ||
-      read.gardenKey !== null ||
-      read.actionUID !== null ||
-      read.facts.length > 0);
-  if (usable) {
+  if (!hello && usableReading(read)) {
     return handleReportMessage(writer, { kind: "message", text: plan.text, media: [] }, external);
   }
   if (hello) writer.say("chat.hello");
@@ -139,7 +144,7 @@ export function handleReportAnswer(
     return;
   }
   if (!EDITABLE_STATES.has(lifecycleState(draft))) {
-    writer.say("report.frozen");
+    writer.say(frozenReply(core, draft));
     return;
   }
   const sourceEntryId = writer.sourceEntryId();
@@ -190,13 +195,7 @@ export function handleReportAnswer(
       if (askAnotherGarden(writer, draft, ctx.account?.address ?? null)) return;
       if (page !== null) return askAction(writer, draft, external.catalog, page);
       const actions = external.catalog.result?.ok ? external.catalog.result.actions : [];
-      const uid =
-        option?.value ??
-        presentedKeys(prompt)[Number(text) - 1] ??
-        actions
-          .find((a) => a.definition.title.toLowerCase() === text?.trim().toLowerCase())
-          ?.definition.actionUID.toString();
-      const action = actions.find((candidate) => candidate.definition.actionUID.toString() === uid);
+      const action = answeredActivity(prompt, option, text, actions);
       if (!action) {
         return offChoice(writer, plan, external, () =>
           askAction(writer, draft, external.catalog, prompt.page)
@@ -205,13 +204,62 @@ export function handleReportAnswer(
       adoptAction(work, action, gardenerFact(sourceEntryId));
       break;
     }
+    case SUGGESTION_PROMPT: {
+      const account = ctx.account?.address ?? null;
+      const choice = picked?.value;
+      // Words that pick none of the three are a message of their own: a story, or another garden.
+      if (!choice)
+        return handleReportMessage(writer, { kind: "message", text, media: [] }, external);
+      if (choice === NO_SUGGESTIONS && account && ctx.binding) {
+        disableSuggestions(core, {
+          participantId: ctx.binding.participantId,
+          chainId: core.settings.chainId,
+          account,
+        });
+        writer.say("suggest.off");
+      }
+      const garden = suggestedGarden(gardenScope(core.gardens, account), prompt);
+      if (choice !== USE_SUGGESTION || !garden) {
+        // Something else: the garden question, or the activity question of a garden already taken.
+        if (!draft.content.garden) return askGarden(writer, draft, account);
+        return askAction(writer, draft, external.catalog);
+      }
+      if (garden.address !== draft.content.garden?.address)
+        apply(work, [
+          { field: "garden", value: gardenRef(garden), provenance: gardenerFact(sourceEntryId) },
+        ]);
+      // The activity is taken only if the garden still offers it; otherwise it is asked.
+      const [, uid] = (prompt.fieldKey ?? "").split("|");
+      const offered =
+        external.catalog.garden?.key === garden.key && external.catalog.result?.ok
+          ? external.catalog.result.actions
+          : [];
+      const activity = offered.find((action) => String(action.definition.actionUID) === uid);
+      if (activity) adoptAction(work, activity, gardenerFact(sourceEntryId));
+      break;
+    }
+    case "fields": {
+      // Two fields asked together: whatever the answer names is taken, and what is still missing
+      // is asked next, on its own. An answer that names neither puts the question again.
+      const asked = (prompt.fieldKey ?? "").split(",").map((key) => `details.${key}` as const);
+      if (text && applyStory(writer, draft, work, text, asked)) break;
+      const counted = asked
+        .map((field) => findInput(work.snapshot, field.slice("details.".length)))
+        .find((input) => input?.type === "number");
+      if (isGreeting(text)) writer.say("chat.hello");
+      else if (counted) writer.say("report.explainNumberPlain", { title: counted.title, unit: "" });
+      return promptNextStep(writer, draft, external.catalog);
+    }
     case "field": {
-      const input = findInput(work.snapshot, prompt.fieldKey ?? "");
-      if (!input) {
+      const definition = findInput(work.snapshot, prompt.fieldKey ?? "");
+      if (!definition) {
         promptNextStep(writer, draft, external.catalog);
         return;
       }
-      if (page !== null) return askField(writer, draft, input, page);
+      if (page !== null) return askField(writer, draft, definition, page);
+      // Read with the unit the report's profile gives the field, if it gives one.
+      const profile = questionProfileOf(core, draft);
+      const input = profiledInput(profile, definition, work.content.details);
       const answer = option
         ? {
             ok: true as const,
@@ -219,10 +267,44 @@ export function handleReportAnswer(
             original: option.label,
           }
         : parseFieldAnswer(input, text ?? "", presentedKeys(prompt));
+      // An answer with more words than the value is read for every fact it names: "12 trees" at
+      // the participants question counts trees. Words the reader cannot account for are not an
+      // answer, so the first number in them is never taken on its own.
+      const saysMore = !answer.ok || Boolean(answer.statedUnit);
+      if (saysMore && text && applyStory(writer, draft, work, text, `details.${input.key}`)) break;
+      // A value the report already holds, said again from the edit menu, changes nothing.
+      if (
+        answer.ok &&
+        JSON.stringify(work.content.details[input.key]) === JSON.stringify(answer.value)
+      ) {
+        work.answered = `details.${input.key}`;
+        break;
+      }
+      // "12 bags" for "Amount Removed (kg or bags)": a number and a plain word for what is counted.
+      const unread =
+        answer.ok &&
+        Boolean(answer.statedUnit) &&
+        input.type === "number" &&
+        (work.recognised ||
+          !namesTheCount(answer.statedUnit ?? "", [
+            input.title,
+            input.placeholder ?? "",
+            input.unit ?? "",
+            ...profiledWords(profile, input.key, ctx.locale, work.content.details),
+          ]));
       if (!answer.ok && answer.reason === "unknown_option") {
         return offChoice(writer, plan, external, () => askField(writer, draft, input, prompt.page));
       }
-      if (!answer.ok && answer.reason === "not_a_number") {
+      if (unread || (!answer.ok && answer.reason === "not_a_number")) {
+        // A hello is answered, and the question put again.
+        if (isGreeting(text)) {
+          writer.say("chat.hello");
+          return askField(writer, draft, definition);
+        }
+        // What a model read in the words is handled as a message is: a detail of another field,
+        // a correction, a request for status.
+        if (usableReading(external.interpretation))
+          return handleReportMessage(writer, { kind: "message", text, media: [] }, external);
         // Words where a number was asked for are usually a question about the field itself.
         const hint = fieldHint(input);
         return writer.say(hint ? "report.explainNumber" : "report.explainNumberPlain", {
@@ -236,6 +318,9 @@ export function handleReportAnswer(
           unit: input.unit ?? "",
           stated: answer.statedUnit ?? "",
         });
+      // A count is a whole number of one or more: half a retrofit is asked again, not rounded.
+      if (!acceptsAmount(profile, input.key, work.content.details, answer.value))
+        return invalid(writer, "whole_number");
       apply(work, [
         {
           field: `details.${input.key}`,
@@ -243,11 +328,14 @@ export function handleReportAnswer(
           provenance: gardenerFact(sourceEntryId, answer.original, input.unit),
         },
       ]);
+      // A number with a word after it is said back, so the gardener sees how it was taken.
+      if (input.type !== "number" || !answer.statedUnit) work.answered = `details.${input.key}`;
       break;
     }
     case "time": {
       const duration = parseDurationAnswer(text ?? "");
       if (duration.ok) {
+        work.answered = "timeSpentMinutes";
         apply(work, [
           {
             field: "timeSpentMinutes",
@@ -257,6 +345,7 @@ export function handleReportAnswer(
         ]);
         break;
       }
+      if (text && applyStory(writer, draft, work, text, "timeSpentMinutes")) break;
       if (duration.reason === "unit_required") {
         const value = (text ?? "").trim();
         writer.ask(
@@ -280,6 +369,8 @@ export function handleReportAnswer(
         );
         return;
       }
+      if (usableReading(external.interpretation))
+        return handleReportMessage(writer, { kind: "message", text, media: [] }, external);
       return invalid(writer, duration.reason, { unit: "hours", stated: duration.statedUnit ?? "" });
     }
     case "time_unit": {

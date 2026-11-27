@@ -7,12 +7,11 @@
 import { describe, expect, it } from "vitest";
 
 import { groupCommitmentsForDisplay } from "../modules/commitment-pooling/display-groups";
-import type { DueClock } from "../modules/commitment-pooling/due-dates";
+import { type DueClock, isOpenToTakeUp } from "../modules/commitment-pooling/due-dates";
 import {
   findDisplayGroup,
-  groupCountsOnClock,
+  groupTakeUpCounts,
   isAtTakeUpLimit,
-  isOpenToTakeUp,
   pickCopyToTakeUp,
   selectGroupTakeUpBar,
   selectPoolListEntries,
@@ -148,14 +147,79 @@ describe("group browsing", () => {
 
     expect(group.counts).toMatchObject({ available: 2, inProgress: 1, ended: 0 });
     // Anyone may expire an untaken copy now, so it is ended; one taken up keeps its count.
-    expect(groupCountsOnClock(group, clock)).toMatchObject({
+    expect(groupTakeUpCounts(group, { clock, askedFor: NOBODY_ASKED })).toMatchObject({
       published: 3,
       available: 0,
       inProgress: 1,
       ended: 2,
     });
     // Until the due second passes, the counts stand as the chain has them.
-    expect(groupCountsOnClock(group, { ...clock, now: NOW - 1n })).toBe(group.counts);
+    expect(
+      groupTakeUpCounts(group, { clock: { ...clock, now: NOW - 1n }, askedFor: NOBODY_ASKED })
+    ).toEqual({ ...group.counts, requested: 0 });
+  });
+
+  // PRD-1492: a reviewed group's page held its act with "None are available right now" beside
+  // "1 available", and Take Part said "1 available" too, because the one open copy already had
+  // someone's request on it, which the act passes over (D5).
+  it("counts a reviewed group's copy with a request waiting on a steward as requested, never available", () => {
+    const [reviewed] = groupCommitmentsForDisplay({
+      commitments: [
+        copy(11, { claimMode: "APPROVAL_GATED" }),
+        copy(12, { claimMode: "APPROVAL_GATED" }),
+        copy(13, {
+          claimMode: "APPROVAL_GATED",
+          onchainState: "ACCEPTED",
+          derivedState: "ACCEPTED",
+          leadProvider: OMAR,
+        }),
+      ],
+      metadataByCID: metadata,
+    });
+    if (reviewed?.kind !== "group") throw new Error("expected the set to fold into one group");
+
+    expect(groupTakeUpCounts(reviewed, { clock: CLOCK, askedFor: new Set(["11"]) })).toEqual({
+      published: 3,
+      available: 1,
+      requested: 1,
+      inProgress: 1,
+      kept: 0,
+      ended: 0,
+      other: 0,
+    });
+    // Both open copies asked for: none is available, as the act that finds no copy says.
+    const bothAsked = new Set(["11", "12"]);
+    expect(groupTakeUpCounts(reviewed, { clock: CLOCK, askedFor: bothAsked })).toMatchObject({
+      available: 0,
+      requested: 2,
+    });
+    expect(
+      pickCopyToTakeUp(reviewed.children, { clock: CLOCK, viewer: LINA, askedFor: bothAsked })
+    ).toBeNull();
+    // A copy past due is ended whoever asked for it: no steward can let it be taken up now.
+    const [lapsed] = groupCommitmentsForDisplay({
+      commitments: [11, 12].map((id) =>
+        copy(id, { claimMode: "APPROVAL_GATED", dueDate: NOW - 1n })
+      ),
+      metadataByCID: metadata,
+    });
+    if (lapsed?.kind !== "group") throw new Error("expected the set to fold into one group");
+    expect(groupTakeUpCounts(lapsed, { clock: CLOCK, askedFor: bothAsked })).toMatchObject({
+      available: 0,
+      requested: 0,
+      ended: 2,
+    });
+
+    // Nobody reviews an open group's take-up, so a request on one of its copies changes nothing.
+    const [open] = groupCommitmentsForDisplay({
+      commitments: [copy(21), copy(22)],
+      metadataByCID: metadata,
+    });
+    if (open?.kind !== "group") throw new Error("expected the set to fold into one group");
+    expect(groupTakeUpCounts(open, { clock: CLOCK, askedFor: new Set(["21"]) })).toMatchObject({
+      available: 2,
+      requested: 0,
+    });
   });
 
   it("asks for a copy nobody has asked for yet in a reviewed group (D5), and never an open one's", () => {

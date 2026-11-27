@@ -101,8 +101,8 @@ function renderHarness(initialEntry: string) {
         <IntlProvider
           locale="en"
           messages={{
-            "cockpit.gardenChip.allGardens": "All Gardens",
-            "cockpit.gardenChip.createGarden": "Create Garden",
+            "hub.gardenChip.allGardens": "All Gardens",
+            "hub.gardenChip.createGarden": "Create Garden",
           }}
         >
           <LocationProbe />
@@ -131,7 +131,7 @@ describe("GardenChip + useGardenUrlSync integration", () => {
 
   it("renders an interactive chip for two eligible gardens and switches URL plus selected garden", async () => {
     const user = userEvent.setup();
-    renderHarness(`/hub/work?gardenId=${TEST_GARDENS[0].id}`);
+    renderHarness(`/review/work?gardenId=${TEST_GARDENS[0].id}`);
 
     const trigger = screen.getByRole("button", { name: /garden one/i });
     expect(trigger).toHaveAttribute("data-slot", "trigger");

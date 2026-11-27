@@ -11,6 +11,8 @@ import {
 import { getActorSignOutRevision, publishSignOut } from "../../modules/auth/sessionSignOut";
 import { createAuthActor } from "../../workflows/authActor";
 import type {
+  OpenfortOperationInput,
+  OpenfortSessionResult,
   PasskeyOperationInput,
   PasskeySessionResult,
   RestoreSessionInput,
@@ -27,6 +29,10 @@ const services = {
   authenticatePasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(
     () => new Promise(() => {})
   ),
+  authenticateOpenfort: fromPromise<OpenfortSessionResult, OpenfortOperationInput>(
+    () => new Promise(() => {})
+  ),
+  restoreOpenfort: fromPromise<OpenfortSessionResult | null, { chainId: number }>(async () => null),
 };
 beforeEach(() => localStorage.clear());
 afterEach(() => {
@@ -80,15 +86,15 @@ it("keeps a fresh deliberate wallet login when the provider remounts", async () 
   actor.start();
   await waitFor(() => expect(actor.getSnapshot().matches("unauthenticated")).toBe(true));
   const endSession = vi.fn(() => actor.send({ type: "SIGN_OUT" }));
-  const hook = () => useCrossTabSignOut(endSession, getActorSignOutRevision(actor));
-  const first = renderHook(hook);
+  const useSignOut = () => useCrossTabSignOut(endSession, getActorSignOutRevision(actor));
+  const first = renderHook(useSignOut);
   act(() => first.result.current.notifySignOut());
   act(() => {
     actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: wallet });
     actor.send({ type: "LOGIN_WALLET" });
   });
   first.unmount();
-  renderHook(hook);
+  renderHook(useSignOut);
   expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
   expect(endSession).not.toHaveBeenCalled();
 });

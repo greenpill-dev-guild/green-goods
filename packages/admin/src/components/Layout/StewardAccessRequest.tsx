@@ -1,4 +1,5 @@
 // Command surface: a signed request with a clear target, review and explicit outcome.
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
@@ -34,68 +35,51 @@ export function StewardAccessRequest({
     void operation().catch(() => undefined);
   };
   const statusLabel = request
-    ? formatMessage({ id: `cockpit.stewardAccess.status.${request.state}` })
+    ? formatMessage({ id: `hub.stewardAccess.status.${request.state}` })
     : "";
-  const actions = !c.available ? (
-    <Button type="button" emphasis="secondary" size="lg" onClick={() => c.setOpen(false)}>
-      {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-    </Button>
-  ) : statusView ? (
-    <>
-      {request?.state === "pending" ? (
-        <Button
-          type="button"
-          emphasis="secondary"
-          size="lg"
-          disabled={c.busy}
-          loading={c.activity === "withdrawing"}
-          onClick={() => action(c.withdraw)}
-        >
-          {formatMessage({ id: "cockpit.stewardAccess.withdraw" })}
-        </Button>
-      ) : null}
-      <Button
-        type="button"
-        size="lg"
-        disabled={c.busy}
-        loading={c.activity === "checking"}
-        onClick={() => action(c.check)}
-      >
-        {formatMessage({ id: "cockpit.stewardAccess.checkStatus" })}
-      </Button>
-    </>
-  ) : c.step === "review" && c.selectedGarden ? (
-    <>
-      <Button
-        type="button"
-        emphasis="secondary"
-        size="lg"
-        disabled={c.busy}
-        onClick={() => c.setStep("choose")}
-      >
-        {formatMessage({ id: "cockpit.stewardAccess.changeGarden" })}
-      </Button>
-      <Button
-        type="button"
-        size="lg"
-        disabled={c.busy || c.outcomeUnknown || !c.accountAddress}
-        loading={c.activity === "sending"}
-        onClick={() => action(c.send)}
-      >
-        {formatMessage({ id: "cockpit.stewardAccess.send" })}
-      </Button>
-    </>
-  ) : (
-    <Button
-      type="button"
-      emphasis="secondary"
-      size="lg"
-      disabled={c.busy}
-      onClick={() => c.setOpen(false)}
-    >
-      {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-    </Button>
-  );
+  const close = {
+    label: formatMessage({ id: "app.common.close", defaultMessage: "Close" }),
+    onClick: () => c.setOpen(false),
+  };
+  // Two acts share one row at every width (`steps`), so the footer keeps one
+  // height through the flow and nothing under it moves.
+  const actions: SheetActionsProps = !c.available
+    ? { secondary: close }
+    : statusView
+      ? {
+          layout: "steps",
+          primary: {
+            label: formatMessage({ id: "hub.stewardAccess.checkStatus" }),
+            disabled: c.busy,
+            loading: c.activity === "checking",
+            onClick: () => action(c.check),
+          },
+          secondary:
+            request?.state === "pending"
+              ? {
+                  label: formatMessage({ id: "hub.stewardAccess.withdraw" }),
+                  disabled: c.busy,
+                  loading: c.activity === "withdrawing",
+                  onClick: () => action(c.withdraw),
+                }
+              : undefined,
+        }
+      : c.step === "review" && c.selectedGarden
+        ? {
+            layout: "steps",
+            primary: {
+              label: formatMessage({ id: "hub.stewardAccess.send" }),
+              disabled: c.busy || c.outcomeUnknown || !c.accountAddress,
+              loading: c.activity === "sending",
+              onClick: () => action(c.send),
+            },
+            secondary: {
+              label: formatMessage({ id: "hub.stewardAccess.changeGarden" }),
+              disabled: c.busy,
+              onClick: () => c.setStep("choose"),
+            },
+          }
+        : { secondary: { ...close, disabled: c.busy } };
   return (
     <div className="space-y-3" data-component="StewardAccessRequest">
       {showStatus && request && c.selectedGarden ? (
@@ -107,7 +91,7 @@ export function StewardAccessRequest({
             </StatusBadge>
           </div>
           <p className="type-body text-text-sub">
-            {formatMessage({ id: `cockpit.stewardAccess.outcome.${request.state}` })}
+            {formatMessage({ id: `hub.stewardAccess.outcome.${request.state}` })}
           </p>
         </div>
       ) : null}
@@ -123,20 +107,20 @@ export function StewardAccessRequest({
       >
         {formatMessage({
           id: request
-            ? "cockpit.stewardAccess.viewRequest"
+            ? "hub.stewardAccess.viewRequest"
             : showStatus
-              ? "cockpit.stewardAccess.request"
-              : "cockpit.account.stewardAccess.request",
+              ? "hub.stewardAccess.request"
+              : "hub.account.stewardAccess.request",
         })}
       </Button>
       <AdminDialog
         open={c.open}
         onOpenChange={c.setOpen}
-        title={formatMessage({ id: "cockpit.stewardAccess.request" })}
-        description={formatMessage({ id: "cockpit.stewardAccess.description" })}
+        title={formatMessage({ id: "hub.stewardAccess.request" })}
+        description={formatMessage({ id: "hub.stewardAccess.description" })}
         target={
           <span className="block truncate" title={c.selectedGarden?.name}>
-            {c.selectedGarden?.name ?? formatMessage({ id: "cockpit.gardenChip.selectGarden" })}
+            {c.selectedGarden?.name ?? formatMessage({ id: "hub.gardenChip.selectGarden" })}
           </span>
         }
         size="md"
@@ -145,7 +129,8 @@ export function StewardAccessRequest({
         tone="home"
         preventClose={c.busy}
         actions={actions}
-        actionsClassName="min-h-[calc(4rem+env(safe-area-inset-bottom))] flex-row items-center justify-end bg-transparent [&>button]:min-w-0 [&>button]:flex-1 [&>button]:max-h-none [&>button]:whitespace-normal [&>button]:px-3 [&>button]:py-0 [&>button]:leading-tight sm:[&>button]:flex-none sm:[&>button]:whitespace-nowrap sm:[&>button]:px-5"
+        // This flow's footer sits on the dialog's own surface, not a raised bar.
+        className="[&_[data-slot=actions]]:bg-transparent"
         finalFocusRef={opener}
       >
         <div
@@ -157,7 +142,7 @@ export function StewardAccessRequest({
             <>
               {c.serviceLoading ? (
                 <p role="status" className="type-body text-text-sub">
-                  {formatMessage({ id: "cockpit.stewardAccess.checkingAvailability" })}
+                  {formatMessage({ id: "hub.stewardAccess.checkingAvailability" })}
                 </p>
               ) : (
                 <>
@@ -178,8 +163,8 @@ export function StewardAccessRequest({
                   >
                     {formatMessage({
                       id: c.serviceError
-                        ? "cockpit.stewardAccess.availabilityError"
-                        : "cockpit.stewardAccess.unavailable",
+                        ? "hub.stewardAccess.availabilityError"
+                        : "hub.stewardAccess.unavailable",
                     })}
                   </Alert>
                   {c.accountAddress ? (
@@ -194,7 +179,7 @@ export function StewardAccessRequest({
                 {statusLabel}
               </StatusBadge>
               <p className="type-body text-text-sub">
-                {formatMessage({ id: `cockpit.stewardAccess.outcome.${request?.state}` })}
+                {formatMessage({ id: `hub.stewardAccess.outcome.${request?.state}` })}
               </p>
               {request?.reason ? (
                 <p className="whitespace-pre-wrap type-body text-text-strong">{request.reason}</p>
@@ -206,17 +191,17 @@ export function StewardAccessRequest({
                 disabled={c.busy}
                 onClick={() => c.setStep("choose")}
               >
-                {formatMessage({ id: "cockpit.stewardAccess.changeGarden" })}
+                {formatMessage({ id: "hub.stewardAccess.changeGarden" })}
               </Button>
             </div>
           ) : c.step === "choose" ? (
             <>
               <div className="shrink-0">
                 <AdminTextField
-                  label={formatMessage({ id: "cockpit.stewardAccess.gardenSearch" })}
+                  label={formatMessage({ id: "hub.stewardAccess.gardenSearch" })}
                   value={c.search}
                   onChange={(event) => c.setSearch(event.currentTarget.value)}
-                  helperText={formatMessage({ id: "cockpit.stewardAccess.gardenSearchHelp" })}
+                  helperText={formatMessage({ id: "hub.stewardAccess.gardenSearchHelp" })}
                 />
               </div>
               {c.catalogLoading ? (
@@ -224,16 +209,16 @@ export function StewardAccessRequest({
                   busy
                   className="min-h-0 flex-1"
                   icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
-                  title={formatMessage({ id: "cockpit.stewardAccess.loadingGardens" })}
+                  title={formatMessage({ id: "hub.stewardAccess.loadingGardens" })}
                 />
               ) : c.catalogError ? (
                 <EmptyState
                   tone="error"
                   className="min-h-0 flex-1"
                   icon={<RiErrorWarningLine />}
-                  title={formatMessage({ id: "cockpit.stewardAccess.gardensError.title" })}
+                  title={formatMessage({ id: "hub.stewardAccess.gardensError.title" })}
                   description={formatMessage({
-                    id: "cockpit.stewardAccess.gardensError.description",
+                    id: "hub.stewardAccess.gardensError.description",
                   })}
                   action={
                     <Button
@@ -254,17 +239,17 @@ export function StewardAccessRequest({
                     icon={<RiSeedlingLine />}
                     title={formatMessage({
                       id: c.alreadyStewardTarget
-                        ? "cockpit.stewardAccess.alreadySteward.title"
+                        ? "hub.stewardAccess.alreadySteward.title"
                         : c.invalidLink
-                          ? "cockpit.stewardAccess.invalidLink.title"
-                          : "cockpit.stewardAccess.noGardens.title",
+                          ? "hub.stewardAccess.invalidLink.title"
+                          : "hub.stewardAccess.noGardens.title",
                     })}
                     description={formatMessage({
                       id: c.alreadyStewardTarget
-                        ? "cockpit.stewardAccess.alreadySteward.description"
+                        ? "hub.stewardAccess.alreadySteward.description"
                         : c.invalidLink
-                          ? "cockpit.stewardAccess.invalidLink.description"
-                          : "cockpit.stewardAccess.noGardens.description",
+                          ? "hub.stewardAccess.invalidLink.description"
+                          : "hub.stewardAccess.noGardens.description",
                     })}
                   />
                 </div>
@@ -299,25 +284,25 @@ export function StewardAccessRequest({
             <>
               <section className="space-y-2">
                 <h3 className="type-body font-semibold text-text-strong">
-                  {formatMessage({ id: "cockpit.stewardAccess.reviewTitle" })}
+                  {formatMessage({ id: "hub.stewardAccess.reviewTitle" })}
                 </h3>
                 <p className="type-body text-text-sub">
-                  {formatMessage({ id: "cockpit.stewardAccess.account" })}
+                  {formatMessage({ id: "hub.stewardAccess.account" })}
                 </p>
                 {c.accountAddress ? (
                   <AddressDisplay address={c.accountAddress} showCopyButton />
                 ) : null}
               </section>
               <AdminTextArea
-                label={formatMessage({ id: "cockpit.stewardAccess.note" })}
+                label={formatMessage({ id: "hub.stewardAccess.note" })}
                 value={c.note}
                 onChange={(event) => c.setNote(event.currentTarget.value)}
                 textareaProps={{ maxLength: GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH }}
                 showCount
-                helperText={formatMessage({ id: "cockpit.stewardAccess.noteHelp" })}
+                helperText={formatMessage({ id: "hub.stewardAccess.noteHelp" })}
               />
               <p className="type-body text-text-sub">
-                {formatMessage({ id: "cockpit.stewardAccess.signingHelp" })}
+                {formatMessage({ id: "hub.stewardAccess.signingHelp" })}
               </p>
               <Button
                 type="button"
@@ -327,24 +312,24 @@ export function StewardAccessRequest({
                 loading={c.activity === "checking"}
                 onClick={() => action(c.check)}
               >
-                {formatMessage({ id: "cockpit.stewardAccess.checkStatus" })}
+                {formatMessage({ id: "hub.stewardAccess.checkStatus" })}
               </Button>
               {c.hasCheckedStatus && !request ? (
                 <p role="status" className="type-body text-text-sub">
-                  {formatMessage({ id: "cockpit.stewardAccess.noRequest" })}
+                  {formatMessage({ id: "hub.stewardAccess.noRequest" })}
                 </p>
               ) : null}
             </>
           ) : null}
           {request?.state === "declined" && request.canAskAgain ? (
             <Alert variant="info">
-              {formatMessage({ id: "cockpit.stewardAccess.outcome.declined" })}
+              {formatMessage({ id: "hub.stewardAccess.outcome.declined" })}
               {request.reason ? ` ${request.reason}` : ""}
             </Alert>
           ) : null}
           {c.outcomeUnknown ? (
             <Alert variant="warning">
-              {formatMessage({ id: "cockpit.stewardAccess.outcomeUnknown" })}
+              {formatMessage({ id: "hub.stewardAccess.outcomeUnknown" })}
             </Alert>
           ) : null}
           {c.error ? (

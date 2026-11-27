@@ -984,7 +984,14 @@ export async function executePlan(plan, options = {}) {
   return finish({ status: "passed", exitCode: 0, results, blocked, pendingManual, ignoredAttestations });
 }
 
+/** What the gate prints when a plan needs focused proof. The selector's advice is one sentence or none. */
+export function needsFocusReport(plan, colors = { yellow: "", reset: "" }) {
+  const advice = [plan.remediation ?? []].flat().filter(Boolean).map((instruction) => `  - ${instruction}`);
+  return [`\n${colors.yellow}Validation needs focused proof; no checks were started.${colors.reset}`, ...advice].join("\n");
+}
+
 /** Summarize observed evidence only; never copy subprocess logs, environment or attestation text. */
+
 export function summarizeExecution(plan, execution, { loadAverage = loadavg(), cpuCount = availableParallelism() } = {}) {
   const results = execution.results ?? [];
   const blocked = (execution.blocked ?? []).map(({ id, blockedBy }) => ({ id, blockedBy: [...blockedBy] }));
@@ -1236,8 +1243,7 @@ async function main() {
   } else if (execution.status === "cancelled") {
     console.log(`\n${colors.yellow}Validation cancelled; no additional checks will run.${colors.reset}`);
   } else if (execution.status === "needs-focus") {
-    console.log(`\n${colors.yellow}Validation needs focused proof; no checks were started.${colors.reset}`);
-    for (const instruction of plan.remediation ?? []) console.log(`  - ${instruction}`);
+    console.log(needsFocusReport(plan, colors));
   } else if (execution.status === "budget-exceeded") {
     console.log(
       `\n${colors.red}Validation exceeded its ${plan.budget.hardLimitSeconds}s local budget; remaining noncritical checks were stopped.${colors.reset}`,

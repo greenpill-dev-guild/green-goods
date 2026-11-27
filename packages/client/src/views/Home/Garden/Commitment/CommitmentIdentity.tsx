@@ -16,7 +16,9 @@ import { useIntl } from "react-intl";
 import {
   presentState,
   promisePayoutOf,
+  PromiseRewardParts,
   promiseRewardOf,
+  rewardLinePayout,
   promiseRewardText,
   rewardsNeedPrice,
 } from "@/components/Features/Commitments";
@@ -46,20 +48,23 @@ export interface CommitmentIdentityProps {
   stewards: readonly Address[];
   /**
    * A voucher booking or a request's rewards say where they stand themselves: one sentence
-   * in place of the promise's own, its tone, whether it needs the reader, and a state word
-   * where the promise's own says too little ("Ended early").
+   * in place of the promise's own, its tone, whether it needs the reader, and a booking's one
+   * pill in place of the promise's state, which reads "Offered" through the whole deposit.
    */
   serviceBand?: {
     sentence: string;
     tone: StatusBand["tone"];
     needsYou: boolean;
-    pillId?: string | null;
-    /** The booking's own state beside the pill, where the pill alone would mislead. */
-    chip?: {
+    pill?: {
       labelId: string;
       tone: "success" | "warning" | "error" | "info" | "neutral";
     } | null;
   } | null;
+  /**
+   * A member's booking says what was promised in its own card (what you get, your voucher, who
+   * offers it), so the promise's section steps aside.
+   */
+  promisedInBooking?: boolean;
   /** What a booking of the reader's own voucher offer takes, among the facts they set. */
   serviceTakes?: string | null;
   /**
@@ -91,21 +96,39 @@ export function CommitmentIdentity({
   serviceBand = null,
   serviceTakes = null,
   rewardsBelow = false,
+  promisedInBooking = false,
 }: CommitmentIdentityProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const headingId = useId();
-  const rewards = rewardsBelow
-    ? []
-    : [promiseRewardOf(commitment, metadata)].filter((reward) => reward !== null);
+  const promised = promiseRewardOf(commitment, metadata);
+  const rewards = rewardsBelow ? [] : [promised].filter((reward) => reward !== null);
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
+  const payout = promisePayoutOf(commitment, { pastDue: band?.pastDue });
+  const [onlyReward] = rewards;
   const reward = promiseRewardText({
     intl,
     rewards,
     price: price.state,
-    payout: promisePayoutOf(commitment),
+    payout: rewardLinePayout(onlyReward, payout),
   });
+  // A reward paid in more than one token shows each part on its own row (PRD-1556). Where the
+  // service section below carries the G$ and voucher rewards, only the Safe-paid parts show here.
+  const partsReward = rewardsBelow
+    ? promised?.others?.length
+      ? { ...promised, wei: 0n, centsAsSet: null }
+      : undefined
+    : onlyReward;
+  const rewardParts = partsReward?.others?.length ? (
+    <PromiseRewardParts
+      reward={partsReward}
+      chainId={commitment.chainId}
+      commitmentId={commitment.commitmentId}
+      viewer={viewer}
+      payout={payout}
+    />
+  ) : null;
   // The band says when an untaken promise is past due, and the pill says it with it.
   const state = presentState(commitment.derivedState, { pastDue: band?.pastDue });
   // A booking's stage can wait on others while the promise itself waits on the reader (Confirm
@@ -139,23 +162,9 @@ export function CommitmentIdentity({
         aria-label={formatMessage({ id: "app.commitment.status.label" })}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge
-            size="sm"
-            variant={serviceBand?.pillId ? "neutral" : state.tone}
-            showIcon={false}
-          >
-            {formatMessage({ id: serviceBand?.pillId ?? state.labelId })}
+          <StatusBadge size="sm" variant={serviceBand?.pill?.tone ?? state.tone} showIcon={false}>
+            {formatMessage({ id: serviceBand?.pill?.labelId ?? state.labelId })}
           </StatusBadge>
-          {serviceBand?.chip ? (
-            <StatusBadge
-              size="sm"
-              variant={serviceBand.chip.tone}
-              showIcon={false}
-              data-component="BookingStateChip"
-            >
-              {formatMessage({ id: serviceBand.chip.labelId })}
-            </StatusBadge>
-          ) : null}
           {needsYou ? (
             <span className="text-xs font-medium text-warning-dark">
               {formatMessage({ id: "app.commitments.row.needsYou" })}
@@ -190,50 +199,53 @@ export function CommitmentIdentity({
         ) : null}
       </section>
 
-      <section
-        className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
-        aria-labelledby={headingId}
-      >
-        <h2 id={headingId} className="text-sm font-semibold leading-5 text-text-strong-950">
-          {formatMessage({ id: "app.commitment.promised.title" })}
-        </h2>
-        <CommitmentPeople
-          commitment={commitment}
-          contributors={contributors}
-          seat={seat}
-          units={units}
-          takes={serviceTakes}
-          reward={reward}
-          viewer={viewer}
-          stewards={stewards}
-        />
-        {metadata?.note ? (
-          <p className="mt-2 text-sm leading-relaxed text-text-sub-600">{metadata.note}</p>
-        ) : null}
-        {metadata?.links && metadata.links.length > 0 ? (
-          <ul className="mt-2 space-y-1 text-sm">
-            {metadata.links.map((link) => (
-              <li key={link.url} className="truncate">
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="text-primary-on-surface underline-offset-2 hover:underline"
-                  title={link.url}
-                >
-                  {link.label ?? link.url}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {joinable ? (
-          <p className="mt-3 flex items-center gap-2 text-xs text-text-sub-600">
-            <RiGroupLine className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {formatMessage({ id: "app.commitment.team.openInvite" })}
-          </p>
-        ) : null}
-      </section>
+      {promisedInBooking ? null : (
+        <section
+          className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
+          aria-labelledby={headingId}
+        >
+          <h2 id={headingId} className="text-sm font-semibold leading-5 text-text-strong-950">
+            {formatMessage({ id: "app.commitment.promised.title" })}
+          </h2>
+          <CommitmentPeople
+            commitment={commitment}
+            contributors={contributors}
+            seat={seat}
+            units={units}
+            takes={serviceTakes}
+            reward={reward}
+            rewardParts={rewardParts}
+            viewer={viewer}
+            stewards={stewards}
+          />
+          {metadata?.note ? (
+            <p className="mt-2 text-sm leading-relaxed text-text-sub-600">{metadata.note}</p>
+          ) : null}
+          {metadata?.links && metadata.links.length > 0 ? (
+            <ul className="mt-2 space-y-1 text-sm">
+              {metadata.links.map((link) => (
+                <li key={link.url} className="truncate">
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-primary-on-surface underline-offset-2 hover:underline"
+                    title={link.url}
+                  >
+                    {link.label ?? link.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {joinable ? (
+            <p className="mt-3 flex items-center gap-2 text-xs text-text-sub-600">
+              <RiGroupLine className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {formatMessage({ id: "app.commitment.team.openInvite" })}
+            </p>
+          ) : null}
+        </section>
+      )}
     </>
   );
 }

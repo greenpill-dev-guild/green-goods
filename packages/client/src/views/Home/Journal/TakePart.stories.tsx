@@ -70,7 +70,7 @@ export const Default: Story = {
     }
     await expect(
       canvas.getByRole("button", { name: /Two hours sorting the seed library/ })
-    ).toHaveTextContent("Ask");
+    ).toHaveTextContent("Request");
   },
 };
 

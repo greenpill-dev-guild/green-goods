@@ -1,10 +1,11 @@
+import type { AuthMode } from "../../types/auth";
 import type { JobQueueHandle } from "../../modules/job-queue/ports";
 import type { WalletSubmissionStage } from "../../modules/work/wallet-submission/types";
 import type { SubmitWorkOutcome } from "../../modules/work/submit-work-command";
 import type { Action, Address, WorkUploadConsent } from "../../types/domain";
 
 export interface UseWorkMutationOptions {
-  authMode: "wallet" | "passkey" | "embedded" | null;
+  authMode: AuthMode;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];

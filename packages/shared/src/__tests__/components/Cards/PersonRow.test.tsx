@@ -3,7 +3,7 @@
  * @vitest-environment happy-dom
  *
  * A person row names someone the way the shared address display does, shows their highest
- * role as its one chip, and leads with their photo, the surface's own picture or a glyph, which
+ * role as its one chip (or every role in words, when the list asks), and leads with their photo, the surface's own picture or a glyph, which
  * also holds the circle while the photo is still being looked up. Layout is measured in a real
  * browser by the PersonRow stories.
  */
@@ -44,6 +44,21 @@ describe("PersonRow", () => {
     expect(screen.getByRole("button")).toHaveAccessibleName(/^river\s*Owner\s*3 roles$/);
     // A list's rows read their Green Goods names together, in one batch.
     expect(hooks.protocol).toHaveBeenCalledWith(person, { list: true });
+  });
+
+  it("names every role in words, highest first, in the chip's place when asked to", () => {
+    renderRow({
+      roles: ["gardener", "steward"],
+      rolesAs: "text",
+      details: ["Joined Jun 12, 2026"],
+      onOpen: vi.fn(),
+    });
+
+    expect(screen.getByRole("button")).toHaveAccessibleName(
+      /^0x11\.\.\.111\s*Steward and Gardener\s*Joined Jun 12, 2026$/
+    );
+    // A plain line, not a pill.
+    expect(screen.getByText("Steward and Gardener")).toHaveClass("gg-item-row-subtitle");
   });
 
   it("shows no chip for someone the list holds no role for, as a pasted address", () => {
@@ -88,7 +103,7 @@ describe("PersonRow", () => {
     expect(container.querySelector("img")).toBeNull();
     expect(avatar()?.querySelector("svg")).not.toBeNull();
 
-    // A photo still being looked up keeps the glyph, as in the cockpit, never an empty circle.
+    // A photo still being looked up keeps the glyph, as in the Hub, never an empty circle.
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: true });
     rerender(<PersonRow address={person} />);
     expect(avatar()?.querySelector("svg")).not.toBeNull();

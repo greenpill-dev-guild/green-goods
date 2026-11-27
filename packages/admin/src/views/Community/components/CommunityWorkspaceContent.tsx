@@ -28,7 +28,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
     return (
       <CanvasWorkspaceSelectionGate
         workspaceLabel={formatMessage({
-          id: "cockpit.nav.community",
+          id: "hub.nav.community",
           defaultMessage: "Community",
         })}
         gardens={workspace.gardenOptions}
@@ -47,7 +47,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         message={
           workspace.error?.message ??
           formatMessage({
-            id: "cockpit.community.loadFailed",
+            id: "hub.community.loadFailed",
             defaultMessage: "Unable to load this community workspace.",
           })
         }
@@ -101,6 +101,10 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
             enabled={
               Boolean(workspace.community) && (workspace.pools.length > 0 || workspace.poolsUnread)
             }
+            // With governance on, the coordination tab already offers this retry.
+            onRereadPools={
+              !GOVERNANCE_ENABLED && workspace.poolsUnread ? workspace.rereadPools : undefined
+            }
           />
         }
         chainId={workspace.garden.chainId}
@@ -132,6 +136,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         <CommunityMembersDialogs
           garden={workspace.garden}
           canManage={workspace.canManage}
+          canManageStewards={workspace.canManageStewards}
           closeMembersModal={workspace.closeMembersModal}
           isOwner={workspace.isOwner}
           roleMembers={workspace.roleMembers}

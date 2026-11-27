@@ -2,7 +2,13 @@ import { createContext } from "react";
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
-import type { AuthMode, SmartAccountClientResolver, WalletConnectFailure } from "../types/auth";
+import type {
+  AuthMode,
+  OpenfortSignInMethod,
+  SmartAccountClientResolver,
+  WalletConnectFailure,
+  WalletRestoreState,
+} from "../types/auth";
 import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
 import type {
   PilotAccountPreview,
@@ -15,7 +21,10 @@ export interface AuthStateValue {
   walletReleaseStalled?: boolean;
   /** The last wallet sign-in ended without the wallet answering; cleared by the next attempt. */
   walletConnectFailure?: WalletConnectFailure | null;
+  /** A wallet account whose wallet has not answered yet, or null once it has. */
+  walletRestore?: WalletRestoreState | null;
   authMode: AuthMode;
+  /** The session is known: signed out, or signed in, including a wallet account still restoring. */
   isReady: boolean;
   isAuthenticated: boolean;
   isAuthenticating: boolean;
@@ -30,6 +39,8 @@ export interface AuthStateValue {
   walletAddress: Hex | null;
   eoaAddress: Hex | undefined;
   embeddedAddress: Hex | null;
+  /** "email" for an email session (Openfort); null for every other session. */
+  openfortMethod?: OpenfortSignInMethod | null;
   externalWalletConnected: boolean;
   externalWalletAddress: Hex | null;
 }
@@ -47,6 +58,10 @@ export interface AuthActionsValue {
   loginWithOriginalPasskey?: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
   loginWithEmbedded: () => void;
+  /** Email a one-time code. Ends any Openfort session left on this device first. */
+  requestSignInCode?: (email: string) => Promise<void>;
+  /** Sign in with the emailed code; the machine reports progress and errors like a passkey's. */
+  loginWithCode?: (email: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   switchToWallet: () => void;
   switchToPasskey: (userName?: string) => void;

@@ -165,6 +165,9 @@ vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
   }),
 }));
 
+vi.mock("../../../hooks/work/useWorkVisibility", () => ({
+  useWorkVisibility: () => ({ isReady: true, isLoading: false, isVisible: () => true }),
+}));
 vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: (garden: string) => {
     mocks.worksGarden = garden;

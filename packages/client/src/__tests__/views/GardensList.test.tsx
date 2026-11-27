@@ -7,6 +7,7 @@
  */
 
 import en from "@green-goods/shared/i18n/en.json";
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
@@ -70,6 +71,14 @@ vi.mock("@green-goods/shared/hooks/garden/useMyGardens", () => ({
 vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
   useActiveGarden: () => mockActiveGarden,
 }));
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
+  useGardenMemberHistory: vi.fn(() => ({
+    members: [],
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
+}));
 
 // Mock @tanstack/react-query
 vi.mock("@tanstack/react-query", async (importOriginal) => {
@@ -118,6 +127,12 @@ describe("GardensList", () => {
     mockMyGardens.isStale = false;
     mockActiveGarden.gardenId = null;
     departure.options = [];
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
     departure.leave.mockResolvedValue({ hash: "0xabc", departed: true });
     departure.recover.mockResolvedValue({ hash: "0xabc", departed: false });
   });
@@ -207,7 +222,9 @@ describe("GardensList", () => {
       expect.stringContaining("My Garden"),
       expect.stringContaining("Reviewed Garden"),
     ]);
-    expect(screen.getByText("Berlin")).toBeInTheDocument();
+    // The card names the member's roles in words; the garden's own page carries its location.
+    expect(rows[1]).toHaveTextContent("Evaluator");
+    expect(screen.queryByText("Berlin")).not.toBeInTheDocument();
     // Joining lives on the garden itself, so this list offers no join.
     expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
   });
@@ -273,7 +290,81 @@ describe("GardensList", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/home/0xgarden1");
   });
 
-  it("constrains long garden names and locations inside the row", () => {
+  it("matches each garden's own membership dates from one account history read", () => {
+    const first = "0x1111111111111111111111111111111111111111";
+    const second = "0x2222222222222222222222222222222222222222";
+    mockMyGardens.gardens = [
+      asMine({ id: first, name: "River garden" }),
+      {
+        garden: { id: second, name: "Hill garden" },
+        membership: { roles: ["steward", "gardener"], pendingJoin: false },
+      },
+    ];
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [
+        {
+          garden: second,
+          account: MOCK_ADDRESS,
+          joinedAt: Date.UTC(2026, 4, 3, 12),
+          memberSince: Date.UTC(2026, 8, 4, 12),
+          roleSince: { gardener: Date.UTC(2026, 8, 4, 12), steward: Date.UTC(2026, 9, 5, 12) },
+        },
+        {
+          garden: first.toUpperCase().replace("0X", "0x"),
+          account: MOCK_ADDRESS,
+          joinedAt: Date.UTC(2026, 5, 12, 12),
+          memberSince: Date.UTC(2026, 5, 12, 12),
+          roleSince: { gardener: Date.UTC(2026, 5, 12, 12) },
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS })));
+
+    const rows = screen.getAllByRole("listitem");
+    // One line each: when the current membership began, a rejoin named as one.
+    expect(rows[0]).toHaveTextContent("Joined Jun 12, 2026");
+    expect(rows[0]).not.toHaveTextContent("May 3, 2026");
+    expect(rows[1]).toHaveTextContent("Rejoined Sep 4, 2026");
+    expect(rows[1]).toHaveTextContent("Steward and Gardener");
+    expect(rows[1]).not.toHaveTextContent("Oct 5, 2026");
+    expect(useGardenMemberHistory).toHaveBeenCalledWith({ account: MOCK_ADDRESS });
+  });
+
+  it("never reads a first join as a current membership once the history has no roles", () => {
+    const left = "0x3333333333333333333333333333333333333333";
+    const lagging = "0x4444444444444444444444444444444444444444";
+    mockMyGardens.gardens = [
+      { garden: { id: left, name: "Left garden" }, membership: { roles: [], pendingJoin: false } },
+      asMine({ id: lagging, name: "Lagging garden" }),
+    ];
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [left, lagging].map((garden) => ({
+        garden,
+        account: MOCK_ADDRESS,
+        joinedAt: Date.UTC(2026, 4, 3, 12),
+        memberSince: null,
+        roleSince: {},
+      })),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS })));
+
+    const leftCard = screen.getByRole("button", { name: "Left garden" });
+    expect(leftCard).toHaveTextContent("Left this garden");
+    expect(leftCard).not.toHaveTextContent("May 3, 2026");
+    // Still listed with a role while the history lags a rejoin: unavailable, not a departure.
+    const laggingCard = screen.getByRole("button", { name: "Lagging garden" });
+    expect(laggingCard).toHaveTextContent("Membership dates unavailable");
+  });
+
+  it("keeps a long garden name to one line inside the row", () => {
     const longName = "RegenerativeBioregionStewardshipGardenCollective2026";
     const longLocation = "RuaDasCooperativasNeighborhoodWithLongUnbrokenPlaceNameLisbonPortugal";
     mockMyGardens.gardens = [
@@ -282,13 +373,12 @@ describe("GardensList", () => {
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
+    // One line at every name length keeps the list's cards one height; the full name is the title.
     const gardenName = screen.getByText(longName);
-    expect(gardenName).toHaveClass("line-clamp-2", "min-w-0", "max-w-full");
-    expect(gardenName.className).toContain("[overflow-wrap:anywhere]");
+    expect(gardenName).toHaveClass("truncate", "min-w-0", "max-w-full");
+    expect(gardenName).toHaveAttribute("title", longName);
     expect(gardenName.parentElement).toHaveClass("min-w-0", "flex-1");
-    const location = screen.getByText(longLocation);
-    expect(location).toHaveClass("min-w-0", "truncate");
-    expect(location.parentElement).toHaveClass("min-w-0", "max-w-full");
+    expect(screen.queryByText(longLocation)).not.toBeInTheDocument();
   });
 
   it.each([

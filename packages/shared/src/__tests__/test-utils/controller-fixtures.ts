@@ -1,12 +1,13 @@
 import type {
   CommitmentDialogActs,
   CommitmentDialogController,
-  HubConfirmQueueActs,
-  HubConfirmQueueController,
+  ReviewConfirmQueueActs,
+  ReviewConfirmQueueController,
   PoolConsoleActs,
   PoolConsoleController,
   VoucherConsoleView,
 } from "../../hooks/admin-ui/pool";
+import { VOUCHER_START_IDLE } from "../../hooks/admin-ui/pool/useVoucherStart";
 import type {
   GardenCommitmentActs,
   GardenCommitmentController,
@@ -28,7 +29,11 @@ import {
   selectCommitmentSeat,
   selectConfirmationEligibility,
 } from "../../modules/commitment-pooling/selectors";
-import type { CommitmentPoolRecord, HexString } from "../../modules/commitment-pooling/types";
+import type {
+  CommitmentPoolRecord,
+  HexString,
+  CommitmentReadModel,
+} from "../../modules/commitment-pooling/types";
 import {
   UNAVAILABLE_VOUCHER_CONSOLE,
   type VoucherConsoleSnapshot,
@@ -88,6 +93,7 @@ export function gardenCommitmentControllerFixture(
     metadata: { version: 1, title: "Repair tool handles" },
     pool,
     works: [],
+    workVisibility: { isReady: true, isLoading: false, isVisible: () => true },
     actions: [],
     roles: {
       isSteward: false,
@@ -248,6 +254,7 @@ const poolActs: PoolConsoleActs = {
   expire: successfulTransaction,
   acceptClaim: successfulTransaction,
   acceptServiceClaim: successfulTransaction,
+  acceptAndStartBooking: async () => "started",
   declineClaim: successfulTransaction,
   retryQueued: async () => undefined,
   discardQueued: async () => undefined,
@@ -284,6 +291,7 @@ export function poolConsoleControllerFixture(
         pendingClaimCount: claims.length,
         now: BigInt(NOW),
       }),
+    now: BigInt(NOW),
     cycles,
     cycleNames: new Map(),
     commitments,
@@ -311,6 +319,7 @@ export function poolConsoleControllerFixture(
     claimPhase: () => ({ status: "idle" }),
     claimDecisions: {},
     claimInFlight: false,
+    voucherStartFor: () => VOUCHER_START_IDLE,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,
@@ -353,21 +362,21 @@ export function voucherConsoleViewFixture(
   };
 }
 
-const confirmQueueActs: HubConfirmQueueActs = {
+const confirmQueueActs: ReviewConfirmQueueActs = {
   confirm: successfulJob,
   notYet: successfulTransaction,
 };
 
-type HubConfirmQueueFixtureOverrides = Partial<HubConfirmQueueController> & {
+type ReviewConfirmQueueFixtureOverrides = Partial<ReviewConfirmQueueController> & {
   toConfirm?: CommitmentsToConfirm;
 };
 
-export function hubConfirmQueueControllerFixture(
-  overrides: HubConfirmQueueFixtureOverrides = {}
-): HubConfirmQueueController {
+export function reviewConfirmQueueControllerFixture(
+  overrides: ReviewConfirmQueueFixtureOverrides = {}
+): ReviewConfirmQueueController {
   const { toConfirm = toConfirmFixture(), ...controllerOverrides } = overrides;
-  type Row = HubConfirmQueueController["rows"][number];
-  const rows: HubConfirmQueueController["rows"] = [
+  type Row = ReviewConfirmQueueController["rows"][number];
+  const rows: ReviewConfirmQueueController["rows"] = [
     ...toConfirm.groups.flatMap((group) =>
       group.rows.map(
         (row): Row => ({
@@ -533,8 +542,9 @@ export function commitmentDialogControllerFixture(
     claimInFlight: false,
     claimantStanding: () => null,
     metadata: null,
-    metadataKnown: true,
+    editsTermsFromGroup: false,
     sendPhase: { status: "idle" },
+    confirmPhase: { status: "idle" },
     isActing: false,
     isLoading: false,
     isError: false,
@@ -552,7 +562,6 @@ import type {
   SettlementOperationsController,
 } from "../../hooks/admin-ui/pool/controller.types";
 import type { CommitmentSettlementChainState } from "../../modules/commitment-pooling/data-settlement-chain";
-import type { CommitmentReadModel } from "../../modules/commitment-pooling/types";
 import {
   selectSettlementEligibility,
   selectSettlementWorkflow,

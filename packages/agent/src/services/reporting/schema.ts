@@ -128,4 +128,68 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
        AND state IN ('ready','needs_clarification','failed','unsupported','deleted')`,
     ],
   },
+  {
+    version: 8,
+    name: "a conversation's pending goal",
+    // What a person asked to do before it could start, such as a review asked for before an
+    // account was linked. One row per conversation, read only by the identity that set it.
+    statements: [
+      `CREATE TABLE IF NOT EXISTS dialogue_goals (
+        conversation_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+        participant_id TEXT NOT NULL REFERENCES participants(id),
+        identity_epoch INTEGER NOT NULL CHECK (identity_epoch >= 1),
+        goal TEXT NOT NULL CHECK (goal IN ('review')),
+        set_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+      )`,
+      // What a model's view of a conversation looks up on every turn it is built: the reviews and
+      // review questions a chat has had, and the last reply that put a question.
+      `CREATE INDEX IF NOT EXISTS review_intents_conversation
+        ON review_intents(conversation_id, created_at)`,
+      `CREATE INDEX IF NOT EXISTS conversation_prompts_reviews
+        ON conversation_prompts(conversation_id, created_at) WHERE subject_kind = 'review'`,
+      `CREATE INDEX IF NOT EXISTS delivery_outbox_prompt
+        ON delivery_outbox(prompt_id, dispatch_seq) WHERE prompt_id IS NOT NULL`,
+      // Where a model's view of a conversation starts: the account's last link or unlink, and
+      // the chat's last closed report.
+      `CREATE INDEX IF NOT EXISTS account_bindings_participant
+        ON account_bindings(participant_id)`,
+      `CREATE INDEX IF NOT EXISTS work_drafts_conversation
+        ON work_drafts(conversation_id, updated_at)`,
+    ],
+  },
+  {
+    version: 9,
+    name: "the question profile a report asks with",
+    // `slug@version` of the profile a report took when it chose its activity. A report started
+    // before this column existed has none, and keeps being asked from the activity's own words.
+    columns: [{ table: "work_drafts", column: "question_profile", definition: "TEXT" }],
+    statements: [],
+  },
+  {
+    version: 10,
+    name: "a person's say over last-report suggestions",
+    // The suggestion itself is read from work_records. This holds only whether an account's
+    // suggestions are off, and the time before which its published reports are no longer used.
+    statements: [
+      `CREATE TABLE IF NOT EXISTS report_suggestions (
+        participant_id TEXT NOT NULL REFERENCES participants(id),
+        chain_id INTEGER NOT NULL,
+        account_address TEXT NOT NULL CHECK (account_address = lower(account_address)),
+        disabled INTEGER NOT NULL DEFAULT 0 CHECK (disabled IN (0, 1)),
+        forgotten_before INTEGER NOT NULL DEFAULT 0,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (participant_id, chain_id, account_address)
+      )`,
+    ],
+  },
+  {
+    version: 11,
+    name: "dialogue planner switch",
+    // The switch list's CHECK cannot change in place, so it is rebuilt once more, keeping every
+    // operator decision and version. The new switch is seeded off by the runtime.
+    statements: DOCUMENT_VOICE_AND_CHANNEL_CONTROLS.map((statement) =>
+      statement.replace("'model_processing',", "'model_processing','dialogue_planner',")
+    ),
+  },
 ];

@@ -8,7 +8,7 @@ Phase 1 step 0, preserves its source and record shapes, then moves to the filing
 - **Linear MCP** — read + write on the Product team. Resolve team / labels / statuses by name at the start of every run; never hardcode IDs.
 - **PostHog connector** — three projects:
   - App `163591` for client PWA + editorial website
-  - Admin `262122` for admin cockpit
+  - Admin `262122` for the Green Goods Hub
   - Agent `262124` — not used by this skill
   - Always call `switch-project` before any PostHog tool call (see [PostHog surface routing](../../../../docs/routines/posthog-questions.md))
 - **Google Drive MCP** — `search_files`, `read_file_content`, `get_file_metadata`, `get_file_permissions` against the team Drive containing the Gemini-generated notes and the **Green Goods v1.1 QA** Sheet (file id `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo`).
@@ -81,7 +81,7 @@ All deviations from a real run, in one place:
 5. **Verify Sheet access mode** via `get_file_permissions`. **Hard stop** if the Sheet is `anyoneWithLink` or `public` — the row payload includes session IDs and replay URLs, which only belong in a fully-private internal surface. Surface the permission state, abort the run, and recommend tightening access. There is no override for a public or link-accessible Sheet. (Skipped in fixture mode.)
 
 6. **Read Sheet structure** via `read_file_content` (skipped in fixture mode):
-   - Confirm tab names match `Public Website`, `PWA iOS`, `PWA Android`, `Admin Dashboard`, `Cross Surface`, `Defects` plus auxiliary `Guide`, `Summary`.
+   - Confirm tab names match `Green Goods Website`, `Green Goods App iOS`, `Green Goods App Android`, `Green Goods Hub`, `Cross Surface`, `Defects` plus auxiliary `Guide`, `Summary`.
    - Read the `Defects` tab's header row. Detect whether the 6 added columns exist (`PostHog Hash`, `PostHog Sessions 7d`, `PostHog Users 7d`, `PostHog Session ID`, `PostHog Replay URL`, `Linear URL`). If absent, emit `schema-bootstrap.csv` (a single-row CSV with the new column names) to the workspace.
    - Read the `Defects` body and the 5 Test tabs into private context.
    - **Cache the `Scenario` + `Area` + `Test ID` triple from every Test-tab row** to `~/.config/qa-triage/cache.json` under a `test_catalog` key. Phase 5's Linked-Test-ID inference uses this catalog to fuzzy-match extracted item descriptions to Scenarios — far more useful than expecting verbatim Test-ID references (e.g., "ADM-005") in conversational meeting notes. Match by keyword overlap between the item one-liner and `Scenario` (case-insensitive, tokenize on whitespace, ≥40% token overlap = match). Empty catalog (test tabs never populated) → Linked-Test-ID stays empty; no failure.

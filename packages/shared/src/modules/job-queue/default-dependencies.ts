@@ -3,10 +3,10 @@ import { getOntologyChainMaturity } from "../../ontology/query";
 import { connectivityStore } from "../../stores/connectivity";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { isZeroAddress } from "../../utils/blockchain/address";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
 import { getStorageQuota } from "../../utils/storage/quota";
-import { addBreadcrumb } from "../app/error-tracking";
 import { logger } from "../app/logger";
 import { SW_MESSAGE } from "../app/service-worker-protocol";
 import { COMMITMENT_JOB_KINDS } from "../commitment-pooling/jobs";
@@ -30,13 +30,21 @@ import { jobQueueEventBus } from "./event-bus";
 import { createJobExecutorRegistry, type JobExecutor } from "./executor-registry";
 import {
   trackJobCreated,
+  trackJobDiscarded,
   trackJobPermanentlyFailed,
   trackJobProcessed,
   trackJobProcessingError,
+  trackJobSkipped,
+  trackJobStarted,
   trackPrivateQueueEvent,
+  trackReceiptWaitLimitReached,
   trackStorageWarning,
 } from "./job-analytics";
 import { executeApprovalJob } from "./approval-executor";
+import {
+  APPROVAL_ALREADY_DECIDED_REASON,
+  ApprovalAlreadyDecidedError,
+} from "../work/submit-approval-command";
 import { executeCommitmentQueueJob } from "./job-executors";
 import { executeWorkJob } from "./work-executor";
 import { createBrowserJobQueueLifecycle } from "./lifecycle";
@@ -99,6 +107,9 @@ function createDefaultExecutorRegistry() {
       } catch (error) {
         const waiting = waitingAfterFailedSend(error);
         if (waiting) return waiting;
+        // Decided elsewhere since it was kept: settled without a second decision.
+        if (error instanceof ApprovalAlreadyDecidedError)
+          return { status: "already-done", reason: APPROVAL_ALREADY_DECIDED_REASON };
         throw error;
       }
     },
@@ -131,9 +142,10 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
       jobProcessingError: trackJobProcessingError,
       storageWarning: trackStorageWarning,
       privateEvent: trackPrivateQueueEvent,
-      processingStarted(kind, attempt) {
-        addBreadcrumb("job_processing_started", { job_kind: kind, attempt });
-      },
+      processingStarted: trackJobStarted,
+      jobSkipped: trackJobSkipped,
+      receiptWaitLimitReached: trackReceiptWaitLimitReached,
+      jobDiscarded: trackJobDiscarded,
     },
     quota: { get: getStorageQuota },
     scheduler: {
@@ -164,6 +176,7 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
       defaultChainId: DEFAULT_CHAIN_ID,
       maxRetries: MAX_RETRIES,
       storageQuotaCacheTTL: 30_000,
+      receiptWaitLimitMs: TX_RECEIPT_TIMEOUT_MS,
     },
     lifecycle: {
       attach(cleanup) {

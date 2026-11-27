@@ -1,4 +1,6 @@
 import type { GrantPolicy, GrantPurpose } from "@green-goods/shared/modules/agent-reporting";
+import type { Address } from "@green-goods/shared/types/domain";
+import { audit } from "./participants";
 import type { ReportingCore } from "./runtime";
 
 /**
@@ -138,6 +140,40 @@ export function liveGrant(
       }) as GrantRow | null
   );
   return record ? grantById(core, record.id) : null;
+}
+
+/**
+ * Ends this account's permission for the garden that a page proposed and nobody authorized: nothing
+ * reserved or used, so no owner signature for it was ever asked for. While it stands it is the
+ * garden's one live permission, and a page opened from a fresh link could not propose its own.
+ * Returns how many it ended.
+ */
+export function retireUnusedGrants(
+  core: ReportingCore,
+  input: {
+    accountBindingId: string;
+    purpose: GrantPurpose;
+    chainId: number;
+    gardenAddress: Address;
+  }
+): number {
+  const retired = core.db
+    .query(
+      `UPDATE execution_grants SET state = 'expired', version = version + 1, updated_at = $now
+       WHERE account_binding_id = $account AND purpose = $purpose AND chain_id = $chain AND garden_address = $garden
+         AND state IN ('proposed','owner_authorization_pending')
+         AND submissions_reserved = 0 AND submissions_consumed = 0
+       RETURNING id`
+    )
+    .all({
+      account: input.accountBindingId,
+      purpose: input.purpose,
+      chain: input.chainId,
+      garden: input.gardenAddress.toLowerCase(),
+      now: core.clock.now(),
+    }) as Array<{ id: string }>;
+  for (const { id } of retired) audit(core, "grant_unused_retired", { kind: "grant", id });
+  return retired.length;
 }
 
 export type GrantUnusable = "missing" | "not_active" | "expired" | "exhausted" | "epoch_changed";

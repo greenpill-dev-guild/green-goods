@@ -9,6 +9,7 @@ const ADDRESS_A = "0x1111111111111111111111111111111111111111";
 const ADDRESS_B = "0x2222222222222222222222222222222222222222";
 
 const mocks = vi.hoisted(() => ({
+  reconnectRequested: new Error("Reconnect was requested"),
   clear: vi.fn(),
   continue: vi.fn(),
   createPreviewUrl: vi.fn((file: File) => `blob:${file.name}`),
@@ -40,6 +41,13 @@ mocks.editor.continueAfterReconnect = mocks.continue;
 mocks.editor.discardDraft = mocks.discard;
 mocks.editor.save = mocks.save;
 
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@green-goods/shared/utils/errors/tx-error-classifier")
+  >()),
+  wasAskedToReconnect: (error: unknown) => error === mocks.reconnectRequested,
+}));
+
 vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: {
     cleanupUrl: mocks.cleanupPreviewUrl,
@@ -57,26 +65,30 @@ vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useProfileAvatarEditor: () => mocks.editor,
   useResolvedProfileAvatar: () => mocks.resolved,
 }));
-vi.mock("@/components/AdminDialog", () => ({
-  AdminDialog: ({ open, title, children, actions }: any) =>
-    open ? (
-      <section role="dialog" aria-label={title}>
-        {children}
-        {actions}
-      </section>
-    ) : null,
-  AdminConfirmDialog: ({ isOpen, title, onClose, onConfirm, confirmLabel, cancelLabel }: any) =>
-    isOpen ? (
-      <section role="alertdialog" aria-label={title}>
-        <button type="button" onClick={onClose}>
-          {cancelLabel}
-        </button>
-        <button type="button" onClick={onConfirm}>
-          {confirmLabel}
-        </button>
-      </section>
-    ) : null,
-}));
+vi.mock("@/components/AdminDialog", async () => {
+  // The stand-in draws the footer from the action bar's props, as the dialog does.
+  const { SheetActions } = await import("@green-goods/shared/components/Dialog/SheetActions");
+  return {
+    AdminDialog: ({ open, title, children, actions }: any) =>
+      open ? (
+        <section role="dialog" aria-label={title}>
+          {children}
+          {actions ? <SheetActions {...actions} /> : null}
+        </section>
+      ) : null,
+    AdminConfirmDialog: ({ isOpen, title, onClose, onConfirm, confirmLabel, cancelLabel }: any) =>
+      isOpen ? (
+        <section role="alertdialog" aria-label={title}>
+          <button type="button" onClick={onClose}>
+            {cancelLabel}
+          </button>
+          <button type="button" onClick={onConfirm}>
+            {confirmLabel}
+          </button>
+        </section>
+      ) : null,
+  };
+});
 
 describe("AccountProfileAvatarEditor", () => {
   beforeEach(() => {
@@ -147,6 +159,44 @@ describe("AccountProfileAvatarEditor", () => {
     await user.click(screen.getByRole("button", { name: /replace photo/i }));
 
     expect(await screen.findByRole("alert")).toBeVisible();
+  });
+  it("keeps the selected photo available after asking to reconnect", async () => {
+    mocks.save.mockRejectedValueOnce(mocks.reconnectRequested);
+    const user = userEvent.setup();
+    render(<AccountProfileAvatarEditor fallbackInitials="GG" />);
+    await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
+    const file = new File(["image"], "profile.webp", { type: "image/webp" });
+    await user.upload(screen.getByLabelText(/choose photo/i), file);
+    await user.click(screen.getByRole("button", { name: /replace photo/i }));
+
+    expect(screen.getByText(/draft photo has not been published/i)).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /replace photo/i }));
+    expect(mocks.save).toHaveBeenNthCalledWith(2, file);
+  });
+  it("keeps a saved draft without a second failure after retry asks to reconnect", async () => {
+    const draft = { action: "clear" as const, file: null };
+    mocks.editor.draft = draft;
+    mocks.continue.mockRejectedValueOnce(mocks.reconnectRequested);
+    const user = userEvent.setup();
+    render(<AccountProfileAvatarEditor fallbackInitials="GG" />);
+    await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    expect(mocks.editor.draft).toBe(draft);
+    expect(screen.getByText(/saved on this device/i)).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+  it("does not report a removal failure after asking to reconnect", async () => {
+    mocks.clear.mockRejectedValueOnce(mocks.reconnectRequested);
+    const user = userEvent.setup();
+    render(<AccountProfileAvatarEditor fallbackInitials="GG" />);
+    await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
+    await user.click(screen.getByRole("button", { name: /remove photo/i }));
+    await user.click(screen.getAllByRole("button", { name: /remove photo/i })[1]!);
+
+    expect(mocks.clear).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
   it("announces shared draft restoration errors in the dialog", async () => {
     mocks.editor.error = new Error("Unable to restore the profile photo draft.");

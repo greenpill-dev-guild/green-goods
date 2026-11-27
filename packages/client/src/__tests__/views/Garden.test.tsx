@@ -59,6 +59,7 @@ const mockStartBack = vi.fn(() => false);
 const mockReviewProps = vi.fn();
 const mockWorkForSheetProps = vi.fn();
 let mockActiveTab = "Intro";
+let mockStartSkipped = false;
 interface MockWorkLinkIntent {
   commitmentId: bigint;
   requirementIndex: number;
@@ -186,7 +187,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     reviewData: { garden: mockGardens[0], action: mockActions[0] },
     setAudioNotes: mockWorkFlowState.setAudioNotes,
     showSkeleton: false,
-    start: { skipped: false, waiting: false, back: mockStartBack },
+    start: { skipped: mockStartSkipped, waiting: false, back: mockStartBack },
     submissionCompleted: false,
     submit: vi.fn(),
     toggleAudioRecording: mockToggleAudioRecording,
@@ -200,15 +201,16 @@ vi.mock("@green-goods/shared/modules/app/posthog", () => ({
 
 // Mock child components to simplify
 vi.mock("../../views/Garden/Start", () => ({
-  WorkStart: (props: unknown) => {
+  WorkStart: (props: { gardenLine?: React.ReactNode }) => {
     mockStartProps(props);
-    return createElement("div", { "data-testid": "work-start" }, "Start Step");
+    return createElement("div", { "data-testid": "work-start" }, "Start Step", props.gardenLine);
   },
   StartSkeleton: () => createElement("div", { "data-testid": "start-skeleton" }),
 }));
 
 vi.mock("../../views/Garden/Media", () => ({
-  WorkMedia: () => createElement("div", { "data-testid": "work-media" }, "Media Step"),
+  WorkMedia: (props: { pinned?: React.ReactNode }) =>
+    createElement("div", { "data-testid": "work-media" }, "Media Step", props.pinned),
 }));
 
 vi.mock("../../views/Garden/Details", () => ({
@@ -280,7 +282,7 @@ const messages = {
   "app.garden.submit.tab.details.label": "Review Work",
   "app.garden.submit.tab.review.label": "Upload Work",
   "app.garden.submit.takeUpPrompts":
-    "{count, plural, one {Uploading takes up the ask first. It opens # wallet or passkey prompt.} other {Uploading takes up the ask first. It opens # wallet or passkey prompts: the take-up, the work and its link.}}",
+    "{count, plural, one {Uploading takes up the request first. It opens # wallet or passkey prompt.} other {Uploading takes up the request first. It opens # wallet or passkey prompts: the take-up, the work and its link.}}",
   "app.garden.unknown": "Unknown Garden",
   "app.action.selected": "Selected Action",
   "app.commitment.pinned.workFor": "Work for",
@@ -305,7 +307,8 @@ const messages = {
 const renderWithProviders = (initialRoute = "/home/garden") => {
   // The app renders under a query client; the pinned promise's row reads its name hook there.
   const queryClient = createTestQueryClient();
-  return render(
+  // The same tree again, for `rerender` once a step changes.
+  const tree = () =>
     createElement(
       QueryClientProvider,
       { client: queryClient },
@@ -323,8 +326,8 @@ const renderWithProviders = (initialRoute = "/home/garden") => {
           )
         )
       )
-    )
-  );
+    );
+  return { ...render(tree()), tree };
 };
 
 describe("Garden (Work) View", () => {
@@ -333,6 +336,7 @@ describe("Garden (Work) View", () => {
     mockSelection.actionUID = null;
     mockSelection.gardenAddress = null;
     mockActiveTab = "Intro";
+    mockStartSkipped = false;
     mockLinkIntent = null;
     mockLinkIntentStatus = "none";
     mockHasPendingLinkRecovery = false;
@@ -367,8 +371,7 @@ describe("Garden (Work) View", () => {
     expect(mockDraftRetry).toHaveBeenCalledOnce();
   });
 
-  it("says under the steps where the work goes when its garden is not the active one", () => {
-    mockActiveTab = "Media";
+  it("says on Start where the work goes", () => {
     mockNamedGarden = {
       id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       name: "Hilltop Garden",
@@ -383,7 +386,57 @@ describe("Garden (Work) View", () => {
     expect(within(line).getByTitle("Logging work in Hilltop Garden")).toHaveClass("line-clamp-2");
   });
 
-  it("names no garden while the work goes to the active one, and settles the Start step's garden", () => {
+  // PRD-1522: the line repeated on every step after the first.
+  it("names the garden on the first step only, and again on going back to it", () => {
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    const view = renderWithProviders();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+
+    for (const later of ["Media", "Details", "Review"]) {
+      mockActiveTab = later;
+      view.rerender(view.tree());
+      expect(screen.queryByTestId("submission-garden")).toBeNull();
+    }
+
+    mockActiveTab = "Intro";
+    view.rerender(view.tree());
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+  });
+
+  it("names the garden on Media when Start is skipped, and not after it", () => {
+    mockStartSkipped = true;
+    mockActiveTab = "Media";
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    const view = renderWithProviders();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+
+    mockActiveTab = "Details";
+    view.rerender(view.tree());
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+  });
+
+  // Afo on PRD-1522: the garden is named once, on the first step, so a draft that reopens past
+  // it names none.
+  it("names no garden when a draft reopens past the first step", () => {
+    mockActiveTab = "Details";
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    renderWithProviders();
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+  });
+
+  it("names no garden until the flow has one, and settles the Start step's garden", () => {
     mockGardenSettled = true;
     renderWithProviders();
 
@@ -516,7 +569,7 @@ describe("Garden (Work) View", () => {
     renderWithProviders();
 
     const note =
-      "Uploading takes up the ask first. It opens 3 wallet or passkey prompts: the take-up, the work and its link.";
+      "Uploading takes up the request first. It opens 3 wallet or passkey prompts: the take-up, the work and its link.";
     expect(screen.getByText(note)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload Work" })).toHaveAccessibleDescription(note);
     cleanup();
@@ -524,7 +577,7 @@ describe("Garden (Work) View", () => {
     // A draft for a promise of the member's own: Review says nothing more.
     mockTakeUpPrompts = null;
     renderWithProviders();
-    expect(screen.queryByText(/takes up the ask/)).toBeNull();
+    expect(screen.queryByText(/takes up the request/)).toBeNull();
     expect(screen.getByRole("button", { name: "Upload Work" })).not.toHaveAccessibleDescription();
   });
 

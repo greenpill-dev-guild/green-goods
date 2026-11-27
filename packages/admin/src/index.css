@@ -64,7 +64,7 @@
   --color-information-light: rgb(var(--information-light));
   --color-information-lighter: rgb(var(--information-lighter));
 
-  /* Flat gray utilities are deliberately NOT bridged — the cockpit's neutrals
+  /* Flat gray utilities are deliberately NOT bridged — the Hub's neutrals
      are the warm stone ramp (semantic text/bg/stroke tokens). */
 
   /* Typography @theme tokens (labels, paragraphs, subheadings) are inherited
@@ -91,7 +91,7 @@
   --admin-radius-lg: 16px;
   --admin-radius-full: 9999px;
   /* Builtin rounded-* utilities land on the admin scale (4 / 8 / 16 / 9999).
-     xl and 2xl collapse onto the 16px page-container step — the cockpit shape
+     xl and 2xl collapse onto the 16px page-container step — the Hub shape
      scale has no 20/24px radii. 12px cards use rounded-[var(--m3-shape-md)]. */
   --radius-xs: var(--admin-radius-xs);
   --radius-sm: var(--admin-radius-sm);
@@ -104,18 +104,18 @@
 
 /* The xl / 2xl remap above is emitted inside @layer theme, where the shared
    theme.css `:root` block (imported first, but later in the same layer) wins and
-   put 20 / 24px back on every rounded-xl / rounded-2xl in the cockpit. This
+   put 20 / 24px back on every rounded-xl / rounded-2xl in the Hub. This
    unlayered declaration outranks the layer and makes the 16px step land. */
 :root {
   --radius-xl: var(--admin-radius-lg);
   --radius-2xl: var(--admin-radius-lg);
 
-  /* The shared control family in the cockpit (DL-031). Shared pieces rendered
+  /* The shared control family in the Hub (DL-031). Shared pieces rendered
      here (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder,
      ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert)
      ride the shared Button / IconButton / Chip / control classes, which read
      these tokens: pills, one 14px / 500 label, the 28 / 32 / 40 tiers (the
-     app's four sizes collapse onto the cockpit's three: lg and md land on 40,
+     app's four sizes collapse onto the Hub's three: lg and md land on 40,
      sm on 32, compact on 28) and the 44px finger box. Keep in step with the
      Storybook admin scope (packages/shared/.storybook/surfaces.css);
      AdminDensityScale.guard pins both. */
@@ -139,13 +139,13 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
-  /* The cockpit's buttons are the shared family (DL-115, DL-119), and these keep
+  /* The Hub's buttons are the shared family (DL-115, DL-119), and these keep
      its look on it: buttons keep still while pressed, icon buttons stay circles
      with an 18px glyph, and a disabled button takes the neutral pair (a 12% ink
      fill under a 38% ink label) instead of a dim, while an aria-disabled one
      keeps its pointer so a reason given on hover shows. The pair resolves per
      theme, so the dark block below re-declares it. Each size is capped at its
-     block, as the cockpit's fixed-height pill was, so a row that stretches its
+     block, as the Hub's fixed-height pill was, so a row that stretches its
      items never grows a button, and keeps the block margin the hit-target
      classes reserved, 6px around the 28 and 32px tiers and 2px around 40px, so
      the finger boxes of a wrapped row never overlap and the rows laid out
@@ -166,7 +166,7 @@
   --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
   --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
   --gg-button-aria-disabled-events: auto;
-  /* Shared fields, secondary buttons and chips take the cockpit's
+  /* Shared fields, secondary buttons and chips take the Hub's
      control-grade outline (4.8:1 on white, 6.1:1 on the dark card), the boundary its own
      Admin* controls already draw, and focus draws one solid 2px ring in the
      workspace tone (F3). */
@@ -179,7 +179,7 @@
      Spanish and Portuguese, so one line would let them move the form. */
   --gg-field-message-lines: 2;
   /* A selected chip answers a hover or a press with the neutral ink layer at the
-     cockpit's state opacities, beneath its label (Rule 18, DL-116). */
+     Hub's state opacities, beneath its label (Rule 18, DL-116). */
   --gg-chip-state-hover: var(--m3-state-hover);
   --gg-chip-state-pressed: var(--m3-state-pressed);
 
@@ -189,8 +189,8 @@
   --gg-state-mark-fill: rgb(var(--text-strong-950) / 0.06);
   --gg-state-mark-ink: rgb(var(--text-sub-600));
 
-  /* The type roles at the cockpit's density: the app's names (shared theme.css)
-     on the cockpit's 14px scale. Titles 22 / 16 / 14, body and labels 14, small
+  /* The type roles at the Hub's density: the app's names (shared theme.css)
+     on the Hub's 14px scale. Titles 22 / 16 / 14, body and labels 14, small
      labels and meta 12, chips 11, with 14px text at the shared scale's -0.006em
      and 12px labels at weight 500. Field text is 16px on touch widths and 14px
      from 640px (DL-030, the media rule below). */
@@ -219,22 +219,22 @@
   --gg-type-field-size: 1rem;
   --gg-type-field-line: 1.25rem;
   --gg-type-field-tracking: 0px;
-  /* A card's one-line title at the cockpit's density: 13px at 600 (F7). */
+  /* A card's one-line title at the Hub's density: 13px at 600 (F7). */
   --gg-type-card-title-size: 0.8125rem;
   --gg-type-card-title-line: 1.125rem;
   --gg-type-card-title-weight: 600;
 
-  /* The phone sheet (F5): below 640px the cockpit's dialogs take the shared
+  /* The phone sheet (F5): below 640px the Hub's dialogs take the shared
      bottom sheet's material, grip and header. The sheet is the card step of the
      one ladder with the card's hairline, as in the installed app (white and
      neutral-200 in light; the dark block below re-declares both so a dark scope
-     resolves its own), and the header keeps the cockpit's 22px dialog title. */
+     resolves its own), and the header keeps the Hub's 22px dialog title. */
   --gg-sheet-fill: rgb(var(--admin-surface-0));
   --gg-sheet-edge: rgb(var(--neutral-200));
   --gg-sheet-title-size: var(--gg-type-title-lg-size);
   --gg-sheet-title-line: var(--gg-type-title-lg-line);
 
-  /* The shared card surface (F7) on the cockpit's own ladder: its white card,
+  /* The shared card surface (F7) on the Hub's own ladder: its white card,
      which flips to the warm card step in dark (re-declared in the dark block
      below, since this value resolves where it is declared), with the installed
      app's linen-grade edge and the fills a card carries. */
@@ -334,15 +334,40 @@
     display: none;
   }
 
-  /* Lock the root document to prevent double scrollbars; delegate scroll to app shell */
+  /* The document never scrolls: #root below is exactly the screen and clips the shell,
+     and the main scroller inside it owns scrolling, so there is one scrollbar. The root
+     itself is not overflow-hidden, as in the App: Chrome turns pull-to-refresh off for a
+     root whose vertical overflow is hidden, and a pull past the top of the main scroller
+     has to chain to the root, where the browser and the installed Hub run it (PRD-1534).
+     Horizontal overscroll stays contained, so a sideways drag never reveals a gap beside
+     the shell. */
   html,
   body {
     height: 100%;
-    overflow: hidden;
-    overscroll-behavior: contain;
+    overscroll-behavior-x: none;
   }
 
+  /* An open dialog or sheet holds the scroll lock (Radix marks the body), and a pull
+     inside it must never refresh the Hub behind it. */
+  html:has(> body[data-scroll-locked]),
+  body[data-scroll-locked] {
+    overscroll-behavior-y: none;
+  }
+
+  /* A mouse or trackpad has no pull-to-refresh, and a Mac's elastic scroll would bounce the
+     whole shell, the app bar with it, past either end of the main scroller. */
+  @media (hover: hover) and (pointer: fine) {
+    html {
+      overscroll-behavior-y: none;
+    }
+  }
+
+  /* relative makes #root the containing block of absolutely positioned content too, so
+     the clip also holds a stray one that would otherwise make the document scrollable. A clip,
+     unlike hidden, cannot be scrolled by code either, so scrollIntoView never shifts the shell.
+     No overflow utility goes on #root in index.html: one would win over this rule. */
   #root {
+    position: relative;
     height: 100%;
     min-height: 0;
     display: flex;
@@ -847,7 +872,7 @@
 
 /* Workspace canvas — a constant linen ground (#FAF8F5) with the faint tone
  * wash as the ONLY environmental tone signal: a 5% gradient from the top that
- * fades out by 320px (Cockpit M3 1a, tone use 3 of 3). The wash color is the
+ * fades out by 320px (Hub M3 1a, tone use 3 of 3). The wash color is the
  * animatable --tone-surface-tint-color, so switching workspaces cross-fades
  * the wash rather than repainting the whole canvas. */
 .workspace-canvas {
@@ -1115,7 +1140,7 @@
 }
 
 /* ============================================================================
- * TONE — restrained to exactly three uses (Cockpit M3 1a):
+ * TONE — restrained to exactly three uses (Hub M3 1a):
  *   1. Active tab underline/label + active nav pill
  *      (tone-primary-container / on-primary-container)
  *   2. The single filled action button per route header (--tone-action)

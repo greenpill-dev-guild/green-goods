@@ -1,6 +1,5 @@
 import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { Button } from "@green-goods/shared/components/Button";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
@@ -62,11 +61,12 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
         size="md"
         tone="community"
         title={formatMessage({ id: "public.fund.endowmentPause.title" })}
-        actions={
-          <Button type="button" emphasis="primary" size="sm" onClick={handleClose}>
-            {formatMessage({ id: "cockpit.community.endowment" })}
-          </Button>
-        }
+        actions={{
+          primary: {
+            label: formatMessage({ id: "hub.community.endowment" }),
+            onClick: handleClose,
+          },
+        }}
       >
         <p>{formatMessage({ id: "public.fund.endowmentPause.body" })}</p>
       </AdminDialog>
@@ -91,28 +91,25 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
         tone="community"
         title={title}
         description={description}
-        actions={
-          <>
-            {vaultsHasError && vaultGardenAddress ? (
-              <Button
-                type="button"
-                emphasis="secondary"
-                size="sm"
-                onClick={() => {
-                  void refetch();
-                }}
-                disabled={isFetching}
-              >
-                {isFetching
-                  ? formatMessage({ id: "app.common.refreshing" })
-                  : formatMessage({ id: "app.common.tryAgain" })}
-              </Button>
-            ) : null}
-            <Button type="button" emphasis="tertiary" size="sm" onClick={handleClose}>
-              {formatMessage({ id: "app.common.cancel" })}
-            </Button>
-          </>
-        }
+        actions={{
+          // No main action here: a way to read the vaults again, and the way out.
+          secondary: [
+            ...(vaultsHasError && vaultGardenAddress
+              ? [
+                  {
+                    label: isFetching
+                      ? formatMessage({ id: "app.common.refreshing" })
+                      : formatMessage({ id: "app.common.tryAgain" }),
+                    onClick: () => {
+                      void refetch();
+                    },
+                    disabled: isFetching,
+                  },
+                ]
+              : []),
+            { label: formatMessage({ id: "app.common.cancel" }), onClick: handleClose },
+          ],
+        }}
       >
         <Alert variant={vaultsHasError || !vaultGardenAddress ? "error" : "info"}>
           {!vaultGardenAddress

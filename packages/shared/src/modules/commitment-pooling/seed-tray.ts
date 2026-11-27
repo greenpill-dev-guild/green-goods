@@ -107,6 +107,9 @@ function nextRow(row: SeedRowProgress, event: SeedRowEvent): SeedRowProgress {
           return { ...row, status: "wallet" };
         case "confirming":
           return { ...row, status: "confirming", txHash: report.txHash };
+        case "safe-signers":
+          // A creation a Safe only proposed: its ending says where it waits.
+          return row;
         case "landed":
           return { ...row, status: "created", txHash: report.txHash ?? row.txHash };
         case "queued":

@@ -130,11 +130,11 @@ For every item, fill the JSON schema at `schema.json` strictly. One item per JSO
 
 ## Surface vocabulary (use these exact strings)
 
-- `Public Website` — client editorial routes (/, /gardens, /fund, /impact, /actions, /cookies on the public site)
-- `PWA` — the client app as one merged surface: desktop PWA shell or device-unspecified observations (catalog v2's active tab; use the platform values below only when the notes name a device)
-- `PWA iOS` — installed PWA on iOS Safari
-- `PWA Android` — installed PWA on Android Chrome
-- `Admin Dashboard` — admin cockpit (Hub, MainSheet, AdminDialog overlays, AdminSideSheet, FabButton, /hub/*, /garden/*, /community/*)
+- `Green Goods Website` — client editorial routes (/, /gardens, /fund, /impact, /actions, /cookies on the public site)
+- `Green Goods App` — the client app as one merged surface: desktop PWA shell or device-unspecified observations (catalog v2's active tab; use the platform values below only when the notes name a device)
+- `Green Goods App iOS` — installed PWA on iOS Safari
+- `Green Goods App Android` — installed PWA on Android Chrome
+- `Green Goods Hub` — the steward surface (Review, MainSheet, AdminDialog overlays, AdminSideSheet, FabButton, /review/*, /garden/*, /community/*)
 - `Cross Surface` — multi-surface or visual/copy/error regressions that aren't tied to one surface
 - `Docs` — Docusaurus documentation site
 - `unknown` — cannot infer from the notes
@@ -213,11 +213,11 @@ property is required; optional fields stay optional by allowing `null`.
           "surface": {
             "type": "string",
             "enum": [
-              "Public Website",
-              "PWA",
-              "PWA iOS",
-              "PWA Android",
-              "Admin Dashboard",
+              "Green Goods Website",
+              "Green Goods App",
+              "Green Goods App iOS",
+              "Green Goods App Android",
+              "Green Goods Hub",
               "Cross Surface",
               "Docs",
               "unknown"

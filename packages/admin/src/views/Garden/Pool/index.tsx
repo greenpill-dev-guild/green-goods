@@ -28,6 +28,7 @@ import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
 import { VoucherReserveCard } from "./VoucherReserveCard";
 import { currentGroup, withVoucherRecovery } from "./poolCommitmentRows";
+import { queueBookingsDue } from "./voucherQueue";
 import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 
 export interface GardenPoolTabProps {
@@ -40,8 +41,10 @@ export interface GardenPoolTabProps {
  * W7, the steward's pool console (uiux-spec §6.2), which the Garden workspace
  * shows as its Promises tab (DL-077). Two columns: what needs the steward, the
  * season and its campaigns, and Offers and Asks on the left; Review
- * Promises, Pool Status and Pool Funding on the right, which is 37.5% of the
- * width (PRD-1025 D8–D10). Every act goes through the controller
+ * Promises, Your Reserve, Pool Status and Pool Funding on the right, which is
+ * 37.5% of the width (PRD-1025 D8–D10). Below two columns Review Promises
+ * comes first, then the left column, then the rest of the right (decision 4
+ * of the 18 November 2026 hub-day review). Every act goes through the controller
  * in shared; every reasoned act through the one reason dialog; every row opens
  * in the Garden workspace's left inspector, route-backed.
  *
@@ -174,15 +177,16 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
     !preOpen && !finished ? (
       <PoolStatsCard
         label={formatMessage({
-          id: "cockpit.garden.pool.summary.label",
+          id: "hub.garden.pool.summary.label",
           defaultMessage: "What needs you",
         })}
         stats={[
           {
             id: "claims",
-            count: model.counts.claimsWaiting,
+            // Review Promises holds the booking acts as well as the asks.
+            count: model.counts.claimsWaiting + queueBookingsDue(vouchers, pool.claims),
             label: formatMessage({
-              id: "cockpit.garden.pool.summary.waiting",
+              id: "hub.garden.pool.summary.waiting",
               defaultMessage: "To review",
             }),
             onOpen: () => jumpTo("pool-claims"),
@@ -191,7 +195,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             id: "recovery",
             count: withVoucherRecovery(model, pool.commitments, vouchers).counts.needsRecovery,
             label: formatMessage({
-              id: "cockpit.garden.pool.summary.recovery",
+              id: "hub.garden.pool.summary.recovery",
               defaultMessage: "Needs recovery",
             }),
             onOpen: () => openFocus("recovery"),
@@ -200,7 +204,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             id: "pastDue",
             count: model.counts.pastDue,
             label: formatMessage({
-              id: "cockpit.garden.pool.summary.pastDue",
+              id: "hub.garden.pool.summary.pastDue",
               defaultMessage: "Past due",
             }),
             onOpen: () => openFocus("pastDue"),
@@ -209,30 +213,50 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       />
     ) : null;
 
+  // The voucher read failed or came back short: either way it warns about what the queue shows.
+  const voucherNotice =
+    pool.chainId !== 42161 ? null : vouchers.snapshot.status === "unavailable" ? (
+      <Alert variant="warning">
+        {formatMessage({
+          id: "hub.garden.pool.voucher.live.indexerUnavailable",
+          defaultMessage:
+            "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.",
+        })}
+      </Alert>
+    ) : vouchers.snapshot.incomplete ? (
+      <Alert variant="warning">
+        {formatMessage({
+          id: "hub.garden.pool.voucher.live.partial",
+          defaultMessage:
+            "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
+        })}
+      </Alert>
+    ) : null;
+
   return (
     <div className="garden-tab-layout" data-component="GardenPoolTab" data-region="garden-pool">
-      {/* The grid has two cells, main and rail; a notice belongs at the top of main. */}
+      {/* A voucher read that failed or came back short warns about what the queue shows, so it
+          comes first of all on a phone; from two columns a grid area puts it atop the main column. */}
+      {voucherNotice ? <div className="garden-tab-notice">{voucherNotice}</div> : null}
+      {/* Everything that waits on the steward, first on a phone and atop the right column from
+          two columns: its own cell, so reading order and the eye agree at every width. A closed
+          pool keeps it while a booking still owes a transfer, which anyone may retry. */}
+      {!preOpen && (!finished || queueBookingsDue(vouchers, [], ["retry", "propose"]) > 0) ? (
+        <div className="garden-tab-lead">
+          <PoolClaimsCard
+            bookingsOnly={finished}
+            console={pool}
+            vouchers={vouchers}
+            target={target}
+            safe={issuerSafe}
+            tone={tone}
+            onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
+            onOpen={(row) => openCommitment(row.commitment, "waiting")}
+            onOpenPromise={(commitment) => openCommitment(commitment)}
+          />
+        </div>
+      ) : null}
       <div className="garden-tab-main">
-        {vouchers.snapshot.status === "unavailable" && pool.chainId === 42161 ? (
-          <Alert variant="warning">
-            {formatMessage({
-              id: "cockpit.garden.pool.voucher.live.indexerUnavailable",
-              defaultMessage:
-                "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.",
-            })}
-          </Alert>
-        ) : null}
-        {vouchers.snapshot.status === "observed" &&
-        vouchers.snapshot.incomplete &&
-        pool.chainId === 42161 ? (
-          <Alert variant="warning">
-            {formatMessage({
-              id: "cockpit.garden.pool.voucher.live.partial",
-              defaultMessage:
-                "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
-            })}
-          </Alert>
-        ) : null}
         {summary}
 
         {preOpen ? (
@@ -257,7 +281,6 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           <PoolCommitmentsCard
             console={pool}
             vouchers={vouchers}
-            target={target}
             safe={issuerSafe}
             scope={scope}
             onScopeChange={setScope}
@@ -272,20 +295,9 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         ) : null}
       </div>
 
-      {/* Asks sit beside their count and never move the list on the left
-          (PRD-1025 D1, D8); on narrow screens this column comes last. */}
+      {/* The rail never moves the list on the left (PRD-1025 D1, D8); on narrow screens it
+          comes last. */}
       <aside className="garden-tab-rail flex flex-col gap-section">
-        {!preOpen && !finished ? (
-          <PoolClaimsCard
-            console={pool}
-            vouchers={vouchers}
-            target={target}
-            safe={issuerSafe}
-            tone={tone}
-            onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
-            onOpen={(row) => openCommitment(row.commitment, "waiting")}
-          />
-        ) : null}
         {vouchers.snapshot.reserve && !preOpen && !finished ? (
           <VoucherReserveCard
             reserve={vouchers.snapshot.reserve}
@@ -318,6 +330,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       {openGroup ? (
         <GroupDialogs
           pool={pool}
+          vouchers={vouchers}
+          safe={issuerSafe}
           group={openGroup}
           title={
             (openGroup.children[0]?.metadataCID &&

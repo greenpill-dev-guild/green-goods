@@ -28,11 +28,12 @@ export function ServiceIssuerActions({
   onEntry: (entry: IssuerEntry) => void;
   onReview: (action: ServiceIssuerAction, intent?: IssuerIntent) => void;
 }) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const ms = (key: string, values?: Record<string, string>) =>
     formatMessage({ id: `app.voucher.ms.${key}` }, values);
   const asset = snapshot.asset;
-  const amount = (value: bigint) => issuerAmount(value, asset, locale);
+  const amount = (value: bigint) => issuerAmount(value, asset, intl);
   const allowance = snapshot.reserveAllowance ?? 0n;
   const stage = issuerStage(snapshot, pending).stage;
   const issue: SectionAct = {

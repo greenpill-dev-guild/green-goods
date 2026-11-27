@@ -15,14 +15,15 @@
 import { useCallback, useMemo } from "react";
 
 import {
-  type DisplayGroupCounts,
   type DisplayGroupEntry,
   groupCommitmentsForDisplay,
 } from "../../../modules/commitment-pooling/display-groups";
+import type { DueClock } from "../../../modules/commitment-pooling/due-dates";
 import {
   findDisplayGroup,
   type GroupTakeUpBar,
-  groupCountsOnClock,
+  type GroupTakeUpCounts,
+  groupTakeUpCounts,
   isAtTakeUpLimit,
   isViewerCopy,
   pickCopyToTakeUp,
@@ -48,7 +49,7 @@ import { useDueClock } from "../../commitment-pooling/useDueClock";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { type GroupTakeUpContext, type GroupTakeUpState, useGroupTakeUp } from "./useGroupTakeUp";
 
-export type { GroupTakeUpBar, GroupTakeUpContext, GroupTakeUpState };
+export type { GroupTakeUpBar, GroupTakeUpContext, GroupTakeUpCounts, GroupTakeUpState };
 
 interface ClaimGardenOption {
   address: Address;
@@ -64,13 +65,18 @@ export interface PromiseGroupController {
   /** One copy, for the terms every copy shares. */
   sample: CommitmentReadModel | null;
   metadata: CommitmentMetadataV1 | null;
-  counts: DisplayGroupCounts | null;
+  /** The counts its act reads (`groupTakeUpCounts`), so none says available what it won't take. */
+  counts: GroupTakeUpCounts | null;
+  /** The chain's clock and cycle ends the counts read; null while the due dates are unread. */
+  dueClock: DueClock | null;
   /** False when the copies or the asks on them couldn't be read: counts may be stale. */
   availabilityKnown: boolean;
   /** The reader's own copies, each an ordinary row that opens its page. */
   yours: InboxCommitment[];
   /** The one act, or null when the reader can't take one up here. */
   bar: GroupTakeUpBar | null;
+  /** The copy the app would choose now; null while availability is unread or none is left. */
+  choice: bigint | null;
   /** The pool's per-person at-once limit, the only limit the page states. */
   cap: bigint | null;
   /** Whether the reader belongs where a take-up goes; null while it reads. */
@@ -220,8 +226,12 @@ export function usePromiseGroupController(input: {
     poolId: pool ? poolId : null,
     commitments: group?.children ?? NO_COPIES,
   });
+  // A requests read that failed or has answered nothing yet, its first read waiting for a
+  // connection included, leaves a reviewed group's availability unknown.
   const availabilityKnown =
-    due.known && !commitments.isError && !(approvalGated && (asks.isError || asks.isLoading));
+    due.known &&
+    !commitments.isError &&
+    !(approvalGated && (asks.isError || asks.data === undefined));
   const choice =
     group && availabilityKnown
       ? pickCopyToTakeUp(group.children, { viewer, askedFor, skip: queued, clock: due.clock })
@@ -294,11 +304,19 @@ export function usePromiseGroupController(input: {
     group,
     sample,
     metadata: sample?.metadataCID ? (byCID.get(sample.metadataCID.trim()) ?? null) : null,
-    // A copy past due counts as ended, so the page never says one is available beside a held act.
-    counts: group ? (due.known ? groupCountsOnClock(group, due.clock) : group.counts) : null,
+    // A copy past due counts as ended, and one a steward has a request on as waiting on them, so
+    // the page never says one is available beside a held act. While the due dates are unread the
+    // counts stand as the chain has them, and the page says availability is unknown.
+    counts: group
+      ? due.known
+        ? groupTakeUpCounts(group, { clock: due.clock, askedFor })
+        : { ...group.counts, requested: 0 }
+      : null,
+    dueClock: due.known ? due.clock : null,
     availabilityKnown,
     yours,
     bar,
+    choice: choice?.commitmentId ?? null,
     cap: cap && cap > 0n ? cap : null,
     isMember,
     membershipUnavailable: isMember === null && roles.membershipUnavailable,

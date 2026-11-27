@@ -20,6 +20,7 @@ export {
   getGardenActivitySince,
   getWorkApprovalsForWorks,
   getWorkListPage,
+  getWorksInRange,
   readWorkApprovalsForWorks,
   WORK_LIST_PAGE_SIZE,
 } from "./eas-work-list";
@@ -406,8 +407,8 @@ export const getWorksByUIDs = async (
   if (uids.length === 0) return [];
 
   const QUERY = easGraphQL(/* GraphQL */ `
-    query Attestations($where: AttestationWhereInput) {
-      attestations(where: $where) {
+    query Attestations($where: AttestationWhereInput, $take: Int!) {
+      attestations(where: $where, take: $take) {
         id
         attester
         recipient
@@ -420,34 +421,43 @@ export const getWorksByUIDs = async (
   const easConfig = getEASConfig(chainId);
   if (isZeroBytes32(easConfig.WORK.uid)) return [];
 
-  const { data, error } = await reader.query(
-    QUERY,
-    {
-      where: {
-        schemaId: { equals: easConfig.WORK.uid },
-        id: { in: uids },
-        revoked: { equals: false },
+  // An id names one attestation, so a chunk of ids fits in one page of that size.
+  const works: EASWork[] = [];
+  for (let start = 0; start < uids.length; start += EAS_PAGE_SIZE) {
+    const chunk = uids.slice(start, start + EAS_PAGE_SIZE);
+    const { data, error } = await reader.query(
+      QUERY,
+      {
+        where: {
+          schemaId: { equals: easConfig.WORK.uid },
+          id: { in: chunk },
+          revoked: { equals: false },
+        },
+        take: chunk.length,
       },
-    },
-    "getWorksByUIDs"
-  );
-
-  if (error) {
-    throw new EASFetchError(
-      `Failed to fetch works by UIDs: ${error.message}`,
-      "getWorksByUIDs",
-      error
-    );
-  }
-
-  if (!Array.isArray(data?.attestations))
-    throw new EASFetchError(
-      "Failed to fetch works by UIDs: Invalid attestations response",
       "getWorksByUIDs"
     );
 
-  return validatedAttestations(data.attestations, "getWorksByUIDs").map(
-    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
-  );
+    if (error) {
+      throw new EASFetchError(
+        `Failed to fetch works by UIDs: ${error.message}`,
+        "getWorksByUIDs",
+        error
+      );
+    }
+
+    if (!Array.isArray(data?.attestations))
+      throw new EASFetchError(
+        "Failed to fetch works by UIDs: Invalid attestations response",
+        "getWorksByUIDs"
+      );
+
+    works.push(
+      ...validatedAttestations(data.attestations, "getWorksByUIDs").map(
+        ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+          parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
+      )
+    );
+  }
+  return works;
 };

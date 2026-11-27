@@ -43,7 +43,7 @@ export function ServiceLiveExchange({
             </option>
             {choices.map((candidate) => (
               <option key={candidate.key} value={candidate.key}>
-                {candidate.input.symbol} → {candidate.output.symbol} · {candidate.poolName}
+                {candidate.input.name} → {candidate.output.name} · {candidate.poolName}
               </option>
             ))}
           </NativeSelect>
@@ -51,7 +51,7 @@ export function ServiceLiveExchange({
         {choice ? (
           <p className="text-sm">
             {intl.formatMessage({ id: "app.voucher.exchange.receive" })}:{" "}
-            {issuerAmount(choice.requiredOutput, choice.output, intl.locale)}
+            {issuerAmount(choice.requiredOutput, choice.output, intl)}
           </p>
         ) : null}
         {choice ? (

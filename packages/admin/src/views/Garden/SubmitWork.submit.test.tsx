@@ -73,8 +73,8 @@ vi.mock("@green-goods/shared/modules/work/work-submission", () => ({
     if (images.length < minRequired) {
       return [
         minRequired === 1
-          ? "At least one image is required"
-          : `At least ${minRequired} images are required`,
+          ? "At least one media item is required"
+          : `At least ${minRequired} media items are required`,
       ];
     }
     return [];
@@ -312,6 +312,8 @@ vi.mock("@green-goods/shared/modules/job-queue/queue-policy", async (importOrigi
 
 vi.mock("@green-goods/shared/modules/work/media-processing", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/modules/work/media-processing")>()),
+  // Clip metadata is covered by the intake hook's tests; this suite proves flow progression.
+  validateWorkVideo: async () => true,
   normalizeWorkMediaFiles: async (files: File[]) => {
     const accepted = [];
     const rejected = [];
@@ -392,7 +394,7 @@ vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) =
 vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
   adminRoutes: {
     gardenSettings: () => "/garden/settings",
-    hub: () => "/hub",
+    review: () => "/review",
   },
 }));
 
@@ -494,7 +496,7 @@ function TestProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <IntlProvider locale="en" messages={enMessages}>
-        <MemoryRouter initialEntries={["/hub/work/submit"]}>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={["/review/work/submit"]}>{children}</MemoryRouter>
       </IntlProvider>
     </QueryClientProvider>
   );
@@ -572,7 +574,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     // On the Media step (single action auto-selected), advancing without the
     // required photo is gated inline — Details never opens, the mutation never runs.
     await clickNext(user);
-    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
+    expect(await screen.findByText(/Add at least 1 media item to continue/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
@@ -589,7 +591,7 @@ describe("SubmitWorkPanel submit behavior", () => {
 
     // required with no explicit count ⇒ 1 photo; the Media gate enforces it inline.
     await clickNext(user);
-    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
+    expect(await screen.findByText(/Add at least 1 media item to continue/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
@@ -702,20 +704,20 @@ describe("SubmitWorkPanel submit behavior", () => {
     // One photo, two required ⇒ the count beside the uploader says so, and the
     // Media gate blocks the advance until the minimum is met; the mutation never runs.
     uploadFile(container);
-    expect(await screen.findByText("1 of 2 photos")).toBeInTheDocument();
+    expect(await screen.findByText("1 of 2 media items")).toBeInTheDocument();
     await clickNext(user);
-    expect(await screen.findByText(/Add at least 2 photos to continue/)).toBeInTheDocument();
+    expect(await screen.findByText(/Add at least 2 media items to continue/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
 
     // The second photo meets the action's requirement: the count says so and Next opens Details.
     uploadFile(container, "after.png");
-    expect(await screen.findByText("2 photos added")).toBeInTheDocument();
+    expect(await screen.findByText("2 media items added")).toBeInTheDocument();
     await clickNext(user);
     expect(await screen.findByLabelText(/Plot code/)).toBeInTheDocument();
   });
 
-  it("counts photos, not every staged file, toward the minimum", async () => {
+  it("offers supported videos and lets a photo plus video meet the minimum", async () => {
     mockState.actions = [createAction({ required: true, minImageCount: 2 })];
     const user = userEvent.setup();
 
@@ -725,15 +727,15 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    // A photo and a video are two staged files but one photo: the count says so, and
-    // Next holds the step as the submission would refuse the work at the end.
+    const picker = container.querySelector('input[type="file"]');
+    expect(picker?.getAttribute("accept")).toContain("video/mp4");
+    expect(picker?.getAttribute("accept")).toContain("video/webm");
     uploadFile(container);
     uploadFile(container, "walkthrough.mp4", "video/mp4");
     expect(await screen.findByRole("button", { name: "Remove walkthrough.mp4" })).toBeVisible();
-    expect(screen.getByText("1 of 2 photos")).toBeInTheDocument();
+    expect(screen.getByText("2 media items added")).toBeInTheDocument();
     await clickNext(user);
-    expect(await screen.findByText(/Add at least 2 photos to continue/)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
+    expect(await screen.findByLabelText(/Plot code/)).toBeInTheDocument();
   });
 
   // The details step over the real work form: when its errors show, and which fields hold Next.
@@ -1188,7 +1190,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     // No valid image was added, so advancing from Media is gated and the
     // mutation never runs.
     await clickNext(user);
-    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
+    expect(await screen.findByText(/Add at least 1 media item to continue/)).toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -1216,7 +1218,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     expect(mockToastError).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Work was not submitted",
-        message: "Reconnect and submit again from admin so the transaction can be confirmed.",
+        message: "Reconnect and submit again from the Hub so the transaction can be confirmed.",
         context: "admin work submission",
       })
     );

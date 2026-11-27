@@ -42,13 +42,13 @@ function promise(snapshot: ServiceAccessSnapshot, refetch: () => void, options: 
       <ServicePromise
         serviceKey={snapshot.key}
         access={{ data: snapshot, refetch, isError: options.failed, isFetching: options.checking }}
-        coreState="OFFERED"
-        creator={null}
+        commitment={{ derivedState: "OFFERED", creator: null, evidenceCount: 0 }}
         gardenName="Test garden"
         heading="Hub day"
         hasCoreAct={false}
         isOnline={options.online ?? true}
         onReport={null}
+        confirmKept={null}
         takeUp={null}
       >
         {({ body, bar }) => (
@@ -88,11 +88,11 @@ describe("checking a voucher promise's remote status", () => {
     expect(screen.getByRole("button", { name: "Check Status" })).toBeDisabled();
     expect(screen.getByText(/You are offline. Showing the last known status/)).toBeInTheDocument();
   });
-  it("provides a tracking link only inside transaction details, with checking feedback", () => {
+  it("provides a tracking link only inside Booking details, with checking feedback", () => {
     page({ checking: true });
     expect(screen.getByRole("button", { name: "Checking Status…" })).toBeDisabled();
-    const link = screen.getByText("Track Request in CCIP Explorer");
-    expect(link.closest("details")).not.toBeNull();
+    const link = screen.getByText("Track Booking in CCIP Explorer");
+    expect(link.closest("details")).toHaveTextContent(/^Booking details/);
     expect(link).toHaveAttribute("href", expect.stringContaining("https://ccip.chain.link/msg/0x"));
   });
 });
@@ -110,7 +110,7 @@ describe("the wallet kept through a refresh that fails", () => {
     };
     mocks.wallet.mockImplementation(() => ({ ...read, refetch: mocks.walletRefetch }));
     const view = renderWithProviders(promise(first, vi.fn()));
-    await userEvent.click(screen.getByRole("button", { name: "Review and Redeem" }));
+    await userEvent.click(screen.getByRole("button", { name: "Book" }));
     // The sheet counts what the reader holds of the offer's voucher, from the wallet.
     const holds = "You hold 9.";
     expect(screen.getByText(holds)).toBeInTheDocument();

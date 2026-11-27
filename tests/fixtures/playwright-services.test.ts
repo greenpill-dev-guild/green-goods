@@ -198,7 +198,6 @@ describe("passkey project", () => {
   });
 });
 
-// Fork ownership is separate from the Sepolia test-server profile.
 describe("caller-managed fork profile", () => {
   const originalArgv = process.argv;
   afterEach(() => {

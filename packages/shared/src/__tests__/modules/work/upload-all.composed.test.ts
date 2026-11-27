@@ -19,6 +19,10 @@ vi.mock("../../../modules/data/eas-sent-attestations", () => ({
   getWorkSubmissionsSince: vi.fn(async () => []),
   getWorkDecisionsSince: vi.fn(async () => []),
 }));
+// Each decision is read on chain right before it goes; these works are still undecided.
+vi.mock("../../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: async () => false }),
+}));
 vi.mock("../../../modules/work/simulate", () => ({
   simulateWorkSubmission: vi.fn(async () => undefined),
   simulateApprovalSubmission: vi.fn(async () => undefined),
@@ -169,6 +173,8 @@ function mountPreparation(overrides: Partial<UploadPreparationPorts> = {}) {
     },
     recover: async () => undefined,
     now: () => Date.now(),
+    // The hook sends these to telemetry, which this test leaves out.
+    record: () => undefined,
     ...overrides,
   });
   setActiveUploadPreparation(preparation);

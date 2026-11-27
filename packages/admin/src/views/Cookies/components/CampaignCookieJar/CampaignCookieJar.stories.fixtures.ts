@@ -41,7 +41,7 @@ const panelViewFormatMessage = ((
   descriptor: { id: string; defaultMessage?: string },
   values?: { count?: number }
 ) => {
-  if (descriptor.id === "cockpit.community.cookies.listDescription") {
+  if (descriptor.id === "hub.community.cookies.listDescription") {
     const count = typeof values?.count === "number" ? values.count : 0;
     return `${count} campaign ${count === 1 ? "jar" : "jars"} on this network.`;
   }
@@ -74,6 +74,8 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   publicCampaignUrl: "https://greengoods.app/cookies?campaign=earth-week-rewards",
   claimAmount: "5",
   setClaimAmount: () => undefined,
+  claimSchedule: "one-time",
+  setClaimSchedule: () => undefined,
   tokenSymbol: payoutAssets[0]?.symbol ?? "USDC",
   gardens: STORYBOOK_ADMIN_GARDENS,
   selectedGardenIds: [STORYBOOK_PRIMARY_ADMIN_GARDEN.id],
@@ -99,8 +101,6 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   jarOwner: STORYBOOK_PRIMARY_ADMIN_GARDEN.owners[0] ?? STORYBOOK_CAMPAIGN_JAR,
   setJarOwner: () => undefined,
   normalizedJarOwner: STORYBOOK_PRIMARY_ADMIN_GARDEN.owners[0] ?? STORYBOOK_CAMPAIGN_JAR,
-  withdrawalIntervalDays: "0",
-  setWithdrawalIntervalDays: () => undefined,
   extraAddresses: "",
   setExtraAddresses: () => undefined,
   payoutLabel: `5 ${payoutAssets[0]?.symbol ?? "USDC"}`,

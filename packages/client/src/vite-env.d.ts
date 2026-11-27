@@ -15,6 +15,9 @@ interface ImportMetaEnv {
   readonly VITE_PIMLICO_API_KEY?: string;
   readonly VITE_PASSKEY_RP_ID?: string;
   readonly VITE_PASSKEY_SERVER_ENABLED?: string;
+  readonly VITE_OPENFORT_SIGN_IN_ENABLED?: string;
+  readonly VITE_OPENFORT_PUBLISHABLE_KEY?: string;
+  readonly VITE_OPENFORT_SHIELD_PUBLISHABLE_KEY?: string;
   readonly VITE_ALCHEMY_API_KEY?: string;
   readonly VITE_ENVIO_INDEXER_URL: string;
   readonly VITE_ENABLE_SW_DEV?: string;
@@ -24,6 +27,8 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_PWA_INSTALLED?: string;
   readonly VITE_QUEUE_DEBUG?: string;
   readonly VITE_API_BASE_URL?: string;
+  /** The Green Goods Hub's address, which the Help tab opens for stewards. */
+  readonly VITE_ADMIN_APP_URL?: string;
   readonly VITE_PINATA_GATEWAY_URL?: string;
   readonly VITE_CAMPAIGN_COOKIE_JARS?: string;
   readonly VITE_SENTRY_CLIENT_DSN?: string;

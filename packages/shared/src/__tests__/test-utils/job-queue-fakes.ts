@@ -71,6 +71,7 @@ export function createInMemoryJobQueueStore(initial: Job[] = []): JobQueueStore 
         attempts: Math.max(job.attempts, 5),
         lastError: error,
         lastAttemptAt: 0,
+        meta: { ...job.meta, terminalFailure: true },
       });
     },
     async deleteJob(id) {
@@ -142,6 +143,9 @@ export function createFakeJobQueueAnalytics(): JobQueueAnalytics {
     storageWarning: vi.fn(),
     privateEvent: vi.fn(),
     processingStarted: vi.fn(),
+    jobSkipped: vi.fn(),
+    receiptWaitLimitReached: vi.fn(),
+    jobDiscarded: vi.fn(),
   };
 }
 
@@ -209,7 +213,12 @@ export function createJobQueueDependencies(
     connectivity: createFakeJobQueueConnectivity(),
     backgroundSync: createFakeBackgroundSync(),
     clock: createFakeJobQueueClock(),
-    config: { defaultChainId: 11155111, maxRetries: 5, storageQuotaCacheTTL: 30_000 },
+    config: {
+      defaultChainId: 11155111,
+      maxRetries: 5,
+      storageQuotaCacheTTL: 30_000,
+      receiptWaitLimitMs: 120_000,
+    },
     lifecycle: { attach: vi.fn(() => () => undefined) },
     logger: { debug: vi.fn(), warn: vi.fn() },
     ...overrides,

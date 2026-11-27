@@ -12,8 +12,11 @@ import {
   serviceTuple,
   serviceUint,
 } from "./service-access-chain-values";
+import type { ContractCall } from "../transactions/types";
+import { serviceLiveCall } from "./service-access-live-commands";
 import type { VoucherLegProgress } from "./service-access-voucher-types";
 import { context, issuerFor, same, type Dependencies } from "./voucher-console-live-context";
+import { selectVoucherStart, type VoucherStartState } from "./voucher-start";
 import {
   UNAVAILABLE_VOUCHER_CONSOLE,
   type VoucherAsk,
@@ -186,6 +189,9 @@ export async function readLiveVoucherConsole(
                   setup.source.setupResult.depositedUnits === d.result.depositedUnits &&
                   setup.source.setupResult.setupRefundedUnits === d.result.setupRefundedUnits,
                 acceptBy: Number(a.acceptanceDeadline),
+                // Before acceptance there is no decision to quote; the booking's own message to
+                // the escrow rides the same gas limit, so its quote stands in.
+                startFee: setup.fees.decision ?? setup.fees.authorization,
               }
             : null,
         });
@@ -229,7 +235,15 @@ export async function readLiveVoucherConsole(
                   (releaseNeedsExecution ? final!.allocation.releaseVoucherUnits : 0n) +
                   (refundNeedsExecution ? final!.allocation.refundVoucherUnits : 0n),
               }
-            : { kind: "in-progress" },
+            : !final && (source.coreState === "CANCELLED" || source.coreState === "EXPIRED")
+              ? // The promise ended before its service: the vouchers wait in escrow until the
+                // issuer proposes a return (PRD-1462, the PRD-1404 remedy).
+                {
+                  kind: "ended-early",
+                  returnLimit: a.voucherUnits,
+                  returnCeiling: d.issuerReturnCeiling ?? 0n,
+                }
+              : { kind: "in-progress" },
       });
     }
     snapshot.asks = asks;
@@ -243,6 +257,28 @@ export async function readLiveVoucherConsole(
     logger.warn("Voucher console discovery is unavailable", { error, garden: input.garden });
   }
   return snapshot;
+}
+
+/**
+ * The next send of a booking's start from the steward who accepted it (DL-193). Each call reads
+ * the booking from the chain again and proves the reviewed route before building anything, so a
+ * send never rests on an earlier read. The call names the steward as its sender; only the start's
+ * two sends may (`serviceLiveCall`).
+ */
+export async function prepareVoucherStartSend(
+  input: { chainId: number; garden: Address },
+  target: { commitmentId: bigint; buyer: Address; setupId: Hex },
+  sender: Address,
+  deps: Dependencies = {}
+): Promise<{ state: VoucherStartState; call: ContractCall | null }> {
+  const ctx = await context(input, deps);
+  if (!ctx) throw new Error("Voucher route unavailable");
+  const { snapshot, setup } = await ctx.booking(target.commitmentId, target.buyer, target.setupId);
+  const state = selectVoucherStart(snapshot, setup);
+  return {
+    state,
+    call: state.kind === "send" ? serviceLiveCall(snapshot, state.act, ctx.route, sender) : null,
+  };
 }
 
 export interface VoucherSafeFile {

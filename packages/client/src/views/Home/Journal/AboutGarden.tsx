@@ -1,13 +1,16 @@
 // Command Surface: the garden's About entry at the end of Home's journal (DL-128, decision 27).
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useGardenAccess } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Garden } from "@green-goods/shared/types/domain";
+import { isAddressInList } from "@green-goods/shared/utils/blockchain/address";
 import {
   RiBankLine,
   RiBarChartBoxLine,
+  RiDashboardLine,
   RiGovernmentLine,
   RiGroupLine,
   RiShareLine,
@@ -30,33 +33,43 @@ const GardenSheets = lazy(() =>
 export interface AboutGardenProps {
   /** The active garden's record. */
   garden: Garden;
+  /** This build's Hub address; stories can provide a fictional destination. */
+  hubUrl?: string;
 }
 
 /**
  * About This Garden (PWA Home step 10, DL-128): the journal's last section, one item row per
  * entry point the garden page kept for members. Insights, Gardeners and the garden's Work open
  * as `full` sheets over Home, so a member reading Home keeps their place; Share shares the
- * garden's link; Endowment shows for reviewers (stewards and evaluators the chain confirms) and
- * depositors of a garden with a vault, and Governance only while its flag is on and the garden
- * is configured, each under the garden page's own predicate (`useGardenAccess`). The garden's name is not repeated here: the chip in Home's header
- * declares it. Where this section sits is reviewed with the first rendered slice.
+ * garden's link. Stewards of the selected garden see Endowment when it has a vault and the Hub
+ * when the build has a Hub URL. Governance follows the garden page's own access rule. Home's
+ * header chip names the selected garden.
  *
  * The sheets mount here, because About is always on Home: Recent Activity's See All and a
  * steward's work-to-review row open the Work sheet through the same store flag. Endowment and
  * Governance open from this section's own state, never from the app-wide Endowment flag the
  * garden's page reads, so neither can follow the member onto a garden's page.
  */
-export function AboutGarden({ garden }: AboutGardenProps) {
+export function AboutGarden({
+  garden,
+  hubUrl = import.meta.env.VITE_ADMIN_APP_URL,
+}: AboutGardenProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
+  const { primaryAddress } = useUser();
   const access = useGardenAccess(garden);
+  const isSteward = isAddressInList(primaryAddress, garden.stewards);
+  const showEndowment = isSteward && access.showEndowment;
+  const hub = hubUrl?.trim();
   const gardenSheet = useUIStore((state) => state.gardenSheet);
   const openGardenSheet = useUIStore((state) => state.openGardenSheet);
   const [ownSheet, setOwnSheet] = useState<"endowment" | "governance" | null>(null);
   const closeOwnSheet = () => setOwnSheet(null);
   // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
   const homeShown = useContext(HomeShownContext);
-  if (!homeShown && ownSheet !== null) setOwnSheet(null);
+  if ((!homeShown && ownSheet !== null) || (ownSheet === "endowment" && !showEndowment)) {
+    setOwnSheet(null);
+  }
   // The sheets stay mounted until the closing one's exit has played.
   const sheetsPresent = useExitPresence(
     gardenSheet !== null || ownSheet !== null,
@@ -103,15 +116,7 @@ export function AboutGarden({ garden }: AboutGardenProps) {
             onOpen={() => openGardenSheet("gardeners")}
           />
         </li>
-        <li>
-          <ItemRow
-            lead={{ kind: "icon", icon: <RiShareLine aria-hidden="true" /> }}
-            title={formatMessage({ id: "app.garden.share" })}
-            details={[formatMessage({ id: "app.home.journal.about.share" })]}
-            onOpen={share}
-          />
-        </li>
-        {access.showEndowment ? (
+        {showEndowment ? (
           <li>
             <ItemRow
               {...focusOnPress}
@@ -126,6 +131,14 @@ export function AboutGarden({ garden }: AboutGardenProps) {
             />
           </li>
         ) : null}
+        <li>
+          <ItemRow
+            lead={{ kind: "icon", icon: <RiShareLine aria-hidden="true" /> }}
+            title={formatMessage({ id: "app.garden.share" })}
+            details={[formatMessage({ id: "app.home.journal.about.share" })]}
+            onOpen={share}
+          />
+        </li>
         {access.showGovernance ? (
           <li>
             <ItemRow
@@ -134,6 +147,25 @@ export function AboutGarden({ garden }: AboutGardenProps) {
               title={formatMessage({ id: "app.signal.governance" })}
               onOpen={() => setOwnSheet("governance")}
             />
+          </li>
+        ) : null}
+        {isSteward && hub ? (
+          <li>
+            <a
+              href={hub}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-[var(--gg-card-radius)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--gg-focus-ring))]"
+            >
+              <ItemRow
+                lead={{ kind: "icon", icon: <RiDashboardLine aria-hidden="true" /> }}
+                title={formatMessage({ id: "app.profile.help.hub.title" })}
+                details={[formatMessage({ id: "app.profile.help.hub.description" })]}
+              />
+              <span className="sr-only">
+                {formatMessage({ id: "app.profile.help.faq.guideNewTab" })}
+              </span>
+            </a>
           </li>
         ) : null}
       </JournalSection>

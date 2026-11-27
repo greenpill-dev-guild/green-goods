@@ -10,6 +10,7 @@ on:
       - "packages/contracts/**"
       - "scripts/contracts/**"
       - "scripts/lib/git-guardrails.mjs"
+      - "scripts/data/solhint-baseline.json"
       - "scripts/quality/check-source-structure.js"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/contracts.yml"
@@ -21,6 +22,7 @@ on:
       - "packages/contracts/**"
       - "scripts/contracts/**"
       - "scripts/lib/git-guardrails.mjs"
+      - "scripts/data/solhint-baseline.json"
       - "scripts/quality/check-source-structure.js"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/contracts.yml"
@@ -146,16 +148,31 @@ jobs:
           SOLIDITY_TEST_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check --only solidity-test-names
 
-      - name: Run Solidity naming guardrail tests
-        run: node --test scripts/contracts/check-solidity-test-names.test.mjs
+      - name: Run Solidity guardrail tests
+        run: node --test scripts/contracts/check-solidity-test-names.test.mjs scripts/contracts/check-solhint-baseline.test.mjs scripts/contracts/coverage-policy.test.mjs
 
       - name: Run contract lint
         working-directory: packages/contracts
+        env:
+          SOLHINT_BASELINE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run lint --check
 
       - name: Build contracts
         working-directory: packages/contracts
         run: bun run build
+
+      # Consumers import the committed ABIs, so a contract change that alters an ABI must commit it.
+      # Regenerating from the build just made, the authoritative list in script/build-abis.ts, must
+      # leave abis/ exactly as committed, with nothing new.
+      - name: Check committed ABIs are current
+        working-directory: packages/contracts
+        run: |
+          bun run build:abis
+          if [ -n "$(git status --porcelain -- abis)" ]; then
+            git status --short -- abis
+            echo "::error::Committed ABIs are stale. Run 'bun run build && bun run build:abis' in packages/contracts and commit abis/."
+            exit 1
+          fi
 
       - name: Check deployed bytecode sizes (EIP-170)
         working-directory: packages/contracts

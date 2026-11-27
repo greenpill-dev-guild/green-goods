@@ -35,7 +35,9 @@ generated_from:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/README.md
   - .claude/skills/ship/SKILL.md
-source_digest: "sha256:d3cb6bead8b7d7ddf5e05a205784819dc4ddbe4abc896fd66024f1c0206fe828"
+  - .claude/skills/verify-green-goods/README.md
+  - .claude/skills/verify-green-goods/SKILL.md
+source_digest: "sha256:a6ffad93db1a3eba1a7b7a353bdfc5025dfea76ba5ea029100401c4c900623f9"
 source_of_truth:
   - .claude/skills/audit/README.md
   - .claude/skills/audit/SKILL.md
@@ -65,12 +67,14 @@ source_of_truth:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/README.md
   - .claude/skills/ship/SKILL.md
+  - .claude/skills/verify-green-goods/README.md
+  - .claude/skills/verify-green-goods/SKILL.md
 ---
 
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # Skills Catalog
 
-Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. 14 skills are cataloged; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.
+Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. 15 skills are cataloged; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.
 
 ## Catalog
 
@@ -90,6 +94,7 @@ Skills are packaged workflows. A coding agent, or you driving one, runs a skill 
 | [resolve-pr-comments](#resolve-pr-comments) | When a pull request has review threads or requested changes to work through. | Ask to address or resolve a PR's review comments. |
 | [review](#review) | Before merging, or any time you want to know whether a PR, branch, or set of changes is ready. | Type `/review [package\|PR\|path]`. |
 | [ship](#ship) | When your change is ready to commit, push, or open as a pull request. | Commit, push, or PR intent activates it. |
+| [verify-green-goods](#verify-green-goods) | To show a UI change or a feature working before review, or to check a flow without live services or a wallet. | Type `/verify-green-goods <feature>` or ask to verify a flow in the app. |
 
 ## audit {#audit}
 
@@ -123,7 +128,7 @@ The bug entry point. Describe a bug, paste a stack trace, or report a failing bu
 
 ## design {#design}
 
-The keeper of the Warm Earth design language. Design holds the direction for shape, motion, color, and material tokens, the split between the admin cockpit and client PWA identities, and the review lenses for UI work. Reach for it before new views, polish passes, or prompts for AI design tools.
+The keeper of the Warm Earth design language. Design holds the direction for shape, motion, color, and material tokens, the split between the Hub and client PWA identities, and the review lenses for UI work. Reach for it before new views, polish passes, or prompts for AI design tools.
 
 - **When to use it:** Before you build a new view or component, during a UI polish pass, or when you're preparing prompts for an AI design tool.
 - **What you get:** Direction grounded in the Warm Earth system: which paradigm and materials a view should use, and the lenses to review the result against.
@@ -230,3 +235,13 @@ Publication without ceremony. Ship proves the changed behavior locally, runs the
 - **How to invoke:** Commit, push, or PR intent activates it.
 
 [Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/ship)
+
+## verify-green-goods {#verify-green-goods}
+
+Proof that a feature works, gathered by driving the app the way a person does. It starts the Green Goods App or Hub in test mode on its own ports, signs in with a mock role, walks a mapped feature in Chromium with fixed fixture data, and keeps the screenshots and page snapshots after it shuts down.
+
+- **When to use it:** To show a UI change or a feature working before review, or to check a flow without live services or a wallet.
+- **What you get:** A transcript, page snapshots and screenshots at phone and desktop width, labeled as mock-auth localhost proof.
+- **How to invoke:** Type `/verify-green-goods <feature>` or ask to verify a flow in the app.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/verify-green-goods)

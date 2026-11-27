@@ -2,14 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  compareRatchet,
+  countRatchetHits,
   extractExportedHookNames,
   extractInternalPackageImports,
   findDirectedCycles,
   findPackageArchitectureViolations,
+  findRatchetBaselineGrowth,
   findSharedExportTargetViolations,
+  isReactModule,
   parseJsxAttributes,
+  parseRatchetBaseline,
+  ratchetFailures,
   scanRule14Source,
   scanRule19Source,
+  shrinkRatchet,
   stripJsComments,
 } from "./check-react-patterns.js";
 
@@ -269,4 +276,94 @@ test("rule 19 ignores TypeScript generics that share a tag name", () => {
   ].join("\n");
 
   assert.deepEqual(rule19Lines(source), []);
+});
+
+test("the debt ratchet fails a new or grown count and asks for a shrink when one falls", () => {
+  const timer = (file) => ({ rule: "rule-1-raw-timer", file, line: 1, snippet: "setTimeout(" });
+  const baseline = { "rule-1-raw-timer": { "a.ts": 2, "b.ts": 1 } };
+  const counts = countRatchetHits([
+    timer("a.ts"),
+    timer("a.ts"),
+    timer("a.ts"),
+    timer("c.ts"),
+    { rule: "rule-6-zustand-whole-state", file: "a.ts" },
+  ]);
+  assert.deepEqual(counts, { "rule-1-raw-timer": { "a.ts": 3, "c.ts": 1 } });
+  assert.deepEqual(compareRatchet(baseline, counts), {
+    grown: [
+      { rule: "rule-1-raw-timer", file: "a.ts", was: 2, now: 3 },
+      { rule: "rule-1-raw-timer", file: "c.ts", was: 0, now: 1 },
+    ],
+    stale: [{ rule: "rule-1-raw-timer", file: "b.ts", was: 1, now: 0 }],
+  });
+  assert.throws(() => shrinkRatchet(baseline, counts), /refusing to shrink/);
+  assert.deepEqual(shrinkRatchet(baseline, { "rule-1-raw-timer": { "a.ts": 1 } }), {
+    "rule-1-raw-timer": { "a.ts": 1 },
+  });
+});
+
+test("the ratchet baseline may not grow over the base branch's copy", () => {
+  const base = { "rule-5-address-as-string": { "a.ts": 2 } };
+  assert.deepEqual(findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 1 } }, base), []);
+  assert.deepEqual(
+    findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 2, "b.ts": 1 } }, base),
+    [{ rule: "rule-5-address-as-string", file: "b.ts", was: 0, now: 1 }],
+  );
+  assert.deepEqual(findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 3 } }, base), [
+    { rule: "rule-5-address-as-string", file: "a.ts", was: 2, now: 3 },
+  ]);
+  assert.deepEqual(findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 9 } }, null), []);
+  assert.equal(parseRatchetBaseline(JSON.stringify({ note: "an old advisory inventory", rules: {} })), null);
+});
+
+test("a renamed file keeps its allowance, and its old key must move before the rename merges", () => {
+  const baseline = { "rule-1-raw-timer": { "old.ts": 2 } };
+  const renames = new Map([["new.ts", "old.ts"]]);
+  const counts = { "rule-1-raw-timer": { "new.ts": 2 } };
+  // The rename grows nothing, but the old path's entry is stale in the rename's own change.
+  assert.deepEqual(compareRatchet(baseline, counts, renames), { grown: [], stale: [{ rule: "rule-1-raw-timer", file: "old.ts", was: 2, now: 0 }] });
+  const context = { base: "origin/develop", previous: baseline, changed: new Set(["old.ts", "new.ts"]), renames };
+  const hits = [{ rule: "rule-1-raw-timer", file: "new.ts", line: 1 }, { rule: "rule-1-raw-timer", file: "new.ts", line: 2 }];
+  assert.match(ratchetFailures({ hits, baseline, context }).failures.join("\n"), /old\.ts: 2 -> 0/);
+  // The shrink moves the key, and then the rename passes and so does the next change, which sees no rename.
+  const moved = shrinkRatchet(baseline, counts, renames);
+  assert.deepEqual(moved, { "rule-1-raw-timer": { "new.ts": 2 } });
+  assert.deepEqual(ratchetFailures({ hits, baseline: moved, context }).failures, []);
+  const next = { base: "origin/develop", previous: moved, changed: new Set(["other.ts"]), renames: new Map() };
+  assert.deepEqual(ratchetFailures({ hits, baseline: moved, context: next }).failures, []);
+  assert.deepEqual(shrinkRatchet(baseline, { "rule-1-raw-timer": { "new.ts": 1 } }, renames), {
+    "rule-1-raw-timer": { "new.ts": 1 },
+  });
+  assert.deepEqual(findRatchetBaselineGrowth({ "rule-1-raw-timer": { "new.ts": 2 } }, baseline, renames), []);
+  assert.equal(compareRatchet(baseline, { "rule-1-raw-timer": { "new.ts": 3 } }, renames).grown.length, 1);
+});
+
+test("a ratchet baseline with anything but positive whole counts for known rules is refused", () => {
+  const baseline = (counts) => JSON.stringify({ version: 1, counts });
+  for (const count of ["any", {}, 0, -1, 1.5, null]) {
+    assert.throws(() => parseRatchetBaseline(baseline({ "rule-1-raw-timer": { "a.ts": count } })), /positive whole number/);
+  }
+  assert.throws(() => parseRatchetBaseline(baseline({ "rule-6-zustand-whole-state": { "a.ts": 1 } })), /unknown rule/);
+  assert.deepEqual(parseRatchetBaseline(baseline({ "rule-1-raw-timer": { "a.ts": 2 } })), { "rule-1-raw-timer": { "a.ts": 2 } });
+});
+
+test("a stale count fails where the change touches it, and everywhere when the base is unknown", () => {
+  const baseline = { "rule-1-raw-timer": { "touched.ts": 2, "elsewhere.ts": 1 } };
+  const hits = [{ rule: "rule-1-raw-timer", file: "touched.ts", line: 4 }];
+  const context = { base: "origin/develop", previous: baseline, changed: new Set(["touched.ts"]), renames: new Map() };
+  const known = ratchetFailures({ hits, baseline, context });
+  assert.equal(known.failures.length, 2);
+  assert.match(known.failures[1], /touched\.ts: 2 -> 1/);
+  assert.ok(known.notes.some((note) => /1 count\(s\) fell below the baseline in files this change does not touch/.test(note)));
+  const unknown = ratchetFailures({ hits, baseline, context: { base: null, previous: null, changed: null, renames: new Map() } });
+  assert.equal(unknown.failures.length, 3);
+  assert.ok(unknown.notes.some((note) => /checked against the tree only/.test(note)));
+  const grown = ratchetFailures({ hits: [...hits, ...hits, ...hits], baseline, context });
+  assert.match(grown.failures[0], /touched\.ts: 3 hit\(s\) \(lines 4, 4, 4\), baseline allows 2/);
+});
+
+test("the timer rule reads React modules only, where its hook wrappers apply", () => {
+  assert.equal(isReactModule('import { useEffect } from "react";\nsetTimeout(run, 10);'), true);
+  assert.equal(isReactModule("export function useCountdown() {\n  return setInterval(tick, 1000);\n}"), true);
+  assert.equal(isReactModule("export function withDeadline(task) {\n  const timer = setTimeout(abort, 10);\n  return task.finally(() => clearTimeout(timer));\n}"), false);
 });

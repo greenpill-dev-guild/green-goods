@@ -1,15 +1,3 @@
-/**
- * Admin Production Flows CI Smoke Tests
- *
- * Validates that critical admin cockpit routes render without crashing:
- * - Create garden
- * - Create assessment
- * - Garden vault
- * - Mint hypercert
- *
- * These tests focus on route-level stability and are safe for CI.
- */
-
 import { expect, type Page, test } from "@playwright/test";
 import { mockClientBackend } from "../helpers/mock-backend";
 import { AdminTestHelper, seedAcceptedUploadTerms, TEST_URLS } from "../helpers/test-utils";
@@ -81,9 +69,9 @@ test.describe("Admin Production Flows CI", () => {
 
     const criticalRoutes = [
       ["/garden/create", "Create Garden"],
-      [`/hub/assess?${TEST_GARDEN_CONTEXT}&item=create-assessment`, "Create Assessment"],
+      [`/review/assess?${TEST_GARDEN_CONTEXT}&item=create-assessment`, "Create Assessment"],
       [`/community/endowment/vault?${TEST_GARDEN_CONTEXT}`, "Community"],
-      [`/hub/certify?${TEST_GARDEN_CONTEXT}&item=create-hypercert`, "Create Hypercert"],
+      [`/review/certify?${TEST_GARDEN_CONTEXT}&item=create-hypercert`, "Create Hypercert"],
     ];
 
     for (const [route, heading] of criticalRoutes) {
@@ -126,7 +114,6 @@ test.describe("Admin Production Flows CI", () => {
       contentType: "image/png",
     });
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
-    // The draft has content now, so cancelling asks before throwing it away.
     const discard = page.getByRole("alertdialog", { name: "Discard this garden?" });
     await expect(discard).toBeVisible();
     await discard.getByRole("button", { name: "Discard", exact: true }).click();

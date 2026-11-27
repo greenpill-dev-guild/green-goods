@@ -40,6 +40,8 @@ contracts:
     events:
       - event: RoleGranted(address indexed garden, address indexed account, uint8 role)
       - event: RoleRevoked(address indexed garden, address indexed account, uint8 role)
+      - event: ProtocolRoleHatsUpdated(uint256 team, uint256 productLead, uint256 agents, uint256 deployer)
+      - event: RoleManaged(address indexed garden, address indexed actor, address indexed account, uint8 role, bool granted)
       - event: KarmaHookFailed(address indexed garden, address indexed account, uint8 indexed operation, string reason)
   - name: WorkApprovalResolver
     handler: src/EventHandlers.ts
@@ -393,7 +395,10 @@ chains:
         address: "0x80a906C175ea875af8a2afcA8F91F60b201dc824"
       - name: GnosisVoucherEscrow
         address: "0x742c8935d314363e8c16df5b0791525109Fb9387"
+      # The Green Goods pool, then the Aiyeloja test pool (PRD-1481, deployed at block 49249884).
       - name: CLCSwapPool
-        address: "0x6AFc963B583fBB536F05B2D7ae832880662b98A4"
+        address:
+          - "0x6AFc963B583fBB536F05B2D7ae832880662b98A4"
+          - "0x766b4531A9690Bf80e4331FC33d34030e6f14630"
       - name: StewardSafeReceiver
         address: "0x115819bCcaab03Be49107c69c00Bc4c21009839C"

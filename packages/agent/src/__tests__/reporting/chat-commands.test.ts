@@ -25,6 +25,20 @@ describe("account requests in plain words", () => {
     ["conectar otra cuenta", "switch"],
     ["use another account", "switch"],
     ["quero usar outra conta", "switch"],
+    // A new link is a fresh copy of the link the chat already sent, not another account.
+    ["new link", "newLink"],
+    ["NEW LINK", "newLink"],
+    ["can you send me a new link please", "newLink"],
+    ["another link", "newLink"],
+    ["nuevo enlace", "newLink"],
+    ["envíame otro enlace", "newLink"],
+    ["novo link", "newLink"],
+    ["me manda outro link", "newLink"],
+    ["link a new account", "switch"],
+    ["link another wallet", "switch"],
+    // "Link" first is the verb: linking another account, not a new copy of a link.
+    ["link another", "switch"],
+    ["can i link another", "switch"],
   ])("reads %s as %s", (text, kind) => {
     expect(parseCommand(text)?.kind).toBe(kind);
   });
@@ -35,6 +49,7 @@ describe("account requests in plain words", () => {
     "change the title to fence planting",
     "sign in sheet printed for the volunteers",
     "link the photos to the report",
+    "the new link between the beds is done",
     "I want to change this",
     "can I use this",
     "change",

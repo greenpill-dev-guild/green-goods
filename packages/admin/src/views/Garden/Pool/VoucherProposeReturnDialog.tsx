@@ -84,14 +84,14 @@ export function VoucherProposeReturnDialog({
       {(name) => {
         const releaseLabel = formatMessage(
           {
-            id: "cockpit.garden.pool.voucher.split.reserve",
+            id: "hub.garden.pool.voucher.split.reserve",
             defaultMessage: "{count} to your reserve",
           },
           { count: release }
         );
         const backLabel = formatMessage(
           {
-            id: "cockpit.garden.pool.voucher.split.back",
+            id: "hub.garden.pool.voucher.split.back",
             defaultMessage: "{count} back to {name}",
           },
           { count: back, name }
@@ -106,7 +106,7 @@ export function VoucherProposeReturnDialog({
             tone={tone}
             title={formatMessage(
               {
-                id: "cockpit.garden.pool.voucher.propose.title",
+                id: "hub.garden.pool.voucher.propose.title",
                 defaultMessage: "Propose a Return to {name}",
               },
               { name }
@@ -117,14 +117,14 @@ export function VoucherProposeReturnDialog({
                 : hours
                   ? formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.propose.descriptionHours",
+                        id: "hub.garden.pool.voucher.propose.descriptionHours",
                         defaultMessage: "{title} · stopped after {used} of {of} hours",
                       },
                       { title, ...hours }
                     )
                   : formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.propose.description",
+                        id: "hub.garden.pool.voucher.propose.description",
                         defaultMessage:
                           "{title} · stopped after {days, plural, one {# day} other {# days}}",
                       },
@@ -134,11 +134,11 @@ export function VoucherProposeReturnDialog({
             confirmLabel={
               booking?.issuer.execution === "safe-file"
                 ? formatMessage({
-                    id: "cockpit.garden.pool.voucher.live.download",
+                    id: "hub.garden.pool.voucher.live.download",
                     defaultMessage: "Download Safe File",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.voucher.propose.confirm",
+                    id: "hub.garden.pool.voucher.propose.confirm",
                     defaultMessage: "Propose Return",
                   })
             }
@@ -151,7 +151,7 @@ export function VoucherProposeReturnDialog({
             {units ? (
               <Alert variant="info">
                 {formatMessage({
-                  id: "cockpit.garden.pool.voucher.live.returnNote",
+                  id: "hub.garden.pool.voucher.live.returnNote",
                   defaultMessage:
                     "Choose the maximum return you authorize under the agreed terms. This permission moves no vouchers; the holder must still approve the final split.",
                 })}
@@ -161,12 +161,12 @@ export function VoucherProposeReturnDialog({
               <FactList frame="card">
                 <FactRow
                   label={formatMessage({
-                    id: "cockpit.garden.pool.voucher.fact.vouchers",
+                    id: "hub.garden.pool.voucher.fact.vouchers",
                     defaultMessage: "Vouchers",
                   })}
                   value={formatMessage(
                     {
-                      id: "cockpit.garden.pool.voucher.vouchers",
+                      id: "hub.garden.pool.voucher.vouchers",
                       defaultMessage:
                         "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
                     },
@@ -180,11 +180,11 @@ export function VoucherProposeReturnDialog({
                   label={
                     service.kind === "visit"
                       ? formatMessage({
-                          id: "cockpit.garden.pool.voucher.fact.usableTime",
+                          id: "hub.garden.pool.voucher.fact.usableTime",
                           defaultMessage: "Usable time",
                         })
                       : formatMessage({
-                          id: "cockpit.garden.pool.voucher.fact.accessDays",
+                          id: "hub.garden.pool.voucher.fact.accessDays",
                           defaultMessage: "Days of access",
                         })
                   }
@@ -194,21 +194,21 @@ export function VoucherProposeReturnDialog({
                         service.kind === "visit"
                           ? formatMessage(
                               {
-                                id: "cockpit.garden.pool.voucher.fact.usableHours",
+                                id: "hub.garden.pool.voucher.fact.usableHours",
                                 defaultMessage: "{used} of {of} hours",
                               },
                               { used: service.report.usableHours, of: service.report.ofHours }
                             )
                           : formatMessage(
                               {
-                                id: "cockpit.garden.pool.voucher.fact.daysOf",
+                                id: "hub.garden.pool.voucher.fact.daysOf",
                                 defaultMessage: "{done} of {of}",
                               },
                               { done: service.daysUsed, of: service.daysOf }
                             )
                       }
                       note={formatMessage({
-                        id: "cockpit.garden.pool.voucher.fact.asReported",
+                        id: "hub.garden.pool.voucher.fact.asReported",
                         defaultMessage: "As you reported",
                       })}
                     />
@@ -219,7 +219,7 @@ export function VoucherProposeReturnDialog({
             <AdminTextField
               label={formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.propose.field",
+                  id: "hub.garden.pool.voucher.propose.field",
                   defaultMessage: "Back to {name}",
                 },
                 { name }
@@ -231,7 +231,7 @@ export function VoucherProposeReturnDialog({
                   ? units
                     ? formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.live.aboveDeposit",
+                          id: "hub.garden.pool.voucher.live.aboveDeposit",
                           defaultMessage: "The return cannot exceed the booking’s {limit} vouchers",
                         },
                         { limit: limitCount }
@@ -239,7 +239,7 @@ export function VoucherProposeReturnDialog({
                     : hours
                       ? formatMessage(
                           {
-                            id: "cockpit.garden.pool.voucher.propose.aboveTermsHours",
+                            id: "hub.garden.pool.voucher.propose.aboveTermsHours",
                             defaultMessage:
                               "Above the {limit} your terms allow after {used} of {of} hours",
                           },
@@ -247,7 +247,7 @@ export function VoucherProposeReturnDialog({
                         )
                       : formatMessage(
                           {
-                            id: "cockpit.garden.pool.voucher.propose.aboveTerms",
+                            id: "hub.garden.pool.voucher.propose.aboveTerms",
                             defaultMessage:
                               "Above the {limit} your terms allow after {days, plural, one {# day} other {# days}}",
                           },
@@ -256,7 +256,7 @@ export function VoucherProposeReturnDialog({
                   : proposal?.belowCeiling && refund !== null && refund > 0n
                     ? formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.propose.belowCeiling",
+                          id: "hub.garden.pool.voucher.propose.belowCeiling",
                           defaultMessage: "More than the {ceiling} already proposed",
                         },
                         { ceiling: voucherCount(ceiling, decimals) }
@@ -264,7 +264,7 @@ export function VoucherProposeReturnDialog({
                     : proposal?.valid
                       ? undefined
                       : formatMessage({
-                          id: "cockpit.garden.pool.voucher.propose.invalid",
+                          id: "hub.garden.pool.voucher.propose.invalid",
                           defaultMessage: "Enter how many vouchers go back",
                         })
               }
@@ -272,7 +272,7 @@ export function VoucherProposeReturnDialog({
                 units
                   ? formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.live.returnHint",
+                        id: "hub.garden.pool.voucher.live.returnHint",
                         defaultMessage:
                           "Up to {limit} vouchers, subject to the agreed service and remedy terms",
                       },
@@ -281,7 +281,7 @@ export function VoucherProposeReturnDialog({
                   : hours
                     ? formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.propose.hintHours",
+                          id: "hub.garden.pool.voucher.propose.hintHours",
                           defaultMessage:
                             "Your terms allow up to {limit} after {used} of {of} hours",
                         },
@@ -289,7 +289,7 @@ export function VoucherProposeReturnDialog({
                       )
                     : formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.propose.hint",
+                          id: "hub.garden.pool.voucher.propose.hint",
                           defaultMessage:
                             "Your terms allow up to {limit} after {days, plural, one {# day} other {# days}}",
                         },
@@ -325,7 +325,7 @@ export function VoucherProposeReturnDialog({
               variant="info"
               title={formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.propose.noteTitle",
+                  id: "hub.garden.pool.voucher.propose.noteTitle",
                   defaultMessage: "{name} decides",
                 },
                 { name }
@@ -333,7 +333,7 @@ export function VoucherProposeReturnDialog({
             >
               {formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.propose.noteBody",
+                  id: "hub.garden.pool.voucher.propose.noteBody",
                   defaultMessage:
                     "Nothing moves until {name} approves a split. You can’t move the vouchers yourself.",
                 },

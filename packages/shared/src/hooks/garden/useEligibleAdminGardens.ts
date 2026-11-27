@@ -32,6 +32,13 @@ export interface EligibleAdminGardensResult {
    */
   isError: boolean;
   /**
+   * True when the chain read of garden-creation permission failed. Kept out of
+   * `isError`, which the garden context treats as terminal: a steward whose
+   * gardens loaded can work without it. With no eligible garden, though, it
+   * cannot be told apart from no access, so the access gate offers a retry.
+   */
+  deploymentPermissionsError: boolean;
+  /**
    * True when `useRole` reports steward gardens that the base list does not
    * yet expose (cache lag, indexer drift, or an outage). Consumers can use
    * this to keep the user on the canvas instead of redirecting to no-access.
@@ -86,9 +93,11 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   const {
     role,
     isProtocolTeam,
+    isProductLead,
     stewardGardens,
     loading: roleLoading,
     gardensError: roleGardensError,
+    deploymentPermissionsError,
   } = useRole();
   const lastGardenIdsByScope = useAdminStore((state) => state.lastGardenIdsByScope);
 
@@ -106,7 +115,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   // (PRD-988). Only a fetched, non-empty list can be missing it: an empty or
   // failed list is an outage, and must stay one, never a garden that cannot load.
   const needsProtocolGarden =
-    isProtocolTeam &&
+    (isProtocolTeam || isProductLead) &&
     rootGardenAddress !== null &&
     isFetched &&
     !baseListError &&
@@ -127,15 +136,11 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     const fromBaseList = listed
       .filter((garden) => {
         return (
+          isProtocolTeam ||
+          isProductLead ||
           isAddressInList(address, garden.stewards) ||
           isAddressInList(address, garden.owners) ||
-          isAddressInList(address, garden.evaluators) ||
-          // The team runs the protocol garden's campaign cookie jars (DL-046),
-          // and the registry's owner is on it whether or not it holds a role in
-          // that garden; its writes stay gated by garden permissions.
-          (isProtocolTeam &&
-            rootGardenAddress !== null &&
-            compareAddresses(garden.id, rootGardenAddress))
+          isAddressInList(address, garden.evaluators)
         );
       })
       .slice()
@@ -173,7 +178,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     stewardGardens,
     chainId,
     isProtocolTeam,
-    rootGardenAddress,
+    isProductLead,
   ]);
 
   const persistedGardenId = scopeKey ? lastGardenIdsByScope[scopeKey] : null;
@@ -205,6 +210,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     // retryable for normal stewards, but should not block the deployer-only
     // create-garden path when no garden exists yet.
     isError: baseListError || (roleGardensError && role !== "deployer"),
+    deploymentPermissionsError,
     hasStaleBaseList,
   };
 }

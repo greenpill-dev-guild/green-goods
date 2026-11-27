@@ -72,6 +72,7 @@ export function withoutUnavailableReward(
     considerationUsd: undefined,
     considerationSource: "",
     considerationToken: "",
+    rewardMatchedUsdc: undefined,
   };
 }
 
@@ -112,26 +113,26 @@ export function priceUnavailableReason(
   if (price.status === "ready") return null;
   if (price.status === "loading") {
     return formatMessage({
-      id: "cockpit.garden.pool.seed.price.loading",
+      id: "hub.garden.pool.seed.price.loading",
       defaultMessage: "Reading today's G$ price…",
     });
   }
   switch (price.reason) {
     case "paused":
       return formatMessage({
-        id: "cockpit.garden.pool.seed.price.paused",
+        id: "hub.garden.pool.seed.price.paused",
         defaultMessage:
           "GoodDollar's reserve is paused, so dollars can't be turned into G$ right now.",
       });
     case "stale":
       return formatMessage({
-        id: "cockpit.garden.pool.seed.price.stale",
+        id: "hub.garden.pool.seed.price.stale",
         defaultMessage:
           "Today's G$ price is out of date, so dollars can't be turned into G$. Try again in a minute.",
       });
     default:
       return formatMessage({
-        id: "cockpit.garden.pool.seed.price.missing",
+        id: "hub.garden.pool.seed.price.missing",
         defaultMessage:
           "Today's G$ price can't be read, so dollars can't be turned into G$. Try again in a minute.",
       });
@@ -145,13 +146,15 @@ export function rewardFacts(input: {
   price: GoodDollarPriceState;
   locale: string;
   formatMessage: FormatMessage;
+  /** A USDC match reads as promised only where Create would declare it. */
+  usdcMatchAvailable: boolean;
 }): Array<[string, string]> {
   const { values, count, price, locale, formatMessage } = input;
   if (values.considerationRail === "NONE") {
     return [
       [
-        formatMessage({ id: "cockpit.garden.pool.seed.review.rewardEach", defaultMessage: "Each" }),
-        formatMessage({ id: "cockpit.garden.pool.seed.rail.none", defaultMessage: "None" }),
+        formatMessage({ id: "hub.garden.pool.seed.review.rewardEach", defaultMessage: "Each" }),
+        formatMessage({ id: "hub.garden.pool.seed.rail.none", defaultMessage: "None" }),
       ],
     ];
   }
@@ -160,10 +163,10 @@ export function rewardFacts(input: {
     const wei = /^\d+$/.test(values.considerationAmount) ? BigInt(values.considerationAmount) : 0n;
     return [
       [
-        formatMessage({ id: "cockpit.garden.pool.seed.review.rewardEach", defaultMessage: "Each" }),
+        formatMessage({ id: "hub.garden.pool.seed.review.rewardEach", defaultMessage: "Each" }),
         formatMessage(
           {
-            id: "cockpit.garden.pool.seed.review.rewardGoodDollars",
+            id: "hub.garden.pool.seed.review.rewardGoodDollars",
             defaultMessage: "{amount} G$, paid once it's kept",
           },
           { amount: formatGoodDollars(wei, locale) }
@@ -171,48 +174,69 @@ export function rewardFacts(input: {
       ],
     ];
   }
+  const matched = input.usdcMatchAvailable && values.rewardMatchedUsdc === true;
   const rows: Array<[string, string]> = [
     [
-      formatMessage({ id: "cockpit.garden.pool.seed.review.rewardEach", defaultMessage: "Each" }),
-      formatMessage(
-        {
-          id: "cockpit.garden.pool.seed.review.rewardDollars",
-          defaultMessage: "{amount}, paid in G$ once it's kept",
-        },
-        { amount: formatUsd(cents, locale) }
-      ),
+      formatMessage({ id: "hub.garden.pool.seed.review.rewardEach", defaultMessage: "Each" }),
+      matched
+        ? formatMessage(
+            {
+              id: "hub.garden.pool.seed.review.rewardDollarsMatched",
+              defaultMessage: "{amount} in G$ and {amount} in USDC, paid once it's kept",
+            },
+            { amount: formatUsd(cents, locale) }
+          )
+        : formatMessage(
+            {
+              id: "hub.garden.pool.seed.review.rewardDollars",
+              defaultMessage: "{amount}, paid in G$ once it's kept",
+            },
+            { amount: formatUsd(cents, locale) }
+          ),
     ],
     [
       formatMessage({
-        id: "cockpit.garden.pool.seed.review.rewardInGoodDollars",
+        id: "hub.garden.pool.seed.review.rewardInGoodDollars",
         defaultMessage: "In G$",
       }),
       price.status === "ready"
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.seed.review.rewardAbout",
+              id: "hub.garden.pool.seed.review.rewardAbout",
               defaultMessage: "About {amount} G$ each, fixed when you create",
             },
             { amount: formatGoodDollars(usdCentsToGoodDollarWei(cents, price.price), locale) }
           )
         : formatMessage({
-            id: "cockpit.garden.pool.seed.review.rewardAtCreate",
+            id: "hub.garden.pool.seed.review.rewardAtCreate",
             defaultMessage: "Converted at today's rate when you create",
           }),
     ],
   ];
+  if (matched) {
+    rows.push([
+      formatMessage({ id: "hub.garden.pool.seed.review.rewardInUsdc", defaultMessage: "In USDC" }),
+      formatMessage(
+        {
+          id: "hub.garden.pool.seed.review.rewardUsdcFromSafe",
+          defaultMessage: "{amount} USDC each, paid from the garden's Safe once it's kept",
+        },
+        { amount: usdCentsText(cents) }
+      ),
+    ]);
+  }
   if (count > 1) {
     rows.push([
       formatMessage(
         {
-          id: "cockpit.garden.pool.seed.review.rewardAllKept",
+          id: "hub.garden.pool.seed.review.rewardAllKept",
           defaultMessage: "If all {count} are kept",
         },
         { count }
       ),
       formatMessage(
-        { id: "cockpit.garden.pool.seed.review.rewardUpTo", defaultMessage: "Up to {amount}" },
-        { amount: formatUsd(cents * BigInt(count), locale) }
+        { id: "hub.garden.pool.seed.review.rewardUpTo", defaultMessage: "Up to {amount}" },
+        { amount: formatUsd(cents * BigInt(count) * (matched ? 2n : 1n), locale) }
       ),
     ]);
   }

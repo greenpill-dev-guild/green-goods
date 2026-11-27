@@ -65,6 +65,9 @@ export async function handleClaimEvent(
         commitment.lifecycleBlockNumber,
         commitment.lifecycleLogIndex
       ));
+  // A commitment ends only after its acceptance, never before one, so when both are newer than
+  // this event the acceptance is what closed the request: the ending names it only otherwise.
+  const terminalSupersedes = terminalIsNewer && !acceptanceIsNewer;
   const requested = event.eventName === "ClaimRequested";
   const requestPayloadWins = requested && (rowWins || !(existing?.requestSeen ?? false));
   const gardenContext = requestPayloadWins
@@ -131,7 +134,7 @@ export async function handleClaimEvent(
         : nextState === "ACCEPTED"
           ? "COMMITMENT_ACCEPTED"
           : nextState === "SUPERSEDED"
-            ? terminalIsNewer
+            ? terminalSupersedes
               ? terminalResolutionCode
               : "COMMITMENT_ACCEPTED"
             : undefined,
@@ -149,7 +152,7 @@ export async function handleClaimEvent(
             (nextState === "ACCEPTED"
               ? commitment.acceptanceAt
               : nextState === "SUPERSEDED"
-                ? terminalIsNewer
+                ? terminalSupersedes
                   ? terminalResolutionCode === "COMMITMENT_CANCELLED"
                     ? commitment.cancelledAt
                     : commitment.expiredAt
@@ -183,7 +186,16 @@ export async function sweepClaimRequests(
   const requestIndex = await context.CommitmentClaimRequestIndex.get(commitment.id);
   for (const requestId of requestIndex?.requestIds ?? []) {
     const request = await context.CommitmentClaimRequest.get(requestId);
-    if (!request || request.state !== "PENDING") continue;
+    if (!request) continue;
+    // The chain never takes a promise up after it ends, so a request an ending closed, on a promise
+    // whose acceptance is only now indexed (events delivered out of order), was closed by that
+    // acceptance first: it takes the request back, whatever time the ending's row carries.
+    const sweptByLaterEnding =
+      resolutionCode === "COMMITMENT_ACCEPTED" &&
+      request.state === "SUPERSEDED" &&
+      (request.resolutionCode === "COMMITMENT_CANCELLED" ||
+        request.resolutionCode === "COMMITMENT_EXPIRED");
+    if (request.state !== "PENDING" && !sweptByLaterEnding) continue;
     const accepted =
       resolutionCode === "COMMITMENT_ACCEPTED" &&
       acceptedClaimant !== undefined &&

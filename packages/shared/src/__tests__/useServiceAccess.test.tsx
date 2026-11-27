@@ -319,6 +319,8 @@ describe("service access hooks", () => {
     await waitFor(() =>
       expect(result.current.get("1023")).toEqual({
         promisedBy: "Tech and Sun",
+        gender: techAndSun.gender,
+        takes: { units: hubDay.offer?.voucher?.units, decimals: 6 },
         booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
       })
     );

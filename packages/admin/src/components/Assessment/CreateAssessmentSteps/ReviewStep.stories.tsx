@@ -89,7 +89,7 @@ function ReviewInFlow(args: ReviewStoryArgs) {
       open
       size="lg"
       variant="flow"
-      tone="hub"
+      tone="review"
       className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={noop}
       preventClose={phase === "sending"}
@@ -153,7 +153,7 @@ const meta: Meta<ReviewStoryArgs> = {
   decorators: [
     withSeededQueryClient([[queryKeys.actions.byChain(DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_ACTIONS]]),
     (Story) => (
-      <div className="max-w-3xl p-4" data-tone="hub">
+      <div className="max-w-3xl p-4" data-tone="review">
         <Story />
       </div>
     ),

@@ -1,6 +1,6 @@
 import { useWorkDraftRetirement } from "../../work/useWorkDraftRetirement";
 import { useDashboardNavigation } from "../useDashboardNavigation";
-import { isHeicFile, roundWorkLocation } from "../../../modules/work/work-attachments";
+import { isWorkMedia, roundWorkLocation } from "../../../modules/work/work-attachments";
 import { getWorkMediaId } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
@@ -406,8 +406,7 @@ export function useWorkSubmissionFlowController({
       gardenAddress,
       gardenSettled: submissionGardenSettled,
       actionUID,
-      imageCount: images.filter((file) => file.type.startsWith("image/") || isHeicFile(file))
-        .length,
+      imageCount: images.filter((file) => isWorkMedia(file, { pendingHeic: "accept" })).length,
       minRequired,
       isValid: form.state.isValid,
       isSubmitting: form.state.isSubmitting,

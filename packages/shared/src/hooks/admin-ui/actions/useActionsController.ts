@@ -52,7 +52,7 @@ export function useActionsController() {
       {
         id: "create-action",
         label: "Create action",
-        labelId: "cockpit.actions.action.createAction",
+        labelId: "hub.actions.action.createAction",
         icon: RiAddLine,
         onClick: () => navigate(createActionHref),
         variant: "primary",

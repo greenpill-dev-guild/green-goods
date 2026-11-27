@@ -1,7 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { MAX_REASON } from "@green-goods/shared/modules/commitment-pooling/reasons";
+import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog, type AdminDialogProps } from "./AdminDialog";
@@ -105,6 +105,12 @@ export function AdminReasonDialog({
     try {
       await confirm(trimmed);
     } catch (error) {
+      // A send that may still land did not fail, and Confirm must not send it again: the dialog
+      // closes, and the mutation's toast says where it stands (PRD-1551).
+      if (mayStillLand(error)) {
+        onClose();
+        return;
+      }
       logger.error("[AdminReasonDialog] confirm failed", {
         title,
         error: error instanceof Error ? error.message : String(error),
@@ -134,32 +140,28 @@ export function AdminReasonDialog({
       preventClose={busy}
       hideCloseButton={busy}
       bodyClassName="space-y-3"
-      actions={
-        <SheetActions
-          primary={{
-            label: confirmLabel,
-            onClick: () => void handleConfirm(onConfirm),
-            loading: busy,
-            // A busy confirm stays focusable; only a missing reason disables it.
-            disabled: !busy && !canConfirm,
-            tone: isDanger ? "danger" : "default",
-          }}
-          secondary={{
-            label:
-              cancelLabel ?? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
-            onClick: onClose,
-            disabled: busy,
-          }}
-          tertiary={
-            alternative && {
-              label: alternative.label,
-              onClick: () => void handleConfirm(alternative.onConfirm),
-              // It needs the same reason, and waits for the same one.
-              disabled: !canConfirm,
-            }
-          }
-        />
-      }
+      actions={{
+        primary: {
+          label: confirmLabel,
+          onClick: () => void handleConfirm(onConfirm),
+          loading: busy,
+          // A busy confirm stays focusable; only a missing reason disables it.
+          disabled: !busy && !canConfirm,
+          tone: isDanger ? "danger" : "default",
+        },
+        secondary: {
+          label:
+            cancelLabel ?? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: onClose,
+          disabled: busy,
+        },
+        tertiary: alternative && {
+          label: alternative.label,
+          onClick: () => void handleConfirm(alternative.onConfirm),
+          // It needs the same reason, and waits for the same one.
+          disabled: !canConfirm,
+        },
+      }}
     >
       {children}
       <div className="space-y-1.5">
@@ -167,7 +169,7 @@ export function AdminReasonDialog({
           label={
             reasonLabel ??
             formatMessage({
-              id: "cockpit.reasonDialog.reasonLabel",
+              id: "hub.reasonDialog.reasonLabel",
               defaultMessage: "Reason",
             })
           }
@@ -179,7 +181,7 @@ export function AdminReasonDialog({
           placeholder={
             reasonPlaceholder ??
             formatMessage({
-              id: "cockpit.reasonDialog.reasonPlaceholder",
+              id: "hub.reasonDialog.reasonPlaceholder",
               defaultMessage: "In your own words. Members read this.",
             })
           }
@@ -187,7 +189,7 @@ export function AdminReasonDialog({
             tooLong
               ? formatMessage(
                   {
-                    id: "cockpit.reasonDialog.tooLong",
+                    id: "hub.reasonDialog.tooLong",
                     defaultMessage: "Shorten the reason to {max} characters or fewer.",
                   },
                   { max: maxReasonLength }
@@ -203,7 +205,7 @@ export function AdminReasonDialog({
           <div
             className="flex flex-wrap gap-1.5"
             aria-label={formatMessage({
-              id: "cockpit.reasonDialog.suggestions",
+              id: "hub.reasonDialog.suggestions",
               defaultMessage: "Suggested reasons",
             })}
           >

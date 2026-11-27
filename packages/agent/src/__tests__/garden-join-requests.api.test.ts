@@ -65,8 +65,23 @@ function headers(
   };
 }
 
+/**
+ * Origins for a rotation test: `originAt(1)` to `originAt(count)`, then `originAt("next")`. The
+ * app answers only the origins it lists, so pass `listed` to `createApp`.
+ */
+function rotatingOrigins(label: string, count: number) {
+  const originAt = (suffix: number | "next") => `https://${label}-${suffix}.greengoods.app`;
+  const listed = Array.from({ length: count }, (_, index) => originAt(index + 1));
+  listed.push(originAt("next"));
+  return { originAt, listed };
+}
+
 function createApp(
-  options: { signatureVerifier?: AccountSignatureVerifier; now?: () => number } = {}
+  options: {
+    signatureVerifier?: AccountSignatureVerifier;
+    now?: () => number;
+    origins?: readonly string[];
+  } = {}
 ) {
   let requestId = 0;
   const cipher = createGardenJoinRequestCipher("11".repeat(32));
@@ -100,7 +115,7 @@ function createApp(
   };
   const app = createServer({
     isAIReady: () => true,
-    allowedOrigins: new Set([ORIGIN]),
+    allowedOrigins: new Set([ORIGIN, ...(options.origins ?? [])]),
     publicRateLimiter: new InMemoryPublicRateLimiter(),
     trustedProxy: { allowTestSocketIp: true },
     gardenJoinRequestsEnabled: true,
@@ -731,7 +746,8 @@ describe("garden join request public API", () => {
   });
 
   it("accepts an explicitly audience-bound create grant only for its own status", async () => {
-    const { app } = createApp();
+    const otherSite = "https://beta.greengoods.app";
+    const { app } = createApp({ origins: [otherSite] });
     const input = { displayName: "Maya", requestedVia: "garden_detail" as const };
     const grant = { ...proof("create"), readSelf: { audience: ORIGIN, content: input } };
     const created = await app.request(`/public/gardens/${GARDEN}/join-requests`, {
@@ -751,7 +767,7 @@ describe("garden join request public API", () => {
     );
     expect(queue.status).toBe(400);
     const differentAudience = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
-      headers: headers(grant, "https://green-goods-preview-greenpilldevguild.vercel.app"),
+      headers: headers(grant, otherSite),
     });
     expect(differentAudience.status).toBe(401);
   });
@@ -1107,19 +1123,15 @@ describe("garden join request public API", () => {
 
   it("does not let rotating allowed origins bypass the pre-authentication limit", async () => {
     const signatureVerifier = vi.fn(async () => false);
-    const { app, rateLimitPressure } = createApp({ signatureVerifier });
+    const { originAt, listed } = rotatingOrigins("create", 10);
+    const { app, rateLimitPressure } = createApp({ signatureVerifier, origins: listed });
 
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      const origin = `https://green-goods-${attempt}-greenpilldevguild.vercel.app`;
+    for (let attempt = 1; attempt <= 10; attempt += 1) {
+      const origin = originAt(attempt);
       expect((await submitForGarden(app, GARDEN, APPLICANT, origin)).status).toBe(401);
     }
 
-    const limited = await submitForGarden(
-      app,
-      GARDEN,
-      APPLICANT,
-      "https://green-goods-next-greenpilldevguild.vercel.app"
-    );
+    const limited = await submitForGarden(app, GARDEN, APPLICANT, originAt("next"));
     expect(limited.status).toBe(429);
     expect(signatureVerifier).toHaveBeenCalledTimes(10);
     expect(rateLimitPressure.hasRecent(GARDEN, NOW)).toBe(true);
@@ -1139,31 +1151,28 @@ describe("garden join request public API", () => {
 
   it("caps pre-authentication verification across garden and origin rotation", async () => {
     const signatureVerifier = vi.fn(async () => false);
-    const { app } = createApp({ signatureVerifier });
+    const { originAt, listed } = rotatingOrigins("garden", 30);
+    const { app } = createApp({ signatureVerifier, origins: listed });
 
     for (let attempt = 1; attempt <= 30; attempt += 1) {
       const gardenAddress = `0x${attempt.toString(16).padStart(40, "0")}` as Address;
-      const origin = `https://green-goods-${attempt}-greenpilldevguild.vercel.app`;
+      const origin = originAt(attempt);
       expect((await submitForGarden(app, gardenAddress, APPLICANT, origin)).status).toBe(401);
     }
 
     const limitedGarden = `0x${"31".padStart(40, "0")}` as Address;
-    const limited = await submitForGarden(
-      app,
-      limitedGarden,
-      APPLICANT,
-      "https://green-goods-next-greenpilldevguild.vercel.app"
-    );
+    const limited = await submitForGarden(app, limitedGarden, APPLICANT, originAt("next"));
     expect(limited.status).toBe(429);
     expect(signatureVerifier).toHaveBeenCalledTimes(30);
   });
 
   it("caps read verification across self, list, and origin rotation", async () => {
     const signatureVerifier = vi.fn(async () => false);
-    const { app } = createApp({ signatureVerifier });
+    const { originAt, listed } = rotatingOrigins("read", 120);
+    const { app } = createApp({ signatureVerifier, origins: listed });
 
     for (let attempt = 1; attempt <= 120; attempt += 1) {
-      const origin = `https://green-goods-read-${attempt}-greenpilldevguild.vercel.app`;
+      const origin = originAt(attempt);
       const response =
         attempt % 2 === 0
           ? await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
@@ -1176,10 +1185,7 @@ describe("garden join request public API", () => {
     }
 
     const limited = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
-      headers: headers(
-        proof("read_self"),
-        "https://green-goods-read-next-greenpilldevguild.vercel.app"
-      ),
+      headers: headers(proof("read_self"), originAt("next")),
     });
     expect(limited.status).toBe(429);
     expect(signatureVerifier).toHaveBeenCalledTimes(120);
@@ -1187,10 +1193,11 @@ describe("garden join request public API", () => {
 
   it("caps resolve verification across withdrawal, resolution, and origin rotation", async () => {
     const signatureVerifier = vi.fn(async () => false);
-    const { app } = createApp({ signatureVerifier });
+    const { originAt, listed } = rotatingOrigins("resolve", 30);
+    const { app } = createApp({ signatureVerifier, origins: listed });
 
     for (let attempt = 1; attempt <= 30; attempt += 1) {
-      const origin = `https://green-goods-resolve-${attempt}-greenpilldevguild.vercel.app`;
+      const origin = originAt(attempt);
       const response =
         attempt % 2 === 0
           ? await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
@@ -1225,7 +1232,7 @@ describe("garden join request public API", () => {
       method: "DELETE",
       headers: headers(
         proof("withdraw", APPLICANT, { requestId: "request-1", expectedRevision: 0 }),
-        "https://green-goods-resolve-next-greenpilldevguild.vercel.app"
+        originAt("next")
       ),
     });
     expect(limited.status).toBe(429);

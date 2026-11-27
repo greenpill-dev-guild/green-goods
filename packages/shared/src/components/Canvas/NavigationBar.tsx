@@ -170,7 +170,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
 
   if (!shouldRender) return null;
 
-  const navLabel = formatMessage({ id: "cockpit.nav.mainNavigation" });
+  const navLabel = formatMessage({ id: "hub.nav.mainNavigation" });
   const desktopNavStyle = {
     position: "fixed",
     bottom: "var(--admin-nav-offset-desktop, 20px)",

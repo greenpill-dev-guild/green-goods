@@ -332,8 +332,16 @@ describe("GardenPool", () => {
         ],
       ]),
     });
+    if (group?.kind !== "group") throw new Error("expected the copies to fold into one group");
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: copies }));
-    mockUsePoolPromiseEntries.mockReturnValue([{ kind: "group", group }]);
+    // The entries hook counts the group as its page does; nobody has asked for an open copy.
+    mockUsePoolPromiseEntries.mockReturnValue([
+      {
+        kind: "group",
+        group: { ...group, counts: { ...group.counts, requested: 0 } },
+        availabilityKnown: true,
+      },
+    ]);
 
     render(<GardenPool pool={pool()} />);
 
@@ -373,10 +381,12 @@ describe("GardenPool", () => {
     // On the chain's clock the copies have ended, as the entries hook counts them.
     const onClock = {
       ...group,
-      counts: { ...group.counts, available: 0, ended: group.counts.published },
+      counts: { ...group.counts, available: 0, ended: group.counts.published, requested: 0 },
     };
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: copies }));
-    mockUsePoolPromiseEntries.mockReturnValue([{ kind: "group", group: onClock }]);
+    mockUsePoolPromiseEntries.mockReturnValue([
+      { kind: "group", group: onClock, availabilityKnown: true },
+    ]);
 
     render(<GardenPool pool={pool()} />);
 
@@ -422,9 +432,22 @@ describe("GardenPool", () => {
       new Map([
         [
           "31",
-          { promisedBy: "Tech and Sun", booking: { kind: "hold", held: 9_000_000n, decimals: 6 } },
+          {
+            promisedBy: "Tech and Sun",
+            gender: "feminine",
+            takes: { units: 1_000_000n, decimals: 6 },
+            booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
+          },
         ],
-        ["32", { promisedBy: "Green Goods", booking: { kind } }],
+        [
+          "32",
+          {
+            promisedBy: "Green Goods",
+            gender: "masculine",
+            takes: { units: 10_000_000n, decimals: 6 },
+            booking: { kind },
+          },
+        ],
       ])
     );
 
@@ -435,9 +458,10 @@ describe("GardenPool", () => {
       .filter((row) => row.getAttribute("data-component") === "CommitmentRow");
     const [first, second, other] = rows;
     expect(first).toHaveAttribute("data-service", "offer");
-    expect(first).toHaveTextContent(/You hold 9.*Tech and Sun/);
+    // The price leads and names the issuer; what booking takes first follows.
+    expect(first).toHaveTextContent(/Takes 1 Tech and Sun voucher.*You hold 9/);
+    expect(second).toHaveTextContent(/Takes 10 Green Goods vouchers/);
     expect(second).toHaveTextContent(label);
-    expect(second).toHaveTextContent("Green Goods");
     expect(other).not.toHaveAttribute("data-service");
     // The tab hands the hook its listed promises; the hook keeps only possible services.
     expect(mockUseServiceOfferLines).toHaveBeenLastCalledWith({
@@ -730,7 +754,7 @@ describe("GardenPool", () => {
     expect(rows[1]).toHaveAttribute("data-done", "false");
     expect(screen.getByText("What this pool is for")).toBeInTheDocument();
     expect(screen.getByText("How many promises one person can hold at once")).toBeInTheDocument();
-    expect(screen.getByText(/steward dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/Green Goods Hub/i)).toBeInTheDocument();
   });
 
   it("says only what is true for anyone while the steward read is still out", () => {
@@ -996,7 +1020,7 @@ describe("GardenPool", () => {
     expect(screen.getAllByText("Needs you")).toHaveLength(1);
   });
 
-  it("opens the Offer or Ask sheet from the +, each card fixing its direction by route", async () => {
+  it("opens the Offer or Request sheet from the +, each card fixing its direction by route", async () => {
     const user = userEvent.setup();
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
 
@@ -1004,8 +1028,8 @@ describe("GardenPool", () => {
 
     // Closed: one entry, no doors, and no form.
     expect(screen.queryByRole("button", { name: /^Offer Something/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Offer or Ask" }));
-    expect(await screen.findByRole("button", { name: /^Ask Something/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
+    expect(await screen.findByRole("button", { name: /^Request Something/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "How Promises Work" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Offer Something/ }));
@@ -1020,12 +1044,12 @@ describe("GardenPool", () => {
     const protocol = pool({ poolType: "PROTOCOL", garden: OTHER });
 
     const { unmount } = render(<GardenPool pool={protocol} />);
-    expect(screen.queryByRole("button", { name: "Offer or Ask" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     unmount();
 
     mockUseHasRole.mockReturnValue({ hasRole: true, isLoading: false });
     render(<GardenPool pool={protocol} />);
-    expect(screen.getByRole("button", { name: "Offer or Ask" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Offer or Request" })).toBeInTheDocument();
   });
 
   it("closes the doors without starting anything", async () => {
@@ -1033,7 +1057,7 @@ describe("GardenPool", () => {
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
 
     render(<GardenPool pool={pool()} />);
-    await user.click(screen.getByRole("button", { name: "Offer or Ask" }));
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
     await user.click(screen.getByRole("button", { name: "Close" }));
 
     expect(screen.queryByRole("button", { name: "Offer" })).not.toBeInTheDocument();
@@ -1047,9 +1071,9 @@ describe("GardenPool", () => {
 
     expect(screen.getByText("No promises yet")).toBeInTheDocument();
     expect(screen.getByText("0 live")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Make an ask" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Offer or Ask" }));
-    await user.click(await screen.findByRole("button", { name: /^Ask Something/ }));
+    expect(screen.queryByRole("button", { name: "Make a request" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
+    await user.click(await screen.findByRole("button", { name: /^Request Something/ }));
     expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=request");
   });
 
@@ -1058,7 +1082,7 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool({ state: "PAUSED" })} />);
 
-    expect(screen.queryByRole("button", { name: "Offer or Ask" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Offer support" })).not.toBeInTheDocument();
   });
 
@@ -1158,7 +1182,7 @@ describe("GardenPool", () => {
     const [offer, request] = screen.getAllByRole("button", { name: /hours|rides/ });
     // The icon says offer or request, so no detail repeats it (DL-110).
     expect(within(offer).getByRole("img", { name: "Offer" })).toBeInTheDocument();
-    expect(within(request).getByRole("img", { name: "Ask" })).toBeInTheDocument();
+    expect(within(request).getByRole("img", { name: "Request" })).toBeInTheDocument();
     // Waiting on the reader replaces the state in the pill, and the edge follows it.
     expect(offer).toHaveTextContent("Needs you");
     expect(offer).not.toHaveTextContent("Waiting to be confirmed");

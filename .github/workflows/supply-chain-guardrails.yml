@@ -3,6 +3,8 @@ name: Supply Chain Guardrails
 on:
   pull_request:
     paths:
+      - "packages/qa/**"
+      - "scripts/agents/**"
       - "package.json"
       - "**/package.json"
       - "bun.lock"
@@ -40,11 +42,16 @@ on:
       - "**/*.sol"
       - "**/*.ts"
       - "**/*.tsx"
+      - "**/*.mts"
+      - "**/*.cts"
+      - ".gitignore"
       - "**/*.yaml"
       - "**/*.yml"
   push:
     branches: [main, develop]
     paths:
+      - "packages/qa/**"
+      - "scripts/agents/**"
       - "package.json"
       - "**/package.json"
       - "bun.lock"
@@ -82,6 +89,9 @@ on:
       - "**/*.sol"
       - "**/*.ts"
       - "**/*.tsx"
+      - "**/*.mts"
+      - "**/*.cts"
+      - ".gitignore"
       - "**/*.yaml"
       - "**/*.yml"
   workflow_dispatch:
@@ -98,6 +108,7 @@ jobs:
       guidance: ${{ steps.classify.outputs.guidance }}
       supply: ${{ steps.classify.outputs.supply }}
       parity: ${{ steps.classify.outputs.parity }}
+      deadcode: ${{ steps.classify.outputs.deadcode }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -159,6 +170,55 @@ jobs:
 
       - name: Check repository formatting
         run: bun run format --check
+
+  dead-code:
+    name: Dead code
+    needs: changes
+    if: needs.changes.outputs.deadcode == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Test the knip baseline check
+        run: node --test scripts/quality/check-knip-baseline.test.mjs
+
+      # Knip's findings may shrink, never grow: see scripts/quality/check-knip-baseline.mjs.
+      - name: Hold knip's findings to their baseline
+        env:
+          KNIP_BASELINE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check --only dead-code
+
+  regrowth:
+    name: Regrowth
+    needs: changes
+    # Judged on what one change adds, so never on a push to main, whose base is the last release.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Test the regrowth check
+        run: node --test scripts/quality/check-regrowth.test.mjs
+
+      # What the purge removed may not grow back: see scripts/quality/check-regrowth.mjs.
+      - name: Hold purged comments and report markdown off added lines
+        env:
+          REGROWTH_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check --only regrowth
 
   audit:
     name: Supply-chain guardrails
@@ -231,6 +291,9 @@ jobs:
         env:
           QA_LEDGER_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check --only qa-id-ledger
+
+      - name: Test QA catalog, recording, authentication, and reports
+        run: bun run check --only agent-tools-test
 
       - name: Run guidance guardrail tests
         run: node --test scripts/harness/agent-hooks.test.mjs scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs

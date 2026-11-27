@@ -1,7 +1,16 @@
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
 import { mocked, sb } from "storybook/test";
-import { useServiceAccess, useServiceAccessMutation } from "../src/hooks/commitment-pooling/useServiceAccess";
+import { useQueryClient } from "@tanstack/react-query";
+import { roleKeys } from "../src/config/query-keys/identity";
+import { usePrimaryAddress } from "../src/hooks/auth/usePrimaryAddress";
+import { useCurrentChain } from "../src/hooks/blockchain/useChainConfig";
+import { useProtocolRoles } from "../src/hooks/roles/useProtocolRoles";
+import {
+  useServiceAccess,
+  useServiceAccessMutation,
+  useServiceAccessReads,
+} from "../src/hooks/commitment-pooling/useServiceAccess";
 import { useServiceOfferLines } from "../src/hooks/commitment-pooling/useServiceOfferLines";
 import { unavailableServiceAccess } from "../src/modules/commitment-pooling/data-service-access";
 import {
@@ -21,6 +30,13 @@ sb.mock(import("../src/hooks/app/useArrivalState.ts"), { spy: true });
 sb.mock(import("../src/hooks/assessment/useGardenAssessmentRecords.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOffline.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOnlineStatus.ts"), { spy: true });
+// The voucher journeys drive the real pool console from seeded reads; these leaves carry its
+// acts. (usePoolConsoleController.ts itself re-exports a type inline, which the module mock turns
+// into a runtime export that does not exist, so it is never mocked.)
+sb.mock(import("../src/hooks/admin-ui/pool/useVoucherConsole.ts"), { spy: true });
+sb.mock(import("../src/hooks/admin-ui/pool/useVoucherStart.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMutations.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useExpiryClock.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useSettlementOperationsController.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/usePrimaryAddress.ts"), { spy: true });
@@ -30,6 +46,8 @@ sb.mock(import("../src/hooks/cookie-jar/useCookieJarDeposit.ts"), { spy: true })
 sb.mock(import("../src/hooks/public/usePublicEndowmentPositions.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/useWalletModalOpen.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useBaseLists.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useGardenMemberHistory.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useGardenMemberContributions.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useChainConfig.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useSendToken.ts"), { spy: true });
@@ -82,6 +100,7 @@ sb.mock(import("../src/hooks/greenwill/useGreenWillBadges.ts"), { spy: true });
 sb.mock(import("../src/hooks/profile/useProfileAvatar.ts"), { spy: true });
 sb.mock(import("../src/hooks/public/usePublicGardens.ts"), { spy: true });
 sb.mock(import("../src/hooks/roles/useHasRole.ts"), { spy: true });
+sb.mock(import("../src/hooks/roles/useProtocolRoles.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useGardenVaults.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useMyVaultDeposits.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useOctantVaultPositions.ts"), { spy: true });
@@ -92,6 +111,7 @@ sb.mock(import("../src/hooks/vault/useVaultPreview.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useVaultWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useDrafts.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useMyWorks.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/gardenWorkListQuery.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useWorks.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useYourWorkCount.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useYourWorkOnPhone.ts"), { spy: true });
@@ -105,12 +125,30 @@ sb.mock(import("../src/modules/app/posthog-browser.ts"), { spy: true });
 
 const preview: Preview = {
   beforeEach: () => {
+    // Role facts are explicit story seeds. Previewing a shell never calls a live Hats RPC.
+    mocked(useProtocolRoles).mockImplementation(() => {
+      const client = useQueryClient();
+      const account = usePrimaryAddress();
+      const chain = useCurrentChain();
+      return client.getQueryData<ReturnType<typeof useProtocolRoles>>(
+        roleKeys.protocolRoles(account ?? undefined, chain)
+      ) ?? {
+        team: false, productLead: false, agents: false, deployer: false,
+        isLoading: false, isError: false,
+      };
+    });
     // Every story starts without service RPC/signing. Individual stories may replace these facts.
     mocked(useServiceAccess).mockImplementation((key) => ({
       data: key ? unavailableServiceAccess(key) : undefined,
       isLoading: false, isError: false, error: null,
       refetch: async () => ({ data: key ? unavailableServiceAccess(key) : undefined }),
     }) as ReturnType<typeof useServiceAccess>);
+    // A list's booking reads answer the same way, one per promise it lists.
+    mocked(useServiceAccessReads).mockImplementation((keys) =>
+      keys.map((key) => ({ data: unavailableServiceAccess(key) })) as unknown as ReturnType<
+        typeof useServiceAccessReads
+      >
+    );
     mocked(useServiceAccessMutation).mockReturnValue({
       isPending: false, error: null,
       mutateAsync: async () => { throw new Error("Service signing unavailable in Storybook"); },

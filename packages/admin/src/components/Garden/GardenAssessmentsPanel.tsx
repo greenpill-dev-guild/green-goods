@@ -35,7 +35,7 @@ interface GardenAssessmentsPanelProps {
   selectedItem?: string;
 }
 
-/** An assessment's domain label, or none for a domain the cockpit does not know. */
+/** An assessment's domain label, or none for a domain the Hub does not know. */
 function domainOf(domain: number | undefined): string | undefined {
   return domain === undefined ? undefined : DOMAIN_CONFIG[domain as Domain]?.labelId;
 }

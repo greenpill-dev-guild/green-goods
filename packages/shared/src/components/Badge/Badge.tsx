@@ -74,7 +74,7 @@ export interface CountBadgeProps extends Omit<React.HTMLAttributes<HTMLSpanEleme
 
 /**
  * CountBadge — the one count badge (F10): a 16px capsule, 11px numerals at
- * weight 600 on the action pair, the workspace tone's accent in the cockpit.
+ * weight 600 on the action pair, the workspace tone's accent in the Hub.
  * Styles live in shared `theme.css` as `.gg-count-badge`. Say what the number
  * counts in the owner's accessible name; the badge carries the digits only.
  */

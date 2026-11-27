@@ -8,18 +8,26 @@ import { act, waitFor } from "@testing-library/react";
 import { encodeAbiParameters, encodeEventTopics, type Hex, type Log, parseAbi, toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getEASConfig } from "../../../config/blockchain";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../../config/query-keys/constants";
+import { gardensKeys } from "../../../config/query-keys/garden";
 import { worksKeys } from "../../../config/query-keys/work";
 import { useMutationLock } from "../../../hooks/utils/useMutationLock";
 import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 import type { BatchExecution } from "../../../modules/transactions/batch-types";
 import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { ReviewDecision } from "../../../modules/work/review-batch";
-import type { Address, WorkApprovalDraft } from "../../../types/domain";
-import { Confidence, VerificationMethod } from "../../../types/domain";
+import {
+  type Address,
+  type WorkApprovalDraft,
+  Confidence,
+  VerificationMethod,
+} from "../../../types/domain";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { createFakeBatchingSender } from "../../test-utils/transaction-fakes";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
+import { track } from "../../../modules/app/posthog";
 
 const { auth, chainState, sending, toasts, listing } = vi.hoisted(() => ({
   auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
@@ -55,7 +63,8 @@ vi.mock("../../../modules/data/eas", () => ({
     chainState.decided.has(workUID) ? [{ id: "earlier" }] : []
   ),
 }));
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   // Every work here was made after the resolver began counting decisions, so it counts each one.
   readContract: vi.fn(
     async (_config, { functionName, args = [""] }: { functionName: string; args?: [string] }) => {
@@ -182,6 +191,26 @@ describe("useBatchWorkApproval", () => {
     chainState.decided = new Set();
     chainState.logs = [];
     chainState.attestations = new Map();
+  });
+
+  it("keeps reconnect-refused decisions pending without action start or failure events", async () => {
+    const { sender, decide, listWorks, workOf, render } = setup();
+    sender.assertReadyToSign = vi.fn(refuseWithoutWallet);
+    const decision = decide();
+    listWorks([decision]);
+    const { result } = render();
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      await act(() => result.current.send([decision]));
+      expect(asked).toHaveBeenCalledOnce();
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+      expect(track).not.toHaveBeenCalledWith("batch_approval_started", expect.anything());
+      expect(track).not.toHaveBeenCalledWith("batch_approval_failed", expect.anything());
+      expect(workOf(decision)).toMatchObject({ status: "pending", _isPending: false });
+    } finally {
+      stop();
+    }
   });
 
   it.each([
@@ -471,7 +500,37 @@ describe("useBatchWorkApproval", () => {
     expect(workOf(decision)).toMatchObject({ status: "pending", _isPending: false });
     expect(queryClient.getQueryData(worksKeys.merged(other, chainId))).toEqual([otherRow]);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: worksKeys.merged(garden, chainId) });
+    // The calendar's months and Review's days hold statuses from before the decision.
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: worksKeys.ranges(garden, chainId) });
+    // So do the Gardeners view's readiness stages.
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: gardensKeys.memberReadinessForGarden(garden, chainId),
+    });
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: worksKeys.merged(other, chainId) });
+  });
+
+  it("keeps rereading the garden a send landed in after another garden opens", async () => {
+    const { decide, garden, landed, listWorks, queryClient } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    landed(decision);
+    const readiness = gardensKeys.memberReadinessForGarden(garden, chainId);
+    const { result, rerender } = renderHookWithProviders(
+      ({ open }: { open: Address }) => useBatchWorkApproval(open),
+      { queryClient, initialProps: { open: garden } }
+    );
+
+    await act(() => result.current.send([decision]));
+    rerender({ open: random(20) as Address });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+
+    // The first indexer follow-up (2s, real time: its wait starts once a refetch settles, which
+    // fake timers do not drive) fires after the switch and still rereads the send's garden.
+    await waitFor(
+      () =>
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: readiness }, { cancelRefetch: false }),
+      { timeout: INDEXER_LAG_SCHEDULE_MS[0] * 2 }
+    );
   });
 
   it("lets go of a decision whose held send turned out to revert", async () => {

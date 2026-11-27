@@ -154,6 +154,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
+  failOnFlakyTests: !!process.env.CI,
   workers: process.env.CI ? 2 : 4,
   maxFailures: process.env.CI ? 10 : undefined,
 
@@ -206,6 +207,7 @@ export default defineConfig({
         /admin\.auth\.spec\.ts$/,
         /admin\.smoke\.spec\.ts$/,
         /admin\.production-flows\.ci\.spec\.ts$/,
+        /admin\.browser-minimum\.ci\.spec\.ts$/,
       ],
       use: { ...devices["Desktop Chrome"] },
     },

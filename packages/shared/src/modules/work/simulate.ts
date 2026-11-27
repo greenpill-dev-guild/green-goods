@@ -1,5 +1,11 @@
 import { getPublicClient } from "@wagmi/core";
-import type { Abi, Address } from "viem";
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ExecutionRevertedError,
+  type Abi,
+  type Address,
+} from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
@@ -9,7 +15,7 @@ import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { encodeWorkApprovalData, simulateWorkData } from "../../utils/eas/encoders";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
-import { refusedByChain, SimulationRejected } from "./simulation-rejected";
+import { SimulationRejected } from "./simulation-rejected";
 
 export { SimulationRejected } from "./simulation-rejected";
 
@@ -31,6 +37,18 @@ export interface SimulateApprovalSubmissionParams {
 }
 
 const SIMULATION_CACHE_TTL_MS = 60_000;
+
+function refusedByChain(error: unknown): boolean {
+  return (
+    error instanceof BaseError &&
+    Boolean(
+      error.walk(
+        (cause) =>
+          cause instanceof ContractFunctionRevertedError || cause instanceof ExecutionRevertedError
+      )
+    )
+  );
+}
 
 function rejection(error: unknown, message: string, reason: string): SimulationRejected {
   return new SimulationRejected(message, reason, refusedByChain(error), { cause: error });

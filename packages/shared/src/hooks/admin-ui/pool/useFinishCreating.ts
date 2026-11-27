@@ -17,6 +17,8 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { recordedSendAct, type SendActContext } from "../../../modules/app/sendActAnalytics";
+import { copiesActEnding } from "../../../modules/commitment-pooling/send-act-outcome";
 import { SETTLEMENT_ENABLED } from "../../../config/app";
 import { creationRefusalOf } from "../../../modules/commitment-pooling/creation-standing";
 import { isDiscardableJob } from "../../../modules/job-queue/job-recovery";
@@ -78,6 +80,32 @@ function canFinishCreation(job: Job): boolean {
   );
 }
 
+/**
+ * Each group's copies queued on this device and still sendable, under the queue's key so whatever
+ * refreshes the queue refreshes this read. The group row counts them, and a copy's own inspector
+ * leaves its terms to the group while any wait (PRD-1548).
+ */
+export function useQueuedGroupCopies(input: {
+  chainId: number;
+  owner: Address | null;
+}): ReadonlyMap<string, readonly string[]> {
+  const { chainId, owner } = input;
+  const waitingQuery = useQuery({
+    queryKey: commitmentPoolingKeys.queuedGroupCopies(owner, chainId),
+    enabled: Boolean(owner),
+    queryFn: async () =>
+      waitingCopiesByGroup(
+        (await jobQueue.getJobs(owner as string, { kind: "commitment", synced: false })).filter(
+          canFinishCreation
+        ),
+        chainId
+      ),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnWindowFocus: "always",
+  });
+  return waitingQuery.data ?? NOTHING_WAITING;
+}
+
 export interface FinishCreatingController {
   /** Each group's copies still waiting in the steward's queue on this chain, by job id. */
   waiting: ReadonlyMap<string, readonly string[]>;
@@ -99,20 +127,7 @@ export function useFinishCreating(input: {
   const [sendingGroupId, setSendingGroupId] = useState<string | null>(null);
   const [copies, setCopies] = useState<readonly SeedCopyProgress[] | null>(null);
   const [pastCeilings, setPastCeilings] = useState(false);
-  // Under the queue's key: whatever refreshes the queue refreshes this read.
-  const waitingQuery = useQuery({
-    queryKey: commitmentPoolingKeys.queuedGroupCopies(owner, chainId),
-    enabled: Boolean(owner),
-    queryFn: async () =>
-      waitingCopiesByGroup(
-        (await jobQueue.getJobs(owner as string, { kind: "commitment", synced: false })).filter(
-          canFinishCreation
-        ),
-        chainId
-      ),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnWindowFocus: "always",
-  });
+  const waiting = useQueuedGroupCopies({ chainId, owner });
 
   const finish = useCallback<FinishCreatingController["finish"]>(
     async (displayGroupId) => {
@@ -150,7 +165,16 @@ export function useFinishCreating(input: {
       const latest = new Map<string, SeedCopyProgress>();
       setSendingGroupId(displayGroupId);
       try {
-        const ended = await sendCreationCopies({
+        const act: SendActContext = {
+          act: "pool_finish_creating",
+          authMode: sender.authMode,
+          chainId,
+        };
+        const ended = await recordedSendAct(
+          act,
+          sendCreationCopies,
+          copiesActEnding
+        )({
           copies: waiting,
           queue: jobQueue,
           sender,
@@ -178,5 +202,5 @@ export function useFinishCreating(input: {
     [owner, sender, chainId, queryClient, pastCeilings]
   );
 
-  return { waiting: waitingQuery.data ?? NOTHING_WAITING, sendingGroupId, copies, finish };
+  return { waiting, sendingGroupId, copies, finish };
 }

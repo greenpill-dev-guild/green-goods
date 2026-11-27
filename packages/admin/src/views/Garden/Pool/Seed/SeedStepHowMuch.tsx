@@ -77,23 +77,23 @@ export function SeedStepHowMuch({
   ) => form.setValue(field, value as never, { shouldDirty: true, shouldValidate: true });
   const suggestionsFor = (field: string) =>
     formatMessage(
-      { id: "cockpit.garden.pool.seed.suggestionsFor", defaultMessage: "Suggestions for {field}" },
+      { id: "hub.garden.pool.seed.suggestionsFor", defaultMessage: "Suggestions for {field}" },
       { field }
     );
   const promisesText = formatMessage({
-    id: "cockpit.garden.pool.seed.promisesField",
+    id: "hub.garden.pool.seed.promisesField",
     defaultMessage: "Promises",
   });
   const unitLabelText = formatMessage({
-    id: "cockpit.garden.pool.seed.unit",
+    id: "hub.garden.pool.seed.unit",
     defaultMessage: "Unit",
   });
   const amountText = formatMessage({
-    id: "cockpit.garden.pool.seed.amountEach",
+    id: "hub.garden.pool.seed.amountEach",
     defaultMessage: "Amount",
   });
   const dueText = formatMessage({
-    id: "cockpit.garden.pool.seed.dueInDays",
+    id: "hub.garden.pool.seed.dueInDays",
     defaultMessage: "Due in (days)",
   });
   const due = formatDueDate(dueDateAfter(now, values.dueInDays), locale);
@@ -103,7 +103,7 @@ export function SeedStepHowMuch({
       <fieldset className="min-w-0 space-y-2" aria-labelledby={`${noteId}-promises`}>
         <AdminCardTitle as="h4" id={`${noteId}-promises`}>
           {formatMessage({
-            id: "cockpit.garden.pool.seed.promisesToCreate",
+            id: "hub.garden.pool.seed.promisesToCreate",
             defaultMessage: "Promises to create",
           })}
         </AdminCardTitle>
@@ -128,7 +128,7 @@ export function SeedStepHowMuch({
           onChange={(event) => set("count", Number(event.target.value))}
           error={errorOf("count")}
           helperText={formatMessage({
-            id: "cockpit.garden.pool.seed.promisesHint",
+            id: "hub.garden.pool.seed.promisesHint",
             defaultMessage:
               "Each one is taken up and kept on its own; gardeners see them as one group.",
           })}
@@ -142,14 +142,14 @@ export function SeedStepHowMuch({
       <fieldset className="min-w-0 space-y-3" aria-labelledby={`${noteId}-each`}>
         <AdminCardTitle as="h4" id={`${noteId}-each`}>
           {formatMessage({
-            id: "cockpit.garden.pool.seed.eachPromiseAsks",
+            id: "hub.garden.pool.seed.eachPromiseAsks",
             defaultMessage: "Each promise asks for",
           })}
         </AdminCardTitle>
         {isGardenWork ? (
           <p className="type-body text-text-sub">
             {formatMessage({
-              id: "cockpit.garden.pool.seed.countedInHours",
+              id: "hub.garden.pool.seed.countedInHours",
               defaultMessage: "Counted in hours",
             })}
           </p>
@@ -183,11 +183,11 @@ export function SeedStepHowMuch({
               onChange={(event) => set("unitLabel", event.target.value)}
               error={errorOf("unitLabel")}
               helperText={formatMessage({
-                id: "cockpit.garden.pool.seed.unitHint",
+                id: "hub.garden.pool.seed.unitHint",
                 defaultMessage: "What each promise counts.",
               })}
               placeholder={formatMessage({
-                id: "cockpit.garden.pool.seed.unitPlaceholder",
+                id: "hub.garden.pool.seed.unitPlaceholder",
                 defaultMessage: "rides",
               })}
               disabled={busy}
@@ -220,7 +220,7 @@ export function SeedStepHowMuch({
               onChange={(event) => set("targetUnits", Number(event.target.value))}
               error={errorOf("targetUnits")}
               helperText={formatMessage({
-                id: "cockpit.garden.pool.seed.amountHint",
+                id: "hub.garden.pool.seed.amountHint",
                 defaultMessage: "Per promise.",
               })}
               inputProps={{ inputMode: "numeric" }}
@@ -253,7 +253,7 @@ export function SeedStepHowMuch({
               error={errorOf("dueInDays")}
               helperText={formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.dueHint",
+                  id: "hub.garden.pool.seed.dueHint",
                   defaultMessage:
                     "{count, plural, one {It is due {date}.} other {Every promise is due {date}.}}",
                 },
@@ -271,7 +271,7 @@ export function SeedStepHowMuch({
           render={({ field }) => (
             <AdminChoiceGroup
               ariaLabel={formatMessage({
-                id: "cockpit.garden.pool.seed.contributorPolicy",
+                id: "hub.garden.pool.seed.contributorPolicy",
                 defaultMessage: "Contributor policy",
               })}
               value={field.value ? "open" : "lead"}
@@ -282,11 +282,11 @@ export function SeedStepHowMuch({
                   value: "open",
                   disabled: busy,
                   label: formatMessage({
-                    id: "cockpit.garden.pool.seed.team.open",
+                    id: "hub.garden.pool.seed.team.open",
                     defaultMessage: "Open team",
                   }),
                   description: formatMessage({
-                    id: "cockpit.garden.pool.seed.team.openHint",
+                    id: "hub.garden.pool.seed.team.openHint",
                     defaultMessage: "Eligible garden members may join",
                   }),
                 },
@@ -294,11 +294,11 @@ export function SeedStepHowMuch({
                   value: "lead",
                   disabled: busy,
                   label: formatMessage({
-                    id: "cockpit.garden.pool.seed.team.lead",
+                    id: "hub.garden.pool.seed.team.lead",
                     defaultMessage: "Lead-managed team",
                   }),
                   description: formatMessage({
-                    id: "cockpit.garden.pool.seed.team.leadHint",
+                    id: "hub.garden.pool.seed.team.leadHint",
                     defaultMessage: "The lead or a steward manages the roster",
                   }),
                 },
@@ -310,13 +310,13 @@ export function SeedStepHowMuch({
           <div className="space-y-2" data-testid="seed-requirements">
             <AdminCardTitle as="h4">
               {formatMessage({
-                id: "cockpit.garden.pool.seed.requirements",
+                id: "hub.garden.pool.seed.requirements",
                 defaultMessage: "Actions this needs",
               })}
             </AdminCardTitle>
             <p className="type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.seed.requirementsHint",
+                id: "hub.garden.pool.seed.requirementsHint",
                 defaultMessage:
                   "Each row names a garden action and how many approved works it takes. Add as many as the work needs.",
               })}
@@ -327,7 +327,7 @@ export function SeedStepHowMuch({
                   id={`${noteId}-req-${index}`}
                   className="min-w-0 flex-1"
                   label={formatMessage({
-                    id: "cockpit.garden.pool.seed.requirementAction",
+                    id: "hub.garden.pool.seed.requirementAction",
                     defaultMessage: "Action",
                   })}
                   value={values.requirements[index]?.actionUID ?? ""}
@@ -350,7 +350,7 @@ export function SeedStepHowMuch({
                 >
                   <option value="">
                     {formatMessage({
-                      id: "cockpit.garden.pool.seed.requirementChoose",
+                      id: "hub.garden.pool.seed.requirementChoose",
                       defaultMessage: "Choose an Action",
                     })}
                   </option>
@@ -367,7 +367,7 @@ export function SeedStepHowMuch({
                 </AdminSelect>
                 <AdminTextField
                   label={formatMessage({
-                    id: "cockpit.garden.pool.seed.requirementCount",
+                    id: "hub.garden.pool.seed.requirementCount",
                     defaultMessage: "Count",
                   })}
                   value={String(values.requirements[index]?.requiredCount ?? 1)}
@@ -390,21 +390,25 @@ export function SeedStepHowMuch({
                     )
                   }
                   inputProps={{ inputMode: "numeric" }}
-                  className="w-24"
+                  // Room for the count and the row's Remove beside it.
+                  className="w-36"
                   disabled={busy}
+                  action={
+                    <Button
+                      type="button"
+                      emphasis="tertiary"
+                      size="compact"
+                      aria-label={formatMessage({
+                        id: "app.common.remove",
+                        defaultMessage: "Remove",
+                      })}
+                      onClick={() => requirements.remove(index)}
+                      disabled={busy}
+                    >
+                      <RiCloseLine className="h-4 w-4" />
+                    </Button>
+                  }
                 />
-                {/* Lifted over the fields' reserved supporting line, so it lines up with them. */}
-                <Button
-                  type="button"
-                  emphasis="tertiary"
-                  size="compact"
-                  className="mb-9"
-                  aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-                  onClick={() => requirements.remove(index)}
-                  disabled={busy}
-                >
-                  <RiCloseLine className="h-4 w-4" />
-                </Button>
               </div>
             ))}
             <Button
@@ -416,7 +420,7 @@ export function SeedStepHowMuch({
               disabled={busy}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.seed.requirementAdd",
+                id: "hub.garden.pool.seed.requirementAdd",
                 defaultMessage: "Add Action",
               })}
             </Button>
@@ -448,7 +452,7 @@ export function SeedStepHowMuch({
         ) : (
           <p className="type-meta text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.seed.proofOnlyPromise",
+              id: "hub.garden.pool.seed.proofOnlyPromise",
               defaultMessage:
                 "This promise is confirmed by proof, so it has no garden-work action requirements.",
             })}
@@ -467,7 +471,7 @@ export function SeedStepHowMuch({
         <p className="-mt-2 type-meta text-text-soft">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.seed.capHint",
+              id: "hub.garden.pool.seed.capHint",
               defaultMessage:
                 "Each person can hold up to {cap} open promises in this pool at once. They can take up another after finishing one.",
             },

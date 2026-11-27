@@ -2,7 +2,6 @@ import {
   type ServiceIssuerDraft,
   type ServiceIssuerDraftRecord,
   serviceIssuerApprovalProvenance,
-  serviceIssuerDraftApproval,
 } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
@@ -12,14 +11,13 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { ServiceIssuerApproveSheet } from "./ServiceIssuerApproveSheet";
 import { issuerCount } from "@/components/Features/Vouchers/serviceIssuerPresentation";
+import { draftState } from "./serviceAssetRows";
 import { draftFacts, factValue } from "./serviceIssuerDraftFacts";
 import {
   type IssuerBand,
   ServiceIssuerBand,
   ServiceIssuerSteps,
 } from "@/components/Features/Vouchers/ServiceIssuerStatus";
-
-type DraftState = "review" | "approved" | "changed" | "declined";
 
 interface Props {
   record: ServiceIssuerDraftRecord;
@@ -49,14 +47,8 @@ export function ServiceIssuerOnboarding({
     intl.formatMessage({ id: `app.voucher.ob.${id}` }, values);
   const [sheet, setSheet] = useState(false);
   const { draft, approval } = record;
-  const coverage = serviceIssuerDraftApproval(draft, approval);
-  const state: DraftState = record.declinedAt
-    ? "declined"
-    : coverage === "current"
-      ? "approved"
-      : coverage === "outdated" || (draft.terms.revision > 1 && draft.changed.length > 0)
-        ? "changed"
-        : "review";
+  // One reading of where the draft stands, shared with its row in Your Services.
+  const state = draftState(record);
   const facts = draftFacts(draft, intl);
   const date = (seconds: bigint) =>
     intl.formatDate(Number(seconds) * 1000, { month: "short", day: "numeric", year: "numeric" });

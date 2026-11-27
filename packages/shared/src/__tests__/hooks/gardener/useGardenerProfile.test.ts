@@ -14,6 +14,7 @@ import { logger } from "../../../modules/app/logger";
 import { toastService } from "../../../components/toast";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
+import { captureSendActs } from "../../test-utils/send-acts";
 
 const TEST_SMART_ACCOUNT = "0x1111111111111111111111111111111111111111" as `0x${string}`;
 const TEST_TX_HASH = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
@@ -118,20 +119,36 @@ describe("useGardenerProfile", () => {
     it("encodes setProfile call and sends gasless transaction", async () => {
       const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
-      await act(async () => {
-        result.current.updateProfile({
-          name: "Alice",
-          bio: "Regenerative farmer",
-          location: "Portland, OR",
-          imageURI: "ipfs://QmImage123",
-          socialLinks: ["https://twitter.com/alice"],
-          contactInfo: "@alice",
+      const { acts, sent } = await captureSendActs(async () => {
+        await act(async () => {
+          result.current.updateProfile({
+            name: "Alice",
+            bio: "Regenerative farmer",
+            location: "Portland, OR",
+            imageURI: "ipfs://QmImage123",
+            socialLinks: ["https://twitter.com/alice"],
+            contactInfo: "@alice",
+          });
+        });
+
+        await waitFor(() => {
+          expect(result.current.isUpdating).toBe(false);
         });
       });
 
-      await waitFor(() => {
-        expect(result.current.isUpdating).toBe(false);
-      });
+      // One act, named by the contract call, with none of the profile's words (PRD-1571).
+      expect(acts).toEqual([
+        ["send_act_started", "gardener_profile", undefined],
+        ["send_act_ended", "gardener_profile", "confirmed"],
+      ]);
+      expect(sent).toContain("setprofile");
+      for (const value of [
+        "alice",
+        "regenerative",
+        TEST_SMART_ACCOUNT.slice(2),
+        TEST_TX_HASH.slice(2),
+      ])
+        expect(sent).not.toContain(value);
 
       expect(mockSendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({

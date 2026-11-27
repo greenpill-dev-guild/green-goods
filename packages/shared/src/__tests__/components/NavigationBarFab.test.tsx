@@ -25,13 +25,13 @@ const addMember: FabAction = {
   id: "add-member",
   icon: RiUserAddLine,
   label: "Add Member",
-  labelId: "cockpit.community.action.addMember",
+  labelId: "hub.community.action.addMember",
 };
 const fundCookieJar: FabAction = {
   id: "fund-payout-jar",
   icon: RiHandCoinLine,
   label: "Fund Cookie Jar",
-  labelId: "cockpit.community.action.fundPayoutJar",
+  labelId: "hub.community.action.fundPayoutJar",
 };
 
 /** The drawn path of an icon, to tell which icon the FAB shows. */

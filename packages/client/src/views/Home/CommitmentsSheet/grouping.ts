@@ -1,16 +1,19 @@
-import type { Garden } from "@green-goods/shared/types/domain";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import type {
   CommitmentMetadataV1,
   CommitmentPoolRecord,
   CommitmentsToConfirm,
   InboxCommitment,
+  ServiceAccessKey,
+  ServiceAccessSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import { identicalOpenCopyKey } from "@green-goods/shared/modules/commitment-pooling/display-groups";
+import { bookingNeedsYouOf, mayBeBooking } from "../Garden/Commitment/serviceBooking";
 
 /**
  * What the To confirm tab lists, and so what its badge and the launcher count:
  * the confirmations its gardens make as the party. The reasoned fallbacks and
- * disputes that `count` adds are the cockpit's queue, which this tab does not list.
+ * disputes that `count` adds are the Hub's queue, which this tab does not list.
  */
 export function listedToConfirmCount(toConfirm: Pick<CommitmentsToConfirm, "groups">): number {
   return toConfirm.groups.reduce((sum, group) => sum + group.rows.length, 0);
@@ -20,6 +23,71 @@ export interface GardenGroup {
   key: string;
   gardenName: string;
   rows: InboxCommitment[];
+}
+
+/**
+ * The rows that may be the reader's booking of a service, keyed as the promise page reads them:
+ * an approval-gated offer one person takes up, made by someone else.
+ */
+export function bookingReadKeys(
+  rows: readonly InboxCommitment[],
+  scope: { viewer: Address | null; sourceChainId: number; coreModule: Address }
+): ServiceAccessKey[] {
+  const { viewer, sourceChainId, coreModule } = scope;
+  if (!viewer) return [];
+  const seen = new Set<string>();
+  return rows.flatMap(({ commitment }) => {
+    const id = commitment.commitmentId.toString();
+    if (!mayBeBooking(commitment, viewer) || seen.has(id)) return [];
+    seen.add(id);
+    return [{ sourceChainId, coreModule, commitmentId: commitment.commitmentId, buyer: viewer }];
+  });
+}
+
+/**
+ * The rows with each booking's own Needs you (its deposit, its split, a failed transfer) added to
+ * what the promise's acts say, and what needs the reader first, so it leads the list and never
+ * folds into identical copies.
+ */
+function withBookingNeedsYou(
+  rows: readonly InboxCommitment[],
+  needs: ReadonlySet<string>
+): InboxCommitment[] {
+  const marked = rows.map((row) =>
+    !row.needsYou && needs.has(row.commitment.commitmentId.toString())
+      ? { ...row, needsYou: true }
+      : row
+  );
+  return [...marked.filter((row) => row.needsYou), ...marked.filter((row) => !row.needsYou)];
+}
+
+/**
+ * The Live list's rows with each answered booking read's own Needs you added, and how many rows
+ * need the reader: the Live tab's count, so the tab says what its rows say (DL-129). Each read
+ * names its own promise; the row knows the promise's state.
+ */
+export function withBookingReads(
+  rows: { live: readonly InboxCommitment[]; waiting: readonly InboxCommitment[] },
+  reads: readonly { data?: ServiceAccessSnapshot | null }[]
+): { live: InboxCommitment[]; waiting: InboxCommitment[]; actCount: number } {
+  const promiseOf = new Map(
+    [...rows.live, ...rows.waiting].map(({ commitment }) => [
+      commitment.commitmentId.toString(),
+      commitment,
+    ])
+  );
+  const needs = new Set(
+    reads.flatMap(({ data }) => {
+      const id = data?.key.commitmentId.toString();
+      const promise = id ? promiseOf.get(id) : undefined;
+      return id && bookingNeedsYouOf(data, promise?.derivedState, promise?.acceptanceAt)
+        ? [id]
+        : [];
+    })
+  );
+  const live = withBookingNeedsYou(rows.live, needs);
+  const waiting = withBookingNeedsYou(rows.waiting, needs);
+  return { live, waiting, actCount: [...live, ...waiting].filter((row) => row.needsYou).length };
 }
 
 /** One line of the Live list: a promise, or its identical open copies as one (DL-150). */

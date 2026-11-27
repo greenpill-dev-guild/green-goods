@@ -1,6 +1,9 @@
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useRole, type UserRole } from "@green-goods/shared/hooks/gardener/useRole";
+import { useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { Outlet } from "react-router-dom";
+import { CanvasIndexerErrorState } from "@/components/Layout/CanvasIndexerErrorState";
 import RouteUnauthorized from "@/routes/RouteUnauthorized";
 
 interface RequireRoleProps {
@@ -9,7 +12,7 @@ interface RequireRoleProps {
 }
 
 export default function RequireRole({ allowedRoles, loadingFallback }: RequireRoleProps) {
-  const { role, loading } = useRole();
+  const { role, isProtocolTeam, isProductLead, loading, deploymentPermissionsError } = useRole();
   const { formatMessage } = useIntl();
 
   if (loading) {
@@ -24,7 +27,16 @@ export default function RequireRole({ allowedRoles, loadingFallback }: RequireRo
     );
   }
 
-  if (!allowedRoles.includes(role)) {
+  const allowed =
+    allowedRoles.includes(role) ||
+    ((isProtocolTeam || isProductLead) && allowedRoles.includes("steward"));
+
+  // A deployer whose permission read never answered is unknown, not refused: offer a retry.
+  if (!allowed && allowedRoles.includes("deployer") && deploymentPermissionsError) {
+    return <DeploymentPermissionsRetry />;
+  }
+
+  if (!allowed) {
     return (
       <RouteUnauthorized>
         {role === "user" && (
@@ -45,4 +57,15 @@ export default function RequireRole({ allowedRoles, loadingFallback }: RequireRo
   }
 
   return <Outlet />;
+}
+
+function DeploymentPermissionsRetry() {
+  const queryClient = useQueryClient();
+  return (
+    <CanvasIndexerErrorState
+      onRetry={() => {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.role.all });
+      }}
+    />
+  );
 }

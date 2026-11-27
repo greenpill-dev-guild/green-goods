@@ -193,7 +193,7 @@
       "evidence": [
         {
           "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-          "note": "A season is a pool's Season-type cycle (CycleType.Season); the deployed module keeps at most one open per pool through openSeasonCycleId. In the release 2.0 steward console, pool setup starts a season, and End Season and Archive Season close it."
+          "note": "A season is a pool's Season-type cycle (CycleType.Season); the deployed module keeps at most one open per pool through openSeasonCycleId. In the release 2.0 Green Goods Hub, pool setup starts a season, and End Season and Archive Season close it."
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -278,7 +278,7 @@
       "evidence": [
         {
           "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-          "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary. In the release 2.0 steward console, pool setup opens a season, and End Season and Archive Season close it."
+          "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary. In the release 2.0 Green Goods Hub, pool setup opens a season, and End Season and Archive Season close it."
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -365,7 +365,7 @@
       "evidence": [
         {
           "file": "packages/shared/src/modules/job-queue/commitment-call-builder.ts",
-          "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The client app offers them on a garden's Promises tab, and the steward console seeds and confirms promises. Settlement was off in that release and is on in the app after it."
+          "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The Green Goods App offers them on a garden's Promises tab, and the Green Goods Hub seeds and confirms promises. Settlement was off in that release and is on in the app after it."
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -847,7 +847,7 @@
       "evidence": [
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
-          "note": "Release 2.0 (production v2.0.1) offers promise acts in the client app and the steward console, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused. G$ settlement is on in the app after release 2.0, and gardenerDeliveryEnabled() read true on 2026-10-30."
+          "note": "Release 2.0 (production v2.0.1) offers promise acts in the Green Goods App and the Green Goods Hub, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused. G$ settlement is on in the app after release 2.0, and gardenerDeliveryEnabled() read true on 2026-10-30."
         }
       ],
       "safe_wording": "Gardens can run a commitment pool: members make, take up, and confirm promises, and where the garden's settlement account is active, a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.",
@@ -965,7 +965,7 @@
           "where": ["admin"],
           "term_refs": ["entity:assessment"],
           "guide": "/community/evaluator-guide/making-an-assessment",
-          "code": ["packages/admin/src/views/Hub/CreateAssessment.tsx"]
+          "code": ["packages/admin/src/views/Review/CreateAssessment.tsx"]
         },
         {
           "when": "As work comes in",
@@ -973,7 +973,10 @@
           "where": ["admin", "client"],
           "term_refs": ["entity:work-approval"],
           "guide": "/community/steward-guide/reviewing-work",
-          "code": ["packages/admin/src/views/Hub", "packages/client/src/views/Home/WorkDashboard"]
+          "code": [
+            "packages/admin/src/views/Review",
+            "packages/client/src/views/Home/WorkDashboard"
+          ]
         },
         {
           "when": "When messaging is easier",
@@ -1001,7 +1004,7 @@
         },
         {
           "when": "When money arrives",
-          "what": "Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the cockpit's cookie jar screens create campaign jars, which are a separate thing.",
+          "what": "Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the Hub's cookie jar screens create campaign jars, which are a separate thing.",
           "where": ["admin"],
           "term_refs": ["entity:vault", "entity:cookie-jar"],
           "guide": "/community/steward-guide/funding-and-governance",
@@ -1026,7 +1029,7 @@
           "where": ["admin"],
           "term_refs": ["entity:hypercert"],
           "guide": "/community/steward-guide/creating-impact-certificates",
-          "code": ["packages/admin/src/views/Hub/CreateHypercert.tsx"]
+          "code": ["packages/admin/src/views/Review/CreateHypercert.tsx"]
         }
       ]
     },
@@ -1040,7 +1043,7 @@
           "where": ["admin"],
           "term_refs": ["entity:assessment"],
           "guide": "/community/evaluator-guide/making-an-assessment",
-          "code": ["packages/admin/src/views/Hub/CreateAssessment.tsx"]
+          "code": ["packages/admin/src/views/Review/CreateAssessment.tsx"]
         },
         {
           "when": "As evidence builds",
@@ -1048,7 +1051,7 @@
           "where": ["admin", "public"],
           "term_refs": ["entity:work"],
           "code": [
-            "packages/admin/src/views/Hub",
+            "packages/admin/src/views/Review",
             "packages/client/src/views/Public/GardenDetail.tsx"
           ]
         }
@@ -1100,7 +1103,7 @@
         },
         {
           "when": "Through a grant or partnership",
-          "what": "Talk with Green Goods about a garden's work and funding needs, then follow its approved work on the public site. The grant itself is arranged outside the app.",
+          "what": "Talk with Green Goods about a garden's work and funding needs, then follow its approved work on the Green Goods Website. The grant itself is arranged outside the app.",
           "where": ["public"],
           "term_refs": ["entity:garden"],
           "code": ["packages/client/src/components/Public/PublicGetInTouch.tsx"]
@@ -1150,7 +1153,7 @@
     {
       "id": "request",
       "label": "Request",
-      "meaning": "A promise asking someone else to provide help. The person who asked normally confirms it. A request to take a promise up is a separate participation decision.",
+      "meaning": "A promise asking someone else to provide help. The person who asked normally confirms it. Asking to take a promise up is a separate participation decision.",
       "example": "You request a repair session; the neighbor taking it up provides the help.",
       "guide": "/community/gardener-guide/make-a-promise",
       "source_of_truth": [
@@ -1161,7 +1164,7 @@
     {
       "id": "take-up",
       "label": "Take up",
-      "meaning": "Agree to the part described by a promise. Some promises allow direct take-up; others wait for a steward to accept the request.",
+      "meaning": "Agree to the part described by a promise. Some promises allow direct take-up; others wait until a steward says yes.",
       "example": "Taking up a request makes you its provider. Taking up an offer makes you its recipient.",
       "guide": "/community/gardener-guide/keep-a-promise",
       "source_of_truth": [
@@ -1282,7 +1285,7 @@
       "id": "cycle-states",
       "label": "Season and campaign states",
       "meaning": "A prepared period is written down but not open. Open accepts promises. Reconciled is an ended period. Archived is final and prevents creating a certificate from that cycle later; history remains readable.",
-      "example": "Leave a reconciled season unarchived if you want future cycle-specific certification. The current dashboard cannot create a certificate linked to that cycle.",
+      "example": "Leave a reconciled season unarchived if you want future cycle-specific certification. The Green Goods Hub cannot yet create a certificate linked to that cycle.",
       "guide": "/community/steward-guide/end-a-season",
       "source_of_truth": [
         "packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol",
@@ -1303,7 +1306,7 @@
     {
       "id": "delta-assessment",
       "label": "Post or delta assessment",
-      "meaning": "A later assessment comparing results with a baseline. The current dashboard creates initial assessments only; it does not offer a delta submission.",
+      "meaning": "A later assessment comparing results with a baseline. The Green Goods Hub creates initial assessments only; it does not offer a delta submission.",
       "example": "Keep the starting assessment and later measurements together while agreeing the supported next step with the garden.",
       "guide": "/community/evaluator-guide/",
       "source_of_truth": ["packages/shared/src/modules/assessment/create-assessment-command.ts"]
@@ -1326,8 +1329,8 @@
     },
     {
       "id": "pwa",
-      "label": "Installed app",
-      "meaning": "The Green Goods website installed on your phone. Also called a progressive web app or PWA. It keeps work on that device while a connection is unavailable.",
+      "label": "Green Goods App",
+      "meaning": "Green Goods installed on your phone from the Green Goods Website. Also called a progressive web app or PWA. It keeps work on that device while a connection is unavailable.",
       "example": "Record in the field, then send from the same account and phone.",
       "guide": "/community/gardener-guide/installing-and-updating",
       "source_of_truth": [

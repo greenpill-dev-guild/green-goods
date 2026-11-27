@@ -10,6 +10,7 @@
  * @vitest-environment happy-dom
  */
 
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -354,7 +355,7 @@ describe("ComposeCommitment", () => {
     const user = userEvent.setup();
     render("request");
 
-    expect(screen.getByText("Make an ask")).toBeInTheDocument();
+    expect(screen.getByText("Make a request")).toBeInTheDocument();
     expect(screen.getByText("What are you asking for?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Help or a service/ })).toHaveAttribute(
       "aria-pressed",
@@ -370,7 +371,7 @@ describe("ComposeCommitment", () => {
     await user.click(next());
     await user.click(next());
     expect(reviewedWhoCanTakeItUp()).toHaveTextContent("A neighbor your stewards choose");
-    await place(user, "Make This Ask");
+    await place(user, "Make This Request");
 
     // Placed approval-gated, taking it up records a pending claim for the
     // stewards to decide rather than accepting it (ClaimsLib.requestClaim).
@@ -390,7 +391,7 @@ describe("ComposeCommitment", () => {
     await user.click(next());
     await user.click(next());
     expect(reviewedWhoCanTakeItUp()).toHaveTextContent("Any neighbor in this garden");
-    await place(user, "Make This Ask");
+    await place(user, "Make This Request");
 
     const call = mockEnqueue.mock.calls[0]?.[0] as { payload: { claimMode: number } };
     expect(call.payload.claimMode).toBe(0);
@@ -614,6 +615,46 @@ describe("ComposeCommitment", () => {
     expect(call.payload.targetUnits).toBe(3n);
     expect(call.payload.direction).toBe(0);
     expect(call.payload.commitmentType).toBe(1);
+  });
+
+  it("returns to Home when Home's + opened it, by Done and by Back (DL-181)", async () => {
+    const user = userEvent.setup();
+    function Home() {
+      const dashboardNavigation = useDashboardNavigation();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            dashboardNavigation.open(`/home/${GARDEN}/commitments/new?direction=offer`)
+          }
+        >
+          Offer or Request
+        </button>
+      );
+    }
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/home"]}>
+        <Routes>
+          <Route path="/home" element={<Home />} />
+          <Route path="/home/:id" element={<Outlet />}>
+            <Route index element={<p>Back on the pool</p>} />
+            <Route path="commitments/new" element={<ComposeCommitment />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+    const fromHome = () => user.click(screen.getByRole("button", { name: "Offer or Request" }));
+
+    await fromHome();
+    await walkServiceToReview(user);
+    await place(user, "Make This Offer");
+    await user.click(await screen.findByRole("button", { name: "Done" }));
+    expect(screen.getByRole("button", { name: "Offer or Request" })).toBeInTheDocument();
+
+    await fromHome();
+    await user.click(screen.getByRole("button", { name: "Go back" }));
+    expect(screen.getByRole("button", { name: "Offer or Request" })).toBeInTheDocument();
+    expect(screen.queryByText("Back on the pool")).not.toBeInTheDocument();
   });
 
   it("tells a member on a dead connection that it is saved, not sent", async () => {

@@ -2,6 +2,7 @@ import type {
   FailedCommitmentJob,
   PendingCommitmentAct,
 } from "@green-goods/shared/commitment-pooling";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { IntlShape } from "react-intl";
 
 /**
@@ -25,6 +26,12 @@ export function proofOnPhoneLine(
       at: failedProof.at,
     };
   if (!proofJob) return null;
+  // A Safe only proposed it: it waits for the Safe's signers, in the shared words (PRD-1564).
+  if (proofJob.waitingReason === "awaiting-confirmation" && proofJob.awaiting)
+    return {
+      text: formatMessage(SEND_STAGE_WORDS[proofJob.awaiting].label),
+      at: proofJob.createdAt,
+    };
   return {
     text: formatMessage({
       id:

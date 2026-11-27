@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  editsTermsFromGroup,
   type GroupableCommitment,
   groupCommitmentsForDisplay,
   identicalOpenCopyKey,
+  selectConfirmerEdit,
   selectRewardEdit,
 } from "../modules/commitment-pooling/display-groups";
 import {
@@ -103,7 +105,7 @@ describe("promises shown as groups", () => {
     });
   });
 
-  it("keeps apart copies from another set, or with other terms, but not another reward amount", () => {
+  it("keeps apart copies from another set, or with other terms, but not another reward or confirmers", () => {
     const entries = groupCommitmentsForDisplay({
       commitments: [
         ...copies(3),
@@ -114,13 +116,15 @@ describe("promises shown as groups", () => {
         ...copies(2, { claimType: "GARDEN" }),
         // Edit Reward changed the untaken copies' amount: still the same group.
         ...copies(2, { considerationAmount: 40_000n } as Partial<GroupableCommitment>),
+        // Edit Confirmers named others on the untaken copies: still the same group.
+        ...copies(2, { confirmers: [STEWARD, LINA], confirmationThreshold: 2 }),
       ],
       metadataByCID: metadata,
     });
 
     expect(
       entries.map((entry) => (entry.kind === "group" ? entry.children.length : "single"))
-    ).toEqual([5, 2, 2, 2, 2]);
+    ).toEqual([7, 2, 2, 2, 2]);
   });
 
   it("requires known matching action/count terms and task content, while ignoring reward records", () => {
@@ -290,6 +294,7 @@ describe("identical open copies made apart (DL-150)", () => {
     ["claim mode", { claimMode: "APPROVAL_GATED" }],
     ["requirements", { requirements: [{ actionUID: 44n, requiredCount: 2 }] }],
     ["reward rail", { considerationRail: "NONE" }],
+    ["confirmer group", { confirmers: [STEWARD] }],
     ["words", { metadataCID: "cid-water" }],
   ])("keeps apart another %s", (_term, change) => {
     const key = keyOf(change);
@@ -338,5 +343,95 @@ describe("Edit Reward", () => {
     { label: "every copy is taken", children: [taken, taken], unsent: 0, reason: "none-available" },
   ])("closes once $label", ({ children, unsent, reason }) => {
     expect(selectRewardEdit(children, { unsent })).toEqual({ open: false, reason });
+  });
+});
+
+describe("Edit Confirmers", () => {
+  const open = [record(), record({ onchainState: "OFFERED" })];
+
+  it("changes only the copies nobody has taken, even once one is kept", () => {
+    const children = [record({ onchainState: "FULFILLED" }), record({ onchainState: "ACCEPTED" })];
+    expect(selectConfirmerEdit([...children, ...open])).toEqual({ open: true, targets: open });
+  });
+
+  it("closes while a copy is unsent, and once every copy is taken", () => {
+    expect(selectConfirmerEdit(open, { unsent: 1 })).toEqual({ open: false, reason: "unsent" });
+    expect(selectConfirmerEdit([record({ onchainState: "ACCEPTED" })])).toEqual({
+      open: false,
+      reason: "none-available",
+    });
+  });
+});
+
+// PRD-1548: a copy whose words name a group is edited from the group only while the list shows
+// one, or while the group still has copies queued to send.
+describe("where a copy's reward and confirmers are edited", () => {
+  const settled = { metadataByCID: metadata, wordsSettled: true, queuedCopies: 0 };
+
+  it("edits a copy shown in its group from the group", () => {
+    const [lone, sibling] = copies(2);
+    expect(
+      editsTermsFromGroup(lone!, { ...settled, groupId: WATER, commitments: [lone!, sibling!] })
+    ).toBe(true);
+  });
+
+  it("edits a group's lone surviving copy on its own", () => {
+    const lone = record();
+    expect(editsTermsFromGroup(lone, { ...settled, groupId: WATER, commitments: [lone] })).toBe(
+      false
+    );
+  });
+
+  it("keeps both edits with the group while its other copies are still queued", () => {
+    const lone = record();
+    expect(
+      editsTermsFromGroup(lone, {
+        ...settled,
+        groupId: WATER,
+        commitments: [lone],
+        queuedCopies: 2,
+      })
+    ).toBe(true);
+  });
+
+  // The inspector's own read carries no requirements, so it would never fold by itself: the
+  // list's row for the copy decides.
+  it("decides from the list's own row, not the copy as the inspector read it", () => {
+    const [copy, sibling] = copies(2);
+    const detailRead = { ...copy!, requirements: undefined } as unknown as typeof copy & {};
+    expect(
+      editsTermsFromGroup(detailRead, {
+        ...settled,
+        groupId: WATER,
+        commitments: [copy!, sibling!],
+      })
+    ).toBe(true);
+  });
+
+  it("can't say until the list has the copy", () => {
+    const [copy, sibling] = copies(2);
+    expect(
+      editsTermsFromGroup(copy!, { ...settled, groupId: WATER, commitments: [sibling!] })
+    ).toBeNull();
+  });
+
+  it("edits a promise in no group on its own", () => {
+    const plain = record({ metadataCID: "cid-plain" });
+    expect(editsTermsFromGroup(plain, { ...settled, groupId: null, commitments: null })).toBe(
+      false
+    );
+  });
+
+  it("can't say while the pool's promises or their words are still being read", () => {
+    const lone = record();
+    expect(editsTermsFromGroup(lone, { ...settled, groupId: WATER, commitments: null })).toBeNull();
+    expect(
+      editsTermsFromGroup(lone, {
+        ...settled,
+        groupId: WATER,
+        commitments: [lone],
+        wordsSettled: false,
+      })
+    ).toBeNull();
   });
 });

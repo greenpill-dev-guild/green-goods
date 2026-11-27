@@ -25,10 +25,25 @@ import {
   resolveAdminWorkspaceSectionRoute,
 } from "../navigation/workspaceNavigation";
 import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
+import { useGardenReviewHealth } from "./useGardenReviewHealth";
+import { useGardenWorkCalendar } from "./useGardenWorkCalendar";
+
+export type {
+  GardenReviewHealth,
+  ReviewHealthReadState,
+  ReviewHealthWeek,
+} from "./useGardenReviewHealth";
+export type { GardenWorkCalendar, WorkCalendarReadState } from "./useGardenWorkCalendar";
+export {
+  dateOfDay,
+  type WorkCalendarDay,
+  type WorkCalendarStatus,
+  type WorkStatusCounts,
+} from "./workCalendar";
 
 type ActivityFilter = "all" | "work" | "impact" | "community";
 
-/** How often to look for a garden the cockpit knows of before the indexer does. */
+/** How often to look for a garden the Hub knows of before the indexer does. */
 const GARDEN_ARRIVAL_SCHEDULE_MS = [2_000, 5_000, 15_000, 30_000, 60_000] as const;
 
 function parseActivityFilter(value: string): ActivityFilter {
@@ -60,6 +75,16 @@ export function useGardenWorkspaceController() {
   const poolSeedOpen = location.pathname.startsWith("/garden/pool/seed");
   const range = parseGardenRange(searchParams.get("range"));
   const section = searchParams.get("section") ?? undefined;
+  // Read only where the calendar shows: a section link on Activity shows that section alone.
+  const workCalendar = useGardenWorkCalendar({
+    gardenId: selectedGarden?.id as Address | undefined,
+    active: view === "activity" && section === undefined,
+  });
+  // Review Health shows on the Health root only, so a section link reads nothing for it.
+  const reviewHealth = useGardenReviewHealth(
+    selectedGarden?.id as Address | undefined,
+    view === "health" && section === undefined
+  );
   const selectedItem = searchParams.get("item") ?? undefined;
   const settingsOpen = selectedItem === EDIT_GARDEN_ROUTE_ITEM;
   const handleSettingsClose = useRouteItemClose(settingsOpen);
@@ -211,8 +236,8 @@ export function useGardenWorkspaceController() {
         return {
           ...event,
           href: event.itemId
-            ? adminRoutes.hubWorkDetail(event.itemId, { gardenId: selectedGardenAddress })
-            : adminRoutes.hubWork({ gardenId: selectedGardenAddress }),
+            ? adminRoutes.reviewWorkDetail(event.itemId, { gardenId: selectedGardenAddress })
+            : adminRoutes.reviewWork({ gardenId: selectedGardenAddress }),
         };
       }
 
@@ -349,6 +374,8 @@ export function useGardenWorkspaceController() {
     treasuryBalance: formatAssetAmounts(endowmentByAsset, locale),
     updateOverviewQueryState,
     view,
+    workCalendar,
+    reviewHealth,
     gardenAddress: garden?.id as Address | undefined,
   };
 }

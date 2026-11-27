@@ -50,7 +50,7 @@ packages/admin/src/
 
 | Role | Who | What it opens | Read it as |
 |------|-----|---------------|------------|
-| **Steward** | An owner or steward of a garden (indexer query) | That garden in the cockpit | `isSteward`, `stewardGardens` |
+| **Steward** | An owner or steward of a garden (indexer query) | That garden in the Hub | `isSteward`, `stewardGardens` |
 | **Garden creator** | The deployment registry's owner, or an account on its allowlist | Create Garden, and nothing else | `isDeployer`, `role === "deployer"` |
 | **Protocol team** | The registry's owner, or an owner or steward of the Green Goods Community Garden | The protocol's surfaces, such as the Actions workspace and the Campaign Cookie Jars card | `isProtocolTeam` |
 
@@ -64,7 +64,7 @@ last answer, which may be cached. With no answer (a registry too old to have the
 that fails) the card stays hidden, even from an account that may manage the list. Being a garden
 creator never makes an account part of the protocol team.
 
-Evaluators reach the cockpit through `useEligibleAdminGardens`, not `useRole`. It lists the
+Evaluators reach the Hub through `useEligibleAdminGardens`, not `useRole`. It lists the
 gardens the account owns, stewards, or evaluates from the base list, which holds a chain's newest
 50 gardens; adds owned and stewarded gardens the role query finds beyond it; and adds the
 Community Garden for the protocol team. No role sees every garden.
@@ -105,7 +105,7 @@ if (!permissions.canRemoveMembers(garden)) {
 
 ### Route Guards
 
-`router.tsx` wraps the in-app routes in `routes/CanvasShell.tsx` and takes the route table from `routes/views.tsx`, which places the role guards: `RequireRole` checks `role` (Create Garden takes `["deployer"]`, so only garden creators open it), `RequireProtocolTeam` checks `isProtocolTeam` (the Actions workspace and the `/cookies` redirects), and `RequireCommunityAccess` sends anyone the Community workspace is closed to back to the Hub. Check `views.tsx` for the live nesting. The legacy `RequireAuth` / `DashboardShell` / `RequireDeployer` / `RequireOperatorOrDeployer` guards are deleted.
+`router.tsx` wraps the in-app routes in `routes/CanvasShell.tsx` and takes the route table from `routes/views.tsx`, which places the role guards: `RequireRole` checks `role` (Create Garden takes `["deployer"]`, so only garden creators open it), `RequireProtocolTeam` checks `isProtocolTeam` (the Actions workspace and the `/cookies` redirects), and `RequireCommunityAccess` sends anyone the Community workspace is closed to back to the Hub. Check `views.tsx` for the live nesting. The legacy `RequireAuth` and `DashboardShell` guards are deleted, and `RequireDeployer` and `RequireOperatorOrDeployer` are deleted too.
 
 ### Toast for All Transactions (MANDATORY)
 
@@ -137,12 +137,17 @@ presentation on mobile. Pass the mounting workspace's `tone` prop — the portal
 `[data-tone]` and the prop re-establishes it. Full-surface creation/commit flows use
 `variant="flow"` with `ADMIN_FLOW_DIALOG_CLASS`.
 
+The footer is the shared action bar: pass its props as `actions`, never buttons, and the dialog
+draws the bar (frontend-design Rule 14).
+
 ```typescript
-import { Button } from "@green-goods/shared/components/Button";
 import { AdminDialog } from "@/components/AdminDialog";
 
 <AdminDialog open={open} onOpenChange={setOpen} title="Add member" tone="community"
-  actions={<Button type="button" size="sm" onClick={handleSubmit}>Save</Button>}>
+  actions={{
+    primary: { label: "Save", onClick: handleSubmit },
+    secondary: { label: "Cancel", onClick: () => setOpen(false) },
+  }}>
   {/* form fields */}
 </AdminDialog>
 ```

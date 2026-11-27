@@ -4,7 +4,8 @@ import { type IntlShape, useIntl } from "react-intl";
 import { toastService, validationToasts } from "../../../components/toast";
 import { isOfflineTxHash } from "../../../modules/job-queue/queue-policy";
 import { logger } from "../../../modules/app/logger";
-import { isWorkPhoto } from "../../../modules/work/work-attachments";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
+import { isWorkMedia } from "../../../modules/work/work-attachments";
 import { validateWorkSubmissionContext } from "../../../modules/work/work-submission";
 import type { AuthStateValue } from "../../../providers/Auth";
 import type { Action, Address, Domain } from "../../../types/domain";
@@ -134,7 +135,12 @@ export function useSubmitWorkController({
     retainSubmission: true,
     onProgress: (stage, message) => {
       setProgressMessage(
-        formatMessage({ id: `app.admin.work.submit.progress.${stage}`, defaultMessage: message })
+        formatMessage(
+          // The send's stages read as they do everywhere (PRD-1552); the rest are Submit's own.
+          stage === "wallet" || stage === "confirming"
+            ? SEND_STAGE_WORDS[stage].label
+            : { id: `app.admin.work.submit.progress.${stage}`, defaultMessage: message }
+        )
       );
     },
     // A sent submission stays on its Review, which says so in place (DL-080):
@@ -267,17 +273,15 @@ export function useSubmitWorkController({
     if (busy) return;
     if (activeStepId === "media") {
       const minRequired = getMinRequiredWorkImages(selectedAction);
-      // Photos, not every staged file: a video is kept but does not count, and
-      // the submission would refuse the work at the end for the same shortfall.
-      const photoCount = images.filter((file) => isWorkPhoto(file)).length;
-      if (minRequired > 0 && photoCount < minRequired) {
+      const mediaCount = images.filter((file) => isWorkMedia(file)).length;
+      if (minRequired > 0 && mediaCount < minRequired) {
         setMediaFeedback({
           variant: "error",
           message: formatMessage(
             {
               id: "app.admin.work.submit.mediaRequiredError",
               defaultMessage:
-                "{count, plural, one {Add at least # photo to continue.} other {Add at least # photos to continue.}}",
+                "{count, plural, one {Add at least # media item to continue.} other {Add at least # media items to continue.}}",
             },
             { count: minRequired }
           ),

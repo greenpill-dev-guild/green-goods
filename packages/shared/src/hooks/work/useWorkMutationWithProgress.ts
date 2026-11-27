@@ -7,13 +7,15 @@
  * @module hooks/work/useWorkMutationWithProgress
  */
 
+import type { AuthMode } from "../../types/auth";
 import { useCallback, useMemo } from "react";
+import type { WalletSubmissionStage } from "../../modules/work/wallet-submission/types";
 import type { Action, Address, WorkDraft } from "../../types/domain";
 import { type SubmissionStage, useSubmissionProgress } from "./useSubmissionProgress";
 import { useWorkMutation } from "./useWorkMutation";
 
 interface UseWorkMutationWithProgressOptions {
-  authMode: "wallet" | "passkey" | "embedded" | null;
+  authMode: AuthMode;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
@@ -21,21 +23,20 @@ interface UseWorkMutationWithProgressOptions {
 }
 
 /**
- * Known wallet submission stages
+ * Maps wallet submission stages to our unified submission stages. The send's stages are the
+ * shared ones (PRD-1552): the wallet asked is this hook's "confirming" step, and the network
+ * confirming is its "syncing" step.
  */
-type WalletStage = "validating" | "uploading" | "confirming" | "syncing" | "complete";
-
-/**
- * Maps wallet submission stages to our unified submission stages
- */
-function mapWalletStage(stage: WalletStage | string): SubmissionStage {
+function mapWalletStage(stage: WalletSubmissionStage | string): SubmissionStage {
   switch (stage) {
     case "validating":
       return "compressing"; // Validation happens during compression prep
     case "uploading":
       return "uploading";
-    case "confirming":
+    case "wallet":
       return "confirming";
+    case "confirming":
+      return "syncing";
     case "syncing":
       return "syncing";
     case "complete":

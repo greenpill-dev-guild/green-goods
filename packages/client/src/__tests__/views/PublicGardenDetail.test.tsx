@@ -374,6 +374,31 @@ describe("GardenDetail", () => {
     expect(screen.getAllByText(/solar-powered community garden/i).length).toBeGreaterThanOrEqual(1);
   });
 
+  // PUB-032: the page names its garden in the head, not the Gardens list it was served as.
+  it("titles the page, its canonical URL and its sharing image by the Garden", () => {
+    const canonical = document.createElement("link");
+    canonical.rel = "canonical";
+    canonical.href = "https://www.greengoods.app/gardens";
+    document.head.append(canonical);
+    const { unmount } = renderView("/gardens/solar-community-garden");
+    expect(document.title).toBe("Solar Community Garden | Green Goods");
+    expect(canonical.getAttribute("href")).toBe(
+      "https://www.greengoods.app/gardens/solar-community-garden"
+    );
+    unmount();
+    expect(canonical.getAttribute("href")).toBe("https://www.greengoods.app/gardens");
+    canonical.remove();
+  });
+
+  it("still renders the Garden when its banner is not a readable URL", () => {
+    const result = detailResult();
+    result.data.garden.bannerImage = "http://[not a url";
+    mockUsePublicGardenDetail.mockReturnValue(result);
+    renderView("/gardens/solar-community-garden");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Solar Community Garden");
+    expect(document.title).toBe("Solar Community Garden | Green Goods");
+  });
+
   it("resolves the Garden by raw id/address", () => {
     renderView(`/gardens/${GARDEN_ID}`);
     expect(screen.getAllByText(/solar-powered community garden/i).length).toBeGreaterThanOrEqual(1);
@@ -603,7 +628,7 @@ describe("GardenDetail", () => {
     expect(
       within(dialog).getByText("Categoria: Plástico, Peso (kg): 15; Categoria: Vidro, Peso (kg): 8")
     ).toBeInTheDocument();
-    expect(within(dialog).queryByText(/\{\"category\"/)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/\{"category"/)).not.toBeInTheDocument();
   });
 
   it("withholds detail keys absent from the historical action", () => {

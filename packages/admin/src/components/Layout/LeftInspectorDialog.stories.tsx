@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { resolveHubSheetSelection } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import { resolveReviewSheetSelection } from "@green-goods/shared/hooks/admin-ui/review/review.workbenchModel";
 import { useMemo, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../../shared/.storybook/decorators";
@@ -9,7 +9,7 @@ import { LeftSheetProvider, useLeftSheetConfig, type LeftSheetConfig } from "./l
 
 const onClose = fn();
 
-function OpenInspector({ fallbackTone }: { fallbackTone: "hub" | "garden" }) {
+function OpenInspector({ fallbackTone }: { fallbackTone: "review" | "garden" }) {
   const config = useMemo<LeftSheetConfig>(
     () => ({
       title: "Review work",
@@ -46,11 +46,11 @@ const meta = {
   },
   decorators: [withAdminPrimitiveFrame],
   args: {
-    fallbackTone: "hub",
+    fallbackTone: "review",
   },
   render: (args) => (
     <LeftSheetProvider>
-      <OpenInspector fallbackTone={args.fallbackTone === "garden" ? "garden" : "hub"} />
+      <OpenInspector fallbackTone={args.fallbackTone === "garden" ? "garden" : "review"} />
     </LeftSheetProvider>
   ),
 } satisfies Meta<typeof LeftInspectorDialog>;
@@ -70,7 +70,7 @@ export const Open: Story = {
 
 function RetainedWorkInspector() {
   const [routeWorkId, setRouteWorkId] = useState<string>();
-  const selection = resolveHubSheetSelection({
+  const selection = resolveReviewSheetSelection({
     routeWorkId,
     activeWorkDetailId: "retained-work",
     hasSelectedCertification: false,
@@ -82,7 +82,7 @@ function RetainedWorkInspector() {
         ? {
             title: "Review retained work",
             content: <p>Canopy transect upload</p>,
-            tone: "hub",
+            tone: "review",
             onClose: () => {
               setRouteWorkId(undefined);
               requestAnimationFrame(() => releaseStuckDialogArtifacts(document));
@@ -97,7 +97,7 @@ function RetainedWorkInspector() {
       <button type="button" onClick={() => setRouteWorkId("retained-work")}>
         View work
       </button>
-      <LeftInspectorDialog fallbackTone="hub" />
+      <LeftInspectorDialog fallbackTone="review" />
     </>
   );
 }

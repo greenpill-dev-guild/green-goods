@@ -70,7 +70,7 @@ const ToneCell = ({
   tone,
   name,
 }: {
-  tone: "hub" | "garden" | "community" | "actions";
+  tone: "review" | "garden" | "community" | "actions";
   name: string;
 }) => (
   <section
@@ -119,7 +119,7 @@ const ToneGrid = ({ theme }: { theme: "light" | "dark" }) => (
   >
     <div className="type-label-sm font-semibold uppercase text-text-sub">{theme}</div>
     <div className="grid gap-4 md:grid-cols-2">
-      <ToneCell tone="hub" name="Hub" />
+      <ToneCell tone="review" name="Review" />
       <ToneCell tone="garden" name="Garden" />
       <ToneCell tone="community" name="Community" />
       <ToneCell tone="actions" name="Actions" />

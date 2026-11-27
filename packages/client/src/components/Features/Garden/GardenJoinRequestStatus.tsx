@@ -17,7 +17,10 @@ type Props = {
   hasCheckedStatus: boolean;
 };
 
-/** One stable region: progress and outcomes never move the form below it (DL-072). */
+/**
+ * One stable region: progress and outcomes never move the form below it (DL-072). It holds at
+ * least the height its usual lines need and grows for a longer one, never scrolling or clipping.
+ */
 export function GardenJoinRequestStatus({
   activity,
   request,
@@ -41,28 +44,28 @@ export function GardenJoinRequestStatus({
     activity === "checking"
       ? { id: "app.garden.joinRequest.checking", defaultMessage: "Checking for updates…" }
       : activity === "sending"
-        ? { id: "app.garden.joinRequest.sending", defaultMessage: "Sending your request…" }
+        ? { id: "app.garden.joinRequest.sending", defaultMessage: "Asking to join…" }
         : activity === "withdrawing"
           ? {
               id: "app.garden.joinRequest.withdrawing",
-              defaultMessage: "Withdrawing your request…",
+              defaultMessage: "Withdrawing…",
             }
           : activity === "updating"
-            ? { id: "app.garden.joinRequest.updating", defaultMessage: "Updating your request…" }
+            ? { id: "app.garden.joinRequest.updating", defaultMessage: "Updating…" }
             : problem
               ? {
                   id: "app.garden.joinRequest.attentionTitle",
-                  defaultMessage: "Let’s check your request",
+                  defaultMessage: "Let’s check where this stands",
                 }
               : receipt?.kind === "withdrawn"
                 ? {
                     id: "app.garden.joinRequest.withdrawnTitle",
-                    defaultMessage: "Request withdrawn",
+                    defaultMessage: "Withdrawn",
                   }
                 : request?.state === "pending"
                   ? {
                       id: "app.garden.joinRequest.pendingTitle",
-                      defaultMessage: "Request waiting for approval",
+                      defaultMessage: "Waiting for a steward",
                     }
                   : request?.state === "welcomed"
                     ? {
@@ -72,7 +75,7 @@ export function GardenJoinRequestStatus({
                     : request?.state === "declined"
                       ? {
                           id: "app.garden.joinRequest.declinedTitle",
-                          defaultMessage: "This request was declined",
+                          defaultMessage: "A steward declined this",
                         }
                       : {
                           id: "app.garden.joinRequest.readyTitle",
@@ -81,14 +84,13 @@ export function GardenJoinRequestStatus({
   const description = busy
     ? formatMessage({
         id: "app.garden.joinRequest.progressDescription",
-        defaultMessage:
-          "We’re updating your request. Confirm with your wallet or passkey if asked.",
+        defaultMessage: "We’re updating this. Confirm with your wallet or passkey if asked.",
       })
     : uncertain
       ? formatMessage({
           id: "app.garden.joinRequest.outcomeUnknown",
           defaultMessage:
-            "We could not confirm whether your request was saved. Check its status before trying again.",
+            "We couldn’t confirm whether that was saved. Check its status before trying again.",
         })
       : error
         ? formatMessage(gardenJoinRequestErrorMessage(error))
@@ -97,7 +99,7 @@ export function GardenJoinRequestStatus({
           : request?.state === "pending"
             ? formatMessage({
                 id: "app.garden.joinRequest.pendingDescription",
-                defaultMessage: "A garden steward will review your request.",
+                defaultMessage: "A garden steward will review your introduction.",
               })
             : request?.state === "welcomed"
               ? formatMessage({
@@ -109,11 +111,11 @@ export function GardenJoinRequestStatus({
                 : hasCheckedStatus
                   ? formatMessage({
                       id: "app.garden.joinRequest.none",
-                      defaultMessage: "You do not have a request for this garden yet.",
+                      defaultMessage: "You haven’t asked to join this garden yet.",
                     })
                   : formatMessage({
                       id: "app.garden.joinRequest.description",
-                      defaultMessage: "Introduce yourself. A steward will review your request.",
+                      defaultMessage: "Introduce yourself. A steward will review it.",
                     });
 
   return (
@@ -122,7 +124,7 @@ export function GardenJoinRequestStatus({
       aria-live="polite"
       aria-atomic="true"
       aria-busy={busy}
-      className={`flex h-28 gap-3 sm:h-24 overflow-y-auto rounded-[var(--radius-lg)] border p-3 ${problem ? "border-warning-light bg-warning-lighter text-warning-dark" : positive ? "border-success-light bg-success-lighter text-success-dark" : "border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950"}`}
+      className={`flex min-h-28 gap-3 sm:min-h-24 rounded-[var(--radius-lg)] border p-3 [overflow-wrap:anywhere] ${problem ? "border-warning-light bg-warning-lighter text-warning-dark" : positive ? "border-success-light bg-success-lighter text-success-dark" : "border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950"}`}
     >
       <Icon
         aria-hidden="true"

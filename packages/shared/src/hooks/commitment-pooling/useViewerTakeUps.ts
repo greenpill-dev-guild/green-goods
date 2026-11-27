@@ -3,7 +3,8 @@
  *
  * What the reader has already done toward taking a pool's promises up: the requests they made
  * that no steward has answered, and the take-ups still on this phone. Home's Take Part and
- * Highlights offer neither again, and neither does Submit Work's Start step (decision 18).
+ * Highlights offer neither again, and neither does Submit Work's Start step (decision 18). The
+ * same read says which promises anyone has a request on, which a reviewed group passes over (D5).
  *
  * @module hooks/commitment-pooling/useViewerTakeUps
  */
@@ -58,8 +59,11 @@ export function useViewerTakeUps(input: {
         viewer,
         pendingRequests: requests.rows.map((row) => row.claim),
         queued: queue.takeUpIds,
+        // As on a group's page, a read that failed or has answered nothing yet, its first read
+        // waiting for a connection included, leaves whose copies are asked for unknown.
+        requestsRead: !requests.isError && requests.data !== undefined,
       }),
-    [viewer, requests.rows, queue.takeUpIds]
+    [viewer, requests.rows, requests.isError, requests.data, queue.takeUpIds]
   );
   const requestsAnswered =
     requests.availability.status !== "available" ||

@@ -22,10 +22,6 @@ import {
   ZERO_ADDRESS,
 } from "./shared";
 
-// ============================================================================
-// OCTANT MODULE & VAULT EVENT HANDLERS
-// ============================================================================
-
 indexer.contractRegister(
   { contract: "OctantModule", event: "VaultCreated" },
   async ({ event, context }) => {

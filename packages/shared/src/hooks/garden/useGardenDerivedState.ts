@@ -294,7 +294,7 @@ export function useGardenDerivedState({
       // Descriptions carry no date: each row shows its time once, beside the title.
       description: formatMessage({ id: "app.garden.detail.activity.workSubmitted" }),
       timestamp: toMs(work.createdAt),
-      href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
+      href: adminRoutes.reviewWorkDetail(work.id, { gardenId: gardenAddress }),
       itemId: work.id,
       actionUID: work.actionUID,
       hasGeneratedTitle: !toWorkDisplayTitle(work.title, ""),

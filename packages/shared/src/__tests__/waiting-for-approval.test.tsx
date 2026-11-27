@@ -125,6 +125,31 @@ describe("the visit's rows", () => {
     expect(failed).toEqual({ status: "failed" });
     expect(isStillWaiting(failed)).toBe(true);
     expect(isStillWaiting({ status: "not-chosen", at: 1 })).toBe(false);
+
+    // An approval that may still land, or one the wallet may still hold after Cancel, holds the
+    // ask so Approve cannot send a second request (PRD-1551).
+    for (const status of ["still-confirming", "safe-signers", "stopped"] as const) {
+      const held = waitingRowState(entry!, { ...none, live, phase: { status, key } });
+      expect(held).toEqual({ status: "held" });
+      expect(isStillWaiting(held)).toBe(true);
+      // Once the index stops listing it, it was decided, by this approval or another.
+      expect(waitingRowState(entry!, { ...none, phase: { status, key } })).toEqual({
+        status: "gone",
+      });
+    }
+  });
+
+  it("keeps an ask held while the steward approves another (PRD-1551)", () => {
+    const { result } = renderHook(() => useClaimDecisions());
+    const step = useClaimDecisionStore.getState().step;
+    act(() => {
+      step({ type: "start", key: "a" });
+      step({ type: "stopped", key: "a" });
+      // Another ask's approval takes the one line.
+      step({ type: "start", key: "b" });
+    });
+    expect(result.current.phaseOf("a")).toEqual({ status: "stopped", key: "a" });
+    expect(result.current.phaseOf("b")).toMatchObject({ status: "signing", key: "b" });
   });
 });
 
@@ -158,6 +183,24 @@ describe("an ask in its promise's inspector", () => {
       status: "declined",
       at: 1_700_000,
     });
+  });
+
+  it.each([
+    ["taken up", "COMMITMENT_ACCEPTED", { status: "not-chosen", at: 1_800_000 }],
+    ["canceled", "COMMITMENT_CANCELLED", { status: "closed", ending: "canceled", at: 1_800_000 }],
+    ["expired", "COMMITMENT_EXPIRED", { status: "closed", ending: "expired", at: 1_800_000 }],
+    // A row from before the index named its reason reads as the take-up superseding first meant.
+    ["closed for no recorded reason", null, { status: "not-chosen", at: 1_800_000 }],
+  ])("closes an ask whose promise was %s for the reason the index gives", (_ending, resolutionCode, expected) => {
+    const closed = claimFixture({
+      commitmentId: 3n,
+      claimant: KWAME,
+      state: "SUPERSEDED",
+      resolutionCode,
+      resolvedAt: 1_800,
+    });
+
+    expect(askState(closed, { decisions: {}, phase: IDLE_ACT_PHASE })).toEqual(expected);
   });
 
   it("counts what an asker leads and still holds against the pool's limit, and what they kept", () => {

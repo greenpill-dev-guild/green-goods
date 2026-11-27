@@ -28,6 +28,15 @@ export {
   selectVoucherAskStage,
   UNAVAILABLE_VOUCHER_CONSOLE,
 } from "./voucher-console";
+// Accept and Start says how long the member's fallback start waits (DL-193).
+export { VOUCHER_START_FALLBACK_SECONDS } from "./voucher-start";
+// So is the confirmer rule a steward can rewrite on copies nobody has taken (Edit Confirmers).
+export {
+  type ConfirmerEditCopy,
+  type ConfirmerRule,
+  confirmerRuleError,
+  sameConfirmerRule,
+} from "./confirmer-edit";
 export type {
   IssuerSafeThreshold,
   VoucherAcceptanceChecks,

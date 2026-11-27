@@ -54,11 +54,11 @@ const surfaces = [
     root: path.join(repoRoot, "packages/admin/dist"),
     publicRoot: false,
     spaFallback: true,
-    routes: ["/", "/hub/work", "/actions", "/profile"],
+    routes: ["/", "/review/work", "/actions", "/profile"],
   },
   {
     name: "docs",
-    root: path.join(repoRoot, "docs/build"),
+    root: path.join(repoRoot, "docs/build/site"),
     publicRoot: true,
     spaFallback: false,
     routes: [

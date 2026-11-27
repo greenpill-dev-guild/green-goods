@@ -38,6 +38,9 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({ addGardener }),
 }));
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
+  useResolvedProfileAvatar: () => ({ avatarUri: "/images/avatar.png", isLoading: false }),
+}));
 
 function renderQueue() {
   return render(
@@ -104,11 +107,11 @@ describe("GardenJoinRequestsQueue", () => {
   it("says there are no requests only once a check has found none", async () => {
     queue.current = [];
     renderQueue();
-    expect(screen.queryByText("There are no pending join requests.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Nobody is asking to join right now.")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Check Requests" }));
+    await userEvent.click(screen.getByRole("button", { name: "Check Who's Asking" }));
     expect(
-      await screen.findByRole("heading", { name: "There are no pending join requests." })
+      await screen.findByRole("heading", { name: "Nobody is asking to join right now." })
     ).toBeInTheDocument();
     expect(keepCountGrant).not.toHaveBeenCalled();
   });
@@ -124,7 +127,7 @@ describe("GardenJoinRequestsQueue", () => {
     renderQueue();
 
     // Home counts what waits here with this grant, without asking for a signature (PRD-1381).
-    await userEvent.click(screen.getByRole("button", { name: "Check Requests" }));
+    await userEvent.click(screen.getByRole("button", { name: "Check Who's Asking" }));
     await waitFor(() => expect(keepCountGrant).toHaveBeenCalledWith(countGrant));
     expect(readCountAgain).not.toHaveBeenCalled();
 

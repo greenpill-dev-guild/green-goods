@@ -7,7 +7,6 @@ import {
   getServerGardenFenceFilters,
   subscribeToGardenFences,
 } from "../../modules/garden/garden-departures";
-import { getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
@@ -17,7 +16,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 import { roleKeys } from "../../config/query-keys/identity";
-import { compareAddresses } from "../../utils/blockchain/address";
+import { useProtocolRoles } from "../roles/useProtocolRoles";
 
 const GET_STEWARD_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetStewardGardens($steward: [String!]!, $chainId: Int!) {
@@ -71,18 +70,25 @@ export interface RoleInfo {
   role: UserRole;
   /** May create gardens: the deployment registry's owner or an account on its allowlist. */
   isDeployer: boolean;
-  /**
-   * Runs the protocol: the registry's owner or an owner or steward of the Green Goods Community
-   * Garden. Being allowed to create gardens does not make an account part of the team.
-   */
+  /** Effective Team Hat membership. Other garden and protocol roles do not imply Team. */
   isProtocolTeam: boolean;
+  isProductLead: boolean;
+  isAgent: boolean;
+  isTechnicalDeployer: boolean;
+  protocolRolesError: boolean;
+  /**
+   * The deployment registry has never answered, so `isDeployer` is unknown rather than false. A
+   * failed refresh over an earlier answer keeps that answer and does not set this.
+   */
+  deploymentPermissionsError: boolean;
   isSteward: boolean;
   stewardGardens: StewardGarden[];
   loading: boolean;
   /**
-   * True when the steward-gardens indexer query failed (network/indexer
-   * outage), as opposed to a successful query that genuinely returned none.
-   * Lets the admin distinguish a retryable error from real "no access".
+   * True when the steward-gardens indexer query or the protocol-role chain read
+   * failed, as opposed to reads that answered and genuinely found none. Lets the
+   * admin distinguish a retryable error from real "no access", so its message
+   * must not name either source.
    */
   gardensError: boolean;
   deploymentPermissions: {
@@ -107,6 +113,7 @@ export function useRole(): RoleInfo {
   const ready = auth.isReady;
 
   const deploymentRegistry = useDeploymentRegistry();
+  const protocolRoles = useProtocolRoles();
 
   // Use React Query for fetching steward gardens
   const {
@@ -120,6 +127,11 @@ export function useRole(): RoleInfo {
     staleTime: STALE_TIMES.baseLists,
     // Offline-first: prefer cached data
     networkMode: "offlineFirst",
+    // As with the deployment registry: a read with no answer, restarted by a mount or a window
+    // focus, reopens the Hub's access gate and loops it. Try Again and a reconnect read it again,
+    // and an answer, once there is one, still refreshes on focus.
+    retryOnMount: false,
+    refetchOnWindowFocus: (query) => query.state.data !== undefined,
   });
 
   const fences = useSyncExternalStore(
@@ -132,11 +144,7 @@ export function useRole(): RoleInfo {
     : [];
   const isSteward = stewardGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
-  const rootGarden = getNetworkConfig(chainId).rootGarden?.address;
-  const isProtocolTeam =
-    deploymentRegistry.isOwner ||
-    (rootGarden !== undefined &&
-      stewardGardens.some((garden) => compareAddresses(garden.id, rootGarden)));
+  const isProtocolTeam = protocolRoles.team;
 
   // Determine primary role based on capabilities
   let role: UserRole = "user";
@@ -150,10 +158,15 @@ export function useRole(): RoleInfo {
     role,
     isDeployer,
     isProtocolTeam,
+    isProductLead: protocolRoles.productLead,
+    isAgent: protocolRoles.agents,
+    isTechnicalDeployer: protocolRoles.deployer,
+    protocolRolesError: protocolRoles.isError,
+    deploymentPermissionsError: deploymentRegistry.error !== undefined,
     isSteward,
     stewardGardens,
-    loading: !ready || isFetching || deploymentRegistry.loading,
-    gardensError,
+    loading: !ready || isFetching || deploymentRegistry.loading || protocolRoles.isLoading,
+    gardensError: gardensError || protocolRoles.isError,
     deploymentPermissions: {
       canDeploy: deploymentRegistry.canDeploy,
       isOwner: deploymentRegistry.isOwner,

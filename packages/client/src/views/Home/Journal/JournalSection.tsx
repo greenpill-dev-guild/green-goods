@@ -10,6 +10,8 @@ export interface JournalSectionProps {
    * takes focus as it is pressed, so the sheet it opens hands focus back to it.
    */
   action?: { label: string; onClick: () => void };
+  /** A quiet line under the heading that says what the section holds, such as whose work. */
+  description?: string;
   /** A quiet line under the heading, such as when an offline copy of the list was saved. */
   note?: string;
   /** The section is reading what it lists; its placeholder rows stand in meanwhile. */
@@ -41,6 +43,7 @@ const LIST_LAYOUT = {
 export function JournalSection({
   title,
   action,
+  description,
   note,
   busy = false,
   layout = "rows",
@@ -70,7 +73,12 @@ export function JournalSection({
           </Button>
         ) : null}
       </div>
-      {note ? <p className="px-4 pb-2 type-meta text-text-sub-600">{note}</p> : null}
+      {description || note ? (
+        <div className="flex flex-col px-4 pb-2 type-meta text-text-sub-600">
+          {description ? <p>{description}</p> : null}
+          {note ? <p>{note}</p> : null}
+        </div>
+      ) : null}
       <ul className={LIST_LAYOUT[layout]}>{children}</ul>
     </section>
   );

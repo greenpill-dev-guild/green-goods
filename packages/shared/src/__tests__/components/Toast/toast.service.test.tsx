@@ -90,7 +90,7 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
   });
 
   it("keeps the wallet 'confirm in wallet' (human-wait) stage persistent — no auto-dismiss mid-signature", () => {
-    walletProgressToasts.confirming();
+    walletProgressToasts.wallet();
     vi.advanceTimersByTime(120_000); // far longer than the old 20s loading window
     expect(dismissSpy).not.toHaveBeenCalledWith("wallet-submission");
   });
@@ -156,6 +156,43 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
       screen.getByText("It's still saved on this phone. Try again here or from Your Work.")
         .parentElement
     ).toBe(body);
+  });
+
+  // PRD-1505: Home's join notice waits for an answer, and dropped over Home's chip and launchers.
+  it("starts a toast that keeps the top bar usable under the bar, and others where they were", () => {
+    render(<Toaster />);
+
+    act(() => {
+      toastService.info({ id: "below", message: "Waits under the bar.", belowTopBar: true });
+      toastService.info({ id: "over", message: "Drops from the top." });
+    });
+
+    const placed = (text: string) =>
+      screen.getByText(text).closest<HTMLElement>("[data-testid='toast-content']")?.parentElement
+        ?.parentElement;
+    expect(placed("Waits under the bar.")?.style.marginTop).toBe(
+      "calc(var(--app-top-bar-height) + 0.5rem - calc(1.5rem + env(safe-area-inset-top, 0px)))"
+    );
+    expect(placed("Drops from the top.")?.style.marginTop).toBe("");
+  });
+
+  // Home's join notice leaves unanswered when Home stops showing (PRD-1505): only the member's
+  // own dismissal may mark it read.
+  it("runs onDismiss for the member's close, never for toastService.dismiss", () => {
+    const onDismiss = vi.fn();
+    render(<Toaster />);
+    act(() => {
+      toastService.info({ id: "news", message: "News.", persistent: true, onDismiss });
+    });
+
+    act(() => toastService.dismiss("news"));
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    act(() => {
+      toastService.info({ id: "news", message: "News.", persistent: true, onDismiss });
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: /close|dismiss/i })[0]);
+    expect(onDismiss).toHaveBeenCalledOnce();
   });
 
   it("does not add an action control to notifications without actions", () => {

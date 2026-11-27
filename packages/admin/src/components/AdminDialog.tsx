@@ -12,7 +12,11 @@ import {
 import { useIntl } from "react-intl";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
+import {
+  hasSheetActions,
+  SheetActions,
+  type SheetActionsProps,
+} from "@green-goods/shared/components/Dialog/SheetActions";
 import { SheetGrip } from "@green-goods/shared/components/Dialog/SheetHeader";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -38,7 +42,8 @@ export interface AdminDialogProps {
   /** Accepted for existing callers and not drawn: the shared header carries no icon (DL-028, DL-117). */
   icon?: ComponentType<{ className?: string }> | ReactNode;
   children: ReactNode;
-  actions?: ReactNode;
+  /** The footer, as the shared action bar's props: the dialog draws the bar (DL-189). */
+  actions?: SheetActionsProps;
   size?: "sm" | "md" | "lg";
   /** Keep a single-purpose flow stable across steps; the body scrolls inside. */
   height?: "content" | "stable";
@@ -46,7 +51,6 @@ export interface AdminDialogProps {
   sheetSize?: SheetSize;
   variant?: "standard" | "confirm" | "palette" | "flow";
   bodyClassName?: string;
-  actionsClassName?: string;
   hideCloseButton?: boolean;
   preventClose?: boolean;
   role?: "dialog" | "alertdialog";
@@ -60,10 +64,10 @@ export interface AdminDialogProps {
    * (`--tone-*`) is otherwise unset inside the dialog; the component defaults
    * to the neutral `home` (stone) tone so an untoned portal reads calm rather
    * than brand green. Passing the workspace re-establishes its tone in-portal —
-   * the action flows do, so Hub flows read blue, Garden green, etc. Consumers
+   * the action flows do, so Review flows read blue, Garden green, etc. Consumers
    * must read `--tone-action` / `--tone-on-surface-accent` (not `--m3-primary`).
    */
-  tone?: "hub" | "garden" | "community" | "actions" | "home";
+  tone?: "review" | "garden" | "community" | "actions" | "home";
 }
 
 export interface AdminConfirmDialogProps {
@@ -176,7 +180,8 @@ const closeButtonClasses = cn(
  *   while it scrolls under it
  * - Body: the scrollable region between header and footer (px-4 py-4 sm:px-6)
  * - Actions: pinned footer bar — hairline top border on --surface-raised
- *   (the SheetFooter anatomy the flows use), buttons right-aligned
+ *   (the SheetFooter anatomy the flows use), holding the shared action bar,
+ *   which the dialog draws from the `actions` props (DL-189)
  * - palette/flow suppress the structured header/padding and own their chrome,
  *   beside an absolute close button
  * - Animations: sheet slide-up (mobile) / zoom (desktop) on open/close
@@ -200,7 +205,6 @@ export function AdminDialog({
   sheetSize,
   variant = "standard",
   bodyClassName,
-  actionsClassName,
   hideCloseButton = false,
   preventClose = false,
   role = "dialog",
@@ -330,7 +334,7 @@ export function AdminDialog({
           }}
         >
           {/* Below 640px the sheet's grip tops the surface. It marks the
-              sheet only: the cockpit's sheet does not drag. */}
+              sheet only: the Hub's sheet does not drag. */}
           {rendersAsSheet ? <SheetGrip /> : null}
 
           {/* Close button - absolute top-right for palette and flow, under the
@@ -382,21 +386,16 @@ export function AdminDialog({
           </div>
 
           {/* Actions — pinned footer bar (the flows' SheetFooter anatomy):
-              hairline top border on the raised surface, buttons right-aligned. */}
-          {actions ? (
+              hairline top border on the raised surface, around the shared bar. */}
+          {hasSheetActions(actions) ? (
             <div
               data-slot="actions"
               data-testid="admin-dialog-actions"
-              className={cn(
-                // Hairline + raised tokens carry fallbacks so the footer stays
-                // correct in contexts that don't load admin index.css (Storybook
-                // renders stories without it — an unset var would fall back to
-                // currentColor and paint a near-black border).
-                "flex shrink-0 flex-col-reverse gap-2 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))] bg-[var(--surface-raised,rgb(var(--bg-white-0)))] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:py-3",
-                actionsClassName
-              )}
+              // Hairline + raised tokens carry fallbacks for contexts that don't load
+              // admin index.css (Storybook): an unset var paints a near-black border.
+              className="flex shrink-0 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))] bg-[var(--surface-raised,rgb(var(--bg-white-0)))] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-3"
             >
-              {actions}
+              <SheetActions {...actions} />
             </div>
           ) : null}
         </Dialog.Content>
@@ -477,16 +476,16 @@ export function AdminConfirmDialog({
         // in the warning or danger fill when the dialog warns, its one tone cue
         // now the header has no icon. A loading confirm stays focusable and
         // ignores activation.
-        <SheetActions
-          primary={{
+        {
+          primary: {
             label: resolvedConfirmLabel,
             onClick: handleConfirm,
             loading: isLoading,
             disabled: !isLoading && confirmDisabled,
             tone: variant,
-          }}
-          secondary={{ label: resolvedCancelLabel, onClick: handleCancel, disabled: isLoading }}
-        />
+          },
+          secondary: { label: resolvedCancelLabel, onClick: handleCancel, disabled: isLoading },
+        }
       }
     >
       {description ? null : (

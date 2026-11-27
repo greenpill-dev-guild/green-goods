@@ -1,20 +1,27 @@
 /** @vitest-environment node */
 
 import "fake-indexeddb/auto";
+import serviceOffersABI from "@green-goods/contracts/abis/ICommitmentServiceOffers.json";
 import type { Config } from "@wagmi/core";
-import { encodeAbiParameters, encodeEventTopics, ExecutionRevertedError } from "viem";
+import {
+  type Abi,
+  ContractFunctionRevertedError,
+  encodeAbiParameters,
+  encodeErrorResult,
+  encodeEventTopics,
+  ExecutionRevertedError,
+} from "viem";
 import { describe, expect, it, vi } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
-import type {
-  CommitmentCreationPayload,
-  CommitmentJobExecutionDependencies,
-} from "../../modules/commitment-pooling/jobs";
 import {
+  type CommitmentCreationPayload,
+  type CommitmentJobExecutionDependencies,
   hashCommitmentCreationPayload,
   hashSeriesCreationPayload,
   hashWorkLinkPayload,
 } from "../../modules/commitment-pooling/jobs";
 import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
+import { ApprovalAlreadyDecidedError } from "../../modules/work/submit-approval-command";
 import {
   type CommitmentChainReads,
   createCommitmentChainReads,
@@ -40,10 +47,11 @@ import { WorkSendCancelledError } from "../../modules/work/send-outcome";
 import { StrandedSendReopened } from "../../modules/work/stranded-intent";
 import { PendingHeicConversionError } from "../../modules/work/work-attachments";
 import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
-import type {
-  AtomicBatchOptions,
-  ContractCall,
-  TransactionSender,
+import {
+  type AtomicBatchOptions,
+  type ContractCall,
+  ReceiptWaitLimitError,
+  type TransactionSender,
 } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
@@ -63,6 +71,11 @@ vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
 
 import { MOCK_TX_HASH } from "../test-utils/mock-factories";
 import { uploadConsent } from "../test-utils/upload-policy";
+
+// A kept decision is rechecked on chain before it sends; these tests send undecided works.
+vi.mock("../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: async () => false }),
+}));
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -359,6 +372,36 @@ describe("work and approval job executors", () => {
     ).rejects.toThrow("IPFS upload service is not configured");
   });
 
+  it("never sends a kept decision on a work the chain has decided since", async () => {
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const approval = job<ApprovalJobPayload>("approval", {
+      actionUID: 7,
+      workUID: HASH,
+      gardenAddress: GARDEN,
+      gardenerAddress: USER,
+      approved: true,
+      confidence: 2,
+      verificationMethod: 1,
+    });
+
+    await expect(
+      executeApprovalJob(approval, 11155111, sender, {
+        encodeApproval: vi.fn().mockReturnValue(HASH),
+        easConfig: EAS_CONFIG,
+        isDecided: vi.fn().mockResolvedValue(true),
+      })
+    ).rejects.toBeInstanceOf(ApprovalAlreadyDecidedError);
+    // A read that cannot tell leaves the job to try again, and sends nothing either.
+    await expect(
+      executeApprovalJob(approval, 11155111, sender, {
+        encodeApproval: vi.fn().mockReturnValue(HASH),
+        easConfig: EAS_CONFIG,
+        isDecided: vi.fn().mockRejectedValue(new Error("rpc down")),
+      })
+    ).rejects.toThrow("rpc down");
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("keeps the production approval encoder and EAS config as defaults", async () => {
     const sender = createMockTransactionSender({ authMode: "wallet" });
     const approval = job<ApprovalJobPayload>("approval", {
@@ -545,6 +588,81 @@ describe("commitment queue executor", () => {
     expect((queued.payload as CommitmentCreationPayload).metadataCID).toBe("bafy-published");
     expect(queueStore.updateJob).toHaveBeenCalledOnce();
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a creation whose receipt outlasted the queue's limit as submitted, with its nonce", async () => {
+    // Its transaction is out and may still land: the next pass waits for the chain to show
+    // it rather than send a second promise, and keeps the nonce that can later show another
+    // took its place (PRD-1551).
+    const sender = createMockTransactionSender({
+      sendContractCall: vi.fn(async () => {
+        throw new ReceiptWaitLimitError(120_000, { hash: MOCK_TX_HASH });
+      }),
+    });
+    const queued = job("commitment", commitmentPayload());
+
+    await expect(
+      executeCommitmentQueueJob("job-commitment", queued, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(chainClock()), readTransactionNonce: vi.fn(async () => 7) },
+        store: store(),
+      })
+    ).resolves.toEqual({ status: "submitted", txHash: MOCK_TX_HASH });
+    expect(queued.meta).toMatchObject({ submittedTxNonce: 7 });
+  });
+
+  it("holds a creation whose UserOperation outlasted the limit as waiting, never failed", async () => {
+    // A passkey's operation names no transaction, yet it went out and may still land: failing
+    // it would spend an attempt and read as failed (PRD-1551).
+    const sender = createMockTransactionSender({
+      sendContractCall: vi.fn(async () => {
+        throw new ReceiptWaitLimitError(120_000);
+      }),
+    });
+
+    await expect(
+      executeCommitmentQueueJob(
+        "job-commitment",
+        job("commitment", commitmentPayload()),
+        42161,
+        sender,
+        { demoActive: () => false, reads: reads(chainClock()), store: store() }
+      )
+    ).resolves.toEqual({ status: "waiting", reason: "awaiting-confirmation" });
+  });
+
+  it.each([
+    ["reverted", { reverted: true, superseded: false }, true],
+    ["lost its nonce to another", { reverted: false, superseded: true }, true],
+    ["still pending", { reverted: false, superseded: false }, false],
+  ] as const)("sends a kept creation again only once its transaction %s", async (_case, chain, again) => {
+    // Kept as submitted after the limit, it made nothing if its transaction then reverted or
+    // can never land; one pending or unknown waits for the chain instead (PRD-1551).
+    const sender = createMockTransactionSender();
+    const kept = job("commitment", commitmentPayload(), {
+      meta: { submittedTxHash: HASH, submittedTxNonce: 7 },
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-commitment", kept, 42161, sender, {
+        demoActive: () => false,
+        reads: {
+          ...reads(chainClock()),
+          transactionReverted: vi.fn(async () => chain.reverted),
+          transactionSuperseded: vi.fn(
+            async (hash: string, _account: string, nonce: number) =>
+              chain.superseded && hash === HASH && nonce === 7
+          ),
+        },
+        store: store(),
+      })
+    ).resolves.toEqual(
+      again
+        ? { status: "submitted", txHash: MOCK_TX_HASH }
+        : { status: "waiting", reason: "pending-first-send" }
+    );
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(again ? 1 : 0);
+    expect(kept.meta).toEqual(again ? {} : { submittedTxHash: HASH, submittedTxNonce: 7 });
   });
 
   it("never publishes the words of a promise composed offline that the chain can no longer keep", async () => {
@@ -1451,9 +1569,13 @@ describe("commitment acts record their sends", () => {
     expect(hasRecordedSend(claim)).toBe(false);
   });
 
-  it("names a revert from the chain as a refusal, so the queue does not try it again", async () => {
+  it("stops a claim whose signer is the promise's creator", async () => {
     const claim = takeUp("claim-reverted");
-    const reverted = new ExecutionRevertedError();
+    const reverted = new ContractFunctionRevertedError({
+      abi: CommitmentPoolingModuleABI,
+      data: encodeErrorResult({ abi: CommitmentPoolingModuleABI, errorName: "SelfCounterparty" }),
+      functionName: "claimCommitment",
+    });
     const sender = createMockTransactionSender({ authMode: "wallet" });
 
     const refusal = await executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
@@ -1465,6 +1587,66 @@ describe("commitment acts record their sends", () => {
     expect(refusal).toBeInstanceOf(ActRefusedByChain);
     expect((refusal as Error).message).toBe(reverted.message);
     expect((refusal as Error).cause).toBe(reverted);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("stops an ordinary take-up when the service offer requires booking", async () => {
+    const claim = takeUp("service-offer-claim");
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const data = encodeErrorResult({
+      abi: serviceOffersABI as Abi,
+      errorName: "ServiceClaimPathRequired",
+      args: [1n],
+    });
+    const simulateContract = vi.fn(async (_config: Config, request: { abi: Abi }) => {
+      throw new ContractFunctionRevertedError({
+        abi: request.abi,
+        data,
+        functionName: "claimCommitment",
+      });
+    });
+    const { simulateSend } = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      config: {} as Config,
+      simulateContract: simulateContract as never,
+    });
+
+    await expect(
+      executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(), simulateSend },
+        store: store(),
+      })
+    ).rejects.toMatchObject({
+      name: "ActRefusedByChain",
+      cause: { data: { errorName: "ServiceClaimPathRequired" } },
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    new ExecutionRevertedError(),
+    new ContractFunctionRevertedError({
+      abi: CommitmentPoolingModuleABI,
+      data: encodeErrorResult({
+        abi: CommitmentPoolingModuleABI,
+        errorName: "CommitmentNotInState",
+        args: [1n, 0],
+      }),
+      functionName: "claimCommitment",
+    }),
+  ])("keeps an opaque or state-dependent refusal retryable", async (reverted) => {
+    const claim = takeUp("claim-retryable");
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+
+    await expect(
+      executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(), simulateSend: vi.fn().mockRejectedValue(reverted) },
+        store: store(),
+      })
+    ).rejects.toBe(reverted);
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });

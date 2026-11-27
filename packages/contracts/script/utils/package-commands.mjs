@@ -125,7 +125,12 @@ export function resolvePackageCommand(command, argv, env = process.env) {
     noPositionals(positionals);
     if (values.check && values.fix) throw new Error("--check and --fix conflict");
     steps = [node(["node", "../../scripts/contracts/check-foundry-version.mjs"]), step("forge", ["fmt", ...(values.check ? ["--check"] : [])])];
-    if (command === "lint") steps.push(node(["node", "node_modules/solhint/solhint.js", "--config", "./.solhint.json", "src/**/*.sol", "--ignore-path", ".solhintignore", ...(values.fix ? ["--fix"] : [])]));
+    // Solhint's warnings are held to a shrink-only baseline (scripts/data/solhint-baseline.json); --fix runs solhint itself.
+    if (command === "lint") {
+      steps.push(values.fix
+        ? node(["node", "node_modules/solhint/solhint.js", "--config", "./.solhint.json", "src/**/*.sol", "--ignore-path", ".solhintignore", "--fix"])
+        : node(["node", "../../scripts/contracts/check-solhint-baseline.mjs"]));
+    }
   } else if (command === "clean") {
     if (positionals.length !== 1) throw new Error("Choose clean artifacts or clean test-cache");
     steps = [{ clean: choose(positionals[0], ["artifacts", "test-cache"], "cleanup scope") }];

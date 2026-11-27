@@ -1,5 +1,6 @@
 import { envelopeIssues, type ResourceView } from "@green-goods/shared/modules/agent-reporting";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setControl } from "../../services/reporting/controls";
 import { TestBrowser } from "./support/browser";
 import {
   adaAccount,
@@ -11,7 +12,7 @@ import {
   stewardAccount,
 } from "./support/flows";
 import { TAS } from "./support/fixtures";
-import { ADA, BOLA, Harness } from "./support/harness";
+import { ADA, BOLA, Harness, summaryToken } from "./support/harness";
 
 /**
  * Steward review through chat and the signing page: a linked operator lists pending work, records
@@ -52,17 +53,22 @@ async function publishedWork(): Promise<`0x${string}`> {
   return workUID;
 }
 
-/** Bola agrees to processing and links the steward account through the browser and chat. */
-async function linkedSteward(): Promise<void> {
+/**
+ * Bola agrees to processing and links the steward account through the browser and chat. Pairing
+ * carries on with the review Bola asked for, so its replies end with the work waiting.
+ */
+async function linkedSteward(): Promise<string[]> {
   harness.chain.grantRole(TAS.address, stewardAccount.address, { operator: true });
   await harness.say(BOLA, "REVIEW");
   await harness.press(BOLA, "I agree");
   const browser = new TestBrowser(harness.app);
   await browser.open(latestLink(harness));
   const proof = await browser.prove(stewardAccount);
-  expect(await harness.say(BOLA, `PAIR ${proof.body.pairingCode}`)).toEqual([
-    `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`,
-  ]);
+  const [linked, ...review] = await harness.say(BOLA, `PAIR ${proof.body.pairingCode}`);
+  expect(linked).toBe(
+    `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`
+  );
+  return review;
 }
 
 async function openDecisionPage(): Promise<{ browser: TestBrowser; view: ResourceView }> {
@@ -89,16 +95,15 @@ async function decide(decision: "Approve" | "Reject", feedback: string): Promise
 describe("steward review", () => {
   it("records an approval signed by the steward's own account", async () => {
     const workUID = await publishedWork();
-    await linkedSteward();
-
-    expect(await harness.say(BOLA, "REVIEW")).toEqual([
+    // Bola asked to review before linking, so linking shows the work without REVIEW being sent again.
+    expect(await linkedSteward()).toEqual([
       "Work waiting for your review in TAS. Choose one to start:\n1. Tree planting (TAS)",
     ]);
     // A decision's answers have nothing to do with a garden's activities, so none are read, even
     // for a steward whose account is in a single garden.
     const activityReads = harness.catalog.calls;
     expect(await harness.say(BOLA, "1")).toEqual([
-      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`,
+      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}? You can give your confidence and feedback in the same reply.\n1. Approve\n2. Reject`,
     ]);
     expect(await harness.press(BOLA, "Approve")).toEqual([
       "How confident are you in this work?\n1. Low\n2. Medium\n3. High",
@@ -185,7 +190,7 @@ describe("steward review", () => {
       "You have a review in progress. Send CANCEL to discard it or keep going with it.",
     ]);
     expect(await harness.say(BOLA, "STATUS")).toEqual([
-      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`,
+      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}? You can give your confidence and feedback in the same reply.\n1. Approve\n2. Reject`,
     ]);
     expect(await harness.press(BOLA, "Reject")).toEqual([
       "Tell the gardener why you're rejecting this work (it will be public).",
@@ -213,7 +218,7 @@ describe("steward review", () => {
     await linkedSteward();
     await harness.say(BOLA, "REVIEW");
     await harness.say(BOLA, "1");
-    const decision = `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`;
+    const decision = `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}? You can give your confidence and feedback in the same reply.\n1. Approve\n2. Reject`;
     // STOP closes the decision's question and leaves the decision open.
     expect((await harness.say(BOLA, "STOP"))[0]).toMatch(/^You've stopped the assistant\./);
     expect((await harness.say(BOLA, "START"))[0]).toContain("Do you agree?");
@@ -228,10 +233,153 @@ describe("steward review", () => {
     expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 1 });
   });
 
+  it("says once when a decision's signing link expires unused, and RETRY sends a fresh one", async () => {
+    const LINK_EXPIRED =
+      "Your signing link expired before anything was sent, so your review wasn't recorded. Your decision is saved; reply RETRY for a new link.";
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const expired = latestLink(harness);
+
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe(LINK_EXPIRED);
+    harness.clock.advance(60 * 60_000);
+    await harness.drain();
+    expect(sentTexts().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([LINK_EXPIRED]);
+
+    const fresh = await harness.say(BOLA, "RETRY");
+    expect(fresh[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(expired);
+
+    // The fresh link signs the decision already confirmed, and records it.
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    const attempt = await reserve(browser, view, envelope);
+    expect(attempt.status).toBe(200);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: harness.chain.submit({
+        attester: stewardAccount.address,
+        to: envelope.call.to,
+        data: envelope.call.data,
+      }),
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe("Your review is recorded ✅");
+    // The fresh link's own expiry comes after the send, so it says nothing.
+    const said = sentTexts().length;
+    harness.clock.advance(
+      harness.core.settings.linkChallengeTtlMs + harness.core.settings.browserSessionTtlMs
+    );
+    await harness.drain();
+    expect(sentTexts().slice(said)).not.toContain(LINK_EXPIRED);
+  });
+
+  it("sends a lapsed decision's fresh link on RETRY even while a report is open beside it", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const expired = latestLink(harness);
+    // The steward starts a report of their own while the decision waits for its signature.
+    await harness.say(BOLA, "Today I planted twelve baobab seedlings by the fence");
+    expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 2 });
+    // The decision's link is the last one the chat sent, so NEW LINK refreshes it, lapsed or not.
+    const live = await harness.say(BOLA, "new link");
+    expect(live[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(expired);
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+
+    const lapsed = latestLink(harness);
+    const fresh = await harness.say(BOLA, "RETRY");
+    expect(fresh[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(lapsed);
+  });
+
+  it("sends NEW LINK to the report when its link went out after the decision's, in the same instant", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    // The steward then reports work of their own and is sent its publishing link. The test clock
+    // has not moved, so both links carry the same time and only their order tells them apart.
+    harness.chain.grantRole(TAS.address, stewardAccount.address, {
+      gardener: true,
+      operator: true,
+    });
+    await harness.say(BOLA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(BOLA, "Tree planting");
+    await harness.say(BOLA, "12");
+    await harness.say(BOLA, "2");
+    const report = await harness.say(BOLA, "3 hours");
+    expect((await harness.say(BOLA, `CONFIRM ${summaryToken(report)}`))[0]).toContain(
+      "Open this page to review and sign the exact publication"
+    );
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+
+    expect((await harness.say(BOLA, "new link"))[0]).toContain(
+      "Open this page to review and sign the exact publication with your wallet."
+    );
+  });
+
   it("never offers or accepts a steward's own work", async () => {
     await publishedWork();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true, operator: true });
     expect(await harness.say(ADA, "REVIEW")).toEqual(["There's no work waiting for your review."]);
+  });
+
+  it("keeps what a steward said about someone's work out of what a model later reads", async () => {
+    const unclear = {
+      intent: "unclear" as const,
+      gardenKey: null,
+      actionUID: null,
+      facts: [],
+      models: ["fixture-model"],
+    };
+    const step = () => harness.clock.advance(60_000);
+    await publishedWork();
+    await linkedSteward();
+    step();
+    await harness.say(BOLA, "REVIEW");
+    step();
+    // Typed at the list of work, before any decision exists.
+    await harness.say(BOLA, "the second one, she always inflates her counts");
+    step();
+    await harness.say(BOLA, "1");
+    step();
+    await harness.press(BOLA, "Approve");
+    await harness.press(BOLA, "High");
+    step();
+    await harness.say(BOLA, "The counts look padded to me");
+    step();
+    await harness.say(BOLA, "CANCEL");
+    step();
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "review turns" });
+    harness.interpreter.responses = [unclear, unclear];
+    await harness.say(BOLA, "I also weeded the north beds today");
+    step();
+    await harness.say(BOLA, "which garden do you mean?");
+
+    const [story, question] = harness.interpreter.requests.slice(-2);
+    // The story starts a report with no earlier report to bound its context: nothing from the
+    // review may be in it. The report's own first turn is then kept for its next message.
+    expect(story?.message.text).toBe("I also weeded the north beds today");
+    expect(question?.turns.map((turn) => turn.text)).toContain(
+      "I also weeded the north beds today"
+    );
+    for (const request of [story, question])
+      expect(JSON.stringify(request)).not.toMatch(
+        /inflates|padded|approve or reject|How confident/i
+      );
   });
 
   it("tells a linked account without an operator role that it cannot review", async () => {
@@ -282,5 +430,103 @@ describe("steward review", () => {
         )
         .get()
     ).toEqual({ n: 0 });
+  });
+
+  it("answers a steward's follow-ups with the stopped check once a decision's check gives up", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    expect((await reserve(browser, view, envelope)).status).toBe(200);
+    // The page is closed before it reports, and the decision never lands.
+    harness.clock.advance(harness.core.settings.walletResponseWindowMs);
+    await harness.drain();
+    for (let pass = 0; pass < 45; pass += 1) {
+      harness.clock.advance(30_000);
+      await harness.drain();
+    }
+    const stopped =
+      "I've checked the chain and still can't find your review, so I've stopped checking. I won't send it again. If it doesn't show on the work, write to contact@greengoods.app.";
+    expect(sentTexts().filter((text) => text === stopped)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([stopped]);
+    expect(await harness.say(BOLA, "EDIT")).toEqual([stopped]);
+    expect(await harness.say(BOLA, "CANCEL")).toEqual([stopped]);
+  });
+
+  it("tells a steward a sent decision is still confirming, and when its check stops with the attestation unread", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    const attempt = await reserve(browser, view, envelope);
+    const hash = harness.chain.submit({
+      attester: stewardAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.chain.hidden.add(hash);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    const passes = async (count: number) => {
+      for (let pass = 0; pass < count; pass += 1) {
+        harness.clock.advance(30_000);
+        await harness.drain();
+      }
+    };
+    const confirming =
+      "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again. I'll message you when your review is recorded.";
+    await passes(6);
+    expect(sentTexts().filter((text) => text === confirming)).toHaveLength(1);
+
+    // The decision is mined, but its attestation is never read back.
+    harness.chain.hidden.delete(hash);
+    harness.chain.attestationsUnread = true;
+    await passes(45);
+    const unread =
+      "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your review doesn't show on the work, write to contact@greengoods.app.";
+    expect(sentTexts().filter((text) => text === unread)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([unread]);
+  });
+
+  // PRD-1568: the page could not report the proposal's hash first, so the proposal comes alone.
+  it("tells a steward a decision a Safe only proposed waits for its signers, and records it once run", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    const attempt = await reserve(browser, view, envelope);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "safe_proposal",
+      safeTxHash: `0x${"5a".repeat(32)}`,
+    });
+    await harness.drain();
+    const safeSigners =
+      "Waiting for the Safe's signers. Your Safe has the proposal. It goes through once enough of the Safe's owners sign it. I'll message you when your review is recorded.";
+    expect(sentTexts().filter((text) => text === safeSigners)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([safeSigners]);
+
+    harness.chain.submit({
+      attester: stewardAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.clock.advance(10 * 60_000);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe("Your review is recorded ✅");
   });
 });

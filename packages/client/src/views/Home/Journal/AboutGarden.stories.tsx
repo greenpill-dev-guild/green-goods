@@ -162,17 +162,16 @@ function AboutGardenStory({ width, locale }: AboutGardenStoryProps) {
   useLayoutEffect(() => () => useUIStore.getState().closeGardenSheet(), []);
   return (
     <JournalPhone width={width} locale={locale}>
-      <AboutGarden garden={GARDEN} />
+      <AboutGarden garden={GARDEN} hubUrl="https://hub.example.test" />
     </JournalPhone>
   );
 }
 
 /**
  * About This Garden (PWA Home step 10, DL-128): the journal's last section, one item row per
- * entry point the garden page kept for members. Insights, Gardeners and Share for everyone;
- * Endowment for a steward, an evaluator or a depositor of a garden with a vault; Governance only
- * while its flag is on. Each row follows the garden page's own predicate, so no role gains an
- * entry here it would not have on the page. Fictional data from the client journeys.
+ * entry point it offers. Insights, Gardeners and Share are available to everyone. Stewards see
+ * Endowment for a garden with a vault and the Hub when its URL is configured. Governance follows
+ * the garden page's access rule. Fictional data from the client journeys.
  */
 const meta: Meta<typeof AboutGardenStory> = {
   title: "Client/Home/AboutGarden",
@@ -212,28 +211,29 @@ export const Gardener: Story = {
   },
 };
 
-/** A steward of a garden with a vault: Endowment joins the rows. */
+/** A steward of a garden with a vault sees Endowment and the Hub. */
 export const Steward: Story = {
   args: { role: "steward" },
   play: async ({ canvasElement }) => {
     await expect(rowTitles(canvasElement)).toEqual([
       "Insights",
       "Gardeners",
-      "Share Garden",
       "Endowment",
+      "Share Garden",
+      "Green Goods Hub",
     ]);
   },
 };
 
-/** An evaluator the chain confirms, with no role on the record: the same rows as a steward. */
+/** An evaluator who is not a steward sees the common rows. */
 export const Evaluator: Story = {
   args: { role: "evaluator" },
   play: async ({ canvasElement }) => {
-    await expect(rowTitles(canvasElement)).toContain("Endowment");
+    await expect(rowTitles(canvasElement)).toEqual(["Insights", "Gardeners", "Share Garden"]);
   },
 };
 
-/** An owner answers join requests in Gardeners, but reviews nothing and has no deposit: no Endowment. */
+/** An owner who is not a steward can answer join requests from Gardeners. */
 export const Owner: Story = {
   args: { role: "owner" },
   play: async ({ canvasElement }) => {
@@ -241,12 +241,11 @@ export const Owner: Story = {
   },
 };
 
-/** A depositor who holds no role: Endowment, naming their deposit. */
+/** A depositor who holds no role sees the common rows. */
 export const Depositor: Story = {
   args: { role: "depositor" },
   play: async ({ canvasElement }) => {
-    const endowment = within(canvasElement).getByRole("button", { name: /Endowment/ });
-    await expect(endowment).toHaveTextContent("Your deposit");
+    await expect(rowTitles(canvasElement)).toEqual(["Insights", "Gardeners", "Share Garden"]);
   },
 };
 
@@ -271,11 +270,25 @@ export const OpensInsights: Story = {
 /** The steward's rows in English, Spanish and Portuguese at 390 and 360px, one detail line each. */
 export const Locales: Story = {
   args: { role: "steward" },
-  render: () => <JournalLocales render={() => <AboutGarden garden={GARDEN} />} />,
+  render: () => (
+    <JournalLocales
+      render={() => <AboutGarden garden={GARDEN} hubUrl="https://hub.example.test" />}
+    />
+  ),
 };
 
-/** The depositor's rows, whose Endowment carries a detail, in the six frames. */
+/** The depositor's rows in English, Spanish and Portuguese at 390 and 360px. */
 export const DepositorLocales: Story = {
   args: { role: "depositor" },
-  render: () => <JournalLocales render={() => <AboutGarden garden={GARDEN} />} />,
+  render: () => (
+    <JournalLocales
+      render={() => <AboutGarden garden={GARDEN} hubUrl="https://hub.example.test" />}
+    />
+  ),
+};
+
+/** The selected garden's steward entry at the viewport width and toolbar language. */
+export const HubAtViewport: Story = {
+  args: { role: "steward" },
+  render: () => <AboutGarden garden={GARDEN} hubUrl="https://hub.example.test" />,
 };

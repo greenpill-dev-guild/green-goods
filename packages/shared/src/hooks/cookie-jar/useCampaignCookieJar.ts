@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { parseEventLogs, type Hex, type TransactionReceipt } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import { INDEXER_LAG_SCHEDULE_MS, STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
@@ -24,6 +25,7 @@ import {
 } from "../../utils/cookie-jar-campaign";
 import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI } from "../../utils/blockchain/abis/erc20";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
@@ -102,7 +104,11 @@ function campaignInvalidationKeys(
 async function readCreatedJar(hash: Hex, chainId: number): Promise<Address | undefined> {
   let receipt: TransactionReceipt;
   try {
-    receipt = await waitForReceipt(getWagmiConfig(), { hash, chainId });
+    receipt = await waitForReceipt(getWagmiConfig(), {
+      hash,
+      chainId,
+      timeout: TX_RECEIPT_TIMEOUT_MS,
+    });
   } catch (error) {
     logger.warn("[CampaignCookieJar] Could not read the creation receipt", { error });
     return undefined;
@@ -335,8 +341,14 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
+  const { authMode, primaryAddress } = useUser();
   const sendContractTx = useContractTxSender();
+  const act: SendActContext = {
+    act: "cookie_jar_admin",
+    operation: "createCampaign",
+    authMode,
+    chainId,
+  };
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
     source: "useCreateCampaignCookieJar",
@@ -344,7 +356,7 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
   });
 
   return useMutation({
-    mutationFn: async (params: CreateCampaignCookieJarParams) => {
+    mutationFn: recordedSendAct(act, async (params: CreateCampaignCookieJarParams) => {
       const metadata = JSON.stringify(
         buildCampaignCookieJarMetadata({
           title: params.title,
@@ -392,7 +404,7 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
       const jarAddress = isCanonicalTxHash(hash) ? await readCreatedJar(hash, chainId) : undefined;
 
       return { hash, jarAddress, metadata };
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.campaignCookieJar.create.title" }),
@@ -447,8 +459,14 @@ export function useCampaignCookieJarWithdraw(options: CookieJarMutationOptions =
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
+  const { authMode, primaryAddress } = useUser();
   const sendContractTx = useContractTxSender();
+  const act: SendActContext = {
+    act: "cookie_jar_withdraw",
+    operation: "campaign",
+    authMode,
+    chainId,
+  };
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const lastParamsRef = useRef<{ jarAddress: string }>({ jarAddress: "" });
   const handleError = createMutationErrorHandler({
@@ -468,7 +486,7 @@ export function useCampaignCookieJarWithdraw(options: CookieJarMutationOptions =
   );
 
   return useMutation({
-    mutationFn: async (params: CookieJarWithdrawParams) => {
+    mutationFn: recordedSendAct(act, async (params: CookieJarWithdrawParams) => {
       if (!primaryAddress) {
         throw new Error("Connected account required");
       }
@@ -479,7 +497,7 @@ export function useCampaignCookieJarWithdraw(options: CookieJarMutationOptions =
         functionName: "withdraw",
         args: [params.amount, params.purpose],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.cookieJar.withdraw" }),

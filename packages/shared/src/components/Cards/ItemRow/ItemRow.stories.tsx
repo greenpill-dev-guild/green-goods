@@ -48,7 +48,7 @@ const meta: Meta<typeof ItemRow> = {
     docs: {
       description: {
         component:
-          "One item in a list on both surfaces (F7): 88px in every state and language, the item's photo or a 56px icon tile, a one-line title, the one status pill under it, at most two details on one line, and the row's one action in its right slot. The cockpit's density comes from its tokens, so the same row draws 13px titles there.",
+          "One item in a list on both surfaces (F7): 88px in every state and language, the item's photo or a 56px icon tile, a one-line title, the one status pill under it, up to two details on one line, and the row's one action in its right slot. Member rows may append a third garden join date after contribution and role count (DL-206); secondary facts drop whole when space runs out. The Hub's density comes from its tokens, so the same row draws 13px titles there.",
       },
     },
   },
@@ -157,8 +157,8 @@ export const OneHeight: Story = {
 };
 
 /**
- * The same rows at the installed app's density and the cockpit's: one row, its title at
- * 15px in the app and 13px in the cockpit (`type-card-title`), the card surface on each
+ * The same rows at the installed app's density and the Hub's: one row, its title at
+ * 15px in the app and 13px in the Hub (`type-card-title`), the card surface on each
  * surface's own ladder.
  */
 export const Densities: Story = {
@@ -178,7 +178,7 @@ export const Densities: Story = {
         </Column>
       </section>
       <section className="flex flex-col gap-2" data-surface-scope="admin">
-        <h3 className="type-label-sm text-text-sub-600">Cockpit</h3>
+        <h3 className="type-label-sm text-text-sub-600">Hub</h3>
         <Column width={366}>
           <ItemRow
             {...workRow}
@@ -199,11 +199,11 @@ export const Densities: Story = {
   ),
   play: async ({ canvasElement }) => {
     await expectItemRowsFit(canvasElement);
-    const [app, cockpit] = [...canvasElement.querySelectorAll<HTMLElement>("section")];
+    const [app, hub] = [...canvasElement.querySelectorAll<HTMLElement>("section")];
     const titleSize = (section: HTMLElement) =>
       getComputedStyle(section.querySelector(".gg-item-row-title") as HTMLElement).fontSize;
     await expect(titleSize(app)).toBe("15px");
-    await expect(titleSize(cockpit)).toBe("13px");
+    await expect(titleSize(hub)).toBe("13px");
   },
 };
 
@@ -288,7 +288,7 @@ export const Amounts: Story = {
       {(
         [
           ["Installed app", undefined, [288, 328, 358]],
-          ["Cockpit", "admin", [296, 366]],
+          ["Hub", "admin", [296, 366]],
         ] as const
       ).map(([label, scope, widths]) => (
         <section key={label} className="flex flex-col gap-3" data-surface-scope={scope}>
@@ -327,6 +327,43 @@ export const Amounts: Story = {
 };
 
 /**
+ * A name in the amount's place (who booked a service, in the Hub's list) can run long: it takes
+ * up to two fifths of the row and gives way with an ellipsis, its full text as its title, while
+ * the title beside it keeps its room. Amounts never truncate.
+ */
+export const AmountNameTruncates: Story = {
+  render: () => (
+    <div data-surface-scope="admin">
+      <Column width={296}>
+        <ItemRow
+          lead={{ kind: "icon", icon: <RiSeedlingLine /> }}
+          title="Hub day, up to 4 hours"
+          status={{ label: "Accepted", tone: "info" }}
+          details={["Takes 1 Tech and Sun voucher"]}
+          amount={{
+            value: "Maria Aparecida dos Santos Oliveira",
+            caption: "booked",
+            truncate: true,
+          }}
+          onOpen={fn()}
+        />
+      </Column>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const value = canvasElement.querySelector<HTMLElement>(".gg-item-row-amount-value")!;
+    const row = value.closest(".gg-item-row") as HTMLElement;
+    await expect(value).toHaveAttribute("title", "Maria Aparecida dos Santos Oliveira");
+    await expect(value.getBoundingClientRect().width).toBeLessThanOrEqual(
+      row.getBoundingClientRect().width * 0.4 + 0.5
+    );
+    await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(
+      row.getBoundingClientRect().right
+    );
+  },
+};
+
+/**
  * A detail line never wraps. At 288px the second detail no longer fits beside the first, so
  * it drops whole, separator and all; a first detail too long on its own ends in an ellipsis.
  */
@@ -359,6 +396,39 @@ export const DetailLineDropsWhole: Story = {
       await expect(second.getBoundingClientRect().top).toBeGreaterThanOrEqual(
         (line as HTMLElement).getBoundingClientRect().bottom - 1
       );
+    }
+  },
+};
+
+/** Member rows keep contribution, role count and garden join date in that priority order. */
+export const MemberDatePriorities: Story = {
+  render: () => (
+    <div className="flex flex-col gap-6" data-surface-scope="admin">
+      {[264, 358, 720].map((width) => (
+        <Column key={width} width={width}>
+          <ItemRow
+            lead={{ kind: "avatar", src: null }}
+            title="maria.eth"
+            status={{ label: "Steward", tone: "neutral" }}
+            details={[
+              { text: "Contributed Nov 15, 2026", dateTime: "2026-11-15T12:00:00.000Z" },
+              "2 roles",
+              { text: "Joined Jun 12, 2026", dateTime: "2026-06-12T12:00:00.000Z" },
+            ]}
+          />
+        </Column>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+    const rows = [...canvasElement.querySelectorAll<HTMLElement>(".gg-item-row")];
+    for (const [index, row] of rows.entries()) {
+      const line = row.querySelector<HTMLElement>(".gg-item-row-details")!;
+      const visible = [...row.querySelectorAll<HTMLElement>(".gg-item-row-detail")].filter(
+        (detail) => detail.getBoundingClientRect().top < line.getBoundingClientRect().bottom - 1
+      );
+      await expect(visible).toHaveLength(index + 1);
     }
   },
 };

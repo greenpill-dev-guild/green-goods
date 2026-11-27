@@ -6,6 +6,11 @@ import { type ComponentType, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ADMIN_LEGACY_QUERY_PERSISTENCE, ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
 import { BootConnect, BootErrorBoundary, BootRecovery, BootShell } from "./BootSurface";
+import {
+  isEmailSignInOfferedAtBoot,
+  requestOtherWaysAtBoot,
+  requestPasskeyAtBoot,
+} from "./bootPasskeyRequest";
 
 /**
  * Paint a recoverable shell before application imports and guard optional services.
@@ -87,10 +92,6 @@ const defaultServices: AdminBootServices = {
     const { initBrowserSentry } = await import("@green-goods/shared/sentry");
     initBrowserSentry({
       dsn: import.meta.env.VITE_SENTRY_ADMIN_DSN,
-      environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
-      release: import.meta.env.VITE_APP_VERSION
-        ? `green-goods-admin@${import.meta.env.VITE_APP_VERSION}`
-        : undefined,
       surface: "admin",
       debug: import.meta.env.VITE_SENTRY_DEBUG === "true",
     });
@@ -195,7 +196,7 @@ function renderStaticRecovery(container: HTMLElement, error: unknown): void {
   card.style.cssText =
     "min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;text-align:center;font-family:system-ui,sans-serif";
   const title = document.createElement("h1");
-  title.textContent = "Green Goods Admin could not start";
+  title.textContent = "Green Goods Hub could not start";
   const body = document.createElement("p");
   body.textContent = describe(error);
   const button = document.createElement("button");
@@ -342,7 +343,18 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
   root.render(
     <BootConnect
       onConnect={() => void startApplication(true)}
-      onPasskey={() => void startApplication()}
+      onPasskey={() => {
+        requestPasskeyAtBoot();
+        void startApplication();
+      }}
+      onOtherWays={
+        isEmailSignInOfferedAtBoot()
+          ? () => {
+              requestOtherWaysAtBoot();
+              void startApplication();
+            }
+          : undefined
+      }
     />
   );
   recheckSession();

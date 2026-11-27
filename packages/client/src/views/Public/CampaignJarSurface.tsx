@@ -3,11 +3,11 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
 import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
-import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
 import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import { useCampaignCookieJarCampaigns } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { usePublicGardens } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -125,10 +125,11 @@ function CookiesSectionSkeleton({ isConnected }: { isConnected: boolean }) {
 
 function ConnectionStatusLine({
   primaryAddress,
-  onAction,
+  onDisconnect,
 }: {
   primaryAddress: Address;
-  onAction: () => void;
+  /** Ends a wallet session; absent for a passkey account, which this page never signs out. */
+  onDisconnect?: () => void;
 }) {
   const { formatMessage } = useIntl();
   return (
@@ -139,17 +140,21 @@ function ConnectionStatusLine({
           { address: truncateAddress(primaryAddress) }
         )}
       </span>
-      <span aria-hidden="true">·</span>
-      {/* An inline text action in the meta line, with the 48px hit area. */}
-      <Button
-        type="button"
-        emphasis="tertiary"
-        size="compact"
-        onClick={onAction}
-        className="-my-2 px-1.5 font-mono text-[11px] uppercase tracking-[0.16em] underline"
-      >
-        {formatMessage({ id: "public.cookies.disconnect", defaultMessage: "Disconnect" })}
-      </Button>
+      {onDisconnect ? (
+        <>
+          <span aria-hidden="true">·</span>
+          {/* An inline text action in the meta line, with the 48px hit area. */}
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="compact"
+            onClick={onDisconnect}
+            className="-my-2 px-1.5 font-mono text-[11px] uppercase tracking-[0.16em] underline"
+          >
+            {formatMessage({ id: "public.cookies.disconnect", defaultMessage: "Disconnect" })}
+          </Button>
+        </>
+      ) : null}
     </p>
   );
 }
@@ -159,7 +164,8 @@ function CookiesCampaignSurface() {
   const [searchParams] = useSearchParams();
   const { ref: ledgerRef, revealed: ledgerRevealed } = useInViewReveal<HTMLElement>();
   const { primaryAddress } = useUser();
-  const { open: openWalletModal } = useAppKit();
+  // Disconnect ends this page's wallet session and lets go of the wallet (PUB-041).
+  const { signOut, authMode } = useAuth();
   const isConnected = Boolean(primaryAddress);
 
   const {
@@ -322,7 +328,7 @@ function CookiesCampaignSurface() {
               <div className="mt-5">
                 <ConnectionStatusLine
                   primaryAddress={primaryAddress as Address}
-                  onAction={() => openWalletModal()}
+                  onDisconnect={authMode === "wallet" ? () => void signOut() : undefined}
                 />
               </div>
             ) : null}

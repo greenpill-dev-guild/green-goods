@@ -7,6 +7,7 @@
 import { publicProviderProofRegistry } from "@green-goods/shared/public-contracts";
 import { Hono } from "hono";
 import * as db from "../services/db";
+import { withFundingAttemptAnalytics } from "../services/funding-attempt-analytics";
 import { MemoryFundingIntentStore, sweepFundingIntents } from "../services/funding-intents";
 import { loggers } from "../services/logger";
 import { captureAgentException } from "../services/sentry";
@@ -38,6 +39,7 @@ import { registerMessagingRoutes } from "./routes/messaging";
 import { registerReportingOpsRoutes } from "./routes/reporting-ops";
 import { registerPublicCommitmentImpactRoutes } from "./routes/public-commitment-impact";
 import { registerPasskeyDirectoryRoutes } from "./routes/passkey-directory";
+import { registerOpenfortRecoveryRoutes } from "./routes/openfort-recovery";
 import { registerVoucherAwardRoutes } from "./routes/voucher-awards";
 import { registerServiceIssuerDeskRoutes } from "./routes/service-issuer-desk";
 
@@ -70,7 +72,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     return c.json({ error: "Internal server error" }, 500);
   });
 
-  const fundingIntents = deps.fundingIntents ?? new MemoryFundingIntentStore();
+  // Each funding intent records one attempt and its ending (PRD-1561).
+  const fundingIntents = withFundingAttemptAnalytics(
+    deps.fundingIntents ?? new MemoryFundingIntentStore()
+  );
   const providerProofRegistry = deps.providerProofRegistry ?? publicProviderProofRegistry;
   const fundingSweepIntervalMs =
     deps.fundingSweepIntervalMs === undefined ? 5 * 60 * 1000 : deps.fundingSweepIntervalMs;
@@ -206,6 +211,8 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       store: deps.gardenJoinRequestStore,
     });
   }
+
+  registerOpenfortRecoveryRoutes(app, routeContext);
 
   if (deps.passkeyDirectory) {
     registerPasskeyDirectoryRoutes(app, {

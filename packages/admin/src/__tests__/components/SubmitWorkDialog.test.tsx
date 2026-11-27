@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  *
  * Submit Work flow-dialog close contract (parity with CreateAssessmentDialog):
- * a pristine dialog closes straight back to the Hub with no discard prompt.
+ * a pristine dialog closes straight back to Review with no discard prompt.
  * The old wrapper raised the Discard confirm unconditionally on every
  * Esc/X/scrim close — this is the regression test for the fixed behavior.
  */
@@ -25,7 +25,7 @@ import { type Action, Domain, type Garden } from "@green-goods/shared/types/doma
 import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 // Loaded up front, so the flow's lazy boundary resolves at once.
 import "@/views/Garden/SubmitWork";
-import { HubFlowHarness } from "../hubFlowHarness";
+import { ReviewFlowHarness } from "../reviewFlowHarness";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
 type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
@@ -294,7 +294,7 @@ const authContextValue: AuthContextValue = {
 };
 
 const FLOW_SEARCH = `?gardenId=${SELECTED_GARDEN.id}&item=submit-work`;
-const FLOW_URL = `/hub/work${FLOW_SEARCH}`;
+const FLOW_URL = `/review/work${FLOW_SEARCH}`;
 
 function renderSubmitWork(actions: Action[] = [], entry = FLOW_URL) {
   const queryClient = createTestQueryClient();
@@ -310,7 +310,7 @@ function renderSubmitWork(actions: Action[] = [], entry = FLOW_URL) {
   );
   const router = createMemoryRouter(
     [
-      { path: "/hub/*", element: <HubFlowHarness /> },
+      { path: "/review/*", element: <ReviewFlowHarness /> },
       { path: "/garden/*", element: <div /> },
     ],
     { initialEntries: [entry] }
@@ -340,7 +340,7 @@ function renderSubmitWorkTree() {
     queryKeys.role.deploymentPermissions(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     { isOwner: false, isInAllowlist: false, canDeploy: false }
   );
-  const router = createMemoryRouter([{ path: "/hub/*", element: <HubFlowHarness /> }], {
+  const router = createMemoryRouter([{ path: "/review/*", element: <ReviewFlowHarness /> }], {
     initialEntries: [FLOW_URL],
   });
 
@@ -408,7 +408,7 @@ describe("SubmitWork dialog", () => {
     cleanup();
   });
 
-  it("closes straight back to the Hub when nothing was entered (no discard prompt)", async () => {
+  it("closes straight back to Review when nothing was entered (no discard prompt)", async () => {
     let router: ReturnType<typeof renderSubmitWork> | undefined;
     await act(async () => {
       router = renderSubmitWork();
@@ -432,7 +432,7 @@ describe("SubmitWork dialog", () => {
 
   it("opens over the stage it was pressed from and returns there on close (DL-140)", async () => {
     const user = userEvent.setup();
-    const stageUrl = `/hub/assess?gardenId=${SELECTED_GARDEN.id}`;
+    const stageUrl = `/review/assess?gardenId=${SELECTED_GARDEN.id}`;
     let router: ReturnType<typeof renderSubmitWork> | undefined;
     await act(async () => {
       router = renderSubmitWork([], stageUrl);
@@ -490,7 +490,7 @@ describe("SubmitWork dialog", () => {
     await user.type(noteInput, "Mulched the west bed");
 
     await act(async () => {
-      void router?.navigate("/hub/work");
+      void router?.navigate("/review/work");
       await Promise.resolve();
     });
 
@@ -513,7 +513,7 @@ describe("SubmitWork dialog", () => {
     await user.type(noteInput, "Mulched the west bed");
 
     await act(async () => {
-      void router?.navigate("/hub/certify?gardenId=0x2222222222222222222222222222222222222222");
+      void router?.navigate("/review/certify?gardenId=0x2222222222222222222222222222222222222222");
       await Promise.resolve();
     });
 
@@ -525,7 +525,7 @@ describe("SubmitWork dialog", () => {
     });
 
     await waitFor(() => {
-      expect(router?.state.location.pathname).toBe("/hub/certify");
+      expect(router?.state.location.pathname).toBe("/review/certify");
       expect(router?.state.location.search).toBe(
         "?gardenId=0x2222222222222222222222222222222222222222"
       );
@@ -573,7 +573,7 @@ describe("SubmitWork dialog", () => {
       await Promise.resolve();
     });
     expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
-    expect(await screen.findByText("Awaiting confirmation")).toBeInTheDocument();
+    expect(await screen.findByText("Still confirming…")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Check confirmation" })).toBeInTheDocument();
     expect(errorToast).not.toHaveBeenCalled();
   });
@@ -589,10 +589,10 @@ describe("SubmitWork dialog", () => {
     await act(async () => {
       workSend.awaitConfirmation("0xoffline_confirmation-job");
     });
-    expect(await screen.findByText("Awaiting confirmation")).toBeInTheDocument();
+    expect(await screen.findByText("Still confirming…")).toBeInTheDocument();
     for (const edit of screen.getAllByRole("button", { name: /^Edit / })) {
       await user.click(edit);
-      expect(screen.getByText("Awaiting confirmation")).toBeInTheDocument();
+      expect(screen.getByText("Still confirming…")).toBeInTheDocument();
     }
     expect(screen.queryByRole("textbox", { name: "Impact note" })).not.toBeInTheDocument();
     if (closeVia === "escape") {
@@ -603,7 +603,7 @@ describe("SubmitWork dialog", () => {
       await user.click(screen.getByRole("button", { name: "app.common.close" }));
     } else {
       await act(async () => {
-        await router.navigate("/hub/work");
+        await router.navigate("/review/work");
       });
     }
     await waitFor(() => expect(router.state.location.search).not.toContain("item="));
@@ -766,7 +766,7 @@ describe("SubmitWork dialog", () => {
     });
 
     await act(async () => {
-      void router?.navigate("/hub/work");
+      void router?.navigate("/review/work");
       await Promise.resolve();
     });
 

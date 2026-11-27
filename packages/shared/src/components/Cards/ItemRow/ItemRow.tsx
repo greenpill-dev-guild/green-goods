@@ -1,5 +1,5 @@
 /**
- * ItemRow — one item in a list, the same on the installed app and the cockpit (F7).
+ * ItemRow — one item in a list, the same on the installed app and the Hub (F7).
  *
  * Every row is one height in every state and language (88px at the default text size), on
  * the card surface with a 16px corner. It leads with the item's own photo, a centered
@@ -7,10 +7,11 @@
  * full title shows on hover), the item's one status pill under it, and one detail line; the
  * row's one action, when it has one, takes the right slot, and otherwise an amount the item
  * carries (a jar's balance) can. Each surface sets the density through tokens (the title is
- * 15px in the app and 13px in the cockpit), so the component takes no density prop.
+ * 15px in the app and 13px in the Hub), so the component takes no density prop.
  *
  * The detail line follows the agreed rules: each card type passes at most two details,
- * most important first; the line never wraps, and a detail that does not fit drops whole,
+ * most important first. Member rows may append their garden join date after contribution and
+ * role count (DL-206). The line never wraps, and a detail that does not fit drops whole,
  * last first. Ages take their short forms and are always a number ("2 hr. ago").
  *
  * A row with `onOpen` opens its item: the whole row is the button, or, beside an action,
@@ -97,8 +98,17 @@ export interface ItemRowProps
    * "Confirming…", "Not sent") goes here too, never in a second pill.
    */
   status?: { label: string; tone: ItemRowTone };
-  /** At most two details, most important first. */
-  details?: readonly [ItemRowDetail] | readonly [ItemRowDetail, ItemRowDetail];
+  /**
+   * A line of plain text in the pill's place, for a row whose second line says what the item is
+   * rather than its state: a member's roles in words. A row has a pill or this line, never both;
+   * the pill wins when a caller passes both.
+   */
+  subtitle?: string;
+  /** Priority order, with an optional third join-date fact for roomy member rows. */
+  details?:
+    | readonly [ItemRowDetail]
+    | readonly [ItemRowDetail, ItemRowDetail]
+    | readonly [ItemRowDetail, ItemRowDetail, ItemRowDetail];
   /** The 2px status edge, for work rows. */
   edge?: ItemRowTone;
   /** The row's one action, in the right slot. Only a row that needs the reader has one. */
@@ -106,9 +116,11 @@ export interface ItemRowProps
   /**
    * The amount the item carries, in the right slot when the row has no action: the value
    * with its asset as the item's own screens write it ("9.98 DAI"), and under it what the
-   * amount is ("Jar balance"). It is part of what opens the row, so it is read with it.
+   * amount is ("Jar balance"). It is part of what opens the row, so it is read with it. An
+   * amount is never cut; a name in its place (who booked a service) sets `truncate`, so a long
+   * one gives way with an ellipsis and its full text as a title.
    */
-  amount?: { value: string; caption?: string };
+  amount?: { value: string; caption?: string; truncate?: boolean };
   /** Opens the item. */
   onOpen?: () => void;
   /** The open target's name, when the row's own text does not say what opens. */
@@ -241,7 +253,11 @@ function RowContent({
   status,
   details,
   amount,
-}: Pick<ItemRowProps, "lead" | "title" | "titleLines" | "status" | "details" | "amount">) {
+  subtitle,
+}: Pick<
+  ItemRowProps,
+  "lead" | "title" | "titleLines" | "status" | "subtitle" | "details" | "amount"
+>) {
   return (
     <>
       <Lead lead={lead} />
@@ -263,12 +279,21 @@ function RowContent({
           >
             <span className="min-w-0 truncate">{status.label}</span>
           </StatusBadge>
+        ) : subtitle ? (
+          <span className="gg-item-row-subtitle type-meta" title={subtitle}>
+            {subtitle}
+          </span>
         ) : null}
         {details?.length ? <DetailLine details={details} /> : null}
       </span>
       {amount ? (
-        <span className="gg-item-row-amount">
-          <span className="gg-item-row-amount-value type-card-title">{amount.value}</span>
+        <span className="gg-item-row-amount" data-truncate={amount.truncate ? "" : undefined}>
+          <span
+            className="gg-item-row-amount-value type-card-title"
+            title={amount.truncate ? amount.value : undefined}
+          >
+            {amount.value}
+          </span>
           {amount.caption ? (
             <span className="gg-item-row-amount-caption type-meta-sm">{amount.caption}</span>
           ) : null}
@@ -284,6 +309,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     title,
     titleLines,
     status,
+    subtitle,
     details,
     edge,
     action,
@@ -310,6 +336,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
       title={title}
       titleLines={titleLines}
       status={status}
+      subtitle={subtitle}
       details={details}
       amount={action ? undefined : amount}
     />

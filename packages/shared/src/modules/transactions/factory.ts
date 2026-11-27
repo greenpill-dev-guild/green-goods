@@ -19,7 +19,8 @@ import { WalletSender } from "./wallet-sender";
 import { withBatchRecovery } from "./batch-service";
 
 export interface TransactionSenderOptions {
-  authMode: "passkey" | "embedded" | "wallet";
+  /** The session's mode. Email accounts ("openfort") send like passkeys. */
+  authMode: "passkey" | "openfort" | "embedded" | "wallet";
   smartAccountClient?: SmartAccountClient | null;
   resolveSmartAccountClient?: SmartAccountClientResolver | null;
   passkeyAccountProfile?: PasskeyAccountProfileId | null;
@@ -62,14 +63,16 @@ export function createTransactionSender(options: TransactionSenderOptions): Tran
 
 function createTransportSender(options: TransactionSenderOptions): TransactionSender {
   switch (options.authMode) {
-    case "passkey": {
+    // Both are sponsored Kernel smart accounts; only the owner that signs differs.
+    case "passkey":
+    case "openfort": {
       if (options.smartAccountClient?.account) {
         return new PasskeySender(options.smartAccountClient, {
           resolveSmartAccountClient: options.resolveSmartAccountClient,
           accountProfile: options.passkeyAccountProfile,
         });
       }
-      throw new Error("smartAccountClient is required for passkey auth mode");
+      throw new Error(`smartAccountClient is required for ${options.authMode} auth mode`);
     }
 
     case "embedded": {

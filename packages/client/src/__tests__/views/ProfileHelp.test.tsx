@@ -2,26 +2,85 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
+import spanish from "@green-goods/shared/i18n/es.json";
 import { ProfileHelp } from "../../views/Profile/Help";
+
+/** The account's gardens, and whether the App's steward check passes for each. */
+const access = vi.hoisted(() => ({
+  gardens: [] as Array<{ garden: { id: string } }>,
+  manages: false,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ myGardens: { gardens: access.gardens } }),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => ({ canManageGarden: () => access.manages }),
+}));
 
 const wrap = (el: React.ReactElement) =>
   createElement(IntlProvider, { locale: "en", messages }, el);
 
+/** Headings and links in page order: each section's rows sit under its own heading. */
+const pageOrder = () =>
+  [...document.querySelectorAll("h5, a")].map((element) =>
+    element.tagName === "H5" ? `# ${element.textContent}` : element.getAttribute("href")
+  );
+
+const HUB = "https://hub.example.test";
+
 describe("ProfileHelp", () => {
   afterEach(() => {
     cleanup();
+    vi.unstubAllEnvs();
+    access.gardens = [];
+    access.manages = false;
+  });
+
+  it("keeps the Hub entry out of Help even for a steward with a configured Hub", () => {
+    vi.stubEnv("VITE_ADMIN_APP_URL", HUB);
+    access.gardens = [{ garden: { id: "0x0000000000000000000000000000000000000ga1" } }];
+    access.manages = true;
+    render(wrap(createElement(ProfileHelp)));
+
+    expect(pageOrder().slice(0, 2)).toEqual([
+      "# Learn & Connect",
+      "https://docs.greengoods.app/community/gardener-guide",
+    ]);
+    expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+  });
+
+  it("shows no Hub row to an account that stewards no garden, or where the build names no Hub", () => {
+    vi.stubEnv("VITE_ADMIN_APP_URL", HUB);
+    access.gardens = [{ garden: { id: "0x0000000000000000000000000000000000000ga1" } }];
+    render(wrap(createElement(ProfileHelp)));
+    expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+    cleanup();
+
+    vi.stubEnv("VITE_ADMIN_APP_URL", "");
+    access.manages = true;
+    render(wrap(createElement(ProfileHelp)));
+    expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+  });
+
+  // PRD-1493: the docs are English only, so a Spanish or Portuguese reader is told so.
+  it("says the guides are in English to a reader in another language, and to no one else", () => {
+    render(
+      createElement(IntlProvider, { locale: "es", messages: spanish }, createElement(ProfileHelp))
+    );
+    expect(screen.getByText("Por ahora, las guías están en inglés.")).toBeInTheDocument();
+    cleanup();
+
+    render(wrap(createElement(ProfileHelp)));
+    expect(screen.queryByText("The guides are in English for now.")).toBeNull();
   });
 
   it("keeps guides and socials apart from policies and requests, above the questions", () => {
     render(wrap(createElement(ProfileHelp)));
 
-    // Headings and links in page order: each section's rows sit under its own heading.
-    const page = [...document.querySelectorAll("h5, a")].map((element) =>
-      element.tagName === "H5" ? `# ${element.textContent}` : element.getAttribute("href")
-    );
-    expect(page.slice(0, 11)).toEqual([
+    expect(pageOrder().slice(0, 11)).toEqual([
       "# Learn & Connect",
       "https://docs.greengoods.app/community/gardener-guide",
       "https://docs.greengoods.app/community/steward-guide",

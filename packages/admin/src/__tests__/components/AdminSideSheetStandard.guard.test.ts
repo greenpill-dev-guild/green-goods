@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
  */
 
 const ADMIN_SRC = join(__dirname, "..", "..");
-const VALID_TONES = new Set(["hub", "garden", "community", "actions", "home"]);
+const VALID_TONES = new Set(["review", "garden", "community", "actions", "home"]);
 
 /** The only production files sanctioned to render an AdminSideSheet. */
 const ALLOWED_CONSUMERS = ["components/Layout/CanvasLayout.tsx"];
@@ -101,7 +101,7 @@ export function collectViolations(source: string, filePath: string): string[] {
       );
     } else if (toneLiteral && !VALID_TONES.has(toneLiteral[1])) {
       violations.push(
-        `${where} — tone="${toneLiteral[1]}" is outside the shipped set (hub|garden|community|actions|home)`
+        `${where} — tone="${toneLiteral[1]}" is outside the shipped set (review|garden|community|actions|home)`
       );
     }
   }
@@ -146,7 +146,7 @@ describe("AdminSideSheet scope standard", () => {
   });
 
   it("detects seeded violations (self-check)", () => {
-    const outsideConsumer = `<AdminSideSheet open tone="hub" title="bad">`;
+    const outsideConsumer = `<AdminSideSheet open tone="review" title="bad">`;
     expect(collectViolations(outsideConsumer, "views/Garden/Detail.tsx").join("\n")).toContain(
       "outside CanvasLayout"
     );
@@ -161,7 +161,7 @@ describe("AdminSideSheet scope standard", () => {
       collectViolations(invalidTone, "components/Layout/CanvasLayout.tsx").join("\n")
     ).toContain('tone="brand" is outside the shipped set');
 
-    const sanctioned = `<AdminSideSheet open tone="hub" title="good" onOpenChange={(next) => { if (!next) close(); }}>`;
+    const sanctioned = `<AdminSideSheet open tone="review" title="good" onOpenChange={(next) => { if (!next) close(); }}>`;
     expect(collectViolations(sanctioned, "components/Layout/CanvasLayout.tsx")).toEqual([]);
   });
 

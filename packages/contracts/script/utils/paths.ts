@@ -21,8 +21,11 @@ export const IPFS_MEDIA_CACHE_PATH = path.join(GENERATED_RUNTIME_ROOT, "ipfs-med
 export const ACTION_IMAGES_CACHE_PATH = path.join(GENERATED_RUNTIME_ROOT, "action-images-cache.json");
 export const ACTION_INSTRUCTIONS_V2_CACHE_PATH = path.join(GENERATED_RUNTIME_ROOT, "action-instructions-v2-cache.json");
 
-export function getFoundryOutDir(profile: FoundryProfile): string {
-  return path.join(GENERATED_FOUNDRY_ROOT, "out", profile);
+export function getFoundryOutDir(profile: FoundryProfile, env: NodeJS.ProcessEnv = process.env): string {
+  // Match Forge's output override so a caller-owned build is also the artifact loader's source.
+  return env.FOUNDRY_OUT
+    ? path.resolve(CONTRACTS_ROOT, env.FOUNDRY_OUT)
+    : path.join(GENERATED_FOUNDRY_ROOT, "out", profile);
 }
 
 export function getFoundryCacheDir(profile: FoundryProfile): string {

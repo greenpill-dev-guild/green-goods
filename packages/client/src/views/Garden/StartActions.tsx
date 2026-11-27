@@ -4,9 +4,10 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import type { Action, Domain } from "@green-goods/shared/types/domain";
 import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
-import { RiHammerLine } from "@remixicon/react";
+import { RiHammerFill, RiHammerLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
+import { FormInfo } from "@/components/Cards/Form/FormInfo";
 
 /**
  * The garden's actions as two-up tiles under capsule domain chips with All. The chips hold one
@@ -22,6 +23,7 @@ export function StartActions({
   selectedDomain,
   setSelectedDomain,
   onChoose,
+  gardenLine,
   notice,
 }: {
   actions: Action[];
@@ -32,6 +34,8 @@ export function StartActions({
   selectedDomain: Domain | null;
   setSelectedDomain: (domain: Domain | null) => void;
   onChoose: (uid: number) => void;
+  /** Where the work goes, under the info card (PRD-1522). */
+  gardenLine: ReactNode;
   notice: ReactNode;
 }) {
   const intl = useIntl();
@@ -43,10 +47,15 @@ export function StartActions({
     actions.find((action) => parseActionUID(action.id) === selectedActionUID)?.id ?? null;
   const title = intl.formatMessage({ id: "app.garden.selectYourAction" });
 
-  // No info panel: the domain chips and the action tiles are the step and say what it asks
-  // (DL-131 as amended for Start; the later steps keep theirs).
   return (
     <>
+      <FormInfo
+        fit="line"
+        title={title}
+        info={intl.formatMessage({ id: "app.garden.whatTypeOfWork" })}
+        Icon={RiHammerFill}
+      />
+      {gardenLine}
       {notice}
       {domains.length > 1 ? (
         <div

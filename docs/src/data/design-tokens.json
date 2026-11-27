@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope design`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:dfeda83015aa622aec8ee74f09dc527a71133e8497c403a6ef3f01e6d6f7a140",
+  "digest": "sha256:caa6cb1ab0c14b8c9c10488c6eb0ae99584f6006d55635261bdf29fbf1054661",
   "source": "DESIGN.md",
   "name": "Green Goods Warm Earth Core",
   "colors": {
@@ -20,7 +20,8 @@
     "tertiary-action": "#1A7544",
     "tertiary-action-hover": "#16643B",
     "tertiary-dark": "#C2F5DA",
-    "tertiary-dark-hover": "#84EBB4"
+    "tertiary-dark-hover": "#84EBB4",
+    "violet": "#5B2CC9"
   },
   "typography": {
     "app-title": {

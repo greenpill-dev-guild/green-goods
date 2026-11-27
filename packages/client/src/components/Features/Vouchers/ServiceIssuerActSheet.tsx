@@ -40,7 +40,8 @@ interface Props {
  * reviewed limits. Review prepares the exact transaction; nothing is signed here.
  */
 export function ServiceIssuerActSheet({ entry, snapshot, busy, failed, onClose, onReview }: Props) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage, locale } = intl;
   const t = (id: string, values?: Record<string, string>) =>
     formatMessage({ id: `app.voucher.ms.${id}` }, values);
   const [value, setValue] = useState("");
@@ -48,7 +49,7 @@ export function ServiceIssuerActSheet({ entry, snapshot, busy, failed, onClose, 
   const { asset } = snapshot;
   const amount = parseIssuerAmount(value, asset.decimals);
   const count = (units: bigint) => issuerCount(units, asset.decimals, locale);
-  const units = (units: bigint) => issuerAmount(units, asset, locale);
+  const units = (units: bigint) => issuerAmount(units, asset, intl);
   let title: string;
   let facts: { label: string; value: ReactNode }[];
   let field: { label: string; hint: string };
@@ -155,7 +156,7 @@ export function ServiceIssuerActSheet({ entry, snapshot, busy, failed, onClose, 
           </Alert>
         ) : (
           <FormField
-            label={`${field.label} (${asset.symbol})`}
+            label={`${field.label} (${formatMessage({ id: "app.voucher.unitPlain" }, { count: 2 })})`}
             htmlFor={id}
             hint={field.hint}
             error={invalid ? t("fl.invalid") : undefined}

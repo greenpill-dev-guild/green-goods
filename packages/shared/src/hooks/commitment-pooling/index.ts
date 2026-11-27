@@ -19,7 +19,11 @@ export {
   usePoolParticipationSummary,
 } from "./useCommitmentPooling";
 export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
-export { useServiceAccess, useServiceAccessMutation } from "./useServiceAccess";
+export {
+  useServiceAccess,
+  useServiceAccessMutation,
+  useServiceAccessReads,
+} from "./useServiceAccess";
 export { useServiceOfferLines } from "./useServiceOfferLines";
 export { useServiceIssuerOperations } from "./useServiceIssuerOperations";
 export {
@@ -136,6 +140,12 @@ export type {
   PoolSetupStepStatus,
 } from "./useCommitmentPoolSetupSequence";
 export { useCommitmentPoolSetupSequence } from "./useCommitmentPoolSetupSequence";
+export type { RewardShareState } from "./useRewardShares";
+export {
+  usePromiseRewardShares,
+  useRewardShares,
+  useRewardShareTransaction,
+} from "./useRewardShares";
 export type { SavedOffersApi } from "./useSavedOffers";
 export {
   useSavedOffer,

@@ -1,6 +1,7 @@
 import type { ItemRowTone } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Work } from "@green-goods/shared/types/domain";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import React from "react";
@@ -68,8 +69,12 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   );
   const effectiveStatus = work.status;
   // Work still on this device names where it stands instead of reading "Offline".
-  const queuedStatus = queuedWorkStatusMessage(readQueuedWorkState(work.metadata).submissionState);
+  const queuedState = readQueuedWorkState(work.metadata);
+  const queuedStatus = queuedWorkStatusMessage(queuedState);
   if (queuedStatus) labels.status.offline = formatMessage(queuedStatus);
+  // A send under way says its stage, which the queue reports however it started (PRD-1552).
+  if (queuedState.sendStage)
+    labels.status.uploading = formatMessage(SEND_STAGE_WORDS[queuedState.sendStage].label);
   const mediaPreview = work.media.length > 0 ? work.media : undefined;
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
   // The action names the work when it is known. A generated name gives way to the work's own

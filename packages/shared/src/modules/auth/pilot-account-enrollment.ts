@@ -1,6 +1,8 @@
 import type { SmartAccountClient } from "permissionless";
 import type { Address, Hex } from "viem";
 import { createPublicClientForChain } from "../../config/pimlico";
+import { hasErrorName } from "../../utils/errors/tx-error-classifier";
+import { recordSendAct, type SendActEndingDetail, sendActEnding } from "../app/sendActAnalytics";
 import type { PasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import type { PasskeySessionResult } from "../../workflows/authMachine.types";
 import { PILOT_PASSKEY_PROFILE, getPilotCredentialId } from "./account-profile";
@@ -38,11 +40,25 @@ export type PilotAccountPreview = {
 export class PilotAccountProofError extends Error {
   constructor(
     message: string,
-    readonly pending: boolean
+    readonly pending: boolean,
+    options?: { cause?: unknown }
   ) {
-    super(message);
+    super(message, options);
     this.name = "PilotAccountProofError";
   }
+}
+
+const REVERTED: ReadonlySet<string> = new Set(["TransactionRevertedError"]);
+
+/**
+ * A proof sent and awaiting its receipt may still land. A receipt that names a revert is final
+ * even while the pending record stays, and any other ending reads its cause.
+ */
+function pilotProofEnding(error: unknown): SendActEndingDetail {
+  const cause = error instanceof PilotAccountProofError ? error.cause : error;
+  if (error instanceof PilotAccountProofError && error.pending && !hasErrorName(cause, REVERTED))
+    return { outcome: "confirming", parsedErrorFamily: "PilotProofPending" };
+  return sendActEnding(cause);
 }
 
 type Candidate = {
@@ -227,7 +243,25 @@ export function createPilotAccountEnrollment(input: {
     candidate = undefined;
   };
 
-  const confirm = async (reviewedHash?: Hex): Promise<void> => {
+  // Only a new proof is an act. Selecting one that already exists, or a press refused because a
+  // proof is already being sent or awaits its receipt, sends nothing.
+  const sendsNothing = () =>
+    Boolean(
+      candidate?.proof ||
+        sending ||
+        (candidate && storage.getItem(pendingKey(candidate.address)) !== null)
+    );
+  const confirm = (reviewedHash?: Hex): Promise<void> =>
+    sendsNothing()
+      ? confirmProof(reviewedHash)
+      : recordSendAct(
+          { act: "pilot_enrollment", authMode: "passkey", chainId: PROOF_CHAIN_ID },
+          () => confirmProof(reviewedHash),
+          () => "confirmed",
+          pilotProofEnding
+        );
+
+  const confirmProof = async (reviewedHash?: Hex): Promise<void> => {
     const value = current();
     if (sending) throw new Error("A pilot proof is already awaiting confirmation");
     sending = true;
@@ -273,7 +307,8 @@ export function createPilotAccountEnrollment(input: {
       }
       throw new PilotAccountProofError(
         error instanceof Error ? error.message : "Pilot proof failed",
-        storage.getItem(pendingKey(value.address)) !== null
+        storage.getItem(pendingKey(value.address)) !== null,
+        { cause: error }
       );
     } finally {
       sending = false;

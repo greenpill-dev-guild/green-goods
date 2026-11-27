@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/github/v/tag/greenpill-dev-guild/green-goods)](https://github.com/greenpill-dev-guild/green-goods/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.**
+**Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support.**
 
 It helps them organize environmental and social work, from tree planting
 and waste collection to solar maintenance and education. A community workspace is called
@@ -13,7 +13,7 @@ Gardeners record their contributions through a mobile web app. Stewards review t
 and approved work becomes an onchain record. Communities use these records alongside
 shared governance and funding tools to coordinate their work and support contributors.
 
-The repository includes the public website and installed PWA, the steward admin app,
+The repository includes the Green Goods Website and the installed Green Goods App, the Green Goods Hub for stewards,
 smart contracts, shared application code, an event indexer, and a messaging/API service.
 The PWA supports local drafts and queued submissions; connected capabilities depend on
 the sign-in method and available services.

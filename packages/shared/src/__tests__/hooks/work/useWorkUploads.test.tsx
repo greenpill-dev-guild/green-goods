@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     activeJobId: null as string | null,
     paused: null as string | null,
     dataSaverOverride: false,
+    retryingJobIds: new Set<string>() as ReadonlySet<string>,
   },
 }));
 
@@ -57,6 +58,18 @@ vi.mock("../../../modules/work/upload-preparation", async (importOriginal) => ({
 vi.mock("../../../modules/work/upload-queued-work", () => ({
   uploadQueuedWork: mocks.uploadQueuedWork,
 }));
+// The upload trackers run for real unless a test makes one throw.
+const analytics = vi.hoisted(() => ({ started: vi.fn(), finished: vi.fn() }));
+vi.mock("../../../modules/job-queue/job-analytics", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../modules/job-queue/job-analytics")>();
+  analytics.started.mockImplementation(actual.trackQueuedUploadStarted);
+  analytics.finished.mockImplementation(actual.trackQueuedUploadFinished);
+  return {
+    ...actual,
+    trackQueuedUploadStarted: analytics.started,
+    trackQueuedUploadFinished: analytics.finished,
+  };
+});
 vi.mock("../../../modules/work/upload-queued-work-defaults", () => ({
   createDefaultUploadQueuedWorkPorts: mocks.createPorts,
 }));
@@ -65,6 +78,7 @@ import { useWorkUploads } from "../../../hooks/work/useWorkUploads";
 import en from "../../../i18n/en.json";
 import { connectivityStore } from "../../../stores/connectivity";
 import { appCodeRecovery } from "../../../modules/app/cache-recovery";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 const CHECKED = "2026-09-17T10:00:00.000Z";
 const WORK_UID = `0x${"AB".repeat(32)}`;
@@ -89,7 +103,12 @@ beforeEach(() => {
   mocks.jobs = [];
   mocks.queueAnswer = "jobs";
   mocks.subscriptions = 0;
-  mocks.preparation = { activeJobId: null, paused: null, dataSaverOverride: false };
+  mocks.preparation = {
+    activeJobId: null,
+    paused: null,
+    dataSaverOverride: false,
+    retryingJobIds: new Set(),
+  };
 });
 
 describe("useWorkUploads", () => {
@@ -175,7 +194,7 @@ describe("useWorkUploads", () => {
   it("says preparation runs only when it is not waiting for the connection or Data Saver", async () => {
     mocks.jobs = [queued("work", {})];
     const render = (paused: string | null) => {
-      mocks.preparation = { activeJobId: null, paused, dataSaverOverride: false };
+      mocks.preparation = { ...mocks.preparation, paused };
       return renderHookWithProviders(() => useWorkUploads()).result;
     };
 
@@ -206,6 +225,61 @@ describe("useWorkUploads", () => {
         unmount();
       } finally {
         status.mockRestore();
+      }
+    }
+  });
+
+  it("says what preparation is doing for one item: on it, trying again later, or waiting and why", () => {
+    // A work's page reads this instead of spinning for every work without an answer (PRD-1488).
+    const cases: Array<{
+      preparation: Partial<typeof mocks.preparation>;
+      connection?: "online" | "degraded" | "offline";
+      expected: string;
+    }> = [
+      { preparation: {}, expected: "working" },
+      { preparation: { paused: "hidden" }, expected: "working" },
+      { preparation: { paused: "uploading" }, expected: "working" },
+      { preparation: { retryingJobIds: new Set(["another"]) }, expected: "working" },
+      { preparation: { retryingJobIds: new Set(["item"]) }, expected: "retrying" },
+      // The try under way outranks the backoff it may end with.
+      {
+        preparation: { activeJobId: "item", retryingJobIds: new Set(["item"]) },
+        expected: "working",
+      },
+      { preparation: { paused: "unconfirmed" }, expected: "connection" },
+      { preparation: {}, connection: "degraded", expected: "connection" },
+      {
+        preparation: { retryingJobIds: new Set(["item"]) },
+        connection: "offline",
+        expected: "connection",
+      },
+      {
+        preparation: { paused: "data-saver", retryingJobIds: new Set(["item"]) },
+        expected: "data-saver",
+      },
+      { preparation: { paused: "app-code" }, expected: "app-update" },
+    ];
+    for (const { preparation, connection = "online", expected } of cases) {
+      mocks.preparation = { ...mocks.preparation, ...preparation };
+      const status = vi
+        .spyOn(connectivityStore, "getStatusSnapshot")
+        .mockReturnValue({ state: connection });
+      try {
+        const { result, unmount } = renderHookWithProviders(() => useWorkUploads());
+        expect({ preparation, connection, answer: result.current.preparationOf("item") }).toEqual({
+          preparation,
+          connection,
+          answer: expected,
+        });
+        unmount();
+      } finally {
+        status.mockRestore();
+        mocks.preparation = {
+          activeJobId: null,
+          paused: null,
+          dataSaverOverride: false,
+          retryingJobIds: new Set(),
+        };
       }
     }
   });
@@ -295,7 +369,7 @@ describe("useWorkUploads", () => {
 
     await waitFor(() =>
       expect(mocks.toast.error).toHaveBeenCalledWith(
-        expect.objectContaining({ title: en["app.uploads.failedTitle"], error: stopped })
+        expect.objectContaining({ title: en["app.uploads.notSentTitle"], error: stopped })
       )
     );
   });
@@ -319,6 +393,85 @@ describe("useWorkUploads", () => {
     } finally {
       confirm.mockRestore();
     }
+  });
+
+  it("records each Upload tap before anything is signed, and how it ended (PRD-1495)", async () => {
+    const captured: Array<[string, Record<string, unknown>]> = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event.startsWith("queued_upload_")) captured.push([event, properties]);
+      },
+      isReady: () => true,
+    });
+    try {
+      mocks.jobs = [queued("work", { preparation: { status: "ready", checkedAt: CHECKED } })];
+      mocks.uploadQueuedWork
+        .mockResolvedValueOnce({ status: "declined", sent: 0, flagged: 0 })
+        .mockRejectedValueOnce(new Error("submission-ownership-changed"));
+      const { result } = renderHookWithProviders(() => useWorkUploads());
+      await waitFor(() => expect(result.current.readyCount).toBe(1));
+
+      await act(async () => {
+        await result.current.upload();
+      });
+      await act(async () => {
+        await result.current.uploadOne("one-job").catch(() => undefined);
+      });
+
+      expect(
+        captured.map(([event, { scope, item_count, status, sent, auth_mode }]) => ({
+          event,
+          scope,
+          item_count,
+          status,
+          sent,
+          auth_mode,
+        }))
+      ).toEqual([
+        { event: "queued_upload_started", scope: "all", item_count: 1, auth_mode: "passkey" },
+        {
+          event: "queued_upload_finished",
+          scope: "all",
+          status: "declined",
+          sent: 0,
+          auth_mode: "passkey",
+        },
+        { event: "queued_upload_started", scope: "selected", item_count: 1, auth_mode: "passkey" },
+        {
+          event: "queued_upload_finished",
+          scope: "selected",
+          status: "stopped",
+          sent: 0,
+          auth_mode: "passkey",
+        },
+      ]);
+    } finally {
+      unregister();
+    }
+  });
+
+  // Both records run inside the mutation: a throw would stop the upload or fail a finished one.
+  it.each([
+    "started",
+    "finished",
+  ] as const)("keeps an upload's outcome when its %s record cannot be made", async (record) => {
+    analytics[record].mockImplementationOnce(() => {
+      throw new Error("record failed");
+    });
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "uploaded", sent: 2, flagged: 0 });
+    const { result } = renderHookWithProviders(() => useWorkUploads());
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.upload();
+    });
+
+    expect(outcome).toEqual({ status: "uploaded", sent: 2, flagged: 0 });
+    expect(analytics[record]).toHaveBeenCalledOnce();
+    expect(mocks.toast.success).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Uploaded 2 items" })
+    );
+    expect(mocks.toast.error).not.toHaveBeenCalled();
   });
 
   it("asks the person to sign in when nothing can sign, and sends nothing", async () => {

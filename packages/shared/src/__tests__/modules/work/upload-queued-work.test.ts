@@ -6,10 +6,15 @@ import type { EASConfig } from "../../../config/blockchain";
 import { initializeIpfsFromEnv } from "../../../modules/data/ipfs/client";
 import {
   type ContractCall,
+  ReceiptWaitLimitError,
   TransactionRevertedError,
   type TransactionSender,
 } from "../../../modules/transactions/types";
 import { SimulationRejected } from "../../../modules/work/simulation-rejected";
+import {
+  UploadItemAlreadyDone,
+  UploadItemUnchecked,
+} from "../../../modules/work/upload-item-refusals";
 import { uploadKindOf } from "../../../modules/work/upload-kinds";
 import {
   uploadQueuedWork,
@@ -117,6 +122,8 @@ function harness(jobs: Job[], overrides: Partial<UploadQueuedWorkPorts> = {}) {
     simulate: vi.fn(async () => undefined),
     processJob: vi.fn(async () => ({ success: true, txHash: TX })),
     now: () => Date.parse("2026-09-17T10:00:00.000Z"),
+    receiptWaitLimitMs: 120_000,
+    receiptWaitLimitReached: vi.fn(),
     ...overrides,
   };
   return { ports, store, released, resumed };
@@ -172,6 +179,58 @@ describe("Upload all", () => {
       sent: 1,
       flagged: 0,
     });
+  });
+
+  // Upload all sends outside the processor, so it tells each item's screen itself (PRD-1552).
+  it("tells each item's screen where the one send stands, and lets go once each is finished", async () => {
+    const jobs = [work(), work()];
+    const seen: Array<[string, string | null]> = [];
+    const reportStage = vi.fn((job: Job, stage: string | null) => seen.push([job.id, stage]));
+    const processJob = vi.fn(async (id: string) => {
+      seen.push([id, "finished"]);
+      return { success: true, txHash: TX };
+    });
+    const { ports } = harness(jobs, { reportStage, processJob });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: false };
+    });
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 2 });
+    // Each item keeps saying confirming until the queue has finished it, never sent and stuck.
+    expect(seen).toEqual([
+      [jobs[0]!.id, "wallet"],
+      [jobs[1]!.id, "wallet"],
+      [jobs[0]!.id, "confirming"],
+      [jobs[1]!.id, "confirming"],
+      [jobs[0]!.id, "finished"],
+      [jobs[0]!.id, null],
+      [jobs[1]!.id, "finished"],
+      [jobs[1]!.id, null],
+    ]);
+  });
+
+  // The confirmation pass may already hold an item: it lets go when it finishes, not Upload all.
+  it("leaves an item another holder is finishing at confirming for that holder to let go", async () => {
+    const jobs = [work(), work()];
+    const reportStage = vi.fn();
+    const processJob = vi.fn(async (id: string) =>
+      id === jobs[1]!.id
+        ? { success: false, skipped: true, error: "already-processing" }
+        : { success: true, txHash: TX }
+    );
+    const { ports } = harness(jobs, { reportStage, processJob });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: false };
+    });
+
+    await upload(ports, sender);
+    const lettingGo = reportStage.mock.calls.filter(([, stage]) => stage === null);
+    expect(lettingGo.map(([job]) => job.id)).toEqual([jobs[0]!.id]);
   });
 
   it("refuses on an unconfirmed connection before claiming anything", async () => {
@@ -377,6 +436,28 @@ describe("Upload all", () => {
     expect(store.get(first.id)?.meta?.preparation).toMatchObject({ status: "ready" });
   });
 
+  it("waits the queue's limit for the call's receipt, and records the wait that ran out", async () => {
+    // Upload all sends outside the processor, so it states the limit and keeps the record
+    // itself, once per kind the call carried (PRD-1551).
+    const items = [work(), decision()];
+    const { ports, store } = harness(items);
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(TX);
+      throw new ReceiptWaitLimitError(options?.receiptWaitLimitMs ?? 0, { hash: TX });
+    });
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "send-unconfirmed" });
+    expect(vi.mocked(sender.sendContractCall).mock.calls[0]?.[1]?.receiptWaitLimitMs).toBe(120_000);
+    expect(vi.mocked(ports.receiptWaitLimitReached).mock.calls).toEqual([
+      ["work", { limitMs: 120_000, explicit: true, authMode: "wallet" }],
+      ["approval", { limitMs: 120_000, explicit: true, authMode: "wallet" }],
+    ]);
+    // Still on record, so the queue confirms it rather than sending it again.
+    for (const { id } of items) expect(sendOf(store, id)).toMatchObject({ transactionHash: TX });
+  });
+
   it("keeps the recorded send when the answer is lost, for the queue to confirm", async () => {
     const item = work();
     const { ports, store } = harness([item]);
@@ -551,7 +632,7 @@ describe("Upload all", () => {
     for (const { id } of jobs) {
       expect(store.get(id)?.meta?.preparation).toMatchObject({
         status: "blocked",
-        reason: "reverted",
+        reason: "batch-reverted",
       });
       expect(sendOf(store, id)).not.toHaveProperty("broadcast");
     }
@@ -618,6 +699,128 @@ describe("Upload all", () => {
     });
     expect(store.get(unreadable.id)?.meta).not.toHaveProperty("preparation");
     expect(store.get(good.id)?.meta?.preparation).toMatchObject({ status: "ready" });
+  });
+
+  it("leaves a decision on a work decided elsewhere out of the call, for the queue to clear", async () => {
+    const [kept, decided] = [work(), decision()];
+    const { ports, store, released } = harness([kept, decided]);
+    const attest = vi.mocked(ports.attestation).getMockImplementation()!;
+    vi.mocked(ports.attestation).mockImplementation(async (job, context) => {
+      if (job.id === decided.id) throw new UploadItemAlreadyDone("work-already-decided");
+      return attest(job, context);
+    });
+    vi.mocked(ports.processJob).mockImplementation(async (jobId) =>
+      jobId === decided.id
+        ? { success: false, error: "unavailable:work-already-decided", alreadyDone: true }
+        : { success: true, txHash: TX }
+    );
+    const sender = createMockTransactionSender();
+
+    // Nothing needs the person's attention: the queue says it was already reviewed.
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(sendOf(store, decided.id)).toBeUndefined();
+    // The queue clears it once this tap has let go of it, rereading the chain as it does.
+    const clearing = vi.mocked(ports.processJob).mock.invocationCallOrder[
+      vi.mocked(ports.processJob).mock.calls.findIndex(([id]) => id === decided.id)
+    ];
+    expect(clearing).toBeGreaterThan(released.mock.invocationCallOrder[0]);
+    expect(ports.processJob).toHaveBeenCalledWith(
+      decided.id,
+      expect.objectContaining({ explicit: true })
+    );
+  });
+
+  it("says nothing went, and that nothing is left, when the only decision was already decided", async () => {
+    const decided = decision();
+    const { ports } = harness([decided]);
+    vi.mocked(ports.attestation).mockRejectedValue(
+      new UploadItemAlreadyDone("work-already-decided")
+    );
+    vi.mocked(ports.processJob).mockResolvedValue({
+      success: false,
+      error: "unavailable:work-already-decided",
+      alreadyDone: true,
+    });
+    const sender = createMockTransactionSender();
+
+    // The queue cleared it, so "your items are still on this device" would be false.
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "nothing-sent",
+      flagged: 0,
+      settled: 1,
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+    const embedded = createMockTransactionSender({ authMode: "embedded" });
+    await expect(upload(ports, embedded)).resolves.toEqual({
+      status: "nothing-sent",
+      flagged: 0,
+      settled: 1,
+    });
+  });
+
+  it("still says items are on the device when one was already decided and another stays", async () => {
+    const [decided, unchecked] = [decision(), decision()];
+    const { ports } = harness([decided, unchecked]);
+    vi.mocked(ports.attestation).mockImplementation(async (job) => {
+      throw job.id === decided.id
+        ? new UploadItemAlreadyDone("work-already-decided")
+        : new UploadItemUnchecked(new Error("timed out"));
+    });
+    vi.mocked(ports.processJob).mockResolvedValue({
+      success: false,
+      error: "unavailable:work-already-decided",
+      alreadyDone: true,
+    });
+
+    // Only when every ready item was settled is the queue's notice the whole answer.
+    await expect(upload(ports, createMockTransactionSender())).resolves.toEqual({
+      status: "nothing-sent",
+      flagged: 0,
+    });
+  });
+
+  it("holds back, unsent and ready, a decision whose work could not be checked", async () => {
+    const [kept, unchecked] = [work(), decision()];
+    const { ports, store } = harness([kept, unchecked]);
+    const attest = vi.mocked(ports.attestation).getMockImplementation()!;
+    vi.mocked(ports.attestation).mockImplementation(async (job, context) => {
+      if (job.id === unchecked.id) throw new UploadItemUnchecked(new Error("timed out"));
+      return attest(job, context);
+    });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(sendOf(store, unchecked.id)).toBeUndefined();
+    expect(store.get(unchecked.id)?.meta?.preparation).toMatchObject({ status: "ready" });
+    expect(ports.processJob).not.toHaveBeenCalledWith(unchecked.id, expect.anything());
+  });
+
+  it("counts nothing for attention when an embedded wallet's decision turns out already decided", async () => {
+    const [first, decided] = [work(), decision()];
+    const { ports } = harness([first, decided]);
+    const sender = createMockTransactionSender({ authMode: "embedded" });
+    vi.mocked(ports.processJob).mockImplementation(async (jobId) =>
+      jobId === decided.id
+        ? { success: false, error: "unavailable:work-already-decided", alreadyDone: true }
+        : { success: true, txHash: TX }
+    );
+
+    // The queue cleared it from Your Work, so nothing is left there to attend to.
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
   });
 
   it("keeps work ahead of decisions across the call limit, and reports what went before a later prompt is declined", async () => {

@@ -263,7 +263,7 @@ describe("sendGardenSettingsBatch", () => {
       throw new BatchNotSubmittedError(new Error("User rejected the request"));
     });
 
-    await expect(send(input)).resolves.toEqual({ status: "not-saved" });
+    await expect(send(input)).resolves.toEqual({ status: "not-saved", declined: true });
   });
 });
 

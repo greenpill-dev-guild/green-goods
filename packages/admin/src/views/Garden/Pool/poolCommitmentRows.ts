@@ -66,9 +66,9 @@ export function currentGroup(
  * D3) that counts every copy of the group, whichever scope each copy is in; the
  * row sits where the group's first copy in this scope would. A count's own
  * list (past due, needs recovery) names each promise on its own: attention
- * always surfaces one promise at a time. So does a copy that `standsAlone`
- * (a voucher booking waiting on the steward's act, PRD-1297), beside the group
- * that still counts it.
+ * always surfaces one promise at a time. A voucher booking's act waits in
+ * Review Promises, never here, so its copy folds into its group like any other
+ * (decision 2 of the 18 November 2026 hub-day review).
  */
 export function selectPoolCommitmentRows({
   model,
@@ -78,7 +78,6 @@ export function selectPoolCommitmentRows({
   focus,
   search,
   titleOf,
-  standsAlone,
 }: {
   model: Pick<PoolConsoleController["model"], "groups" | "dueLive" | "needsRecovery">;
   /** Every promise in the pool, for whole-group counts. */
@@ -88,8 +87,6 @@ export function selectPoolCommitmentRows({
   focus: PoolCommitmentFocus;
   search: string;
   titleOf: (row: CommitmentReadModel) => string;
-  /** A copy that needs the steward on its own row, out of its group's fold. */
-  standsAlone?: (row: CommitmentReadModel) => boolean;
 }): PoolCommitmentEntry[] {
   const base =
     focus === "pastDue"
@@ -109,10 +106,8 @@ export function selectPoolCommitmentRows({
   return rows.flatMap((record): PoolCommitmentEntry[] => {
     const group = groupOf.get(record.id);
     if (!group) return [{ kind: "single", record }];
-    // The group still counts a copy that stands alone, and keeps its row when every copy does.
-    const own: PoolCommitmentEntry[] = standsAlone?.(record) ? [{ kind: "single", record }] : [];
-    if (placed.has(group.key)) return own;
+    if (placed.has(group.key)) return [];
     placed.add(group.key);
-    return [group, ...own];
+    return [group];
   });
 }

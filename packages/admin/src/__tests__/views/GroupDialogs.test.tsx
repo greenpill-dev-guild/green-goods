@@ -4,22 +4,25 @@
 
 /**
  * The group inspector's dialogs. Edit Reward: what the steward's dollars
- * become, and what a Try Again sends. Seed More Like This and Add to This
+ * become, and what a Try Again sends. Edit Confirmers: which rule the untaken
+ * copies get, and what a Try Again sends. Seed More Like This and Add to This
  * Group: which way the steward can go, and what an Add sends. The sends are
- * Shared's `useEditReward` (proven with the wallet in `commitment-reward-edit`)
- * and `useAddToGroup` (in `commitment-group-additions`); here they are
- * stand-ins that record what they were asked and answer as scripted.
+ * Shared's `useEditReward` and `useEditConfirmers` (proven with the wallet in
+ * `commitment-reward-edit`) and `useAddToGroup` (in
+ * `commitment-group-additions`); here they are stand-ins that record what they
+ * were asked and answer as scripted.
  */
 
 import type { AddToGroupOutcome } from "@green-goods/shared/hooks/admin-ui/pool/useAddToGroup";
+import type { ConfirmerEditProgress } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type { RewardEditProgress } from "@green-goods/shared/hooks/admin-ui/pool/useEditReward";
 import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addToGroupRefusal } from "@/views/Garden/Pool/Group/addToGroupStatus";
 import { createIntl } from "react-intl";
-import { editRewardSummary } from "@/views/Garden/Pool/Group/editRewardStatus";
-import { editRewardStatus } from "@/views/Garden/Pool/Group/editRewardStatus";
+import { editConfirmersStatus } from "@/views/Garden/Pool/Group/editConfirmersStatus";
+import { editRewardSummary, editRewardStatus } from "@/views/Garden/Pool/Group/editRewardStatus";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -30,6 +33,8 @@ const CHANGE_PRICE = 100_000_000_000_000n;
 
 type EditRewardModule = typeof import("@green-goods/shared/hooks/admin-ui/pool/useEditReward");
 type AddModule = typeof import("@green-goods/shared/hooks/admin-ui/pool/useAddToGroup");
+type ConsoleModule =
+  typeof import("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController");
 
 const mocks = vi.hoisted(() => ({
   price: { status: "ready", price: 0n, readAt: 0 } as GoodDollarPriceState,
@@ -37,8 +42,20 @@ const mocks = vi.hoisted(() => ({
   changes: [] as Array<{ ids: bigint[]; amount: bigint }>,
   /** Which copies the wallet leaves unchanged on the next change. */
   unchanged: new Set<bigint>(),
+  /** Which copies the wallet declines on the next confirmer change. */
+  declined: new Set<bigint>(),
   added: [] as number[],
   outcome: "sent" as AddToGroupOutcome,
+  /** A name's lookup, left open until the test lands it. */
+  lookup: null as Promise<string | null> | null,
+  /** The names looked up, in order. */
+  lookedUp: [] as string[],
+  /** The garden's gardeners, offered as confirmers in one tap. */
+  gardeners: [] as string[],
+  confirmerChanges: [] as Array<{
+    copies: Array<[bigint, boolean]>;
+    rule: { confirmers: string[]; threshold: number };
+  }>,
 }));
 
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/useEditReward", async () => {
@@ -49,7 +66,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useEditReward", async () => {
       mode: "bundle",
       isSending: false,
       copies,
-      reset: react.useCallback(() => setCopies(null), []),
+      reset: react.useCallback(() => setCopies(null), [setCopies]),
       change: async (ids, amount) => {
         mocks.changes.push({ ids: [...ids], amount });
         const ended = ids.map((commitmentId) =>
@@ -84,15 +101,68 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useAddToGroup", async () => {
   return { useAddToGroup };
 });
 
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", async () => {
+  const react = await import("react");
+  const useEditConfirmers: ConsoleModule["useEditConfirmers"] = () => {
+    const [copies, setCopies] = react.useState<ConfirmerEditProgress[] | null>(null);
+    return {
+      mode: "one-by-one",
+      isSending: false,
+      copies,
+      reset: react.useCallback(() => setCopies(null), [setCopies]),
+      change: async (targets, rule) => {
+        mocks.confirmerChanges.push({
+          copies: targets.map((copy) => [copy.commitmentId, copy.protocolFallbackEnabled]),
+          rule: { confirmers: [...rule.confirmers], threshold: rule.threshold },
+        });
+        const ended = targets.map(({ commitmentId }) =>
+          mocks.declined.has(commitmentId)
+            ? ({ commitmentId, status: "not-changed", miss: "declined", txHash: null } as const)
+            : mocks.unchanged.has(commitmentId)
+              ? ({ commitmentId, status: "not-changed", miss: "failed", txHash: null } as const)
+              : ({ commitmentId, status: "changed", txHash: null } as const)
+        );
+        mocks.unchanged.clear();
+        mocks.declined.clear();
+        setCopies(ended);
+        return ended.some((copy) => copy.status !== "changed") ? "left" : "changed";
+      },
+    };
+  };
+  return { useEditConfirmers };
+});
+
+// People are named from their Green Goods or ENS name; no test reaches for either.
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: undefined }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: undefined }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
+  useEnsAddress: () => ({ data: undefined, isFetching: false }),
+}));
+vi.mock("@green-goods/shared/utils/blockchain/ens", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/ens")>()),
+  resolveEnsAddress: (name: string) => {
+    mocks.lookedUp.push(name);
+    return mocks.lookup ?? Promise.resolve(null);
+  },
+}));
+
 vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
   useGoodDollarPrice: () => ({ state: mocks.price, readNow: mocks.readNow }),
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha" }] }),
+  useGardens: () => ({
+    data: [{ id: GARDEN, name: "Rocinha", gardeners: mocks.gardeners }],
+  }),
 }));
 
 const { EditRewardDialog } = await import("@/views/Garden/Pool/Group/EditRewardDialog");
+const { EditConfirmersDialog } = await import("@/views/Garden/Pool/Group/EditConfirmersDialog");
 const { AddToGroupDialog } = await import("@/views/Garden/Pool/Group/AddToGroupDialog");
 const { SeedMoreDialog } = await import("@/views/Garden/Pool/Group/SeedMoreDialog");
 
@@ -439,5 +509,245 @@ describe("Seed More Like This", () => {
     expect(dialog()).toHaveTextContent(/deadline has passed/i);
     fireEvent.click(within(dialog()).getByRole("button", { name: "Continue" }));
     expect(onContinue).toHaveBeenCalledWith("new");
+  });
+});
+
+describe("Edit Confirmers", () => {
+  const OLD = "0x3333333333333333333333333333333333333333" as const;
+  const LINA = "0x2222222222222222222222222222222222222222" as const;
+  const NEW = "0x4444444444444444444444444444444444444444" as const;
+
+  beforeEach(() => {
+    mocks.confirmerChanges = [];
+    mocks.unchanged.clear();
+    mocks.declined.clear();
+    mocks.lookup = null;
+    mocks.lookedUp = [];
+    mocks.gardeners = [];
+  });
+
+  function renderConfirmers() {
+    const onChanged = vi.fn();
+    const dialogWith = (
+      available: { commitmentId: bigint; protocolFallbackEnabled: boolean }[]
+    ) => (
+      <EditConfirmersDialog
+        open
+        onClose={vi.fn()}
+        onChanged={onChanged}
+        chainId={42161}
+        garden={GARDEN}
+        title="Climate course check-ins"
+        available={available}
+        current={{ confirmers: [OLD, LINA], confirmationThreshold: 1 }}
+        direction="REQUEST"
+        taken={2}
+      />
+    );
+    const { rerender } = renderWithProviders(
+      dialogWith([
+        { commitmentId: 3n, protocolFallbackEnabled: true },
+        { commitmentId: 4n, protocolFallbackEnabled: false },
+      ])
+    );
+    return {
+      onChanged,
+      nowAvailable: (copies: bigint[]) =>
+        rerender(
+          dialogWith(
+            copies.map((commitmentId) => ({ commitmentId, protocolFallbackEnabled: true }))
+          )
+        ),
+    };
+  }
+  const confirmers = () => within(screen.getByTestId("seed-confirmers"));
+  const change = () =>
+    within(dialog()).getByRole("button", { name: "Change Confirmers on 2 Promises" });
+  const swapOldForNew = () => {
+    fireEvent.click(confirmers().getAllByRole("button", { name: /^remove /i })[0]!);
+    fireEvent.change(confirmers().getByLabelText(/^add a confirmer/i), { target: { value: NEW } });
+    fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
+  };
+
+  it("names a replacement account on every copy nobody has taken, each keeping its team fallback", async () => {
+    const { onChanged } = renderConfirmers();
+    expect(screen.getByTestId("edit-confirmers")).toHaveTextContent(
+      "The 2 already taken keep the confirmers they were taken up with."
+    );
+    // It starts at the rule they have, which would change nothing.
+    expect(change()).toBeDisabled();
+    swapOldForNew();
+    // The group is still "1 of 2", so the summary names who the change adds and removes.
+    expect(screen.getByTestId("edit-confirmers")).toHaveTextContent(
+      /Adds.*0x44.*444.*Removes.*0x33.*333/
+    );
+    fireEvent.click(change());
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalledWith(2));
+    expect(mocks.confirmerChanges).toEqual([
+      {
+        copies: [
+          [3n, true],
+          [4n, false],
+        ],
+        rule: { confirmers: [LINA, NEW], threshold: 1 },
+      },
+    ]);
+  });
+
+  it("sends a Try Again to the one that didn't change, with the same confirmers, and holds the list", async () => {
+    mocks.unchanged.add(4n);
+    renderConfirmers();
+    swapOldForNew();
+    fireEvent.click(change());
+
+    const retry = await within(dialog()).findByRole("button", { name: "Try Again (1)" });
+    expect(confirmers().getByLabelText(/^add a confirmer/i)).toBeDisabled();
+    // A Try Again the wallet declines outright still leaves copy 3 on the new rule.
+    mocks.declined.add(4n);
+    fireEvent.click(retry);
+    const again = await within(dialog()).findByRole("button", { name: "Try Again" });
+    expect(confirmers().getByLabelText(/^add a confirmer/i)).toBeDisabled();
+    fireEvent.click(again);
+    await waitFor(() => expect(mocks.confirmerChanges).toHaveLength(3));
+    for (const sent of mocks.confirmerChanges.slice(1)) {
+      expect(sent).toEqual({
+        copies: [[4n, false]],
+        rule: { confirmers: [LINA, NEW], threshold: 1 },
+      });
+    }
+  });
+
+  it("waits for a typed name to be added and looked up, then saves it with the rest", async () => {
+    let land: (address: string) => void = () => undefined;
+    mocks.lookup = new Promise((resolve) => {
+      land = resolve;
+    });
+    renderConfirmers();
+    fireEvent.click(confirmers().getAllByRole("button", { name: /^remove /i })[0]!);
+    expect(change()).toBeEnabled();
+    fireEvent.change(confirmers().getByLabelText(/^add a confirmer/i), {
+      target: { value: "new.eth" },
+    });
+    // Typed but not added: saving now would leave the replacement out.
+    expect(change()).toBeDisabled();
+    expect(
+      within(dialog()).getByText("Select Add to include the name you typed, or clear the field.")
+    ).toBeVisible();
+    fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(change()).toBeDisabled());
+
+    land(NEW);
+    await waitFor(() => expect(change()).toBeEnabled());
+    fireEvent.click(change());
+    await waitFor(() => expect(mocks.confirmerChanges).toHaveLength(1));
+    expect(mocks.confirmerChanges[0]?.rule.confirmers).toEqual([LINA, NEW]);
+  });
+
+  // PRD-1548: a second name started while the first was in flight was cleared by the first's
+  // landing, so a save in between left it out. The field holds until the lookup lands.
+  it("holds the field and Add while a name is looked up, so a second can't start", async () => {
+    let land: (address: string) => void = () => undefined;
+    mocks.lookup = new Promise((resolve) => {
+      land = resolve;
+    });
+    mocks.gardeners = ["0x5555555555555555555555555555555555555555"];
+    renderConfirmers();
+    const field = () => confirmers().getByLabelText(/^add a confirmer/i);
+    const fromGarden = () =>
+      within(confirmers().getByTestId("seed-confirmer-suggestions")).getByRole("button");
+    fireEvent.change(field(), { target: { value: "first.eth" } });
+    fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(field()).toHaveAttribute("readonly"));
+
+    fireEvent.change(field(), { target: { value: "second.eth" } });
+    fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(field()).toHaveValue("first.eth");
+    expect(mocks.lookedUp).toEqual(["first.eth"]);
+    expect(change()).toBeDisabled();
+    // A garden member added in one tap would clear the wait too.
+    expect(fromGarden()).toBeDisabled();
+
+    land(NEW);
+    await waitFor(() => expect(field()).not.toHaveAttribute("readonly"));
+    expect(field()).toHaveValue("");
+    expect(change()).toBeEnabled();
+  });
+
+  it.each([
+    ["first", 50, "wallet", "waiting"],
+    ["second", 10, "changed", "wallet"],
+  ] as const)("asks about the %s request's copies only, when 60 change in bundles of 50", (_, count, firstFifty, rest) => {
+    const intl = createIntl({ locale: "en", messages: {} });
+    const copies = Array.from(
+      { length: 60 },
+      (_, index): ConfirmerEditProgress => ({
+        commitmentId: BigInt(index),
+        status: index < 50 ? firstFifty : rest,
+        txHash: null,
+      })
+    );
+    const status = editConfirmersStatus({
+      mode: "bundle",
+      isSending: true,
+      copies,
+      available: 60,
+      taken: 0,
+      formatMessage: (descriptor, values) => intl.formatMessage(descriptor, values),
+    });
+    expect(status).toMatchObject({
+      phase: "asking",
+      title: `Approve in your wallet: ${count} promises in one request`,
+      description: `They change together: all ${count}, or none if the wallet declines.`,
+    });
+  });
+
+  it("names the whole new group when the available copies share no one rule to compare with", () => {
+    renderWithProviders(
+      <EditConfirmersDialog
+        open
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+        chainId={42161}
+        garden={GARDEN}
+        title="Climate course check-ins"
+        available={[{ commitmentId: 3n, protocolFallbackEnabled: true }]}
+        current={{ confirmers: [OLD, LINA], confirmationThreshold: 1 }}
+        mixed
+        direction="REQUEST"
+        taken={0}
+      />
+    );
+    const summary = screen.getByTestId("edit-confirmers");
+    expect(summary).toHaveTextContent(
+      /Not the same on every available one.*Names.*0x33.*333.*0x22.*222/
+    );
+    expect(summary).not.toHaveTextContent(/Adds|Removes/);
+  });
+
+  it("finishes when the copy a Try Again would send was taken meanwhile", async () => {
+    mocks.unchanged.add(4n);
+    const { onChanged, nowAvailable } = renderConfirmers();
+    swapOldForNew();
+    fireEvent.click(change());
+    await within(dialog()).findByRole("button", { name: "Try Again (1)" });
+
+    // Someone takes copy 4: it keeps the confirmers it was taken up with.
+    nowAvailable([3n]);
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Done" }));
+    expect(onChanged).toHaveBeenCalledWith(1);
+    expect(mocks.confirmerChanges).toHaveLength(1);
+  });
+
+  it("holds a threshold no named group could reach, and says why", () => {
+    renderConfirmers();
+    fireEvent.change(confirmers().getByLabelText(/^how many must confirm/i), {
+      target: { value: "3" },
+    });
+    expect(change()).toBeDisabled();
+    expect(
+      confirmers().getByText(/more confirmations than there are named confirmers/i)
+    ).toBeVisible();
   });
 });

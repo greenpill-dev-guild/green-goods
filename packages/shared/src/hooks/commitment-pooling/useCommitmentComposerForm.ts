@@ -95,20 +95,20 @@ const confirmerAddressSchema = addressSchema.refine(
  * message: it says the missing thing in its own words instead.
  */
 export const COMMITMENT_COMPOSER_ERROR_IDS = {
-  titleRequired: "cockpit.garden.pool.seed.error.titleRequired",
-  titleTooLong: "cockpit.garden.pool.seed.error.titleTooLong",
-  unitRequired: "cockpit.garden.pool.seed.error.unitRequired",
-  unitTooLong: "cockpit.garden.pool.seed.error.unitTooLong",
-  noteTooLong: "cockpit.garden.pool.seed.error.noteTooLong",
-  confirmersTooMany: "cockpit.garden.pool.seed.error.confirmersTooMany",
-  thresholdAtLeastOne: "cockpit.garden.pool.seed.error.thresholdAtLeastOne",
-  thresholdAboveGroup: "cockpit.garden.pool.seed.error.thresholdAboveGroup",
-  considerationSource: "cockpit.garden.pool.seed.error.considerationSource",
-  considerationToken: "cockpit.garden.pool.seed.error.considerationToken",
-  considerationAmount: "cockpit.garden.pool.seed.error.considerationAmount",
-  countAtLeastOne: "cockpit.garden.pool.seed.error.countAtLeastOne",
-  countTooMany: "cockpit.garden.pool.seed.error.countTooMany",
-  considerationUsd: "cockpit.garden.pool.seed.error.considerationUsd",
+  titleRequired: "hub.garden.pool.seed.error.titleRequired",
+  titleTooLong: "hub.garden.pool.seed.error.titleTooLong",
+  unitRequired: "hub.garden.pool.seed.error.unitRequired",
+  unitTooLong: "hub.garden.pool.seed.error.unitTooLong",
+  noteTooLong: "hub.garden.pool.seed.error.noteTooLong",
+  confirmersTooMany: "hub.garden.pool.seed.error.confirmersTooMany",
+  thresholdAtLeastOne: "hub.garden.pool.seed.error.thresholdAtLeastOne",
+  thresholdAboveGroup: "hub.garden.pool.seed.error.thresholdAboveGroup",
+  considerationSource: "hub.garden.pool.seed.error.considerationSource",
+  considerationToken: "hub.garden.pool.seed.error.considerationToken",
+  considerationAmount: "hub.garden.pool.seed.error.considerationAmount",
+  countAtLeastOne: "hub.garden.pool.seed.error.countAtLeastOne",
+  countTooMany: "hub.garden.pool.seed.error.countTooMany",
+  considerationUsd: "hub.garden.pool.seed.error.considerationUsd",
 } as const;
 
 /** Static English; the view renders its own translated messages. */
@@ -181,6 +181,11 @@ export const commitmentComposerSchema = z
      * While set it stands in for `considerationAmount`, converted at Create.
      */
     considerationUsd: z.string().trim().optional(),
+    /**
+     * Match a G$ reward set in dollars with the same dollars in USDC, paid from the
+     * garden's Safe once it's kept (seeding only, PRD-1556). Absent is G$ only.
+     */
+    rewardMatchedUsdc: z.boolean().optional(),
   })
   .superRefine((values, context) => {
     if (values.kind === "GARDEN_WORK") {

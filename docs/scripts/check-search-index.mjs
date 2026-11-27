@@ -7,7 +7,7 @@ import * as yaml from "js-yaml";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const defaultDocsDir = path.resolve(__dirname, "../docs");
-const defaultBuildDir = path.resolve(__dirname, "../build");
+const defaultBuildDir = path.resolve(__dirname, "../build/site");
 
 function normalizeRoute(route) {
   const cleanRoute = String(route).split("#")[0].split("?")[0].trim();

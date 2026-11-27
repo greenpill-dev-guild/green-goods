@@ -19,7 +19,25 @@ export interface CampaignCreateReviewProps extends CampaignCookieJarCreateFormPr
  * Done once the jar exists.
  */
 export function CampaignCreateReview({ status, outcome, ...props }: CampaignCreateReviewProps) {
-  const { formatMessage, payoutLabel, aggregation, publicCampaignUrl } = props;
+  const {
+    formatMessage,
+    claimSchedule,
+    payoutLabel,
+    tokenSymbol,
+    aggregation,
+    publicCampaignUrl,
+    normalizedJarOwner,
+  } = props;
+  const payout =
+    payoutLabel && claimSchedule === "recurring"
+      ? formatMessage(
+          {
+            id: "hub.community.cookies.recurringPayout",
+            defaultMessage: "Up to {amount} every 30 days",
+          },
+          { amount: payoutLabel }
+        )
+      : (payoutLabel ?? (tokenSymbol || "--"));
   return (
     <div className="space-y-4">
       <FlowStatusRow
@@ -33,35 +51,44 @@ export function CampaignCreateReview({ status, outcome, ...props }: CampaignCrea
         <FactList frame="inset">
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.reviewPayout",
+              id: "hub.community.cookies.reviewPayout",
               defaultMessage: "Payout",
             })}
-            value={payoutLabel}
+            value={payout}
           />
+          {normalizedJarOwner ? (
+            <FactRow
+              label={formatMessage({
+                id: "hub.community.cookies.owner",
+                defaultMessage: "Jar owner",
+              })}
+              value={normalizedJarOwner}
+            />
+          ) : null}
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.selectedGardens",
+              id: "hub.community.cookies.selectedGardens",
               defaultMessage: "Selected gardens",
             })}
             value={aggregation.sources.length}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.generatedStewards",
+              id: "hub.community.cookies.generatedStewards",
               defaultMessage: "Stewards who can claim",
             })}
             value={aggregation.allowlist.length}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.missingStewards",
+              id: "hub.community.cookies.missingStewards",
               defaultMessage: "Gardens without a steward",
             })}
             value={aggregation.missingStewardGardens.length}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.generatedCampaignLink",
+              id: "hub.community.cookies.generatedCampaignLink",
               defaultMessage: "Campaign page",
             })}
             value={publicCampaignUrl}

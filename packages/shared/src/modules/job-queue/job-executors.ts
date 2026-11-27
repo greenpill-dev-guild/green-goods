@@ -1,4 +1,4 @@
-import { type Hex } from "viem";
+import { BaseError, ContractFunctionRevertedError, type Hex } from "viem";
 import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -19,8 +19,8 @@ import {
   type DeferredWorkIdentityResolution,
   resolveDeferredWorkIdentity,
 } from "../commitment-pooling/work-identity";
-import type { TransactionSender } from "../transactions/types";
-import { refusedByChain } from "../work/simulation-rejected";
+import { isCanonicalTransactionHash } from "../transactions/confirmation";
+import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import type { StrandedCommitmentLookup } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
@@ -34,6 +34,26 @@ import { jobQueueDB } from "./db";
 import { publishPendingEvidence } from "./evidence-publisher";
 import { ActRefusedByChain, hasRecordedSend, recordsSends } from "./queue-policy";
 import { observeTransactionNonce } from "./send-guards";
+
+// These refusals depend on the submitted identity, the promise's fixed settings,
+// or the payload already recorded for an operation key.
+const FIXED_COMMITMENT_REFUSALS = new Set([
+  "ClaimModeMismatch",
+  "ClaimTypeMismatch",
+  "SelfCounterparty",
+  "ServiceClaimPathRequired",
+  "WorkLinkOperationConflict",
+]);
+
+function isFixedCommitmentRefusal(error: unknown): error is BaseError {
+  if (!(error instanceof BaseError)) return false;
+  const revert = error.walk((cause) => cause instanceof ContractFunctionRevertedError);
+  return (
+    revert instanceof ContractFunctionRevertedError &&
+    revert.data !== undefined &&
+    FIXED_COMMITMENT_REFUSALS.has(revert.data.errorName)
+  );
+}
 
 type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
 
@@ -162,6 +182,20 @@ async function publishPendingCommitmentMetadata(
   }
 }
 
+/**
+ * Whether a creation kept as submitted ended without landing: its transaction reverted, or
+ * another took the nonce it used. A read that cannot say leaves it waiting.
+ */
+async function keptCreationEnded(job: Job, reads: CommitmentChainReads): Promise<boolean> {
+  const hash = job.meta?.submittedTxHash;
+  if (job.kind !== "commitment" && job.kind !== "commitmentSeries") return false;
+  if (typeof hash !== "string" || !isCanonicalTransactionHash(hash)) return false;
+  if (await reads.transactionReverted?.(hash)) return true;
+  const nonce = job.meta?.submittedTxNonce;
+  if (typeof nonce !== "number" || !reads.transactionSuperseded) return false;
+  return reads.transactionSuperseded(hash, job.userAddress as Address, nonce).catch(() => false);
+}
+
 export async function executeCommitmentQueueJob(
   jobId: string,
   job: Job,
@@ -179,6 +213,16 @@ export async function executeCommitmentQueueJob(
   const store = deps.store ?? jobQueueDB;
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
   const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
+  // A creation kept as submitted when its receipt outlasted the queue's limit (PRD-1551) made
+  // nothing if that transaction then reverted, or can never land once another took its nonce
+  // (a cancel or a replacement). Its hash is cleared so the creation can go again, as one that
+  // ended so inside the wait always could; the chain is still asked for it first, so a
+  // replacement that landed is recovered, not sent twice. One pending or unknown keeps waiting.
+  if (await keptCreationEnded(job, chainReads)) {
+    const { submittedTxHash: _ended, submittedTxNonce: _nonce, ...meta } = job.meta ?? {};
+    job.meta = meta;
+    await store.updateJob({ ...job });
+  }
   if (recordsSends(job.kind) && (hasRecordedSend(job) || retainedWorkBroadcastReference(jobId))) {
     return settleActSend(jobId, job, chainId, sender, store, chainReads, deps);
   }
@@ -283,7 +327,21 @@ export async function executeCommitmentQueueJob(
           args: built.args,
           chainId: targetChain,
         };
-        if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
+        // A creation keeps the transaction it sent rather than a send record. One whose receipt
+        // outlasted the queue's limit went out all the same: kept as submitted, the next pass
+        // waits for the chain to show it instead of sending it again.
+        if (!recordsSends(job.kind)) {
+          try {
+            return (await sender.sendContractCall(call)).hash;
+          } catch (error) {
+            if (!(error instanceof ReceiptWaitLimitError && error.hash)) throw error;
+            // Keep the nonce it used while the network holds it: only that can later show
+            // another transaction took its place.
+            const nonce = await chainReads.readTransactionNonce?.(error.hash).catch(() => null);
+            if (typeof nonce === "number") job.meta = { ...job.meta, submittedTxNonce: nonce };
+            return error.hash;
+          }
+        }
         // A wallet estimates inside its own send, after the intent is recorded;
         // asking the chain first keeps a refusal a refusal. A send riding with its
         // proof could only revert alone (`EvidenceRequired`); its request is
@@ -300,8 +358,8 @@ export async function executeCommitmentQueueJob(
         } catch (simulationError) {
           // Reward state may have changed since preflight. Only that dependency waits.
           await beforeBroadcast?.();
-          throw refusedByChain(simulationError)
-            ? new ActRefusedByChain(simulationError as Error)
+          throw isFixedCommitmentRefusal(simulationError)
+            ? new ActRefusedByChain(simulationError)
             : simulationError;
         }
         // Read after the simulation, and again just before the intent, after any
@@ -330,6 +388,11 @@ export async function executeCommitmentQueueJob(
     if (waiting) return waiting;
     if (error instanceof EarnedRewardWaiting && !hasRecordedSend(job))
       return { status: "waiting", reason: error.reason };
+    // A creation's UserOperation that outlasted the limit names no transaction to keep, but it
+    // went out and may still land: it waits, spending no attempt. The next pass asks the chain
+    // for the creation first, and the contract keeps one per request key (PRD-1551).
+    if (!recordsSends(job.kind) && error instanceof ReceiptWaitLimitError && !error.hash)
+      return { status: "waiting", reason: "awaiting-confirmation" };
     throw error;
   }
 

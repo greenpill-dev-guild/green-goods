@@ -47,7 +47,7 @@ function Column({ width, children }: { width: number; children: ReactNode }) {
 function Roster() {
   const { formatMessage, formatDate } = useIntl();
   const roles = (count: number) =>
-    formatMessage({ id: "cockpit.community.members.roleCount" }, { count });
+    formatMessage({ id: "hub.community.members.roleCount" }, { count });
   // The installed app's member detail, at noon UTC so every timezone reads the same day.
   const gardenerSince = formatMessage(
     { id: "app.garden.gardeners.gardenerSince" },
@@ -96,7 +96,7 @@ const meta: Meta<typeof PersonRow> = {
     docs: {
       description: {
         component:
-          "One person in a list on both surfaces (DL-112): an item row led by the person's 56px avatar (their photo, or a glyph), their name from the shared address display (their Green Goods name, then their ENS name, then a short address), their highest role as the row's one chip, and one count. The cockpit's density comes from its tokens.",
+          "One person in a list on both surfaces (DL-112): an item row led by the person's 56px avatar (their photo, or a glyph), their name from the shared address display (their Green Goods name, then their ENS name, then a short address), their highest role as the row's one chip, and one count. The Hub's density comes from its tokens.",
       },
     },
   },
@@ -126,7 +126,7 @@ export default meta;
 type Story = StoryObj<typeof PersonRow>;
 
 /**
- * A garden's people at the installed app's density and the cockpit's: the Green Goods name
+ * A garden's people at the installed app's density and the Hub's: the Green Goods name
  * reads as the username alone, someone with no name reads as a short address, and while a
  * photo is still being looked up the avatar shows what someone without one shows.
  */
@@ -140,7 +140,7 @@ export const Densities: Story = {
         </Column>
       </section>
       <section className="flex flex-col gap-2" data-surface-scope="admin">
-        <h3 className="type-label-sm text-text-sub-600">Cockpit</h3>
+        <h3 className="type-label-sm text-text-sub-600">Hub</h3>
         <Column width={366}>
           <Roster />
         </Column>

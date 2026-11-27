@@ -46,6 +46,10 @@ while IFS= read -r file; do
     block 'Package-level .env files are not allowed in Green Goods; use the root env schema/example pattern.'
   fi
 
+  if printf '%s' "$file" | grep -qE '(^|/)packages/(client|admin)/src/hooks/'; then
+    block 'All hooks must be in packages/shared/src/hooks/.'
+  fi
+
   if printf '%s' "$file" | grep -qE '^packages/contracts/src/'; then
     CONTEXT="${CONTEXT}- Critical contract surface touched (${file}); require line-by-line review, access-control/storage-layout reasoning, and explicit validation notes.\n"
   fi
@@ -54,7 +58,7 @@ while IFS= read -r file; do
     CONTEXT="${CONTEXT}- Shared auth/queue/mutation surface touched (${file}); verify failure states, retries/replays, and user-visible recovery paths.\n"
   fi
 
-  if printf '%s' "$file" | grep -qE '(^|/)(package\.json|bun\.lockb|bun\.lock|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^\.github/workflows/|^\.codex/|^\.claude/|^\.agents/skills'; then
+  if printf '%s' "$file" | grep -qE '(^|/)(package\.json|bun\.lockb|bun\.lock|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^\.github/workflows/|^\.codex/|^\.claude/|^\.agents/'; then
     CONTEXT="${CONTEXT}- Workflow/dependency/agent config surface touched (${file}); keep scope tight and call out validation explicitly.\n"
   fi
 done <<<"$FILES"

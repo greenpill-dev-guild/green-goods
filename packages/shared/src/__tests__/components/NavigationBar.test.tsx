@@ -17,14 +17,14 @@ vi.mock("react-intl", () => ({
   useIntl: () => ({
     formatMessage: ({ id }: { id: string }) => {
       const messages: Record<string, string> = {
-        "cockpit.nav.mainNavigation": "Main navigation",
+        "hub.nav.mainNavigation": "Main navigation",
         "nav.dashboard": "Dashboard",
         "nav.actions": "Actions",
         "nav.gardens": "Gardens",
-        "cockpit.nav.profile": "Profile",
-        "cockpit.fab.openActions": "Open Actions",
-        "cockpit.fab.closeActions": "Close Actions",
-        "cockpit.fab.actions": "Actions",
+        "hub.nav.profile": "Profile",
+        "hub.fab.openActions": "Open Actions",
+        "hub.fab.closeActions": "Close Actions",
+        "hub.fab.actions": "Actions",
         "actions.submit": "Submit Work",
         "actions.disabled": "Disabled action",
         "actions.disabledReason": "Nothing to fund yet.",
@@ -143,7 +143,7 @@ describe("NavigationBar", () => {
           {
             id: "profile",
             label: "Profile",
-            labelId: "cockpit.nav.profile",
+            labelId: "hub.nav.profile",
             icon: StubIcon,
             path: "/profile",
             visible: true,
@@ -171,7 +171,7 @@ describe("NavigationBar", () => {
           {
             id: "profile",
             label: "Profile",
-            labelId: "cockpit.nav.profile",
+            labelId: "hub.nav.profile",
             icon: StubIcon,
             path: "/profile",
             visible: true,
@@ -313,7 +313,7 @@ describe("NavigationBar", () => {
       {
         id: "profile",
         label: "Profile",
-        labelId: "cockpit.nav.profile",
+        labelId: "hub.nav.profile",
         icon: StubIcon,
         path: "/profile",
         visible: true,
@@ -337,7 +337,7 @@ describe("NavigationBar", () => {
           {
             id: "profile",
             label: "Profile",
-            labelId: "cockpit.nav.profile",
+            labelId: "hub.nav.profile",
             icon: StubIcon,
             path: "/profile",
             visible: true,
@@ -377,7 +377,7 @@ describe("NavigationBar", () => {
           {
             id: "profile",
             label: "Profile",
-            labelId: "cockpit.nav.profile",
+            labelId: "hub.nav.profile",
             icon: StubIcon,
             path: "/profile",
             visible: true,
@@ -605,11 +605,14 @@ describe("NavigationBar", () => {
     await user.click(screen.getByRole("button", { name: /open actions/i }));
 
     const launcher = screen.getByRole("menu", { name: /actions/i });
+    // The list pads past the items' shadow so a scrolling dial never clips it, and is
+    // offset by that padding so the items stay where they were; the padding lets taps through.
     expect(launcher.style).toMatchObject({
       position: "absolute",
-      right: "0px",
-      bottom: "100%",
-      marginBottom: "0.5rem",
+      right: "-2rem",
+      bottom: "calc(100% - 2.5rem)",
+      padding: "1rem 2rem 3rem",
+      pointerEvents: "none",
       display: "flex",
       flexDirection: "column-reverse",
       alignItems: "flex-end",
@@ -618,6 +621,6 @@ describe("NavigationBar", () => {
     expect(launcher.style.maxHeight).toContain("100dvh");
     expect(launcher.style.maxHeight).toContain("env(safe-area-inset-top)");
     expect(launcher.style.maxHeight).toContain("env(safe-area-inset-bottom)");
-    expect(launcher.style.maxHeight).toContain("9.5rem");
+    expect(launcher.style.maxHeight).toContain("5.5rem");
   });
 });

@@ -134,6 +134,22 @@ export interface GardenerCard {
   registeredAt: number | null;
 }
 
+/** Recorded membership in one garden. Dates are milliseconds, independent of account creation. */
+export interface GardenMemberHistory {
+  garden: Address;
+  account: Address;
+  joinedAt: number | null;
+  /** Start of the current uninterrupted membership; null after the last role is removed. */
+  memberSince: number | null;
+  roleSince: Partial<Record<import("../utils/blockchain/garden-roles").GardenRole, number>>;
+  /**
+   * Every role with any recorded grant or revocation in this garden, held now or not. A missing
+   * sub-role outside it was never minted; one inside it was taken away. Set only when every role
+   * event was read; absent means the history is unknown.
+   */
+  recordedRoles?: import("../utils/blockchain/garden-roles").GardenRole[];
+}
+
 // ============================================
 // Garden Types - Single Source of Truth
 // ============================================

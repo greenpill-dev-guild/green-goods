@@ -4,10 +4,6 @@ type Capital = Enum<"Capital">;
 type Domain = Enum<"Domain">;
 type WeightScheme = Enum<"WeightScheme">;
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
 /**
  * Maps numeric capital type values from the smart contract to Capital enum values.
  * These values correspond to the Capital enum in the ActionRegistry contract.
@@ -56,7 +52,6 @@ export const GARDEN_ROLE = {
   Community: 5,
 } as const;
 
-// Zero address constant used for guards and defaults.
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 /**

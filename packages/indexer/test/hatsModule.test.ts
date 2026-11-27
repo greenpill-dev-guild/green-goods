@@ -1,15 +1,180 @@
 import assert from "assert";
 import { getKarmaProjectAccessId } from "../src/handlers/ids";
-import { addr, CHAINS, mockEvent } from "./helpers/events";
+import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 import { seedGarden } from "./helpers/garden";
 import { assertRoleArrays } from "./helpers/projections";
-import { createTestIndexer, HatsModule, processEvents } from "./v3";
+import { createTestIndexer, HatsModule, indexedAddress, processEvents } from "./v3";
 
 const CHAIN_ID = CHAINS.arbitrum;
 
-// ============================================================================
-// ROLE GRANT — ALL 6 ROLE TYPES
-// ============================================================================
+describe("HatsModule protocol delegation", () => {
+  it("records independent role IDs with a chain-scoped module identity", async () => {
+    let db = createTestIndexer();
+    const event = HatsModule.ProtocolRoleHatsUpdated.createMockEvent({
+      team: 1n,
+      productLead: 2n,
+      agents: 3n,
+      deployer: 4n,
+      mockEventData: mockEvent(CHAIN_ID, 2000),
+    });
+    db = await HatsModule.ProtocolRoleHatsUpdated.processEvent({ event, mockDb: db });
+    const row = await db.ProtocolRoleConfiguration.get(
+      `${CHAIN_ID}:${indexedAddress("HatsModule", CHAIN_ID).toLowerCase()}`
+    );
+    assert.ok(row);
+    assert.equal(row.teamHat, 1n);
+    assert.equal(row.productLeadHat, 2n);
+    assert.equal(row.agentsHat, 3n);
+    assert.equal(row.deployerHat, 4n);
+    assert.equal(row.chainId, CHAIN_ID);
+  });
+
+  it("keeps actor auditing separate from the canonical Steward membership projection", async () => {
+    let db = seedGarden(createTestIndexer(), addr(10));
+    const subject = addr(20);
+    const actor = addr(30);
+    const metadata = mockEvent(CHAIN_ID, 2000, { logIndex: 12 });
+    const audit = HatsModule.RoleManaged.createMockEvent({
+      garden: addr(10),
+      actor,
+      account: subject,
+      role: 2n,
+      granted: true,
+      mockEventData: metadata,
+    });
+    db = await HatsModule.RoleManaged.processEvent({ event: audit, mockDb: db });
+    assertRoleArrays(await db.Garden.get(addr(10)), { operators: [] });
+    const row = await db.GardenRoleOperation.get(
+      `${CHAIN_ID}:${metadata.transaction.hash.toLowerCase()}:12`
+    );
+    assert.ok(row);
+    assert.equal(row.actor, actor.toLowerCase());
+    assert.equal(row.account, subject.toLowerCase());
+    const grant = HatsModule.RoleGranted.createMockEvent({
+      garden: addr(10),
+      account: subject,
+      role: 2n,
+      mockEventData: mockEvent(CHAIN_ID, 2001),
+    });
+    db = await HatsModule.RoleGranted.processEvent({ event: grant, mockDb: db });
+    assertRoleArrays(await db.Garden.get(addr(10)), { operators: [subject.toLowerCase()] });
+  });
+});
+
+describe("Garden role event history", () => {
+  it("records a role grant with normalized identity and its chain position", async () => {
+    const garden = "0xaBcDEF0000000000000000000000000000000001";
+    const account = "0xaBcDEF0000000000000000000000000000000002";
+    const hash = txHash(901);
+    const mockDb = seedGarden(createTestIndexer(), garden);
+    const event = HatsModule.RoleGranted.createMockEvent({
+      garden,
+      account,
+      role: 2n,
+      mockEventData: mockEvent(CHAIN_ID, 2_000, {
+        txHash: hash,
+        logIndex: 7,
+        blockNumber: 433_713_900,
+      }),
+    });
+
+    const result = await HatsModule.RoleGranted.processEvent({ event, mockDb });
+    const record = await result.GardenRoleEvent.get(`${CHAIN_ID}-${hash}-7`);
+    assert.deepEqual(record, {
+      id: `${CHAIN_ID}-${hash}-7`,
+      chainId: CHAIN_ID,
+      garden: garden.toLowerCase(),
+      account: account.toLowerCase(),
+      role: 2,
+      action: "GRANTED",
+      timestamp: 2_000,
+      blockNumber: 433_713_900n,
+      logIndex: 7,
+      txHash: hash,
+    });
+  });
+
+  it("retains a revoke even when the garden aggregate has not arrived", async () => {
+    const garden = addr(10);
+    const hash = txHash(902);
+    const event = HatsModule.RoleRevoked.createMockEvent({
+      garden,
+      account: addr(20),
+      role: 0n,
+      mockEventData: mockEvent(CHAIN_ID, 3_000, { txHash: hash, logIndex: 4 }),
+    });
+
+    const result = await HatsModule.RoleRevoked.processEvent({
+      event,
+      mockDb: createTestIndexer(),
+    });
+    const record = await result.GardenRoleEvent.get(`${CHAIN_ID}-${hash}-4`);
+    assert.ok(record);
+    assert.equal(record.action, "REVOKED");
+    assert.equal(record.timestamp, 3_000);
+    assert.equal(record.garden, garden.toLowerCase());
+    assert.equal(record.account, addr(20).toLowerCase());
+    assert.equal(await result.Garden.get(garden), undefined);
+  });
+
+  it("preserves each role change within one transaction and separates chains", async () => {
+    const hash = txHash(903);
+    const events = [
+      { chainId: CHAIN_ID, role: 0n, logIndex: 1 },
+      { chainId: CHAIN_ID, role: 2n, logIndex: 2 },
+      { chainId: CHAINS.sepolia, role: 0n, logIndex: 1 },
+    ].map(({ chainId, role, logIndex }) =>
+      HatsModule.RoleGranted.createMockEvent({
+        garden: addr(10),
+        account: addr(20),
+        role,
+        mockEventData: mockEvent(chainId, 2_000, { txHash: hash, logIndex }),
+      })
+    );
+
+    const result = await processEvents(createTestIndexer(), events);
+    for (const { chainId, logIndex } of events) {
+      assert.ok(await result.GardenRoleEvent.get(`${chainId}-${hash}-${logIndex}`));
+    }
+    assert.equal((await result.GardenRoleEvent.get(`${CHAIN_ID}-${hash}-2`))?.role, 2);
+  });
+
+  it("keeps grant and revoke facts independently of delivery order and replay", async () => {
+    const garden = addr(10);
+    const grantHash = txHash(904);
+    const revokeHash = txHash(905);
+    const grant = HatsModule.RoleGranted.createMockEvent({
+      garden,
+      account: addr(20),
+      role: 0n,
+      mockEventData: mockEvent(CHAIN_ID, 2_000, { txHash: grantHash, logIndex: 1 }),
+    });
+    const revoke = HatsModule.RoleRevoked.createMockEvent({
+      garden,
+      account: addr(20),
+      role: 0n,
+      mockEventData: mockEvent(CHAIN_ID, 3_000, { txHash: revokeHash, logIndex: 1 }),
+    });
+    let result = await processEvents(createTestIndexer(), [revoke, grant]);
+    const firstGrant = await result.GardenRoleEvent.get(`${CHAIN_ID}-${grantHash}-1`);
+    const firstRevoke = await result.GardenRoleEvent.get(`${CHAIN_ID}-${revokeHash}-1`);
+    assert.ok(firstGrant);
+    assert.ok(firstRevoke);
+    assert.equal(firstGrant.timestamp, 2_000);
+    assert.equal(firstRevoke.timestamp, 3_000);
+
+    result = await HatsModule.RoleGranted.processEvent({ event: grant, mockDb: result });
+    const replay = await result.GardenRoleEvent.get(`${CHAIN_ID}-${grantHash}-1`);
+    assert.ok(replay);
+    assert.equal(replay.id, firstGrant.id);
+    assert.equal(replay.timestamp, firstGrant.timestamp);
+    assert.equal(
+      (await result.GardenRoleEvent.get(`${CHAIN_ID}-${revokeHash}-1`))?.action,
+      "REVOKED"
+    );
+    assert.equal((await result.GardenRoleEvent.getAll()).length, 2);
+  });
+});
 
 describe("HatsModule.RoleGranted", () => {
   it("grants Gardener role (role=0)", async () => {
@@ -19,7 +184,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 0n, // Gardener
+      role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -39,7 +204,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 1n, // Evaluator
+      role: 1n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -57,7 +222,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 2n, // Steward
+      role: 2n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -86,7 +251,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 3n, // Owner
+      role: 3n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -105,7 +270,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 4n, // Funder
+      role: 4n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -123,7 +288,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 5n, // Community
+      role: 5n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -145,7 +310,6 @@ describe("HatsModule.RoleGranted", () => {
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
-    // Grant same role again
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
@@ -187,7 +351,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 99n, // Unknown role
+      role: 99n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -201,12 +365,9 @@ describe("HatsModule.RoleGranted", () => {
     assert.deepEqual(garden.owners, []);
     assert.deepEqual(garden.funders, []);
     assert.deepEqual(garden.communities, []);
+    assert.deepEqual(await mockDb.GardenRoleEvent.getAll(), []);
   });
 });
-
-// ============================================================================
-// GARDENER ENTITY CREATION
-// ============================================================================
 
 describe("HatsModule.RoleGranted — Gardener entity", () => {
   it("creates a new Gardener entity on first garden join", async () => {
@@ -239,14 +400,12 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
 
-    // Grant gardener role for first garden
     const event1 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    // Grant gardener role for second garden
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(11),
       account,
@@ -274,7 +433,6 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    // Grant again to same garden
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
@@ -306,23 +464,17 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
   });
 });
 
-// ============================================================================
-// ROLE REVOKE
-// ============================================================================
-
 describe("HatsModule.RoleRevoked", () => {
   it("revokes Gardener role", async () => {
     let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
-    // Grant first
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    // Revoke
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
       account,
@@ -459,7 +611,6 @@ describe("HatsModule.RoleRevoked", () => {
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
 
-    // Grant gardener role for two gardens
     const grant1 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
@@ -472,7 +623,6 @@ describe("HatsModule.RoleRevoked", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2500),
     });
-    // Revoke from first garden
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
       account,

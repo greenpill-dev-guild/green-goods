@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { SetConvictionStrategiesParams } from "../../types/conviction";
 import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis/hats";
@@ -18,6 +19,13 @@ export function useSetConvictionStrategies() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "conviction",
+    operation: "setConvictionStrategies",
+    authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useSetConvictionStrategies",
     toastContext: "conviction strategies",
@@ -36,7 +44,7 @@ export function useSetConvictionStrategies() {
   );
 
   return useMutation({
-    mutationFn: async (params: SetConvictionStrategiesParams) => {
+    mutationFn: recordedSendAct(act, async (params: SetConvictionStrategiesParams) => {
       const normalizedGarden = normalizeAddress(params.gardenAddress);
       const hatsModule = await fetchHatsModuleAddress(normalizedGarden, chainId);
       if (!hatsModule) {
@@ -51,7 +59,7 @@ export function useSetConvictionStrategies() {
         functionName: "setConvictionStrategies",
         args: [normalizedGarden, normalizedStrategies],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.conviction.saving" }),

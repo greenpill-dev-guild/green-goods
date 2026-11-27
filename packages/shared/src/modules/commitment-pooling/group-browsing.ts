@@ -11,7 +11,9 @@
  *   chosen, never one the reader made, and the oldest goes first.
  * - In a steward-reviewed group the ask goes to a copy nobody has asked for yet
  *   (D5), so approving one ask never supersedes asks other copies could take.
- *   A pending ask reserves nothing and changes no count.
+ *   A pending ask reserves nothing on chain, but no second ask goes to its copy,
+ *   so a surface that offers taking one up counts it as waiting on a steward,
+ *   not available (PRD-1492). It is available again if the ask is declined.
  * - The pool's "at once" limit counts whoever provides a promise. Taking up a
  *   request makes the reader its provider, for themselves or for a garden they
  *   steward alike; taking up an offer does not, so the limit never stops an offer.
@@ -30,7 +32,7 @@ import {
   type DisplayGroupEntry,
   displayBucketOf,
 } from "./display-groups";
-import { type DueClock, isPastDue } from "./due-dates";
+import { type DueClock, isOpenToTakeUp, isPastDue } from "./due-dates";
 import { selectSeedTrayRoom } from "./seed-tray";
 import { isCommitmentCreator, isSameAccount } from "./selectors";
 import type { CommitmentProviderExposureRecord, CommitmentReadModel } from "./types-core";
@@ -50,35 +52,51 @@ export type GroupCopy = Pick<
   | "claimMode"
 >;
 
-const OPEN = new Set<string>(["OFFERED", "REQUESTED"]);
-
-/**
- * Whether anyone could take this copy up now: published, untaken, not ended, and not past due
- * (`isPastDue`), so a promise the chain would let anyone expire is offered for take-up nowhere.
- */
-export function isOpenToTakeUp(
-  copy: Pick<GroupCopy, "onchainState" | "derivedState" | "dueDate" | "cycleId">,
-  clock: DueClock
-): boolean {
-  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState) && !isPastDue(copy, clock);
+/** A group's counts as someone taking one up reads them (`groupTakeUpCounts`). */
+export interface GroupTakeUpCounts extends DisplayGroupCounts {
+  /**
+   * Open copies of a steward-reviewed group with a request waiting on a steward. No second ask
+   * goes to them (D5), so they are not available; one is again once its request is declined.
+   */
+  requested: number;
 }
 
+const NOBODY_ASKED: ReadonlySet<string> = new Set();
+
 /**
- * A group's counts on the chain's clock. A copy still offered or requested on chain but past due
- * (`isPastDue`) is never available again, since anyone may expire it, so it counts as ended, as
- * it will be. A surface that offers taking a copy up reads its counts this way, so it never says
- * a copy is available that its act would not take.
+ * A group's counts as a surface that offers taking a copy up shows them, so it never says a copy
+ * is available that its act would not take (PRD-1492). On the chain's clock, a copy still offered
+ * or requested on chain but past due (`isPastDue`) is never available again, since anyone may
+ * expire it, so it counts as ended, as it will be. In a steward-reviewed group, a copy with a
+ * request waiting on a steward is requested: the act passes it over (D5).
  */
-export function groupCountsOnClock(
+export function groupTakeUpCounts(
   group: Pick<DisplayGroupEntry<GroupCopy>, "children" | "counts">,
-  clock: DueClock
-): DisplayGroupCounts {
-  const lapsed = group.children.filter(
-    (copy) => displayBucketOf(copy.onchainState) === "available" && isPastDue(copy, clock)
-  ).length;
-  if (lapsed === 0) return group.counts;
+  input: {
+    clock: DueClock;
+    /** Copies anyone has a pending ask on (`usePoolClaimRequests`). */
+    askedFor: ReadonlySet<string>;
+  }
+): GroupTakeUpCounts {
+  let lapsed = 0;
+  let requested = 0;
+  for (const copy of group.children) {
+    if (displayBucketOf(copy.onchainState) !== "available") continue;
+    if (isPastDue(copy, input.clock)) lapsed += 1;
+    else if (
+      copy.claimMode === "APPROVAL_GATED" &&
+      input.askedFor.has(copy.commitmentId.toString())
+    ) {
+      requested += 1;
+    }
+  }
   const { counts } = group;
-  return { ...counts, available: counts.available - lapsed, ended: counts.ended + lapsed };
+  return {
+    ...counts,
+    available: counts.available - lapsed - requested,
+    ended: counts.ended + lapsed,
+    requested,
+  };
 }
 
 /**
@@ -199,6 +217,45 @@ export function selectGroupTakeUpBar(input: {
 export type PoolListEntry<R> =
   | { kind: "single"; row: R }
   | { kind: "group"; group: DisplayGroupEntry<CommitmentReadModel> };
+
+/** A group as someone taking one up reads it: its copies, counted by `groupTakeUpCounts`. */
+export interface TakeUpGroupEntry extends Omit<DisplayGroupEntry<CommitmentReadModel>, "counts"> {
+  counts: GroupTakeUpCounts;
+}
+
+/** A group counted for someone taking one up, and whether its availability could be read. */
+export interface CountedTakeUpGroup {
+  group: TakeUpGroupEntry;
+  /** False while a steward-reviewed group's requests can't be read: its row says so. */
+  availabilityKnown: boolean;
+}
+
+/** A Promises tab or Take Part entry, its group counted as the group's page counts it. */
+export type CountedPoolListEntry<R> =
+  | { kind: "single"; row: R }
+  | ({ kind: "group" } & CountedTakeUpGroup);
+
+/**
+ * A listed group counted as its page counts it (`groupTakeUpCounts`). `askedFor` is null when
+ * the pool's requests could not be read: a steward-reviewed group's availability is then
+ * unknown, as on its page, while an open group never reads requests.
+ */
+export function countTakeUpGroup(
+  group: DisplayGroupEntry<CommitmentReadModel>,
+  input: { clock: DueClock; askedFor: ReadonlySet<string> | null }
+): CountedTakeUpGroup {
+  const reviewed = group.children.some((copy) => copy.claimMode === "APPROVAL_GATED");
+  return {
+    group: {
+      ...group,
+      counts: groupTakeUpCounts(group, {
+        clock: input.clock,
+        askedFor: input.askedFor ?? NOBODY_ASKED,
+      }),
+    },
+    availabilityKnown: !reviewed || input.askedFor !== null,
+  };
+}
 
 /**
  * The Promises tab's entries. `rows` are what the filters let through, in

@@ -38,7 +38,7 @@ const APPROVED_WORK: Work = { ...BASE_WORK, status: "approved" };
 const ACTIVE_ACTION_END = 4_102_444_800_000; // 2100-01-01
 
 const meta: Meta<typeof ReviewForm> = {
-  title: "Admin/Workflows/Hub/ReviewForm",
+  title: "Admin/Workflows/Review/ReviewForm",
   component: ReviewForm,
   tags: ["autodocs"],
   parameters: {
@@ -192,6 +192,21 @@ export const RoleBlocked: Story = {
 export const ActionExpired: Story = {
   args: {
     actionEndTime: 1_577_836_800_000, // 2020-01-01
+  },
+};
+
+/**
+ * Opened from a Review day whose read could not say this work's status: it may be decided
+ * already, so Approve and Reject wait until its status is read.
+ */
+export const StatusUnread: Story = {
+  tags: ["storybook-ci"],
+  args: { statusUnread: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Status not known")).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Approve" })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: "Reject" })).toBeNull();
   },
 };
 
