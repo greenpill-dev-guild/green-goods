@@ -12,7 +12,7 @@ SUMMARY_JSON="$OUTPUT_DIR/coverage-summary.json"
 
 # forge coverage keeps every test's hit maps until its last test ends, so one run over the whole
 # suite outgrew a 16 GB CI runner (PRD-1624). Each shard is its own forge run. Every run compiles
-# and reports all sources, so the policy merges the shards' LCOV line by line.
+# and reports all of src, so the policy merges the shards' LCOV line by line.
 #   all (default): run every shard in turn, then the policy.
 #   <shard>: run that shard only; a later `policy` run reads its output.
 #   policy: merge whatever shard LCOV the output directory holds and apply the floors; locally,
@@ -84,10 +84,12 @@ run_shard() {
     error="$(shard_error "$shard")"
     rm -f "$lcov" "$error"
 
+    # --skip leaves another shard's test files (and the fork suites, which coverage never runs) out of
+    # solc's single build; imports of kept files still compile. One build of every file outgrew 16 GB.
     local filter
     case "$shard" in
-        unit) filter=(--match-path 'test/unit/**') ;;
-        rest) filter=(--no-match-path 'test/{fork,unit}/**') ;;
+        unit) filter=(--match-path 'test/unit/**' --skip 'test/{fork,integration,invariant,fuzz}/**') ;;
+        rest) filter=(--no-match-path 'test/{fork,unit}/**' --skip 'test/{fork,unit}/**') ;;
         *)
             echo "No test filter for coverage shard $shard" >&2
             return 2
@@ -161,7 +163,11 @@ case "$MODE" in
         apply_policy
         ;;
     *)
-        if [[ " ${SHARDS[*]} " != *" $MODE "* ]]; then
+        known=false
+        for shard in "${SHARDS[@]}"; do
+            if [[ "$MODE" == "$shard" ]]; then known=true; fi
+        done
+        if [[ "$known" != true ]]; then
             echo "Unknown CONTRACT_COVERAGE_SHARD: $MODE; expected all, policy or one of: ${SHARDS[*]}" >&2
             exit 2
         fi
