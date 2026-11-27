@@ -106,7 +106,25 @@ For each project:
 
 If indexer is 🟢 OR 🟡, proceed:
 
-**Vault and yield-split state** — query vault contract balances and yield-split state via Arbitrum RPC using addresses from `deployments/<chainId>-latest.json` (chainId = 42161 for Arbitrum One). If any vault balance changed by >30% in 24h OR any yield-split parameter drifted from its expected value → 🔴 accepted anomaly. This feeds a single Linear contracts Issue — one open at a time.
+1. **Discover the Arbitrum One vaults.** Read `octantModule` and `yieldSplitter` from [`packages/contracts/deployments/42161-latest.json`](../../packages/contracts/deployments/42161-latest.json) at the same Git ref as this spec. POST this GraphQL query to `ENVIO_INDEXER_URL` to get the vault addresses. The indexer populates `GardenVault` from Octant's `VaultCreated` events.
+
+   ```graphql
+   {
+     GardenVault(where: { chainId: { _eq: 42161 } }, order_by: { id: asc }) {
+       garden
+       asset
+       vaultAddress
+     }
+   }
+   ```
+
+2. **Read vault balances.** Confirm `eth_chainId` is 42161 on `ARBITRUM_RPC_URL`. The endpoint must serve historical state for the 24-hour comparison. Use `eth_getBlockByNumber` to pin the latest block and its timestamp, then binary-search block timestamps for the last block at or before that timestamp minus 86,400 seconds. At the pinned latest block, confirm each indexed vault matches `getVaultForAsset(address,address)` on `octantModule`, passing the row's `garden` and `asset`. For each confirmed vault, use `eth_call` to read `totalAssets()` (returns `uint256` in underlying asset units) at both blocks. A change is 🔴 when `abs(current - prior) * 100 > prior * 30` for a positive prior balance. Two valid zero balances are unchanged. A change from zero has no percentage baseline and is 🟡 unknown.
+
+3. **Read yield splits.** At the same latest block, call `getSplitConfig(address)` and `gardenSplitConfig(address)` on the `yieldSplitter` proxy once per distinct garden with a confirmed vault. Decode both as three `uint256` values in Cookie Jar, Hypercert fractions, Juicebox order. An all-zero stored tuple means the garden uses the defaults in [`Yield.sol`](../../packages/contracts/src/resolvers/Yield.sol). Expect the effective tuple to be **4,865 / 4,865 / 270 basis points**. The repo defines no expected per-garden overrides. For a stored override, compare the effective tuple with that garden's latest dated snapshot in the matching Linear contracts Issue's comments (see § Dedupe logic). Look up its `Garden.name` in the indexer using `chainId = 42161` and `id = garden`. Use the name to match the snapshot only if it uniquely identifies the garden and is safe to publish. Any difference from the applicable tuple is 🔴 drift. A stored override without a matching baseline is 🟡 unknown.
+
+**Result** — confirmed balance or split drift is 🔴 and feeds a single Linear contracts Issue, one open at a time. Missing or invalid inputs are 🟡 unknown, including an empty or failed vault query, missing or zero addresses, an indexer/RPC vault mismatch, failed or undecodable reads, and unavailable historical state or split baselines. Name the missing input in the summary. If another comparison confirms drift, report it and note any unknowns in the evidence. Mark 🟢 only when every comparison succeeds and none confirms drift.
+
+**Evidence to capture** (body gets the one-line summary; the detail goes in the first comment) — record both block numbers and timestamps, the vault balances and deltas, and the effective and expected split tuples by garden. Include dated split snapshots whenever a confirmed anomaly warrants a contracts Issue comment, so a later run can use that evidence. Apply the comment privacy rules in § Dedupe logic. Unknown results alone belong in the Discord summary.
 
 > **No garden-dormancy check.** Gardening activity (EAS work attestations) is out of indexer scope by design — see `packages/indexer/AGENTS.md`; the indexed `Action` entity is global templates with no per-garden link. Vault/yield-split drift is the only contracts signal. Do not re-add a per-garden dormancy check sourced from the indexer.
 
