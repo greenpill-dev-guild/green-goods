@@ -113,6 +113,7 @@ export async function startDriver(
     initialControls: {
       intake: true,
       model_processing: false,
+      dialogue_planner: false,
       documents: false,
       voice: false,
       publication: true,

@@ -443,6 +443,7 @@ describe("hooks/garden/useJoinGarden", () => {
       expect(trackGardenJoinCancelled).toHaveBeenCalledWith({
         gardenAddress: MOCK_ADDRESSES.garden,
         authMode: "passkey",
+        attemptId: expect.any(String),
       });
       // The funnel event drives `failures.conversion-kill`; an abort is not a kill.
       expect(trackGardenJoinFailed).not.toHaveBeenCalled();
@@ -469,6 +470,7 @@ describe("hooks/garden/useJoinGarden", () => {
         error: "UnknownError",
         parsedErrorFamily: "UnknownError",
         authMode: "passkey",
+        attemptId: expect.any(String),
       });
       expect(trackGardenJoinCancelled).not.toHaveBeenCalled();
       expect(trackContractError).toHaveBeenCalled();
@@ -512,6 +514,17 @@ describe("hooks/garden/useJoinGarden", () => {
           ["send_act_ended", "garden_join", "confirming"],
         ]);
         expect(trackGardenJoinFailed).not.toHaveBeenCalled();
+
+        // Each press is one attempt: the join's own events carry its send act's id (PRD-1561).
+        const actAttempts = captured.map(([, { attempt_id }]) => attempt_id);
+        expect(actAttempts[0]).toEqual(expect.any(String));
+        expect(actAttempts[1]).toBe(actAttempts[0]);
+        expect(actAttempts[3]).toBe(actAttempts[2]);
+        expect(actAttempts[2]).not.toBe(actAttempts[0]);
+        expect(
+          vi.mocked(trackGardenJoinStarted).mock.calls.map(([properties]) => properties.attemptId)
+        ).toEqual([actAttempts[0], actAttempts[2]]);
+        expect(vi.mocked(trackGardenJoinSuccess).mock.calls[0]?.[0].attemptId).toBe(actAttempts[0]);
 
         // A wallet join returns at broadcast, before its receipt, so it may still land. An
         // embedded wallet joins the same way and records its own sign-in kind.

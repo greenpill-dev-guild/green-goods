@@ -5,6 +5,7 @@ import {
   type ProfileAvatarMutation,
   type ProfileAvatarRecord,
 } from "../../public-contracts/profile-avatar";
+import { logger } from "../app/logger";
 import {
   ProfileAvatarTransportError,
   type ProfileAvatarPublishDependencies,
@@ -80,12 +81,12 @@ export async function publishProfileAvatar(
     throw new Error("Profile image upload did not return a CID.");
   // A prior request may have completed after the client timed out.
   if (current.avatarUri === avatarUri) {
-    await dependencies.clearDraft();
+    await clearDraftAfterSave(dependencies);
     return current;
   }
   // Only the signature and the save are the send: a photo already in place sent nothing above.
   const recordSend = dependencies.recordSend ?? ((run) => run());
-  return recordSend(async () => {
+  const saved = await recordSend(async () => {
     const mutation = await signedMutation(
       dependencies,
       chainId,
@@ -95,20 +96,30 @@ export async function publishProfileAvatar(
     );
     dependencies.onStage?.("saving");
     try {
-      const record = await dependencies.save(chainId, address, mutation);
-      await dependencies.clearDraft();
-      return record;
+      return await dependencies.save(chainId, address, mutation);
     } catch (error) {
       if (!(error instanceof ProfileAvatarTransportError)) throw error;
       const isVersionConflict = error.errorCode === "version_conflict";
       if (!error.isAmbiguous && !isVersionConflict) throw error;
       const refreshed = await dependencies.get(chainId, address);
-      if (refreshed.avatarUri === avatarUri) {
-        await dependencies.clearDraft();
-        return refreshed;
-      }
+      if (refreshed.avatarUri === avatarUri) return refreshed;
       // Another signature requires another explicit action from the gardener.
       throw error;
     }
   });
+  await clearDraftAfterSave(dependencies);
+  return saved;
+}
+
+/**
+ * The server holds the photo now. Clearing the local draft is cleanup outside the recorded send,
+ * so a failed cleanup never turns a saved photo into a failed act (PRD-1561); a draft left behind
+ * matches the saved photo, and the next publish clears it without sending.
+ */
+async function clearDraftAfterSave(dependencies: ProfileAvatarPublishDependencies): Promise<void> {
+  try {
+    await dependencies.clearDraft();
+  } catch (error) {
+    logger.warn("Profile photo saved, but its local draft could not be cleared", { error });
+  }
 }

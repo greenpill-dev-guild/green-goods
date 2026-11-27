@@ -8,6 +8,7 @@ const seams = vi.hoisted(() => ({
   byUID: vi.fn(),
   approvalsForWork: vi.fn(),
   activity: vi.fn(),
+  range: vi.fn(),
   visibility: vi.fn(async () => ({
     chainId: 42161,
     excludedWorkUIDs: [] as string[],
@@ -27,6 +28,7 @@ vi.mock("../../../modules/data/eas", () => ({
   getWorkApprovalsForWork: seams.approvalsForWork,
   readWorkApprovalsForWorks: seams.approvals,
   getGardenActivitySince: seams.activity,
+  getWorksInRange: seams.range,
 }));
 
 const CONFIGURED_UID = `0x${"1".repeat(64)}`;
@@ -36,9 +38,14 @@ vi.mock("../../../config/blockchain", async (importOriginal) => ({
   getEASConfig: () => ({ WORK_APPROVAL: { uid: chain.workApprovalUID } }),
 }));
 
-const { readApprovedWorks, readGardenActivity, readWorkByUID, readWorkList } = await import(
-  "../../../modules/work/work-list"
-);
+const {
+  readApprovedWorks,
+  readGardenActivity,
+  readGardenReviewFlow,
+  readGardenWorkRange,
+  readWorkByUID,
+  readWorkList,
+} = await import("../../../modules/work/work-list");
 
 function work(id: string): EASWork {
   return {
@@ -223,6 +230,50 @@ describe("readGardenActivity", () => {
   });
 });
 
+describe("readGardenWorkRange", () => {
+  beforeEach(() => vi.clearAllMocks());
+  const GARDEN = "0x2222222222222222222222222222222222222222" as const;
+  const period = { garden: GARDEN, chainId: 42161, from: 100, to: 200 };
+
+  it("gives a period's works their latest decision and leaves an unread status unknown", async () => {
+    seams.range.mockResolvedValue({
+      works: [work("approved"), work("waiting"), work("unread")],
+      truncated: false,
+    });
+    seams.approvals.mockResolvedValue({
+      approvals: [approval("approval", "approved", true)],
+      failedWorkUIDs: ["unread"],
+    });
+
+    const range = await readGardenWorkRange(period);
+
+    expect(seams.range).toHaveBeenCalledWith(GARDEN, {
+      chainId: 42161,
+      from: 100,
+      to: 200,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
+    });
+    expect(range.complete).toBe(true);
+    // null is read and undecided; a missing approval is a status nobody could read.
+    expect(range.rows.map(({ id, approval }) => [id, approval?.id ?? approval])).toEqual([
+      ["approved", "approval"],
+      ["waiting", null],
+      ["unread", undefined],
+    ]);
+  });
+
+  it("keeps the works when no decision can be read, and says when the period was cut", async () => {
+    seams.range.mockResolvedValue({ works: [work("work")], truncated: true });
+    seams.approvals.mockRejectedValue(new Error("EAS timed out"));
+
+    const range = await readGardenWorkRange(period);
+
+    expect(range.complete).toBe(false);
+    expect(range.rows).toEqual([work("work")]);
+  });
+});
+
 describe("readWorkByUID", () => {
   it("does not reopen an excluded work through its direct link", async () => {
     seams.visibility.mockResolvedValueOnce({
@@ -313,5 +364,161 @@ describe("readApprovedWorks", () => {
       works: [],
       partial: true,
     });
+  });
+});
+
+// PRD-1578: Review Health counts a reviewed work once, in the week of its first decision.
+describe("readGardenReviewFlow", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    chain.workApprovalUID = CONFIGURED_UID;
+  });
+  const at = (id: string, workUID: string, createdAt: number) => ({
+    ...approval(id, workUID, true),
+    createdAt,
+  });
+  const garden = "0x2222222222222222222222222222222222222222" as const;
+
+  it("places each reviewed work at its first decision, sent in the period or before it", async () => {
+    seams.range.mockResolvedValue({
+      works: [{ ...work("new"), createdAt: 150 }],
+      truncated: false,
+    });
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [at("d-new", "new", 160), at("d-old", "old", 170), at("d-again", "again", 180)],
+      truncated: false,
+    });
+    seams.approvals.mockResolvedValue({
+      // "again" was first decided before the period, so its later decision does not count.
+      approvals: [
+        at("d-new", "new", 160),
+        at("d-old", "old", 170),
+        at("d-first", "again", 50),
+        at("d-again", "again", 180),
+      ],
+      failedWorkUIDs: [],
+      dropped: 0,
+    });
+    seams.byUID.mockResolvedValue([work("old"), work("again")]);
+
+    const flow = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(flow.submitted.map((row) => row.id)).toEqual(["new"]);
+    expect(flow.reviewed.map(({ work, firstDecidedAt }) => [work.id, firstDecidedAt])).toEqual([
+      ["new", 160],
+      ["old", 170],
+    ]);
+    expect(flow.reviewedReadFrom).toBeNull();
+    expect(flow.reviewedComplete).toBe(true);
+  });
+
+  it("says where a cut decision read starts, and when decision histories could not be read", async () => {
+    seams.range.mockResolvedValue({ works: [], truncated: false });
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [at("d-1", "w-1", 190), at("d-2", "w-2", 140)],
+      truncated: true,
+      decisionsTruncated: true,
+    });
+    seams.approvals.mockResolvedValue({ approvals: [], failedWorkUIDs: ["w-1", "w-2"] });
+    seams.byUID.mockResolvedValue([]);
+
+    const flow = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(flow.reviewedReadFrom).toBe(140);
+    expect(flow.reviewedComplete).toBe(false);
+    expect(flow.reviewed).toEqual([]);
+
+    // A long submissions list beside a whole decisions list hides no decision.
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [],
+      truncated: true,
+      decisionsTruncated: false,
+    });
+    const whole = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(whole.reviewedReadFrom).toBeNull();
+    expect(whole.reviewedComplete).toBe(true);
+
+    // A decision row that could not be read leaves the reviewed counts short.
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [],
+      truncated: false,
+      decisionsTruncated: false,
+      decisionsDropped: true,
+    });
+    const dropped = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(dropped.reviewedComplete).toBe(false);
+
+    // So does a malformed row in a decision history.
+    seams.activity.mockResolvedValue({ works: [], decisions: [at("d-1", "w-1", 190)] });
+    seams.approvals.mockResolvedValue({ approvals: [], failedWorkUIDs: [], dropped: 1 });
+    const malformed = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(malformed.reviewedComplete).toBe(false);
+  });
+
+  it("counts work sent and decided between its reads, with the newest status", async () => {
+    // The range read saw "waiting" undecided; "late" was sent after it, and both were decided
+    // before the activity read.
+    seams.range.mockResolvedValue({
+      works: [{ ...work("waiting"), createdAt: 150 }],
+      truncated: false,
+      droppedAt: [1500],
+    });
+    seams.approvals.mockResolvedValueOnce({ approvals: [], failedWorkUIDs: [], dropped: 0 });
+    seams.activity.mockResolvedValue({
+      works: [{ ...work("late"), createdAt: 190 }],
+      decisions: [at("d-late", "late", 196), at("d-waiting", "waiting", 195)],
+    });
+    seams.approvals.mockResolvedValueOnce({
+      approvals: [at("d-waiting", "waiting", 195), at("d-late", "late", 196)],
+      failedWorkUIDs: [],
+      dropped: 0,
+    });
+
+    const flow = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(flow.submitted.map((row) => [row.id, row.approval?.id])).toEqual([
+      ["waiting", "d-waiting"],
+      ["late", "d-late"],
+    ]);
+    expect(flow.reviewed.map(({ work }) => work.id)).toEqual(["waiting", "late"]);
+    expect(flow.submittedDroppedAt).toEqual([1500]);
+    expect(seams.byUID).not.toHaveBeenCalled();
+  });
+
+  it("tells a decision made here that the index lacks from one it already holds", async () => {
+    seams.range.mockResolvedValue({
+      works: [{ ...work("decided-here"), createdAt: 150 }],
+      truncated: false,
+    });
+    seams.approvals.mockResolvedValueOnce({ approvals: [], failedWorkUIDs: [], dropped: 0 });
+    seams.activity.mockResolvedValue({ works: [], decisions: [] });
+    // "long-ago" was decided before the period, so this device's record of it is old news.
+    seams.approvals.mockResolvedValueOnce({
+      approvals: [at("d-old", "long-ago", 50)],
+      failedWorkUIDs: [],
+      dropped: 0,
+    });
+    seams.byUID.mockResolvedValue([work("long-ago")]);
+
+    const flow = await readGardenReviewFlow({
+      garden,
+      chainId: 42161,
+      from: 100,
+      to: 200,
+      decidedHere: ["decided-here", "long-ago"],
+    });
+    expect(flow.decidedUnindexed.map((row) => row.id)).toEqual(["decided-here"]);
+    expect(flow.reviewed).toEqual([]);
+  });
+
+  it("calls reviewed counts unavailable, not zero, on a chain with no decision schema", async () => {
+    chain.workApprovalUID = `0x${"0".repeat(64)}`;
+    seams.range.mockResolvedValue({ works: [], truncated: false });
+    seams.activity.mockResolvedValue({ works: [], decisions: [] });
+
+    const flow = await readGardenReviewFlow({ garden, chainId: 42220, from: 100, to: 200 });
+    expect(flow.reviewedAvailable).toBe(false);
+    expect(seams.approvals).not.toHaveBeenCalled();
   });
 });

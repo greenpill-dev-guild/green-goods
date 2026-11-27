@@ -1,3 +1,4 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import { useCallback, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
@@ -46,8 +47,9 @@ export function useVoucherAwards(reserve?: Address | null) {
       sign: async (message) => {
         assertCurrent();
         const auth = current.current.user;
-        const accountClient =
-          auth.authMode === "passkey" ? await auth.resolveSmartAccountClient?.(100) : null;
+        const accountClient = isSmartAccountAuthMode(auth.authMode)
+          ? await auth.resolveSmartAccountClient?.(100)
+          : null;
         assertCurrent();
         return createAccountMessageSigner({
           authMode: auth.authMode,
@@ -168,6 +170,7 @@ export function useVoucherAwards(reserve?: Address | null) {
     reconcile,
     send,
     recover,
-    directSigningAvailable: user.authMode !== "passkey" && Boolean(sender?.signTypedData),
+    directSigningAvailable:
+      !isSmartAccountAuthMode(user.authMode) && Boolean(sender?.signTypedData),
   };
 }

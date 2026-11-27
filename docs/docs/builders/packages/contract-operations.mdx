@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:f903d09220ecc45ae7f6c46b0e9802c0199bfa69943dc12c3e53ae217c2109df"
+source_digest: "sha256:a5e1e3ce31b8bc49f30c7077f4e37e66e6992a66d4cc0f9dcd9e45b43b563112"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -18,7 +18,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # Contract operations
 
-Generated from the package-owned CLI definitions: 100 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
+Generated from the package-owned CLI definitions: 103 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
 
 `--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.
 
@@ -38,7 +38,7 @@ Only the modes listed for each operation are accepted. Read-only operations do n
 
 Commands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked. A copied command carries everything the operation always needs: `--network <network>` when it is network-scoped, `--mode <mode>` when a mode is required, and `--<name> <value>` for each value marked required. Replace the placeholders with a network and mode from its row and your own values. A few operations need more in one mode only (a nonce to plan or broadcast, for instance); `--help` after the command says which.
 
-### Deploy (18)
+### Deploy (19)
 
 Bring contracts, modules, and garden fixtures onto a network.
 
@@ -74,6 +74,7 @@ Options: `--sender <value>`, `--expected-nonce <value>`, `--plan <value>`.
 | Command | Networks | Modes |
 |---|---|---|
 | <CopyCommand command="bun run contracts -- deploy single-attestation-policy --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum | preflight, plan, simulate, broadcast |
+| <CopyCommand command="bun run contracts -- deploy reward-payer --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum | preflight, plan, simulate, broadcast |
 
 ### Upgrade (18)
 
@@ -102,7 +103,7 @@ Options: `--override-sepolia-gate`, `--sender <value>`, `--expected-nonce <value
 | <CopyCommand command="bun run contracts -- upgrade commitment-pooling --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
 | <CopyCommand command="bun run contracts -- upgrade all --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
 
-### Verify (4)
+### Verify (5)
 
 Check that what a network records matches the source and the recorded policy.
 
@@ -113,17 +114,18 @@ No options beyond the command itself.
 | <CopyCommand command="bun run contracts -- verify arbitrum-fork --network &lt;network&gt;" /> | arbitrum | none |
 | <CopyCommand command="bun run contracts -- verify reporting-kernel --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate |
 
-Options: `--check-etherscan`, `--check-indexer-runtime`, `--check-steward-upgrade`, `--skip-indexer`, `--skip-indexer-runtime`, `--skip-local-indexer-start`, `--start-local-indexer`, `--stop-local-indexer-after-check`, `--no-octant`, `--no-cookiejar`, `--ack-product-copy`, `--require-product-copy`, `--rpc-url <value>`, `--chain-id <value>`, `--community-slug <value>`, `--expected-hats-implementation <value>`, `--indexer-poll-seconds <value>`, `--indexer-timeout-seconds <value>`, `--indexer-url <value>`, `--steward-baseline <value>`, `--steward-probe-account <value>`.
-
-| Command | Networks | Modes |
-|---|---|---|
-| <CopyCommand command="bun run contracts -- verify --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
-
 Options: `--publish-source`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
 | <CopyCommand command="bun run contracts -- verify single-attestation-policy --network &lt;network&gt;" /> | localhost, sepolia, arbitrum | none |
+| <CopyCommand command="bun run contracts -- verify reward-payer --network &lt;network&gt;" /> | localhost, sepolia, arbitrum | none |
+
+Options: `--check-etherscan`, `--check-indexer-runtime`, `--check-steward-upgrade`, `--skip-indexer`, `--skip-indexer-runtime`, `--skip-local-indexer-start`, `--start-local-indexer`, `--stop-local-indexer-after-check`, `--no-octant`, `--no-cookiejar`, `--ack-product-copy`, `--require-product-copy`, `--rpc-url <value>`, `--chain-id <value>`, `--community-slug <value>`, `--expected-hats-implementation <value>`, `--indexer-poll-seconds <value>`, `--indexer-timeout-seconds <value>`, `--indexer-url <value>`, `--steward-baseline <value>`, `--steward-probe-account <value>`.
+
+| Command | Networks | Modes |
+|---|---|---|
+| <CopyCommand command="bun run contracts -- verify --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
 ### Status (1)
 
@@ -135,7 +137,7 @@ No options beyond the command itself.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
-### Release (14)
+### Release (15)
 
 Run a release session step by step with its transaction boundaries.
 
@@ -155,6 +157,7 @@ Options: `--manifest <value>`, `--plan <value>`, `--output <value>`.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release vouchers --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 | <CopyCommand command="bun run contracts -- release steward-safe --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
+| <CopyCommand command="bun run contracts -- release reward-safes --mode &lt;mode&gt;" /> | not network-scoped | plan, simulate, broadcast, verify |
 
 Options: `--manifest <value>`, `--members <value>`, `--receipts <value>`, `--plan <value>`, `--output <value>`.
 
@@ -162,7 +165,7 @@ Options: `--manifest <value>`, `--members <value>`, `--receipts <value>`, `--pla
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release clc --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 
-Options: `--output <value>`, `--garden <value>`, `--block <value>`, `--expected-implementation <value>`, `--expected-runtime-hash <value>`.
+Options: `--all-gardens`, `--output <value>`, `--garden <value>`, `--block <value>`, `--expected-implementation <value>`, `--expected-runtime-hash <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|

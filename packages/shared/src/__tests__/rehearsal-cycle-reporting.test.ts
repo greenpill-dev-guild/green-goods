@@ -54,9 +54,15 @@ describe("rehearsal cycle reporting", () => {
     const [document, variables] = mocks.query.mock.calls[0]!;
     expect(document).toContain("poolId: { _eq: 1 }, cycleId: { _eq: 1 }");
     expect(variables).toEqual({ chainId: 42161, after: "" });
-    expect(await readPublicCommitmentExclusions(42161, 2n)).toEqual([]);
+    expect(await readPublicCommitmentExclusions(42161, 3n)).toEqual([]);
     expect(await readPublicCommitmentExclusions(11155111, 1n)).toEqual([]);
     expect(mocks.query).toHaveBeenCalledOnce();
+    // A promise made outside any cycle is registered by its own id, in its own pool.
+    await readPublicCommitmentExclusions(42161, 2n);
+    expect(mocks.query.mock.calls[1]![0]).toContain(
+      "poolId: { _eq: 2 }, commitmentId: { _eq: 85 }"
+    );
+    expect(mocks.query.mock.calls[1]![0]).not.toContain("cycleId: { _eq: 1 }");
   });
 
   it("reads every page and refuses a non-advancing history", async () => {

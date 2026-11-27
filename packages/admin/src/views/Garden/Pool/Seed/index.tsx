@@ -1,3 +1,4 @@
+import { gardenRewardPayment, matchedUsdcLegs } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import {
@@ -89,6 +90,9 @@ export function SeedCommitmentDialog({
   const protocolContext = pool.pool?.poolType === "PROTOCOL";
   const protocolPool = useProtocolPool({ chainId });
   const settlement = useSettlementAccount({ chainId, garden });
+  // A USDC part is offered only where this garden can pay it: USDC on this chain, the payer
+  // recorded, and the garden's Safe recorded there to hold and pay the USDC.
+  const usdcMatchAvailable = gardenRewardPayment(chainId, garden) !== null;
   const { data: actions = [] } = useActions(chainId);
   const { data: gardens } = useGardens(chainId);
   const [windowNow, setWindowNow] = useState(() => Date.now());
@@ -159,6 +163,9 @@ export function SeedCommitmentDialog({
       ...(copy.displayGroup ? { displayGroup: copy.displayGroup } : {}),
       allowGatedOffers: true,
       allowRequestReward: true,
+      ...(createPrice.current ? { goodDollarPrice: createPrice.current } : {}),
+      // Declared only where this chain can pay it, whatever a saved answer carries.
+      rewardLegs: usdcMatchAvailable ? matchedUsdcLegs(row, chainId) : undefined,
     });
   };
   const tray = useSeedTray({ form, chainId, owner: jobs.viewer, buildCopy });
@@ -353,6 +360,7 @@ export function SeedCommitmentDialog({
           members={members}
           protocolRegistered={protocolRegistered}
           settlementActive={settlementActive}
+          usdcMatchAvailable={usdcMatchAvailable}
           price={price.state}
         />
       );
@@ -373,6 +381,7 @@ export function SeedCommitmentDialog({
           cycleOptions={cycleOptions}
           protocolRegistered={protocolRegistered}
           price={price.state}
+          usdcMatchAvailable={usdcMatchAvailable}
           capacity={{ cap, room, full: capacity.full, over: capacity.over }}
           submitError={submitError}
           queueUnavailable={pool.queueUnavailable}
@@ -421,7 +430,7 @@ export function SeedCommitmentDialog({
         title={title}
         description={formatMessage({
           id: "hub.garden.pool.seed.promisesDescription",
-          defaultMessage: "Offer or ask for one or many promises on the pool's behalf.",
+          defaultMessage: "Offer or request one or many promises on the pool's behalf.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
       >

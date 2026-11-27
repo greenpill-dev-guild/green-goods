@@ -180,6 +180,8 @@ describe("usePromiseGroupController", () => {
   it("takes up one on a garden pool as the person, through the route garden", async () => {
     const { result } = render();
     expect(result.current.claimNeedsContext).toBe(false);
+    // The copy it would choose, which a group of voucher offers opens to book instead.
+    await waitFor(() => expect(result.current.choice).toBe(11n));
 
     await act(async () => result.current.takeUp.start());
 
@@ -197,10 +199,14 @@ describe("usePromiseGroupController", () => {
     mocks.cycles = undefined;
     const { result, rerender } = render();
     expect(result.current.bar?.hold).toBe("unknown");
+    // The page's reward reads the same clock, so it has none to read while the end is unread.
+    expect(result.current.dueClock).toBeNull();
 
-    mocks.cycles = [cycleFixture({ endTime: BigInt(Math.floor(Date.now() / 1000)) - 60n })];
+    const endTime = BigInt(Math.floor(Date.now() / 1000)) - 60n;
+    mocks.cycles = [cycleFixture({ endTime })];
     rerender();
     expect(result.current.bar?.hold).toBe("none");
+    expect([...(result.current.dueClock?.cycleEndTimes.values() ?? [])]).toContain(endTime);
     // The counts agree with the held act: none available, the lapsed copies ended.
     expect(result.current.counts).toMatchObject({ available: 0, ended: 2 });
     await act(async () => result.current.takeUp.start());

@@ -181,6 +181,11 @@ export const commitmentComposerSchema = z
      * While set it stands in for `considerationAmount`, converted at Create.
      */
     considerationUsd: z.string().trim().optional(),
+    /**
+     * Match a G$ reward set in dollars with the same dollars in USDC, paid from the
+     * garden's Safe once it's kept (seeding only, PRD-1556). Absent is G$ only.
+     */
+    rewardMatchedUsdc: z.boolean().optional(),
   })
   .superRefine((values, context) => {
     if (values.kind === "GARDEN_WORK") {

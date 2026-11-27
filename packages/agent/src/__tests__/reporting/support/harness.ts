@@ -44,6 +44,8 @@ import {
   type TickSummary,
 } from "../../../services/reporting/worker";
 import type { ReportingGarden } from "../../../services/reporting/gardens";
+import type { ReportInterpreter } from "../../../services/reporting/interpretation";
+import type { QuestionProfile } from "../../../services/reporting/questions";
 import {
   type FixedGardens,
   FixtureCatalog,
@@ -83,6 +85,10 @@ export interface HarnessOptions {
   /** The gardens the directory lists; TAS and Aiyeloja Family Garden by default. */
   gardens?: ReportingGarden[];
   settings?: Partial<ReportingSettings>;
+  /** The model a turn reads with, in place of the scripted fixture: a real adapter over recorded replies. */
+  interpreter?: ReportInterpreter;
+  /** How activities' fields are asked; the built-in question profiles when left out. */
+  questions?: readonly QuestionProfile[];
   jobs?: (harness: Harness) => ReportingWorkerDeps["jobs"];
 }
 
@@ -124,6 +130,7 @@ export class Harness {
     ensureControls(this.core, {
       intake: true,
       model_processing: false,
+      dialogue_planner: false,
       documents: true,
       voice: false,
       publication: true,
@@ -183,6 +190,7 @@ export class Harness {
         ...this.options.settings,
       },
       gardens: this.gardens,
+      ...(this.options.questions ? { questions: this.options.questions } : {}),
     };
   }
 
@@ -196,7 +204,7 @@ export class Harness {
     return {
       core: this.core,
       catalog: this.catalog,
-      interpreter: this.interpreter,
+      interpreter: this.options.interpreter ?? this.interpreter,
       interpretationTimeoutMs: 2_000,
       transport: this.transport,
       jobs: {

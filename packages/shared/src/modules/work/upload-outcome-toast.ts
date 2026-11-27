@@ -30,7 +30,10 @@ const TOASTS: Record<Exclude<UploadOutcome["status"], "declined">, [Tone, string
   failed: ["error", "app.uploads.notSentTitle", "app.uploads.failedMessage"],
 };
 
-/** `undefined` when nothing should be said: the person declined, and nothing had gone. */
+/**
+ * `undefined` when nothing should be said: the person declined and nothing had gone, or every
+ * ready item was already done elsewhere and the queue said so.
+ */
 export function uploadOutcomeToast(
   outcome: UploadOutcome
 ): { tone: Tone; title: Message; message: Message; error?: unknown } | undefined {
@@ -42,6 +45,11 @@ export function uploadOutcomeToast(
     if (sent === 0) return undefined;
     return { tone: "success", title: uploaded, message: { id: "app.uploads.restWaitingMessage" } };
   }
+
+  // Everything ready was already done elsewhere: the queue already said so for each, and nothing
+  // is left on this device to send.
+  if (outcome.status === "nothing-sent" && flagged === 0 && (outcome.settled ?? 0) > 0)
+    return undefined;
 
   const [tone, title, rest] = TOASTS[outcome.status];
   // An upload that stops partway still sent what went before it. Saying nothing

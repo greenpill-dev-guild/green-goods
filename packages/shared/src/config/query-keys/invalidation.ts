@@ -47,6 +47,7 @@ export const queryInvalidation = {
       | ReturnType<typeof queryKeys.works.merged>
       | ReturnType<typeof queryKeys.works.approvals>
       | ReturnType<typeof queryKeys.works.mineByUser>
+      | ReturnType<typeof queryKeys.gardens.memberReadinessForGarden>
     > = [
       queryKeys.queue.stats(),
       queryKeys.queue.pendingCount(),
@@ -55,6 +56,8 @@ export const queryInvalidation = {
       queryKeys.works.merged(gardenId, chainId),
       queryKeys.works.approvals(),
       queryKeys.works.approvals(undefined, chainId),
+      // A sent work can move its gardener from Not started to Getting started.
+      queryKeys.gardens.memberReadinessForGarden(gardenId, chainId),
     ];
 
     if (userAddress) {

@@ -43,11 +43,14 @@ import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling
 import type { VoucherStartProgress } from "./useVoucherStart";
 
 /**
- * How an Accept and Start ended once the acceptance went: the start's own ending, or
- * `acceptanceWaiting` when the acceptance is a Safe proposal its signers still have to approve,
- * so no start could follow it.
+ * How an Accept and Start ended once the acceptance went: the start's own ending, or, when no
+ * start could follow, `acceptanceWaiting` for a Safe proposal its signers still have to approve
+ * and `acceptanceConfirming` for a wallet answer with no receipt yet, which may still land.
  */
-export type VoucherAcceptAndStartOutcome = VoucherStartOutcome | "acceptanceWaiting";
+export type VoucherAcceptAndStartOutcome =
+  | VoucherStartOutcome
+  | "acceptanceWaiting"
+  | "acceptanceConfirming";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
   PoolFundingSnapshot,
@@ -131,6 +134,11 @@ export interface PoolConsoleController {
     | null;
   poolId?: bigint;
   model: ReturnType<typeof selectPoolConsoleModel>;
+  /**
+   * The chain's clock the model was read on (Unix seconds). A season or campaign reads on it
+   * (`cycleStanding`, DL-162), so the Hub calls an Open cycle past its end Ended, as the app does.
+   */
+  now: bigint;
   cycles: CommitmentCycleRecord[];
   cycleNames: CommitmentCycleNameMap["byCycleId"];
   commitments: CommitmentReadModel[];
@@ -285,11 +293,12 @@ export interface CommitmentDialogController {
   /** The promise's metadata document: its group and the reward as set, when it has them. */
   metadata: CommitmentMetadataV1 | null;
   /**
-   * Whether `metadata` can be trusted to say the promise is in no group: it was
-   * read, or there is none to read. False while it loads or when the read failed.
-   * The controller always sets it; a hand-built one that leaves it out reads as known.
+   * Whether the promise's reward and confirmers change from its group's inspector rather than
+   * here (`editsTermsFromGroup`, PRD-1548): true while the pool lists it in a group or the group
+   * has copies queued on this device, false for a promise on its own (a group's lone surviving
+   * copy included), null while its words or the pool's are still being read.
    */
-  metadataKnown?: boolean;
+  editsTermsFromGroup: boolean | null;
   cycle: CommitmentCycleRecord | null;
   events: CommitmentEventRecord[];
   disputeReason: CommitmentReasonResolution;
@@ -319,6 +328,8 @@ export interface CommitmentDialogController {
   claimantStanding: (claimant: Address) => ClaimantStanding | null;
   /** Where Send for Confirmation stands. */
   sendPhase: TxActPhase;
+  /** Where this reader's Confirm Kept stands, once the review has sent it (PRD-1205). */
+  confirmPhase: TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;

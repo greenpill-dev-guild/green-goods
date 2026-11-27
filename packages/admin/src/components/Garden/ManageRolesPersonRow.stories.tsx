@@ -5,6 +5,7 @@ import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.st
 import { FIXTURE_IMAGE_PROFILE } from "../../../../shared/.storybook/fixtures";
 import { blockedRoles } from "./manageRoles";
 import { ManageRolesPersonRow } from "./ManageRolesPersonRow";
+import { RestoreRolesNotice } from "./RestoreRolesNotice";
 import {
   ANA,
   CHIDI,
@@ -90,3 +91,33 @@ export const OwnRow: Story = {
 
 /** Someone who cannot manage roles reads them as plain chips. */
 export const ReadOnly: Story = { args: { readOnly: true } };
+
+/**
+ * A steward whose Evaluator hat is missing (PRD-979): the row names what the Steward role gives,
+ * and one action restores it after the chain confirms it is still missing.
+ */
+export const MissingSubRole: Story = {
+  args: {
+    person: { address: KWAME, roles: ["steward", "gardener"] },
+    blocked: blockedRoles({ address: KWAME, roles: ["steward", "gardener"] }, asSteward, 1),
+    restoreNotice: (
+      <RestoreRolesNotice
+        address={KWAME}
+        roles={["steward", "gardener"]}
+        recordedRoles={["steward", "gardener"]}
+        check={async () => ({
+          lacking: ["owner", "evaluator"],
+          recordedRoles: ["steward", "gardener"],
+        })}
+        restore={async () => true}
+      />
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      await canvas.findByText("Missing Evaluator, which their Steward role includes.")
+    ).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Restore Evaluator" })).toBeEnabled();
+  },
+};

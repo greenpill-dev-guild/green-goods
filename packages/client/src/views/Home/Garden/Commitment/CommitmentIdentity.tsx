@@ -16,7 +16,9 @@ import { useIntl } from "react-intl";
 import {
   presentState,
   promisePayoutOf,
+  PromiseRewardParts,
   promiseRewardOf,
+  rewardLinePayout,
   promiseRewardText,
   rewardsNeedPrice,
 } from "@/components/Features/Commitments";
@@ -99,17 +101,34 @@ export function CommitmentIdentity({
   const intl = useIntl();
   const { formatMessage } = intl;
   const headingId = useId();
-  const rewards = rewardsBelow
-    ? []
-    : [promiseRewardOf(commitment, metadata)].filter((reward) => reward !== null);
+  const promised = promiseRewardOf(commitment, metadata);
+  const rewards = rewardsBelow ? [] : [promised].filter((reward) => reward !== null);
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
+  const payout = promisePayoutOf(commitment, { pastDue: band?.pastDue });
+  const [onlyReward] = rewards;
   const reward = promiseRewardText({
     intl,
     rewards,
     price: price.state,
-    payout: promisePayoutOf(commitment),
+    payout: rewardLinePayout(onlyReward, payout),
   });
+  // A reward paid in more than one token shows each part on its own row (PRD-1556). Where the
+  // service section below carries the G$ and voucher rewards, only the Safe-paid parts show here.
+  const partsReward = rewardsBelow
+    ? promised?.others?.length
+      ? { ...promised, wei: 0n, centsAsSet: null }
+      : undefined
+    : onlyReward;
+  const rewardParts = partsReward?.others?.length ? (
+    <PromiseRewardParts
+      reward={partsReward}
+      chainId={commitment.chainId}
+      commitmentId={commitment.commitmentId}
+      viewer={viewer}
+      payout={payout}
+    />
+  ) : null;
   // The band says when an untaken promise is past due, and the pill says it with it.
   const state = presentState(commitment.derivedState, { pastDue: band?.pastDue });
   // A booking's stage can wait on others while the promise itself waits on the reader (Confirm
@@ -195,6 +214,7 @@ export function CommitmentIdentity({
             units={units}
             takes={serviceTakes}
             reward={reward}
+            rewardParts={rewardParts}
             viewer={viewer}
             stewards={stewards}
           />

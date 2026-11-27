@@ -66,6 +66,8 @@ function normalizeDisbursement(row: RawRow): PoolFundingDisbursement | null {
       typeof row.executionKey === "string"
         ? (row.executionKey.toLowerCase() as `0x${string}`)
         : null,
+    attempt:
+      typeof row.attempt === "number" && Number.isSafeInteger(row.attempt) ? row.attempt : null,
   };
 }
 

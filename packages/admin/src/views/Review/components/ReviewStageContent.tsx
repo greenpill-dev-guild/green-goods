@@ -24,6 +24,12 @@ interface ReviewStageContentProps {
   /** The Work tab's list for its current scope. */
   works: Work[];
   workScope: ReviewWorkScope;
+  /** Works on a day's list whose status could not be read. */
+  unknownIds?: ReadonlySet<string>;
+  /** On one day's list: shows every status, where works whose status is unread are listed. */
+  onShowWholeDay?: () => void;
+  /** Clears the chosen waiting-time band, when one narrows the Work list. */
+  onClearWaitingBand?: () => void;
   assessments: ReviewAssessmentListItem[];
   hypercerts: ReviewHypercertListItem[];
   worksLoading: boolean;
@@ -60,6 +66,9 @@ export function ReviewStageContent({
   stage,
   works,
   workScope,
+  unknownIds,
+  onShowWholeDay,
+  onClearWaitingBand,
   assessments,
   hypercerts,
   worksLoading,
@@ -95,6 +104,8 @@ export function ReviewStageContent({
       <ReviewWorkQueue
         items={works}
         scope={workScope}
+        unknownIds={unknownIds}
+        onShowWholeDay={onShowWholeDay}
         worksLoading={worksLoading}
         hasDataError={hasDataError}
         normalizedSearch={normalizedSearch}
@@ -106,6 +117,7 @@ export function ReviewStageContent({
         onClearSearch={onClearSearch}
         reviewBatch={reviewBatch}
         older={olderWork}
+        onClearWaitingBand={onClearWaitingBand}
       />
     );
   }

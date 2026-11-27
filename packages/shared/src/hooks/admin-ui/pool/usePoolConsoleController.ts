@@ -148,10 +148,17 @@ export function usePoolConsoleController(input: {
       ),
     [hasPool, cyclesQuery.cycles]
   );
+  const cycleDeadlines = useMemo(
+    () => [...cycleEndTimes.values()].flatMap((end) => (end ? [end] : [])),
+    [cycleEndTimes]
+  );
+  // Ticks at each cycle's end too, as the app's cycle clock does, so a season reads Ended the
+  // second it ends (DL-162), even with no promise in it falling due then.
   const now = useExpiryClock({
     chainId,
     commitments: commitmentsQuery.commitments,
     cycleEndTimes,
+    deadlines: cycleDeadlines,
   });
   const readChainClock = useChainClockReader(chainId);
   const model = useMemo(
@@ -250,6 +257,7 @@ export function usePoolConsoleController(input: {
       }
       const { commitmentId, buyer, claimHash } = ask;
       let awaitingSigners = false;
+      let unconfirmed = false;
       const hash = await approveClaim(
         commitmentId,
         buyer,
@@ -265,11 +273,15 @@ export function usePoolConsoleController(input: {
                 awaitingSigners = awaiting === "safe-signers";
                 send.onAwaiting?.(awaiting);
               },
+              onUnconfirmed: () => {
+                unconfirmed = true;
+                send.onUnconfirmed?.();
+              },
             },
           }),
         askedAt(commitmentId, buyer)
       );
-      return { hash, awaitingSigners };
+      return { hash, awaitingSigners, unconfirmed };
     },
     [approveClaim, askedAt, commitmentMutation, readChainClock]
   );
@@ -311,13 +323,15 @@ export function usePoolConsoleController(input: {
       acceptServiceClaim: (ask: VoucherAsk, now: number) =>
         acceptVoucherBooking(ask, now).then(({ hash }) => hash),
       // Accept and Start (DL-193): the start follows from the steward's own wallet once the
-      // acceptance has landed. One the Safe's signers still have to approve hasn't, so its start
-      // waits for the member's fallback; a start that fails never undoes the acceptance.
+      // acceptance has landed. One the Safe's signers still have to approve hasn't, and neither
+      // has one the wallet answered with no receipt (PRD-1574), so its start waits for the
+      // member's fallback; a start that fails never undoes the acceptance.
       acceptAndStartBooking: async (ask: VoucherAsk, now: number) => {
         // A new acceptance opens with nothing sent, whatever an earlier start left.
         resetVoucherStart();
-        const { awaitingSigners } = await acceptVoucherBooking(ask, now);
+        const { awaitingSigners, unconfirmed } = await acceptVoucherBooking(ask, now);
         if (awaitingSigners) return "acceptanceWaiting" as const;
+        if (unconfirmed) return "acceptanceConfirming" as const;
         const setupId = ask.setup?.setupId;
         if (!setupId) return "notSent" as const;
         return startVoucherBooking({ commitmentId: ask.commitmentId, buyer: ask.buyer, setupId });
@@ -424,6 +438,7 @@ export function usePoolConsoleController(input: {
     pool,
     poolId,
     model,
+    now,
     cycles: hasPool ? cyclesQuery.cycles : [],
     cycleNames: cycleNames.byCycleId,
     commitments: commitmentsQuery.commitments,

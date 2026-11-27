@@ -138,15 +138,14 @@ function CommitmentRecord({
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);
   const asks = detail?.claimRequests ?? [];
   const untaken = commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED";
-  // A promise in a group changes its reward from the group; one on its own, here,
-  // while nobody has taken it (the chain locks a reward at take-up). Only a read
-  // document can say it stands alone: one still loading, or unread, may be a copy.
+  // A promise the list shows in a group changes its reward from the group; one on its own,
+  // a group's lone surviving copy included, here, while nobody has taken it (the chain locks a
+  // reward at take-up). Until the reads can say which (null), neither edit shows.
   const rewardWei = commitment.considerationAmount ?? 0n;
   // Who confirms follows the same rule: from the group for a copy, here for one alone.
   const editsTermsHere =
     dialog.isLocalSteward &&
-    dialog.metadataKnown !== false &&
-    !dialog.metadata?.displayGroup &&
+    dialog.editsTermsFromGroup === false &&
     (commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED");
   // The edit writes the team fallback too, so it waits until that is read.
   const canEditConfirmers =
@@ -252,6 +251,12 @@ function CommitmentRecord({
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
         sendPhase={dialog.sendPhase}
+        // Only while it waits on confirmations: once it reads Kept, or moves on, its state says so.
+        confirmPhase={
+          commitment.derivedState === "READY_FOR_CONFIRMATION"
+            ? dialog.confirmPhase
+            : { status: "idle" }
+        }
         onCancelUntaken={can.cancel && untaken ? () => setOpen("cancel") : undefined}
         onSeedAnother={
           onSeedAnother && dialog.isLocalSteward
@@ -312,6 +317,7 @@ function CommitmentRecord({
         blockedReason={blockedReason}
         target={target}
         untaken={untaken}
+        escrowed={commitment.direction === "OFFER" && Boolean(voucherOutcomes?.payment)}
       />
       <CommitmentExpireDialog
         isOpen={open === "expire"}

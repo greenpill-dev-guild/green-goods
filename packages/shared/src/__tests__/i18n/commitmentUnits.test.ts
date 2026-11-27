@@ -86,3 +86,16 @@ describe("formatCommitmentUnits", () => {
     expect(formatCommitmentUnits(english, 2n, "certificates")).toBe("2 certificates");
   });
 });
+
+describe("a promise row's target progress", () => {
+  it.each([
+    ["es", es, "1 aprobado de 10", "34 aprobados de 40"],
+    ["pt", pt, "1 aprovado de 10", "34 aprovados de 40"],
+  ] as const)("agrees with the approved count in %s, as the inspector does", (locale, messages, one, many) => {
+    const intl = createIntl({ locale, messages });
+    const row = (approved: number, target: number) =>
+      intl.formatMessage({ id: "hub.garden.pool.row.progress" }, { approved, target });
+    expect(row(1, 10)).toBe(one);
+    expect(row(34, 40)).toBe(many);
+  });
+});

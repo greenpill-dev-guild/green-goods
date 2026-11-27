@@ -65,7 +65,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentCycle: () => mocks.cycleDetail(),
 }));
 
-// Needs Your Attention (step 19), Continue (step 8) and the Offer or Ask + (DL-181), each with
+// Needs Your Attention (step 19), Continue (step 8) and the Offer or Request + (DL-181), each with
 // its own tests, stand in as markers here.
 vi.mock("@green-goods/shared/hooks/garden/useStewardDuties", () => ({
   useStewardDuties: () => ({ duties: [], isLoading: false, isError: false, refetch: () => {} }),
@@ -455,8 +455,8 @@ describe("Home journal", () => {
       expect(screen.getByRole("heading", { level: 2, name: "Take Part" })).toBeVisible();
       const ask = screen.getByRole("button", { name: /Two hours sorting the seed library/ });
       expect(ask).toHaveAttribute("data-component", "CommitmentRow");
-      expect(within(ask).getByRole("img", { name: "Ask" })).toBeInTheDocument();
-      expect(within(ask).getByRole("status")).toHaveTextContent("Ask");
+      expect(within(ask).getByRole("img", { name: "Request" })).toBeInTheDocument();
+      expect(within(ask).getByRole("status")).toHaveTextContent("Request");
 
       await user.click(ask);
       expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/20`);
@@ -894,7 +894,7 @@ describe("Home journal", () => {
       expect(read).toHaveBeenCalledWith(GARDEN);
     }
     expect(mocks.cycles).toHaveBeenCalledWith(GARDEN, { shown: true });
-    // The Offer or Ask + floats over the journal in the active garden (DL-181).
+    // The Offer or Request + floats over the journal in the active garden (DL-181).
     expect(container.querySelector("[data-component='OfferOrAsk']")).toHaveAttribute(
       "data-garden",
       GARDEN
@@ -922,34 +922,45 @@ describe("Home journal", () => {
         .getAllByRole("button")
         .map((row) => row.querySelector(".gg-item-row-title")?.textContent);
 
-    it.each([
-      "stewards",
-      "owners",
-    ] as const)("links the configured Hub from About for the selected garden's %s", (role) => {
+    it("puts the configured Hub last in About for a steward of the selected garden", () => {
       vi.stubEnv("VITE_ADMIN_APP_URL", "  https://hub.example.test  ");
       mocks.account = ME;
-      renderAbout(garden({ [role]: [ME] }));
+      mocks.vaults = [{}];
+      renderAbout(garden({ stewards: [ME] }), ["steward"]);
 
       const about = screen.getByRole("heading", { name: "About This Garden" }).closest("section")!;
       const hub = within(about).getByRole("link", { name: /Green Goods Hub/ });
+      expect(within(about).getAllByRole("listitem").at(-1)).toContainElement(hub);
       expect(hub).toHaveAttribute("href", "https://hub.example.test");
       expect(hub).toHaveAttribute("target", "_blank");
       expect(hub).toHaveAttribute("rel", "noopener noreferrer");
     });
 
-    it("does not expose the Hub from another garden's stewardship or an evaluator role", () => {
+    it("hides both actions from an evaluator who stewards another garden", () => {
       vi.stubEnv("VITE_ADMIN_APP_URL", "https://hub.example.test");
       mocks.account = ME;
+      mocks.vaults = [{}];
       mocks.evaluatorOnChain = true;
       renderAbout(garden({ stewards: [NEIGHBOUR], gardeners: [ME] }), ["steward"]);
 
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden"]);
+      expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+    });
+
+    it("hides both actions from an owner who is not a steward", () => {
+      vi.stubEnv("VITE_ADMIN_APP_URL", "https://hub.example.test");
+      mocks.account = ME;
+      mocks.vaults = [{}];
+      renderAbout(garden({ owners: [ME] }), ["owner"]);
+
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden"]);
       expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
     });
 
     it.each(["", "   "])("omits the Hub when its build URL is %j", (hubUrl) => {
       vi.stubEnv("VITE_ADMIN_APP_URL", hubUrl);
       mocks.account = ME;
-      renderAbout(garden({ owners: [ME] }));
+      renderAbout(garden({ stewards: [ME] }), ["steward"]);
 
       expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
     });
@@ -1004,9 +1015,11 @@ describe("Home journal", () => {
       await user.click(screen.getByRole("button", { name: /Gardeners/ }));
       let sheet = await screen.findByRole("dialog", { name: "Gardeners" });
       expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-requests", "true");
-      // Check Requests is the queue's own control; no count stands beside the row (every read
+      // Check Who's Asking is the queue's own control; no count stands beside the row (every read
       // of the queue needs a signed proof, so no count exists).
-      expect(screen.queryByText(/request/i)).toBeNull();
+      expect(
+        within(sheet).queryByText(/\d+\s+(?:(?:people|person)\s+)?(?:asking|requests?)\b/i)
+      ).toBeNull();
       unmount();
       useUIStore.getState().closeGardenSheet();
 
@@ -1031,25 +1044,28 @@ describe("Home journal", () => {
       const user = userEvent.setup();
       mocks.account = ME;
       mocks.vaults = [{}];
+      mocks.deposits = [{ shares: 3n }];
       renderAbout(garden({ stewards: [ME] }), ["steward"]);
 
-      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden", "Endowment"]);
-      await user.click(screen.getByRole("button", { name: /Endowment/ }));
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Endowment", "Share Garden"]);
+      const endowment = screen.getByRole("button", { name: /Endowment/ });
+      expect(endowment).toHaveTextContent("Your deposit");
+      await user.click(endowment);
       expect(await screen.findByTestId("endowment-sheet")).toHaveTextContent(GARDEN);
       // Its own state, not the app-wide flag the garden's page reads: a sheet left open on Home
       // can never open itself on a garden's page the member goes back to.
       expect(useUIStore.getState().isEndowmentSheetOpen).toBe(false);
     });
 
-    it("shows Endowment to a depositor who holds no role, naming their deposit", () => {
+    it("hides both actions from a depositor who is not a steward", () => {
+      vi.stubEnv("VITE_ADMIN_APP_URL", "https://hub.example.test");
       mocks.account = ME;
       mocks.vaults = [{}];
       mocks.deposits = [{ shares: 3n }];
       renderAbout(garden());
 
-      const endowment = screen.getByRole("button", { name: /Endowment/ });
-      expect(endowment).toHaveTextContent("Your deposit");
-      expect(screen.queryByText("Needs Your Attention")).toBeNull();
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden"]);
+      expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
     });
 
     it("keeps Endowment out while the garden has no vault, and Governance out while its flag is off", () => {
@@ -1092,6 +1108,28 @@ describe("Home journal", () => {
       rerender(asHomeHolds(journal, false));
       expect(screen.queryByTestId("endowment-sheet")).not.toBeInTheDocument();
       rerender(asHomeHolds(journal, true));
+      expect(screen.queryByTestId("endowment-sheet")).not.toBeInTheDocument();
+    });
+
+    it("closes the Endowment sheet when the account stops stewarding the garden", async () => {
+      const user = userEvent.setup();
+      mocks.account = ME;
+      mocks.vaults = [{}];
+      mocks.deposits = [{ shares: 3n }];
+      const steward = garden({ stewards: [ME] });
+      const gardener = garden({ gardeners: [ME], stewards: [NEIGHBOUR] });
+      const journal = (record: Garden, role: "steward" | "gardener") =>
+        asHomeHolds(
+          <HomeJournal garden={record} membership={{ roles: [role], pendingJoin: false }} />,
+          true
+        );
+      const { rerender } = renderWithProviders(journal(steward, "steward"));
+      await user.click(screen.getByRole("button", { name: /Endowment/ }));
+      expect(await screen.findByTestId("endowment-sheet")).toBeInTheDocument();
+
+      rerender(journal(gardener, "gardener"));
+      expect(screen.queryByTestId("endowment-sheet")).not.toBeInTheDocument();
+      rerender(journal(steward, "steward"));
       expect(screen.queryByTestId("endowment-sheet")).not.toBeInTheDocument();
     });
   });

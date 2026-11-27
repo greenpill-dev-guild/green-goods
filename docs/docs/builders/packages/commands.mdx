@@ -24,7 +24,7 @@ generated_from:
   - scripts/dev/browser.js
   - scripts/dev/package-commands.mjs
   - scripts/dev/test.js
-source_digest: "sha256:e1d7f3e291611854faba3cd8dac81a18498225827c62f669d42b2167e50bf671"
+source_digest: "sha256:377205c8e2cdb135e2a04beee8992dfe06b05695621eaaf9b98f83698195e4d9"
 source_of_truth:
   - docs/package.json
   - package.json
@@ -52,7 +52,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 Generated from package manifests and owning command definitions. Start with the getting-started guide for everyday commands. Operational scripts can write to live networks; read the owning runbook before using them.
 
-## Repository root (17)
+## Repository root (18)
 
 | Script | Invocation from repository root |
 |---|---|
@@ -68,6 +68,7 @@ Generated from package manifests and owning command definitions. Start with the 
 | env:sync | <CopyCommand command="bun run env:sync" /> |
 | format | <CopyCommand command="bun run format" /> |
 | lint | <CopyCommand command="bun run lint" /> |
+| openfort:keys | <CopyCommand command="bun run openfort:keys" /> |
 | postinstall | <CopyCommand command="bun run postinstall" /> |
 | prepare | <CopyCommand command="bun run prepare" /> |
 | qa | <CopyCommand command="bun run qa" /> |
@@ -196,11 +197,11 @@ Generated from package manifests and owning command definitions. Start with the 
 | test | <CopyCommand command="bun run --cwd docs test" /> |
 | typecheck | <CopyCommand command="bun run --cwd docs typecheck" /> |
 
-Total: 99 manifest entries across 9 manifests. The root exposes 17.
+Total: 100 manifest entries across 9 manifests. The root exposes 18.
 
 ## Selectable operations and implementation
 
-Manifest counts stay separate from the 100 contract operations and 77 stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.
+Manifest counts stay separate from the 103 contract operations and 78 stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.
 
 This projection tracks 6 owning command implementation files:
 

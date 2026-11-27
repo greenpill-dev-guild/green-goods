@@ -26,6 +26,10 @@ import { queryClient } from "../../config/react-query";
 import { AuthProvider, useAuthContext } from "../../providers/Auth";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import {
+  type OpenfortSessionServices,
+  openfortSessionServices,
+} from "../../workflows/auth-openfort-session";
+import {
   authMachine,
   type PasskeyOperationInput,
   type PasskeySessionResult,
@@ -158,9 +162,13 @@ function setAccount(next: Partial<AccountState>) {
   accountState = { ...disconnectedAccount, ...next };
 }
 
-function renderAuth(adapters?: typeof defaultPasskeyAdapters) {
+function renderAuth(adapters?: typeof defaultPasskeyAdapters, openfort?: OpenfortSessionServices) {
   function wrapper({ children }: { children: ReactNode }) {
-    return <AuthProvider adapters={adapters}>{children}</AuthProvider>;
+    return (
+      <AuthProvider adapters={adapters} openfort={openfort}>
+        {children}
+      </AuthProvider>
+    );
   }
 
   return renderHook(() => useAuthContext(), { wrapper });
@@ -270,7 +278,8 @@ describe("AuthProvider wallet login bridge", () => {
   it("composes injected passkey adapters into a provider-owned auth actor", () => {
     const view = renderAuth(defaultPasskeyAdapters);
 
-    expect(mocks.mockCreateAuthServices).toHaveBeenCalledWith(defaultPasskeyAdapters);
+    // No Openfort services injected: the provider uses the default email sessions.
+    expect(mocks.mockCreateAuthServices).toHaveBeenCalledWith(defaultPasskeyAdapters, undefined);
     expect(mocks.mockCreateAuthActor).toHaveBeenCalledWith({ source: "test-auth-services" });
     expect(mocks.mockGetAuthActor).not.toHaveBeenCalled();
 
@@ -762,8 +771,10 @@ describe("AuthProvider wallet login bridge", () => {
       isConnecting: false,
       connector: rabbyConnector,
     });
-    const view = renderAuth();
+    const openfort = { ...openfortSessionServices, endUnfinishedSignIn: vi.fn() };
+    const view = renderAuth(undefined, openfort);
     await waitForReady();
+    expect(openfort.endUnfinishedSignIn).not.toHaveBeenCalled();
 
     act(() => {
       view.result.current.loginWithWallet();
@@ -774,6 +785,8 @@ describe("AuthProvider wallet login bridge", () => {
     });
     expect(view.result.current.walletAddress).toBe(TEST_WALLET);
     expect(mocks.mockOpenAppKit).not.toHaveBeenCalled();
+    // A wallet session ends an email sign-in that a closed page left on this phone.
+    expect(openfort.endUnfinishedSignIn).toHaveBeenCalledTimes(1);
   });
 
   it("does not authenticate an AppKit embedded connector through wallet intent", async () => {
@@ -965,6 +978,68 @@ describe("AuthProvider wallet login bridge", () => {
       await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
       expect(view.result.current.externalWalletConnected).toBe(true);
       expect(view.result.current.walletRestore).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // PRD-1575: wagmi skips a restore asked for while another runs, such as AppKit's restore of a
+  // WalletConnect session that registers just after launch. When the launch restore settles
+  // with no wallet, the App asks once more instead of waiting for the next return.
+  it("asks again when a restore settles with no wallet while the App still waits", async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet", TEST_WALLET);
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+      // One config for the page, as wagmi's provider gives; its status reads the account live.
+      const pageConfig = mocks.mockUseConfig() as { id: string; connectors?: unknown[] };
+      const connectors: unknown[] = [rabbyConnector, embeddedConnector];
+      pageConfig.connectors = connectors;
+      mocks.mockUseConfig.mockImplementation(() => pageConfig);
+      // A returning wallet: wagmi restores the last connection as `reconnecting`.
+      setAccount({ isReconnecting: true });
+
+      const view = renderAuth();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(3_000)));
+      // The connection check lands mid-restore. wagmi would skip an ask now, so none is spent.
+      await act(async () => void (await connectivityStore.check()));
+      expect(view.result.current.walletRestore).toBe("restoring");
+      expect(mocks.mockReconnect).not.toHaveBeenCalled();
+
+      // The launch restore settles past a silent wallet: the App asks again.
+      setAccount(disconnectedAccount);
+      view.rerender();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+
+      // That ask settles too, with the same wallets: nothing new to ask.
+      setAccount({ isConnecting: true });
+      view.rerender();
+      setAccount(disconnectedAccount);
+      view.rerender();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+
+      // WalletConnect registered meanwhile, and its own restore was skipped: ask once more.
+      connectors.push(walletConnectConnector);
+      setAccount({ isConnecting: true });
+      view.rerender();
+      setAccount(disconnectedAccount);
+      view.rerender();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(2);
+
+      // A wallet that never answers still ends in one notice.
+      await act(async () => void (await vi.advanceTimersByTimeAsync(12_000)));
+      expect(view.result.current.walletRestore).toBe("failed");
+      expect(
+        mocks.mockTrackWalletRestore.mock.calls.filter(
+          ([event]) => (event as { reason?: string }).reason === "timeout"
+        )
+      ).toHaveLength(1);
     } finally {
       vi.useRealTimers();
     }

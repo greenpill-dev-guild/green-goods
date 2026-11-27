@@ -387,7 +387,7 @@ const ADDRESS_GROUPS = [
   },
   {
     title: "Commitment pooling and settlement",
-    intro: "Pools, registries, settlement, and their upgradeable implementations.",
+    intro: "Pools, registries, settlement, reward payouts, and their upgradeable implementations.",
     fields: [
       "commitmentPoolingModule",
       "commitmentPoolingModuleImpl",
@@ -399,6 +399,7 @@ const ADDRESS_GROUPS = [
       "settlementModuleImpl",
       "celoSettlementExecutor",
       "celoSettlementExecutorImpl",
+      "rewardPayer",
     ],
   },
   {
@@ -457,6 +458,7 @@ const CONTRACT_LABELS = {
   octantFactory: "Octant vault factory",
   octantModule: "Octant module",
   previousEnsReceiver: "ENS receiver (previous)",
+  rewardPayer: "Reward payer",
   rootGarden: "Root garden",
   "rootGarden.address": "Root garden",
   settlementModule: "Settlement module",

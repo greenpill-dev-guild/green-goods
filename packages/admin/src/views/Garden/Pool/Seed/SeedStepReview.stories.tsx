@@ -98,6 +98,7 @@ const meta: Meta<ReviewStoryArgs> = {
     cycleOptions: CYCLE_OPTIONS,
     protocolRegistered: true,
     price: STORY_PRICE_STATE,
+    usdcMatchAvailable: false,
     capacity: { cap: 3, room: 3, full: false, over: false },
     submitError: null,
     queueUnavailable: false,

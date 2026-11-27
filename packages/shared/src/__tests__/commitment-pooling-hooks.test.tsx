@@ -113,9 +113,11 @@ vi.mock("../hooks/assessment/useGardenAssessments", () => ({
 
 vi.mock("../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadataFor: () => null,
+  useCommitmentMetadata: () => ({ byCID: new Map(), isLoading: false, isError: false }),
 }));
 
-vi.mock("../hooks/commitment-pooling/useCommitmentJobs", () => ({
+vi.mock("../hooks/commitment-pooling/useCommitmentJobs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../hooks/commitment-pooling/useCommitmentJobs")>()),
   useCommitmentJobs: () => mocks.jobs,
 }));
 
@@ -583,6 +585,50 @@ describe("useCommitmentMutation", () => {
     });
   });
 
+  // PRD-1574: an answer with no receipt that isn't a Safe proposal may still land, and the act
+  // that sent it must hear so; one waiting on a Safe's signers says that instead.
+  it("tells the act when its answer has no receipt yet and waits on no Safe", async () => {
+    const queryClient = createTestQueryClient();
+    vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const { result } = renderHookWithProviders(() => useCommitmentMutation({ chainId: 42161 }), {
+      queryClient,
+    });
+    const claimHash = `0x${"c1".repeat(32)}` as const;
+    const accept = (onUnconfirmed: () => void) =>
+      result.current.mutateAsync({
+        action: "acceptServiceClaim",
+        commitmentId: 41n,
+        buyer: ACCOUNT,
+        expectedClaimHash: claimHash,
+        send: { onUnconfirmed },
+      });
+
+    const opaque = vi.fn();
+    mocks.sender.sendContractCall.mockResolvedValueOnce({
+      hash: "0x1234",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    await act(async () => {
+      await accept(opaque);
+    });
+    expect(opaque).toHaveBeenCalledTimes(1);
+    // The callback stays with the act: the sender is never handed it.
+    expect(mocks.sender.sendContractCall.mock.lastCall?.[1]).not.toHaveProperty("onUnconfirmed");
+
+    const proposal = vi.fn();
+    mocks.sender.sendContractCall.mockResolvedValueOnce({
+      hash: `0x${"5a".repeat(32)}`,
+      sponsored: false,
+      confirmation: "pending",
+      awaiting: "safe-signers",
+    });
+    await act(async () => {
+      await accept(proposal);
+    });
+    expect(proposal).not.toHaveBeenCalled();
+  });
+
   it("invalidates the chain prefix plus the directly changed entity", async () => {
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
@@ -1039,6 +1085,14 @@ describe("useCommitmentDialogController", () => {
       const { result, unmount } = render();
       await waitFor(() => expect(result.current.commitment?.confirmers).toEqual(confirmers));
 
+      // The queue says the confirmation landed: the inspector follows it (PRD-1205).
+      mocks.jobs.enqueue.mockImplementationOnce(
+        async (input: { report?: (event: { stage: string; txHash: null }) => void }) => {
+          input.report?.({ stage: "landed", txHash: null });
+          return "job";
+        }
+      );
+      expect(result.current.confirmPhase.status).toBe("idle");
       await act(async () => {
         await result.current.acts.confirmOrdinary();
       });
@@ -1047,7 +1101,9 @@ describe("useCommitmentDialogController", () => {
         commitmentId: 9n,
         gardenAddress: ACCOUNT,
         membershipNotRequired: byAccount,
+        report: expect.any(Function),
       });
+      expect(result.current.confirmPhase.status).toBe("confirmed");
       unmount();
     }
   });

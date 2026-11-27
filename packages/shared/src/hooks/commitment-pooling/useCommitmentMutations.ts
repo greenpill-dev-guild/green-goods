@@ -142,7 +142,13 @@ export type CommitmentMutationVariables = CommitmentMutationInput & {
   send?: Pick<
     TransactionSendOptions,
     "onBeforeBroadcast" | "onBroadcast" | "onAwaiting" | "signal"
-  >;
+  > & {
+    /**
+     * The wallet answered with no receipt to wait for and no Safe behind it (an opaque
+     * identifier): the act may still land, but nothing says it has. The act stays pending.
+     */
+    onUnconfirmed?: () => void;
+  };
 };
 
 /**
@@ -274,13 +280,15 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
         chainId,
       };
       // Only an act that follows its own send hands the sender callbacks.
+      const { onUnconfirmed, ...callbacks } = send ?? {};
       const result = send
-        ? await sender.sendContractCall(contractCall, send)
+        ? await sender.sendContractCall(contractCall, callbacks)
         : await sender.sendContractCall(contractCall);
       // A Safe proposal, or any answer with no receipt yet, has not run: it says what it waits
       // for, never that it is done (PRD-1551). It still settles, so a dialog closes rather than
       // offering a second send of the same act.
       if (result.confirmation === "pending") {
+        if (result.awaiting !== "safe-signers") onUnconfirmed?.();
         const words =
           result.awaiting === "safe-signers"
             ? SEND_STAGE_WORDS["safe-signers"]

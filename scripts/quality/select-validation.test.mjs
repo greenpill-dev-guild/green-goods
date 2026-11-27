@@ -1930,6 +1930,45 @@ test("deleted tests are not inferred as focused Vitest paths", (t) => {
   }
 });
 
+test("a critical file moved to a routine path plans by both paths, staged and committed", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "validation-moved-selector-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  // Rename detection on, whatever the machine's git config says, so the test fails without the fix.
+  const pinned = { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "diff.renames", GIT_CONFIG_VALUE_0: "true" };
+  const saved = Object.fromEntries(Object.keys(pinned).map((key) => [key, process.env[key]]));
+  Object.assign(process.env, pinned);
+  t.after(() => {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  const git = fixtureGit(directory);
+  git("init");
+  const from = "packages/shared/src/providers/Auth.tsx";
+  const to = "notes/Auth.tsx";
+  mkdirSync(join(directory, "packages/shared/src/providers"), { recursive: true });
+  writeFileSync(join(directory, from), "export const Auth = () => null;\n");
+  git("add", ".");
+  git("commit", "-m", "test: seed moved fixture");
+  mkdirSync(join(directory, "notes"));
+  git("mv", from, to);
+
+  for (const [stage, base] of [["staged", "HEAD"], ["committed", "HEAD~1"]]) {
+    if (stage === "committed") git("commit", "-m", "test: move the provider");
+    const inputs = resolveGitInputs({ changedPaths: [], base, head: "HEAD" }, { cwd: directory });
+    assert.deepEqual(inputs.changedPaths, [to, from], stage);
+    assert.deepEqual(inputs.deletedPaths, [from], stage);
+    const plan = selectValidation({ intent: "push", ...inputs });
+    assert.equal(plan.risk, "critical", stage);
+    for (const checkId of ["format", "lint"]) {
+      const command = plan.checks.find((check) => check.id === checkId)?.command ?? "";
+      assert.match(command, /'notes\/Auth\.tsx'/, `${stage} ${checkId}`);
+      assert.doesNotMatch(command, /providers\/Auth\.tsx/, `${stage} ${checkId}`);
+    }
+  }
+});
+
 test("lane fingerprint ignores an unrelated dirty plan while workspace fingerprint remains broad", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-lane-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));

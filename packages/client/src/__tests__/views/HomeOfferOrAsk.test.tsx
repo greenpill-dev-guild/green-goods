@@ -1,6 +1,6 @@
 // TEST-QUALITY: allow-small-test-file - HomeJournal.test.tsx stands the + in as a marker, and these cases need the real component with its pool and access reads mocked.
 /**
- * Offer or Ask on Home (DL-181): the garden page's + over Home's journal. It reads the garden's
+ * Offer or Request on Home (DL-181): the garden page's + over Home's journal. It reads the garden's
  * pool as the garden page does, shows to the readers that pool's Promises tab shows it to, and
  * opens the composer as the next page. The pool and access reads are mocked; the router and
  * the app's own page-to-page navigation run for real.
@@ -64,7 +64,7 @@ function renderOnHome({ shown = true } = {}) {
   );
 }
 
-describe("Home's Offer or Ask", () => {
+describe("Home's Offer or Request", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.pools = [{ poolId: 4n, garden: GARDEN.toLowerCase() }];
@@ -78,9 +78,9 @@ describe("Home's Offer or Ask", () => {
     expect(mocks.poolsRead).toHaveBeenCalledWith(expect.objectContaining({ garden: GARDEN }));
     expect(mocks.accessRead).toHaveBeenLastCalledWith(mocks.pools[0]);
 
-    await user.click(screen.getByRole("button", { name: "Offer or Ask" }));
-    const sheet = within(await screen.findByRole("dialog", { name: "Offer or Ask" }));
-    await user.click(sheet.getByRole("button", { name: /^Ask/ }));
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
+    const sheet = within(await screen.findByRole("dialog", { name: "Offer or Request" }));
+    await user.click(sheet.getByRole("button", { name: /^Request/ }));
     expect(screen.getByTestId("composer")).toHaveTextContent(
       `/home/${GARDEN}/commitments/new?direction=request`
     );
@@ -89,12 +89,12 @@ describe("Home's Offer or Ask", () => {
   it("draws no + for a reader the pool does not take, or while Home is out of sight", () => {
     mocks.canCreate = false;
     const { unmount } = renderOnHome();
-    expect(screen.queryByRole("button", { name: "Offer or Ask" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).toBeNull();
     unmount();
 
     // A page Home opened is on screen: the + leaves with Home.
     mocks.canCreate = true;
     renderOnHome({ shown: false });
-    expect(screen.queryByRole("button", { name: "Offer or Ask" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).toBeNull();
   });
 });

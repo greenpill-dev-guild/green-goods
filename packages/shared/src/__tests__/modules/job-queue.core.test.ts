@@ -81,6 +81,12 @@ import { encodeWorkData } from "../../utils/eas/encoders";
 import { track } from "../../modules/app/posthog";
 import { ReceiptWaitLimitError } from "../../modules/transactions/types";
 
+// A kept decision is rechecked on chain before it sends; most of these tests send undecided works.
+const decidedWorks = vi.hoisted(() => new Set<string>());
+vi.mock("../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: async (workUID: string) => decidedWorks.has(workUID) }),
+}));
+
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
 
@@ -335,6 +341,55 @@ describe("modules/job-queue", () => {
       jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
     ).resolves.toMatchObject({ error: "awaiting-confirmation" });
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("clears a kept decision whose work was decided elsewhere instead of keeping it as failed", async () => {
+    const workUID = `0x${"55".repeat(32)}`;
+    decidedWorks.add(workUID);
+    const jobId = await jobQueue.addJob(
+      "approval",
+      {
+        actionUID: 1,
+        workUID,
+        gardenAddress: "0x123",
+        gardenerAddress: "0x456",
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const failed = vi.fn();
+    const stopListening = jobQueueEventBus.on("job:failed", failed);
+    const sender = createMockTransactionSender();
+
+    try {
+      await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "unavailable:work-already-decided",
+        alreadyDone: true,
+      });
+    } finally {
+      stopListening();
+      decidedWorks.delete(workUID);
+    }
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    // Nothing is left to send or retry, so Your Work neither lists nor counts it.
+    expect(await jobQueueDB.getJob(jobId)).toBeUndefined();
+    expect(await jobQueue.getJobs(TEST_USER_ADDRESS)).toEqual([]);
+    // The screens still hear why, to say the work was already reviewed.
+    expect(failed).toHaveBeenCalledWith(
+      expect.objectContaining({ jobId, error: "unavailable:work-already-decided" })
+    );
+    // The try that started says how it ended, and nothing counts it as a failure.
+    const events = vi.mocked(track).mock.calls.map(([event, properties]) => [event, properties]);
+    expect(events).toContainEqual([
+      "offline_job_skipped",
+      { job_kind: "approval", reason: "work-already-decided", explicit: false, started: true },
+    ]);
+    expect(events.map(([event]) => event)).not.toContain("offline_job_permanently_failed");
   });
 
   it("ends a wallet's wait for a decision's receipt at the queue's limit, as still confirming", async () => {

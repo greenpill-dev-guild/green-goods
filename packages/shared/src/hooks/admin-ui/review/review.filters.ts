@@ -20,21 +20,27 @@ interface HypercertLike {
   mintedAt: number;
 }
 
+const NO_UNKNOWN: ReadonlySet<string> = new Set();
+
 /**
  * The Work tab's list for one scope. Pending and approved are two filters of
- * the same submissions, so they share one search and one sort.
+ * the same submissions, so they share one search and one sort. "all" keeps every
+ * status, for one day's work opened from the Activity calendar. A work in
+ * `unknownIds`, whose status could not be read, is in neither scope: it is not
+ * known to be waiting.
  */
 export function filterWorksByScope(
   works: Work[],
   scope: ReviewWorkScope,
   actionsMap: ActionsMap,
   search: string,
-  sortDirection: SortDirection
+  sortDirection: SortDirection,
+  unknownIds: ReadonlySet<string> = NO_UNKNOWN
 ): Work[] {
   const direction = sortDirection === "oldest" ? 1 : -1;
 
   return works
-    .filter((work) => work.status === scope)
+    .filter((work) => scope === "all" || (work.status === scope && !unknownIds.has(work.id)))
     .filter((work) => {
       if (!search) return true;
       const actionTitle = actionsMap.get(work.actionUID)?.title?.toLowerCase() ?? "";

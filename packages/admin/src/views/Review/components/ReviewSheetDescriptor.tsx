@@ -24,6 +24,10 @@ interface ReviewSheetDescriptorProps {
   routeCertificationId: string | undefined;
   activeWorkDetailId: string | null;
   selectedWork: Work | undefined;
+  /** On a Review day: works whose decisions could not be read, so none can be decided yet. */
+  unknownWorkIds?: ReadonlySet<string>;
+  /** On a Review day whose statuses are not read yet, or could not be read: none is known. */
+  dayStatusUnread?: boolean;
   selectedCertification: ReviewAssessmentRecord | undefined;
   isResolvingSelection: boolean;
   canManage: boolean;
@@ -72,6 +76,8 @@ export function ReviewSheetDescriptor({
   routeCertificationId,
   activeWorkDetailId,
   selectedWork,
+  unknownWorkIds,
+  dayStatusUnread = false,
   selectedCertification,
   isResolvingSelection,
   canManage,
@@ -113,7 +119,21 @@ export function ReviewSheetDescriptor({
           formatMessage
         ),
         content: (
-          <WorkDetailPanel workId={sheetSelection.id} layout="sheet" onSuccess={handlePanelClose} />
+          <WorkDetailPanel
+            workId={sheetSelection.id}
+            statusUnread={
+              dayStatusUnread ||
+              (unknownWorkIds?.has(sheetSelection.id) ?? false) ||
+              // On a day, a work the day's latest read no longer lists is not vouched for.
+              (unknownWorkIds !== undefined && selectedWork?.id !== sheetSelection.id)
+            }
+            // On a day, the day's own read of the work, which can be fresher than the garden's.
+            decidedWork={
+              unknownWorkIds && selectedWork?.id === sheetSelection.id ? selectedWork : undefined
+            }
+            layout="sheet"
+            onSuccess={handlePanelClose}
+          />
         ),
       };
     }
@@ -161,6 +181,8 @@ export function ReviewSheetDescriptor({
     sheetSelection,
     selectedCertification,
     selectedWork,
+    unknownWorkIds,
+    dayStatusUnread,
   ]);
 
   const routeBackedSheetConfig = useMemo(

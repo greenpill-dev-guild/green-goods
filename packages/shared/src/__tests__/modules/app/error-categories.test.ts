@@ -156,4 +156,48 @@ describe("a PostHog failure and the Sentry report behind it", () => {
       vi.unstubAllEnvs();
     }
   });
+
+  it("keeps the Sentry id on a crash report sent through the durable path", async () => {
+    vi.resetModules();
+    vi.stubEnv("DEV", false);
+    const scope = {
+      setLevel: vi.fn(),
+      setTag: vi.fn(),
+      setFingerprint: vi.fn(),
+      setContext: vi.fn(),
+    };
+    sentry.withScope.mockImplementation((run: (s: typeof scope) => void) => run(scope));
+    sentry.captureException.mockReturnValueOnce("crash-report-1");
+    try {
+      const { registerTelemetrySink } = await import("../../../modules/app/telemetry-sink");
+      const tracked: Record<string, unknown>[] = [];
+      const unregisterSink = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event === "error_tracked") tracked.push(properties);
+        },
+        isReady: () => true,
+      });
+      const { initBrowserSentry } = await import("../../../modules/app/sentry");
+      const stopSentry = initBrowserSentry({
+        dsn: "https://key@sentry.example/1",
+        surface: "client",
+      });
+      const { trackError } = await import("../../../modules/app/error-categories");
+
+      trackError(new Error("Render failed"), {
+        source: "ErrorBoundary",
+        category: "unknown",
+        durable: true,
+      });
+      stopSentry();
+      unregisterSink();
+
+      expect(tracked).toHaveLength(1);
+      expect(tracked[0]?.sentry_event_id).toBe("crash-report-1");
+      // Sent through the kept crash report, not the direct path.
+      expect(tracked[0]?.crash_report_id).toEqual(expect.any(String));
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });

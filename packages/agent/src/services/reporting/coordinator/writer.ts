@@ -38,6 +38,7 @@ export interface ReplyTarget {
  */
 export class ConversationWriter {
   private replyIndex = 0;
+  private lead: string[] = [];
 
   constructor(
     readonly core: ReportingCore,
@@ -73,10 +74,30 @@ export class ConversationWriter {
   }
 
   /**
+   * Words that open the next reply, so what was understood goes out with the question that
+   * follows it instead of as a message of its own.
+   */
+  preface(text: string): void {
+    this.lead.push(text);
+  }
+
+  /** Sends words still waiting for a reply as a message of their own. */
+  flushPreface(): void {
+    if (this.lead.length === 0) return;
+    const text = this.lead.join("\n");
+    this.lead = [];
+    this.enqueue({ text }, "preface");
+  }
+
+  /**
    * A link in a reply opens one of the reporting pages, where an account signs. Those need the
    * person's own browser, so the reply says so and offers the link to copy.
    */
-  reply(message: OutboundMessage, kind: string, promptId?: string, operationId?: string): void {
+  reply(given: OutboundMessage, kind: string, promptId?: string, operationId?: string): void {
+    const message = this.lead.length
+      ? { ...given, text: `${this.lead.join("\n")}\n\n${given.text}` }
+      : given;
+    this.lead = [];
     this.enqueue(
       message.link
         ? {

@@ -81,7 +81,7 @@ test("accepts existing authority and redirect-fragment targets", () => {
 test("Vercel serves Docusaurus HTML at extensionless routes", () => {
   const config = JSON.parse(readFileSync(VERCEL_CONFIG, "utf8"));
   assert.equal(config.cleanUrls, true);
-  assert.equal(config.outputDirectory, "build");
+  assert.equal(config.outputDirectory, "build/site");
 });
 
 test("ignores unterminated MDX tags when deriving heading anchors", () => {

@@ -5,6 +5,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { formatUnits } from "viem";
 
 import { Splash } from "@/components/Layout";
+import { CodeScreen, OtherWaysScreen } from "./CodeSignInScreens";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
 export function Login() {
@@ -24,7 +25,9 @@ export function Login() {
     reconcilePilotProof,
     keepOriginalAccount,
     browserGuidanceAction,
+    codeSignIn,
     continueWithUsername,
+    createNamedAccount,
     goTo,
     intl,
     isNestedRoute,
@@ -36,6 +39,7 @@ export function Login() {
     passkeyServerEnabled,
     personalizedLabel,
     redirectTo,
+    savedAccountName,
     screen,
     setUsername,
     username,
@@ -49,6 +53,7 @@ export function Login() {
   } = auth;
   const goToEntry = () => goTo("entry");
   const goToUsername = () => goTo("username");
+  const goToOtherWays = () => goTo("otherWays");
 
   if (isNestedRoute) return <Outlet />;
   // The pre-React PWA surface stays mounted until auth restoration resolves.
@@ -190,6 +195,73 @@ export function Login() {
     </Helmet>
   );
 
+  const codeScreenProps = {
+    helmet,
+    intl,
+    codeSignIn,
+    goTo,
+    walletLogin,
+    loginError,
+    isAuthenticating,
+    backTertiaryAction,
+  };
+
+  // The typed name belongs to nobody, and this phone already has an account: a typo must not
+  // quietly become a second account, so the person says it is a new one.
+  if (screen === "confirmNewAccount") {
+    const name = username.trim();
+    return (
+      <>
+        {helmet}
+        <Splash
+          login={createNamedAccount}
+          isLoggingIn={isAuthenticating}
+          loadingState={loadingState ?? undefined}
+          message={loadingMessage}
+          buttonLabel={intl.formatMessage({
+            id: "app.login.newAccount.create",
+            defaultMessage: "Create New Account",
+          })}
+          errorMessage={!isAuthenticating ? loginError : null}
+          focusInfo
+          infoMessage={
+            savedAccountName
+              ? intl.formatMessage(
+                  {
+                    id: "app.login.newAccount.infoSaved",
+                    defaultMessage:
+                      "No account is named {name}. This phone has the account {saved}. Create a new account?",
+                  },
+                  { name, saved: savedAccountName }
+                )
+              : intl.formatMessage(
+                  {
+                    id: "app.login.newAccount.info",
+                    defaultMessage:
+                      "No account is named {name}. Another account is saved on this phone. Create a new account?",
+                  },
+                  { name }
+                )
+          }
+          tertiaryAction={{
+            label: intl.formatMessage({
+              id: "app.login.newAccount.checkName",
+              defaultMessage: "Check the Name",
+            }),
+            onClick: goToUsername,
+          }}
+        />
+      </>
+    );
+  }
+
+  if (screen === "otherWays" && codeSignIn.enabled) {
+    return <OtherWaysScreen {...codeScreenProps} />;
+  }
+  if (screen === "code" && codeSignIn.enabled) {
+    return <CodeScreen {...codeScreenProps} />;
+  }
+
   if (screen === "username") {
     return (
       <>
@@ -289,18 +361,29 @@ export function Login() {
                 )
               : undefined
         }
-        secondaryAction={{
-          label: auth.walletReleaseStalled
-            ? intl.formatMessage({
-                id: "app.login.walletReload",
-                defaultMessage: "Reload to retry wallet",
-              })
-            : intl.formatMessage({
-                id: "app.login.button.connectWallet",
-                defaultMessage: "Sign in with a Wallet",
-              }),
-          onSelect: walletLogin,
-        }}
+        secondaryAction={
+          // With email sign-in on, the wallet moves one screen in, beside email.
+          codeSignIn.enabled && !auth.walletReleaseStalled
+            ? {
+                label: intl.formatMessage({
+                  id: "app.login.button.otherWays",
+                  defaultMessage: "Other Ways to Sign In",
+                }),
+                onSelect: goToOtherWays,
+              }
+            : {
+                label: auth.walletReleaseStalled
+                  ? intl.formatMessage({
+                      id: "app.login.walletReload",
+                      defaultMessage: "Reload to retry wallet",
+                    })
+                  : intl.formatMessage({
+                      id: "app.login.button.connectWallet",
+                      defaultMessage: "Sign in with a Wallet",
+                    }),
+                onSelect: walletLogin,
+              }
+        }
         tertiaryAction={
           browserGuidanceAction ||
           (originalAccountAddress

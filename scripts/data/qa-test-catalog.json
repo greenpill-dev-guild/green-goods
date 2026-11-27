@@ -3498,7 +3498,7 @@
         "Read the status band and the People section",
         "Read the card under the status band and the bottom of the screen"
       ],
-      "expected": "The commitment reads in full; no act bar is drawn; the card reads 'Join {garden} to take this up' with Join Garden when the garden is open to join and Request to Join otherwise; pressing Join Garden joins and Take This Up appears without a reload",
+      "expected": "The commitment reads in full; no act bar is drawn; the card reads 'Join {garden} to take this up' with Join Garden when the garden is open to join and Ask to Join otherwise; pressing Join Garden joins and Take This Up appears without a reload",
       "evidence": "Screenshot of the card",
       "role": "gardener",
       "tags": ["commitments", "claim"],
@@ -4157,16 +4157,16 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Commitments",
-      "scenario": "Ask Again opens the composer on an ended request's answers",
+      "scenario": "Request It Again opens the composer on an ended request's answers",
       "preconditions": [
         "An own request that has ended: ran out of time, kept, or withdrawn, in a pool the gardener belongs to"
       ],
       "steps": [
         "Open the ended request from the drawer's History and read the bar",
-        "Press Ask Again",
+        "Press Request It Again",
         "Read each beat of the composer without placing it"
       ],
-      "expected": "The bar offers Ask Again to the person who asked, not to whoever took it up; it opens the Request composer in that commitment's own garden with the earlier title, note, links, unit, amount, team, action rows, and who may take it up; the due date and the season are chosen fresh; nothing is placed until the place button is pressed",
+      "expected": "The bar offers Request It Again to the person who asked, not to whoever took it up; it opens the Request composer in that commitment's own garden with the earlier title, note, links, unit, amount, team, action rows, and who may take it up; the due date and the season are chosen fresh; nothing is placed until the place button is pressed",
       "evidence": "Screenshots of the ended request and of the prefilled composer",
       "role": "gardener",
       "tags": ["commitments"],

@@ -72,6 +72,7 @@ export function withoutUnavailableReward(
     considerationUsd: undefined,
     considerationSource: "",
     considerationToken: "",
+    rewardMatchedUsdc: undefined,
   };
 }
 
@@ -145,6 +146,8 @@ export function rewardFacts(input: {
   price: GoodDollarPriceState;
   locale: string;
   formatMessage: FormatMessage;
+  /** A USDC match reads as promised only where Create would declare it. */
+  usdcMatchAvailable: boolean;
 }): Array<[string, string]> {
   const { values, count, price, locale, formatMessage } = input;
   if (values.considerationRail === "NONE") {
@@ -171,16 +174,25 @@ export function rewardFacts(input: {
       ],
     ];
   }
+  const matched = input.usdcMatchAvailable && values.rewardMatchedUsdc === true;
   const rows: Array<[string, string]> = [
     [
       formatMessage({ id: "hub.garden.pool.seed.review.rewardEach", defaultMessage: "Each" }),
-      formatMessage(
-        {
-          id: "hub.garden.pool.seed.review.rewardDollars",
-          defaultMessage: "{amount}, paid in G$ once it's kept",
-        },
-        { amount: formatUsd(cents, locale) }
-      ),
+      matched
+        ? formatMessage(
+            {
+              id: "hub.garden.pool.seed.review.rewardDollarsMatched",
+              defaultMessage: "{amount} in G$ and {amount} in USDC, paid once it's kept",
+            },
+            { amount: formatUsd(cents, locale) }
+          )
+        : formatMessage(
+            {
+              id: "hub.garden.pool.seed.review.rewardDollars",
+              defaultMessage: "{amount}, paid in G$ once it's kept",
+            },
+            { amount: formatUsd(cents, locale) }
+          ),
     ],
     [
       formatMessage({
@@ -201,6 +213,18 @@ export function rewardFacts(input: {
           }),
     ],
   ];
+  if (matched) {
+    rows.push([
+      formatMessage({ id: "hub.garden.pool.seed.review.rewardInUsdc", defaultMessage: "In USDC" }),
+      formatMessage(
+        {
+          id: "hub.garden.pool.seed.review.rewardUsdcFromSafe",
+          defaultMessage: "{amount} USDC each, paid from the garden's Safe once it's kept",
+        },
+        { amount: usdCentsText(cents) }
+      ),
+    ]);
+  }
   if (count > 1) {
     rows.push([
       formatMessage(
@@ -212,7 +236,7 @@ export function rewardFacts(input: {
       ),
       formatMessage(
         { id: "hub.garden.pool.seed.review.rewardUpTo", defaultMessage: "Up to {amount}" },
-        { amount: formatUsd(cents * BigInt(count), locale) }
+        { amount: formatUsd(cents * BigInt(count) * (matched ? 2n : 1n), locale) }
       ),
     ]);
   }

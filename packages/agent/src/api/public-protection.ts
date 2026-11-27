@@ -27,6 +27,8 @@ export type PublicRouteClass =
   | "passkey_registration"
   | "passkey_lookup"
   | "passkey_display_names"
+  | "openfort_recovery"
+  | "openfort_recovery_account"
   | "webhook_pre"
   | "webhook_post"
   | "messaging_bootstrap"
@@ -86,6 +88,9 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   passkey_registration: { limit: 120, windowMs: 10 * 60 * 1000 },
   passkey_lookup: { limit: 240, windowMs: 10 * 60 * 1000 },
   passkey_display_names: { limit: 240, windowMs: 10 * 60 * 1000 },
+  // Email sign-in: a group onboarding on one connection signs in one after another.
+  openfort_recovery: { limit: 120, windowMs: 10 * 60 * 1000 },
+  openfort_recovery_account: { limit: 20, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
   // Agent reporting ceremonies: link openers and proofs are per IP; reads and commands per session.

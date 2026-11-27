@@ -33,7 +33,8 @@ import {
 } from "./poolCommitmentRows";
 import { commitmentStateChip } from "./poolPresentation";
 import { rowDueDetail } from "./poolTime";
-import { voucherBookingOptionalAct, voucherOfferRow } from "./voucherPresentation";
+import { voucherBookingOptionalAct } from "./voucherBookingActs";
+import { voucherOfferRow } from "./voucherPresentation";
 import { isVoucherOffer, voucherOfferTakes } from "./voucherQueue";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
@@ -115,6 +116,19 @@ export function PoolCommitmentsCard({
       { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
+  // A promise with one target says how much of it is approved, in its action's own count; one with
+  // several opens its inspector for each, since different actions are never summed (PRD-1538).
+  const progressNote = (commitment: CommitmentReadModel) => {
+    const [target] = commitment.requirements ?? [];
+    const [approved] = commitment.requirementsApproved ?? [];
+    if (commitment.requirements?.length !== 1 || target === undefined || approved === undefined) {
+      return undefined;
+    }
+    return formatMessage(
+      { id: "hub.garden.pool.row.progress" },
+      { approved, target: target.requiredCount }
+    );
+  };
   const titleById = (commitmentId: bigint) => {
     const commitment = pool.commitments.find((row) => row.commitmentId === commitmentId);
     return commitment ? titleOf(commitment) : "";
@@ -162,7 +176,7 @@ export function PoolCommitmentsCard({
           <AdminCardTitle>
             {formatMessage({
               id: "hub.garden.pool.promises.title",
-              defaultMessage: "Offers and Asks",
+              defaultMessage: "Offers and Requests",
             })}
           </AdminCardTitle>
           <Button
@@ -272,7 +286,7 @@ export function PoolCommitmentsCard({
             description={formatMessage({
               id: "hub.garden.pool.commitments.emptyBody",
               defaultMessage:
-                "Offers and asks between neighbors show up here. Seed the first one to begin.",
+                "Offers and requests between neighbors show up here. Seed the first one to begin.",
             })}
           />
         ) : rows.length === 0 ? (
@@ -350,7 +364,7 @@ export function PoolCommitmentsCard({
                         }
                       : (voucher?.status ?? { label: chip.label, tone: chip.variant })
                   }
-                  note={takes ? undefined : voucher?.note}
+                  note={takes ? undefined : (voucher?.note ?? progressNote(commitment))}
                   service={
                     takes && voucher
                       ? {

@@ -197,8 +197,20 @@ describe("commitment pooling public read boundary", () => {
             ? { Commitment: rows }
             : {
                 CommitmentRequirement: [
-                  { commitmentId: "11", requirementIndex: 0, actionUID: "44", requiredCount: 3 },
-                  { commitmentId: "12", requirementIndex: 0, actionUID: "45", requiredCount: 2 },
+                  {
+                    commitmentId: "11",
+                    requirementIndex: 0,
+                    actionUID: "44",
+                    requiredCount: 3,
+                    approvedCount: 2,
+                  },
+                  {
+                    commitmentId: "12",
+                    requirementIndex: 0,
+                    actionUID: "45",
+                    requiredCount: 2,
+                    approvedCount: 0,
+                  },
                 ],
               },
       })
@@ -209,6 +221,8 @@ describe("commitment pooling public read boundary", () => {
       null,
       [],
     ]);
+    // Each target's reviewed count rides along, and goes with the terms when they are unknown.
+    expect(commitments.map((row) => row.requirementsApproved)).toEqual([[2], null, []]);
     const request = mocks.query.mock.calls.find(
       ([, , operation]) => operation === "getCommitmentListRequirements"
     );

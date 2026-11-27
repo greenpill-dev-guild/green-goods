@@ -1,6 +1,10 @@
 import { isAddress } from "viem";
 import type { Address, GardenMemberHistory } from "../../types/domain";
-import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
+import {
+  GARDEN_ROLE_IDS,
+  GARDEN_ROLE_ORDER,
+  type GardenRole,
+} from "../../utils/blockchain/garden-roles";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 
 interface GardenMemberHistoryScope {
@@ -85,6 +89,46 @@ export async function getGardenMemberHistory(
   ) {
     throw new Error("Invalid garden membership history scope");
   }
+  const ordered = await readOrderedEvents(scope, reader, signal);
+  const members = new Map<string, GardenMemberHistory>();
+  const recordedRoles = new Map<string, Set<GardenRole>>();
+  for (const event of ordered) {
+    const key = `${event.garden}:${event.account}`;
+    let member = members.get(key);
+    if (!member) {
+      member = {
+        garden: event.garden,
+        account: event.account,
+        joinedAt: null,
+        memberSince: null,
+        roleSince: {},
+      };
+      members.set(key, member);
+      recordedRoles.set(key, new Set());
+    }
+    recordedRoles.get(key)?.add(event.role);
+    if (event.action === "GRANTED") {
+      if (Object.keys(member.roleSince).length === 0) member.memberSince = event.timestamp;
+      member.joinedAt ??= event.timestamp;
+      member.roleSince[event.role] ??= event.timestamp;
+    } else {
+      delete member.roleSince[event.role];
+      if (Object.keys(member.roleSince).length === 0) member.memberSince = null;
+    }
+  }
+  for (const [key, member] of members) {
+    const recorded = recordedRoles.get(key);
+    member.recordedRoles = GARDEN_ROLE_ORDER.filter((role) => recorded?.has(role));
+  }
+  return [...members.values()];
+}
+
+/** Every role event in scope, in chain order. */
+async function readOrderedEvents(
+  scope: GardenMemberHistoryScope,
+  reader: GraphQLReader,
+  signal?: AbortSignal
+): Promise<RoleEvent[]> {
   const where = {
     chainId: { _eq: scope.chainId },
     ...(scope.garden ? { garden: { _eq: scope.garden.toLowerCase() } } : {}),
@@ -107,35 +151,62 @@ export async function getGardenMemberHistory(
     }
     if (data.GardenRoleEvent.length < limit) break;
   }
-  const ordered = [...events.values()].sort((a, b) =>
+  return [...events.values()].sort((a, b) =>
     a.blockNumber < b.blockNumber
       ? -1
       : a.blockNumber > b.blockNumber
         ? 1
         : a.logIndex - b.logIndex || a.id.localeCompare(b.id)
   );
-  const members = new Map<string, GardenMemberHistory>();
-  for (const event of ordered) {
-    const key = `${event.garden}:${event.account}`;
-    let member = members.get(key);
-    if (!member) {
-      member = {
-        garden: event.garden,
-        account: event.account,
-        joinedAt: null,
-        memberSince: null,
-        roleSince: {},
-      };
-      members.set(key, member);
-    }
+}
+
+/** A member's role changing in a garden: their first role (a join), a later one, or one taken away. */
+interface GardenRoleChangeEvent {
+  id: string;
+  account: Address;
+  role: GardenRole;
+  kind: "joined" | "granted" | "revoked";
+  /** When it happened, in milliseconds. */
+  at: number;
+}
+
+/**
+ * Each role change in one garden, newest first. A member's first role is their join, so a role
+ * given later is never counted as someone new; a grant of a role already held and a revoke of
+ * one not held change nothing and are left out.
+ */
+export async function getGardenRoleChanges(
+  scope: { garden: Address; chainId: number },
+  reader: GraphQLReader = greenGoodsIndexer,
+  signal?: AbortSignal
+): Promise<GardenRoleChangeEvent[]> {
+  const held = new Map<string, Set<GardenRole>>();
+  const changes: GardenRoleChangeEvent[] = [];
+  if (!Number.isSafeInteger(scope.chainId) || !isAddress(scope.garden, { strict: false })) {
+    throw new Error("Invalid garden role change scope");
+  }
+  for (const event of await readOrderedEvents(scope, reader, signal)) {
+    const roles = held.get(event.account);
     if (event.action === "GRANTED") {
-      if (Object.keys(member.roleSince).length === 0) member.memberSince = event.timestamp;
-      member.joinedAt ??= event.timestamp;
-      member.roleSince[event.role] ??= event.timestamp;
-    } else {
-      delete member.roleSince[event.role];
-      if (Object.keys(member.roleSince).length === 0) member.memberSince = null;
+      if (roles?.has(event.role)) continue;
+      changes.push({
+        id: event.id,
+        account: event.account,
+        role: event.role,
+        // A first role, or a return after every role was taken away, is a join.
+        kind: roles === undefined || roles.size === 0 ? "joined" : "granted",
+        at: event.timestamp,
+      });
+      held.set(event.account, new Set([...(roles ?? []), event.role]));
+    } else if (roles?.delete(event.role)) {
+      changes.push({
+        id: event.id,
+        account: event.account,
+        role: event.role,
+        kind: "revoked",
+        at: event.timestamp,
+      });
     }
   }
-  return [...members.values()];
+  return changes.reverse();
 }

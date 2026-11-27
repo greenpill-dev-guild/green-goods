@@ -1,3 +1,4 @@
+import type { AuthMode } from "@green-goods/shared/hooks/auth/useAuth";
 import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -80,7 +81,7 @@ interface WorkMediaProps {
   onRemoveBrokenMedia?: (surface: "media") => void;
   workSubmissionJourneyId?: string | null;
   ensureWorkSubmissionJourneyId?: () => string;
-  authMode?: "wallet" | "passkey" | "embedded" | null;
+  authMode?: AuthMode;
   actionUID?: number | null;
   /** A HEIC photo's conversion while it waits for the decoder; `undefined` otherwise. */
   heicStateOf?: (file: File) => PendingPhotoState | undefined;

@@ -1,3 +1,4 @@
+import { isSmartAccountAuthMode } from "../../types/auth";
 import {
   createAccountMessageSigner,
   resolveAccountFactoryArgs,
@@ -196,7 +197,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
   );
 
   const getFactoryArgs = useCallback(async () => {
-    if (auth.authMode !== "passkey") return undefined;
+    if (!isSmartAccountAuthMode(auth.authMode)) return undefined;
     return resolveAccountFactoryArgs(
       auth.smartAccountClient?.account,
       editorOptions?.factory && editorOptions.factoryData

@@ -215,6 +215,21 @@ describe("queryInvalidation", () => {
     expect(userKeys).toContainEqual(queryKeys.works.mineByUser(TEST_USER));
   });
 
+  it("rereads a garden's Gardeners readiness once a queued work is sent", async () => {
+    const client = createTestQueryClient();
+    const garden = "0xAbCdEf0000000000000000000000000000000001";
+    const readiness = queryKeys.gardens.memberReadiness(garden, [TEST_USER], TEST_CHAIN_ID);
+    client.setQueryData(readiness, {});
+
+    await Promise.all(
+      queryInvalidation
+        .onJobCompleted(garden, TEST_CHAIN_ID)
+        .map((queryKey) => client.invalidateQueries({ queryKey }))
+    );
+
+    expect(client.getQueryState(readiness)?.isInvalidated).toBe(true);
+  });
+
   it("fans out job completion invalidation across queue and works", () => {
     const baseKeys = queryInvalidation.onJobCompleted(TEST_GARDEN, TEST_CHAIN_ID);
     const userKeys = queryInvalidation.onJobCompleted(TEST_GARDEN, TEST_CHAIN_ID, TEST_USER);

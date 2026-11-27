@@ -35,6 +35,13 @@ describe("Review Work tab scopes", () => {
     { scope: "approved", sort: "oldest", search: "", expected: ["approved-old", "approved-new"] },
     { scope: "approved", sort: "newest", search: "riverbank", expected: ["approved-old"] },
     { scope: "pending", sort: "newest", search: "riverbank", expected: [] },
+    // One day's work from the Activity calendar keeps every status, rejected included.
+    {
+      scope: "all",
+      sort: "oldest",
+      search: "",
+      expected: ["pending-old", "approved-old", "approved-new", "pending-new", "rejected"],
+    },
   ] as const)('lists $scope work, $sort first, searching "$search"', ({
     scope,
     sort,
@@ -42,6 +49,14 @@ describe("Review Work tab scopes", () => {
     expected,
   }) => {
     expect(idsOf(filterWorksByScope(works, scope, actions, search, sort))).toEqual(expected);
+  });
+
+  it("leaves a work whose status could not be read out of Pending, and keeps it on the day", () => {
+    const unread = new Set(["pending-new"]);
+    expect(idsOf(filterWorksByScope(works, "pending", actions, "", "oldest", unread))).toEqual([
+      "pending-old",
+    ]);
+    expect(filterWorksByScope(works, "all", actions, "", "oldest", unread)).toHaveLength(5);
   });
 });
 

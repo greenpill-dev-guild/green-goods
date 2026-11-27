@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
 import {
   buildReviewHeaderStats,
@@ -5,9 +6,12 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/review/review.utils";
 import { useReviewWorkbenchController } from "@green-goods/shared/hooks/admin-ui/review/useReviewWorkbenchController";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { Button } from "@green-goods/shared/components/Button";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { RiCalendarLine } from "@remixicon/react";
 import { useMemo } from "react";
-import { useIntl } from "react-intl";
+import { defineMessages, useIntl } from "react-intl";
+import { Link } from "react-router-dom";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
@@ -21,8 +25,15 @@ import {
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
 import { ReviewFlowDialogs, ReviewSheetDescriptor, ReviewStageContent } from "./components";
 
+const WAITING_BAND_LABEL = defineMessages({
+  under2d: { id: "hub.review.work.waiting.under2d", defaultMessage: "Under 2 Days" },
+  days2to7: { id: "hub.review.work.waiting.days2to7", defaultMessage: "2 to 7 Days" },
+  weeks1to2: { id: "hub.review.work.waiting.weeks1to2", defaultMessage: "1 to 2 Weeks" },
+  over2w: { id: "hub.review.work.waiting.over2w", defaultMessage: "Over 2 Weeks" },
+});
+
 export default function ReviewView() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatDate } = useIntl();
   const review = useReviewWorkbenchController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -49,6 +60,9 @@ export default function ReviewView() {
         routeCertificationId={review.routeCertificationId}
         activeWorkDetailId={review.activeWorkDetailId}
         selectedWork={review.selectedWork}
+        // A day opened from the calendar knows which works' statuses it could not read.
+        unknownWorkIds={review.workDay ? review.workDayUnknownIds : undefined}
+        dayStatusUnread={!review.workDayStatusKnown}
         selectedCertification={review.selectedCertification}
         isResolvingSelection={
           review.worksLoading ||
@@ -116,6 +130,19 @@ export default function ReviewView() {
                         defaultMessage: "Work status",
                       })}
                     >
+                      {/* One day's work, opened from the Activity calendar: the chip names the
+                          day and pressing it returns to the usual queue. */}
+                      {review.workDayDate ? (
+                        <AdminFilterChip
+                          label={formatDate(review.workDayDate, {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                          selected
+                          onToggle={review.handleClearWorkDay}
+                        />
+                      ) : null}
                       <AdminFilterChip
                         label={formatMessage({
                           id: "app.admin.work.filter.pending",
@@ -133,11 +160,63 @@ export default function ReviewView() {
                         onToggle={() => review.handleWorkScopeChange("approved")}
                       />
                     </div>
+                    {/* How long pending work has waited (PRD-1577). Plain ink, never a
+                        warning: age is information (DL-044). Not on a day's list. */}
+                    {review.workDay ? null : (
+                      <div
+                        className="flex flex-wrap items-center gap-1.5"
+                        role="group"
+                        aria-label={formatMessage({
+                          id: "hub.review.work.waiting",
+                          defaultMessage: "Waiting time",
+                        })}
+                      >
+                        {review.waitingBands.map((band) => (
+                          <AdminFilterChip
+                            key={band.id}
+                            label={formatMessage(
+                              review.waitingBandsComplete
+                                ? {
+                                    id: "hub.review.work.waiting.count",
+                                    defaultMessage: "{band} ({count})",
+                                  }
+                                : {
+                                    id: "hub.review.work.waiting.atLeast",
+                                    defaultMessage: "{band} ({count}+)",
+                                  },
+                              {
+                                band: formatMessage(WAITING_BAND_LABEL[band.id]),
+                                count: band.count,
+                              }
+                            )}
+                            selected={review.waitingBand === band.id}
+                            // An empty band has nothing to show, unless its count is only a minimum.
+                            disabled={
+                              band.count === 0 &&
+                              review.waitingBandsComplete &&
+                              review.waitingBand !== band.id
+                            }
+                            onToggle={() => review.handleWaitingBandChange(band.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <AdminSortSelect
                       value={review.sortDirection}
                       onChange={(value) => review.updateSearch({ sort: value }, false)}
                       options={review.sortOptions}
                     />
+                    {review.workDayCalendarHref ? (
+                      <Button asChild size="compact" emphasis="tertiary">
+                        <Link to={review.workDayCalendarHref}>
+                          <RiCalendarLine aria-hidden className="h-4 w-4" />
+                          {formatMessage({
+                            id: "hub.review.work.backToCalendar",
+                            defaultMessage: "Back to Calendar",
+                          })}
+                        </Link>
+                      </Button>
+                    ) : null}
                   </>
                 )}
               </AdminSearchToolbar>
@@ -181,18 +260,46 @@ export default function ReviewView() {
                   the `stage` prop, so a keyed remount only tore down and
                   rebuilt the DOM mid route View-Transition (the tab-change
                   glitch). The route transition in PageTransition owns motion. */}
+              {/* Older paging is off on a day, so a day too busy for one read says so. */}
+              {review.stage === "work" && review.workDay && !review.workDayComplete ? (
+                <Alert
+                  variant="warning"
+                  title={formatMessage({
+                    id: "hub.review.work.dayPartial.title",
+                    defaultMessage: "This day is only partly read",
+                  })}
+                >
+                  {formatMessage({
+                    id: "hub.review.work.dayPartial.description",
+                    defaultMessage:
+                      "It holds more work than one read lists, so its latest submissions are missing.",
+                  })}
+                </Alert>
+              ) : null}
               <div className="review-results-pane">
                 <ReviewStageContent
                   stage={review.stage}
                   works={review.scopedWorks}
                   workScope={review.workScope}
+                  unknownIds={review.workDay ? review.workDayUnknownIds : undefined}
+                  onShowWholeDay={review.handleShowWholeDay}
+                  onClearWaitingBand={
+                    review.waitingBand
+                      ? () => review.handleWaitingBandChange(review.waitingBand!)
+                      : undefined
+                  }
                   assessments={review.assessmentList}
                   hypercerts={review.hypercertList}
-                  // Oldest first lists nothing until the whole history is read.
-                  worksLoading={review.worksLoading || review.readsWorkHistory}
+                  // Oldest first lists nothing until the whole history is read. A day's
+                  // list waits on its own read.
+                  worksLoading={
+                    review.workDay
+                      ? review.workDayLoading
+                      : review.worksLoading || review.readsWorkHistory
+                  }
                   fetchingAssessments={review.fetchingAssessments}
                   hypercertsLoading={review.hypercertsLoading}
-                  hasDataError={review.hasDataError}
+                  hasDataError={review.workDay ? review.workDayUnread : review.hasDataError}
                   normalizedSearch={review.normalizedSearch}
                   debouncedSearch={review.debouncedSearch}
                   actionsMap={review.actionsMap}
@@ -219,8 +326,16 @@ export default function ReviewView() {
                   onClearSearch={review.handleClearSearch}
                   onOpenCertification={review.handleOpenCertification}
                   onOpenHypercert={review.handleOpenHypercert}
-                  reviewBatch={review.reviewBatch}
-                  olderWork={review.olderWork}
+                  // A day's list is for reading and opening: batch review and older pages
+                  // belong to the queue, which holds the works they act on.
+                  reviewBatch={review.workDay ? undefined : review.reviewBatch}
+                  // A day is read on its own, and a band whose oldest work is in needs no
+                  // older page, so neither offers one.
+                  olderWork={
+                    review.workDay || (review.waitingBand && !review.needsOlderWork)
+                      ? undefined
+                      : review.olderWork
+                  }
                   olderHypercerts={review.olderHypercerts}
                 />
               </div>

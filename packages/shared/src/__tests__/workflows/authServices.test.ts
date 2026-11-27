@@ -57,7 +57,7 @@ async function invoke<T>(logic: AnyActorLogic, input: unknown): Promise<T> {
 function createHarness() {
   const state: {
     signedOut: boolean;
-    authMode: "passkey" | "wallet" | "embedded" | null;
+    authMode: "passkey" | "wallet" | "embedded" | "openfort" | null;
     credential: PasskeyCredential | null;
     rpId: string | null;
     userName: string | null;
@@ -435,6 +435,7 @@ describe("createAuthServices", () => {
     it.each([
       "wallet",
       "embedded",
+      "openfort",
     ] as const)("does not let a cached passkey override %s session intent", async (authMode) => {
       harness.state.credential = CREDENTIAL;
       harness.state.authMode = authMode;

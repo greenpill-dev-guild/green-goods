@@ -13,6 +13,26 @@ export interface ActionMedia {
   type?: string;
 }
 
+/** One input of an action's form, as `uiConfig.details.inputs` declares it. */
+export interface ActionInput {
+  key: string;
+  type: string;
+  options?: string[];
+}
+
+/** A number an action's reports add up to, read from one or more of its inputs. */
+export interface ActionMetricOutput {
+  key: string;
+  unit: string;
+  aggregation: string;
+  derivedFrom: string[];
+  /**
+   * Counts only the reports whose select input holds one of these options, such as one
+   * milestone type: `{ "milestoneType": ["Solar kW installed"] }`.
+   */
+  when?: Record<string, string[]>;
+}
+
 export interface ActionConfig {
   title: string;
   slug: string;
@@ -22,6 +42,54 @@ export interface ActionConfig {
   endTime: string;
   capitals: string[];
   media: (string | ActionMedia)[];
+  uiConfig?: { details?: { inputs?: ActionInput[] } };
+  metricOutputs?: ActionMetricOutput[];
+}
+
+/** A share of something else, not a second measure of the number it reads. */
+const RATIO_UNITS = new Set(["%"]);
+
+/**
+ * What is wrong with an action's metric outputs. One input read alone by outputs in different
+ * units means the same number counts as each unit, unless every such pair is split by a
+ * condition on the same select input with no option in common: a 20 kWh battery would
+ * otherwise add 20 kW of solar. A condition has to name a select input and its options.
+ */
+export function metricOutputProblems(action: ActionConfig): string[] {
+  const outputs = action.metricOutputs ?? [];
+  const inputs = action.uiConfig?.details?.inputs ?? [];
+  const problems: string[] = [];
+  for (const output of outputs) {
+    for (const [inputKey, values] of Object.entries(output.when ?? {})) {
+      const input = inputs.find((candidate) => candidate.key === inputKey);
+      if (input?.type !== "select") {
+        problems.push(`${output.key}: its condition names "${inputKey}", which is not a select input`);
+        continue;
+      }
+      for (const value of values) {
+        if (!input.options?.includes(value)) {
+          problems.push(`${output.key}: "${value}" is not an option of "${inputKey}"`);
+        }
+      }
+    }
+  }
+  const readAlone = outputs.filter((output) => output.derivedFrom.length === 1 && !RATIO_UNITS.has(output.unit));
+  for (const [index, left] of readAlone.entries()) {
+    for (const right of readAlone.slice(index + 1)) {
+      if (left.derivedFrom[0] !== right.derivedFrom[0] || left.unit === right.unit) continue;
+      const split = Object.keys(left.when ?? {}).some((inputKey) => {
+        const other = right.when?.[inputKey];
+        return other !== undefined && left.when![inputKey].every((value) => !other.includes(value));
+      });
+      if (!split) {
+        problems.push(
+          `${left.key} (${left.unit}) and ${right.key} (${right.unit}) both read "${left.derivedFrom[0]}" ` +
+            "with no condition that keeps them apart",
+        );
+      }
+    }
+  }
+  return problems;
 }
 
 export interface ActionsConfig {
@@ -153,6 +221,11 @@ export class ConfigValidator {
     // Validate media (allow empty arrays for the new schema)
     if (!Array.isArray(action.media)) {
       throw new Error(`Action ${index}: Media must be an array`);
+    }
+
+    const metricProblems = metricOutputProblems(action);
+    if (metricProblems.length > 0) {
+      throw new Error(`Action ${index} "${action.slug}": ${metricProblems.join("; ")}`);
     }
 
     return true;

@@ -19,6 +19,7 @@ import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { formatGdollar, shortAddress } from "../poolFundingPresentation";
 import { CommitmentSettlementDisbursements } from "./CommitmentSettlementDisbursements";
 import { CommitmentSettlementFacts } from "./CommitmentSettlementFacts";
+import { CommitmentUsdcSharesSection } from "./CommitmentUsdcShares";
 import {
   actionLabel,
   actionStep,
@@ -87,7 +88,12 @@ function EnabledCommitmentSettlementSection({
   target?: ReactNode;
 }) {
   const settlement = useCommitmentSettlementController({ chainId, commitment, detail });
-  return <CommitmentSettlement settlement={settlement} tone={tone} target={target} />;
+  return (
+    <>
+      <CommitmentSettlement settlement={settlement} tone={tone} target={target} />
+      <CommitmentUsdcSharesSection commitment={commitment} settlement={settlement} />
+    </>
+  );
 }
 
 /**

@@ -14,7 +14,10 @@
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { http } from "viem";
+import { type Config, createConfig } from "wagmi";
 import { ENV } from "../lib/env";
+import { boundConnectorRestores } from "../modules/auth/connector-restore-deadline";
+import { hasMockAuthOverride } from "../modules/auth/mock-auth-seam";
 import { logger } from "../modules/app/logger";
 import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getResolvedTheme } from "../utils/styles/theme";
@@ -165,6 +168,9 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     transports,
   });
+  // Before AppKit's launch restore: one wallet that never answers must not hold every
+  // later restore of the visit (PRD-1575). Lives as long as the singleton config.
+  boundConnectorRestores(wagmiAdapterInstance.wagmiConfig);
 
   // Get initial theme from system/localStorage
   const initialTheme = getResolvedTheme();
@@ -181,6 +187,8 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     // chain at send time via the wagmi-based chain guard, so suppressing the
     // intrusive page-load prompt is safe. See Reown options: allowUnsupportedChain.
     allowUnsupportedChain: true,
+    // A mock-auth session must not have a stored wallet reconnected into AppKit's config.
+    enableReconnect: !mockAuthSeamActive(),
     defaultNetwork: getChain(
       options?.defaultChainId ?? DEFAULT_CHAIN_ID
     ) as (typeof networks)[number],
@@ -246,10 +254,36 @@ export function peekAppKit() {
  * Get the singleton Wagmi config (lazily initialized).
  * Throws in SSR — all call sites are inside WagmiProvider (browser-only).
  */
-export function getWagmiConfig() {
+export function getWagmiConfig(): Config {
   const config = getAppKitSingleton().wagmiConfig;
   if (!config) {
     throw new Error("getWagmiConfig() called before AppKit initialization or in SSR context");
   }
-  return config;
+  return activeWagmiConfig(config as unknown as Config);
+}
+
+// The window check comes first, so a non-browser consumer (the Agent) never reads import.meta.env.
+function mockAuthSeamActive(): boolean {
+  return typeof window !== "undefined" && Boolean(import.meta.env.DEV) && hasMockAuthOverride();
+}
+
+let mockAuthConfig: Config | null = null;
+
+/**
+ * The wagmi config the app signs and reads with: AppKit's, or in a development `?mockAuth=`
+ * session one with the same chains and RPC transports, no connector and no stored connection.
+ * A mock session borrows a role's address and holds no key, so every write, send and signature
+ * fails before it can reach a wallet. `AppKitProvider` and every `getWagmiConfig()` caller get the
+ * same answer.
+ */
+export function activeWagmiConfig(real: Config): Config {
+  if (!mockAuthSeamActive()) return real;
+  mockAuthConfig ??= createConfig({
+    chains: real.chains,
+    transports: createAppKitTransports([...real.chains]),
+    connectors: [],
+    multiInjectedProviderDiscovery: false,
+    storage: null,
+  });
+  return mockAuthConfig;
 }

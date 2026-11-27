@@ -65,6 +65,7 @@ export function storyPoolFunding(
       feeQuotes: [],
       feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
       executorPaused: false,
+      commandExecutors: [],
       available: 2_302n * G,
       shortfall: 0n,
       suggestedTopUp: 0n,
@@ -138,6 +139,7 @@ export function storyPoolConsole(
       pendingClaimCount: claims.length,
       now: STORY_NOW,
     }),
+    now: STORY_NOW,
     cycles,
     cycleNames: STORY_CYCLE_NAMES,
     commitments,
@@ -208,6 +210,7 @@ export function storyCommitmentDialog(
     viewer: STORY_STEWARD,
     isOnline: true,
     availability: { status: "available", capability: availableCapability },
+    editsTermsFromGroup: false,
     commitment,
     detail: commitment
       ? {
@@ -345,6 +348,7 @@ export function storyCommitmentDialog(
     claimantStanding: () => null,
     metadata: null,
     sendPhase: { status: "idle" },
+    confirmPhase: { status: "idle" },
     isActing: false,
     isLoading: false,
     isError: false,

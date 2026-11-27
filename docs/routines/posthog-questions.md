@@ -131,6 +131,7 @@ lands.
 | `offline_job_receipt_wait_limit` | A queued send went out but its receipt did not come within the queue's limit (`limit_ms`), so the job waits as still confirming. `job_kind`, `explicit` and `auth_mode` say what was sent and how. |
 | `offline_job_processed` | A queued job reached the chain. |
 | `offline_job_failed` | A try failed and will be retried; `offline_job_permanently_failed` when it will not be. |
+| `offline_job_discarded` | A job left the queue unsent because it was thrown away. `reason` is `discarded` for the job a discard was called on (a person's tap, or the app rolling back an act that didn't go) or `with-another` for one that went with it; `attempts` and `parsed_error_family` say after what. Recorded from builds after 2026-11-21 (PRD-1478). |
 | `queued_upload_started`, `queued_upload_finished` | An Upload all or Upload now tap, and how it ended (`status`, `sent`, `flagged`). |
 
 Builds made after 2026-11-15 record `work_submission_offline`, `work_submission_queued`,
@@ -191,6 +192,43 @@ Both funding events carry `payment_method`, `funding_intent` (`donate` or `endow
 `destination_type`, `source_route` and `chain_id`. Their `is_test_garden` is `unknown` today: the
 funding record keys a garden by its campaign slug, not its address, so it cannot be placed against
 the test garden records.
+
+## Event contract
+
+The Observability Implementation Plan names a lifecycle for each workflow: `<workflow>_started`,
+`_succeeded`, `_failed` and `_canceled`, one ending per attempt, carrying `attempt_id` and
+`schema_version`. Green Goods keeps its current event names, so no saved question or dashboard
+breaks (PRD-1561). This table is the mapping a question uses to read the plan's names.
+
+| Plan lifecycle | Current events | `attempt_id` today |
+|---|---|---|
+| `sign_in_*` | Passkey: `auth_passkey_login_started`, `_success`, `_failed` (a `reason` of `cancelled` is the cancellation), and `auth_passkey_register_*` for a new account. Wallet: `auth_wallet_connect_started`, `_success`, `_failed` (`reason` `rejected` or `cancelled` is the cancellation; the events are anonymized, so they never join a person). `auth_login_success` marks the application session, the plan's success, and also fires on a restored session. | None yet |
+| `work_submission_*` | `work_submission_started`; endings `work_submission_success` (succeeded), `work_submission_queued` (still confirming), `work_submission_offline` (kept to send later), `work_submission_failed`, `work_submission_cancelled`. | `work_submission_journey_id`, which an explicit retry in the same flow shares |
+| `work_review_*` | `work_approval_started`; endings `work_approval_success`, `work_rejection_success`, `work_approval_failed`; `work_approval_lifecycle` for the stages. | None yet |
+| `garden_join_*` | `garden_join_started`; endings `garden_join_success`, `garden_join_failed`, `garden_join_cancelled`, `garden_join_already_member`. Three cases need the send act: a join that may still land has no `garden_join_*` ending, only `send_act_ended` with `confirming`; a wallet or embedded join records `garden_join_success` once it is broadcast while its send act ends `confirming`, so that success does not yet mean the join landed; and the root garden's automatic join records only the send act (`operation: root_garden`). | Yes: every join event carries the `attempt_id` of the `garden_join` send act, so read the join's outcome from that act |
+| `media_upload_*` | `media_upload_started`, `_complete`, `_failed`, `_cancelled` (choosing and preparing photos on the device); `upload_success` and `error_tracked` with category `storage` for the transfer to IPFS. | None yet |
+| `upload_signing_*` | `upload_sign_ended` (Agent). | None yet |
+| `card_funding_*` | `funding_intent_started`, `funding_intent_ended` (Agent). | Yes: the intent's id |
+| Any other act that signs or sends | `send_act_started`, `send_act_ended`. | Yes |
+
+Rules every new lifecycle event follows:
+
+- **One id per press.** The flow mints `attempt_id` where the person starts the act and hands the
+  same id to every event of that attempt, its send act included. An automatic retry keeps the id;
+  a press after an ending is a new attempt with a new id.
+- **One ending per attempt.** `confirming` (or `queued`) is not an ending a question may count as
+  failed: the send may still land. A cancellation is never a technical failure.
+- **`schema_version`** is `1` on the send act and Agent attempt events. Raise it when a property
+  changes meaning, and say here what changed, so a question can tell old records from new.
+- **`sentry_event_id`** rides on `error_tracked` when the browser's Sentry reporter filed a report
+  for the same handled error, including a crash report sent later from the device. Sentry keeps no
+  offline queue in the browser, so a crash captured offline can carry an id Sentry never received.
+  Errors Sentry's own handlers file (unhandled ones) do not carry it yet.
+
+Still to come, tracked on the follow-up to PRD-1561: one `sign_in_*` family with an attempt id and
+an anonymous id reconciled at sign-in; attempt ids with `retry_of_attempt_id` on work submission,
+work review and uploads (the upload's id passed to the Agent's signing request); funding events by
+garden address; and `sentry_event_id` on unhandled errors.
 
 ---
 

@@ -11,6 +11,7 @@
  */
 
 import { getEASConfig } from "../../config/blockchain";
+import type { Address } from "../../types/domain";
 import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { parseDataToWork, parseDataToWorkApproval } from "./eas-parse";
@@ -93,6 +94,10 @@ export interface GardenActivityPage {
   decisions: EASWorkApproval[];
   /** Either list ran past the limit, so earlier entries of the window are missing. */
   truncated: boolean;
+  /** The decisions list alone ran past the limit, so the window's earliest decisions are missing. */
+  decisionsTruncated: boolean;
+  /** A decision row could not be read and was left out, so the decisions list is not whole. */
+  decisionsDropped: boolean;
 }
 
 /**
@@ -140,7 +145,15 @@ export const getGardenActivitySince = async (
     }
   `);
   const easConfig = getEASConfig(chainId);
-  if (isZeroBytes32(easConfig.WORK.uid)) return { works: [], decisions: [], truncated: false };
+  if (isZeroBytes32(easConfig.WORK.uid)) {
+    return {
+      works: [],
+      decisions: [],
+      truncated: false,
+      decisionsTruncated: false,
+      decisionsDropped: false,
+    };
+  }
   const inWindow = {
     recipient: { equals: easStoredAddress(gardenAddress) },
     revoked: { equals: false },
@@ -175,29 +188,152 @@ export const getGardenActivitySince = async (
       error
     );
   }
+  const decisionRows = data.decisions.slice(0, take);
+  const readableDecisions = validatedAttestations(decisionRows, "getGardenActivitySince");
   return {
     works: validatedAttestations(data.works.slice(0, take), "getGardenActivitySince").map(
       ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
         parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
     ),
-    decisions: validatedAttestations(data.decisions.slice(0, take), "getGardenActivitySince").map(
-      ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-        parseDataToWorkApproval(
-          id,
-          { attester, recipient, time: Number(timeCreated) },
-          decodedDataJson
-        )
+    decisions: readableDecisions.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWorkApproval(
+        id,
+        { attester, recipient, time: Number(timeCreated) },
+        decodedDataJson
+      )
     ),
     truncated: data.works.length > take || data.decisions.length > take,
+    decisionsTruncated: data.decisions.length > take,
+    decisionsDropped: readableDecisions.length < decisionRows.length,
   };
 };
 
+/** Works one range read asks EAS for at a time. */
+const WORK_RANGE_PAGE_SIZE = 200;
+/** The most works one range read lists; a range holding more comes back cut. */
+const WORK_RANGE_LIMIT = 1000;
+
+export interface WorkRangePage {
+  /** Works submitted to the garden in the range, oldest first. */
+  works: EASWork[];
+  /** The range holds more works than one read lists, so its latest works are missing. */
+  truncated: boolean;
+  /**
+   * When cut, the moment (seconds) of the last row read: works after it are missing, and so may
+   * be more works at that moment. Null when the whole range was read.
+   */
+  readThrough: number | null;
+  /**
+   * When each row left out as malformed was sent (seconds), so a screen can say which part of
+   * the range is short. NaN when a dropped row's own time could not be read either.
+   */
+  droppedAt: number[];
+}
+
+/**
+ * Every work submitted to one garden between two moments, for screens that show a whole
+ * period, such as a month. Unlike the garden screen's page it reads until the range is
+ * exhausted, oldest first so that work submitted while it reads lands after the pages already
+ * read. `from` is included and `to` is not; both are in seconds.
+ */
+export const getWorksInRange = async (
+  gardenAddress: Address,
+  options: {
+    chainId?: number | string;
+    from: number;
+    to: number;
+    limit?: number;
+    excludedWorkUIDs?: readonly string[];
+  },
+  reader: GraphQLReader = createEasClient(options.chainId)
+): Promise<WorkRangePage> => {
+  const { chainId, from, to, limit = WORK_RANGE_LIMIT } = options;
+  const QUERY = easGraphQL(/* GraphQL */ `
+    query WorksInRange($where: AttestationWhereInput, $take: Int!, $skip: Int!) {
+      attestations(
+        where: $where
+        take: $take
+        skip: $skip
+        orderBy: [{ timeCreated: asc }, { id: asc }]
+      ) {
+        id
+        attester
+        recipient
+        timeCreated
+        decodedDataJson
+      }
+    }
+  `);
+  const easConfig = getEASConfig(chainId);
+  if (isZeroBytes32(easConfig.WORK.uid) || to <= from) {
+    return { works: [], truncated: false, readThrough: null, droppedAt: [] };
+  }
+  const where = {
+    schemaId: { equals: easConfig.WORK.uid },
+    revoked: { equals: false },
+    recipient: { equals: easStoredAddress(gardenAddress) },
+    timeCreated: { gte: from, lt: to },
+    ...(options.excludedWorkUIDs?.length ? { id: { notIn: [...options.excludedWorkUIDs] } } : {}),
+  };
+  const works: EASWork[] = [];
+  const droppedAt: number[] = [];
+  const seen = new Set<string>();
+  // Counted in rows EAS returned, so a malformed row that is skipped still moves the page on.
+  let read = 0;
+  for (;;) {
+    const wanted = Math.min(WORK_RANGE_PAGE_SIZE, limit - read);
+    const { data, error } = await reader.query(
+      QUERY,
+      // The extra row says the range holds more than this page.
+      { where, take: wanted + 1, skip: read },
+      "getWorksInRange"
+    );
+    if (error || !Array.isArray(data?.attestations)) {
+      throw new EASFetchError(
+        `Failed to fetch works in range: ${error?.message ?? "Invalid attestations response"}`,
+        "getWorksInRange",
+        error
+      );
+    }
+    const page = data.attestations.slice(0, wanted);
+    read += page.length;
+    const readable = validatedAttestations(page, "getWorksInRange");
+    if (readable.length < page.length) {
+      const kept = new Set(readable.map((row) => row.id));
+      for (const row of page as Array<{ id?: unknown; timeCreated?: unknown } | null>) {
+        if (!kept.has(String(row?.id))) droppedAt.push(Number(row?.timeCreated));
+      }
+    }
+    // An attestation indexed between pages shifts the offsets, so a row can come back twice.
+    for (const work of readable.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
+    )) {
+      const key = work.id.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      works.push(work);
+    }
+    if (data.attestations.length <= wanted) {
+      return { works, truncated: false, readThrough: null, droppedAt };
+    }
+    // Taken from the raw row, so a malformed last row still marks how far the read got.
+    if (read >= limit) {
+      const readThrough = Number(page[page.length - 1].timeCreated);
+      return { works, truncated: true, readThrough, droppedAt };
+    }
+  }
+};
+
 const APPROVAL_LOOKUP_BATCH = 50;
+/** Decisions one approval lookup asks EAS for at a time; a batch may hold more. */
+const APPROVAL_PAGE_SIZE = 100;
 
 export interface WorkApprovalReadResult {
   approvals: EASWorkApproval[];
   /** Works whose batch could not be read; absence is unknown rather than pending. */
   failedWorkUIDs: string[];
+  /** Decision rows left out as malformed: some work's decisions may be missing. */
+  dropped: number;
 }
 
 /**
@@ -210,14 +346,19 @@ export const readWorkApprovalsForWorks = async (
   chainId?: number | string,
   reader: GraphQLReader = createEasClient(chainId)
 ): Promise<WorkApprovalReadResult> => {
-  if (workUIDs.length === 0) return { approvals: [], failedWorkUIDs: [] };
+  if (workUIDs.length === 0) return { approvals: [], failedWorkUIDs: [], dropped: 0 };
   const easConfig = getEASConfig(chainId);
   if (isZeroBytes32(easConfig.WORK_APPROVAL.uid)) {
-    return { approvals: [], failedWorkUIDs: [] };
+    return { approvals: [], failedWorkUIDs: [], dropped: 0 };
   }
   const QUERY = easGraphQL(/* GraphQL */ `
-    query WorkApprovalsForWorks($where: AttestationWhereInput) {
-      attestations(where: $where, orderBy: [{ timeCreated: asc }, { id: asc }]) {
+    query WorkApprovalsForWorks($where: AttestationWhereInput, $take: Int!, $skip: Int!) {
+      attestations(
+        where: $where
+        take: $take
+        skip: $skip
+        orderBy: [{ timeCreated: asc }, { id: asc }]
+      ) {
         id
         attester
         recipient
@@ -229,44 +370,52 @@ export const readWorkApprovalsForWorks = async (
   const wanted = new Set(workUIDs.map((uid) => uid.toLowerCase()));
   const approvals: EASWorkApproval[] = [];
   const failedWorkUIDs: string[] = [];
+  let dropped = 0;
   for (let start = 0; start < workUIDs.length; start += APPROVAL_LOOKUP_BATCH) {
     const batch = workUIDs.slice(start, start + APPROVAL_LOOKUP_BATCH);
+    const where = {
+      schemaId: { equals: easConfig.WORK_APPROVAL.uid },
+      revoked: { equals: false },
+      OR: batch.map((uid) => ({ decodedDataJson: { contains: uid } })),
+    };
+    // A batch's decisions are kept only once every page of it is read: half a history could
+    // place a work's first decision in the wrong week.
+    const found: EASWorkApproval[] = [];
+    let droppedInBatch = 0;
     try {
-      const { data, error } = await reader.query(
-        QUERY,
-        {
-          where: {
-            schemaId: { equals: easConfig.WORK_APPROVAL.uid },
-            revoked: { equals: false },
-            OR: batch.map((uid) => ({ decodedDataJson: { contains: uid } })),
-          },
-        },
-        "getWorkApprovalsForWorks"
-      );
-      if (error || !Array.isArray(data?.attestations)) {
-        throw new EASFetchError(
-          `Failed to fetch work approvals for works: ${error?.message ?? "Invalid attestations response"}`,
-          "getWorkApprovalsForWorks",
-          error
+      for (let skip = 0; ; skip += APPROVAL_PAGE_SIZE) {
+        const { data, error } = await reader.query(
+          QUERY,
+          { where, take: APPROVAL_PAGE_SIZE, skip },
+          "getWorkApprovalsForWorks"
         );
+        if (error || !Array.isArray(data?.attestations)) {
+          throw new EASFetchError(
+            `Failed to fetch work approvals for works: ${error?.message ?? "Invalid attestations response"}`,
+            "getWorkApprovalsForWorks",
+            error
+          );
+        }
+        const readable = validatedAttestations(data.attestations, "getWorkApprovalsForWorks");
+        droppedInBatch += data.attestations.length - readable.length;
+        for (const attestation of readable) {
+          const { id, attester, recipient, timeCreated, decodedDataJson } = attestation;
+          const approval = parseDataToWorkApproval(
+            id,
+            { attester, recipient, time: Number(timeCreated) },
+            decodedDataJson
+          );
+          if (wanted.has(approval.workUID.toLowerCase())) found.push(approval);
+        }
+        if (data.attestations.length < APPROVAL_PAGE_SIZE) break;
       }
-      for (const attestation of validatedAttestations(
-        data.attestations,
-        "getWorkApprovalsForWorks"
-      )) {
-        const { id, attester, recipient, timeCreated, decodedDataJson } = attestation;
-        const approval = parseDataToWorkApproval(
-          id,
-          { attester, recipient, time: Number(timeCreated) },
-          decodedDataJson
-        );
-        if (wanted.has(approval.workUID.toLowerCase())) approvals.push(approval);
-      }
+      approvals.push(...found);
+      dropped += droppedInBatch;
     } catch {
       failedWorkUIDs.push(...batch);
     }
   }
-  return { approvals, failedWorkUIDs };
+  return { approvals, failedWorkUIDs, dropped };
 };
 
 /** Strict compatibility read for callers that cannot represent per-work unknown status. */

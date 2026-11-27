@@ -57,6 +57,9 @@ export function serviceBookingStage(
   if (d?.result.phase === "active") {
     // The issuer's Propose Return raises the most that can come back; nothing moves yet.
     if (d.issuerReturnCeiling !== null && d.issuerReturnCeiling > 0n) return "returnProposed";
+    // The promise ended before its service: the vouchers stay in escrow until the issuer
+    // proposes a return, which the Hub now asks of it (PRD-1462).
+    if (coreState === "CANCELLED" || coreState === "EXPIRED") return "returnDue";
     if (coreState === "READY_FOR_CONFIRMATION" || coreState === "EVIDENCE_SUBMITTED")
       return "readyToClose";
     return d.holderAbortRequested ? "acceptedFirst" : "inProgress";
@@ -101,6 +104,7 @@ export const WAITING = new Set<ServiceBookingStage>([
   "waitingAcceptance",
   "transfersPending",
   "canceling",
+  "returnDue",
 ]);
 
 /**
@@ -192,6 +196,7 @@ const PILL: Partial<Record<ServiceBookingStage, ServicePill>> = {
   acceptedFirst: pill("booked", "success"),
   readyToClose: pill("readyToClose", "warning"),
   returnProposed: pill("readyToClose", "warning"),
+  returnDue: { labelId: "app.voucher.pp.st.endedEarly", tone: "neutral" },
   transfersPending: pill("transfersPending", "info"),
   returnFailed: pill("returnFailed", "error"),
   canceling: pill("canceling", "neutral"),
@@ -254,6 +259,7 @@ export const POSITION: Record<ServiceBookingStage, number> = {
   problemReported: 5,
   readyToClose: 6,
   returnProposed: 6,
+  returnDue: 5,
   transfersPending: 7,
   returnFailed: 7,
   closed: 8,

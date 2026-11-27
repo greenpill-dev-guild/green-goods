@@ -3,7 +3,7 @@
 /**
  * The issuer's acts in the Promises console (PRD-1297 surface 6): a booking
  * under way waits for its act in Review Promises, and its promise keeps one row
- * in Offers and Asks, grouped or past due; each act's dialog sends exactly what
+ * in Offers and Requests, grouped or past due; each act's dialog sends exactly what
  * it reviewed and waits while the console can't act, a return above the
  * issuer's terms or below the escrow's ceiling is refused, a failed return
  * needs recovery, and Your Reserve leads with three numbers and repairs a short
@@ -228,6 +228,43 @@ describe("the issuer's acts in the Promises console", () => {
     expect(within(dialog).getByText("Mara checked in")).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Report Visit" }));
     await waitFor(() => expect(reportVisit).toHaveBeenCalledWith(visit));
+  });
+
+  // PRD-1462: a live units booking whose promise was canceled says so on its row, and waits on
+  // the issuer's Propose Return.
+  it("says a units booking ended early on its row, with Propose Return", () => {
+    const cut: VoucherBooking = {
+      ...endedEarly,
+      service: {
+        kind: "units",
+        units: 1n,
+        label: "visits",
+        returnLimit: 6n * VOUCHER,
+        returnCeiling: 0n,
+      },
+      stage: { kind: "ended-early", returnLimit: 6n * VOUCHER, returnCeiling: 0n },
+    };
+    offers([cut]);
+
+    expect(
+      within(screen.getByTestId("pool-commitment-51")).getByText("Ended early · 1 visits booked")
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Propose Return…" }).length).toBeGreaterThan(0);
+  });
+
+  // Review of PRD-1462: once the issuer has proposed the whole return, the booking waits on the
+  // member's split, so it no longer asks the steward for anything.
+  it("waits on the member, not the steward, once the whole return is proposed", () => {
+    const proposed: VoucherBooking = {
+      ...endedEarly,
+      stage: { kind: "ended-early", returnLimit: 6n * VOUCHER, returnCeiling: 6n * VOUCHER },
+    };
+    offers([proposed]);
+
+    const row = screen.getByTestId("pool-commitment-51");
+    expect(within(row).getByText("Return proposed")).toBeInTheDocument();
+    expect(within(row).queryByText("Needs you")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Propose Return…" })).not.toBeInTheDocument();
   });
 
   // A visit that stopped early used to fall through to the visit's own row, with no act

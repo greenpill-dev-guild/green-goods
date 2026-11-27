@@ -94,7 +94,9 @@ describe("PendingCard", () => {
 
     renderWithIntl(card({ ...linkIntent, takesUp: true }));
     expect(screen.getByText("For a promise")).toBeInTheDocument();
-    expect(screen.getByText("Takes up an ask · Step 2 of 4 · 3 attachments")).toBeInTheDocument();
+    expect(
+      screen.getByText("Takes up a request · Step 2 of 4 · 3 attachments")
+    ).toBeInTheDocument();
   });
 
   it("names an untitled draft and leaves the photo count out when there is none", () => {

@@ -12,12 +12,14 @@
  * @module modules/app/analytics-events
  */
 
+import type { AuthMode } from "../../types/auth";
+import type { Address } from "../../types/domain";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { track, type TrackOptions } from "./posthog";
 
 // TRACKER FACTORY
 
-export type AuthMode = "passkey" | "wallet" | "embedded" | null;
+export type { AuthMode } from "../../types/auth";
 type MemberType = GardenRole;
 export type AuthPasskeySource = "server" | "local_cache" | "restore" | "unknown";
 export type AuthPasskeyOutcome = "started" | "success" | "failed";
@@ -181,18 +183,16 @@ export const trackAuthSwitchMethod = createTracker<{
 
 // GARDEN JOIN TRACKING
 
-export const trackGardenJoinStarted = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-  authMode: AuthMode;
-}>(ANALYTICS_EVENTS.GARDEN_JOIN_STARTED);
+/** One join press: its start and its one ending share the send act's `attempt_id` (PRD-1561). */
+type GardenJoinAttempt = { gardenAddress: string; authMode: AuthMode; attemptId: string };
 
-export const trackGardenJoinSuccess = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-  txHash: string;
-  authMode: AuthMode;
-}>(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS);
+export const trackGardenJoinStarted = createTracker<GardenJoinAttempt & { gardenName?: string }>(
+  ANALYTICS_EVENTS.GARDEN_JOIN_STARTED
+);
+
+export const trackGardenJoinSuccess = createTracker<
+  GardenJoinAttempt & { gardenName?: string; txHash: string }
+>(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS);
 
 /**
  * Genuine failures only — telemetry carries the parsed error family, never the
@@ -200,21 +200,17 @@ export const trackGardenJoinSuccess = createTracker<{
  * not a breakage: it emits `trackGardenJoinCancelled` and stays out of the
  * funnel, mirroring the `garden_join_already_member` precedent.
  */
-export const trackGardenJoinFailed = createTracker<{
-  gardenAddress: string;
-  error: string;
-  parsedErrorFamily: string;
-  authMode: AuthMode;
-}>(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED);
+export const trackGardenJoinFailed = createTracker<
+  GardenJoinAttempt & { error: string; parsedErrorFamily: string }
+>(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED);
 
-export const trackGardenJoinCancelled = createTracker<{
-  gardenAddress: string;
-  authMode: AuthMode;
-}>(ANALYTICS_EVENTS.GARDEN_JOIN_CANCELLED);
-
-export const trackGardenJoinAlreadyMember = createTracker<{ gardenAddress: string }>(
-  ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER
+export const trackGardenJoinCancelled = createTracker<GardenJoinAttempt>(
+  ANALYTICS_EVENTS.GARDEN_JOIN_CANCELLED
 );
+
+export const trackGardenJoinAlreadyMember = createTracker<
+  Pick<GardenJoinAttempt, "gardenAddress" | "attemptId">
+>(ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER);
 
 // WORK SUBMISSION TRACKING
 
@@ -269,7 +265,7 @@ export const trackWorkSubmissionSuccess = createTracker<{
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS, workSubmissionTrackerOptions);
 
 export const trackWorkSubmissionFailed = createTracker<
-  WorkTrackingSafeMetadata & { gardenAddress?: string; error: string }
+  WorkTrackingSafeMetadata & { gardenAddress?: Address; error: string }
 >(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED, workSubmissionTrackerOptions);
 
 /** A Submit declined at the Terms or the wallet's signature: never a failure (PRD-1561). */

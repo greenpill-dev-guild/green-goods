@@ -21,8 +21,6 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
     jarOwner,
     setJarOwner,
     normalizedJarOwner,
-    withdrawalIntervalDays,
-    setWithdrawalIntervalDays,
     extraAddresses,
     setExtraAddresses,
     aggregation,
@@ -118,16 +116,6 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
                     })
                   : undefined
               }
-            />
-            <AdminTextField
-              id="campaign-cookie-jar-cooldown"
-              label={formatMessage({
-                id: "hub.community.cookies.cooldownDays",
-                defaultMessage: "Cooldown days",
-              })}
-              value={withdrawalIntervalDays}
-              onChange={(event) => setWithdrawalIntervalDays(event.target.value)}
-              inputProps={{ inputMode: "numeric" }}
             />
             <AdminTextArea
               id="campaign-cookie-jar-extra-addresses"

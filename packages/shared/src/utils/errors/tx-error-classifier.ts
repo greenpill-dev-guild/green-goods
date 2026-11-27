@@ -129,6 +129,49 @@ export function isPasskeyCredentialUnavailableError(error: unknown): boolean {
   return hasMessageInErrorChain(error, PASSKEY_UNAVAILABLE_PATTERNS);
 }
 
+/** A viem request error quotes its JSON-RPC body, and a paymaster's methods are `pm_*` (ERC-7677). */
+const PAYMASTER_REQUEST = /"method":\s*"pm_/;
+
+function someInErrorChain(
+  error: unknown,
+  test: (node: unknown) => boolean,
+  depth = 0,
+  seen = new Set<unknown>()
+): boolean {
+  if (depth > 4 || error === null || error === undefined || seen.has(error)) return false;
+  seen.add(error);
+  if (test(error)) return true;
+  if (typeof error !== "object") return false;
+  const nested = error as { cause?: unknown; error?: unknown };
+  return (
+    someInErrorChain(nested.cause, test, depth + 1, seen) ||
+    someInErrorChain(nested.error, test, depth + 1, seen)
+  );
+}
+
+/** The paymaster never answered: a timeout, no HTTP response, or a gateway that failed. */
+function unanswered(node: unknown): boolean {
+  if (!(node instanceof Error)) return false;
+  if (node.name === "TimeoutError") return true;
+  if (node.name !== "HttpRequestError") return false;
+  // No response, a timeout, rate limiting or a server failure: the paymaster refused nothing.
+  const status = (node as { status?: unknown }).status;
+  return typeof status !== "number" || status === 408 || status === 429 || status >= 500;
+}
+
+/**
+ * Whether the gas sponsor turned an operation down: the paymaster answered its own request
+ * (`pm_*`) with a refusal, and nothing in the error says the operation would revert. A revert met
+ * while estimating also names the paymaster among its arguments, so the word alone proves nothing,
+ * and a paymaster that never answered refused nothing. Only a send known not to have gone out may
+ * be read this way.
+ */
+export function isSponsorshipRefusedError(error: unknown): boolean {
+  if (hasMessageInErrorChain(error, REVERT_PATTERNS) || someInErrorChain(error, unanswered))
+    return false;
+  return someInErrorChain(error, (node) => PAYMASTER_REQUEST.test(extractErrorMessage(node)));
+}
+
 function extractErrorCode(error: unknown): number | string | undefined {
   if (!error || typeof error !== "object") return undefined;
 

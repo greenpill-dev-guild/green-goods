@@ -1,3 +1,5 @@
+import type { CampaignCookieJarClaimSchedule } from "../../campaignCookieJarPanel.model";
+
 /** What a steward can edit in Create Cookie Jar before anything is sent. */
 interface CampaignCookieJarDraft {
   campaignTitle: string;
@@ -7,7 +9,7 @@ interface CampaignCookieJarDraft {
   selectedAssetId: string;
   customTokenAddress: string;
   claimAmount: string;
-  withdrawalIntervalDays: string;
+  claimSchedule: CampaignCookieJarClaimSchedule;
   jarOwner: string;
   selectedGardenIds: readonly string[];
   extraAddresses: string;
@@ -34,7 +36,7 @@ export function isCampaignCookieJarDraftDirty(
       draft.extraAddresses.trim() ||
       draft.customTokenAddress.trim() ||
       draft.selectedAssetId !== defaults.selectedAssetId ||
-      (draft.withdrawalIntervalDays.trim() || "0") !== "0" ||
+      draft.claimSchedule !== "one-time" ||
       draft.jarOwner.trim().toLowerCase() !== defaults.jarOwner.toLowerCase()
   );
 }

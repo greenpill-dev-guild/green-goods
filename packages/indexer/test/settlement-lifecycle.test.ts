@@ -787,9 +787,8 @@ describe("settlement lifecycle projections", () => {
     assert.equal(config?.remoteEvmChainId, 42_220);
   });
 
-  // The executor half needs the same treatment and for a sharper reason: the executor gates garden
-  // routes and executions on remoteEvmChainId, and it is the source chain's EVM id — a fact the
-  // executor has no other way to state, so it is carried as an implementation immutable.
+  // The executor gates garden routes and executions on remoteEvmChainId, which only its
+  // deployment-pinned event states.
   it("learns its own selector and the source chain id on the executor side", async () => {
     const mockDb = createTestIndexer();
 

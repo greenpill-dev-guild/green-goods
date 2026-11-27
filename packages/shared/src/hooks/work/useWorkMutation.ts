@@ -40,6 +40,7 @@ import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { gardensKeys } from "../../config/query-keys/garden";
 import { worksKeys } from "../../config/query-keys/work";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
@@ -114,6 +115,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
         queryClient.invalidateQueries({
           queryKey: worksKeys.merged(lastGardenRef.current, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: gardensKeys.memberReadinessForGarden(lastGardenRef.current, chainId),
         });
       }
     }, [queryClient, chainId]),
@@ -409,6 +413,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
         queryClient.invalidateQueries({
           queryKey: worksKeys.merged(gardenAddress, chainId),
+        });
+        // A sent work can move its gardener's readiness in the Gardeners view.
+        queryClient.invalidateQueries({
+          queryKey: gardensKeys.memberReadinessForGarden(gardenAddress, chainId),
         });
 
         lastGardenRef.current = gardenAddress;

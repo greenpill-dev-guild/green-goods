@@ -28,12 +28,13 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.fieldLead": "{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho no jardim, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nAo concordar, você aceita as regras de compartilhamento, versão {version}: https://www.greengoods.app/terms. Compartilhe apenas material seu ou que tenha permissão para publicar, com a permissão de cada adulto identificável. Não envie crianças identificáveis, informações pessoais sensíveis, abuso, ódio, ameaças, conteúdo sexual ou ilegal, fraude ou spam. Relatos confirmados ficam públicos na Arbitrum e no IPFS; cópias independentes podem permanecer para sempre.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
+    "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho no jardim, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato. O que você enviar antes de responder fica guardado sem ser lido: apago na hora se você disser não, e depois de {hours} horas se não responder.\n\nAo concordar, você aceita as regras de compartilhamento, versão {version}: https://www.greengoods.app/terms. Compartilhe apenas material seu ou que tenha permissão para publicar, com a permissão de cada adulto identificável. Não envie crianças identificáveis, informações pessoais sensíveis, abuso, ódio, ameaças, conteúdo sexual ou ilegal, fraude ou spam. Relatos confirmados ficam públicos na Arbitrum e no IPFS; cópias independentes podem permanecer para sempre.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
   "consent.processors": " e posso usar IA para entendê-los",
   "consent.agree": "Concordo",
   "consent.decline": "Não, obrigado",
   "consent.declined":
     "Tudo bem. Não vou processar suas mensagens e apaguei o que você enviou. Escreva para {support} se mudar de ideia.",
+  "consent.grantedPlain": "Obrigado!",
   "consent.granted": "Obrigado! Conte o trabalho que você fez. Você pode enviar texto e fotos.",
   "consent.stopped":
     "Você parou o assistente. Não vou ler mensagens novas até você enviar START. Os relatos publicados continuam públicos; os rascunhos não publicados estão sendo apagados. Suporte: {support}",
@@ -123,6 +124,30 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Entendi: {action} em {garden}. Uma pergunta rápida e depois um resumo para conferir.",
   "report.actionAdoptedMany":
     "Entendi: {action} em {garden}. {count} perguntas rápidas e depois um resumo para conferir.",
+  "question.milestoneType": "O que você instalou ou concluiu?",
+  "question.milestoneSolar": "Qual foi a potência solar instalada, em kW? Por exemplo, 5 kW.",
+  "question.milestoneBattery":
+    "Quanta capacidade de bateria você adicionou, em kWh? Por exemplo, 10 kWh.",
+  "question.milestoneInternet":
+    "Qual é a velocidade da conexão agora, em Mbps? Por exemplo, 50 Mbps.",
+  "question.milestoneRetrofit": "Quantas reformas você concluiu?",
+  "question.milestoneCommissioning": "Quantos sistemas você testou e entregou?",
+  "question.seedlingsPlanted": "Quantas mudas você plantou?",
+  "question.seedlingsAndSpecies": "Quantas mudas você plantou, e de quais espécies?",
+  "question.participants": "Quantas pessoas participaram?",
+  "question.speciesTags": "Quais espécies você plantou?",
+  "report.descriptionStale": "\nSua descrição ainda diz {was}. Envie EDIT para mudar o texto.",
+  "suggest.last": "Igual à última vez: {action} em {garden}?",
+  "suggest.lastGarden": "O mesmo jardim da última vez: {garden}?",
+  "suggest.lastAction": "A mesma atividade da última vez: {action}?",
+  "suggest.use": "Sim",
+  "suggest.change": "Outra coisa",
+  "suggest.never": "Não sugerir mais",
+  "suggest.off": "Certo, não vou sugerir de novo.",
+  "report.accepted": "Tenho:{facts}",
+  "report.factNew": "\n• {title}: {now}",
+  "report.factChanged": "\n• {title}: {now} (antes: {was})",
+  "report.factTime": "Tempo dedicado",
   "report.askAction": "Qual atividade em {garden} descreve melhor o seu trabalho?",
   "report.moreChoices": "Mais opções",
   "report.noActions":
@@ -159,6 +184,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.invalid.ambiguous_number":
     "É um número inteiro ou decimal? Escreva sem separador de milhar, por exemplo 1200 ou 1,2.",
   "report.invalid.negative": "Responda com um número igual ou maior que zero.",
+  "report.invalid.whole_number":
+    "Responda com um número inteiro igual ou maior que um, por exemplo 2.",
   "report.invalid.unit_mismatch":
     "Isto é contado em {unit}, mas você escreveu {stated}. Pode informar em {unit}?",
   "report.invalid.unit_required": "Inclua a unidade, por exemplo 2 horas ou 30 minutos.",
@@ -294,7 +321,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.none": "Não há trabalhos aguardando sua revisão.",
   "review.resumeFirst":
     "Você tem uma revisão em andamento. Envie CANCEL para descartá-la ou continue com ela.",
-  "review.askDecision": "Você aprova ou rejeita “{title}” de {gardener}?",
+  "review.askDecision":
+    "Você aprova ou rejeita “{title}” de {gardener}? Você pode dar seu nível de confiança e seu comentário na mesma resposta.",
   "review.approve": "Aprovar",
   "review.reject": "Rejeitar",
   "review.askConfidence": "Qual é a sua confiança neste trabalho?",

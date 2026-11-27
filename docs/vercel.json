@@ -5,5 +5,5 @@
   "ignoreCommand": "node ../scripts/ops/vercel-ignore.mjs docs",
   "installCommand": "cd .. && bun install --frozen-lockfile",
   "buildCommand": "cd .. && node docs/scripts/vercel-build.mjs",
-  "outputDirectory": "build"
+  "outputDirectory": "build/site"
 }

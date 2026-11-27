@@ -37,6 +37,8 @@ export interface ProcessJobResult {
   txHash?: string;
   error?: string;
   skipped?: boolean;
+  /** What the job would do was already done elsewhere, so the queue cleared it unsent. */
+  alreadyDone?: boolean;
 }
 
 export interface FlushContext extends ProcessJobContext {
@@ -162,6 +164,13 @@ export interface JobQueueAnalytics {
     kind: string,
     context: { limitMs: number; explicit: boolean; authMode: string }
   ): void;
+  /**
+   * A job left the queue unsent because it was thrown away: `discarded` for the job a discard was
+   * called on, by a person's tap or by the app rolling back an act that didn't go (a take-up, a
+   * proof's send, a creation, a draft), and `with-another` for a job that went with it. Without
+   * this, a job could leave with no record of landing, failing or being dropped (PRD-1478).
+   */
+  jobDiscarded(job: Job, reason: "discarded" | "with-another"): void;
 }
 
 export interface JobQueueLogger {
@@ -200,7 +209,12 @@ export type JobExecution =
   | { status: "submitted"; txHash: string }
   | { status: "waiting"; reason: string }
   | { status: "identity-conflict"; reason: string }
-  | { status: "unavailable"; reason: string };
+  | { status: "unavailable"; reason: string }
+  /**
+   * What the job would do is already done elsewhere, so nothing is left to send or retry: the
+   * queue clears the job instead of keeping it as failed, and still says why.
+   */
+  | { status: "already-done"; reason: string };
 
 export interface JobExecutorRegistry {
   execute(

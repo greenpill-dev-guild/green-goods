@@ -30,6 +30,23 @@ test('standalone reporting policy separates offline, RPC, keystore broadcast and
   assert.deepEqual(resolve('verify reporting-kernel --network arbitrum --mode simulate').args, ['script/reporting-kernel-compatibility.ts', '--network', 'arbitrum', '--simulate']);
   assert.throws(() => resolve('verify reporting-kernel --network arbitrum --mode broadcast'), /Unsupported mode/);
 });
+test('standalone reward payer gets the policy safeguards and its own handler', () => {
+  assert.deepEqual(resolve('deploy reward-payer --network arbitrum --mode preflight').args, ['script/deploy/reward-payer.ts', 'deploy', '--network', 'arbitrum', '--preflight']);
+  assert.deepEqual(resolve(`deploy reward-payer --network localhost --mode plan --sender ${OPERATOR} --expected-nonce 3`).args, ['script/deploy/reward-payer.ts', 'deploy', '--network', 'localhost', '--plan-only', '--sender', OPERATOR, '--expected-nonce', '3']);
+  assert.throws(() => resolve('deploy reward-payer --network arbitrum --mode broadcast'), /Reward payer broadcast requires --expected-nonce/);
+  assert.throws(() => resolve('deploy reward-payer --network arbitrum --mode plan --expected-nonce 0'), /Reward payer planning requires --sender/);
+  assert.throws(() => resolve(`deploy reward-payer --network arbitrum --mode simulate --sender ${OPERATOR}`), /reward payer operation/);
+  assert.throws(() => resolve('deploy reward-payer --network celo --mode preflight'), /Unsupported network/);
+  assert.throws(() => resolve('deploy reward-payer --network arbitrum --mode broadcast --expected-nonce 0 --private-key secret'), /Unknown/);
+  const broadcast = resolve('deploy reward-payer --network arbitrum --mode broadcast --expected-nonce 0');
+  assert.equal(broadcast.env.FOUNDRY_KEYSTORE_ACCOUNT, 'green-goods-deployer');
+  assert.equal(broadcast.env.PINATA_JWT, '');
+  assert.ok(broadcast.capabilities.includes('configured RPC'));
+  assert.ok(!resolve('deploy reward-payer --network arbitrum --mode preflight').capabilities.includes('configured RPC'));
+  assert.deepEqual(resolve('verify reward-payer --network arbitrum --receipt 0x' + 'a'.repeat(64)).args, ['script/deploy/reward-payer.ts', 'verify', '--network', 'arbitrum', '--receipt', `0x${'a'.repeat(64)}`]);
+  assert.throws(() => resolve('verify reward-payer --network localhost --publish-source'), /explorer/);
+  assert.throws(() => resolve('verify reward-payer --network arbitrum --mode simulate'), /Unknown/);
+});
 test('help and explain run in a fresh process without handler imports or env loading', () => {
   for (const args of [['help'], ['deploy', 'core', '--network', 'arbitrum', '--mode', 'preflight', '--explain', '--json']]) {
     const result = spawnSync(process.execPath, ['script/cli.mjs', ...args], { cwd: PACKAGE_ROOT, env: { PATH: process.env.PATH }, encoding: 'utf8' });

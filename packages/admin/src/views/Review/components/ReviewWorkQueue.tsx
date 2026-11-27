@@ -21,7 +21,7 @@ import { type IntlShape, useIntl } from "react-intl";
 import { ReviewBatchBar } from "./ReviewBatchBar";
 import { ReviewShowOlder, ReviewShowOlderButton } from "./ReviewShowOlder";
 import { ReviewWorkbenchSkeletonRows } from "./ReviewWorkbenchSkeletonRows";
-import { ReviewWorkCard } from "./ReviewWorkCard";
+import { ReviewWorkCard, reviewWorkStatus } from "./ReviewWorkCard";
 import { reviewWorkTitle } from "./reviewWorkTitle";
 
 /**
@@ -55,6 +55,14 @@ const EMPTY_SCOPE_COPY: Record<
       defaultMessage: "Work you approve moves here from Pending.",
     },
   },
+  // Every status of one day, opened from the Activity calendar.
+  all: {
+    title: { id: "hub.work.dayEmpty", defaultMessage: "Nothing submitted this day" },
+    description: {
+      id: "hub.work.dayEmptyDescription",
+      defaultMessage: "Work a gardener sends on this day appears here.",
+    },
+  },
 };
 
 // While older work is not loaded, a scope that finds nothing in the newest page
@@ -65,12 +73,17 @@ const EMPTY_RECENT_SCOPE_TITLE: Record<ReviewWorkScope, { id: string; defaultMes
     id: "hub.work.noRecentApproved",
     defaultMessage: "Nothing approved in recent work",
   },
+  all: { id: "hub.work.dayEmpty", defaultMessage: "Nothing submitted this day" },
 };
 
 interface ReviewWorkQueueProps {
   items: Work[];
   /** Which of the Work tab's scopes `items` holds: it decides the empty state. */
   scope: ReviewWorkScope;
+  /** Works whose status could not be read: each says status unread, never Pending. */
+  unknownIds?: ReadonlySet<string>;
+  /** On one day's list: shows every status, where works whose status is unread are listed. */
+  onShowWholeDay?: () => void;
   worksLoading: boolean;
   hasDataError: boolean;
   normalizedSearch: string;
@@ -84,6 +97,8 @@ interface ReviewWorkQueueProps {
   reviewBatch?: ReviewBatch;
   /** The garden's next page of older work, while it has more than the list holds. */
   older?: ReviewOlderRecords;
+  /** Clears the chosen waiting-time band, when one narrows the list. */
+  onClearWaitingBand?: () => void;
 }
 
 /** What a decision waiting on this work says in place of its status. Always a word and a color. */
@@ -128,6 +143,8 @@ interface ReviewWorkQueueItemProps {
   /** The phone's work row in place of the photo-grid card. */
   asRow: boolean;
   reviewChip?: ReviewChip;
+  /** The work's decisions could not be read. */
+  statusUnread?: boolean;
   onOpenWorkDetail: (workId: string) => void;
 }
 
@@ -140,15 +157,16 @@ function ReviewWorkQueueItem({
   eagerImages,
   asRow,
   reviewChip,
+  statusUnread = false,
   onOpenWorkDetail,
 }: ReviewWorkQueueItemProps) {
   const { formatMessage } = useIntl();
   const { display: gardenerDisplayName } = useAddressDisplayName(work.gardenerAddress, {
     list: true,
   });
+  const ownStatus = reviewWorkStatus(work.status, formatMessage, statusUnread);
 
   if (asRow) {
-    const approved = work.status === "approved";
     const media = work.media ?? [];
     return (
       <WorkCard
@@ -162,15 +180,9 @@ function ReviewWorkQueueItem({
           imageCount: media.length,
         }}
         showGardener
-        // As on the card: a waiting work is a neutral Pending, since its age is
-        // metadata and never an alarm (DL-044); an approved one says Approved.
-        statusLabel={
-          reviewChip?.label ??
-          (approved
-            ? formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" })
-            : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }))
-        }
-        statusTone={reviewChip?.tone ?? (approved ? "success" : "neutral")}
+        // As on the card: the work's own status, unless a decision waiting on it says more.
+        statusLabel={reviewChip?.label ?? ownStatus.label}
+        statusTone={reviewChip?.tone ?? ownStatus.tone}
         selected={selected}
         onClick={() => onOpenWorkDetail(work.id)}
       />
@@ -188,9 +200,10 @@ function ReviewWorkQueueItem({
       gardenerDisplayName={gardenerDisplayName}
       // The card reads its own state: a waiting card is a neutral Pending with
       // its age, since age is metadata and never an alarm (DL-044); an
-      // approved card says Approved. A decision waiting on it says so instead.
-      statusLabel={reviewChip?.label}
-      statusTone={reviewChip?.tone}
+      // approved card says Approved, and an unread one says so. A decision
+      // waiting on it says so instead.
+      statusLabel={reviewChip?.label ?? (statusUnread ? ownStatus.label : undefined)}
+      statusTone={reviewChip?.tone ?? (statusUnread ? ownStatus.tone : undefined)}
       layout={layout}
       selected={selected}
       eagerImages={eagerImages}
@@ -232,6 +245,9 @@ function ReviewWorkQueueList({
   onClearSearch,
   reviewBatch,
   older,
+  onClearWaitingBand,
+  unknownIds,
+  onShowWholeDay,
 }: ReviewWorkQueueProps) {
   const { formatMessage } = useIntl();
   const isPhone = useMediaQuery(PHONE_QUERY);
@@ -318,6 +334,60 @@ function ReviewWorkQueueList({
     );
   }
 
+  // A chosen waiting-time band with nothing in it says so, rather than "All caught up" while
+  // other bands still wait.
+  if (items.length === 0 && onClearWaitingBand && !older) {
+    return (
+      <EmptyStateShell>
+        <EmptyState
+          icon={<RiCheckboxCircleLine className="h-6 w-6" />}
+          title={formatMessage({
+            id: "hub.review.work.waiting.empty.title",
+            defaultMessage: "Nothing has waited this long",
+          })}
+          description={formatMessage({
+            id: "hub.review.work.waiting.empty.description",
+            defaultMessage: "Choose another waiting time, or clear it to see all pending work.",
+          })}
+          action={
+            <Button type="button" size="sm" emphasis="secondary" onClick={onClearWaitingBand}>
+              {formatMessage({
+                id: "hub.review.work.waiting.clear",
+                defaultMessage: "Clear Waiting Time",
+              })}
+            </Button>
+          }
+        />
+      </EmptyStateShell>
+    );
+  }
+
+  // A day whose decisions could not all be read leaves those works out of Pending and Approved,
+  // so an empty scope there is not known to be empty. The day's whole list holds them.
+  if (items.length === 0 && scope !== "all" && onShowWholeDay && (unknownIds?.size ?? 0) > 0) {
+    return (
+      <EmptyStateShell>
+        <EmptyState
+          icon={<RiErrorWarningLine className="h-6 w-6" />}
+          title={formatMessage({
+            id: "hub.work.statusUnread.title",
+            defaultMessage: "Some statuses could not be read",
+          })}
+          description={formatMessage({
+            id: "hub.work.statusUnread.description",
+            defaultMessage:
+              "This day holds work whose decisions could not be read, so it is not listed here. The day's whole list shows it.",
+          })}
+          action={
+            <Button type="button" size="sm" emphasis="secondary" onClick={onShowWholeDay}>
+              {formatMessage({ id: "hub.work.showWholeDay", defaultMessage: "Show Whole Day" })}
+            </Button>
+          }
+        />
+      </EmptyStateShell>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <EmptyStateShell>
@@ -358,6 +428,7 @@ function ReviewWorkQueueList({
                 eagerImages={index < 6}
                 asRow={isPhone}
                 reviewChip={reviewChipFor(reviewBatch, work.id, formatMessage)}
+                statusUnread={unknownIds?.has(work.id) ?? false}
                 onOpenWorkDetail={onOpenWorkDetail}
               />
             </li>

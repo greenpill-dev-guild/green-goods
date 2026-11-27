@@ -73,7 +73,7 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     docs: {
       description: {
         component:
-          "Offers and Asks, one card of promises for the whole pool: search, the Open · Confirmed · Past chips, a Past due chip for live rows the chain would let anyone expire, a Needs recovery chip for those and the disputed ones, and rows that open in the left inspector. Copies made together are one group row that opens the group's inspector (PRD-1022 D3), and a group's copy that didn't send folds into it with Finish Creating (n); Past due and Needs recovery still name each promise on its own. Expire now… is outlined where it sits; the red is for the confirm inside its dialog. A voucher booking's acts wait in Review Promises: its offer's row names who booked it and what one booking takes, and a group of hub days counts booked and open copies in the row's right slot.",
+          "Offers and Requests, one card of promises for the whole pool: search, the Open · Confirmed · Past chips, a Past due chip for live rows the chain would let anyone expire, a Needs recovery chip for those and the disputed ones, and rows that open in the left inspector. Copies made together are one group row that opens the group's inspector (PRD-1022 D3), and a group's copy that didn't send folds into it with Finish Creating (n); Past due and Needs recovery still name each promise on its own. Expire now… is outlined where it sits; the red is for the confirm inside its dialog. A voucher booking's acts wait in Review Promises: its offer's row names who booked it and what one booking takes, and a group of hub days counts booked and open copies in the row's right slot.",
       },
     },
   },
@@ -99,6 +99,30 @@ export const Open: Story = {
     await expect(await canvas.findByText("Prune the north beds")).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Confirmed" }));
     await expect(await canvas.findByText("Repair the greenhouse")).toBeVisible();
+  },
+};
+
+/**
+ * A promise with one target leads its row with how much of that target is approved (PRD-1538):
+ * the waste pickups promise, 34 of 40 approved.
+ */
+export const TargetProgress: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    console: storyPoolConsole({
+      commitments: [
+        {
+          ...STORY_COMMITMENTS[0],
+          requirements: [{ actionUID: 1n, requiredCount: 40 }],
+          requirementsApproved: [34],
+        },
+        ...STORY_COMMITMENTS.slice(1),
+      ],
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("34 of 40 approved")).toBeVisible();
   },
 };
 
@@ -453,7 +477,7 @@ export const VoucherBookings: Story = {
     await expect(await within(mara).findByText("Mara")).toBeVisible();
     await expect(within(mara).getByText(/Takes 1 Tech and Sun voucher/)).toBeVisible();
     await expect(canvas.getByText(/Booking: deposit confirmed/)).toBeVisible();
-    await expect(canvas.getByText(/Booking asked/)).toBeVisible();
+    await expect(canvas.getByText(/Asked to book/)).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Report Visit…" })).toBeNull();
   },
 };

@@ -123,6 +123,7 @@ const REPORT_QUESTIONS = new Set([
   "select_garden",
   "select_action",
   "field",
+  "fields",
   "time",
   "time_unit",
   "title",

@@ -48,12 +48,12 @@ export const DeclinedGardenRequest: Story = {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByText(
-        "Only this request was cleared; nothing else about the promise changed. While it is still open you can request it again for your garden."
+        "Nothing else about the promise changed. While it is still open you can ask again for your garden."
       )
     ).toBeVisible();
-    await expect(canvas.getByText("Requested by")).toBeVisible();
-    await expect(canvas.getByText("Requested")).toBeVisible();
-    canvas.getByRole("button", { name: "Request Again" }).click();
+    await expect(canvas.getByText("Asked to take it up")).toBeVisible();
+    await expect(canvas.getByText("Asked")).toBeVisible();
+    canvas.getByRole("button", { name: "Ask Again" }).click();
     await expect(args.onAskAgain).toHaveBeenCalledTimes(1);
   },
 };
@@ -65,8 +65,8 @@ export const AcceptedRequest: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Your request was accepted")).toBeVisible();
-    await expect(canvas.getByText("Requested")).toBeVisible();
+    await expect(canvas.getByText("A steward said yes")).toBeVisible();
+    await expect(canvas.getByText("Asked")).toBeVisible();
   },
 };
 

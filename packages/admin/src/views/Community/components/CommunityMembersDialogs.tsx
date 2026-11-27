@@ -3,19 +3,19 @@ import {
   useAddMembersBatch,
   useGardenOperations,
   useRemoveMemberRoles,
+  useSubRoleCheck,
 } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import type { Address } from "@green-goods/shared/types/domain";
-import {
-  GARDEN_ROLE_ORDER,
-  type GardenRole,
-} from "@green-goods/shared/utils/blockchain/garden-roles";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { ADD_MEMBER_ROUTE_ITEM } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
+import { runAddMembers } from "@/components/Garden/addMembersRun";
 import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
+import { grantableRoles } from "@/components/Garden/manageRoles";
 
 export type CommunityMembersDialogsProps = Pick<
   CommunityWorkspace,
@@ -70,11 +70,12 @@ export function CommunityMembersDialogs({
   const addMembersBatch = useAddMembersBatch(garden.id);
   const removal = useRemoveMemberRoles(garden.id);
   const gardenAddress = garden.id;
-  const canManageMembers = canManage || canManageStewards;
-  const allowedRoles = GARDEN_ROLE_ORDER.filter(
-    (role) =>
-      isOwner || (canManage && role !== "owner") || (canManageStewards && role === "steward")
+  const checkSubRoles = useSubRoleCheck(
+    isAddress(gardenAddress) ? gardenAddress : undefined,
+    garden.chainId
   );
+  const canManageMembers = canManage || canManageStewards;
+  const allowedRoles = grantableRoles({ isOwner, canManage, canManageStewards });
 
   const addByRole = useMemo<
     Record<GardenRole, (address: Address) => Promise<{ success: boolean }>>
@@ -89,6 +90,23 @@ export function CommunityMembersDialogs({
     }),
     [operations]
   );
+  // Restoring a missing sub-role is an add: one grantRoles signature where the rail can batch.
+  const restoreSubRoles = async (
+    address: Address,
+    roles: readonly GardenRole[],
+    live: () => boolean
+  ) => {
+    const run = await runAddMembers({
+      rows: roles.map((role) => ({ address, role })),
+      addOne: (role, member) => addByRole[role](member),
+      addBatch: addMembersBatch.available ? addMembersBatch.add : undefined,
+      onLanded: scheduleBackgroundRefetch,
+      live,
+    });
+    return run.remaining.length === 0 && run.thrown === undefined;
+  };
+  const restoreSignatures = (count: number) =>
+    addMembersBatch.available ? addMembersBatch.signaturesFor(count) : count;
   const openAddMembers = (prefill?: Address) => {
     setRoleTarget(undefined);
     setAddMembersPrefill(prefill);
@@ -130,6 +148,11 @@ export function CommunityMembersDialogs({
         removal={removal}
         onRosterStale={scheduleBackgroundRefetch}
         onAddMembers={openAddMembers}
+        restoreRoles={
+          canManageMembers
+            ? { check: checkSubRoles, restore: restoreSubRoles, signaturesFor: restoreSignatures }
+            : undefined
+        }
       />
       {isAddress(gardenAddress) ? (
         <AddMembersDialog
