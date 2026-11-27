@@ -48,10 +48,17 @@ jobs:
         env:
           CI: true
 
+  # forge coverage keeps every test's hit maps until its last test ends, so one run over the whole
+  # suite outgrew the runner's 16 GB (PRD-1624). Each shard runs on its own runner, and the
+  # Contracts Coverage job below merges their LCOV and applies the floors.
   contracts:
-    name: Contracts Coverage
+    name: Contracts Coverage (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [unit, rest]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -67,26 +74,67 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
-      # The coverage run outgrows the runner's 16 GB twice: solc builds every source with
-      # --ir-minimum in one process, and forge then keeps each test's hit maps until the last test
-      # ends. With only the image's 3 GB swapfile the runner shut down mid-compile (PRD-1624).
-      # Swap lets the kernel page out what each holds but no longer reads.
-      - name: Add swap for the coverage run
+      # Every shard still compiles every source with --ir-minimum in one solc process, which
+      # outgrew the runner's 16 GB and the image's 3 GB swapfile mid-compile (PRD-1624).
+      - name: Add swap for the compile
         run: |
           sudo fallocate -l 20G /coverage.swap
           sudo chmod 600 /coverage.swap
           sudo mkswap /coverage.swap
           sudo swapon /coverage.swap
-          swapon --show
+          free -m
+          df -h /
 
-      # One LCOV run compiles every source with --ir-minimum before any test runs, so the
-      # audit's 15-minute local default is too short for a cold runner.
-      - name: Run contract coverage gates
+      # A cold runner compiles every source with --ir-minimum before any test runs, so the
+      # audit's 15-minute local default is too short.
+      - name: Run the ${{ matrix.shard }} coverage shard
         working-directory: packages/contracts
         run: bun run test:audit coverage
         env:
           CI: true
+          CONTRACT_COVERAGE_SHARD: ${{ matrix.shard }}
           COVERAGE_TIMEOUT_SECONDS: "5100"
+
+      - name: Upload the shard's coverage
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: contracts-coverage-${{ matrix.shard }}
+          path: |
+            output/contracts-test-audit/lcov-${{ matrix.shard }}.info
+            output/contracts-test-audit/coverage-${{ matrix.shard }}.log
+            output/contracts-test-audit/coverage-${{ matrix.shard }}.error
+          if-no-files-found: warn
+
+  contracts-floors:
+    name: Contracts Coverage
+    needs: contracts
+    # Also after a failed shard, so the summary names what failed.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Download the shards' coverage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          pattern: contracts-coverage-*
+          merge-multiple: true
+          path: output/contracts-test-audit
+
+      # A shard with no LCOV fails the floors by name, so run them even when nothing downloaded.
+      - name: Apply the contract coverage floors
+        if: ${{ !cancelled() }}
+        working-directory: packages/contracts
+        run: bun run test:audit coverage
+        env:
+          CI: true
+          CONTRACT_COVERAGE_SHARD: policy
 
       - name: Publish coverage summary
         if: always()
@@ -104,5 +152,5 @@ jobs:
             output/contracts-test-audit/coverage-summary.md
             output/contracts-test-audit/coverage-summary.json
             output/contracts-test-audit/lcov-local.info
-            output/contracts-test-audit/coverage-local.log
+            output/contracts-test-audit/coverage-*.log
           if-no-files-found: warn

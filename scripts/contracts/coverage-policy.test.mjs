@@ -152,6 +152,17 @@ test("a passing coverage run prints no failure reason", () => {
   assert.match(result.md, new RegExp(`\\| 100\\.00% \\(${total}/${total}\\) \\|`));
 });
 
+// The audit runs coverage in shards and concatenates their LCOV; every shard reports every source.
+test("shards' records for one source merge line by line, so a line either shard reached counts once", () => {
+  const file = "src/lib/Settlement/PersonalFundingLib.sol";
+  const unitShard = criticalLcov({ [file]: "DA:2,0\nBRDA:2,0,0,-\n" });
+  const restShard = `SF:/repo/packages/contracts/${file}\nDA:1,0\nDA:2,3\nBRDA:1,0,0,-\nBRDA:2,0,0,2\nend_of_record`;
+  const result = runPolicy({ localOk: true, lcov: `${unitShard}\n${restShard}` });
+
+  assert.equal(result.status, 0, result.stdout);
+  assert.ok(result.md.includes(`| \`${file}\` | 100.00% (2/2) | 100.00% (2/2) |`), result.md);
+});
+
 test("a run below a floor names the gate and the measure it missed", () => {
   const file = "src/lib/Settlement/PersonalFundingLib.sol";
   const result = runPolicy({ localOk: true, lcov: criticalLcov({ [file]: "BRDA:2,0,0,0\n" }) });
