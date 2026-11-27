@@ -233,6 +233,31 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         assertEq(stored.totalVerifiedCredits, 1);
     }
 
+    function testAttachEvidence_rejectsACidTheCommitmentAlreadyHolds() public {
+        uint256 commitmentId = _createOffer(keccak256("evidence-twice"));
+        _acceptOffer(commitmentId);
+        address contributor = address(0xC01);
+        _setMember(contributor);
+        vm.prank(CREATOR);
+        module.addContributor(commitmentId, contributor);
+        address[] memory credited = new address[](1);
+        credited[0] = contributor;
+        vm.prank(CREATOR);
+        module.attachEvidence(commitmentId, "bafy-evidence-once", credited);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICommitmentPoolingModule.EvidenceAlreadyAttached.selector,
+                commitmentId,
+                keccak256(bytes("bafy-evidence-once"))
+            )
+        );
+        vm.prank(CREATOR);
+        module.attachEvidence(commitmentId, "bafy-evidence-once", credited);
+
+        assertEq(module.getCommitment(commitmentId).evidenceCount, 1);
+    }
+
     function testAssessmentIsWriteOnceAcceptedAndUnfrozen() public {
         uint256 commitmentId = _createOffer(keccak256("assessment"));
         _acceptOffer(commitmentId);

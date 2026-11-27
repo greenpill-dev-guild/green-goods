@@ -15,9 +15,17 @@ SUMMARY_JSON="$OUTPUT_DIR/coverage-summary.json"
 # and reports all sources, so the policy merges the shards' LCOV line by line.
 #   all (default): run every shard in turn, then the policy.
 #   <shard>: run that shard only; a later `policy` run reads its output.
-#   policy: merge the shards' LCOV and apply the floors.
+#   policy: merge whatever shard LCOV the output directory holds and apply the floors; locally,
+#     `all` is the way to get a result from one commit.
 SHARDS=(unit rest)
 MODE="${CONTRACT_COVERAGE_SHARD:-all}"
+
+# Coverage asks which lines and branches the tests reach, not how deep a fuzzer can go. At Foundry's
+# default 256 runs x 500 depth the invariant suites ran 44 minutes under coverage, and the runner was
+# lost as they ended (PRD-1624). At 32 x 64 they reach the same code apart from two revert checks,
+# which unit tests now cover. Contracts Nightly still runs them at full depth. A caller's value wins.
+export FOUNDRY_INVARIANT_RUNS="${FOUNDRY_INVARIANT_RUNS:-32}"
+export FOUNDRY_INVARIANT_DEPTH="${FOUNDRY_INVARIANT_DEPTH:-64}"
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -78,6 +86,10 @@ run_shard() {
     case "$shard" in
         unit) filter=(--match-path 'test/unit/**') ;;
         rest) filter=(--no-match-path 'test/{fork,unit}/**') ;;
+        *)
+            echo "No test filter for coverage shard $shard" >&2
+            return 2
+            ;;
     esac
 
     echo "[coverage] Running the $shard shard of local non-fork, non-E2E Solidity coverage..."
