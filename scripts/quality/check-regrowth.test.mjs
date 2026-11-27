@@ -34,6 +34,8 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     ".claude/skills/qa-triage/references/unattended-report.md",
     ".claude/skills/audit/report-template.md",
     ".claude/skills/audit/templates/findings.md",
+    ".github/ISSUE_TEMPLATE/bug-report.md",
+    ".github/PULL_REQUEST_TEMPLATE/security-audit.md",
     ".plans/active/hub/settlement-plan.md",
     "scripts/quality/check.mjs",
   ]) {
@@ -85,6 +87,9 @@ test("a plan hub takes no new prototype code, and its pictures and data stay all
     ".plans/active/hub/operations/reports/out.json",
     ".plans/active/hub/handoffs/setup.mjs",
     ".plans/active/hub/backfill.ts",
+    ".plans/active/hub/backfill.sql",
+    ".plans/active/hub/prototype.go",
+    ".plans/ideas/hub/model.ipynb",
   ]) {
     assert.ok(newFileProblem(file), file);
   }
@@ -96,6 +101,7 @@ test("a plan hub takes no new prototype code, and its pictures and data stay all
     ".plans/active/hub/operations/backfill-pools.ts",
     ".plans/backlog/hub/operations/steward-hat-relabel/relabel.ts",
     ".plans/active/hub/operations/run.sh",
+    ".plans/active/hub/operations/backfill.sql",
     ".plans/active/hub/operations/steward-hat-relabel/README.md",
   ]) {
     assert.equal(newFileProblem(file), null, file);
@@ -209,6 +215,11 @@ test("the check judges a change against its merge base, uncommitted and untracke
   assert.equal(movedWithHub(".plans/backlog/hub/reports/a.md", ".plans/active/hub/reports/a.md"), true);
   assert.equal(movedWithHub(".plans/backlog/hub/reports/a.md", ".plans/active/hub/a.md"), false);
   assert.equal(movedWithHub(".plans/backlog/hub/reports/a.md", ".plans/backlog/other/reports/a.md"), false);
+  // A file that was already where it may not be is still judged when it moves into a hub.
+  git("mv", "packages/indexer/kept-notes.md", ".plans/active/staged/reports/kept-notes.md");
+  const inbound = judge(root, planned).problems;
+  assert.equal(inbound.length, 5, inbound.join("\n"));
+  assert.ok(inbound.some((problem) => problem.startsWith(".plans/active/staged/reports/kept-notes.md: reads as a report")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/old.ts:3: new label comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/new.ts:1: new banner comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/REVIEW_FINDINGS.md: reads as a report")));

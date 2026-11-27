@@ -38,8 +38,11 @@ const PLANS = ".plans/";
 const DOCS_UNJUDGED = [/^docs\/docs\//, /^docs\/releases\/\d+\.\d+\.\d+[^/]*\//];
 const DOCS_ROUTINES = "docs/routines/";
 const DOCS_ROOT_FILE = /^docs\/[^/]+$/;
-const PROTOTYPE_CODE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|html?|css|scss|vue|svelte|sol|sh|bash|zsh|py)$/i;
+const PROTOTYPE_CODE =
+  /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|html?|css|scss|vue|svelte|sol|yul|vy|sh|bash|zsh|py|ipynb|sql|go|rs|rb|java|kt|swift|php)$/i;
 const GUIDANCE_FOLDERS = [".claude/", ".agents/", ".codex/", ".github/"];
+// GitHub's issue and pull request templates are forms, whatever they are named for.
+const GITHUB_TEMPLATE = /^\.github\/(ISSUE_TEMPLATE|PULL_REQUEST_TEMPLATE)\//;
 // A skill's references and templates may be named for the report they shape; a dated file, one
 // under `reports/`, or a report-named file elsewhere in a skill is a record, not a template.
 const SKILL_FOLDERS = [".claude/skills/", ".agents/skills/"];
@@ -100,6 +103,7 @@ export function markdownProblem(file) {
   }
   if (DOCS_UNJUDGED.some((home) => home.test(file))) return null;
   const name = path.posix.basename(file);
+  if (GITHUB_TEMPLATE.test(file)) return null;
   if (REPORT_NAME.test(name.replace(MARKDOWN, ""))) {
     return `reads as a report; ${REPORT_HOME}`;
   }
@@ -173,8 +177,11 @@ export function judge(root, ref) {
     if (how === "D") continue;
     // A move lands a file somewhere new, unless it was already where it may not be. A plan file is
     // carried only by its own hub changing stage (same hub, same place in it); moved anywhere
-    // else, to another hub included, it is judged where it lands.
-    const carried = from?.startsWith(PLANS) ? movedWithHub(from, file) : Boolean(from && newFileProblem(from));
+    // else, to another hub included, it is judged where it lands. So is any file that moves into
+    // `.plans/`, wherever it came from.
+    const carried = from?.startsWith(PLANS)
+      ? movedWithHub(from, file)
+      : Boolean(from && !file.startsWith(PLANS) && newFileProblem(from));
     if (how === "A" || (from && !carried)) {
       const problem = newFileProblem(file);
       if (problem) problems.push(`${file}: ${problem}.`);

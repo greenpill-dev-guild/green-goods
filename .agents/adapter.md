@@ -296,6 +296,7 @@ Every prompt for an agent starting active implementation begins with this gate a
 - Stale plans: the weekly `/audit drift plans` pass reviews any plan untouched for 14+ days or whose work already merged; close with an honest resolution (`closed_stale`, `paused`, ...).
 - Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear or PR records, never in `.plans/`.
 - Accepted audit findings go to Linear after approval.
+- Direct evidence for a plan (a validation result, a measurement, a proof) goes in the lane handoff's Validation Receipt, `status.json`, or `plan.todo.md`, with pictures and data under the hub's `artifacts/`; never in a new report file.
 - Dated reports already under `.plans/**/reports/` are immutable: never edit or delete one outside its hub's closeout. Hubs take no new reports: put a correction or closure in `plan.todo.md`, the pull request, or Linear. The regrowth check fails a new report or prototype file under `.plans/`.
 
 ### Templates
