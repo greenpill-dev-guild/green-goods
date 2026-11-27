@@ -28,7 +28,7 @@ bun run --cwd docs build
 bun run --cwd docs check:search-index
 ```
 
-The static build is written to `docs/build`. `bun run --cwd docs build` also fails unless the generated
+The static build is written to `docs/build/site`. `bun run --cwd docs build` also fails unless the generated
 search index contains every live documentation source route.
 
 ## Browser editing with TinaCMS
