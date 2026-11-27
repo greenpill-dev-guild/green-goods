@@ -166,9 +166,15 @@ test("the check judges a change against its merge base, uncommitted and untracke
   write("packages/shared/src/old.ts", "// ===== Old banner =====\nexport const a = 1;\n// Submit batch transaction\nconst b = 2;\nexport { b };\n");
   write("packages/shared/src/new.ts", "// ----- Section -----\nexport const c = 3;\n");
   write("packages/shared/REVIEW_FINDINGS.md", "findings\n");
+  // Hub files that are not markdown are judged too: code outside operations/, data under reports/.
+  write(".plans/active/code-hub/demo.ts", "export const demo = 1;\n");
+  write(".plans/active/code-hub/reports/out.json", "{}\n");
+  write(".plans/active/code-hub/operations/backfill.ts", "export const run = 1;\n");
   write("packages/indexer/legacy-notes.md", "edited, not added\n");
   const { problems } = judge(root, base);
-  assert.equal(problems.length, 3, problems.join("\n"));
+  assert.equal(problems.length, 5, problems.join("\n"));
+  assert.ok(problems.some((problem) => problem.startsWith(".plans/active/code-hub/demo.ts: is code in a plan hub")));
+  assert.ok(problems.some((problem) => problem.startsWith(".plans/active/code-hub/reports/out.json: reads as a report")));
 
   // A move and a re-indent add no comment: the moved file is judged against its source, and
   // whitespace is ignored.

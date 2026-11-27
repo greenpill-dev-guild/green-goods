@@ -31,6 +31,7 @@ Every new feature or polish effort should live in a dedicated folder:
   status.json
   handoffs/
   artifacts/
+  operations/
 ```
 
 Ideas and backlog hubs keep the four canonical documents plus `status.json`.
