@@ -56,6 +56,9 @@
 # Contracts, deployments and deploy scripts (onchain effects)
 /packages/contracts/** @greenpill-dev-guild/engineering-leads
 
+# Ops scripts that build live Safe transactions (they lost their owner when the filename patterns were narrowed).
+/scripts/ops/garden-rename-batch.ts @greenpill-dev-guild/engineering-leads
+
 # Auth, passkeys, wallets, transactions and batching
 /packages/shared/src/hooks/auth/ @greenpill-dev-guild/engineering-leads
 /packages/shared/src/hooks/admin-ui/auth/ @greenpill-dev-guild/engineering-leads
