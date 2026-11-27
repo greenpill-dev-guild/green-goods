@@ -1,3 +1,4 @@
+import serviceOffersABI from "@green-goods/contracts/abis/ICommitmentServiceOffers.json";
 import {
   type Config,
   getBlock as wagmiGetBlock,
@@ -8,7 +9,7 @@ import {
   readContract as wagmiReadContract,
   simulateContract as wagmiSimulateContract,
 } from "@wagmi/core";
-import { decodeEventLog, type Hex, keccak256, toBytes } from "viem";
+import { type Abi, decodeEventLog, type Hex, keccak256, toBytes } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import {
@@ -21,6 +22,13 @@ import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
 import { logger } from "../app/logger";
 import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import { createSendChainReads, type SendChainReads } from "./send-chain-reads";
+
+const queuedActSimulationABI = [
+  ...CommitmentPoolingModuleABI,
+  ...(serviceOffersABI as Abi).filter(
+    (item) => item.type === "error" && item.name === "ServiceClaimPathRequired"
+  ),
+] satisfies Abi;
 
 export type CommitmentChainReads = Pick<
   CommitmentJobExecutionDependencies,
@@ -287,7 +295,7 @@ export function createCommitmentChainReads({
     simulateSend: async (call) => {
       await simulateContract(wagmiConfig, {
         address: call.address,
-        abi: CommitmentPoolingModuleABI,
+        abi: queuedActSimulationABI,
         functionName: call.functionName,
         args: call.args,
         account: call.account,

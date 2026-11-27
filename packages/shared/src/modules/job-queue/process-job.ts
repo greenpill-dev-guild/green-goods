@@ -26,6 +26,7 @@ import type {
   ProcessJobResult,
 } from "./ports";
 import {
+  ActRefusedByChain,
   createOfflineTxHash,
   hasRecordedSend,
   isWaitingReprobeThrottled,
@@ -206,6 +207,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       return skipped(TAKE_UP_PENDING);
     }
 
+    if (!alreadySent && job.meta?.terminalFailure === true) {
+      return skipped(job.lastError ?? "terminal-failure");
+    }
+
     const now = deps.clock.now();
     if (!context.explicit && isWithinBackoffWindow(job, now)) {
       const remainingBackoff =
@@ -226,6 +231,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       !(hasRecordedSend(job) && !job.meta?.workTransactionReverted)
     ) {
       const errorMessage = `Max retries (${deps.config.maxRetries}) exceeded`;
+      if (job.lastError === errorMessage) return skipped(errorMessage);
       await deps.store.markJobFailed(jobId, errorMessage);
       deps.events.emit("job:failed", { jobId, job, error: errorMessage });
       deps.analytics.jobPermanentlyFailed(job);
@@ -367,6 +373,17 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         await deps.store.markJobTerminalFailed(jobId, errorMessage);
         deps.events.emit("job:failed", { jobId, job, error: errorMessage });
         // The stored job's count moved, not this copy's: count the try that reverted.
+        deps.analytics.jobPermanentlyFailed({
+          ...job,
+          lastError: errorMessage,
+          attempts: job.attempts + 1,
+        });
+        return { success: false, error: errorMessage };
+      }
+      if (error instanceof ActRefusedByChain) {
+        await deps.store.markJobTerminalFailed(jobId, errorMessage);
+        const updated = (await deps.store.getJob(jobId)) ?? job;
+        deps.events.emit("job:failed", { jobId, job: updated, error: errorMessage });
         deps.analytics.jobPermanentlyFailed({
           ...job,
           lastError: errorMessage,

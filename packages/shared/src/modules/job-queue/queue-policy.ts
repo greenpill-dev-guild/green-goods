@@ -5,6 +5,14 @@ export const COMMITMENT_WAITING_REPROBE_MS = 30_000;
 /** The error a `job:failed` event carries when the person discarded the job. */
 export const JOB_DISCARDED = "discarded";
 
+/** An unsent act whose fixed inputs were refused by the contract. */
+export class ActRefusedByChain extends Error {
+  constructor(refusal: Error) {
+    super(refusal.message, { cause: refusal });
+    this.name = "ActRefusedByChain";
+  }
+}
+
 export function createOfflineTxHash(jobId: string): `0x${string}` {
   const paddedId = jobId.replace(/-/g, "").substring(0, 56).padStart(56, "0");
   return `0xoffline_${paddedId}` as `0x${string}`;

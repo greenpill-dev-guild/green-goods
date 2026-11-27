@@ -1,8 +1,16 @@
 /** @vitest-environment node */
 
 import "fake-indexeddb/auto";
+import serviceOffersABI from "@green-goods/contracts/abis/ICommitmentServiceOffers.json";
 import type { Config } from "@wagmi/core";
-import { encodeAbiParameters, encodeEventTopics } from "viem";
+import {
+  type Abi,
+  ContractFunctionRevertedError,
+  encodeAbiParameters,
+  encodeErrorResult,
+  encodeEventTopics,
+  ExecutionRevertedError,
+} from "viem";
 import { describe, expect, it, vi } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
 import {
@@ -28,7 +36,11 @@ import {
   createJobQueueDependencies,
 } from "../test-utils/job-queue-fakes";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
-import { hasRecordedSend, sendCheckpointOf } from "../../modules/job-queue/queue-policy";
+import {
+  ActRefusedByChain,
+  hasRecordedSend,
+  sendCheckpointOf,
+} from "../../modules/job-queue/queue-policy";
 import { intentHead } from "../../modules/job-queue/send-chain-reads";
 import { executeWorkJob } from "../../modules/job-queue/work-executor";
 import { WorkSendCancelledError } from "../../modules/work/send-outcome";
@@ -1555,6 +1567,87 @@ describe("commitment acts record their sends", () => {
     );
     expect(sender.sendContractCall).not.toHaveBeenCalled();
     expect(hasRecordedSend(claim)).toBe(false);
+  });
+
+  it("stops a claim whose signer is the promise's creator", async () => {
+    const claim = takeUp("claim-reverted");
+    const reverted = new ContractFunctionRevertedError({
+      abi: CommitmentPoolingModuleABI,
+      data: encodeErrorResult({ abi: CommitmentPoolingModuleABI, errorName: "SelfCounterparty" }),
+      functionName: "claimCommitment",
+    });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+
+    const refusal = await executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+      demoActive: () => false,
+      reads: { ...reads(), simulateSend: vi.fn().mockRejectedValue(reverted) },
+      store: store(),
+    }).catch((error: unknown) => error);
+
+    expect(refusal).toBeInstanceOf(ActRefusedByChain);
+    expect((refusal as Error).message).toBe(reverted.message);
+    expect((refusal as Error).cause).toBe(reverted);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("stops an ordinary take-up when the service offer requires booking", async () => {
+    const claim = takeUp("service-offer-claim");
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const data = encodeErrorResult({
+      abi: serviceOffersABI as Abi,
+      errorName: "ServiceClaimPathRequired",
+      args: [1n],
+    });
+    const simulateContract = vi.fn(async (_config: Config, request: { abi: Abi }) => {
+      throw new ContractFunctionRevertedError({
+        abi: request.abi,
+        data,
+        functionName: "claimCommitment",
+      });
+    });
+    const { simulateSend } = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      config: {} as Config,
+      simulateContract: simulateContract as never,
+    });
+
+    await expect(
+      executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(), simulateSend },
+        store: store(),
+      })
+    ).rejects.toMatchObject({
+      name: "ActRefusedByChain",
+      cause: { data: { errorName: "ServiceClaimPathRequired" } },
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    new ExecutionRevertedError(),
+    new ContractFunctionRevertedError({
+      abi: CommitmentPoolingModuleABI,
+      data: encodeErrorResult({
+        abi: CommitmentPoolingModuleABI,
+        errorName: "CommitmentNotInState",
+        args: [1n, 0],
+      }),
+      functionName: "claimCommitment",
+    }),
+  ])("keeps an opaque or state-dependent refusal retryable", async (reverted) => {
+    const claim = takeUp("claim-retryable");
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+
+    await expect(
+      executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(), simulateSend: vi.fn().mockRejectedValue(reverted) },
+        store: store(),
+      })
+    ).rejects.toBe(reverted);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
 
