@@ -58,7 +58,7 @@ Phase 3: IMPLEMENT — Fix only approved findings. Do not pull in adjacent clean
 Assessment results stay in the conversation until scope lock. After approval, each
 implementation lane returns its approved finding IDs and provenance to the lead. For
 plan-backed work, the lead may add a compact result to the existing feature hub's
-handoff or report; do not create a generic cleanup-report directory. In `--dry-run`
+`plan.todo.md`; do not create a report file or a generic cleanup-report directory. In `--dry-run`
 mode, lanes stop after Phase 2 and do not write files.
 
 Every implementation report records its execution mode plus checkpoint/implementation SHAs — the full provenance block spec lives in [worktree-protocol.md](./worktree-protocol.md).

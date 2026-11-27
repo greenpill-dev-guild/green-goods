@@ -62,6 +62,11 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     "docs/routines/2026-11-21-run-notes.md",
     "docs/plans/roadmap.md",
     "docs/handover.md",
+    "docs/guide.md",
+    "docs/architecture/README.md",
+    "docs/releases/next/overview.md",
+    "docs/releases/v2.1.0/overview.md",
+    ".plans/active/hub/operations/2026-11-27-run.md",
   ]) {
     assert.ok(markdownProblem(file), file);
   }
@@ -77,10 +82,22 @@ test("a plan hub takes no new prototype code, and its pictures and data stay all
     ".plans/backlog/hub/model.py",
     ".plans/active/hub/reports/results.json",
     ".plans/active/hub/reports/capture.png",
+    ".plans/active/hub/operations/reports/out.json",
+    ".plans/active/hub/handoffs/setup.mjs",
+    ".plans/active/hub/backfill.ts",
   ]) {
     assert.ok(newFileProblem(file), file);
   }
-  for (const file of [".plans/active/hub/status.json", ".plans/active/hub/artifacts/capture-375.png", "scripts/harness/plan-hub.mjs"]) {
+  // A one-shot operation's script lives in its hub's operations/ folder (AGENTS.md).
+  for (const file of [
+    ".plans/active/hub/status.json",
+    ".plans/active/hub/artifacts/capture-375.png",
+    "scripts/harness/plan-hub.mjs",
+    ".plans/active/hub/operations/backfill-pools.ts",
+    ".plans/backlog/hub/operations/steward-hat-relabel/relabel.ts",
+    ".plans/active/hub/operations/run.sh",
+    ".plans/active/hub/operations/steward-hat-relabel/README.md",
+  ]) {
     assert.equal(newFileProblem(file), null, file);
   }
 });

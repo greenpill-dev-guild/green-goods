@@ -9,8 +9,9 @@
 //   request or Linear. Under `docs/`, new markdown belongs in the published pages, the routines or
 //   a release's folder. Elsewhere, new markdown is limited to the guidance folders and the
 //   conventional names (README.md, AGENTS.md and the like).
-// - New prototype code (scripts, contracts, pages, styles) in a plan hub; prototypes live on a
-//   branch or in Storybook.
+// - New code (scripts, contracts, pages, styles) in a plan hub, outside its `operations/` folder:
+//   a one-shot operation's script lives in `operations/`, and a prototype on a branch or in
+//   Storybook.
 //
 // Existing text is not judged: a file is compared with the merge base, so only its added lines
 // and added files count.
@@ -53,6 +54,8 @@ const REPORT_NAME =
 // In a plan hub these names are results too: a closeout, a verification, results, a review.
 const HUB_REPORT_NAME = /(^|[-_.\s])(closeout|verification|results?|reviews?)([-_.\s]|$)/i;
 const HUB_FILE = /^\.plans\/[^/]+\/([^/]+)\/(.+)$/;
+// AGENTS.md sends a one-shot operation (a backfill, a migration, an on-chain batch) to its hub.
+const HUB_OPERATION = /^\.plans\/[^/]+\/[^/]+\/operations\//;
 
 export function isPackageSource(file) {
   return PACKAGE_SOURCE.test(file) && !TEST_PATH.test(file) && !GENERATED.test(file);
@@ -63,8 +66,8 @@ const REPORT_HOME = "record results in the hub's plan.todo.md, the pull request'
 /** Why a new file may not be added to a plan hub, or null when it may. */
 export function planProblem(file) {
   if (!file.startsWith(PLANS)) return null;
-  if (PROTOTYPE_CODE.test(file)) {
-    return "is prototype code in a plan hub; keep prototypes on a branch or in Storybook";
+  if (PROTOTYPE_CODE.test(file) && !HUB_OPERATION.test(file)) {
+    return "is code in a plan hub outside operations/; a one-shot operation's script goes in the hub's operations/ folder, and a prototype on a branch or in Storybook";
   }
   const report = `reads as a report; plan hubs take no new reports, so ${REPORT_HOME}`;
   if (file.split("/").includes("reports")) return report;
@@ -213,7 +216,7 @@ function main(argv = process.argv.slice(2)) {
   for (const problem of problems) console.error(`regrowth: ${problem}`);
   if (problems.length) {
     console.error(
-      "regrowth: delete the comment (the code or a name should carry it); put results in the plan, the pull request or Linear, and prototypes on a branch.",
+      "regrowth: delete the comment (the code or a name should carry it); put results in the plan, the pull request or Linear, one-shot scripts in the hub's operations/ folder, and prototypes on a branch.",
     );
     return 1;
   }
