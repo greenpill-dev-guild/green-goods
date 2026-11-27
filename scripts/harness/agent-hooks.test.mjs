@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -163,6 +163,59 @@ test("hook inspection never evaluates command input", (t) => {
     commandHooks(harness, `printf '%s' "$(touch '${sentinel}')"; touch '${sentinel}'`);
     assert.equal(existsSync(sentinel), false);
   }
+});
+
+function runBraveDevTools(t, overrides = {}) {
+  const directory = mkdtempSync(join(tmpdir(), "brave-devtools-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const nodeLog = join(directory, "node.log");
+  const npxLog = join(directory, "npx.log");
+  const nodeStub = join(directory, "node");
+  writeFileSync(
+    nodeStub,
+    '#!/bin/sh\nprintf "%s\\n" "$@" >> "$NODE_LOG"\nprintf "v22.23.4\\n"\n',
+    { mode: 0o700 },
+  );
+  writeFileSync(join(directory, "npx"), '#!/bin/sh\nprintf "%s\\n" "$@" >> "$NPX_LOG"\nexit 0\n', {
+    mode: 0o700,
+  });
+
+  // Use an explicit Node candidate and browser URL so the local path needs no installed tools.
+  const result = spawnSync(process.execPath, [join(root, "scripts/mcp/brave-devtools.mjs")], {
+    env: {
+      HOME: directory,
+      PATH: directory,
+      TMPDIR: directory,
+      NODE_LOG: nodeLog,
+      NPX_LOG: npxLog,
+      GREEN_GOODS_MCP_NODE_BIN: nodeStub,
+      GREEN_GOODS_MCP_BRAVE_BROWSER_URL: "http://127.0.0.1:9222",
+      ...overrides,
+    },
+    encoding: "utf8",
+    timeout: 5000,
+  });
+  assert.ifError(result.error);
+  return { result, nodeLog, npxLog };
+}
+
+test("Brave DevTools skips cloud sessions before calling node or npx", (t) => {
+  const { result, nodeLog, npxLog } = runBraveDevTools(t, { CLAUDE_CODE_REMOTE: "true" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    result.stderr,
+    "[green-goods:mcp] Skipped in a Claude Code cloud session: the Brave DevTools MCP runs locally only.\n",
+  );
+  assert.equal(existsSync(nodeLog), false, "cloud startup must skip Node version probing");
+  assert.equal(existsSync(npxLog), false, "cloud startup must skip npx");
+});
+
+test("Brave DevTools launches the pinned MCP package with an isolated profile locally", (t) => {
+  const { result, npxLog } = runBraveDevTools(t);
+  assert.equal(result.status, 0, result.stderr);
+  const args = readFileSync(npxLog, "utf8").trimEnd().split("\n");
+  assert.ok(args.includes("chrome-devtools-mcp@1.13.0"));
+  assert.ok(args.includes("--isolated"));
 });
 
 test("shared policy decisions distinguish executable commands from data", () => {
