@@ -15,6 +15,7 @@ import {
   createJobQueueDependencies,
 } from "../test-utils/job-queue-fakes";
 import { queuedTakeUpChain } from "../test-utils/queued-jobs";
+import { ActRefusedByChain } from "../../modules/job-queue/queue-policy";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 
@@ -750,12 +751,17 @@ describe("processJob", () => {
     expect(executors.execute).not.toHaveBeenCalled();
   });
 
-  it("permanently fails a job at the retry ceiling", async () => {
+  it("reports a job reaching the retry ceiling once", async () => {
     const store = createInMemoryJobQueueStore([queuedJob({ attempts: 5 })]);
     const { deps, queue } = setup({ store });
     await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
       success: false,
       error: "Max retries (5) exceeded",
+    });
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "Max retries (5) exceeded",
+      skipped: true,
     });
     expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledOnce();
   });
@@ -771,6 +777,50 @@ describe("processJob", () => {
       expect.objectContaining({ attempts: 1, lastError: "work-transaction-reverted" })
     );
     expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
+  });
+
+  it("gives up an act the chain refused at once, and Try Again still sends it", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob({ kind: "claim" })]);
+    const executors = {
+      execute: vi
+        .fn()
+        .mockRejectedValueOnce(new ActRefusedByChain(new Error("execution reverted")))
+        .mockResolvedValueOnce({ status: "complete", txHash: "0x1" }),
+    };
+    const deps = createJobQueueDependencies({ store, executors });
+    deps.config.maxRetries = 7;
+    const queue = createJobQueue(deps);
+
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "execution reverted",
+    });
+    expect(await store.getJob("job-1")).toMatchObject({
+      attempts: 5,
+      lastError: "execution reverted",
+    });
+    expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ kind: "claim", attempts: 1, lastError: "execution reverted" })
+    );
+    expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
+
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "execution reverted",
+      skipped: true,
+    });
+    expect(await store.getJob("job-1")).toMatchObject({
+      attempts: 5,
+      lastError: "execution reverted",
+    });
+    expect(executors.execute).toHaveBeenCalledOnce();
+    expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledOnce();
+
+    await queue.retryJob("job-1");
+    await expect(
+      queue.processJob("job-1", { transactionSender: {} as never, explicit: true })
+    ).resolves.toMatchObject({ success: true });
+    expect(deps.analytics.jobProcessed).toHaveBeenCalledExactlyOnceWith("claim", 0, 1);
   });
 
   it("uses the ordinary retry ceiling for repeated Work metadata failures", async () => {

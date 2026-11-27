@@ -180,6 +180,7 @@ export function createJobRecovery(
           waitingReason: _waitingReason,
           mediaConversion: _mediaConversion,
           preparation: _preparation,
+          terminalFailure: _terminalFailure,
           ...meta
         } = job.meta ?? {};
         if (hasRevertedWorkSend(job)) {

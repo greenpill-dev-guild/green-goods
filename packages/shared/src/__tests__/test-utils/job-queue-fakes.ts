@@ -71,6 +71,7 @@ export function createInMemoryJobQueueStore(initial: Job[] = []): JobQueueStore 
         attempts: Math.max(job.attempts, 5),
         lastError: error,
         lastAttemptAt: 0,
+        meta: { ...job.meta, terminalFailure: true },
       });
     },
     async deleteJob(id) {
