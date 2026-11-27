@@ -21,9 +21,11 @@ SHARDS=(unit rest)
 MODE="${CONTRACT_COVERAGE_SHARD:-all}"
 
 # Coverage asks which lines and branches the tests reach, not how deep a fuzzer can go. At Foundry's
-# default 256 runs x 500 depth the invariant suites ran 44 minutes under coverage, and the runner was
-# lost as they ended (PRD-1624). At 32 x 64 they reach the same code apart from two revert checks,
-# which unit tests now cover. Contracts Nightly still runs them at full depth. A caller's value wins.
+# default 256 runs x 500 depth the longest invariant suite took 44 minutes under coverage, and CI lost
+# the runner about when it would have ended (PRD-1624). At 32 x 64, the cap SettlementFunding and
+# RoleHierarchy already set inline, coverage reached the same code apart from two revert checks, which
+# unit tests now cover. Contracts Nightly still runs the suites at full depth. A caller's values apply
+# except where a suite's own forge-config comments set them.
 export FOUNDRY_INVARIANT_RUNS="${FOUNDRY_INVARIANT_RUNS:-32}"
 export FOUNDRY_INVARIANT_DEPTH="${FOUNDRY_INVARIANT_DEPTH:-64}"
 
