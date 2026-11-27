@@ -27,7 +27,7 @@ Salvage is allowed only when the human explicitly approves after seeing:
 - affected file list
 - planned validation and conflict audit steps
 
-When salvage is approved, record every conflict and every dropped/ported agent insight in the conversation or, for plan-backed work, in the existing feature hub's `reports/merge-audit.md`.
+When salvage is approved, record every conflict and every dropped/ported agent insight in the conversation. For plan-backed work, add it to the pull request body only when you are authorized to edit that pull request.
 
 ## Provenance block
 
@@ -51,7 +51,7 @@ Merge authorized worktrees only, never with blanket "take ours" / "take theirs" 
 
 ## Merge audit format
 
-Required whenever a merge is not a clean fast-forward/cherry-pick with no conflicts. Write it in the conversation or, for plan-backed work, in the existing feature hub's `reports/merge-audit.md`:
+Required whenever a merge is not a clean fast-forward/cherry-pick with no conflicts. Write it in the conversation. For plan-backed work, add it to the pull request body only when you are authorized to edit that pull request:
 
 ```md
 # Clean Merge Audit

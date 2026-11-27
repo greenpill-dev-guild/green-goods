@@ -154,7 +154,9 @@ function main() {
     if (failures.length > 0) {
       console.error(`check-immutable-plan-reports: ${failures.length} immutable report change(s):`);
       for (const failure of failures) console.error(`- ${failure}`);
-      console.error("Restore the historical report and add a new correction or closure artifact.");
+      console.error(
+        "Restore the historical report and record the correction or closure in the hub's plan.todo.md, the pull request or Linear.",
+      );
       process.exit(1);
     }
     console.log("check-immutable-plan-reports: existing dated reports are unchanged.");

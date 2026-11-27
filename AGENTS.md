@@ -294,4 +294,4 @@ directly; it must not duplicate repository policy.
 
 Add a script only for a durable caller in root `package.json`, CI, PM2, or an agent harness, and
 register it in [scripts/README.md](scripts/README.md). Use existing commands where possible.
-One-shot operations belong in the owning Plan Hub; consumed data belongs in `scripts/data/`.
+One-shot operations belong in the owning Plan Hub's `operations/` folder; consumed data belongs in `scripts/data/`.

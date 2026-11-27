@@ -97,8 +97,8 @@ A close takes two commits: the plan records its final state, then the archive re
 - When implementation diverges, add `## Implementation Notes` saying what changed and why.
 - Review stale plans (untouched 14+ days, or already merged) on the cadence **Lifecycle** names (default: whenever a plan is opened): update, confirm, or close with an honest resolution.
 - Plans are actionable specs: raw transcripts and meeting notes go where **Lifecycle** says (default: outside the plan store).
-- Point-in-time audit findings stay in the response; a report enters a plan only as direct evidence for that plan.
-- Dated reports are immutable (**Lifecycle**): add a correction or closure report that links the original.
+- Point-in-time audit findings stay in the response; direct evidence for a plan is recorded where **Lifecycle** says (default: in the plan itself), not in a new report file.
+- Dated reports are immutable (**Lifecycle**): record a correction or closure where **Lifecycle** says (default: in the plan itself), linking the original.
 
 ### Scope discipline
 More than 15 locked decisions means the plan needs splitting. Keep vision and architecture specs (what and why, unlimited decisions) apart from implementation plans (how and in what order, 5 to 15 decisions); task checklists hold no decisions, evaluation plans 0 to 10 gates, idea briefs 0 to 5 decisions. **Plan files** says where each lives. Every plan should carry a numbered decision log with rationale: it gives later readers unambiguous constraints without the prose.
