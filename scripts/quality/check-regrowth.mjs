@@ -39,8 +39,8 @@ const DOCS_ROUTINES = "docs/routines/";
 const DOCS_ROOT_FILE = /^docs\/[^/]+$/;
 const PROTOTYPE_CODE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|html?|css|scss|vue|svelte|sol|sh|bash|zsh|py)$/i;
 const GUIDANCE_FOLDERS = [".claude/", ".agents/", ".codex/", ".github/"];
-// A skill's references are its templates, a report template included; a dated file or one under
-// `reports/` is a record, not a template.
+// A skill's references and templates may be named for the report they shape; a dated file, one
+// under `reports/`, or a report-named file elsewhere in a skill is a record, not a template.
 const SKILL_FOLDERS = [".claude/skills/", ".agents/skills/"];
 const DATED = /\d{4}-\d{2}-\d{2}/;
 // Lane-to-lane records live in a hub's `handoffs/`, whatever they are named.
@@ -49,6 +49,10 @@ const CONVENTIONAL_NAMES =
   /^(README|AGENTS|CLAUDE|DESIGN[\w.-]*|SKILL|ARCHITECTURE|CHANGELOG|MODULES|CONTRIBUTING|SECURITY|CODE_OF_CONDUCT|LICENSES?)\.mdx?$/i;
 const REPORT_NAME =
   /(^|[-_.\s])(report|reports|audit|audits|findings|summary|analysis|handoff|handover|retro|retrospective|postmortem|investigation|status|notes)([-_.\s]|$)|\d{4}-\d{2}-\d{2}/i;
+
+// In a plan hub these names are results too: a closeout, a verification, results, a review.
+const HUB_REPORT_NAME = /(^|[-_.\s])(closeout|verification|results?|reviews?)([-_.\s]|$)/i;
+const HUB_FILE = /^\.plans\/[^/]+\/([^/]+)\/(.+)$/;
 
 export function isPackageSource(file) {
   return PACKAGE_SOURCE.test(file) && !TEST_PATH.test(file) && !GENERATED.test(file);
@@ -62,12 +66,20 @@ export function planProblem(file) {
   if (PROTOTYPE_CODE.test(file)) {
     return "is prototype code in a plan hub; keep prototypes on a branch or in Storybook";
   }
+  const report = `reads as a report; plan hubs take no new reports, so ${REPORT_HOME}`;
+  if (file.split("/").includes("reports")) return report;
   if (!MARKDOWN.test(file)) return null;
-  if (HUB_HANDOFF.test(file) && !DATED.test(path.posix.basename(file))) return null;
-  if (file.split("/").includes("reports") || REPORT_NAME.test(path.posix.basename(file).replace(MARKDOWN, ""))) {
-    return `reads as a report; plan hubs take no new reports, so ${REPORT_HOME}`;
-  }
-  return null;
+  const name = path.posix.basename(file);
+  if (HUB_HANDOFF.test(file) && !DATED.test(name)) return null;
+  const stem = name.replace(MARKDOWN, "");
+  return REPORT_NAME.test(stem) || HUB_REPORT_NAME.test(stem) ? report : null;
+}
+
+/** Whether a move kept a file in its own hub at the same place, as a hub changing stage does. */
+export function movedWithHub(from, file) {
+  const before = HUB_FILE.exec(from);
+  const after = HUB_FILE.exec(file);
+  return Boolean(before && after && before[1] === after[1] && before[2] === after[2]);
 }
 
 /** Why a new markdown file may not be added where it is, or null when it may. */
@@ -75,7 +87,11 @@ export function markdownProblem(file) {
   if (!MARKDOWN.test(file)) return null;
   if (file.startsWith(PLANS)) return planProblem(file);
   if (SKILL_FOLDERS.some((home) => file.startsWith(home))) {
-    return file.split("/").includes("reports") || DATED.test(path.posix.basename(file))
+    const segments = file.split("/");
+    const skillFile = path.posix.basename(file);
+    const template = segments.includes("references") || segments.includes("templates") || /template/i.test(skillFile);
+    const record = segments.includes("reports") || DATED.test(skillFile);
+    return record || (!template && REPORT_NAME.test(skillFile.replace(MARKDOWN, "")))
       ? `reads as a report; ${REPORT_HOME}`
       : null;
   }
@@ -152,11 +168,11 @@ export function judge(root, ref) {
   let sourceFiles = 0;
   for (const [file, { how, from }] of changedPaths(root, ref)) {
     if (how === "D") continue;
-    // A move lands a file somewhere new, unless it was already where it may not be. A hub's old
-    // reports and prototypes are such files, so they may move with their hub to another stage,
-    // but one that leaves `.plans/` is judged where it lands.
-    const leavesPlans = from?.startsWith(PLANS) && !file.startsWith(PLANS);
-    if (how === "A" || (from && (leavesPlans || !newFileProblem(from)))) {
+    // A move lands a file somewhere new, unless it was already where it may not be. A plan file is
+    // carried only by its own hub changing stage (same hub, same place in it); moved anywhere
+    // else, to another hub included, it is judged where it lands.
+    const carried = from?.startsWith(PLANS) ? movedWithHub(from, file) : Boolean(from && newFileProblem(from));
+    if (how === "A" || (from && !carried)) {
       const problem = newFileProblem(file);
       if (problem) problems.push(`${file}: ${problem}.`);
     }

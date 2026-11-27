@@ -97,7 +97,7 @@ A close takes two commits: the plan records its final state, then the archive re
 - When implementation diverges, add `## Implementation Notes` saying what changed and why.
 - Review stale plans (untouched 14+ days, or already merged) on the cadence **Lifecycle** names (default: whenever a plan is opened): update, confirm, or close with an honest resolution.
 - Plans are actionable specs: raw transcripts and meeting notes go where **Lifecycle** says (default: outside the plan store).
-- Point-in-time audit findings stay in the response; a report enters a plan only as direct evidence for that plan.
+- Point-in-time audit findings stay in the response; direct evidence for a plan is recorded where **Lifecycle** says, not in a new report file.
 - Dated reports are immutable (**Lifecycle**): record a correction or closure where **Lifecycle** says, linking the original.
 
 ### Scope discipline

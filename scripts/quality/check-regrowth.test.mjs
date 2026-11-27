@@ -6,7 +6,15 @@ import path from "node:path";
 import test from "node:test";
 
 import { fixtureGitEnvironment } from "../lib/dev-shared.js";
-import { addedLines, isPackageSource, judge, markdownProblem, newFileProblem, regrownComments } from "./check-regrowth.mjs";
+import {
+  addedLines,
+  isPackageSource,
+  judge,
+  markdownProblem,
+  movedWithHub,
+  newFileProblem,
+  regrownComments,
+} from "./check-regrowth.mjs";
 
 test("new markdown is allowed in its homes, guidance folders and conventional names only", () => {
   for (const file of [
@@ -25,6 +33,8 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     ".claude/context/testing.md",
     ".claude/skills/qa-triage/references/unattended-report.md",
     ".claude/skills/audit/report-template.md",
+    ".claude/skills/audit/templates/findings.md",
+    ".plans/active/hub/settlement-plan.md",
     "scripts/quality/check.mjs",
   ]) {
     assert.equal(markdownProblem(file), null, file);
@@ -43,6 +53,11 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     ".claude/skills/audit/reports/audit-2026-11-23.md",
     ".claude/skills/audit/reports/latest.md",
     ".agents/skills/review/review-2026-11-23.md",
+    ".claude/skills/audit/audit-summary.md",
+    ".plans/active/hub/closeout.md",
+    ".plans/active/hub/verification.md",
+    ".plans/active/hub/results.md",
+    ".plans/backlog/hub/design-review.md",
     ".plans/backlog/hub/audit.md",
     "docs/routines/2026-11-21-run-notes.md",
     "docs/plans/roadmap.md",
@@ -60,6 +75,8 @@ test("a plan hub takes no new prototype code, and its pictures and data stay all
     ".plans/active/hub/prototype.sol",
     ".plans/active/hub/demo.sh",
     ".plans/backlog/hub/model.py",
+    ".plans/active/hub/reports/results.json",
+    ".plans/active/hub/reports/capture.png",
   ]) {
     assert.ok(newFileProblem(file), file);
   }
@@ -149,6 +166,7 @@ test("the check judges a change against its merge base, uncommitted and untracke
   write(".plans/active/hub/sketch.md", "plan\n");
   write(".plans/backlog/staged/reports/2026-10-01-proof.md", "old report\n");
   write(".plans/backlog/staged/flow-audit.md", "old audit\n");
+  write(".plans/backlog/other/reports/proof.md", "another hub's old report\n");
   write(".plans/backlog/staged/vendor-notes.md", "old notes\n");
   git("add", ".");
   git("commit", "-q", "-m", "plan note");
@@ -166,6 +184,14 @@ test("the check judges a change against its merge base, uncommitted and untracke
   assert.equal(moved.length, 3, moved.join("\n"));
   assert.ok(moved.some((problem) => problem.startsWith("packages/shared/flow-audit.md: reads as a report")));
   assert.ok(moved.some((problem) => problem.startsWith("docs/vendor-notes.md: reads as a report")));
+  // So is one that moves to another hub: only its own hub changing stage carries it.
+  git("mv", ".plans/backlog/other/reports/proof.md", ".plans/active/staged/reports/proof.md");
+  const crossed = judge(root, planned).problems;
+  assert.equal(crossed.length, 4, crossed.join("\n"));
+  assert.ok(crossed.some((problem) => problem.startsWith(".plans/active/staged/reports/proof.md: reads as a report")));
+  assert.equal(movedWithHub(".plans/backlog/hub/reports/a.md", ".plans/active/hub/reports/a.md"), true);
+  assert.equal(movedWithHub(".plans/backlog/hub/reports/a.md", ".plans/active/hub/a.md"), false);
+  assert.equal(movedWithHub(".plans/backlog/hub/reports/a.md", ".plans/backlog/other/reports/a.md"), false);
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/old.ts:3: new label comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/new.ts:1: new banner comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/REVIEW_FINDINGS.md: reads as a report")));
