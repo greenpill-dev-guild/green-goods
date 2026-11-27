@@ -99,12 +99,24 @@ function resolveBraveExecutable() {
   return candidates.find((candidate) => executableExists(candidate) && isStableBraveExecutablePath(candidate)) || "";
 }
 
+// Claude Code cloud sessions start this server from .mcp.json without asking, and their VMs have
+// no Brave. Exit before resolving Node or fetching the package.
+if (process.env.CLAUDE_CODE_REMOTE === "true") {
+  process.stderr.write(
+    "[green-goods:mcp] Skipped in a Claude Code cloud session: " +
+      "the Brave DevTools MCP runs locally only.\n",
+  );
+  process.exit(0);
+}
+
 const nodeBin = resolveNodeBin();
 const nodeDir = path.dirname(nodeBin);
 const cacheDir = process.env.npm_config_cache || path.join(tmpdir(), "green-goods-npm-cache");
 const serverArgs = [
   "-y",
-  "chrome-devtools-mcp@latest",
+  // Pinned so a start never runs whatever npm published last. Bump it on purpose, to a release at
+  // least three days old (the minimumReleaseAge rule in bunfig.toml).
+  "chrome-devtools-mcp@1.13.0",
   "--isolated",
   "--acceptInsecureCerts",
   "--viewport=1440x1000",

@@ -1,4 +1,4 @@
-import { type Hex } from "viem";
+import { BaseError, ContractFunctionRevertedError, type Hex } from "viem";
 import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -32,8 +32,28 @@ import { type CommitmentChainReads, createCommitmentChainReads } from "./commitm
 import { sendRecordedAct, settleActSend, waitingForRecordedSend } from "./commitment-send-record";
 import { jobQueueDB } from "./db";
 import { publishPendingEvidence } from "./evidence-publisher";
-import { hasRecordedSend, recordsSends } from "./queue-policy";
+import { ActRefusedByChain, hasRecordedSend, recordsSends } from "./queue-policy";
 import { observeTransactionNonce } from "./send-guards";
+
+// These refusals depend on the submitted identity, the promise's fixed settings,
+// or the payload already recorded for an operation key.
+const FIXED_COMMITMENT_REFUSALS = new Set([
+  "ClaimModeMismatch",
+  "ClaimTypeMismatch",
+  "SelfCounterparty",
+  "ServiceClaimPathRequired",
+  "WorkLinkOperationConflict",
+]);
+
+function isFixedCommitmentRefusal(error: unknown): error is BaseError {
+  if (!(error instanceof BaseError)) return false;
+  const revert = error.walk((cause) => cause instanceof ContractFunctionRevertedError);
+  return (
+    revert instanceof ContractFunctionRevertedError &&
+    revert.data !== undefined &&
+    FIXED_COMMITMENT_REFUSALS.has(revert.data.errorName)
+  );
+}
 
 type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
 
@@ -338,7 +358,9 @@ export async function executeCommitmentQueueJob(
         } catch (simulationError) {
           // Reward state may have changed since preflight. Only that dependency waits.
           await beforeBroadcast?.();
-          throw simulationError;
+          throw isFixedCommitmentRefusal(simulationError)
+            ? new ActRefusedByChain(simulationError)
+            : simulationError;
         }
         // Read after the simulation, and again just before the intent, after any
         // prompt: nothing this send does can land in that block or before, so an
