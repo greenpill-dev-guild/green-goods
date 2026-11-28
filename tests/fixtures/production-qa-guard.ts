@@ -62,10 +62,6 @@ export interface Observed {
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
-export function readApproval(path: string): Approval {
-  return JSON.parse(readFileSync(path, "utf8")) as Approval;
-}
-
 /** Returns the approved case the observation matches, or throws the first refusal. */
 export function preflight(approval: Approval, observed: Observed, now = new Date()): ApprovedCase {
   const approved = approval.cases.find((c) => c.caseId === observed.caseId);

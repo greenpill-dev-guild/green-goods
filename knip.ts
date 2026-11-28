@@ -11,6 +11,10 @@ const config: KnipConfig = {
       entry: [
         "scripts/**/*.{ts,js,mjs,cjs}",
         "playwright.config.ts",
+        // The production QA suites keep their own Playwright configs, run on the QA machines
+        // by the runner's approved suites and the Automated QA runbook, never imported.
+        "tests/installed-pwa/playwright.config.ts",
+        "tests/production-qa/playwright.config.ts",
       ],
       // PM2 loads ecosystem.config.cjs directly. Disable Knip's PM2 plugin so
       // dead-code analysis never executes that config's root-env bootstrap.
