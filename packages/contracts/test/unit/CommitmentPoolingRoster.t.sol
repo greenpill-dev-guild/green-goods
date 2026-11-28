@@ -29,7 +29,7 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         assertEq(module.getCommitment(commitmentId).contributorCount, 2);
     }
 
-    function testJoinCommitment_rejectsAContributorWhoIsAlreadyActive() public {
+    function testCommitmentPooling_revertsWhenContributorIsAlreadyActive() public {
         uint256 commitmentId = _openPolicyOffer(keccak256("roster-join-twice"));
         vm.prank(JOINER);
         module.joinCommitment(commitmentId);

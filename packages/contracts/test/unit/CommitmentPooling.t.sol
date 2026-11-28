@@ -233,7 +233,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         assertEq(stored.totalVerifiedCredits, 1);
     }
 
-    function testAttachEvidence_rejectsACidTheCommitmentAlreadyHolds() public {
+    function testCommitmentPooling_revertsWhenEvidenceCidIsAlreadyAttached() public {
         uint256 commitmentId = _createOffer(keccak256("evidence-twice"));
         _acceptOffer(commitmentId);
         address contributor = address(0xC01);
