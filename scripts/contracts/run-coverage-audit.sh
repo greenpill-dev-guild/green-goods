@@ -20,15 +20,6 @@ SUMMARY_JSON="$OUTPUT_DIR/coverage-summary.json"
 SHARDS=(unit rest)
 MODE="${CONTRACT_COVERAGE_SHARD:-all}"
 
-# Coverage asks which lines and branches the tests reach, not how deep a fuzzer can go. At Foundry's
-# default 256 runs x 500 depth the longest invariant suite took 44 minutes under coverage, and CI lost
-# the runner about when it would have ended (PRD-1624). At 32 x 64, the cap SettlementFunding and
-# RoleHierarchy already set inline, coverage reached the same code apart from two revert checks, which
-# unit tests now cover. Contracts Nightly still runs the suites at full depth. A caller's values apply
-# except where a suite's own forge-config comments set them.
-export FOUNDRY_INVARIANT_RUNS="${FOUNDRY_INVARIANT_RUNS:-32}"
-export FOUNDRY_INVARIANT_DEPTH="${FOUNDRY_INVARIANT_DEPTH:-64}"
-
 mkdir -p "$OUTPUT_DIR"
 
 run_with_timeout() {
@@ -87,9 +78,21 @@ run_shard() {
     # --skip leaves another shard's test files (and the fork suites, which coverage never runs) out of
     # solc's single build; imports of kept files still compile. One build of every file outgrew 16 GB.
     local filter
+    local cap=()
     case "$shard" in
         unit) filter=(--match-path 'test/unit/**' --skip 'test/{fork,integration,invariant,fuzz}/**') ;;
-        rest) filter=(--no-match-path 'test/{fork,unit}/**' --skip 'test/{fork,unit}/**') ;;
+        rest)
+            filter=(--no-match-path 'test/{fork,unit}/**' --skip 'test/{fork,unit}/**')
+            # Coverage asks which code the tests reach, not how deep a fuzzer goes. At Foundry's
+            # default 256 runs x 500 depth this shard's invariant suites took 44 minutes under
+            # coverage, and CI lost the runner about when they would have ended (PRD-1624). At
+            # 32 x 64, the cap SettlementFunding and RoleHierarchy set inline, the merged floors
+            # match a full-depth run, since unit tests cover the two reverts only depth reached.
+            # The unit shard's invariants keep full depth: two settlement branches need it.
+            # Contracts Nightly runs every suite at full depth. A caller's values apply except
+            # where a suite's own forge-config comments set them.
+            cap=(FOUNDRY_INVARIANT_RUNS="${FOUNDRY_INVARIANT_RUNS:-32}" FOUNDRY_INVARIANT_DEPTH="${FOUNDRY_INVARIANT_DEPTH:-64}")
+            ;;
         *)
             echo "No test filter for coverage shard $shard" >&2
             return 2
@@ -99,7 +102,7 @@ run_shard() {
     echo "[coverage] Running the $shard shard of local non-fork, non-E2E Solidity coverage..."
     local status=0
     pushd "$CONTRACTS_DIR" >/dev/null
-    if ! run_with_timeout "$COVERAGE_TIMEOUT_SECONDS" "$log" forge coverage --ir-minimum --report lcov \
+    if ! run_with_timeout "$COVERAGE_TIMEOUT_SECONDS" "$log" env ${cap[@]+"${cap[@]}"} forge coverage --ir-minimum --report lcov \
         --report-file "$lcov" --no-match-contract 'E2E' "${filter[@]}"; then
         echo "The $shard coverage shard failed or timed out. See $log" >"$error"
         status=1
