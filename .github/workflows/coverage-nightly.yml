@@ -76,13 +76,20 @@ jobs:
 
       # Each shard still compiles all of src and script, plus its own tests, with --ir-minimum in
       # one solc process. One build of every file outgrew the runner's 16 GB and the image's 3 GB
-      # swapfile mid-compile (PRD-1624).
+      # swapfile mid-compile (PRD-1624); a shard's build peaked at 7.5 GB. Extra swap is a cushion
+      # sized to the disk, up to 8 GB while leaving 10 GB free, and is left out on a small disk.
       - name: Add swap for the compile
         run: |
-          sudo fallocate -l 20G /coverage.swap
-          sudo chmod 600 /coverage.swap
-          sudo mkswap /coverage.swap
-          sudo swapon /coverage.swap
+          free_gb=$(df --output=avail -BG / | tail -n 1 | tr -dc '0-9')
+          swap_gb=$(( free_gb - 10 < 8 ? free_gb - 10 : 8 ))
+          if (( swap_gb >= 2 )); then
+            sudo fallocate -l "${swap_gb}G" /coverage.swap
+            sudo chmod 600 /coverage.swap
+            sudo mkswap /coverage.swap
+            sudo swapon /coverage.swap
+          else
+            echo "::notice::Only ${free_gb} GB free on /, so the coverage shard runs without extra swap"
+          fi
           free -m
           df -h /
 
