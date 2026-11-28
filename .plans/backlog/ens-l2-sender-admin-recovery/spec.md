@@ -40,10 +40,14 @@ Add a deliberate recovery surface to the Arbitrum `GreenGoodsENS` sender so it n
 
 ## Human Judgment Points
 
-- Decide whether operators can release user names unilaterally, or whether recovery requires an offchain user-support approval reference.
-- Decide whether a recovery action should enforce cooldowns or bypass cooldowns for verified support cases.
-- Decide whether exact-name recovery after passkey loss should be automatic, manual, or require additional identity proof.
-- Decide whether sender v2 should be a direct contract with admin recovery or a proxy with explicit upgrade governance.
+Decided by Afo on 21 November 2026:
+
+- Operators (the contract's owner) release member names, and every release carries a support reference recorded on chain.
+- A release starts the usual cooldown for everyone else; an operator assignment to a named account skips it.
+- Exact-name recovery after passkey loss is manual: an operator releases the name and assigns it to the member's new account.
+- Sender v2 is an upgradeable (UUPS) registrar; the L1 receiver stays and is re-pointed.
+
+Still open: what identity proof support asks for before an exact-name recovery, and who holds the owner role at cutover (timelock or Safe).
 
 ## Non-Functional Constraints
 
