@@ -74,10 +74,11 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
-      # Each shard still compiles all of src and script, plus its own tests, with --ir-minimum in
-      # one solc process. One build of every file outgrew the runner's 16 GB and the image's 3 GB
-      # swapfile mid-compile (PRD-1624); a shard's build peaked at 7.5 GB. Extra swap is a cushion
-      # sized to the disk, up to 8 GB while leaving 10 GB free, and is left out on a small disk.
+      # Each shard still compiles all of src and script, its own test directories and the suites
+      # directly under test/ with --ir-minimum in one solc process. One build of every file outgrew
+      # the runner's 16 GB and the image's 3 GB swapfile mid-compile (PRD-1624); a shard's build
+      # peaked at 7.5 GB. Extra swap is a cushion sized to the disk, up to 8 GB while leaving 10 GB
+      # free, and is left out on a small disk.
       - name: Add swap for the compile
         run: |
           free_gb=$(df --output=avail -BG / | tail -n 1 | tr -dc '0-9')
@@ -93,7 +94,7 @@ jobs:
           free -m
           df -h /
 
-      # A cold runner compiles every source with --ir-minimum before any test runs, so the
+      # A cold runner compiles the shard's sources with --ir-minimum before any test runs, so the
       # audit's 15-minute local default is too short.
       - name: Run the ${{ matrix.shard }} coverage shard
         working-directory: packages/contracts

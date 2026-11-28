@@ -75,8 +75,10 @@ run_shard() {
     error="$(shard_error "$shard")"
     rm -f "$lcov" "$error"
 
-    # --skip leaves another shard's test files (and the fork suites, which coverage never runs) out of
-    # solc's single build; imports of kept files still compile. One build of every file outgrew 16 GB.
+    # --skip leaves the other shard's test directories and the fork suites, which coverage never runs,
+    # out of solc's single build; imports of kept files still compile. The suites directly under test/
+    # run in rest but stay in unit's build, since a glob for them would also match test/unit. One
+    # build of every file outgrew 16 GB.
     local filter
     local cap=()
     case "$shard" in
