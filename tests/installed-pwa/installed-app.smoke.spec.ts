@@ -101,7 +101,15 @@ test("installed Green Goods window: Home, a garden and back to Home, read-only",
       await app.goto(new URL(`/home/${profile.gardenAddress}`, profile.appOrigin).toString());
       await expect(app).toHaveURL(new RegExp(`/home/${profile.gardenAddress}`, "i"));
       if (profile.gardenName) {
-        await expect(app.getByText(profile.gardenName, { exact: false }).first()).toBeVisible();
+        // Home's garden cards stay mounted, hidden, under the garden page, so match the visible
+        // heading rather than the first text match.
+        await expect(
+          app
+            .getByRole("heading", { name: profile.gardenName, exact: false })
+            .filter({ visible: true })
+            .first(),
+          "the garden page shows the test garden's name"
+        ).toBeVisible();
       }
       steps.push("opened the test garden in the window");
       const back = app
