@@ -4,7 +4,7 @@ sidebar_label: Automated QA
 slug: /builders/quality/automated-qa
 audience: developer
 owner: product
-last_verified: 2026-10-22
+last_verified: 2026-11-27
 feature_status: In progress
 source_of_truth:
   - .claude/context/qa.md
@@ -15,7 +15,11 @@ source_of_truth:
   - packages/qa/runs.ts
   - packages/qa/api/runs.ts
   - docs/docs/builders/quality/product-experience-qa.mdx
-keywords: [QA, automated QA, dry run, qualification, PWA, admin]
+  - tests/installed-pwa/playwright.config.ts
+  - tests/production-qa/playwright.config.ts
+  - tests/fixtures/qa-cdp.ts
+  - tests/fixtures/production-qa-guard.ts
+keywords: [QA, automated QA, dry run, qualification, PWA, admin, QA profile, CDP]
 ---
 
 # Automated QA
@@ -32,15 +36,21 @@ private operational records own qualification evidence, actual runs, and schedul
 
 ## Scope and environments
 
-Agree on one dedicated test garden and a case list before starting. Use dedicated cloud Brave
-profiles with separate Rabby gardener and steward identities. Never use personal wallets or the
-user's computer. Keep garden identity, account addresses, credentials, and membership evidence
-in the restricted operational record.
+Agree on one dedicated test garden and a case list before starting. Run in a dedicated QA
+browser profile on a local QA machine: Google Chrome on the QA workstation and Brave Beta on the
+second QA machine. Each profile holds only QA identities: separate Rabby gardener and steward
+wallets and the QA passkey. Never use a profile, wallet or passkey that belongs to a person's own
+accounts, and never attach automation to a browser instance that also holds one. Keep garden
+identity, account addresses, credentials, and membership evidence in the restricted operational
+record.
+
+The protocol runs on several chains, so every case names its chain. Take it from the catalog and
+the app, and confirm it before any upload, queue admission or signature.
 
 | Surface | Target and interpretation |
 |---|---|
-| Production client and PWA | [www.greengoods.app](https://www.greengoods.app). Record whether this is a desktop tab or an installed app on actual hardware. |
-| Production admin | [admin.greengoods.app](https://admin.greengoods.app). Verify the selected garden and steward access before opening review views. |
+| Production client and PWA | [greengoods.app](https://greengoods.app) (`www` redirects there). Record whether this is a desktop tab or an installed app on actual hardware. On production an ordinary tab always shows the website: App cases run only in the installed window. |
+| Production admin | [hub.greengoods.app](https://hub.greengoods.app). Verify the selected garden and steward access before opening review views. |
 | QA recorder | [qa.greengoods.app](https://qa.greengoods.app). This records findings; its hostname does not make a product run a beta run. |
 | Beta, staging, or local product | Use only the explicitly selected deployment and record its origin and environment separately. Results do not establish production coverage. |
 
@@ -62,9 +72,10 @@ Before enabling recurring browser coverage, retain private evidence for every ga
 1. **Scope and roles.** Confirm the dedicated garden, gardener membership, steward membership
    and badge, accessible surfaces, and exact active catalog cases. Missing roles or fixtures
    cannot be replaced by a different garden or an elevated identity.
-2. **Cloud browser continuity.** Demonstrate that the scheduled execution context can reach the
-   intended Brave profiles and preserve their separate wallet identities after a restart and
-   between scheduled invocations. A manual login or walkthrough is insufficient.
+2. **Profile continuity.** Demonstrate that the execution context (the QA machine's logged-in
+   desktop session) can reach the intended QA profile over its loopback CDP port and keeps its
+   separate wallet identities after a browser relaunch, a machine restart and between runs. A
+   manual login or walkthrough is insufficient.
 3. **Authentication renewal.** The recorder requires allowlisted Sign-In With Ethereum (SIWE)
    and has 12-hour sessions. Prove authorized renewal in the scheduled context, including expiry
    and rejection handling, without exporting credentials or weakening the allowlist. Product
@@ -83,6 +94,83 @@ When a gate fails, continue only authorized read-only connector and HTTP checks.
 coverage as blocked with the missing prerequisite. HTTP success is availability evidence, not
 rendered or authenticated proof. Do not repair access by changing credentials, permissions,
 allowlists, dependencies, CI, or deployments within this workflow.
+
+## Run on a local QA profile
+
+The QA machine runs the browser, Playwright and the debugging connection; nothing reaches the
+browser from another machine. The repository holds the procedure and the tests. The private
+operational record holds each machine's settings, approvals, receipts and qualification results.
+
+### Prepare the profile once per machine
+
+1. Give the QA profile its own user data folder. Browsers ignore a debugging port on their default
+   folder, and a separate folder keeps the QA profile apart from anyone's own profiles. Start it
+   with `--user-data-dir=<QA folder> --remote-debugging-port=<port>` and keep the port on
+   `127.0.0.1`. If a prepared QA profile already lives in a browser's default folder, copy it into
+   the dedicated folder while that browser is closed, so its test identities are preserved, and
+   leave the original untouched.
+2. In that profile, enable the wallet extension with the gardener and steward identities and the
+   QA passkey's password manager. Unlock them as the operator; unlock passwords come from the QA
+   password vault and never enter a job, a log or a capture.
+3. Open the production App in a tab and use the browser's **Install** action. Open Green Goods from
+   the Dock, sign in, enter the test garden, close any open sheet, and confirm the submission queue
+   is empty.
+4. Write the machine's private settings file (its path goes in `GREEN_GOODS_QA_CONFIG`). It names
+   the machine, the browser channel, the CDP endpoint, the App and Hub origins, the test garden's
+   name and address, and the evidence folder. It stays outside Git.
+
+Start the QA profile before opening Green Goods from the Dock: the installed app then opens in the
+running instance, where CDP can see it. Opened first, the app would start the browser without its
+debugging port.
+
+### Run the installed-app smoke
+
+Run it on the QA machine, from a checkout at the commit under test:
+
+```bash
+GREEN_GOODS_PWA_CDP_ENDPOINT=http://127.0.0.1:9222 \
+  bun --no-env-file run playwright test --config tests/installed-pwa/playwright.config.ts
+```
+
+Replace `9222` with the QA profile's port. The smoke opens an ordinary tab of the site beside the
+installed window and passes only when it finds exactly one window in standalone display mode and
+tells it apart from the tab. In that window it checks Home with a garden entered, no sheet open and
+an empty queue, opens the test garden and returns Home. It answers analytics and error-report
+requests inside the browser, refuses any request that would write, and saves a receipt with the
+machine, session type, browser, the Dock app's launch trace, the deployed build and the verdict.
+
+Qualify it twice per machine: once as prepared, then quit the installed app, open it again from
+the Dock and run it again. Qualify wallet and passkey prompts in the installed window separately
+when the scope needs them; the smoke never opens one.
+
+### Run cases in ordinary tabs
+
+`tests/production-qa` holds the cases that run in ordinary tabs of the same profile. Each test
+title starts with its catalog Test ID or check name, so a run selects cases with `--grep`. Its
+read-only checks confirm the App origin, the wallet's chain and signer against the private
+settings, and that the Hub opens signed in.
+
+### Write cases need an approval
+
+A case that uploads, enqueues, signs or broadcasts runs only under a private approval that names
+the case, its chain, the garden, the signer and role, the side effects, the maximum fee and the
+number of broadcasts. Before its first write, the run passes the preflight in
+`tests/fixtures/production-qa-guard.ts`: approved case, approval not expired, machine and origin,
+chain, garden, signer and fee. It then claims the broadcast with a create-only record, so a
+duplicate job is refused until the earlier attempt is reconciled. Prove these refusals with local
+fixtures before the first production write, and reconcile an uncertain submission before any
+retry.
+
+### Recover
+
+| Symptom | What to do |
+|---|---|
+| The endpoint refuses the connection | Start the QA profile with its debugging port, then reopen the app from the Dock. |
+| No installed window is found | The app opened in another instance or is closed. Quit it, start the QA profile, open the app from the Dock. |
+| Several installed windows are found | Close the extra windows; the smoke never guesses. |
+| The window shows the login screen | Sign in as the operator; the smoke does not sign in. |
+| A write was refused | Treat it as a finding. Read the receipt's refused requests before any rerun. |
+| The wallet is on another chain or account | Switch it as the operator. The preflight blocks the case until both match. |
 
 ## Select canonical cases and roles
 
@@ -109,7 +197,7 @@ complete every step in a case. Read each case's current steps, expected result, 
 
 Keep missing fixture, device, passkey, evaluator, deployer, and other-garden cases Blocked when
 required by the agreed scope, or explicitly N/A when excluded at scope-setting. Leave unwalked
-cases without an entry; N/A must not hide a skipped case. Desktop Brave does not establish mobile
+cases without an entry; N/A must not hide a skipped case. A desktop QA profile does not establish mobile
 hardware acceptance. Do not inherit completion of a multi-role journey from one role's review.
 
 ## Stop before product writes
@@ -130,6 +218,9 @@ Capture each reached stage before moving on. A final-review observation is a sta
 full end-to-end Pass for a case that also requires submission, review decisions, or settlement.
 Use Blocked for the required remainder when the write boundary prevents completion, and explain
 which stages were observed. Only record Pass when the whole selected catalog case was proved.
+
+An approved write case is the exception to this section's stop point, and only for the writes its
+approval names (see [Write cases need an approval](#write-cases-need-an-approval)).
 
 ## Coordinate the shared recorder
 
@@ -169,9 +260,11 @@ claim a successful QA-app run until both creation or reuse and result persistenc
 For each case, keep a private receipt with the interval and run identity, timestamp and timezone,
 environment and origins, observed build and catalog revisions, role, browser engine and session,
 device or viewport, steps reached, expected and observed behavior, verdict, safe stop point, and
-remaining gate. Label evidence as authenticated Brave only when authentication was actually
-verified in that session. Label public Brave navigation, blocked login attempts, and HTTP-only
-checks according to what was observed; a dedicated cloud profile alone proves no authentication.
+remaining gate. Record the machine, browser channel and session type
+in each receipt. Label evidence as authenticated only when authentication was actually verified in
+that session, and name the browser that produced it. Label public navigation, blocked login
+attempts, and HTTP-only checks according to what was observed; a dedicated QA profile alone proves
+no authentication.
 Distinguish desktop, real installed mobile hardware, and mock or clean-room browser evidence.
 
 Keep screenshots, recordings, garden contents, account addresses, tester attribution, actual run
