@@ -290,7 +290,7 @@ Generated: ${new Date().toISOString().replace(/\.\d{3}Z$/, "Z")}
 
 ## Threshold Policy
 
-Threshold math uses one LCOV run over all local non-fork, non-E2E Solidity tests and core production sources only.
+Threshold math merges the LCOV of every coverage shard, which together run all local non-fork, non-E2E Solidity tests, and counts core production sources only.
 
 Excluded from threshold math:
 - \`script/**\`
@@ -331,8 +331,8 @@ Execution Notes:
 ${failureReason ? `- Reason: ${failureReason}\n` : ""}- Overall status: ${overallStatus}
 
 Artifacts:
-- output/contracts-test-audit/lcov-local.info
-- output/contracts-test-audit/coverage-local.log
+- output/contracts-test-audit/lcov-local.info (all shards merged)
+- output/contracts-test-audit/coverage-<shard>.log (one per shard)
 `;
 
 const summaryJson = {

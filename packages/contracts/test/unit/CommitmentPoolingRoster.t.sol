@@ -29,6 +29,18 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         assertEq(module.getCommitment(commitmentId).contributorCount, 2);
     }
 
+    function testCommitmentPooling_revertsWhenContributorIsAlreadyActive() public {
+        uint256 commitmentId = _openPolicyOffer(keccak256("roster-join-twice"));
+        vm.prank(JOINER);
+        module.joinCommitment(commitmentId);
+
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.ContributorAlreadyActive.selector, JOINER));
+        vm.prank(JOINER);
+        module.joinCommitment(commitmentId);
+
+        assertEq(module.getCommitment(commitmentId).contributorCount, 2);
+    }
+
     function testSelfJoinRejectsLeadManagedRostersAndNonMembers() public {
         uint256 leadManaged = _createOffer(keccak256("roster-join-lead-managed"));
         _acceptOffer(leadManaged);
